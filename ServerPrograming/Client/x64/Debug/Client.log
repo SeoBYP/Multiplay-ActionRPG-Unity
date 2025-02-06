@@ -1,2 +1,30 @@
-﻿  Client.cpp
+﻿  ClientSocket.cpp
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerPrograming\ServerPrograming\Socket.h(48,12): warning C4267: '초기화 중': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+  (소스 파일 '../ServerPrograming/ClientSocket.cpp'을(를) 컴파일하는 중)
+  
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerPrograming\ServerPrograming\Socket.h(59,12): warning C4267: '초기화 중': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+  (소스 파일 '../ServerPrograming/ClientSocket.cpp'을(를) 컴파일하는 중)
+  
+  ServerSocket.cpp
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerPrograming\ServerPrograming\Socket.h(48,12): warning C4267: '초기화 중': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+  (소스 파일 '../ServerPrograming/ServerSocket.cpp'을(를) 컴파일하는 중)
+  
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerPrograming\ServerPrograming\Socket.h(59,12): warning C4267: '초기화 중': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+  (소스 파일 '../ServerPrograming/ServerSocket.cpp'을(를) 컴파일하는 중)
+  
+  Socket.cpp
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerPrograming\ServerPrograming\Socket.h(48,12): warning C4267: '초기화 중': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+  (소스 파일 '../ServerPrograming/Socket.cpp'을(를) 컴파일하는 중)
+  
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerPrograming\ServerPrograming\Socket.h(59,12): warning C4267: '초기화 중': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+  (소스 파일 '../ServerPrograming/Socket.cpp'을(를) 컴파일하는 중)
+  
+  Client.cpp
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerPrograming\ServerPrograming\Socket.h(48,12): warning C4267: '초기화 중': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+  (소스 파일 'Client.cpp'을(를) 컴파일하는 중)
+  
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerPrograming\ServerPrograming\Socket.h(59,12): warning C4267: '초기화 중': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+  (소스 파일 'Client.cpp'을(를) 컴파일하는 중)
+  
+  코드를 생성하고 있습니다...
   Client.vcxproj -> C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerPrograming\x64\Debug\Client.exe

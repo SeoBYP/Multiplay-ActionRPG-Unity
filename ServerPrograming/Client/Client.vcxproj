@@ -127,7 +127,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\ServerPrograming\ClientSocket.cpp" />
+    <ClCompile Include="..\ServerPrograming\ServerSocket.cpp" />
+    <ClCompile Include="..\ServerPrograming\Socket.cpp" />
     <ClCompile Include="Client.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\ServerPrograming\ClientSocket.h" />
+    <ClInclude Include="..\ServerPrograming\ServerSocket.h" />
+    <ClInclude Include="..\ServerPrograming\Socket.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
