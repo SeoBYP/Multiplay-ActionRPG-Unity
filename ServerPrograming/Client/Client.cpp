@@ -8,6 +8,7 @@
 #include <ws2tcpip.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string>
 
 #include "../ServerPrograming/ClientSocket.h"
 
@@ -25,11 +26,26 @@ int main()
 	try
 	{
 		ClientSocket client("127.0.0.1", 8080);
-		client.Send("Hello Socket");
-
-		string response = client.Receive();
-		if (!response.empty())
+		while (true)
 		{
+			string input;
+			std::cout << "메시지를 입력하세요 : ";
+			std::getline(std::cin, input);
+
+			if (input.size() <= 0)
+			{
+				continue;
+			}
+
+			if (input == "shutdown")
+			{
+				client.Send(input);
+				client.Shutdown();
+				break;
+			}
+
+			client.Send(input);
+			string response = client.Receive();
 			std::cout << "Received: " << response << std::endl;
 		}
 	}
@@ -37,7 +53,5 @@ int main()
 	{
 		std::cerr << e.what() << std::endl;
 	}
-
-
     return 0;
 }

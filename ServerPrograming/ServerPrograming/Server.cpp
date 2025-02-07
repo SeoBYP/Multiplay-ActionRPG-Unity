@@ -4,6 +4,7 @@
 
 #include <exception>
 #include <iostream>
+#include <map>
 #include <ostream>
 #include <windows.h>
 #include <winsock2.h>
@@ -23,6 +24,7 @@ using namespace std;
 
 int main()
 {
+	vector<SOCKET> connectedSocket;
 	try
 	{
 		ServerSocket server(8080);
@@ -30,22 +32,32 @@ int main()
 		while (true)
 		{
 			SOCKET clientSocket = server.Accept();
-			if (clientSocket == INVALID_SOCKET) {
-				std::cerr << "Accept failed with error: " << WSAGetLastError() << std::endl;
+			if (clientSocket == INVALID_SOCKET)
 				continue;
-			}
+
 			std::cout << "Client connected!" << std::endl;
+			connectedSocket.push_back(clientSocket);
 
-			string message = server.Receive(clientSocket);
-			std::cout << "Message from client: " << message << std::endl;
-			server.Send(clientSocket , "Hello Client");
+			while (true)
+			{
+				string message = server.Receive(clientSocket);
+				if (message == "shutdown")
+				{
+					break;
+				}
+				std::cout << "Message from client: " << message << std::endl;
+				// 클라이언트에게 응답
+				server.Send(clientSocket, "Server received: " + message);
+			}
+			server.CloseSocket(clientSocket);
+			connectedSocket.erase(remove(connectedSocket.begin(), connectedSocket.end(), clientSocket)
+				,connectedSocket.end());
 
-			// 1초 정도 대기 후 소켓 닫기 (클라이언트가 데이터 받을 시간 확보)
-			Sleep(1000);
-
-			closesocket(clientSocket);
+			std::cout << "Client disconnected." << std::endl;
+			if (connectedSocket.empty())
+				break;
 		}
-
+		server.Shutdown();
 	}
 	catch (const std::exception& e)
 	{
