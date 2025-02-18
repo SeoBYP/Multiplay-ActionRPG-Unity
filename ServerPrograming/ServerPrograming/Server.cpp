@@ -1,67 +1,73 @@
-﻿#undef UNICODE
+﻿// EchoServer.cpp : 이 파일에는 'main' 함수가 포함됩니다. 거기서 프로그램 실행이 시작되고 종료됩니다.
+//
 
-#define WIN32_LEAN_AND_MEAN
-
-#include <exception>
 #include <iostream>
-#include <map>
-#include <ostream>
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <system_error>
+#include <boost/asio.hpp>
 
-#include "ServerSocket.h"
-
-#pragma comment(lib, "Ws2_32.lib")
-
-#define DEFAULT_PORT "27015"
-#define DEFAULT_BUFLEN 1024
-
+using boost::asio::ip::tcp;
+using namespace boost;
 using namespace std;
 
 int main()
 {
-	vector<SOCKET> connectedSocket;
-	try
-	{
-		ServerSocket server(8080);
+    boost::asio::io_context io_context;
+    // tcp::v4()는 IPv4 주소 체계를 사용하는 TCP 소켓을 사용하는 활용
+    // 현재 해당 코드는 서버로 사용되기 때문에, 해당 함수를 통해 네트워크 인터페이스 카드에서 사용가능한 주소를 자동으로 할당합니다.
+    // 이를 통해 서버는 자동으로 사용 가능한 IPv4 주소를 감지하여 소켓을 생성합니다.
+    tcp::endpoint endpoint = tcp::endpoint(tcp::v4(), 4242);
+    std::cout << "start server" << std::endl;
 
-		while (true)
-		{
-			SOCKET clientSocket = server.Accept();
-			if (clientSocket == INVALID_SOCKET)
-				continue;
 
-			std::cout << "Client connected!" << std::endl;
-			connectedSocket.push_back(clientSocket);
+    while (true)
+    {
+        // 특정 포트에서 들어오는 연결을 수신할 Accept를 생성
+        tcp::acceptor acceptor(io_context, endpoint);
+        tcp::socket socket(io_context);
 
-			while (true)
-			{
-				string message = server.Receive(clientSocket);
-				if (message == "shutdown")
-				{
-					break;
-				}
-				std::cout << "Message from client: " << message << std::endl;
-				// 클라이언트에게 응답
-				server.Send(clientSocket, "Server received: " + message);
-			}
-			server.CloseSocket(clientSocket);
-			connectedSocket.erase(remove(connectedSocket.begin(), connectedSocket.end(), clientSocket)
-				,connectedSocket.end());
+        system::error_code errorCode;
 
-			std::cout << "Client disconnected." << std::endl;
-			if (connectedSocket.empty())
-				break;
-		}
-		server.Shutdown();
-	}
-	catch (const std::exception& e)
-	{
-		std::cerr << e.what() << std::endl;
-	}
-    return 0;
+        // 특정 포트에서 들어오는 연결을 수신하고, 해당 연결을 처리할 소켓을 생성하여 전달합니다.
+        // acceptor는 클라이언트 연결 요청을 가디라면서, 연결이 들어올때마다 새로운 소켓을 생성하고
+        // 해당 소켓을 이용하여 클라이언트와 통신을 처리합니다.
+        // 이렇게 수락된 연결은 이후 네트워크 통신에 사용됩니다.
+        acceptor.accept(socket, errorCode);
+        if (!errorCode)
+        {
+            std::cout << "accepted" << std::endl;
+        }
+        else
+        {
+            std::cout << "aceept Error: " << errorCode.message() << std::endl;
+            return 0;
+        }
+
+        while (true)
+        {
+            char recvBuffer[32] = { 0, };
+
+            // 소켓에서 데이터를 읽어와서 지정된 버퍼에 저장하고, 실제로 읽은 바이트수를 반환합니다.
+            size_t receivedSize = socket.read_some(boost::asio::buffer(recvBuffer, 32), errorCode);
+            if (!errorCode)
+            {
+                std::cout << "Recv size: " << receivedSize << std::endl;
+            }
+            else
+            {
+                std::cout << "Recv Error: " << errorCode.message() << std::endl;
+                return 0;
+            }
+
+            size_t sentSize = socket.write_some(boost::asio::buffer(recvBuffer, 32), errorCode);
+            if (!errorCode)
+            {
+                std::cout << "Sent size: " << sentSize << std::endl;
+            }
+            else
+            {
+                std::cout << "Send Error: " << errorCode.message() << std::endl;
+                return 0;
+            }
+        }
+    }
 }
+
