@@ -1,0 +1,12 @@
+version: "3"
+services:
+  async_server:
+    build: .
+    container_name: async_server
+    ports:
+      - "4242:4242" # 기존 게임 서버 포트
+      - "11111:22" # SSH 포트 매핑 추가 (컨테이너 내부 SSH 22번 -> 호스트 11111번)
+    restart: always
+    volumes:
+      - .:/app
+    tty: true
