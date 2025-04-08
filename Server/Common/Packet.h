@@ -16,29 +16,7 @@
 #include <cstdint>
 
 
-class Packet {
-protected:
-    PacketType m_type;
-    uint32_t m_size;
-
-public:
-    Packet(PacketType type = PacketType::UNKNOWN, uint32_t size = 0)
-        : m_type(type), m_size(size) {
-    }
-    virtual ~Packet() = default;
-
-    PacketType getType() const { return m_type; }
-    uint32_t getSize() const { return m_size; }
-
-protected:
-    void setType(PacketType type) { m_type = type; }
-    void setSize(uint32_t size) { m_size = size; }
-
-private:
-    friend class boost::serialization::access;
-    template<class Archive>
-    void serialize(Archive& ar, const unsigned int version) {
-        ar& m_type;
-        ar& m_size;
-    }
+struct PACKET_API PacketHeader {
+    PacketType type;
+    uint32_t size;
 };

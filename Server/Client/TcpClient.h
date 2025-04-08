@@ -1,8 +1,9 @@
 #pragma once
 #include <string>
 #include <boost/asio.hpp>
+#include <thread>
+#include <iostream>
 #include "Packet.h"
-#include "PacketSerializer.h"
 
 class TcpClient
 {
@@ -18,7 +19,7 @@ public:
 	/// <param name="host"></param>
 	/// <param name="port"></param>
 	void Connect(std::string host, int port);
-	void SendPacket(const Packet* packet);
+	void SendPacket(const std::vector<uint8_t>& data);
 
 private:
 	// async_connect 함수의 두번쨰 인자로 전달되는 함수는 연결이 성공적으로 이루어진 후 실행되는 함수
@@ -35,7 +36,8 @@ private:
 	/// 이 함수를 통해서 비동기적인 데이터 송신 작업을 할 수 있습니다.
 	/// </summary>
 	/// <param name="message"></param>
-	void AsyncWrite(std::string message);
+	void AsyncWrite(std::string& message);
+	void AsyncWrite(std::shared_ptr<std::vector<uint8_t>> bufferPtr);
 
 	void OnWrite(const boost::system::error_code& errorCode, const size_t bytesTransferred);
 
@@ -55,12 +57,19 @@ private:
 	/// </summary>
 	void OnRead(const boost::system::error_code& errorCode, const size_t bytesTransferred);
 
-	void InputText();
+	void StartInput();
+
+	void HandlePacket(PacketType type, const std::vector<uint8_t>& body);
 
 private:
+	//boost::asio::ip::tcp::socket m_socket;
+	//std::string m_nickName;
+	//static const int m_RecvBufferSize = 1024;
+	//char m_RecvBuffer[m_RecvBufferSize];
 	boost::asio::ip::tcp::socket m_socket;
+	PacketHeader m_currentHeader;
+	std::vector<uint8_t> m_bodyBuffer;
+	char m_headerBuffer[sizeof(PacketHeader)];
 	std::string m_nickName;
-	std::string m_sendMessage;
-	static const int m_RecvBufferSize = 1024;
-	char m_RecvBuffer[m_RecvBufferSize];
+	bool m_isReady;
 };

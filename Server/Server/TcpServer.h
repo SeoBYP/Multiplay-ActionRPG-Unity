@@ -3,7 +3,7 @@
 #include <iostream>
 #include <boost/asio.hpp>
 #include "Packet.h"
-#include "PacketSerializer.h"
+
 
 class TcpSession;
 using boost::asio::ip::tcp;
@@ -15,13 +15,15 @@ class TcpServer
 public:
 	TcpServer(asio::io_context& io_context, int port);
 	void StartAccept();
-	//void broad_cast(char* message, size_t message_size);
-	//void broad_cast(string& message);
-	void broad_cast(const Packet& packet);
+	void broad_cast(char* message, size_t message_size);
+	void broad_cast(string& message);
+	void broad_cast(const std::vector<uint8_t>& message);
+	//void broad_cast(const Packet& packet);
 
-	//void send_whisper(const string& nickname, char* message, size_t message_size);
-	//void send_whisper(const string& nickname, string& message);
-	void send_whisper(const string& nickname, const Packet& packet);
+	void send_whisper(const string& nickname, char* message, size_t message_size);
+	void send_whisper(const string& nickname, string& message);
+	void send_whisper(const string& nickname, const std::vector<uint8_t>& message);
+	//void send_whisper(const string& nickname, const Packet& packet);
 	void OnAccept(TcpSession* session, const system::error_code& error_code);
 
 private:

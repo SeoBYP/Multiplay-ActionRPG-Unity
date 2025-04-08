@@ -25,58 +25,75 @@ void TcpServer::StartAccept()
 		});
 }
 
-//void TcpServer::broad_cast(char* message, size_t message_size)
-//{
-//	for (auto session : m_sessions)
-//	{
-//		session->Send(message, message_size);
-//	}
-//}
-//
-//void TcpServer::broad_cast(string& message)
-//{
-//	for (auto session : m_sessions)
-//	{
-//		session->Send(message);
-//	}
-//}
-
-void TcpServer::broad_cast(const Packet& packet)
+void TcpServer::broad_cast(char* message, size_t message_size)
 {
-	for (auto session : m_sessions) {
-		session->SendPacket(packet);
+	for (auto session : m_sessions)
+	{
+		session->Send(message, message_size);
 	}
 }
 
+void TcpServer::broad_cast(string& message)
+{
+	for (auto session : m_sessions)
+	{
+		session->Send(message);
+	}
+}
 
-//void TcpServer::send_whisper(const string& nickname, char* message, size_t message_size)
+void TcpServer::broad_cast(const std::vector<uint8_t>& message)
+{
+	for (auto session : m_sessions) {
+		session->Send(message);
+	}
+}
+
+//void TcpServer::broad_cast(const Packet& packet)
 //{
-//	for (auto session : m_sessions)
-//	{
-//		if (!session->GetNickname().compare(nickname))
-//			continue;
-//		session->Send(message, message_size);
+//	for (auto session : m_sessions) {
+//		session->SendPacket(packet);
 //	}
 //}
-//void TcpServer::send_whisper(const string& nickname, string& message)
-//{
-//	for (auto session : m_sessions)
-//	{
-//		if (session->GetNickname() != nickname)
-//			continue;
-//		session->Send(message);
-//	}
-//}
 
-void TcpServer::send_whisper(const string& nickname, const Packet& packet)
+
+void TcpServer::send_whisper(const string& nickname, char* message, size_t message_size)
 {
 	for (auto session : m_sessions)
 	{
 		if (!session->GetNickname().compare(nickname))
 			continue;
-		session->SendPacket(packet);
+		session->Send(message, message_size);
 	}
 }
+void TcpServer::send_whisper(const string& nickname, string& message)
+{
+	for (auto session : m_sessions)
+	{
+		if (session->GetNickname() != nickname)
+			continue;
+		session->Send(message);
+	}
+}
+
+void TcpServer::send_whisper(const string& nickname, const std::vector<uint8_t>& message)
+{
+	for (auto session : m_sessions)
+	{
+		if (session->GetNickname() != nickname)
+			continue;
+		session->Send(message);
+	}
+}
+
+//void TcpServer::send_whisper(const string& nickname, const Packet& packet)
+//{
+//	for (auto session : m_sessions)
+//	{
+//		if (!session->GetNickname().compare(nickname))
+//			continue;
+//		session->SendPacket(packet);
+//	}
+//}
 
 // 세션의 Start함수를 호출하여 통신을 시작하고
 // StartAccept 다시 호출해서 클라이언트의 접속을 비동기적으로 대기

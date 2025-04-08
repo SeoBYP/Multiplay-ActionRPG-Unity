@@ -30,15 +30,19 @@ void TcpSession::Send(string message)
 	AsyncWrite(message);
 }
 
+void TcpSession::Send(const std::vector<uint8_t>& buffer)
+{
+	if (buffer.size() > m_SendBufferSize) {
+		std::cerr << "[Send 오류] 메시지 크기가 버퍼보다 큽니다.\n";
+		return;
+	}
+	std::memcpy(m_SendBuffer, buffer.data(), buffer.size());
+	AsyncWrite(m_SendBuffer, buffer.size());
+}
+
 tcp::socket& TcpSession::GetSocket()
 {
 	return m_socket;
-}
-
-void TcpSession::SendPacket(const Packet& packet)
-{
-	//std::string serializedData = serializePacket(&packet);
-	//AsyncWrite(serializedData);
 }
 
 void TcpSession::AsyncRead()
@@ -56,34 +60,46 @@ void TcpSession::OnRead(const boost::system::error_code& errorCode, const size_t
 	std::cout << "OnRead: " << bytesTransferred << ", " << m_RecvBuffer << std::endl;
 	if (!errorCode)
 	{
-		try
+		// 1. PacketHeader 파싱
+		PacketHeader header;
+		// RecvBuffer에서 PacketHeader 만큼 복사
+		std::memcpy(&header, m_RecvBuffer, sizeof(PacketHeader));
+		size_t offset = sizeof(PacketHeader);
+
+		// 2. 타입에 따라 분기
+		if (header.type == PacketType::CHAT)
 		{
-			string receivedData(m_RecvBuffer, bytesTransferred);
-			std::cout << "[TcpSession] 채팅 메시지 수신: " << receivedData << '\n';
-			//auto packet = deserializePacket(receivedData);
+			std::vector<uint8_t> buffer(m_RecvBuffer, m_RecvBuffer + bytesTransferred);
+			ChatPacket pkt = ChatPacket::Deserialize(buffer, offset);
+			std::cout << "[" << pkt.sender << "] -> [" << pkt.receiver << "] : " << pkt.message << "\n";
 
-			//if (!packet) {
-			//	std::cerr << "[Error] 패킷 역직렬화 실패: packet == nullptr" << std::endl;
-			//	return;
-			//}
+			// 3. 브로드캐스트 또는 귓속말
+			if (pkt.receiver == "ALL" || pkt.receiver.empty()) {
+				// 전체 패킷 다시 구성
+				auto body = pkt.Serialize();
+				PacketHeader header{ PacketType::CHAT, static_cast<uint32_t>(body.size()) };
 
-			//if (packet->getType() == PacketType::CHAT) {
-			//	auto chatPacket = dynamic_cast<ChatPacket*>(packet.get());
-			//	if (!chatPacket) {
-			//		std::cerr << "[Error] ChatPacket 캐스팅 실패" << std::endl;
-			//		return;
-			//	}
-			//	std::cout << "[TcpSession] 채팅 메시지 수신: " << chatPacket->getMessage() << '\n';
-			//	m_server->broad_cast(*chatPacket);
-			//}
+				std::vector<uint8_t> fullPacket;
+				fullPacket.insert(fullPacket.end(), reinterpret_cast<uint8_t*>(&header), reinterpret_cast<uint8_t*>(&header) + sizeof(header));
+				fullPacket.insert(fullPacket.end(), body.begin(), body.end());
 
-			memset(m_RecvBuffer, 0, m_RecvBufferSize);
-			AsyncRead();
+				m_server->broad_cast(fullPacket);
+			}
+			else {
+				auto body = pkt.Serialize();
+				PacketHeader header{ PacketType::CHAT, static_cast<uint32_t>(body.size()) };
+
+				std::vector<uint8_t> fullPacket;
+				fullPacket.insert(fullPacket.end(), reinterpret_cast<uint8_t*>(&header), reinterpret_cast<uint8_t*>(&header) + sizeof(header));
+				fullPacket.insert(fullPacket.end(), body.begin(), body.end());
+
+				m_server->send_whisper(pkt.receiver, fullPacket);
+			}
 		}
-		catch (const std::exception&)
-		{
 
-		}
+		memset(m_RecvBuffer, 0, m_RecvBufferSize);
+		AsyncRead();
+
 	}
 	else
 	{

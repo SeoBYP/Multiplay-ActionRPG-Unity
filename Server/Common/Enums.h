@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-enum class PacketType : uint16_t {
+enum class PacketType : uint32_t {
     CHAT = 1,
     LOGIN = 2,
     SYSTEM = 3,

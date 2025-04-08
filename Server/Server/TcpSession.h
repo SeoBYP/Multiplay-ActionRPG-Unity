@@ -2,9 +2,8 @@
 
 #include <iostream>
 #include <boost/asio.hpp>
-#include "Packet.h"
 #include "ChatPacket.h"
-#include "PacketSerializer.h"
+
 
 class TcpServer;
 
@@ -20,17 +19,23 @@ class TcpSession
 public:
 	TcpSession(boost::asio::io_context& io_context, TcpServer* server, int sessionID);
 	void Start();
+
+	// Send
 	void Send(char* message, size_t message_size);
 	void Send(string message);
+	void Send(const std::vector<uint8_t>& buffer);
+
+	// GET
 	tcp::socket& GetSocket();
 	int GetSessionID() const { return  m_sessionID; }
 	string GetNickname() const { return m_nickName; }
 
-	void SendPacket(const Packet& packet);
-
 private:
+	// Read
 	void AsyncRead();
 	void OnRead(const boost::system::error_code& errorCode, const size_t bytesTransferred);
+
+	// Write
 	void AsyncWrite(char* message, size_t size);
 	void AsyncWrite(string message);
 	void OnWrite(const boost::system::error_code& errorCode, const size_t bytesTransferred);

@@ -6,32 +6,25 @@
 #include "TcpClient.h"
 #include "Packet.h"
 #include "ChatPacket.h"
-#include "PacketSerializer.h"
 
 using namespace std;
 
 int main()
 {
-	//boost::asio::io_context io_context;
+	boost::asio::io_context io_context;
+	
 	//TcpClient client(io_context);
 	//client.Connect("127.0.0.1", 4242);
 
+	std::shared_ptr<TcpClient> client = std::make_shared<TcpClient>(io_context);
+	client->Connect("127.0.0.1", 4242);
+
+
 	// 비동기 I/O 작업이 처리된 후에 호출되는 함수를 실행시켜주는 함수
 	// 이 함수는 블록함수로 새로운 비동기 작업이 등록되거나 완료될 떄까지 기다립니다.
-	//io_context.run();
+	io_context.run();
 
 	// 다양한 Packet 파생 객체 생성
-	Packet* chat = new ChatPacket("이름", ChatType::GLOBAL, "안녕하세요");
-	auto serialized = PacketSerializer::Serialize(chat);  // 다형성 직렬화
-
-	auto deserialized = PacketSerializer::Deserialize(serialized);  // 다형성 역직렬화
-
-	std::cout << "Deserialized type: " << typeid(*deserialized).name() << "\n";
-	std::cout << "Packet size: " << deserialized->getSize() << "\n";
-
-	if (auto chatDeserialized = dynamic_cast<ChatPacket*>(deserialized.get())) {
-		std::cout << "Chat message: " << chatDeserialized->getMessage() << "\n";
-	}
 
 
 	//Packet packet(PacketType::SYSTEM, 10);

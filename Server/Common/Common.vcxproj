@@ -152,15 +152,14 @@ copy /Y "$(OutDir)$(TargetName).lib" "$(SolutionDir)Builds\$(TargetName).lib"</C
     <ClInclude Include="Enums.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Packet.h" />
-    <ClInclude Include="PacketSerializer.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ChatPacket.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="Enums.cpp" />
     <ClCompile Include="Packet.cpp" />
-    <ClCompile Include="PacketSerializer.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -170,6 +169,9 @@ copy /Y "$(OutDir)$(TargetName).lib" "$(SolutionDir)Builds\$(TargetName).lib"</C
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Common.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

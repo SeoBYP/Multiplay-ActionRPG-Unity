@@ -5,6 +5,7 @@
 #include <boost/serialization/base_object.hpp>
 #include <boost/serialization/string.hpp>
 #include "Enums.h"
+#include <vector>
 
 #ifdef PACKET_API_EXPORTS
 #define PACKET_API __declspec(dllexport)
@@ -12,36 +13,42 @@
 #define PACKET_API __declspec(dllimport)
 #endif
 
-class PACKET_API ChatPacket : public Packet {
-private:
+struct PACKET_API ChatPacket {
     std::string sender;
     std::string receiver;
-    ChatType chatType;
     std::string message;
+    uint8_t chatType;
 
-public:
-    ChatPacket();
-    ChatPacket(std::string s, ChatType t, std::string msg, std::string r = "");
+    std::vector<uint8_t> Serialize() const {
+        std::vector<uint8_t> data;
+        auto writeString = [&](const std::string& s) {
+            uint16_t len = static_cast<uint16_t>(s.size());
+            data.insert(data.end(), reinterpret_cast<uint8_t*>(&len), reinterpret_cast<uint8_t*>(&len) + sizeof(len));
+            data.insert(data.end(), s.begin(), s.end());
+            };
 
-    const std::string& getSender() const { return sender; }
-    const std::string& getReceiver() const { return receiver; }
-    const std::string& getMessage() const { return message; }
-    ChatType getChatType() const { return chatType; }
+        writeString(sender);
+        writeString(receiver);
+        writeString(message);
+        data.push_back(chatType);
 
-private:
-    friend class boost::serialization::access;
-    template<class Archive>
-    void serialize(Archive& ar, const unsigned int version) {
-        ar& boost::serialization::base_object<Packet>(*this);
-        ar& sender;
-        ar& receiver;
-        ar& chatType;
-        ar& message;
+        return data;
+    }
+
+    static ChatPacket Deserialize(const std::vector<uint8_t>& buffer, size_t& offset) {
+        auto readString = [&](std::string& out) {
+            uint16_t len;
+            std::memcpy(&len, &buffer[offset], sizeof(len));
+            offset += sizeof(len);
+            out = std::string(buffer.begin() + offset, buffer.begin() + offset + len);
+            offset += len;
+            };
+
+        ChatPacket pkt;
+        readString(pkt.sender);
+        readString(pkt.receiver);
+        readString(pkt.message);
+        pkt.chatType = buffer[offset++];
+        return pkt;
     }
 };
-
-// 선언은 실행파일(Client)에서만 하도록 분기
-#ifndef PACKET_API_EXPORTS
-#include <boost/serialization/export.hpp>
-BOOST_CLASS_EXPORT_KEY(ChatPacket)
-#endif
