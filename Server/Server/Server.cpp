@@ -3,12 +3,12 @@
 
 #include <iostream>
 #include <Packet.h>
-#include "TcpServer.h"
+#include "GameServer.h"
 
 int main()
 {
 	boost::asio::io_context io_context;
-	TcpServer server(io_context, 4242);
+	GameServer server(io_context, 4242);
 	server.StartAccept();
 
 	std::cout << "Server Start" << std::endl;

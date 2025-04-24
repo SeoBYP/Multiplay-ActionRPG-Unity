@@ -1,7 +1,8 @@
-#include "TcpSession.h"
-#include "TcpServer.h"
+#include <Packet.h>
+#include "PlayerSession.h"
+#include "GameServer.h"
 
-TcpSession::TcpSession(boost::asio::io_context& io_context, TcpServer* server, int sessionID)
+PlayerSession::PlayerSession(boost::asio::io_context& io_context, GameServer* server, int sessionID)
 	: m_socket(io_context), m_server(server), m_sessionID(sessionID)
 {
 	memset(m_SendBuffer, 0, m_SendBufferSize);
@@ -12,25 +13,25 @@ TcpSession::TcpSession(boost::asio::io_context& io_context, TcpServer* server, i
 /// 통신은 항상 서버와 클라이언트 간의 시작단계로 Read를 통해 이루어집니다.
 /// 이 함수는 Read를 통해 통신을 시작합니다.
 /// </summary>
-void TcpSession::Start()
+void PlayerSession::Start()
 {
 	AsyncRead();
 }
 
-void TcpSession::Send(char* message, size_t message_size)
+void PlayerSession::Send(char* message, size_t message_size)
 {
 	std::cout << "Send Message " << message << '\n';
 	AsyncWrite(message, message_size);
 }
 
-void TcpSession::Send(string message)
+void PlayerSession::Send(string message)
 {
 	std::cout << "Send Message " << message << '\n';
 
 	AsyncWrite(message);
 }
 
-void TcpSession::Send(const std::vector<uint8_t>& buffer)
+void PlayerSession::Send(const std::vector<uint8_t>& buffer)
 {
 	if (buffer.size() > m_SendBufferSize) {
 		std::cerr << "[Send 오류] 메시지 크기가 버퍼보다 큽니다.\n";
@@ -40,12 +41,14 @@ void TcpSession::Send(const std::vector<uint8_t>& buffer)
 	AsyncWrite(m_SendBuffer, buffer.size());
 }
 
-tcp::socket& TcpSession::GetSocket()
+tcp::socket& PlayerSession::GetSocket()
 {
 	return m_socket;
 }
 
-void TcpSession::AsyncRead()
+
+
+void PlayerSession::AsyncRead()
 {
 	m_socket.async_read_some(boost::asio::buffer(m_RecvBuffer, m_RecvBufferSize),
 		[this](const boost::system::error_code& errorCode,
@@ -55,7 +58,7 @@ void TcpSession::AsyncRead()
 		});
 }
 
-void TcpSession::OnRead(const boost::system::error_code& errorCode, const size_t bytesTransferred)
+void PlayerSession::OnRead(const boost::system::error_code& errorCode, const size_t bytesTransferred)
 {
 	std::cout << "OnRead: " << bytesTransferred << ", " << m_RecvBuffer << std::endl;
 	if (!errorCode)
@@ -83,17 +86,21 @@ void TcpSession::OnRead(const boost::system::error_code& errorCode, const size_t
 				fullPacket.insert(fullPacket.end(), reinterpret_cast<uint8_t*>(&header), reinterpret_cast<uint8_t*>(&header) + sizeof(header));
 				fullPacket.insert(fullPacket.end(), body.begin(), body.end());
 
-				m_server->broad_cast(fullPacket);
+				if (auto room = GetGameRoom())
+				{
+					room->Broadcast(fullPacket);
+				}
+				//m_server->broad_cast(fullPacket);
 			}
 			else {
-				auto body = pkt.Serialize();
-				PacketHeader header{ PacketType::CHAT, static_cast<uint32_t>(body.size()) };
+				//auto body = pkt.Serialize();
+				//PacketHeader header{ PacketType::CHAT, static_cast<uint32_t>(body.size()) };
 
-				std::vector<uint8_t> fullPacket;
-				fullPacket.insert(fullPacket.end(), reinterpret_cast<uint8_t*>(&header), reinterpret_cast<uint8_t*>(&header) + sizeof(header));
-				fullPacket.insert(fullPacket.end(), body.begin(), body.end());
+				//std::vector<uint8_t> fullPacket;
+				//fullPacket.insert(fullPacket.end(), reinterpret_cast<uint8_t*>(&header), reinterpret_cast<uint8_t*>(&header) + sizeof(header));
+				//fullPacket.insert(fullPacket.end(), body.begin(), body.end());
 
-				m_server->send_whisper(pkt.receiver, fullPacket);
+				//m_server->send_whisper(pkt.receiver, fullPacket);
 			}
 		}
 
@@ -107,7 +114,7 @@ void TcpSession::OnRead(const boost::system::error_code& errorCode, const size_t
 	}
 }
 
-void TcpSession::AsyncWrite(char* message, size_t size)
+void PlayerSession::AsyncWrite(char* message, size_t size)
 {
 	memcpy(m_SendBuffer, message, size);
 
@@ -119,7 +126,7 @@ void TcpSession::AsyncWrite(char* message, size_t size)
 		});
 }
 
-void TcpSession::AsyncWrite(string message)
+void PlayerSession::AsyncWrite(string message)
 {
 	size_t size = message.size();
 	memcpy(m_SendBuffer, message.c_str(), size);
@@ -132,7 +139,7 @@ void TcpSession::AsyncWrite(string message)
 		});
 }
 
-void TcpSession::OnWrite(const boost::system::error_code& errorCode, const size_t bytesTransferred)
+void PlayerSession::OnWrite(const boost::system::error_code& errorCode, const size_t bytesTransferred)
 {
 	std::cout << "OnWrite: " << bytesTransferred << '\n';
 	if (!errorCode)

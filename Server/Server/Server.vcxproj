@@ -133,13 +133,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="GameRoom.cpp" />
     <ClCompile Include="Server.cpp" />
-    <ClCompile Include="TcpServer.cpp" />
-    <ClCompile Include="TcpSession.cpp" />
+    <ClCompile Include="GameServer.cpp" />
+    <ClCompile Include="PlayerSession.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="TcpServer.h" />
-    <ClInclude Include="TcpSession.h" />
+    <ClInclude Include="GameRoom.h" />
+    <ClInclude Include="GameServer.h" />
+    <ClInclude Include="PlayerSession.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
