@@ -37,7 +37,13 @@ void PlayerSession::Send(const std::vector<uint8_t>& buffer)
 		std::cerr << "[Send 오류] 메시지 크기가 버퍼보다 큽니다.\n";
 		return;
 	}
-	std::memcpy(m_SendBuffer, buffer.data(), buffer.size());
+	std::memcpy(m_SendBuffer, buffer.data(), buffer.size()); // 이 줄 필수!
+
+	std::cout << "[SEND FULL PACKET]: ";
+	for (uint8_t b : buffer)
+		printf("%02X ", b);
+	printf("\n");
+
 	AsyncWrite(m_SendBuffer, buffer.size());
 }
 
@@ -82,8 +88,9 @@ void PlayerSession::OnRead(const boost::system::error_code& errorCode, const siz
 				auto body = pkt.Serialize();
 				PacketHeader header{ PacketType::CHAT, static_cast<uint32_t>(body.size()) };
 
-				std::vector<uint8_t> fullPacket;
-				fullPacket.insert(fullPacket.end(), reinterpret_cast<uint8_t*>(&header), reinterpret_cast<uint8_t*>(&header) + sizeof(header));
+				// C++ - PacketHeader를 안전하게 바이트로 복사
+				std::vector<uint8_t> fullPacket(sizeof(PacketHeader));
+				std::memcpy(fullPacket.data(), &header, sizeof(PacketHeader));
 				fullPacket.insert(fullPacket.end(), body.begin(), body.end());
 
 				if (auto room = GetGameRoom())

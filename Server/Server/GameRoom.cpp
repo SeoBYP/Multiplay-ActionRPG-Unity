@@ -22,14 +22,20 @@ bool GameRoom::RemoveSession(int sessionId)
 
 void GameRoom::Broadcast(const std::vector<uint8_t>& packet)
 {
-	std::lock_guard<mutex> lock(m_mutex);
-	for (auto& session : m_sessions)
-	{
-		if (session.second)
-		{
-			session.second->Send(packet);
-		}
-	}
+    std::cout << "[GameRoom::Broadcast] Broadcasting packet (" << packet.size() << " bytes)\n";
+
+    // 패킷 내용 디버깅
+    for (size_t i = 0; i < std::min(packet.size(), size_t(16)); ++i)
+    {
+        printf("%02X ", packet[i]);
+    }
+    printf("\n");
+
+    for (auto& session : m_sessions)
+    {
+        if (session.second)
+            session.second->Send(packet);  // 반드시 전체 fullPacket 전송
+    }
 }
 
 int GameRoom::GetPlayerCount()

@@ -9,14 +9,14 @@
 #define PACKET_API __declspec(dllimport)
 #endif
 
-#pragma once
-
 #include "Enums.h"
 #include <boost/serialization/serialization.hpp>
 #include <cstdint>
 
-
+#pragma pack(push, 1)
 struct PACKET_API PacketHeader {
     PacketType type;
     uint32_t size;
 };
+
+#pragma pack(pop)
