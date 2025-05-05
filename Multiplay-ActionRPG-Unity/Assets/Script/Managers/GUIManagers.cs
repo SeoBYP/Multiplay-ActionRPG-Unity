@@ -26,4 +26,12 @@ namespace Game.Managers
             return null;
         }
     }
+
+    public static class GUI
+    {
+        public static T Get<T>() where T : UIBehaviour
+        {
+            return GUIManagers.Instance.Get<T>();
+        }
+    }
 }

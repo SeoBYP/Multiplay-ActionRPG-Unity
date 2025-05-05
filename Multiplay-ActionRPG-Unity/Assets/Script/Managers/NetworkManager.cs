@@ -22,7 +22,13 @@ namespace Game.Managers
         protected override void OnInitializeSingleton()
         {
             PacketFactory.RegisterAll();
+            RegisterPacketHandler();
             _ = Connect("127.0.0.1", 4242);
+        }
+
+        private void RegisterPacketHandler()
+        {
+            PacketHandler.Register<ChatPacket>(new ChatPacketHandler());
         }
 
         private async UniTask Connect(string host, int port)
@@ -68,15 +74,10 @@ namespace Game.Managers
                     byte[] buffer = new byte[4096]; // 새로 버퍼 생성
                     int bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length);
 
-                    Debug.Log($"[ReceiveLoop] bytesRead = {bytesRead}");
-
-                    for (int i = 0; i < Math.Min(16, bytesRead); i++)
-                        Debug.Log($"Byte[{i}] = {buffer[i]}");
-
-                    Debug.Log($"[Hex Dump] {BitConverter.ToString(buffer, 0, bytesRead)}");
-
                     if (bytesRead > 0)
-                        ProcessReceived(buffer, bytesRead);
+                    {
+                        ProcessReceived(buffer);
+                    }
                 }
             }
             catch (Exception ex)
@@ -85,14 +86,16 @@ namespace Game.Managers
             }
         }
 
-        private void ProcessReceived(byte[] buffer, int length)
+        private void ProcessReceived(byte[] buffer)
         {
             PacketHeader header = PacketHeader.Deserialize(buffer);
             int offset = Marshal.SizeOf(typeof(PacketHeader));
             Packet pkt = PacketFactory.Deserialize(header.type, buffer, offset);
 
             if (pkt != null)
+            {
                 PacketHandler.HandlePacket(pkt);
+            }
         }
     }
 }

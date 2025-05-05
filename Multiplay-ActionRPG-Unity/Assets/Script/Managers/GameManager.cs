@@ -1,4 +1,5 @@
-﻿using R3;
+﻿using System;
+using R3;
 
 namespace Game.Managers
 {
@@ -9,6 +10,14 @@ namespace Game.Managers
         protected override void OnInitializeSingleton()
         {
             
+        }
+
+        private void Start()
+        {
+            if (string.IsNullOrWhiteSpace(NickName.Value))
+            {
+                GUI.Get<NickNameInputPopup>().Activate();
+            }
         }
     }
 }
