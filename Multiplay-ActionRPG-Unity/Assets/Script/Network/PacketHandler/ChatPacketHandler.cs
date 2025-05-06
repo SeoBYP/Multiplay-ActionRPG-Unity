@@ -13,6 +13,4 @@ namespace Game.Network
             }
         }
     }
-퍄
-
 }
