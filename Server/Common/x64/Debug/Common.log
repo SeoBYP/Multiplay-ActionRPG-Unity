@@ -1,23 +1,35 @@
 ﻿  ChatPacket.cpp
-C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(17,17): warning C4251: 'ChatPacket::sender': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(23,17): warning C4251: 'ChatPacket::sender': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
   (소스 파일 '/ChatPacket.cpp'을(를) 컴파일하는 중)
       C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\xstring(527,7):
       'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 선언을 참조하십시오.
   
-C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(18,17): warning C4251: 'ChatPacket::receiver': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(24,17): warning C4251: 'ChatPacket::receiver': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
   (소스 파일 '/ChatPacket.cpp'을(를) 컴파일하는 중)
       C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\xstring(527,7):
       'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 선언을 참조하십시오.
   
-C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(19,17): warning C4251: 'ChatPacket::message': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(25,17): warning C4251: 'ChatPacket::message': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
   (소스 파일 '/ChatPacket.cpp'을(를) 컴파일하는 중)
       C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\xstring(527,7):
       'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 선언을 참조하십시오.
   
-  Enums.cpp
+  C_SetNicknamePacket.cpp
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\C_SetNicknamePacket.h(16,17): warning C4251: 'C_SetNicknamePacket::nickname': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'C_SetNicknamePacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
+  (소스 파일 '/C_SetNicknamePacket.cpp'을(를) 컴파일하는 중)
+      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\xstring(527,7):
+      'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 선언을 참조하십시오.
+  
+  PacketType.cpp
   Packet.cpp
-  dllmain.cpp
+  S_SetNicknamePacket.cpp
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\S_SetNicknamePacket.h(17,17): warning C4251: 'S_SetNicknamePacket::message': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'S_SetNicknamePacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
+  (소스 파일 '/S_SetNicknamePacket.cpp'을(를) 컴파일하는 중)
+      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\xstring(527,7):
+      'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 선언을 참조하십시오.
+  
   코드를 생성하고 있습니다...
+     C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\x64\Debug\Common.lib 라이브러리 및 C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\x64\Debug\Common.exp 개체를 생성하고 있습니다.
   Common.vcxproj -> C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\x64\Debug\Common.dll
           1개 파일이 복사되었습니다.
           1개 파일이 복사되었습니다.

@@ -1,19 +1,35 @@
-﻿  Client.cpp
+﻿  ChatPacketExport.cpp
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(23,17): warning C4251: 'ChatPacket::sender': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
+  (소스 파일 'ChatPacketExport.cpp'을(를) 컴파일하는 중)
+      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\xstring(527,7):
+      'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 선언을 참조하십시오.
+  
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(24,17): warning C4251: 'ChatPacket::receiver': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
+  (소스 파일 'ChatPacketExport.cpp'을(를) 컴파일하는 중)
+      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\xstring(527,7):
+      'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 선언을 참조하십시오.
+  
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(25,17): warning C4251: 'ChatPacket::message': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
+  (소스 파일 'ChatPacketExport.cpp'을(를) 컴파일하는 중)
+      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\xstring(527,7):
+      'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 선언을 참조하십시오.
+  
+  Client.cpp
   Please define _WIN32_WINNT or _WIN32_WINDOWS appropriately. For example:
   - add -D_WIN32_WINNT=0x0601 to the compiler command line; or
   - add _WIN32_WINNT=0x0601 to your project's Preprocessor Definitions.
   Assuming _WIN32_WINNT=0x0601 (i.e. Windows 7 target).
-C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(17,17): warning C4251: 'ChatPacket::sender': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(23,17): warning C4251: 'ChatPacket::sender': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
   (소스 파일 'Client.cpp'을(를) 컴파일하는 중)
       C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\xstring(527,7):
       'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 선언을 참조하십시오.
   
-C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(18,17): warning C4251: 'ChatPacket::receiver': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(24,17): warning C4251: 'ChatPacket::receiver': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
   (소스 파일 'Client.cpp'을(를) 컴파일하는 중)
       C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\xstring(527,7):
       'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 선언을 참조하십시오.
   
-C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(19,17): warning C4251: 'ChatPacket::message': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(25,17): warning C4251: 'ChatPacket::message': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
   (소스 파일 'Client.cpp'을(를) 컴파일하는 중)
       C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\xstring(527,7):
       'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 선언을 참조하십시오.
@@ -23,17 +39,17 @@ C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(19,17)
   - add -D_WIN32_WINNT=0x0601 to the compiler command line; or
   - add _WIN32_WINNT=0x0601 to your project's Preprocessor Definitions.
   Assuming _WIN32_WINNT=0x0601 (i.e. Windows 7 target).
-C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(17,17): warning C4251: 'ChatPacket::sender': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(23,17): warning C4251: 'ChatPacket::sender': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
   (소스 파일 'TcpClient.cpp'을(를) 컴파일하는 중)
       C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\xstring(527,7):
       'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 선언을 참조하십시오.
   
-C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(18,17): warning C4251: 'ChatPacket::receiver': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(24,17): warning C4251: 'ChatPacket::receiver': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
   (소스 파일 'TcpClient.cpp'을(를) 컴파일하는 중)
       C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\xstring(527,7):
       'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 선언을 참조하십시오.
   
-C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(19,17): warning C4251: 'ChatPacket::message': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.h(25,17): warning C4251: 'ChatPacket::message': 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>'에서는 'ChatPacket'의 클라이언트에서 DLL 인터페이스를 사용하도록 지정해야 함
   (소스 파일 'TcpClient.cpp'을(를) 컴파일하는 중)
       C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\xstring(527,7):
       'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 선언을 참조하십시오.

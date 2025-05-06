@@ -21,9 +21,10 @@ public:
 	int GetRoomID() const { return m_roomId; }
 	int GetPlayerCount();
 
+	std::shared_ptr<PlayerSession> FindPlayerByNick(const std::string& nick);
+
 private:
 	int m_roomId;
 	unordered_map<int, std::shared_ptr<PlayerSession>> m_sessions;
 	mutex m_mutex;
 };
-

@@ -4,6 +4,7 @@
 #include <boost/asio.hpp>
 #include "ChatPacket.h"
 #include "GameRoom.h"
+#include "PacketHandlerRegistry.h"
 
 class GameServer;
 class GameRoom;
@@ -18,7 +19,7 @@ using namespace std;
 class PlayerSession : public std::enable_shared_from_this<PlayerSession>
 {
 public:
-	PlayerSession(boost::asio::io_context& io_context, GameServer* server, int sessionID);
+	PlayerSession(boost::asio::io_context& io_context, int sessionID);
 	void Start();
 
 	// Send
@@ -33,7 +34,11 @@ public:
 	std::shared_ptr<GameRoom> GetGameRoom() const { return m_gameRoom.lock(); }
 
 	//Set
+	void SetNickname(const std::string& nick) { m_nickName = nick; }
 	void SetGameRoom(std::shared_ptr<GameRoom> room) { m_gameRoom = room; }
+
+	// Is
+	bool IsAuthed() const { return !m_nickName.empty(); }
 private:
 	// Read
 	void AsyncRead();
@@ -43,12 +48,13 @@ private:
 	void AsyncWrite(char* message, size_t size);
 	void AsyncWrite(string message);
 	void OnWrite(const boost::system::error_code& errorCode, const size_t bytesTransferred);
-
+	
+	void InitPacketHandlers();
+	
 private:
 	int m_sessionID;
 	string m_nickName;
 	tcp::socket m_socket;
-	GameServer* m_server;
 	static const int m_RecvBufferSize = 1024;
 	char m_RecvBuffer[m_RecvBufferSize];
 	static const int m_SendBufferSize = 1024;

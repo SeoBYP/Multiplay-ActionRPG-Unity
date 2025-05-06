@@ -9,10 +9,10 @@ namespace Game.Network
         {
             if (packet is ChatPacket chat)
             {
-                GUI.Get<MainHUD>().ChatBox.AppendChatMessage(chat.sender,chat.message);
+                _ = GUI.Get<MainHUD>().ChatBox.AppendChatMessage(chat.sender,chat.message);
             }
         }
     }
-
+퍄
 
 }

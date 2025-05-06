@@ -9,7 +9,7 @@
 #define PACKET_API __declspec(dllimport)
 #endif
 
-#include "Enums.h"
+#include "PacketType.h"
 #include <boost/serialization/serialization.hpp>
 #include <cstdint>
 

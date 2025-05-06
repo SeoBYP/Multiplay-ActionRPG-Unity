@@ -1,5 +1,7 @@
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\ChatPacket.cpp;C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\x64\Debug\ChatPacket.obj
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\C_SetNicknamePacket.cpp;C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\x64\Debug\C_SetNicknamePacket.obj
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\dllmain.cpp;C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\x64\Debug\dllmain.obj
-C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\Enums.cpp;C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\x64\Debug\Enums.obj
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\PacketType.cpp;C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\x64\Debug\PacketType.obj
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\Packet.cpp;C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\x64\Debug\Packet.obj
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\pch.cpp;C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\x64\Debug\pch.obj
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\S_SetNicknamePacket.cpp;C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Common\x64\Debug\S_SetNicknamePacket.obj

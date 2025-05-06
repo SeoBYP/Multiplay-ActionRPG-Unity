@@ -5,7 +5,7 @@ GameServer::GameServer(asio::io_context& io_context, int port) :
 	m_acceptor(io_context, tcp::endpoint(tcp::v4(), port)),
 	m_io_context(io_context)
 {
-
+	
 }
 
 /// <summary>
@@ -17,7 +17,7 @@ GameServer::GameServer(asio::io_context& io_context, int port) :
 void GameServer::StartAccept()
 {
 	int nextSessionID = m_sessions.size() + 1;
-	auto session = std::make_shared<PlayerSession>(m_io_context, this, nextSessionID);
+	auto session = std::make_shared<PlayerSession>(m_io_context, nextSessionID);
 	m_acceptor.async_accept(session->GetSocket(),
 		[this, session](const boost::system::error_code& errorCode)
 		{

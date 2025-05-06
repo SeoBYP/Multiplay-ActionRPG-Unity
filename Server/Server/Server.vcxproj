@@ -133,15 +133,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ChatPacketHandler.cpp" />
     <ClCompile Include="GameRoom.cpp" />
+    <ClCompile Include="IPacketHandler.cpp" />
+    <ClCompile Include="PacketHandlerRegistry.cpp" />
     <ClCompile Include="Server.cpp" />
     <ClCompile Include="GameServer.cpp" />
     <ClCompile Include="PlayerSession.cpp" />
+    <ClCompile Include="SetNicknamePacketHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ChatPacketHandler.h" />
     <ClInclude Include="GameRoom.h" />
     <ClInclude Include="GameServer.h" />
+    <ClInclude Include="IPacketHandler.h" />
+    <ClInclude Include="PacketHandlerRegistry.h" />
     <ClInclude Include="PlayerSession.h" />
+    <ClInclude Include="SetNicknamePacketHandler.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

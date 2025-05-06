@@ -4,7 +4,7 @@
 #include <string>
 #include <boost/serialization/base_object.hpp>
 #include <boost/serialization/string.hpp>
-#include "Enums.h"
+#include "PacketType.h"
 #include <vector>
 
 #ifdef PACKET_API_EXPORTS
@@ -12,6 +12,12 @@
 #else
 #define PACKET_API __declspec(dllimport)
 #endif
+
+enum class ChatType {
+    GLOBAL = 0,
+    WHISPER = 1,
+    SYSTEM = 2
+};
 
 struct PACKET_API ChatPacket {
     std::string sender;

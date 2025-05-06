@@ -29,6 +29,7 @@ namespace Game.Managers
         private void RegisterPacketHandler()
         {
             PacketHandler.Register<ChatPacket>(new ChatPacketHandler());
+            PacketHandler.Register<S_SetNicknamePacket>(new SetNicknamePacketHandler());
         }
 
         private async UniTask Connect(string host, int port)

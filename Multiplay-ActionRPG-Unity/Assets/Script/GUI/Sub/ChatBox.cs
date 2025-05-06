@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using Game.Managers;
 using Game.Network;
 using Script.GUI.Sub;
@@ -28,11 +29,11 @@ public class ChatBox : MonoBehaviour
         _chatBubbles.Clear();
         CreateChatBubble();
         
-        _inputField.onSubmit.AddListener(OnSummitChatting);
+        _inputField.onSubmit.AddListener(OnSendMessage);
         _sendButton.onClick.AddListener(OnClickSendButton);
         _chatDropdown.onValueChanged.AddListener(OnChatDropdownValueChanged);
     }
-
+    
     private void CreateChatBubble()
     {
         for (int i = 0; i < ChatBubblePoolSize; i++)
@@ -43,39 +44,45 @@ public class ChatBox : MonoBehaviour
         }
     }
 
-    public void AppendChatMessage(string sender, string message)
+    public async UniTask AppendChatMessage(string sender, string message)
     {
         var bubble = _chatBubbles[_currentIndex];
 
         bubble.SetMessage(sender, message);
         bubble.transform.SetSiblingIndex(_chatContentParent.childCount - 1);
         bubble.gameObject.SetActive(true);
-
+        
         _currentIndex = (_currentIndex + 1) % ChatBubblePoolSize;
 
         // 다음 프레임에서 스크롤 아래로
-        Canvas.ForceUpdateCanvases(); // 즉시 UI 갱신
-        _scrollRect.verticalNormalizedPosition = 0f; // 맨 아래로 스크롤
+        await UniTask.Yield(); // 다음 프레임까지 대기
+
+        LayoutRebuilder.ForceRebuildLayoutImmediate(_chatContentParent as RectTransform);
+        Canvas.ForceUpdateCanvases();
+        _scrollRect.verticalNormalizedPosition = 0f;
     }
     
     private void OnChatDropdownValueChanged(int index)
     {
         _currentChatType = (ChatType)index;
     }
-
+    private void OnSendMessage(string message)
+    {
+        string baseText = _inputField.text;
+        string composed = Input.compositionString;
+        string finalText = (baseText + composed).Trim();
+        _ = SendChatMessage(finalText);
+    }
+    
     private void OnClickSendButton()
     {
-        SendChatMessage(_inputField.text);
-        _inputField.text = "";
+        string baseText = _inputField.text;
+        string composed = Input.compositionString;
+        string finalText = (baseText + composed).Trim();
+        _ = SendChatMessage(finalText);
     }
-
-    private void OnSummitChatting(string message)
-    {
-        SendChatMessage(message);
-        _inputField.text = "";
-    }
-
-    private void SendChatMessage(string message)
+    
+    private async UniTask SendChatMessage(string message)
     {
         if (string.IsNullOrWhiteSpace(message))
             return;
@@ -114,8 +121,9 @@ public class ChatBox : MonoBehaviour
             chatType = _currentChatType
         };
         _ = NetworkManager.Instance.SendPacket(chat);
+        _inputField.DeactivateInputField(); // 조합 종료
+        _inputField.text = "";
+        await UniTask.NextFrame();
+        _inputField.ActivateInputField();
     }
-
-    
-    
 }

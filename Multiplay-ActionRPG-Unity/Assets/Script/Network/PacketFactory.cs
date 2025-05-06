@@ -1,16 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using UnityEngine;
 
 namespace Game.Network
 {
+    
     public static class PacketFactory
     {
         private static readonly Dictionary<PacketType, Func<Packet>> _packetCreators = new();
 
         public static void RegisterAll()
         {
+            _packetCreators.Clear();
             RegisterPacket(PacketType.CHAT, () => new ChatPacket());
+            RegisterPacket(PacketType.SET_NICKNAME_S2C, () => new S_SetNicknamePacket());
             // 여기에 다른 PacketType도 추가 가능
         }
         
@@ -32,6 +36,11 @@ namespace Game.Network
             }
             UnityEngine.Debug.LogWarning($"알 수 없는 패킷 타입: {type}");
             return null;
+        }
+        
+        private static void Clear()
+        {
+            _packetCreators.Clear();
         }
     }
     

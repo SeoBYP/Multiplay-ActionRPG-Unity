@@ -1,12 +1,16 @@
 #include <Packet.h>
 #include "PlayerSession.h"
 #include "GameServer.h"
+#include "ChatPacketHandler.h"
+#include "SetNicknamePacketHandler.h"
 
-PlayerSession::PlayerSession(boost::asio::io_context& io_context, GameServer* server, int sessionID)
-	: m_socket(io_context), m_server(server), m_sessionID(sessionID)
+PlayerSession::PlayerSession(boost::asio::io_context& io_context, int sessionID)
+	: m_socket(io_context), m_sessionID(sessionID)
 {
 	memset(m_SendBuffer, 0, m_SendBufferSize);
 	memset(m_RecvBuffer, 0, m_RecvBufferSize);
+
+	InitPacketHandlers();
 }
 
 /// <summary>
@@ -27,7 +31,6 @@ void PlayerSession::Send(char* message, size_t message_size)
 void PlayerSession::Send(string message)
 {
 	std::cout << "Send Message " << message << '\n';
-
 	AsyncWrite(message);
 }
 
@@ -69,51 +72,15 @@ void PlayerSession::OnRead(const boost::system::error_code& errorCode, const siz
 	std::cout << "OnRead: " << bytesTransferred << ", " << m_RecvBuffer << std::endl;
 	if (!errorCode)
 	{
-		// 1. PacketHeader 파싱
 		PacketHeader header;
-		// RecvBuffer에서 PacketHeader 만큼 복사
 		std::memcpy(&header, m_RecvBuffer, sizeof(PacketHeader));
 		size_t offset = sizeof(PacketHeader);
 
-		// 2. 타입에 따라 분기
-		if (header.type == PacketType::CHAT)
-		{
-			std::vector<uint8_t> buffer(m_RecvBuffer, m_RecvBuffer + bytesTransferred);
-			ChatPacket pkt = ChatPacket::Deserialize(buffer, offset);
-			std::cout << "[" << pkt.sender << "] -> [" << pkt.receiver << "] : " << pkt.message << "\n";
+		std::vector<uint8_t> buffer(m_RecvBuffer, m_RecvBuffer + bytesTransferred);
+		g_PacketHandlerRegistry.Dispatch(this, header.type, buffer, offset);
 
-			// 3. 브로드캐스트 또는 귓속말
-			if (pkt.receiver == "ALL" || pkt.receiver.empty()) {
-				// 전체 패킷 다시 구성
-				auto body = pkt.Serialize();
-				PacketHeader header{ PacketType::CHAT, static_cast<uint32_t>(body.size()) };
-
-				// C++ - PacketHeader를 안전하게 바이트로 복사
-				std::vector<uint8_t> fullPacket(sizeof(PacketHeader));
-				std::memcpy(fullPacket.data(), &header, sizeof(PacketHeader));
-				fullPacket.insert(fullPacket.end(), body.begin(), body.end());
-
-				if (auto room = GetGameRoom())
-				{
-					room->Broadcast(fullPacket);
-				}
-				//m_server->broad_cast(fullPacket);
-			}
-			else {
-				//auto body = pkt.Serialize();
-				//PacketHeader header{ PacketType::CHAT, static_cast<uint32_t>(body.size()) };
-
-				//std::vector<uint8_t> fullPacket;
-				//fullPacket.insert(fullPacket.end(), reinterpret_cast<uint8_t*>(&header), reinterpret_cast<uint8_t*>(&header) + sizeof(header));
-				//fullPacket.insert(fullPacket.end(), body.begin(), body.end());
-
-				//m_server->send_whisper(pkt.receiver, fullPacket);
-			}
-		}
-
-		memset(m_RecvBuffer, 0, m_RecvBufferSize);
+		std::memset(m_RecvBuffer, 0, m_RecvBufferSize);
 		AsyncRead();
-
 	}
 	else
 	{
@@ -157,4 +124,10 @@ void PlayerSession::OnWrite(const boost::system::error_code& errorCode, const si
 	{
 		std::cout << "Error: " << errorCode.message() << '\n';
 	}
+}
+
+void PlayerSession::InitPacketHandlers()
+{
+	g_PacketHandlerRegistry.Register(PacketType::CHAT, std::make_unique<ChatPacketHandler>());
+	g_PacketHandlerRegistry.Register(PacketType::SET_NICKNAME_C2S, std::make_unique<SetNicknamePacketHandler>());
 }

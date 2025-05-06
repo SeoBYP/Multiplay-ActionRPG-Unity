@@ -43,3 +43,13 @@ int GameRoom::GetPlayerCount()
 	std::lock_guard<mutex> lock(m_mutex);
 	return static_cast<int>(m_sessions.size());
 }
+
+std::shared_ptr<PlayerSession> GameRoom::FindPlayerByNick(const std::string& nick)
+{
+    for (auto& pair : m_sessions)
+    {
+        if (pair.second->GetNickname() == nick)
+            return pair.second;
+    }
+    return nullptr;
+}

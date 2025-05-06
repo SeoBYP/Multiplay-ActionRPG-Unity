@@ -19,6 +19,24 @@
     <Filter Include="헤더 파일\Packets">
       <UniqueIdentifier>{7095649a-df61-4976-a530-d5497c75f0ef}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Common">
+      <UniqueIdentifier>{f6916eb3-f959-4f45-8e92-420f47f07e98}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Common">
+      <UniqueIdentifier>{8fb16660-beea-4ce3-85f1-8a61a2e01ae3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Packets\Server">
+      <UniqueIdentifier>{7bb409aa-5d80-41cc-bcd4-2513b9e43af4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Packets\Server">
+      <UniqueIdentifier>{5556077c-72c2-4511-906c-9041a435ba35}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Packets\Client">
+      <UniqueIdentifier>{7c9a7e79-4979-43e8-a057-809f8bed0866}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Packets\Client">
+      <UniqueIdentifier>{ec463706-dbc0-498b-a476-6a35aec58b31}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -33,17 +51,20 @@
     <ClInclude Include="ChatPacket.h">
       <Filter>헤더 파일\Packets</Filter>
     </ClInclude>
-    <ClInclude Include="Enums.h">
-      <Filter>헤더 파일\Packets</Filter>
-    </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="PacketType.h">
+      <Filter>헤더 파일\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="C_SetNicknamePacket.h">
+      <Filter>헤더 파일\Packets\Client</Filter>
+    </ClInclude>
+    <ClInclude Include="S_SetNicknamePacket.h">
+      <Filter>헤더 파일\Packets\Server</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="dllmain.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="pch.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -53,7 +74,16 @@
     <ClCompile Include="ChatPacket.cpp">
       <Filter>소스 파일\Packets</Filter>
     </ClCompile>
-    <ClCompile Include="Enums.cpp">
+    <ClCompile Include="PacketType.cpp">
+      <Filter>소스 파일\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="C_SetNicknamePacket.cpp">
+      <Filter>소스 파일\Packets\Client</Filter>
+    </ClCompile>
+    <ClCompile Include="S_SetNicknamePacket.cpp">
+      <Filter>소스 파일\Packets\Server</Filter>
+    </ClCompile>
+    <ClCompile Include="dllmain.cpp">
       <Filter>소스 파일\Packets</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,5 +1,6 @@
 using System;
 using Game.Managers;
+using Game.Network;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -19,21 +20,28 @@ public class NickNameInputPopup : CanvasUIBehaviour
     private void OnCancelButtonClick()
     {
         Deactivate();
+        
     }
 
     private void OnConfirmButtonClick()
     {
-        GameManager.Instance.NickName.Value = nicknameInputField.text;
-        Deactivate();
+        var nickname = nicknameInputField.text.Trim();
+
+        if (string.IsNullOrWhiteSpace(nickname))
+        {
+            Debug.LogWarning("[닉네임 입력] 닉네임이 비어있습니다.");
+            return;
+        }
+
+        var packet = new C_SetNicknamePacket
+        {
+            nickname = nickname
+        };
+
+        _ = NetworkManager.Instance.SendPacket(packet);
     }
 
-    protected override void OnActivate()
-    {
-        
-    }
+    protected override void OnActivate() { }
 
-    protected override void OnDeactivate()
-    {
-
-    }
+    protected override void OnDeactivate() { }
 }
