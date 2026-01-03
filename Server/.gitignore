@@ -1,0 +1,84 @@
+# https://www.toptal.com/developers/gitignore/api/rider 에서 생성됨
+# https://www.toptal.com/developers/gitignore?templates=rider 에서 수정하세요
+
+### 라이더 ###
+# JetBrains IDE(IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm 및 Rider)를 다룹니다.
+# 참고 자료: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
+
+# 사용자별 설정
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.아이디어/**/선반
+
+# AWS 사용자별 설정
+.idea/**/aws.xml
+
+# 생성된 파일
+.idea/**/contentModel.xml
+
+# 민감하거나 변경 빈도가 높은 파일
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/dbnavigator.xml
+
+# 그레이들
+.idea/**/gradle.xml
+.idea/**/라이브러리
+
+# Gradle 및 Maven 자동 가져오기 기능 포함
+Gradle이나 Maven을 자동 가져오기와 함께 사용할 때는 모듈 파일을 제외해야 합니다.
+# 해당 파일들은 다시 생성될 것이며, 이로 인해 혼란이 발생할 수 있습니다. 사용 중인 경우 주석 처리를 해제하세요.
+# 자동 가져오기.
+# .idea/artifacts
+# .idea/compiler.xml
+# .idea/jarRepositories.xml
+# .idea/modules.xml
+# .idea/*.iml
+# .idea/모듈
+# *.iml
+# *.ipr
+
+# CMake
+cmake-build-*/
+
+# Mongo Explorer 플러그인
+.idea/**/mongoSettings.xml
+
+# 파일 기반 프로젝트 형식
+*.iws
+
+# 인텔리제이
+밖으로/
+
+# mpeltonen/sbt-idea 플러그인
+.idea_modules/
+
+# JIRA 플러그인
+아틀라시안 IDE 플러그인.xml
+
+# Cursive Clojure 플러그인
+.idea/replstate.xml
+
+# SonarLint 플러그인
+.idea/sonarlint/
+
+# Crashlytics 플러그인 (Android Studio 및 IntelliJ용)
+com_crashlytics_export_strings.xml
+크래시리틱스.속성
+크래시라이틱스 빌드 속성
+원단 속성
+
+# 에디터 기반 REST 클라이언트
+.idea/httpRequests
+
+# 안드로이드 스튜디오 3.1 이상 버전의 직렬화된 캐시 파일
+.idea/caches/build_file_checksums.ser
+
+# https://www.toptal.com/developers/gitignore/api/rider 끝
+ 
