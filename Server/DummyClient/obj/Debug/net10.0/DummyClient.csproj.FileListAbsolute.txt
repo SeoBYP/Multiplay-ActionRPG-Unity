@@ -1,0 +1,15 @@
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\bin\Debug\net10.0\DummyClient.exe
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\bin\Debug\net10.0\DummyClient.deps.json
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\bin\Debug\net10.0\DummyClient.runtimeconfig.json
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\bin\Debug\net10.0\DummyClient.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\bin\Debug\net10.0\DummyClient.pdb
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\obj\Debug\net10.0\DummyClient.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\obj\Debug\net10.0\DummyClient.AssemblyInfoInputs.cache
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\obj\Debug\net10.0\DummyClient.AssemblyInfo.cs
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\obj\Debug\net10.0\DummyClient.csproj.CoreCompileInputs.cache
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\obj\Debug\net10.0\DummyClient.sourcelink.json
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\obj\Debug\net10.0\DummyClient.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\obj\Debug\net10.0\refint\DummyClient.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\obj\Debug\net10.0\DummyClient.pdb
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\obj\Debug\net10.0\DummyClient.genruntimeconfig.cache
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\obj\Debug\net10.0\ref\DummyClient.dll
