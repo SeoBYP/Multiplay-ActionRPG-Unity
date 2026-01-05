@@ -1,0 +1,12 @@
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\ServerCore\bin\Debug\net10.0\ServerCore.deps.json
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\ServerCore\bin\Debug\net10.0\ServerCore.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\ServerCore\bin\Debug\net10.0\ServerCore.pdb
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\ServerCore\obj\Debug\net10.0\ServerCore.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\ServerCore\obj\Debug\net10.0\ServerCore.AssemblyInfoInputs.cache
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\ServerCore\obj\Debug\net10.0\ServerCore.AssemblyInfo.cs
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\ServerCore\obj\Debug\net10.0\ServerCore.csproj.CoreCompileInputs.cache
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\ServerCore\obj\Debug\net10.0\ServerCore.sourcelink.json
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\ServerCore\obj\Debug\net10.0\ServerCore.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\ServerCore\obj\Debug\net10.0\refint\ServerCore.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\ServerCore\obj\Debug\net10.0\ServerCore.pdb
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\ServerCore\obj\Debug\net10.0\ref\ServerCore.dll

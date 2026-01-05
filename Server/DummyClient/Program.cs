@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 
 namespace DummyClient
 {
@@ -8,32 +9,54 @@ namespace DummyClient
     {
         private static string IpAddress = "127.0.0.1";
         private static int Port = 7777;
-        
+
         static void Main(string[] args)
         {
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
             var endpoint = new IPEndPoint(IPAddress.Parse(IpAddress), Port);
 
-            Thread.Sleep(500);
-            
             socket.Connect(endpoint);
-            
+            Console.WriteLine($"Connected: {endpoint}");
+
             while (socket.Connected)
             {
+                Console.Write("> ");
                 var input = Console.ReadLine();
-                socket.Send(System.Text.Encoding.ASCII.GetBytes(input));
-                Console.WriteLine($"Sent {input} to server");
-                
+
+                // Ctrl+Z / 입력 종료 처리
+                if (input == null)
+                    break;
+
+                // 빈 문자열은 스킵(원하면 허용 가능)
+                if (input.Length == 0)
+                    continue;
+
+                // 종료 명령
+                if (input.Equals("/quit", StringComparison.OrdinalIgnoreCase))
+                    break;
+
+                // Send
+                var sendBytes = Encoding.ASCII.GetBytes(input);
+                socket.Send(sendBytes);
+                Console.WriteLine($"Sent: {input}");
+
+                // Receive (응답 필수)
                 var buffer = new byte[1024];
-                var received = socket.Receive(buffer);
-                var serverMessage = System.Text.Encoding.ASCII.GetString(buffer,0,received);
-                Console.WriteLine($"Received {serverMessage} from server");
-                
-                socket.Shutdown(SocketShutdown.Both);
-                socket.Close();
-                Console.WriteLine("Disconnected");
+                int received = socket.Receive(buffer);
+
+                if (received == 0)
+                {
+                    Console.WriteLine("Server disconnected (EOF).");
+                    break;
+                }
+
+                var serverMessage = Encoding.ASCII.GetString(buffer, 0, received);
+                Console.WriteLine($"Received: {serverMessage}");
             }
+
+            try { socket.Shutdown(SocketShutdown.Both); } catch { }
+            socket.Close();
+            Console.WriteLine("Closed.");
         }
     }
 }

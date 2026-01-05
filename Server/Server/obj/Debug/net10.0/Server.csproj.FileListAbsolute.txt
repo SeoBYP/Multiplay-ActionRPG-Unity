@@ -13,3 +13,7 @@ C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Server\obj\Debug\net10.0\r
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Server\obj\Debug\net10.0\Server.pdb
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Server\obj\Debug\net10.0\Server.genruntimeconfig.cache
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Server\obj\Debug\net10.0\ref\Server.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Server\bin\Debug\net10.0\ServerCore.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Server\bin\Debug\net10.0\ServerCore.pdb
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Server\obj\Debug\net10.0\Server.csproj.AssemblyReference.cache
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\Server\obj\Debug\net10.0\Server.csproj.Up2Date

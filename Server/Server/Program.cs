@@ -2,7 +2,6 @@
 using System.Net;
 using System.Net.Sockets;
 using ServerCore;
-using ServerCore.Factory;
 
 namespace Server
 {
@@ -12,24 +11,23 @@ namespace Server
         private static int Port = 7777;
         static void Main(string[] args)
         {
-            var listener = new TcpNetworkListener(IpAddress, Port);
-            listener.Start();
-            
             SessionManager manager = new SessionManager();
+            var listener = new TcpNetworkListener(IpAddress, Port,manager);
+            listener.Start();
             
             while (true)
             {
-                var client = listener.AcceptSocket();
-                Console.WriteLine("Connected : " + client.LocalEndPoint);
-                
-                var buffer = new byte[1024];
-                var received = client.Receive(buffer);
-                var clientMessage = System.Text.Encoding.ASCII.GetString(buffer,0,received);
-                Console.WriteLine($"Received {clientMessage} from client");
-
-                var message = $"Hello, {clientMessage}!";
-                client.Send(System.Text.Encoding.ASCII.GetBytes(message));
-                Console.WriteLine($"Sent {message} to client");
+                // var client = listener.AcceptSocket();
+                //
+                //
+                // var buffer = new byte[1024];
+                // var received = client.Receive(buffer);
+                // var clientMessage = System.Text.Encoding.ASCII.GetString(buffer,0,received);
+                // Console.WriteLine($"Received {clientMessage} from client");
+                //
+                // var message = $"Hello, {clientMessage}!";
+                // client.Send(System.Text.Encoding.ASCII.GetBytes(message));
+                // Console.WriteLine($"Sent {message} to client");
             }
         }
     }

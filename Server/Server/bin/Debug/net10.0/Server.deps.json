@@ -7,14 +7,30 @@
   "targets": {
     ".NETCoreApp,Version=v10.0": {
       "Server/1.0.0": {
+        "dependencies": {
+          "ServerCore": "1.0.0"
+        },
         "runtime": {
           "Server.dll": {}
+        }
+      },
+      "ServerCore/1.0.0": {
+        "runtime": {
+          "ServerCore.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
         }
       }
     }
   },
   "libraries": {
     "Server/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "ServerCore/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

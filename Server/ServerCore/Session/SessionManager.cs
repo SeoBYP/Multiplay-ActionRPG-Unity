@@ -1,17 +1,31 @@
 ﻿using System.Collections.Concurrent;
+using System.Net.Sockets;
 
 namespace ServerCore;
 
 public sealed class SessionManager
 {
-    public readonly ConcurrentDictionary<long, Session> _sessions = new();
+    private ulong _nextSessionId = 0;
+    public readonly ConcurrentDictionary<ulong, Session> _sessions = new();
 
-    public bool Add(Session session)
+
+    public Session? CreateSession(Socket clientSocket, CancellationToken ct)
     {
-        return _sessions.TryAdd(session.SessionId, session);
-    }
+        var id = Interlocked.Increment(ref _nextSessionId);
+        var session = new Session(sessionId: id, socket: clientSocket, onDisconnected: OnSessionDisconnected);
 
-    public bool Remove(long sessionId)
+        if (!_sessions.TryAdd(id, session))
+            return null;
+
+        Console.WriteLine($"Session {id} created.");
+
+        // Start() 절대 호출하지 말 것
+        _ = session.RunAsync(ct);
+
+        return session;
+    }
+    
+    public bool Remove(ulong sessionId)
     {
         if (_sessions.TryRemove(sessionId, out var session))
         {
@@ -20,18 +34,19 @@ public sealed class SessionManager
         }
         return false;
     }
+    
 
-    public Session? Get(long sessionId)
+    private void OnSessionDisconnected(ulong sessionId)
+    {
+        _sessions.TryRemove(sessionId, out _);
+    }
+    
+    public Session? Get(ulong sessionId)
     {
         return _sessions.GetValueOrDefault(sessionId);
     }
 
-    public void Start(Session session, CancellationToken serverCt)
-    {
-        _ = session.RunAsync(serverCt);
-    }
-    
-    public void StopAll()
+    public void Clear()
     {
         foreach (var s in _sessions.Values)
             s.Disconnect();
