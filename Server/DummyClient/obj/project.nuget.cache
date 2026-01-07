@@ -1,8 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "TJCCl6pQfNs=",
+  "dgSpecHash": "18c/qOhNTHs=",
   "success": true,
   "projectFilePath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\Server\\DummyClient\\DummyClient.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "C:\\Users\\user\\.nuget\\packages\\google.protobuf\\3.33.2\\google.protobuf.3.33.2.nupkg.sha512",
+    "C:\\Users\\user\\.nuget\\packages\\grpc.tools\\2.76.0\\grpc.tools.2.76.0.nupkg.sha512"
+  ],
   "logs": []
 }

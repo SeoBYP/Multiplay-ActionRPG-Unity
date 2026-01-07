@@ -1,4 +1,6 @@
 ﻿using System.Net.Sockets;
+using Google.Protobuf;
+using ServerCore.Protocol;
 
 namespace ServerCore;
 
@@ -50,10 +52,9 @@ public sealed class Session
                     break; // EOF
 
                 LastRecvAt = DateTime.UtcNow;
-
-                var clientMessage = System.Text.Encoding.ASCII.GetString(_recvBuffer, 0, received);
-                Console.WriteLine($"Received {clientMessage} from client");
-                await SendAsync("[Server]" + clientMessage, ct);
+                var msg = C_Chat.Parser.ParseFrom(_recvBuffer, 0, received);
+                Console.WriteLine($"Received {msg.Message} from client");
+                await SendAsync("[Server]" + msg.Message, ct);
             }
         }
         catch (Exception e)
@@ -71,25 +72,29 @@ public sealed class Session
     {
         if (!Connected) return;
 
-        var bytes = System.Text.Encoding.ASCII.GetBytes(message);
-
-        int offset = 0;
         try
         {
-            while (offset < bytes.Length && Connected && !ct.IsCancellationRequested)
+            var msg = new C_Chat();
+            msg.Message = message;
+            var sendBytes = msg.ToByteArray();
+            
+            Console.WriteLine($"[SendAsync] Sending {sendBytes.Length} bytes: {BitConverter.ToString(sendBytes)}");
+
+            int offset = 0;
+            while (offset < sendBytes.Length)
             {
                 int sent = await Socket.SendAsync(
-                    new ArraySegment<byte>(bytes, offset, bytes.Length - offset),
+                    new ArraySegment<byte>(sendBytes, offset, sendBytes.Length - offset),
                     SocketFlags.None,
                     ct);
 
                 if (sent == 0)
                     throw new SocketException((int)SocketError.ConnectionReset);
-
+                
                 offset += sent;
             }
 
-            Console.WriteLine($"[SendAsync] sent={offset}/{bytes.Length} msg={message}");
+            Console.WriteLine($"[SendAsync] msg={message}");
         }
         catch (Exception e)
         {

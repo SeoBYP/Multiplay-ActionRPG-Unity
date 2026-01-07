@@ -8,13 +8,25 @@
     ".NETCoreApp,Version=v10.0": {
       "Server/1.0.0": {
         "dependencies": {
+          "Google.Protobuf": "3.33.2",
           "ServerCore": "1.0.0"
         },
         "runtime": {
           "Server.dll": {}
         }
       },
+      "Google.Protobuf/3.33.2": {
+        "runtime": {
+          "lib/net5.0/Google.Protobuf.dll": {
+            "assemblyVersion": "3.33.2.0",
+            "fileVersion": "3.33.2.0"
+          }
+        }
+      },
       "ServerCore/1.0.0": {
+        "dependencies": {
+          "Google.Protobuf": "3.33.2"
+        },
         "runtime": {
           "ServerCore.dll": {
             "assemblyVersion": "1.0.0.0",
@@ -29,6 +41,13 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "Google.Protobuf/3.33.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-vZXVbrZgBqUkP5iWQi0CS6pucIS2MQdEYPS1duWCo8fGrrt4th6HTiHfLFX2RmAWAQl1oUnzGgyDBsfq7fHQJA==",
+      "path": "google.protobuf/3.33.2",
+      "hashPath": "google.protobuf.3.33.2.nupkg.sha512"
     },
     "ServerCore/1.0.0": {
       "type": "project",

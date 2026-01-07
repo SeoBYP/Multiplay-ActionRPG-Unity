@@ -2,6 +2,8 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Google.Protobuf;
+using ServerCore.Protocol;
 
 namespace DummyClient
 {
@@ -36,9 +38,12 @@ namespace DummyClient
                     break;
 
                 // Send
-                var sendBytes = Encoding.ASCII.GetBytes(input);
+                var msg = new C_Chat();
+                msg.Message = input;
+                var sendBytes = msg.ToByteArray();
                 socket.Send(sendBytes);
-                Console.WriteLine($"Sent: {input}");
+                
+                Console.WriteLine($"Sent: {C_Chat.Parser.ParseFrom(sendBytes).Message}");
 
                 // Receive (응답 필수)
                 var buffer = new byte[1024];
@@ -49,9 +54,11 @@ namespace DummyClient
                     Console.WriteLine("Server disconnected (EOF).");
                     break;
                 }
+                
+                Console.WriteLine($"[Receive] Received {received} bytes: {BitConverter.ToString(buffer, 0, received)}");
 
-                var serverMessage = Encoding.ASCII.GetString(buffer, 0, received);
-                Console.WriteLine($"Received: {serverMessage}");
+                var serverMessage = C_Chat.Parser.ParseFrom(buffer, 0, received);
+                Console.WriteLine($"Received: {serverMessage.Message}");
             }
 
             try { socket.Shutdown(SocketShutdown.Both); } catch { }

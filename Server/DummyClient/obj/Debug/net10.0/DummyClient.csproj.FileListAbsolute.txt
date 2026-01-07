@@ -13,3 +13,8 @@ C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\obj\Debug\net1
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\obj\Debug\net10.0\DummyClient.pdb
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\obj\Debug\net10.0\DummyClient.genruntimeconfig.cache
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\obj\Debug\net10.0\ref\DummyClient.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\bin\Debug\net10.0\Google.Protobuf.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\bin\Debug\net10.0\ServerCore.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\bin\Debug\net10.0\ServerCore.pdb
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\obj\Debug\net10.0\DummyClient.csproj.AssemblyReference.cache
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\Server\DummyClient\obj\Debug\net10.0\DummyCli.C46919B7.Up2Date

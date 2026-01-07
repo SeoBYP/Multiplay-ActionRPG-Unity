@@ -35,7 +35,6 @@ public sealed class SessionManager
         return false;
     }
     
-
     private void OnSessionDisconnected(ulong sessionId)
     {
         _sessions.TryRemove(sessionId, out _);
