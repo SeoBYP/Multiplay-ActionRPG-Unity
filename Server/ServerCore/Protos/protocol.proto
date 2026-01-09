@@ -3,6 +3,18 @@
 package Protocol;
 option csharp_namespace = "ServerCore.Protocol";
 
+message Packet {
+  oneof payload {
+    C_Chat c_chat = 1000;  // ← 필드 번호가 사실상 PacketId
+    S_Chat s_chat = 1001;
+  }
+}
+
 message C_Chat{
   string message = 1;
+}
+
+message S_Chat{
+  uint64 senderId = 1;
+  string message = 2;
 }

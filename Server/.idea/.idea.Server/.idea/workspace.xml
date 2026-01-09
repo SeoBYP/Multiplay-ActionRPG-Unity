@@ -9,84 +9,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="779048a5-e38e-476e-97e0-33297c23c9c7" name="변경" comment="">
-      <change afterPath="$PROJECT_DIR$/ServerCore/Protos/protocol.proto" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ServerCore/Packet/Packet.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Server/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Server/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/DummyClient.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/DummyClient.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/Program.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/bin/Debug/net10.0/DummyClient.deps.json" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/bin/Debug/net10.0/DummyClient.deps.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/bin/Debug/net10.0/DummyClient.dll" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/bin/Debug/net10.0/DummyClient.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/bin/Debug/net10.0/DummyClient.exe" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/bin/Debug/net10.0/DummyClient.exe" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/bin/Debug/net10.0/DummyClient.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/bin/Debug/net10.0/DummyClient.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.AssemblyInfo.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.AssemblyInfoInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.AssemblyInfoInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.assets.cache" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.assets.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.csproj.CoreCompileInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.csproj.CoreCompileInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.csproj.FileListAbsolute.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.csproj.FileListAbsolute.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.dll" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.pdb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.sourcelink.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/apphost.exe" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/apphost.exe" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/ref/DummyClient.dll" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/ref/DummyClient.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/refint/DummyClient.dll" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/refint/DummyClient.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/DummyClient.csproj.nuget.dgspec.json" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/DummyClient.csproj.nuget.dgspec.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/DummyClient.csproj.nuget.g.props" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/DummyClient.csproj.nuget.g.props" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/DummyClient.csproj.nuget.g.targets" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/DummyClient.csproj.nuget.g.targets" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/project.assets.json" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/project.assets.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/project.nuget.cache" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/project.nuget.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/project.packagespec.json" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/project.packagespec.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/DummyClient/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/rider.project.model.nuget.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/rider.project.restore.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/Server.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Server/Server.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/bin/Debug/net10.0/Server.deps.json" beforeDir="false" afterPath="$PROJECT_DIR$/Server/bin/Debug/net10.0/Server.deps.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/bin/Debug/net10.0/Server.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Server/bin/Debug/net10.0/Server.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/bin/Debug/net10.0/Server.exe" beforeDir="false" afterPath="$PROJECT_DIR$/Server/bin/Debug/net10.0/Server.exe" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/bin/Debug/net10.0/Server.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Server/bin/Debug/net10.0/Server.pdb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/bin/Debug/net10.0/ServerCore.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Server/bin/Debug/net10.0/ServerCore.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/bin/Debug/net10.0/ServerCore.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Server/bin/Debug/net10.0/ServerCore.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.AssemblyInfo.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.AssemblyInfoInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.AssemblyInfoInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.assets.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.assets.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.csproj.AssemblyReference.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.csproj.AssemblyReference.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.csproj.CoreCompileInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.csproj.CoreCompileInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.csproj.FileListAbsolute.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.csproj.FileListAbsolute.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.pdb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.sourcelink.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/Debug/net10.0/apphost.exe" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/Debug/net10.0/apphost.exe" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/Debug/net10.0/ref/Server.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/Debug/net10.0/ref/Server.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/Debug/net10.0/refint/Server.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/Debug/net10.0/refint/Server.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/Server.csproj.nuget.dgspec.json" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/Server.csproj.nuget.dgspec.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/Server.csproj.nuget.g.props" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/Server.csproj.nuget.g.props" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/Server.csproj.nuget.g.targets" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/Server.csproj.nuget.g.targets" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/project.assets.json" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/project.assets.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/project.nuget.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/project.nuget.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/project.packagespec.json" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/project.packagespec.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Server/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/rider.project.model.nuget.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/rider.project.restore.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/ServerCore.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/ServerCore.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/Session/Session.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/Session/Session.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/Session/SessionManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/Session/SessionManager.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/bin/Debug/net10.0/ServerCore.deps.json" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/bin/Debug/net10.0/ServerCore.deps.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/bin/Debug/net10.0/ServerCore.dll" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/bin/Debug/net10.0/ServerCore.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/bin/Debug/net10.0/ServerCore.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/bin/Debug/net10.0/ServerCore.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.AssemblyInfo.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.AssemblyInfoInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.AssemblyInfoInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.assets.cache" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.assets.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.csproj.CoreCompileInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.csproj.CoreCompileInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.csproj.FileListAbsolute.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.csproj.FileListAbsolute.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.dll" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.pdb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.sourcelink.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ref/ServerCore.dll" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ref/ServerCore.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/refint/ServerCore.dll" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/refint/ServerCore.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/ServerCore.csproj.nuget.dgspec.json" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/ServerCore.csproj.nuget.dgspec.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/ServerCore.csproj.nuget.g.props" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/ServerCore.csproj.nuget.g.props" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/ServerCore.csproj.nuget.g.targets" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/ServerCore.csproj.nuget.g.targets" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/project.assets.json" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/project.assets.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/project.nuget.cache" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/project.nuget.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/project.packagespec.json" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/project.packagespec.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ServerCore/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/rider.project.model.nuget.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/rider.project.restore.info" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -97,7 +30,7 @@
     <option name="firstShow" value="false" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="18931" />
+    <option name="cachedIndexableFilesCount" value="18933" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="Git.Settings">
@@ -120,6 +53,7 @@
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/7b7e5683622c5ee03960b6a3aaf8e81659f039d6a919f43d21e53ce331ef39/Socket.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/DummyClient/Program.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Server/Listener/INetworkListener.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/ServerCore/Packet/Packet.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/ServerCore/Session/SessionManager.cs" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="McpProjectServerCommands">
@@ -240,7 +174,8 @@
       <workItem from="1767449100400" duration="7178000" />
       <workItem from="1767621327192" duration="7426000" />
       <workItem from="1767629065068" duration="19000" />
-      <workItem from="1767794921680" duration="6442000" />
+      <workItem from="1767794921680" duration="6652000" />
+      <workItem from="1767880394616" duration="2578000" />
     </task>
     <servers />
   </component>
