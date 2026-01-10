@@ -38,8 +38,6 @@ namespace DummyClient
 
                     // 메시지 전송
                     await SendChatAsync(socket, input);
-                    await SendChatAsync(socket, input);
-                    await SendChatAsync(socket, input);
                 }
 
                 socket.Shutdown(SocketShutdown.Both);

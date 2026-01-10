@@ -8,19 +8,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="779048a5-e38e-476e-97e0-33297c23c9c7" name="변경" comment="">
-      <change afterPath="$PROJECT_DIR$/ServerCore/Packet/Packet.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.Server/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Server/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.AssemblyInfoInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/Debug/net10.0/DummyClient.AssemblyInfoInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DummyClient/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/DummyClient/obj/rider.project.model.nuget.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.AssemblyInfoInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/Debug/net10.0/Server.AssemblyInfoInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/Server/obj/rider.project.model.nuget.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.AssemblyInfoInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/Debug/net10.0/ServerCore.AssemblyInfoInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ServerCore/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/ServerCore/obj/rider.project.model.nuget.info" afterDir="false" />
-    </list>
+    <list default="true" id="779048a5-e38e-476e-97e0-33297c23c9c7" name="변경" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -30,7 +18,7 @@
     <option name="firstShow" value="false" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="18933" />
+    <option name="cachedIndexableFilesCount" value="18934" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="Git.Settings">
@@ -53,7 +41,6 @@
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/7b7e5683622c5ee03960b6a3aaf8e81659f039d6a919f43d21e53ce331ef39/Socket.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/DummyClient/Program.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Server/Listener/INetworkListener.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/ServerCore/Packet/Packet.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/ServerCore/Session/SessionManager.cs" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="McpProjectServerCommands">
@@ -176,6 +163,7 @@
       <workItem from="1767629065068" duration="19000" />
       <workItem from="1767794921680" duration="6652000" />
       <workItem from="1767880394616" duration="2578000" />
+      <workItem from="1767967156850" duration="2482000" />
     </task>
     <servers />
   </component>

@@ -6,6 +6,7 @@ namespace ServerCore;
 
 public sealed class Session
 {
+    
     public ulong SessionId { get; private set; }
     public bool Connected { get; private set; }
     public DateTime LastRecvAt { get; private set; }
@@ -16,16 +17,19 @@ public sealed class Session
     private byte[] _recvBuffer;
     private byte[] _sendBuffer;
     private Action<ulong> _onDisconnected;
-
+    private SessionManager _sessionManager; 
+    
     public Session(
         ulong sessionId,
         Socket socket,
+        SessionManager sessionManager, 
         int bufferSize = 1024,
         Action<ulong> onDisconnected = null)
     {
         SessionId = sessionId;
         Socket = socket;
-
+        _sessionManager = sessionManager;
+        
         this.bufferSize = bufferSize;
         _recvBuffer = new byte[bufferSize];
         _sendBuffer = new byte[bufferSize];
@@ -98,9 +102,8 @@ public sealed class Session
         {
             case Packet.PayloadOneofCase.CChat:
                 Console.WriteLine($"[Session {SessionId}] C_Chat: {packet.CChat.Message}");
-                
                 // 에코 응답
-                await SendChatAsync(SessionId, "[Server] " + packet.CChat.Message, ct);
+                _sessionManager.Broadcast(SessionId, packet, ct);
                 break;
             case Packet.PayloadOneofCase.SChat:
                 Console.WriteLine($"[Session {SessionId}] S_Chat received (unexpected)");
