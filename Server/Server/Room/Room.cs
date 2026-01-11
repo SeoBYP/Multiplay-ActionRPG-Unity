@@ -73,18 +73,21 @@ public class Room
     {
         try
         {
-            if (!_players.Remove(sessionId))
+            lock (_players)  // ← lock 추가!
             {
-                Console.WriteLine($"[Room {RoomId}] Session {sessionId} not in room");
-                return false;
+                if (!_players.Remove(sessionId))
+                {
+                    Console.WriteLine($"[Room {RoomId}] Session {sessionId} not in room");
+                    return false;
+                }
+
+                Console.WriteLine($"[Room {RoomId}] Session {sessionId} left. Members: {MemberCount}/{MaxMembers}");
+
+                // 퇴장 알림
+                NotifyLeave(sessionId);
+        
+                return true;
             }
-
-            Console.WriteLine($"[Room {RoomId}] Session {sessionId} left. Members: {MemberCount}/{MaxMembers}");
-
-            // 퇴장 알림
-            NotifyLeave(sessionId);
-            
-            return true;
         }
         catch (Exception e)
         {

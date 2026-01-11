@@ -7,10 +7,10 @@ message Packet {
   oneof payload {
     C_Chat c_chat = 1000;  // ← 필드 번호가 사실상 PacketId
     S_Chat s_chat = 1001;
-    C_CreateRoom c_createRoom = 1100;
-    S_CreateRoom s_createRoom = 1101;
-    C_JoinRoom c_joinRoom = 1102;
-    S_JoinRoom s_joinRoom = 1103;
+    C_CreateRoom c_create_room  = 1100;
+    S_CreateRoom s_create_room = 1101;
+    C_JoinRoom c_join_room = 1102;
+    S_JoinRoom s_join_room = 1103;
   }
 }
 

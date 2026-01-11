@@ -24,20 +24,20 @@ namespace ServerCore.Protocol {
     static ProtocolReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "ChVQcm90b3MvcHJvdG9jb2wucHJvdG8SCFByb3RvY29sIpkCCgZQYWNrZXQS",
+            "ChVQcm90b3MvcHJvdG9jb2wucHJvdG8SCFByb3RvY29sIp0CCgZQYWNrZXQS",
             "IwoGY19jaGF0GOgHIAEoCzIQLlByb3RvY29sLkNfQ2hhdEgAEiMKBnNfY2hh",
-            "dBjpByABKAsyEC5Qcm90b2NvbC5TX0NoYXRIABIvCgxjX2NyZWF0ZVJvb20Y",
-            "zAggASgLMhYuUHJvdG9jb2wuQ19DcmVhdGVSb29tSAASLwoMc19jcmVhdGVS",
-            "b29tGM0IIAEoCzIWLlByb3RvY29sLlNfQ3JlYXRlUm9vbUgAEisKCmNfam9p",
-            "blJvb20YzgggASgLMhQuUHJvdG9jb2wuQ19Kb2luUm9vbUgAEisKCnNfam9p",
-            "blJvb20YzwggASgLMhQuUHJvdG9jb2wuU19Kb2luUm9vbUgAQgkKB3BheWxv",
-            "YWQiGQoGQ19DaGF0Eg8KB21lc3NhZ2UYASABKAkiKwoGU19DaGF0EhAKCHNl",
-            "bmRlcklkGAEgASgEEg8KB21lc3NhZ2UYAiABKAkiIwoMQ19DcmVhdGVSb29t",
-            "EhMKC21heF9tZW1iZXJzGAEgASgFIjAKDFNfQ3JlYXRlUm9vbRIPCgdzdWNj",
-            "ZXNzGAEgASgIEg8KB3Jvb21faWQYAiABKAUiHQoKQ19Kb2luUm9vbRIPCgdy",
-            "b29tX2lkGAEgASgFIi4KClNfSm9pblJvb20SDwoHc3VjY2VzcxgBIAEoCBIP",
-            "Cgdyb29tX2lkGAIgASgFQhaqAhNTZXJ2ZXJDb3JlLlByb3RvY29sYgZwcm90",
-            "bzM="));
+            "dBjpByABKAsyEC5Qcm90b2NvbC5TX0NoYXRIABIwCg1jX2NyZWF0ZV9yb29t",
+            "GMwIIAEoCzIWLlByb3RvY29sLkNfQ3JlYXRlUm9vbUgAEjAKDXNfY3JlYXRl",
+            "X3Jvb20YzQggASgLMhYuUHJvdG9jb2wuU19DcmVhdGVSb29tSAASLAoLY19q",
+            "b2luX3Jvb20YzgggASgLMhQuUHJvdG9jb2wuQ19Kb2luUm9vbUgAEiwKC3Nf",
+            "am9pbl9yb29tGM8IIAEoCzIULlByb3RvY29sLlNfSm9pblJvb21IAEIJCgdw",
+            "YXlsb2FkIhkKBkNfQ2hhdBIPCgdtZXNzYWdlGAEgASgJIisKBlNfQ2hhdBIQ",
+            "CghzZW5kZXJJZBgBIAEoBBIPCgdtZXNzYWdlGAIgASgJIiMKDENfQ3JlYXRl",
+            "Um9vbRITCgttYXhfbWVtYmVycxgBIAEoBSIwCgxTX0NyZWF0ZVJvb20SDwoH",
+            "c3VjY2VzcxgBIAEoCBIPCgdyb29tX2lkGAIgASgFIh0KCkNfSm9pblJvb20S",
+            "DwoHcm9vbV9pZBgBIAEoBSIuCgpTX0pvaW5Sb29tEg8KB3N1Y2Nlc3MYASAB",
+            "KAgSDwoHcm9vbV9pZBgCIAEoBUIWqgITU2VydmVyQ29yZS5Qcm90b2NvbGIG",
+            "cHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
@@ -146,7 +146,7 @@ namespace ServerCore.Protocol {
       }
     }
 
-    /// <summary>Field number for the "c_createRoom" field.</summary>
+    /// <summary>Field number for the "c_create_room" field.</summary>
     public const int CCreateRoomFieldNumber = 1100;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -158,7 +158,7 @@ namespace ServerCore.Protocol {
       }
     }
 
-    /// <summary>Field number for the "s_createRoom" field.</summary>
+    /// <summary>Field number for the "s_create_room" field.</summary>
     public const int SCreateRoomFieldNumber = 1101;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -170,7 +170,7 @@ namespace ServerCore.Protocol {
       }
     }
 
-    /// <summary>Field number for the "c_joinRoom" field.</summary>
+    /// <summary>Field number for the "c_join_room" field.</summary>
     public const int CJoinRoomFieldNumber = 1102;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -182,7 +182,7 @@ namespace ServerCore.Protocol {
       }
     }
 
-    /// <summary>Field number for the "s_joinRoom" field.</summary>
+    /// <summary>Field number for the "s_join_room" field.</summary>
     public const int SJoinRoomFieldNumber = 1103;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
