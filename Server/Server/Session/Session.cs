@@ -1,12 +1,11 @@
 ﻿using System.Net.Sockets;
 using Google.Protobuf;
+using Server.Room;
 using ServerCore.Protocol;
 
-namespace ServerCore;
 
 public sealed class Session
 {
-    
     public ulong SessionId { get; private set; }
     public bool Connected { get; private set; }
     public DateTime LastRecvAt { get; private set; }
@@ -17,19 +16,19 @@ public sealed class Session
     private byte[] _recvBuffer;
     private byte[] _sendBuffer;
     private Action<ulong> _onDisconnected;
-    private SessionManager _sessionManager; 
-    
+    private RoomManager _roomManager;
+
     public Session(
         ulong sessionId,
         Socket socket,
-        SessionManager sessionManager, 
+        RoomManager roomManager,
         int bufferSize = 1024,
         Action<ulong> onDisconnected = null)
     {
         SessionId = sessionId;
         Socket = socket;
-        _sessionManager = sessionManager;
-        
+        _roomManager = roomManager;
+
         this.bufferSize = bufferSize;
         _recvBuffer = new byte[bufferSize];
         _sendBuffer = new byte[bufferSize];
@@ -40,7 +39,7 @@ public sealed class Session
 
         _onDisconnected = onDisconnected;
     }
-    
+
     public async Task RunAsync(CancellationToken ct)
     {
         try
@@ -49,19 +48,19 @@ public sealed class Session
             {
                 byte[] lengthBytes = await ReceiveExactAsync(4, ct);
                 int length = BitConverter.ToInt32(lengthBytes, 0);
-                
+
                 if (length <= 0 || length > 65536)
                 {
                     Console.WriteLine($"[Session {SessionId}] Invalid packet length: {length}");
                     break;
                 }
-                
+
                 byte[] protobufData = await ReceiveExactAsync(length, ct);
-                
+
                 var packet = Packet.Parser.ParseFrom(protobufData);
-                
+
                 LastRecvAt = DateTime.UtcNow;
-                
+
                 HandlePacket(packet, ct);
             }
         }
@@ -87,68 +86,156 @@ public sealed class Session
                 new ArraySegment<byte>(buffer, offset, length - offset),
                 SocketFlags.None,
                 ct);
-            
+
             if (received == 0)
                 throw new SocketException((int)SocketError.ConnectionReset);
 
             offset += received;
         }
+
         return buffer;
     }
 
-    private async void HandlePacket(Packet packet, CancellationToken ct)
+    private void HandlePacket(Packet packet, CancellationToken ct)
     {
         switch (packet.PayloadCase)
         {
             case Packet.PayloadOneofCase.CChat:
-                Console.WriteLine($"[Session {SessionId}] C_Chat: {packet.CChat.Message}");
-                // 에코 응답
-                _sessionManager.Broadcast(SessionId, packet, ct);
+                HandleChatPacket(packet.CChat, ct);
                 break;
-            case Packet.PayloadOneofCase.SChat:
-                Console.WriteLine($"[Session {SessionId}] S_Chat received (unexpected)");
+
+            case Packet.PayloadOneofCase.CCreateRoom:
+                HandleCreateRoom(packet.CCreateRoom, ct);
                 break;
+
+            case Packet.PayloadOneofCase.CJoinRoom:
+                HandleJoinRoom(packet.CJoinRoom, ct);
+                break;
+
             default:
-                Console.WriteLine($"[Session {SessionId}] Unknown packet type: {packet.PayloadCase}");
+                Console.WriteLine($"[Session {SessionId}] Unknown packet: {packet.PayloadCase}");
                 break;
         }
     }
-    
+
+
     /// <summary>
-    /// 채팅 메시지 전송
-    /// 
-    /// 송신 구조: [4 bytes: Length][Protobuf Data]
+    /// 채팅 패킷 처리
     /// </summary>
-    public async Task SendChatAsync(ulong senderId, string message, CancellationToken ct = default)
+    private void HandleChatPacket(C_Chat chatPacket, CancellationToken ct)
+    {
+        Console.WriteLine($"[Session {SessionId}] C_Chat: {chatPacket.Message}");
+
+        var room = _roomManager.GetPlayerRoom(SessionId);
+
+        if (room == null)
+        {
+            SendSystemMessage("You are not in any room");
+            return;
+        }
+
+        // S_Chat 패킷 생성
+        var packet = new Packet();
+        packet.SChat = new S_Chat
+        {
+            SenderId = SessionId,
+            Message = chatPacket.Message
+        };
+
+        // 방 내 브로드캐스트
+        room.Broadcast(packet);
+    }
+
+    /// <summary>
+    /// 방 생성 패킷 처리
+    /// </summary>
+    private void HandleCreateRoom(C_CreateRoom createRoom, CancellationToken ct)
+    {
+        Console.WriteLine($"[Session {SessionId}] C_CreateRoom: max={createRoom.MaxMembers}");
+
+        var room = _roomManager.CreateRoom(createRoom.MaxMembers);
+
+        if (room != null && _roomManager.JoinRoom(this, room.RoomId))
+        {
+            // 성공 응답
+            var response = new Packet();
+            response.SCreateRoom = new S_CreateRoom
+            {
+                Success = true,
+                RoomId = room.RoomId
+            };
+            _ = SendPacketAsync(response, ct);
+        }
+        else
+        {
+            // 실패 응답
+            var response = new Packet();
+            response.SCreateRoom = new S_CreateRoom
+            {
+                Success = false,
+                RoomId = 0
+            };
+            _ = SendPacketAsync(response, ct);
+        }
+    }
+
+    /// <summary>
+    /// 방 입장 패킷 처리
+    /// </summary>
+    private void HandleJoinRoom(C_JoinRoom joinRoom, CancellationToken ct)
+    {
+        Console.WriteLine($"[Session {SessionId}] C_JoinRoom: room={joinRoom.RoomId}");
+
+        bool success = _roomManager.JoinRoom(this, joinRoom.RoomId);
+
+        // 응답
+        var response = new Packet();
+        response.SJoinRoom = new S_JoinRoom
+        {
+            Success = success,
+            RoomId = success ? joinRoom.RoomId : 0
+        };
+        _ = SendPacketAsync(response, ct);
+    }
+
+    /// <summary>
+    /// 시스템 메시지 전송
+    /// </summary>
+    private void SendSystemMessage(string message)
+    {
+        var packet = new Packet();
+        packet.SChat = new S_Chat
+        {
+            SenderId = 0, // 0 = 시스템
+            Message = $"[System] {message}"
+        };
+        _ = SendPacketAsync(packet);
+    }
+
+    /// <summary>
+    /// 패킷 전송 (범용)
+    /// </summary>
+    public async Task SendPacketAsync(Packet packet, CancellationToken ct = default)
     {
         if (!Connected) return;
 
         try
         {
-            // 1️⃣ Packet 생성 및 S_Chat 설정
-            var packet = new Packet();
-            packet.SChat = new S_Chat 
-            { 
-                SenderId = senderId,
-                Message = message 
-            };
-            
-            // 2️⃣ Protobuf 직렬화
+            // Protobuf 직렬화
             byte[] protobufData = packet.ToByteArray();
-            
-            // 3️⃣ Length 계산 및 직렬화
+
+            // Length 추가
             int length = protobufData.Length;
             byte[] lengthBytes = BitConverter.GetBytes(length);
-            
-            // 4️⃣ [Length][Protobuf] 합치기
+
+            // 합치기
             byte[] finalPacket = new byte[4 + length];
             Array.Copy(lengthBytes, 0, finalPacket, 0, 4);
             Array.Copy(protobufData, 0, finalPacket, 4, length);
-            
-            // 🔍 디버깅 로그
+
+            // 디버깅 로그
             Console.WriteLine($"[Session {SessionId}] Sending {finalPacket.Length} bytes (Length={length})");
-            
-            // 5️⃣ 전송
+
             int offset = 0;
             while (offset < finalPacket.Length)
             {
@@ -159,15 +246,13 @@ public sealed class Session
 
                 if (sent == 0)
                     throw new SocketException((int)SocketError.ConnectionReset);
-                
+
                 offset += sent;
             }
-
-            Console.WriteLine($"[Session {SessionId}] Sent: {message}");
         }
         catch (Exception e)
         {
-            Console.WriteLine($"[Session {SessionId}] SendAsync failed: {e.Message}");
+            Console.WriteLine($"[Session {SessionId}] SendPacketAsync failed: {e.Message}");
             Disconnect();
         }
     }
@@ -177,7 +262,22 @@ public sealed class Session
         if (!Connected) return;
         Connected = false;
 
-        try { Socket.Shutdown(SocketShutdown.Both); } catch { }
-        try { Socket.Close(); } catch { }
+        try
+        {
+            Socket.Shutdown(SocketShutdown.Both);
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            Socket.Close();
+        }
+        catch
+        {
+        }
+
+        Console.WriteLine($"[Session {SessionId}] Disconnected");
     }
 }
