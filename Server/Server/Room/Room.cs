@@ -96,7 +96,7 @@ public class Room
         }
     }
 
-    public void Broadcast(Packet packet, ulong? excludeSessionId = null)
+    public void Broadcast(ServerCore.Protocol.Packet packet, ulong? excludeSessionId = null)
     {
         try
         {
@@ -128,7 +128,7 @@ public class Room
     /// </summary>
     private void NotifyJoin(ulong sessionId)
     {
-        var packet = new Packet();
+        var packet = new ServerCore.Protocol.Packet();
         packet.SChat = new S_Chat
         {
             SenderId = 0,  // 0 = 시스템
@@ -143,7 +143,7 @@ public class Room
     /// </summary>
     private void NotifyLeave(ulong sessionId)
     {
-        var packet = new Packet();
+        var packet = new ServerCore.Protocol.Packet();
         packet.SChat = new S_Chat
         {
             SenderId = 0,

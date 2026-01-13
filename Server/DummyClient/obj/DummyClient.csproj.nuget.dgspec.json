@@ -63,6 +63,14 @@
               "suppressParent": "All",
               "target": "Package",
               "version": "[2.76.0, )"
+            },
+            "Microsoft.CodeAnalysis.CSharp": {
+              "target": "Package",
+              "version": "[5.0.0, )"
+            },
+            "Microsoft.CodeAnalysis.Common": {
+              "target": "Package",
+              "version": "[5.0.0, )"
             }
           },
           "imports": [

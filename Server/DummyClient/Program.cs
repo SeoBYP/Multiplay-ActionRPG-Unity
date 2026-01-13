@@ -178,15 +178,15 @@ namespace DummyClient
             switch (packet.PayloadCase)
             {
                 case Packet.PayloadOneofCase.SChat:
-                    Console.WriteLine($"📨 [{packet.SChat.SenderId}] {packet.SChat.Message}");
+                    Console.WriteLine($"[{packet.SChat.SenderId}] {packet.SChat.Message}");
                     break;
                     
                 case Packet.PayloadOneofCase.CChat:
-                    Console.WriteLine($"⚠️  C_Chat received (unexpected)");
+                    Console.WriteLine($"C_Chat received (unexpected)");
                     break;
                     
                 default:
-                    Console.WriteLine($"⚠️  Unknown packet: {packet.PayloadCase}");
+                    Console.WriteLine($"Unknown packet: {packet.PayloadCase}");
                     break;
             }
         }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using Server.Packet;
 using ServerCore;
 
 namespace Server
@@ -11,23 +12,36 @@ namespace Server
         private static int Port = 7777;
         static void Main(string[] args)
         {
-            SessionManager manager = new SessionManager();
-            var listener = new TcpNetworkListener(IpAddress, Port,manager);
+            var registry = PacketHandlerRegistry.Build();
+            var dispatcher = registry.CreateDispatcher();
+            var sessionManager = new SessionManager(dispatcher);
+            
+            var listener = new TcpNetworkListener(IpAddress, Port, sessionManager);
             listener.Start();
             
-            while (true)
+            var cts = new CancellationTokenSource();
+            Console.CancelKeyPress += (sender, e) =>
             {
-                // var client = listener.AcceptSocket();
-                //
-                //
-                // var buffer = new byte[1024];
-                // var received = client.Receive(buffer);
-                // var clientMessage = System.Text.Encoding.ASCII.GetString(buffer,0,received);
-                // Console.WriteLine($"Received {clientMessage} from client");
-                //
-                // var message = $"Hello, {clientMessage}!";
-                // client.Send(System.Text.Encoding.ASCII.GetBytes(message));
-                // Console.WriteLine($"Sent {message} to client");
+                e.Cancel = true;
+                Console.WriteLine("Stopping server...");
+                cts.Cancel();
+            };
+            
+            try
+            {
+                // 메인 스레드 대기
+                Task.Delay(Timeout.Infinite, cts.Token).Wait(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                // 정상 종료
+            }
+            finally
+            {
+                // 정리
+                listener.Stop();
+                sessionManager.Clear();
+                Console.WriteLine("✅ Server stopped");
             }
         }
     }
