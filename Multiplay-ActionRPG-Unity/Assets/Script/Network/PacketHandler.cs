@@ -1,34 +1,55 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using ServerCore.Protocol;
 using UnityEngine;
+using UnityEngine.Events;
 
-namespace Game.Network
+namespace Game.Managers
 {
-    public static class PacketHandler
+    public class PacketHandler
     {
-        private static readonly Dictionary<Type, IPacketHandler> _handlers = new();
+        // Chat
+        public UnityEvent<S_Chat> OnChatReceived = new UnityEvent<S_Chat>();
 
-        public static void Register<T>(IPacketHandler handler) where T : Packet
-        {
-            _handlers[typeof(T)] = handler;
-        }
+        // Connection
+        public UnityEvent OnConnectedEvent = new UnityEvent();
+        public UnityEvent<string> OnDisconnectedEvent = new UnityEvent<string>();
 
-        public static IPacketHandler GetHandler<T>() where T : Packet
+        public PacketHandler()
         {
-            return _handlers.GetValueOrDefault(typeof(T));
+            NetworkManager.Instance.OnConnected += () =>
+            {
+                Debug.Log("[PacketHandler] Connected");
+                OnConnectedEvent?.Invoke();
+            };
+
+            NetworkManager.Instance.OnDisconnected += (reason) =>
+            {
+                Debug.Log($"[PacketHandler] Disconnected: {reason}");
+                OnDisconnectedEvent?.Invoke(reason);
+            };
         }
         
-        public static void HandlePacket(Packet packet)
+        /// <summary>
+        /// 패킷 처리 (메인 스레드에서 호출됨)
+        /// </summary>
+        public void HandlePacket(Packet packet)
         {
-            var type = packet.GetType();
-            if (_handlers.TryGetValue(type, out var handler))
+            switch (packet.PayloadCase)
             {
-                handler.Handle(packet);
+                case Packet.PayloadOneofCase.SChat:
+                    HandleChat(packet.SChat);
+                    break;
+
+                
+                default:
+                    Debug.LogWarning($"[PacketHandler] Unknown packet: {packet.PayloadCase}");
+                    break;
             }
-            else
-            {
-                Debug.LogWarning($"[PacketHandler] 등록되지 않은 패킷 타입: {type}");
-            }
+        }
+        
+        private void HandleChat(S_Chat chat)
+        {
+            Debug.Log($"[PacketHandler] Chat: [{chat.SenderId}] {chat.Message}");
+            OnChatReceived?.Invoke(chat);
         }
     }
 }

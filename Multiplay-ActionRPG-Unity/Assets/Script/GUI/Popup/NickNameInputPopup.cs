@@ -1,6 +1,3 @@
-using System;
-using Game.Managers;
-using Game.Network;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -33,12 +30,12 @@ public class NickNameInputPopup : CanvasUIBehaviour
             return;
         }
 
-        var packet = new C_SetNicknamePacket
-        {
-            nickname = nickname
-        };
-
-        _ = NetworkManager.Instance.SendPacket(packet);
+        // var packet = new C_SetNicknamePacket
+        // {
+        //     nickname = nickname
+        // };
+        //
+        // _ = NetworkManager.Instance.SendPacket(packet);
     }
 
     protected override void OnActivate() { }
