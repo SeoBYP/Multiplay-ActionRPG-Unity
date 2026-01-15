@@ -4,27 +4,32 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
+using Game.Managers;
+using Game.Network.Dispatcher;
 using Google.Protobuf;
 using ServerCore.Protocol;
 using UnityEngine;
 
-namespace Game.Managers
+namespace Game.Network
 {
     public class NetworkManager : PersistentSingleton<NetworkManager>
     {
         public bool IsConnected => _socket?.Connected ?? false;
         public event Action OnConnected;
-        public event Action<string> OnDisconnected;  // reason
+        public event Action<string> OnDisconnected; // reason
 
         private Socket _socket;
         private CancellationTokenSource _cts;
-        private PacketHandler _packetHandler;
+        private PacketDispatcher _packetDispatcher;
+
+        public PacketDispatcher Dispatcher => _packetDispatcher;
         
         protected override void OnInitializeSingleton()
         {
-            _packetHandler = new PacketHandler();
+            _packetDispatcher = new PacketDispatcher();
             Connect("127.0.0.1", 7777);
         }
+
         /// <summary>
         /// 서버 연결
         /// </summary>
@@ -64,6 +69,7 @@ namespace Game.Managers
                 Disconnect("Connection failed");
             }
         }
+
         /// <summary>
         /// 연결 종료
         /// </summary>
@@ -145,7 +151,7 @@ namespace Game.Managers
                 Disconnect("Send failed");
             }
         }
-        
+
         /// <summary>
         /// 수신 루프 (백그라운드 스레드)
         /// </summary>
@@ -171,9 +177,8 @@ namespace Game.Managers
 
                     // Packet 파싱
                     var packet = Packet.Parser.ParseFrom(protobufData);
-
-                    // ⚠️ 중요: Unity 메인 스레드로 전달
-                    _packetHandler.HandlePacket(packet);
+                    
+                    _packetDispatcher.Dispatch(packet);
                 }
             }
             catch (OperationCanceledException)
@@ -192,7 +197,7 @@ namespace Game.Managers
                 Disconnect("Receive error");
             }
         }
-        
+
         /// <summary>
         /// 정확히 count만큼 바이트 수신
         /// </summary>
@@ -220,7 +225,6 @@ namespace Game.Managers
         }
 
 
-        
         private void OnDestroy()
         {
             Disconnect("Application quit");

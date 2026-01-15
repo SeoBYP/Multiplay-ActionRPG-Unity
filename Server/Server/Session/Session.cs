@@ -11,6 +11,7 @@ public sealed class Session
     public bool Connected { get; private set; }
     public DateTime LastRecvAt { get; private set; }
     public DateTime ConnectedAt { get; }
+    public string Nickname { get; set; }
     
     private Socket Socket;
     private Action<ulong> _onDisconnected;
@@ -34,6 +35,7 @@ public sealed class Session
         Connected = true;
         ConnectedAt = DateTime.UtcNow;
         LastRecvAt = ConnectedAt;
+        Nickname = string.Empty;
     }
     
     public async Task RunAsync(CancellationToken ct)

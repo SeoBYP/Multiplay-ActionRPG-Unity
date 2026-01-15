@@ -5,38 +5,80 @@ option csharp_namespace = "ServerCore.Protocol";
 
 message Packet {
   oneof payload {
-    C_Chat c_chat = 1000;  // ← 필드 번호가 사실상 PacketId
-    S_Chat s_chat = 1001;
-    C_CreateRoom c_create_room  = 1100;
-    S_CreateRoom s_create_room = 1101;
-    C_JoinRoom c_join_room = 1102;
-    S_JoinRoom s_join_room = 1103;
+    // Nickname (1000번대)
+    C_SetNickname c_set_nickname = 1000;
+    S_SetNickname s_set_nickname = 1001;
+
+    // Chat (1100번대)
+    C_Chat c_chat = 1100;
+    S_Chat s_chat = 1101;
+
+    // Room (1200번대)
+    C_CreateRoom c_create_room = 1200;
+    S_CreateRoom s_create_room = 1201;
+    C_JoinRoom c_join_room = 1202;
+    S_JoinRoom s_join_room = 1203;
+    C_LeaveRoom c_leave_room = 1204;
+    S_LeaveRoom s_leave_room = 1205;
   }
 }
 
-message C_Chat{
-  string message = 1;
+message C_SetNickname {
+  string nickname = 1;  // 설정할 닉네임
 }
 
-message S_Chat{
-  uint64 senderId = 1;
-  string message = 2;
+message S_SetNickname {
+  bool success = 1;       // 성공 여부
+  string nickname = 2;    // 설정된 닉네임
+  string error_message = 3;  // 실패 시 에러 메시지
 }
 
-message C_CreateRoom{
-  int32 max_members = 1;
+enum ChatType {
+  ALL = 0;      // 전체 채팅
+  WHISPER = 1;  // 귓속말
+  ROOM = 2;     // 방 채팅
 }
 
-message S_CreateRoom{
-  bool success = 1;
-  int32  room_id = 2;
+message C_Chat {
+  ChatType chat_type = 1;       // 채팅 타입
+  string message = 2;            // 메시지 내용
+  string target_nickname = 3;          // 귓속말 대상 ID (WHISPER일 때만 사용)
+}
+
+message S_Chat {
+  ChatType chat_type = 1;       // 채팅 타입
+  uint64 sender_id = 2;          // 발신자 ID
+  string sender_nickname = 3;    // 발신자 닉네임
+  string message = 4;            // 메시지 내용
+  string target_nickname = 5;          // 귓속말 대상 ID (WHISPER일 때만 사용)
+}
+
+message C_CreateRoom {
+  int32 max_members = 1;  // 최대 인원
+}
+
+message S_CreateRoom {
+  bool success = 1;         // 성공 여부
+  int32 room_id = 2;        // 방 ID
+  string error_message = 3; // 실패 시 에러 메시지
 }
 
 message C_JoinRoom {
-  int32 room_id = 1;
+  int32 room_id = 1;  // 입장할 방 ID
 }
 
 message S_JoinRoom {
-  bool success = 1;
-  int32 room_id = 2;
+  bool success = 1;         // 성공 여부
+  int32 room_id = 2;        // 방 ID
+  string error_message = 3; // 실패 시 에러 메시지
+}
+
+message C_LeaveRoom {
+  // 현재 입장한 방에서 퇴장
+}
+
+message S_LeaveRoom {
+  bool success = 1;         // 성공 여부
+  int32 room_id = 2;        // 퇴장한 방 ID
+  string error_message = 3; // 실패 시 에러 메시지
 }

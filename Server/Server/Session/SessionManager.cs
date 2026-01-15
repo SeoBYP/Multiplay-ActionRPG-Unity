@@ -7,6 +7,8 @@ using ServerCore.Protocol;
 
 public sealed class SessionManager
 {
+    public static SessionManager? Instance { get; private set; }
+
     private ulong _nextSessionId = 0;
     
     private readonly ConcurrentDictionary<ulong, Session> _sessions = new();
@@ -15,6 +17,7 @@ public sealed class SessionManager
     
     public SessionManager(PacketDispatcher dispatcher)
     {
+        Instance = this;
         _roomManager = new RoomManager();
         _dispatcher = dispatcher;
     }
@@ -65,6 +68,19 @@ public sealed class SessionManager
     public Session? Get(ulong sessionId)
     {
         return _sessions.GetValueOrDefault(sessionId);
+    }
+
+    public Session? GetWithNickname(string nickname)
+    {
+        return _sessions.Values.FirstOrDefault(s => s.Nickname == nickname);
+    }
+    
+    public void BroadcastAll(Packet packet, CancellationToken ct)
+    {
+        foreach (var (key, session) in _sessions)
+        {
+            _ = session.SendPacketAsync(packet, ct);
+        }
     }
     
     public void Clear()

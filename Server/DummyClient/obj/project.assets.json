@@ -2,7 +2,7 @@
   "version": 3,
   "targets": {
     "net10.0": {
-      "Google.Protobuf/3.33.2": {
+      "Google.Protobuf/3.33.4": {
         "type": "package",
         "compile": {
           "lib/net5.0/Google.Protobuf.dll": {
@@ -148,7 +148,7 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
-          "Google.Protobuf": "3.33.2"
+          "Google.Protobuf": "3.33.4"
         },
         "compile": {
           "bin/placeholder/ServerCore.dll": {}
@@ -160,14 +160,14 @@
     }
   },
   "libraries": {
-    "Google.Protobuf/3.33.2": {
-      "sha512": "vZXVbrZgBqUkP5iWQi0CS6pucIS2MQdEYPS1duWCo8fGrrt4th6HTiHfLFX2RmAWAQl1oUnzGgyDBsfq7fHQJA==",
+    "Google.Protobuf/3.33.4": {
+      "sha512": "8uRKKkDp+0Clqz1GqH6aTQtQsDJJyWhw9Owo1jsplIdNR7SIPehLVq4+5zccXkjOVbR6OcjEvL4MlrVSTme2IA==",
       "type": "package",
-      "path": "google.protobuf/3.33.2",
+      "path": "google.protobuf/3.33.4",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
-        "google.protobuf.3.33.2.nupkg.sha512",
+        "google.protobuf.3.33.4.nupkg.sha512",
         "google.protobuf.nuspec",
         "lib/net45/Google.Protobuf.dll",
         "lib/net45/Google.Protobuf.pdb",
@@ -1064,7 +1064,7 @@
   },
   "projectFileDependencyGroups": {
     "net10.0": [
-      "Google.Protobuf >= 3.33.2",
+      "Google.Protobuf >= 3.33.4",
       "Grpc.Tools >= 2.76.0",
       "Microsoft.CodeAnalysis.CSharp >= 5.0.0",
       "Microsoft.CodeAnalysis.Common >= 5.0.0",
@@ -1127,7 +1127,7 @@
         "dependencies": {
           "Google.Protobuf": {
             "target": "Package",
-            "version": "[3.33.2, )"
+            "version": "[3.33.4, )"
           },
           "Grpc.Tools": {
             "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",

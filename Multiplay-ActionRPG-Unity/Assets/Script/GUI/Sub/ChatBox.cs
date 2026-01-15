@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Managers;
+using Game.Network;
 using Script.GUI.Sub;
 using ServerCore.Protocol;
 using TMPro;
@@ -19,9 +20,8 @@ public class ChatBox : MonoBehaviour
     [SerializeField] private ScrollRect _scrollRect;
     [SerializeField] private Transform _chatContentParent; // ChatBubble의 부모 (ScrollView Content)
     private int _currentIndex = 0; // 가장 오래된 버블 위치 추적
-
- 
-    // private ChatType _currentChatType = ChatType.GLOBAL;
+    
+    private ChatType _currentChatType = ChatType.Room;
     private List<ChatBubble> _chatBubbles = new List<ChatBubble>();
     
     private void Start()
@@ -32,6 +32,8 @@ public class ChatBox : MonoBehaviour
         _inputField.onSubmit.AddListener(OnSendMessage);
         _sendButton.onClick.AddListener(OnClickSendButton);
         _chatDropdown.onValueChanged.AddListener(OnChatDropdownValueChanged);
+        
+        NetworkManager.Instance.Dispatcher.Chat.OnChatReceived.AddListener(OnChatReceived);
     }
     
     private void CreateChatBubble()
@@ -42,6 +44,14 @@ public class ChatBox : MonoBehaviour
             bubble.gameObject.SetActive(false);
             _chatBubbles.Add(bubble);
         }
+    }
+
+    private void OnChatReceived(S_Chat chat)
+    {
+        var sender = chat.SenderNickname;
+        var message = chat.Message;
+        var type = chat.ChatType;
+        _ = AppendChatMessage(sender, message);
     }
 
     public async UniTask AppendChatMessage(string sender, string message)
@@ -64,8 +74,9 @@ public class ChatBox : MonoBehaviour
     
     private void OnChatDropdownValueChanged(int index)
     {
-        // _currentChatType = (ChatType)index;
+        _currentChatType = (ChatType)index;
     }
+    
     private void OnSendMessage(string message)
     {
         string baseText = _inputField.text;
@@ -87,46 +98,39 @@ public class ChatBox : MonoBehaviour
         if (string.IsNullOrWhiteSpace(message))
             return;
 
-        string receiver = "ALL";
+        string receiver = "";
         string content = message;
 
-        // if (_currentChatType == ChatType.WHISPER)
-        // {
-        //     if (message.StartsWith("/"))
-        //     {
-        //         int firstSpaceIndex = message.IndexOf(' ');
-        //         if (firstSpaceIndex > 1)
-        //         {
-        //             receiver = message.Substring(1, firstSpaceIndex - 1);
-        //             content = message.Substring(firstSpaceIndex + 1);
-        //         }
-        //         else
-        //         {
-        //             Debug.LogWarning("귓속말 형식이 올바르지 않습니다. 예: /닉네임 메시지");
-        //             return;
-        //         }
-        //     }
-        //     else
-        //     {
-        //         Debug.LogWarning("귓속말은 '/'로 시작해야 합니다. 예: /닉네임 메시지");
-        //         return;
-        //     }
-        // }
-        //
-        // var chat = new ChatPacket
-        // {
-        //     sender = GameManager.Instance.NickName.Value,
-        //     receiver = receiver,
-        //     message = content,
-        //     chatType = _currentChatType
-        // };
-        // _ = 
+        if (_currentChatType == ChatType.Whisper)
+        {
+            if (message.StartsWith("/"))
+            {
+                int firstSpaceIndex = message.IndexOf(' ');
+                if (firstSpaceIndex > 1)
+                {
+                    receiver = message.Substring(1, firstSpaceIndex - 1);
+                    content = message.Substring(firstSpaceIndex + 1);
+                }
+                else
+                {
+                    Debug.LogWarning("귓속말 형식이 올바르지 않습니다. 예: /닉네임 메시지");
+                    return;
+                }
+            }
+            else
+            {
+                Debug.LogWarning("귓속말은 '/'로 시작해야 합니다. 예: /닉네임 메시지");
+                return;
+            }
+        }
+
+        var chat = new C_Chat();
+        chat.TargetNickname = receiver;
+        chat.Message = content;
+        chat.ChatType = _currentChatType;
 
         var packet = new Packet();
-        packet.CChat = new C_Chat
-        {
-            Message = content
-        };
+        packet.CChat = chat;
         NetworkManager.Instance.SendPacket(packet);
         _inputField.DeactivateInputField(); // 조합 종료
         _inputField.text = "";

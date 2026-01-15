@@ -1,3 +1,6 @@
+using Game.Managers;
+using Game.Network;
+using ServerCore.Protocol;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,12 +15,22 @@ public class NickNameInputPopup : CanvasUIBehaviour
     {
         confirmButton.onClick.AddListener(OnConfirmButtonClick);
         cancelButton.onClick.AddListener(OnCancelButtonClick);
+        
+        NetworkManager.Instance.Dispatcher.Common.OnSetNicknameReceived.AddListener(OnSetNicknameReceived);
     }
 
     private void OnCancelButtonClick()
     {
         Deactivate();
-        
+    }
+    
+    private void OnSetNicknameReceived(S_SetNickname response)
+    {
+        if (response.Success)
+        {
+            GameManager.Instance.NickName.Value = response.Nickname;
+            Deactivate();
+        }
     }
 
     private void OnConfirmButtonClick()
@@ -30,12 +43,12 @@ public class NickNameInputPopup : CanvasUIBehaviour
             return;
         }
 
-        // var packet = new C_SetNicknamePacket
-        // {
-        //     nickname = nickname
-        // };
-        //
-        // _ = NetworkManager.Instance.SendPacket(packet);
+        var request = new C_SetNickname();
+        request.Nickname = nickname;
+        
+        var packet = new Packet();
+        packet.CSetNickname = request;
+        NetworkManager.Instance.SendPacket(packet);
     }
 
     protected override void OnActivate() { }
