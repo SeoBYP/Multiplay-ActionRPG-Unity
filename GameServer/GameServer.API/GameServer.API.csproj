@@ -10,4 +10,13 @@
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Application\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\GameServer.Application\GameServer.Application.csproj" />
+      <ProjectReference Include="..\GameServer.Infrastructure\GameServer.Infrastructure.csproj" />
+    </ItemGroup>
+
 </Project>
