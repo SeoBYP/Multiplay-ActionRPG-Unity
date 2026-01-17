@@ -1,17 +1,72 @@
+version: '3.8'
+
 services:
+  # PostgreSQL 데이터베이스
   postgres:
-    image: postgres
+    image: postgres:16-alpine
+    container_name: gameserver-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: mydatabase
+      POSTGRES_USER: gameuser
+      POSTGRES_PASSWORD: gamepass123
+      POSTGRES_DB: gamedb
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gameuser -d gamedb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gameserver-network
+
+  # Redis 캐시
   redis:
-    image: redis
+    image: redis:7-alpine
+    container_name: gameserver-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
     ports:
       - "6379:6379"
     volumes:
       - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - gameserver-network
+
+  # PgAdmin (PostgreSQL 관리 도구)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: gameserver-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@gameserver.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - gameserver-network
+
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local
+  pgadmin-data:
+    driver: local
+
+networks:
+  gameserver-network:
+    driver: bridge

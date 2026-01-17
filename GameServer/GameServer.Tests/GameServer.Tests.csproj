@@ -18,4 +18,11 @@
         <Using Include="Xunit"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\GameServer.API\GameServer.API.csproj" />
+      <ProjectReference Include="..\GameServer.Application\GameServer.Application.csproj" />
+      <ProjectReference Include="..\GameServer.Domain\GameServer.Domain.csproj" />
+      <ProjectReference Include="..\GameServer.Infrastructure\GameServer.Infrastructure.csproj" />
+    </ItemGroup>
+
 </Project>

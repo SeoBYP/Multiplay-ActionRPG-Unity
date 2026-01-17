@@ -2,10 +2,54 @@
   "version": 3,
   "targets": {
     "net10.0": {
+      "BCrypt/1.0.0": {
+        "type": "package",
+        "compile": {
+          "lib/DevOne.Security.Cryptography.BCrypt.dll": {}
+        },
+        "runtime": {
+          "lib/DevOne.Security.Cryptography.BCrypt.dll": {}
+        }
+      },
+      "BCrypt.Net-Next/4.0.3": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/BCrypt.Net-Next.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/BCrypt.Net-Next.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "coverlet.collector/6.0.4": {
         "type": "package",
         "build": {
           "build/netstandard2.0/coverlet.collector.targets": {}
+        }
+      },
+      "Microsoft.AspNetCore.OpenApi/10.0.1": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.OpenApi": "2.0.0"
+        },
+        "compile": {
+          "lib/net10.0/Microsoft.AspNetCore.OpenApi.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.AspNetCore.OpenApi.dll": {
+            "related": ".xml"
+          }
+        },
+        "frameworkReferences": [
+          "Microsoft.AspNetCore.App"
+        ],
+        "build": {
+          "build/_._": {}
         }
       },
       "Microsoft.CodeCoverage/17.14.1": {
@@ -36,6 +80,19 @@
         "build": {
           "build/net8.0/Microsoft.NET.Test.Sdk.props": {},
           "build/net8.0/Microsoft.NET.Test.Sdk.targets": {}
+        }
+      },
+      "Microsoft.OpenApi/2.0.0": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/Microsoft.OpenApi.dll": {
+            "related": ".pdb;.xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.OpenApi.dll": {
+            "related": ".pdb;.xml"
+          }
         }
       },
       "Microsoft.TestPlatform.ObjectModel/17.14.1": {
@@ -393,10 +450,110 @@
         "build": {
           "build/net8.0/xunit.runner.visualstudio.props": {}
         }
+      },
+      "GameServer.API/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "GameServer.Application": "1.0.0",
+          "GameServer.Infrastructure": "1.0.0",
+          "Microsoft.AspNetCore.OpenApi": "10.0.1"
+        },
+        "compile": {
+          "bin/placeholder/GameServer.API.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/GameServer.API.dll": {}
+        },
+        "frameworkReferences": [
+          "Microsoft.AspNetCore.App"
+        ]
+      },
+      "GameServer.Application/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "GameServer.Domain": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/GameServer.Application.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/GameServer.Application.dll": {}
+        }
+      },
+      "GameServer.Domain/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "compile": {
+          "bin/placeholder/GameServer.Domain.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/GameServer.Domain.dll": {}
+        }
+      },
+      "GameServer.Infrastructure/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "BCrypt": "1.0.0",
+          "BCrypt.Net-Next": "4.0.3",
+          "GameServer.Application": "1.0.0",
+          "GameServer.Domain": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/GameServer.Infrastructure.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/GameServer.Infrastructure.dll": {}
+        }
       }
     }
   },
   "libraries": {
+    "BCrypt/1.0.0": {
+      "sha512": "/ibwe2Sg7MJR26IrEzW2Rde9/+A+AYXB5Kf9w/8BVLDdzSfUe4W2M7i2efy1Wa9wHh1k0y81Q6h9Ty8C6IrUGA==",
+      "type": "package",
+      "path": "bcrypt/1.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "bcrypt.1.0.0.nupkg.sha512",
+        "bcrypt.nuspec",
+        "lib/DevOne.Security.Cryptography.BCrypt.dll"
+      ]
+    },
+    "BCrypt.Net-Next/4.0.3": {
+      "sha512": "W+U9WvmZQgi5cX6FS5GDtDoPzUCV4LkBLkywq/kRZhuDwcbavOzcDAr3LXJFqHUi952Yj3LEYoWW0jbEUQChsA==",
+      "type": "package",
+      "path": "bcrypt.net-next/4.0.3",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "bcrypt.net-next.4.0.3.nupkg.sha512",
+        "bcrypt.net-next.nuspec",
+        "ico.png",
+        "lib/net20/BCrypt.Net-Next.dll",
+        "lib/net20/BCrypt.Net-Next.xml",
+        "lib/net35/BCrypt.Net-Next.dll",
+        "lib/net35/BCrypt.Net-Next.xml",
+        "lib/net462/BCrypt.Net-Next.dll",
+        "lib/net462/BCrypt.Net-Next.xml",
+        "lib/net472/BCrypt.Net-Next.dll",
+        "lib/net472/BCrypt.Net-Next.xml",
+        "lib/net48/BCrypt.Net-Next.dll",
+        "lib/net48/BCrypt.Net-Next.xml",
+        "lib/net5.0/BCrypt.Net-Next.dll",
+        "lib/net5.0/BCrypt.Net-Next.xml",
+        "lib/net6.0/BCrypt.Net-Next.dll",
+        "lib/net6.0/BCrypt.Net-Next.xml",
+        "lib/netstandard2.0/BCrypt.Net-Next.dll",
+        "lib/netstandard2.0/BCrypt.Net-Next.xml",
+        "lib/netstandard2.1/BCrypt.Net-Next.dll",
+        "lib/netstandard2.1/BCrypt.Net-Next.xml",
+        "readme.md"
+      ]
+    },
     "coverlet.collector/6.0.4": {
       "sha512": "lkhqpF8Pu2Y7IiN7OntbsTtdbpR1syMsm2F3IgX6ootA4ffRqWL5jF7XipHuZQTdVuWG/gVAAcf8mjk8Tz0xPg==",
       "type": "package",
@@ -465,6 +622,24 @@
         "coverlet-icon.png",
         "coverlet.collector.6.0.4.nupkg.sha512",
         "coverlet.collector.nuspec"
+      ]
+    },
+    "Microsoft.AspNetCore.OpenApi/10.0.1": {
+      "sha512": "gMY53EggRIFawhue66GanHcm1Tcd0+QzzMwnMl60LrEoJhGgzA9qAbLx6t/ON3hX4flc2NcEbTK1Z5GCLYHcwA==",
+      "type": "package",
+      "path": "microsoft.aspnetcore.openapi/10.0.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "PACKAGE.md",
+        "THIRD-PARTY-NOTICES.TXT",
+        "analyzers/dotnet/cs/Microsoft.AspNetCore.OpenApi.SourceGenerators.dll",
+        "build/Microsoft.AspNetCore.OpenApi.targets",
+        "lib/net10.0/Microsoft.AspNetCore.OpenApi.dll",
+        "lib/net10.0/Microsoft.AspNetCore.OpenApi.xml",
+        "microsoft.aspnetcore.openapi.10.0.1.nupkg.sha512",
+        "microsoft.aspnetcore.openapi.nuspec"
       ]
     },
     "Microsoft.CodeCoverage/17.14.1": {
@@ -563,6 +738,24 @@
         "lib/net8.0/_._",
         "microsoft.net.test.sdk.17.14.1.nupkg.sha512",
         "microsoft.net.test.sdk.nuspec"
+      ]
+    },
+    "Microsoft.OpenApi/2.0.0": {
+      "sha512": "GGYLfzV/G/ct80OZ45JxnWP7NvMX1BCugn/lX7TH5o0lcVaviavsLMTxmFV2AybXWjbi3h6FF1vgZiTK6PXndw==",
+      "type": "package",
+      "path": "microsoft.openapi/2.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "lib/net8.0/Microsoft.OpenApi.dll",
+        "lib/net8.0/Microsoft.OpenApi.pdb",
+        "lib/net8.0/Microsoft.OpenApi.xml",
+        "lib/netstandard2.0/Microsoft.OpenApi.dll",
+        "lib/netstandard2.0/Microsoft.OpenApi.pdb",
+        "lib/netstandard2.0/Microsoft.OpenApi.xml",
+        "microsoft.openapi.2.0.0.nupkg.sha512",
+        "microsoft.openapi.nuspec"
       ]
     },
     "Microsoft.TestPlatform.ObjectModel/17.14.1": {
@@ -903,10 +1096,34 @@
         "xunit.runner.visualstudio.3.1.4.nupkg.sha512",
         "xunit.runner.visualstudio.nuspec"
       ]
+    },
+    "GameServer.API/1.0.0": {
+      "type": "project",
+      "path": "../GameServer.API/GameServer.API.csproj",
+      "msbuildProject": "../GameServer.API/GameServer.API.csproj"
+    },
+    "GameServer.Application/1.0.0": {
+      "type": "project",
+      "path": "../GameServer.Application/GameServer.Application.csproj",
+      "msbuildProject": "../GameServer.Application/GameServer.Application.csproj"
+    },
+    "GameServer.Domain/1.0.0": {
+      "type": "project",
+      "path": "../GameServer.Domain/GameServer.Domain.csproj",
+      "msbuildProject": "../GameServer.Domain/GameServer.Domain.csproj"
+    },
+    "GameServer.Infrastructure/1.0.0": {
+      "type": "project",
+      "path": "../GameServer.Infrastructure/GameServer.Infrastructure.csproj",
+      "msbuildProject": "../GameServer.Infrastructure/GameServer.Infrastructure.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net10.0": [
+      "GameServer.API >= 1.0.0",
+      "GameServer.Application >= 1.0.0",
+      "GameServer.Domain >= 1.0.0",
+      "GameServer.Infrastructure >= 1.0.0",
       "Microsoft.NET.Test.Sdk >= 17.14.1",
       "coverlet.collector >= 6.0.4",
       "xunit >= 2.9.3",
@@ -914,30 +1131,50 @@
     ]
   },
   "packageFolders": {
-    "/Users/seobyeongpil/.nuget/packages/": {}
+    "C:\\Users\\user\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/seobyeongpil/GitHub/Multiplay-ActionRPG-Unity/GameServer/GameServer.Tests/GameServer.Tests.csproj",
+      "projectUniqueName": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\GameServer\\GameServer.Tests\\GameServer.Tests.csproj",
       "projectName": "GameServer.Tests",
-      "projectPath": "/Users/seobyeongpil/GitHub/Multiplay-ActionRPG-Unity/GameServer/GameServer.Tests/GameServer.Tests.csproj",
-      "packagesPath": "/Users/seobyeongpil/.nuget/packages/",
-      "outputPath": "/Users/seobyeongpil/GitHub/Multiplay-ActionRPG-Unity/GameServer/GameServer.Tests/obj/",
+      "projectPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\GameServer\\GameServer.Tests\\GameServer.Tests.csproj",
+      "packagesPath": "C:\\Users\\user\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\GameServer\\GameServer.Tests\\obj\\",
       "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
       "configFilePaths": [
-        "/Users/seobyeongpil/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\user\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\GameServer\\GameServer.API\\GameServer.API.csproj": {
+              "projectPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\GameServer\\GameServer.API\\GameServer.API.csproj"
+            },
+            "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\GameServer\\GameServer.Application\\GameServer.Application.csproj": {
+              "projectPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\GameServer\\GameServer.Application\\GameServer.Application.csproj"
+            },
+            "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj": {
+              "projectPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj"
+            },
+            "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\GameServer\\GameServer.Infrastructure\\GameServer.Infrastructure.csproj": {
+              "projectPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\GameServer\\GameServer.Infrastructure\\GameServer.Infrastructure.csproj"
+            }
+          }
         }
       },
       "warningProperties": {
@@ -989,7 +1226,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/Users/seobyeongpil/.dotnet/sdk/10.0.102/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Users\\user\\.dotnet\\sdk\\10.0.101/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -1266,5 +1503,17 @@
         }
       }
     }
-  }
+  },
+  "logs": [
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Package 'BCrypt 1.0.0' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net10.0'. This package may not be fully compatible with your project.",
+      "libraryId": "BCrypt",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    }
+  ]
 }
