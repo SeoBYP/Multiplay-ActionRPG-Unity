@@ -113,5 +113,7 @@ C:\Users\user\Github\Multiplay-ActionRPG-Unity\GameServer\GameServer.Tests\obj\D
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\GameServer\GameServer.Tests\obj\Debug\net10.0\GameServer.Tests.pdb
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\GameServer\GameServer.Tests\obj\Debug\net10.0\GameServer.Tests.genruntimeconfig.cache
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\GameServer\GameServer.Tests\obj\Debug\net10.0\ref\GameServer.Tests.dll
-C:\Users\user\Github\Multiplay-ActionRPG-Unity\GameServer\GameServer.Tests\bin\Debug\net10.0\DevOne.Security.Cryptography.BCrypt.dll
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\GameServer\GameServer.Tests\bin\Debug\net10.0\BCrypt.Net-Next.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\GameServer\GameServer.Tests\bin\Debug\net10.0\Swashbuckle.AspNetCore.Swagger.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\GameServer\GameServer.Tests\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerGen.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\GameServer\GameServer.Tests\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerUI.dll

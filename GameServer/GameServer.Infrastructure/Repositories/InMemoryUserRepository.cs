@@ -11,7 +11,8 @@ public class InMemoryUserRepository : IUserRepository
     
     public Task<User?> GetByUsernameAsync(string userName)
     {
-        if(userName == null) return Task.FromResult<User?>(null);
+        if(string.IsNullOrWhiteSpace(userName)) 
+            return Task.FromResult<User?>(null);
         
         return Task.FromResult(_users.Values.FirstOrDefault(u => u.UserName == userName));
     }
