@@ -22,7 +22,7 @@ public class AuthController : ControllerBase
         try
         {
             var response = await _authService.RegisterAsync(request);
-            return CreatedAtAction(nameof(Register), new { id = response.UserId }, response);
+            return CreatedAtAction(nameof(Register), new { id = response.Value }, response);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
         {

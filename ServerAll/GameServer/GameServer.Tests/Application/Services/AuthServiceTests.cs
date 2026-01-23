@@ -1,4 +1,5 @@
-﻿using GameServer.Application.DTOs.Requests;
+﻿using GameServer.Application.Common;
+using GameServer.Application.DTOs.Requests;
 using GameServer.Application.Interfaces;
 using GameServer.Application.Services;
 using GameServer.Domain.Interfaces;
@@ -11,13 +12,16 @@ public class AuthServiceTests
 {
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly ISessionRepository _sessionRepository;
+    private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly AuthService _authService;
 
     public AuthServiceTests() // ← 생성자 사용
     {
         _userRepository = new InMemoryUserRepository();
         _passwordHasher = new PasswordHasher();
-        _authService = new AuthService(_userRepository, _passwordHasher);
+        _authService = new AuthService(_userRepository, _passwordHasher
+            , _sessionRepository, _jwtTokenGenerator);
     }
 
     [Fact]
@@ -31,9 +35,10 @@ public class AuthServiceTests
 
         // then
         Assert.NotNull(response);
-        Assert.True(response.UserId > 0);
-        Assert.Equal(request.UserName, response.UserName);
-        Assert.Equal(request.Email, response.Email);
+        var value = response.Value;
+        Assert.True(value.UserId > 0);
+        Assert.Equal(request.UserName, value.UserName);
+        Assert.Equal(request.Email, value.Email);
 
         var savedUser = await _userRepository.GetByUsernameAsync(request.UserName);
         Assert.NotNull(savedUser);
@@ -48,9 +53,13 @@ public class AuthServiceTests
         var request = new RegisterRequest("testuser", "password123", "test@example.com");
         await _authService.RegisterAsync(request);
 
-        // when & then
+        // when
+        var response = await _authService.RegisterAsync(request);
+
         // 같은 Username으로 다시 가입 시도
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => { await _authService.RegisterAsync(request); });
+        // then
+        Assert.NotNull(response);
+        Assert.Equal(ErrorMessages.UserAlreadyExists, response.Message);
     }
 
     [Fact]
@@ -65,12 +74,13 @@ public class AuthServiceTests
             registerRequest.Password);
 
         var response = await _authService.LoginAsync(loginRequest);
-        
+
         // then
         Assert.NotNull(response);
-        Assert.True(response.UserId > 0);
-        Assert.Equal(registerRequest.UserName, response.UserName);
-        Assert.Equal(registerRequest.Email, response.Email);
+        var value = response.Value;
+        Assert.True(value.UserId > 0);
+        Assert.Equal(registerRequest.UserName, value.UserName);
+        Assert.Equal(registerRequest.Email, value.Email);
     }
 
     [Fact]
@@ -79,11 +89,12 @@ public class AuthServiceTests
         // given
         var loginRequest = new LoginRequest("notexist", "password123");
 
-        // when & then
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(async () =>
-        {
-            await _authService.LoginAsync(loginRequest);
-        });
+        // when
+        var response = await _authService.LoginAsync(loginRequest);
+
+        // then
+        Assert.NotNull(response);
+        Assert.Equal(ErrorMessages.UserNotFound, response.Message);
     }
 
     [Fact]
@@ -92,14 +103,14 @@ public class AuthServiceTests
         // given
         var registerRequest = new RegisterRequest("testuser", "password123", "test@example.com");
         await _authService.RegisterAsync(registerRequest);
-        
+
         var loginRequest = new LoginRequest(registerRequest.UserName,
             "wrongpassword");
-        
-        // when & then
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-        {
-            await _authService.LoginAsync(loginRequest);
-        });
+        // when 
+        var response = await _authService.LoginAsync(loginRequest);
+
+        // then
+        Assert.NotNull(response);
+        Assert.Equal(ErrorMessages.InvalidCredentials, response.Message);
     }
 }

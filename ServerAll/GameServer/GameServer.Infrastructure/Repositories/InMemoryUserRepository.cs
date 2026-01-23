@@ -9,6 +9,8 @@ public class InMemoryUserRepository : IUserRepository
     
     private long _nextId = 1;
     
+    
+
     public Task<User?> GetByUsernameAsync(string userName)
     {
         if(string.IsNullOrWhiteSpace(userName)) 

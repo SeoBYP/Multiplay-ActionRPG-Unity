@@ -29,6 +29,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameServer.Infrastructure",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameServer.Tests", "GameServer\GameServer.Tests\GameServer.Tests.csproj", "{00347F7D-10D6-4E37-B21C-9F2895A555E5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Temp", "Temp\Temp.csproj", "{F254BCF8-6388-40CF-8F2B-E6ED00C152D8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +73,10 @@ Global
 		{00347F7D-10D6-4E37-B21C-9F2895A555E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{00347F7D-10D6-4E37-B21C-9F2895A555E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{00347F7D-10D6-4E37-B21C-9F2895A555E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F254BCF8-6388-40CF-8F2B-E6ED00C152D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F254BCF8-6388-40CF-8F2B-E6ED00C152D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F254BCF8-6388-40CF-8F2B-E6ED00C152D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F254BCF8-6388-40CF-8F2B-E6ED00C152D8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{40D662BD-BEF0-4D40-B5D3-2942D0EE14AA} = {D5C1EB16-259C-47A3-ACE7-7E21B631C75F}

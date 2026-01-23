@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Infrastructure\\GameServer.Infrastructure.csproj": {}
+    "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Infrastructure\\GameServer.Infrastructure.csproj": {}
   },
   "projects": {
-    "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Application\\GameServer.Application.csproj": {
+    "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Application\\GameServer.Application.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Application\\GameServer.Application.csproj",
+        "projectUniqueName": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Application\\GameServer.Application.csproj",
         "projectName": "GameServer.Application",
-        "projectPath": "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Application\\GameServer.Application.csproj",
-        "packagesPath": "C:\\Users\\User\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Application\\obj\\",
+        "projectPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Application\\GameServer.Application.csproj",
+        "packagesPath": "C:\\Users\\user\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Application\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\User\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\user\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -32,8 +32,8 @@
           "net10.0": {
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj": {
-                "projectPath": "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj"
+              "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj": {
+                "projectPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj"
               }
             }
           }
@@ -53,6 +53,16 @@
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
+          "dependencies": {
+            "MemoryPack": {
+              "target": "Package",
+              "version": "[1.21.4, )"
+            },
+            "Microsoft.AspNetCore.Authentication.JwtBearer": {
+              "target": "Package",
+              "version": "[10.0.2, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
@@ -69,7 +79,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Users\\User\\.dotnet\\sdk\\10.0.102/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Users\\user\\.dotnet\\sdk\\10.0.101/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -347,20 +357,20 @@
         }
       }
     },
-    "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj": {
+    "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj",
+        "projectUniqueName": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj",
         "projectName": "GameServer.Domain",
-        "projectPath": "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj",
-        "packagesPath": "C:\\Users\\User\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Domain\\obj\\",
+        "projectPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj",
+        "packagesPath": "C:\\Users\\user\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\User\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\user\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -408,7 +418,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Users\\User\\.dotnet\\sdk\\10.0.102/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Users\\user\\.dotnet\\sdk\\10.0.101/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -686,20 +696,20 @@
         }
       }
     },
-    "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Infrastructure\\GameServer.Infrastructure.csproj": {
+    "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Infrastructure\\GameServer.Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Infrastructure\\GameServer.Infrastructure.csproj",
+        "projectUniqueName": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Infrastructure\\GameServer.Infrastructure.csproj",
         "projectName": "GameServer.Infrastructure",
-        "projectPath": "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Infrastructure\\GameServer.Infrastructure.csproj",
-        "packagesPath": "C:\\Users\\User\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Infrastructure\\obj\\",
+        "projectPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Infrastructure\\GameServer.Infrastructure.csproj",
+        "packagesPath": "C:\\Users\\user\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\User\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\user\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -714,11 +724,11 @@
           "net10.0": {
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Application\\GameServer.Application.csproj": {
-                "projectPath": "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Application\\GameServer.Application.csproj"
+              "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Application\\GameServer.Application.csproj": {
+                "projectPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Application\\GameServer.Application.csproj"
               },
-              "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj": {
-                "projectPath": "C:\\Users\\User\\서병필\\Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj"
+              "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj": {
+                "projectPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj"
               }
             }
           }
@@ -742,6 +752,14 @@
             "BCrypt.Net-Next": {
               "target": "Package",
               "version": "[4.0.3, )"
+            },
+            "Microsoft.AspNetCore.Authentication.JwtBearer": {
+              "target": "Package",
+              "version": "[10.0.2, )"
+            },
+            "StackExchange.Redis": {
+              "target": "Package",
+              "version": "[2.10.1, )"
             }
           },
           "imports": [
@@ -760,7 +778,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Users\\User\\.dotnet\\sdk\\10.0.102/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Users\\user\\.dotnet\\sdk\\10.0.101/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",

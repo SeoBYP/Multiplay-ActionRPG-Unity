@@ -4,6 +4,7 @@ package Protocol;
 option csharp_namespace = "ServerCore.Protocol";
 
 message Packet {
+  // TODO : oneofPayload로 하기 보단 각각의 메세지는 Payload로 하고 Packet을 별도로 만들어서 Generator로 관리
   oneof payload {
     // Nickname (1000번대)
     C_SetNickname c_set_nickname = 1000;
