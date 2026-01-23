@@ -367,3 +367,5 @@ C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.T
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Tests\obj\Debug\net10.0\GameServer.Tests.pdb
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Tests\obj\Debug\net10.0\GameServer.Tests.genruntimeconfig.cache
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Tests\obj\Debug\net10.0\ref\GameServer.Tests.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Tests\bin\Debug\net10.0\DotNetEnv.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Tests\bin\Debug\net10.0\Sprache.dll

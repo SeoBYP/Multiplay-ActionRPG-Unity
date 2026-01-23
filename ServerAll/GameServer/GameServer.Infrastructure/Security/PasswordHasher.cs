@@ -1,4 +1,4 @@
-﻿using GameServer.Application.Interfaces;
+﻿using GameServer.Infrastructure.Interfaces;
 
 namespace GameServer.Infrastructure.Security;
 

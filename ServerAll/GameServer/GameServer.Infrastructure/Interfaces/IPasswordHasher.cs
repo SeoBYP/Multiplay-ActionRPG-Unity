@@ -1,4 +1,4 @@
-﻿namespace GameServer.Application.Interfaces;
+﻿namespace GameServer.Infrastructure.Interfaces;
 
 public interface IPasswordHasher
 {

@@ -1,9 +1,9 @@
 ﻿using System.Security.Claims;
 
-namespace GameServer.Application.Interfaces;
+namespace GameServer.Infrastructure.Interfaces;
 
 public interface IJwtTokenGenerator
 {
-    string GenerateAccessToken(long userId, string userName, string email);
+    string GenerateAccessToken(long userId, string userName, string email, string sessionId);
     ValueTask<ClaimsPrincipal?> ValidateToken(string token, bool validateLifetime = true);
 }

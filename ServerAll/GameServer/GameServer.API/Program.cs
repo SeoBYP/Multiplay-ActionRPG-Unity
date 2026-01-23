@@ -1,14 +1,15 @@
 using System.Text;
-using GameServer.Application.Interfaces;
 using GameServer.Application.Services;
 using GameServer.Application.Services.Interfaces;
 using GameServer.Domain.Interfaces;
 using GameServer.Infrastructure.Repositories;
 using GameServer.Infrastructure.Security;
+using GameServer.Infrastructure.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using DotNetEnv;
+using GameServer.API.Middleware;
 
 var envPaths = new[]
 {
@@ -37,7 +38,7 @@ var redisConnection = ConnectionMultiplexer.Connect(
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 
 
-// applicationSetting.json???�는 Jwt ?�션??가?��???JwtOption??초기????
+// applicationSetting.json???�는 Jwt ?�션??가?��???JwtOption??초기????
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -57,8 +58,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddSingleton<IUserRepository, InMemoryUserRepository>();
-
-
 builder.Services.AddSingleton<ISessionRepository, RedisSessionRepository>();
 
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
@@ -72,7 +71,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

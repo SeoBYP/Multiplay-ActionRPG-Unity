@@ -46,3 +46,5 @@ C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.A
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Application\obj\Debug\net10.0\refint\GameServer.Application.dll
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Application\obj\Debug\net10.0\GameServer.Application.pdb
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Application\obj\Debug\net10.0\ref\GameServer.Application.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Application\bin\Debug\net10.0\GameServer.Infrastructure.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Application\bin\Debug\net10.0\GameServer.Infrastructure.pdb

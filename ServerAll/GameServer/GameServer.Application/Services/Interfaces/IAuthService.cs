@@ -10,7 +10,7 @@ public interface IAuthService
     
     public Task<Result<LoginResponse>> LoginAsync(LoginRequest request);
     
-    Task LogoutAsync(string sessionId);
+    Task<Result> LogoutAsync(string sessionId);
     
     Task<bool> ValidateTokenAsync(string token);
 }

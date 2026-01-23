@@ -537,6 +537,9 @@
             "projectReferences": {
               "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj": {
                 "projectPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj"
+              },
+              "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Infrastructure\\GameServer.Infrastructure.csproj": {
+                "projectPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Infrastructure\\GameServer.Infrastructure.csproj"
               }
             }
           }
@@ -1227,9 +1230,6 @@
           "net10.0": {
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Application\\GameServer.Application.csproj": {
-                "projectPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Application\\GameServer.Application.csproj"
-              },
               "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj": {
                 "projectPath": "C:\\Users\\user\\Github\\Multiplay-ActionRPG-Unity\\ServerAll\\GameServer\\GameServer.Domain\\GameServer.Domain.csproj"
               }

@@ -9,4 +9,7 @@ public enum ErrorCodes : ushort
     SessionNotFound = 1004,
     InvalidRequest = 1005,
     SessionExpired = 1006,
+    
+    
+    InternalServerError = 5000,
 }
