@@ -2,7 +2,7 @@
 
 **원신 스타일 오픈월드 액션 RPG 서버 개발 포트폴리오**
 
-[![Unity](https://img.shields.io/badge/Unity-6000.3_LTS-black.svg?style=flat&logo=unity)](https://unity.com/)
+[![Unity](https://img.shields.io/badge/Unity-6000.3.2_LTS-black.svg?style=flat&logo=unity)](https://unity.com/)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4.svg?style=flat&logo=dotnet)](https://dotnet.microsoft.com/)
 
 > **게임 서버 개발 역량을 증명하는 실전 프로젝트**  
@@ -42,11 +42,12 @@
 
 ---
 
-## 🏗️ 아키텍처 설계
+## 아키텍처 설계
 
 ### 하이브리드 통신 모델
 
-원신 스타일 게임의 특성을 분석한 결과, **통신 방식을 기능별로 분리**하는 것이 최적입니다.
+하이브리드 통신 모델
+원신 스타일 게임의 특성을 분석한 결과, 통신 방식을 기능별로 분리하는 것이 최적입니다.
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -154,7 +155,7 @@
 - ASP.NET Core 생태계 활용
 - 익숙한 REST API 패턴
 
-#### Dungeon Server (TCP Socket)
+#### Dungeon Server (Socket)
 
 **분리된 서비스 - 독립 인스턴스**
 
@@ -162,7 +163,7 @@
 ┌──────────────────────────────────────┐
 │  .NET Console Application            │
 │                                      │
-│  - TCP 소켓 (고성능)                  │
+│  - 소켓 (고성능)                  │
 │  - 높은 틱레이트 (60Hz)               │
 │  - 2~4명 격리된 인스턴스              │
 │  - Protocol Buffers                  │
@@ -183,7 +184,7 @@
 
 ### 클라이언트
 
-- **엔진**: Unity 2021.3 LTS
+- **엔진**: Unity 6000.3.2 LTS
 - **언어**: C# 10.0
 - **HTTP**: UnityWebRequest / HttpClient
 - **WebSocket**: SignalR Client
@@ -657,7 +658,6 @@ syntax = "proto3";
 
 service DungeonService {
     rpc AllocateInstance(AllocateRequest) returns (AllocateResponse);
-    rpc ReleaseInstance(ReleaseRequest) returns (ReleaseResponse);
 }
 
 message AllocateRequest {
