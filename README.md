@@ -188,12 +188,12 @@
 - **언어**: C# 10.0
 - **HTTP**: UnityWebRequest / HttpClient
 - **WebSocket**: SignalR Client
-- **직렬화**: JSON (HTTP), Protocol Buffers (TCP)
+- **직렬화**: JSON (HTTP), Protocol Buffers (TCP), MessagePack, MemoryPack
 
 ### Game Server (Main)
 
 - **프레임워크**: ASP.NET Core 8.0
-- **HTTP API**: RESTful Controllers
+- **HTTP API**: RESTful Controllers, gRPC
 - **WebSocket**: SignalR
 - **인증**: JWT (Bearer Token)
 - **DB**: Entity Framework Core + PostgreSQL
@@ -203,8 +203,7 @@
 
 - **프레임워크**: .NET 8.0 Console App
 - **통신**: System.Net.Sockets (TCP)
-- **직렬화**: Protocol Buffers
-- **물리**: Headless Unity (선택)
+- **직렬화**: Protocol Buffers, MessagePack, MemoryPack
 
 ### 공통 인프라
 
