@@ -1,8 +1,8 @@
 ﻿using GameServer.Domain.Entities;
 
-namespace GameServer.Domain.Interfaces;
+namespace GameServer.Domain.Interfaces.User;
 
-public interface ISessionRepository
+public interface IUserSessionRepository
 {
     Task<UserSession?> CreateSessionAsync(long userId, string userName);
     Task<UserSession?> GetBySessionIdAsync(string sessionId);

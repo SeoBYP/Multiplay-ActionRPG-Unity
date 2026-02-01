@@ -1,6 +1,5 @@
 using System.Text;
 using GameServer.Application.Services;
-using GameServer.Application.Services.Interfaces;
 using GameServer.Domain.Interfaces;
 using GameServer.Infrastructure.Repositories;
 using GameServer.Infrastructure.Security;
@@ -10,6 +9,10 @@ using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using DotNetEnv;
 using GameServer.API.Middleware;
+using GameServer.Application.Services.Auth;
+using GameServer.Application.Services.Auth.Interfaces;
+using GameServer.Domain.Entities;
+using GameServer.Domain.Interfaces.User;
 
 var envPaths = new[]
 {
@@ -37,8 +40,6 @@ var redisConnection = ConnectionMultiplexer.Connect(
 );
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 
-
-// applicationSetting.json???�는 Jwt ?�션??가?��???JwtOption??초기????
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -58,7 +59,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddSingleton<IUserRepository, InMemoryUserRepository>();
-builder.Services.AddSingleton<ISessionRepository, RedisSessionRepository>();
+builder.Services.AddSingleton<IUserSessionRepository, RedisUserSessionRepository>();
 
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IAuthService, AuthService>();

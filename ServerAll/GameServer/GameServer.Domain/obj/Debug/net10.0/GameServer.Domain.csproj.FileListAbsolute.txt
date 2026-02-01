@@ -34,3 +34,4 @@ C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.D
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Domain\obj\Debug\net10.0\refint\GameServer.Domain.dll
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Domain\obj\Debug\net10.0\GameServer.Domain.pdb
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Domain\obj\Debug\net10.0\ref\GameServer.Domain.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Domain\obj\Debug\net10.0\GameServer.Domain.csproj.AssemblyReference.cache

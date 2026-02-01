@@ -1,6 +1,6 @@
 ﻿using MemoryPack;
 
-namespace GameServer.Application.DTOs.Requests;
+namespace GameServer.Application.DTOs.Auth.Login;
 
 [MemoryPackable]
 public partial class LoginRequest

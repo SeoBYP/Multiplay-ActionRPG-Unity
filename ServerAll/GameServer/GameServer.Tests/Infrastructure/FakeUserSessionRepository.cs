@@ -1,9 +1,8 @@
 ﻿// 테스트용 Fake 구현
-
 using GameServer.Domain.Entities;
-using GameServer.Domain.Interfaces;
+using GameServer.Domain.Interfaces.User;
 
-public class FakeSessionRepository : ISessionRepository
+public class FakeUserSessionRepository : IUserSessionRepository
 {
     private readonly Dictionary<string, UserSession> _sessions = new();
     private readonly Dictionary<long, string> _userToSession = new();

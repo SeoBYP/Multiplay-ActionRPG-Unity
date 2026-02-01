@@ -1,7 +1,4 @@
 ﻿using GameServer.Domain.Entities;
-using GameServer.Domain.Interfaces;
-
-namespace GameServer.Infrastructure.Repositories;
 
 public class InMemoryUserRepository : IUserRepository
 {
@@ -9,8 +6,6 @@ public class InMemoryUserRepository : IUserRepository
     
     private long _nextId = 1;
     
-    
-
     public Task<User?> GetByUsernameAsync(string userName)
     {
         if(string.IsNullOrWhiteSpace(userName)) 

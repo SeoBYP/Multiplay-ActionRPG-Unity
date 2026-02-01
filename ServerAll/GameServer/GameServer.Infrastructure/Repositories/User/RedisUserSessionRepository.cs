@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using GameServer.Domain.Entities;
-using GameServer.Domain.Interfaces;
+using GameServer.Domain.Interfaces.User;
 using GameServer.Infrastructure.Security;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
@@ -11,9 +11,9 @@ namespace GameServer.Infrastructure.Repositories;
 /// <summary>
 /// Redis 기반 사용자 세션 저장소
 /// </summary>
-public class RedisSessionRepository(IConnectionMultiplexer connectionMultiplexer, 
+public class RedisUserSessionRepository(IConnectionMultiplexer connectionMultiplexer, 
     IOptions<JwtOptions> jwtOptions)
-    : ISessionRepository
+    : IUserSessionRepository
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;

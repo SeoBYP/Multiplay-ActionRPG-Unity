@@ -1,8 +1,7 @@
 ﻿using GameServer.Application.Common;
-using GameServer.Application.DTOs.Requests;
-using GameServer.Application.Services;
-using GameServer.Domain.Interfaces;
-using GameServer.Infrastructure.Repositories;
+using GameServer.Application.Services.Auth;
+using GameServer.Domain.Entities;
+using GameServer.Domain.Interfaces.User;
 using GameServer.Infrastructure.Security;
 using GameServer.Infrastructure.Interfaces;
 using Microsoft.Extensions.Options;
@@ -13,17 +12,17 @@ public class AuthServiceTests
 {
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly ISessionRepository _sessionRepository;
+    private readonly IUserSessionRepository _userSessionRepository;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly AuthService _authService;
-    private readonly JwtOptions _jwtOptions = new();
+    private readonly JwtOptions _jwtOptions;
 
-    public AuthServiceTests() // ← 생성자 사용
+    public AuthServiceTests()
     {
         _userRepository = new InMemoryUserRepository();
         _passwordHasher = new PasswordHasher();
 
-        var jwtOptions = new JwtOptions
+        _jwtOptions = new JwtOptions
         {
             Issuer = "TestIssuer",
             Audience = "TestAudience",
@@ -31,16 +30,15 @@ public class AuthServiceTests
             AccessTokenMinutes = 60
         };
 
-        var jwtOptionsWrapper = Options.Create(jwtOptions);
+        var jwtOptionsWrapper = Options.Create(_jwtOptions);
 
         _jwtTokenGenerator = new JwtTokenGenerator(jwtOptionsWrapper);
-        _sessionRepository = new FakeSessionRepository();
-
+        _userSessionRepository = new FakeUserSessionRepository();
 
         _authService = new AuthService(
             _userRepository,
             _passwordHasher,
-            _sessionRepository,
+            _userSessionRepository,
             _jwtTokenGenerator,
             jwtOptionsWrapper
         );
@@ -50,36 +48,42 @@ public class AuthServiceTests
     public async Task RegisterAsync_는_새로운_User를_생성한다()
     {
         // given
-        var request = new RegisterRequest("testuser", "password123", "test@example.com");
-
-        // wher
-        var result = await _authService.RegisterAsync(request);
-
-        // then
-        var value = result.Value;
-        Assert.NotNull(value);
-        Assert.NotNull(result);
-        Assert.True(value.UserId > 0);
-        Assert.Equal(request.UserName, value.UserName);
-        Assert.Equal(request.Email, value.Email);
-
-        var savedUser = await _userRepository.GetByUsernameAsync(request.UserName);
-        Assert.NotNull(savedUser);
-        Assert.Equal(request.UserName, savedUser.UserName);
-    }
-
-
-    [Fact]
-    public async Task RegisterAsync_는_중복_Username이면_예외를_던진다()
-    {
-        // given
-        var request = new RegisterRequest("testuser", "password123", "test@example.com");
-        await _authService.RegisterAsync(request);
+        var username = "testuser";
+        var password = "password123";
+        var email = "test@example.com";
 
         // when
-        var result = await _authService.RegisterAsync(request);
+        var result = await _authService.RegisterAsync(username, password, email);
 
-        // 같은 Username으로 다시 가입 시도
+        // then
+        Assert.NotNull(result);
+        Assert.True(result.IsSuccess);
+        
+        var user = result.Value;
+        Assert.NotNull(user);
+        Assert.True(user.UserId > 0);
+        Assert.Equal(username, user.UserName);
+        Assert.Equal(email, user.Email);
+
+        // Repository에 저장되었는지 확인
+        var savedUser = await _userRepository.GetByUsernameAsync(username);
+        Assert.NotNull(savedUser);
+        Assert.Equal(username, savedUser.UserName);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_는_중복_Username이면_실패한다()
+    {
+        // given
+        var username = "testuser";
+        var password = "password123";
+        var email = "test@example.com";
+        
+        await _authService.RegisterAsync(username, password, email);
+
+        // when - 같은 Username으로 다시 가입 시도
+        var result = await _authService.RegisterAsync(username, password, "another@example.com");
+
         // then
         Assert.NotNull(result);
         Assert.False(result.IsSuccess);
@@ -90,10 +94,12 @@ public class AuthServiceTests
     public async Task RegisterAsync_는_빈_UserName이면_실패한다()
     {
         // given
-        var request = new RegisterRequest("", "password123", "test@example.com");
+        var username = "";
+        var password = "password123";
+        var email = "test@example.com";
 
         // when
-        var result = await _authService.RegisterAsync(request);
+        var result = await _authService.RegisterAsync(username, password, email);
 
         // then
         Assert.NotNull(result);
@@ -101,40 +107,45 @@ public class AuthServiceTests
         Assert.Equal(ErrorMessages.InvalidRequest, result.Message);
     }
 
-    
     [Fact]
     public async Task LoginAsync_는_올바른_정보로_로그인한다()
     {
-        // given
-        var registerRequest = new RegisterRequest("testuser", "password123", "test@example.com");
-        await _authService.RegisterAsync(registerRequest);
+        // given - 회원가입
+        var username = "testuser";
+        var password = "password123";
+        var email = "test@example.com";
+        
+        await _authService.RegisterAsync(username, password, email);
 
-        // when
-        var loginRequest = new LoginRequest(registerRequest.UserName,
-            registerRequest.Password);
-
-        var result = await _authService.LoginAsync(loginRequest);
+        // when - 로그인
+        var result = await _authService.LoginAsync(username, password);
 
         // then
-        var value = result.Value;
         Assert.NotNull(result);
-        Assert.NotNull(value);
-        Assert.True(value.UserId > 0);
-        Assert.Equal(registerRequest.UserName, value.UserName);
-        Assert.Equal(registerRequest.Email, value.Email);
-        Assert.NotEmpty(value.AccessToken);
-        Assert.NotEmpty(value.SessionId);
-        Assert.True(value.ExpiresAt > DateTime.UtcNow);
+        Assert.True(result.IsSuccess);
+        
+        var loginResult = result.Value;
+        Assert.NotNull(loginResult);
+        Assert.NotNull(loginResult.User);
+        Assert.NotNull(loginResult.Session);
+        Assert.NotEmpty(loginResult.AccessToken);
+        
+        Assert.True(loginResult.User.UserId > 0);
+        Assert.Equal(username, loginResult.User.UserName);
+        Assert.Equal(email, loginResult.User.Email);
+        Assert.NotEmpty(loginResult.Session.SessionId);
+        Assert.True(loginResult.ExpiresAt > DateTime.UtcNow);
     }
 
     [Fact]
-    public async Task LoginAsync_는_존재하지않는_User면_예외를_던진다()
+    public async Task LoginAsync_는_존재하지않는_User면_실패한다()
     {
         // given
-        var loginRequest = new LoginRequest("notexist", "password123");
+        var username = "notexist";
+        var password = "password123";
 
         // when
-        var result = await _authService.LoginAsync(loginRequest);
+        var result = await _authService.LoginAsync(username, password);
 
         // then
         Assert.NotNull(result);
@@ -143,51 +154,51 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_는_잘못된_비밀번호면_예외를_던진다()
+    public async Task LoginAsync_는_잘못된_비밀번호면_실패한다()
     {
-        // given
-        var registerRequest = new RegisterRequest("testuser", "password123", "test@example.com");
-        await _authService.RegisterAsync(registerRequest);
+        // given - 회원가입
+        var username = "testuser";
+        var password = "password123";
+        var email = "test@example.com";
+        
+        await _authService.RegisterAsync(username, password, email);
 
-        var loginRequest = new LoginRequest(registerRequest.UserName,
-            "wrongpassword");
-        // when 
-        var result = await _authService.LoginAsync(loginRequest);
+        // when - 잘못된 비밀번호로 로그인 시도
+        var result = await _authService.LoginAsync(username, "wrongpassword");
 
         // then
-        Assert.NotNull(result );
-        Assert.False(result .IsSuccess);
-        Assert.Equal(ErrorMessages.InvalidCredentials, result .Message);
+        Assert.NotNull(result);
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorMessages.InvalidCredentials, result.Message);
     }
-    
+
     [Fact]
     public async Task LoginAsync_는_빈_UserName이면_실패한다()
     {
         // given
-        var loginRequest = new LoginRequest("", "password123");
+        var username = "";
+        var password = "password123";
 
         // when
-        var result = await _authService.LoginAsync(loginRequest);
+        var result = await _authService.LoginAsync(username, password);
 
         // then
         Assert.NotNull(result);
         Assert.False(result.IsSuccess);
         Assert.Equal(ErrorMessages.InvalidRequest, result.Message);
     }
-    
+
     [Fact]
     public async Task LogoutAsync_는_세션을_삭제한다()
     {
         // given - 회원가입 & 로그인
-        var registerRequest = new RegisterRequest("testuser", "password123", "test@example.com");
-        await _authService.RegisterAsync(registerRequest);
-
-        var loginRequest = new LoginRequest(
-            registerRequest.UserName,
-            registerRequest.Password
-        );
-        var loginResult = await _authService.LoginAsync(loginRequest);
-        var sessionId = loginResult.Value.SessionId;
+        var username = "testuser";
+        var password = "password123";
+        var email = "test@example.com";
+        
+        await _authService.RegisterAsync(username, password, email);
+        var loginResult = await _authService.LoginAsync(username, password);
+        var sessionId = loginResult.Value.Session.SessionId;
 
         // when - 로그아웃
         var result = await _authService.LogoutAsync(sessionId);
@@ -197,11 +208,10 @@ public class AuthServiceTests
         Assert.True(result.IsSuccess);
 
         // 세션이 삭제되었는지 확인
-        var session = await _sessionRepository.GetBySessionIdAsync(sessionId);
+        var session = await _userSessionRepository.GetBySessionIdAsync(sessionId);
         Assert.Null(session);
     }
-    
-    
+
     [Fact]
     public async Task LogoutAsync_는_빈_SessionId면_실패한다()
     {
@@ -230,19 +240,17 @@ public class AuthServiceTests
         Assert.NotNull(result);
         Assert.True(result.IsSuccess);
     }
-    
+
     [Fact]
     public async Task ValidateTokenAsync_는_유효한_토큰을_검증한다()
     {
         // given - 회원가입 & 로그인
-        var registerRequest = new RegisterRequest("testuser", "password123", "test@example.com");
-        await _authService.RegisterAsync(registerRequest);
-
-        var loginRequest = new LoginRequest(
-            registerRequest.UserName,
-            registerRequest.Password
-        );
-        var loginResult = await _authService.LoginAsync(loginRequest);
+        var username = "testuser";
+        var password = "password123";
+        var email = "test@example.com";
+        
+        await _authService.RegisterAsync(username, password, email);
+        var loginResult = await _authService.LoginAsync(username, password);
         var accessToken = loginResult.Value.AccessToken;
 
         // when
@@ -277,23 +285,19 @@ public class AuthServiceTests
         // then
         Assert.False(isValid);
     }
-    
-    
 
     [Fact]
     public async Task ValidateTokenAsync_는_로그아웃된_세션이면_실패한다()
     {
         // given - 회원가입 & 로그인
-        var registerRequest = new RegisterRequest("testuser", "password123", "test@example.com");
-        await _authService.RegisterAsync(registerRequest);
-
-        var loginRequest = new LoginRequest(
-            registerRequest.UserName,
-            registerRequest.Password
-        );
-        var loginResult = await _authService.LoginAsync(loginRequest);
+        var username = "testuser";
+        var password = "password123";
+        var email = "test@example.com";
+        
+        await _authService.RegisterAsync(username, password, email);
+        var loginResult = await _authService.LoginAsync(username, password);
         var accessToken = loginResult.Value.AccessToken;
-        var sessionId = loginResult.Value.SessionId;
+        var sessionId = loginResult.Value.Session.SessionId;
 
         // 로그아웃 (세션 삭제)
         await _authService.LogoutAsync(sessionId);
@@ -305,7 +309,6 @@ public class AuthServiceTests
         Assert.False(isValid);
     }
 
-
     [Fact]
     public async Task 전체_플로우_회원가입_로그인_로그아웃()
     {
@@ -315,23 +318,22 @@ public class AuthServiceTests
         var email = "test@example.com";
 
         // 1. 회원가입
-        var registerRequest = new RegisterRequest(username, password, email);
-        var registerResult = await _authService.RegisterAsync(registerRequest);
+        var registerResult = await _authService.RegisterAsync(username, password, email);
         
         Assert.True(registerResult.IsSuccess);
         Assert.NotNull(registerResult.Value);
+        Assert.Equal(username, registerResult.Value.UserName);
 
         // 2. 로그인
-        var loginRequest = new LoginRequest(username, password);
-        var loginResult = await _authService.LoginAsync(loginRequest);
+        var loginResult = await _authService.LoginAsync(username, password);
         
         Assert.True(loginResult.IsSuccess);
         Assert.NotNull(loginResult.Value);
         Assert.NotEmpty(loginResult.Value.AccessToken);
-        Assert.NotEmpty(loginResult.Value.SessionId);
+        Assert.NotEmpty(loginResult.Value.Session.SessionId);
 
         var accessToken = loginResult.Value.AccessToken;
-        var sessionId = loginResult.Value.SessionId;
+        var sessionId = loginResult.Value.Session.SessionId;
 
         // 3. 토큰 검증 (로그인 상태)
         var isValidBeforeLogout = await _authService.ValidateTokenAsync(accessToken);
@@ -347,34 +349,32 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task 동일_계정으로_여러_번_로그인하면_이전_세션이_대체된다()
+    public async Task 동일_계정으로_여러_번_로그인하면_새로운_세션이_생성된다()
     {
-        // given
-        var registerRequest = new RegisterRequest("testuser", "password123", "test@example.com");
-        await _authService.RegisterAsync(registerRequest);
-
-        var loginRequest = new LoginRequest(
-            registerRequest.UserName,
-            registerRequest.Password
-        );
+        // given - 회원가입
+        var username = "testuser";
+        var password = "password123";
+        var email = "test@example.com";
+        
+        await _authService.RegisterAsync(username, password, email);
 
         // when - 첫 번째 로그인
-        var firstLogin = await _authService.LoginAsync(loginRequest);
-        var firstSessionId = firstLogin.Value.SessionId;
+        var firstLogin = await _authService.LoginAsync(username, password);
+        var firstSessionId = firstLogin.Value.Session.SessionId;
 
         // when - 두 번째 로그인 (같은 계정)
-        var secondLogin = await _authService.LoginAsync(loginRequest);
-        var secondSessionId = secondLogin.Value.SessionId;
+        var secondLogin = await _authService.LoginAsync(username, password);
+        var secondSessionId = secondLogin.Value.Session.SessionId;
 
         // then - 새로운 세션 ID가 생성됨
         Assert.NotEqual(firstSessionId, secondSessionId);
 
         // 첫 번째 세션은 여전히 존재 (현재 구현에서는 다중 세션 허용)
-        var firstSession = await _sessionRepository.GetBySessionIdAsync(firstSessionId);
+        var firstSession = await _userSessionRepository.GetBySessionIdAsync(firstSessionId);
         Assert.NotNull(firstSession);
 
         // 두 번째 세션도 존재
-        var secondSession = await _sessionRepository.GetBySessionIdAsync(secondSessionId);
+        var secondSession = await _userSessionRepository.GetBySessionIdAsync(secondSessionId);
         Assert.NotNull(secondSession);
     }
 }

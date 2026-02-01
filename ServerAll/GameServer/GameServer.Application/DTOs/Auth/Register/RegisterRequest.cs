@@ -1,6 +1,6 @@
 ﻿using MemoryPack;
 
-namespace GameServer.Application.DTOs.Requests;
+namespace GameServer.Application.DTOs.Auth.Register;
 
 [MemoryPackable]
 public partial class RegisterRequest

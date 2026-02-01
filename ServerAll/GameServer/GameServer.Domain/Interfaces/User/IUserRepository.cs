@@ -1,6 +1,4 @@
-﻿using GameServer.Domain.Entities;
-
-namespace GameServer.Domain.Interfaces;
+﻿namespace GameServer.Domain.Entities;
 
 public interface IUserRepository
 {
