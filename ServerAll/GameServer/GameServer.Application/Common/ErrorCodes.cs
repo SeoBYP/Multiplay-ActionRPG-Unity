@@ -10,6 +10,17 @@ public enum ErrorCodes : ushort
     InvalidRequest = 1005,
     SessionExpired = 1006,
     
+    RoomNotFound = 2000,
+    RoomFull = 2001,
+    AlreadyInRoom = 2002,
+    NotInRoom = 2003,
+    NotRoomHost = 2004,
+    RoomNotWaiting = 2005,
+    RoomAlreadyPlaying = 2006,
+    RoomClosed = 2007,
+    JoinRoomFailed = 2010,   
+    LeaveRoomFailed = 2011,  
+    StartGameFailed = 2012,
     
     InternalServerError = 5000,
 }
