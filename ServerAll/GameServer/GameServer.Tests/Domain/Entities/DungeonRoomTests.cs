@@ -13,15 +13,16 @@ public class DungeonRoomTests
         // given
         var roomName = "testRoom";
         var hostId = 1;
+        var maxPlayers = 4;
         
         // when
-        var room = DungeonRoom.Create(roomName, hostId);
+        var room = DungeonRoom.Create(roomName, hostId, maxPlayers);
        
         // then
         Assert.NotNull(room);
         Assert.Equal(roomName, room.RoomName);
         Assert.Equal(hostId, room.HostUserId);
-        Assert.Equal(4, room.MaxPlayers);
+        Assert.Equal(maxPlayers, room.MaxPlayers);
         Assert.Equal(1, room.GetPlayerCount());
         Assert.Equal(RoomStatus.Waiting, room.Status);
     }
@@ -34,7 +35,7 @@ public class DungeonRoomTests
         var hostId = 1;
         
         // when & then
-        Assert.Throws<ArgumentException>(() => DungeonRoom.Create(roomName, hostId));
+        Assert.Throws<ArgumentException>(() => DungeonRoom.Create(roomName, hostId, 4));
     }
     
     [Fact]
@@ -45,7 +46,7 @@ public class DungeonRoomTests
         var hostId = 1;
         
         // when & then
-        Assert.Throws<ArgumentException>(() => DungeonRoom.Create(roomName, hostId));
+        Assert.Throws<ArgumentException>(() => DungeonRoom.Create(roomName, hostId,4));
     }
     
     [Fact]
@@ -56,7 +57,7 @@ public class DungeonRoomTests
         var hostId = 1;
         
         // when & then
-        Assert.Throws<ArgumentException>(() => DungeonRoom.Create(roomName, hostId));
+        Assert.Throws<ArgumentException>(() => DungeonRoom.Create(roomName, hostId,4));
     }
 
     [Theory]
@@ -68,7 +69,7 @@ public class DungeonRoomTests
         var roomName = "testRoom";
         
         // when & then
-        Assert.Throws<ArgumentException>(() => DungeonRoom.Create(roomName, hostId));
+        Assert.Throws<ArgumentException>(() => DungeonRoom.Create(roomName, hostId, 4));
     }
     
     [Theory]
@@ -109,7 +110,7 @@ public class DungeonRoomTests
     public void Join_은_유효한_userId로_플레이어를_추가한다()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         var playerId = 2;
         
         // when
@@ -126,7 +127,7 @@ public class DungeonRoomTests
     public void Join_은_userId가_0이하면_예외를_던진다(long playerId)
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         
         // when & then
         Assert.Throws<ArgumentException>(() => room.Join(playerId));
@@ -136,7 +137,7 @@ public class DungeonRoomTests
     public void Join_은_중복_입장을_방지한다()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         
         // when & then - 방장(userId=1) 중복 입장 시도
         Assert.Throws<InvalidOperationException>(() => room.Join(1));
@@ -146,7 +147,7 @@ public class DungeonRoomTests
     public void Join_은_방이_가득_차면_예외를_던진다()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         room.Join(2);
         room.Join(3);
         room.Join(4);
@@ -159,7 +160,7 @@ public class DungeonRoomTests
     public void Join_은_Playing_상태에서는_입장_불가()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         room.Join(2);
         room.StartGame(1);
     
@@ -171,7 +172,7 @@ public class DungeonRoomTests
     public void Join_은_Closed_상태에서는_입장_불가()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         room.Leave(1); // 방장 퇴장 -> Closed
     
         // when & then
@@ -186,7 +187,7 @@ public class DungeonRoomTests
     public void Leave_는_플레이어를_정상적으로_제거한다()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         var playerId = 2;
         room.Join(playerId);
         
@@ -204,7 +205,7 @@ public class DungeonRoomTests
     public void Leave_는_userId가_0이하면_예외를_던진다(long playerId)
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         
         // when & then
         Assert.Throws<ArgumentException>(() => room.Leave(playerId));
@@ -214,7 +215,7 @@ public class DungeonRoomTests
     public void Leave_는_존재하지_않는_플레이어면_예외를_던진다()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         room.Join(2);
         
         // when & then
@@ -225,7 +226,7 @@ public class DungeonRoomTests
     public void Leave_는_방장이_떠나면_다음_플레이어를_방장으로_임명한다()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         room.Join(2);
         room.Join(3);
         room.Join(4);
@@ -242,7 +243,7 @@ public class DungeonRoomTests
     public void Leave_는_모든_플레이어가_떠나면_Closed_상태가_된다()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         
         // when
         room.Leave(1);
@@ -256,7 +257,7 @@ public class DungeonRoomTests
     public void Leave_는_Playing_상태에서도_퇴장_가능하다()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         room.Join(2);
         room.StartGame(1);
         
@@ -272,7 +273,7 @@ public class DungeonRoomTests
     public void Leave_는_방장_외_모든_플레이어가_나가도_방장은_유지된다()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         room.Join(2);
         room.Join(3);
         
@@ -294,52 +295,94 @@ public class DungeonRoomTests
     [InlineData("testRoom2")]
     [InlineData("고수방")]
     [InlineData("초보방")]
-    public void UpdateRoomName_은_방장이면_방이름을_변경할_수_있다(string newRoomName)
+    public void UpdateRoomSettings_은_방장이면_방이름을_변경할_수_있다(string newRoomName)
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         
         // when
-        room.UpdateRoomName(1, newRoomName);
+        room.UpdateRoomSettings(1, roomName:newRoomName);
         
         // then
         Assert.Equal(newRoomName, room.RoomName);
     }
     
-    [Fact]
-    public void UpdateRoomName_은_방장이_아니면_예외를_던진다()
+    [Theory]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(10)]
+    public void UpdateRoomSettings_은_방장이면_최대플레이어_수를_변경할_수_있다(int maxPlayer)
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
+        
+        // when
+        room.UpdateRoomSettings(1, maxPlayers:maxPlayer);
+        
+        // then
+        Assert.Equal(maxPlayer, room.MaxPlayers);
+    }
+    
+    [Fact]
+    public void UpdateRoomSettings_은_방장이_아니면_예외를_던진다()
+    {
+        // given
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         room.Join(2);
         
         // when & then
         Assert.Throws<UnauthorizedAccessException>(() => 
-            room.UpdateRoomName(2, "새로운방이름"));
+            room.UpdateRoomSettings(2, roomName:"testRoom2"));
     }
     
     [Fact]
-    public void UpdateRoomName_은_빈_문자열이면_예외를_던진다()
+    public void UpdateRoomSettings_은_빈_문자열이면_예외를_던진다()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         
         // when & then
         Assert.Throws<ArgumentException>(() => 
-            room.UpdateRoomName(1, ""));
+            room.UpdateRoomSettings(1, ""));
     }
     
     [Fact]
-    public void UpdateRoomName_은_Playing_상태에서는_변경_불가()
+    public void UpdateRoomSettings_은_Playing_상태에서는_변경_불가()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         room.Join(2);
         room.StartGame(1);
         
         // when & then
         Assert.Throws<InvalidOperationException>(() => 
-            room.UpdateRoomName(1, "새로운방이름"));
+            room.UpdateRoomSettings(1, "testRoom2"));
+    }
+    
+    [Fact]
+    public async Task UpdateRoomSettings_는_현재_플레이어보다_작게_변경하면_실패한다()
+    {
+        // given
+        var hostId = 1L;
+        var room = DungeonRoom.Create("testRoom", hostUserId: hostId,4);
+    
+        room.Join(2L);
+        room.Join(3L);  // 총 3명
+
+        // when & then
+        Assert.Throws<InvalidOperationException>(() => 
+            room.UpdateRoomSettings(hostId, maxPlayers: 2));
+    }
+    
+    [Fact]
+    public void UpdateRoomSettings_은_MaxPlayers_는_2미만으로_변경_불가()
+    {
+        // given
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
+        
+        // when & then
+        Assert.Throws<ArgumentException>(() => 
+            room.UpdateRoomSettings(1, maxPlayers:1));
     }
 
     // ========================================
@@ -350,7 +393,7 @@ public class DungeonRoomTests
     public void StartGame_은_방장이면_게임을_시작할_수_있다()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         room.Join(2);
         
         // when
@@ -364,7 +407,7 @@ public class DungeonRoomTests
     public void StartGame_은_방장이_아니면_예외를_던진다()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         room.Join(2);
     
         // when & then
@@ -375,7 +418,7 @@ public class DungeonRoomTests
     public void StartGame_은_플레이어가_1명이면_예외를_던진다()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         
         // when & then
         Assert.Throws<InvalidOperationException>(() => room.StartGame(1));
@@ -385,7 +428,7 @@ public class DungeonRoomTests
     public void StartGame_은_이미_Playing_상태면_예외를_던진다()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         room.Join(2);
         room.StartGame(1);
         
@@ -397,7 +440,7 @@ public class DungeonRoomTests
     public void StartGame_은_Closed_상태에서는_시작_불가()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         room.Join(2);
         room.Leave(1); // 방장 퇴장 -> 방장 위임
         room.Leave(2); // 모두 퇴장 -> Closed
@@ -414,7 +457,7 @@ public class DungeonRoomTests
     public void Join_후_즉시_Leave_하면_정상_동작한다()
     {
         // given
-        var room = DungeonRoom.Create("testRoom", hostUserId: 1);
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         
         // when
         room.Join(2);

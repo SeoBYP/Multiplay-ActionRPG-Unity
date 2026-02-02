@@ -49,7 +49,7 @@ public class DungeonRoom
     /// <summary>
     /// 새로운 던전 방을 생성합니다 (Factory Method 패턴)
     /// </summary>
-    public static DungeonRoom Create(string roomName, long hostUserId, int maxPlayers = 4)
+    public static DungeonRoom Create(string roomName, long hostUserId, int maxPlayers)
     {
         // 방 이름 검증: null, 빈 문자열, 공백만 있는 경우 예외
         if(string.IsNullOrWhiteSpace(roomName))
@@ -59,9 +59,9 @@ public class DungeonRoom
         if(hostUserId <= 0)
             throw new ArgumentException("Host ID cannot be less than or equal to zero", nameof(hostUserId));
         
-        // 최대 플레이어 수 검증: 최소 1명 이상
-        if(maxPlayers <= 0)
-            throw new ArgumentException("Max players cannot be less than or equal to zero", nameof(maxPlayers));
+        // 최대 플레이어 수 검증: 최소 2명 이상
+        if(maxPlayers < 2)
+            throw new ArgumentException("Max players cannot be less than 2", nameof(maxPlayers));
         
         // 유효성 검증을 모두 통과한 경우, 새 DungeonRoom 인스턴스 생성
         return new DungeonRoom
@@ -97,6 +97,18 @@ public class DungeonRoom
             Status = status,
             CurrentPlayers = currentPlayers,
             CreatedAt = createdAt
+        };
+    }
+
+    public static DungeonRoom FromRoomInfoDto(long roomId, string roomName, long hostUserId, int maxPlayers, RoomStatus status)
+    {
+        return new DungeonRoom
+        {
+            RoomId = roomId,
+            RoomName = roomName,
+            HostUserId = hostUserId,
+            MaxPlayers = maxPlayers,
+            Status = status
         };
     }
     
@@ -182,26 +194,42 @@ public class DungeonRoom
     
     /// <summary>현재 플레이어 수 반환</summary>
     public int GetPlayerCount() => CurrentPlayers.Count;
-
+    
+    
     /// <summary>
-    /// 방 이름을 변경합니다 (방장만 가능)
+    /// 방 설정을 변경합니다 (방장만 가능)
     /// </summary>
-    public void UpdateRoomName(long userId, string roomName)
+    public void UpdateRoomSettings(long userId, string? roomName = null, int? maxPlayers = null)
     {
-        // 권한 검증: 방장만 방 이름 변경 가능
+        // 권한 검증
         if (!IsHost(userId))
-            throw new UnauthorizedAccessException("Only the host can update room name");
+            throw new UnauthorizedAccessException("Only the host can update room settings");
+    
+        // 상태 검증
+        if (Status == RoomStatus.Playing)
+            throw new InvalidOperationException("Cannot update room settings while playing");
+    
+        // 방 이름 변경
+        if (roomName != null)
+        {
+            if (string.IsNullOrWhiteSpace(roomName))
+                throw new ArgumentException("Room name cannot be empty");
         
-        // 방 이름 검증: null, 빈 문자열, 공백만 있는 경우 불가
-        if (string.IsNullOrWhiteSpace(roomName))
-            throw new ArgumentException("Room name cannot be empty");
+            RoomName = roomName;
+        }
+    
+        // 최대 플레이어 수 변경
+        if (maxPlayers.HasValue)
+        {
+            if (maxPlayers.Value < 2)
+                throw new ArgumentException("Max players cannot be less than 2");
         
-        // 상태 검증: 게임 진행 중에는 방 이름 변경 불가 (혼란 방지)
-        if(Status == RoomStatus.Playing)
-            throw new InvalidOperationException("Room is already playing");
+            if (maxPlayers.Value < CurrentPlayers.Count)
+                throw new InvalidOperationException(
+                    $"Cannot reduce max players to {maxPlayers.Value}. Current players: {CurrentPlayers.Count}");
         
-        // 모든 검증을 통과하면 방 이름 변경
-        RoomName = roomName;
+            MaxPlayers = maxPlayers.Value;
+        }
     }
     
     /// <summary>
@@ -228,4 +256,6 @@ public class DungeonRoom
         // 모든 검증을 통과하면 게임 시작 (상태 변경)
         Status = RoomStatus.Playing;
     }
+
+
 }

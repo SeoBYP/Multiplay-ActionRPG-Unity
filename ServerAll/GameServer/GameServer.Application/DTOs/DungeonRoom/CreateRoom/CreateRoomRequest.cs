@@ -7,7 +7,7 @@ public partial class CreateRoomRequest
 {
     public long UserId { get; set; }
     public string RoomName { get; set; } = "";
-    public int MaxPlayers { get; set; } = 4;
+    public int MaxPlayers { get; set; }
     
     public CreateRoomRequest(long userId, string roomName, int maxPlayers)
     {

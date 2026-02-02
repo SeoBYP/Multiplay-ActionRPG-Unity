@@ -18,7 +18,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         try
         {
             // 1. 도메인 모델 생성
-            var room = DungeonRoom.Create(roomName, hostId);
+            var room = DungeonRoom.Create(roomName, hostId,maxPlayers);
 
             // 2. Redis INCR로 RoomId 생성
             var roomId = await _database.StringIncrementAsync(RoomCounterKey);

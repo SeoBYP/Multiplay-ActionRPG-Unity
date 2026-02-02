@@ -2,7 +2,7 @@
 
 public interface IDungeonRoomRepository
 {
-    Task<DungeonRoom?> CreateAsync(long hostId, string roomName, int maxPlayers = 4);
+    Task<DungeonRoom?> CreateAsync(long hostId, string roomName, int maxPlayers);
 
     Task<DungeonRoom?> GetByIdAsync(long roomId);
 

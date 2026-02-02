@@ -21,6 +21,7 @@ public enum ErrorCodes : ushort
     JoinRoomFailed = 2010,   
     LeaveRoomFailed = 2011,  
     StartGameFailed = 2012,
+    UpdateRoomFailed = 2013,
     
     InternalServerError = 5000,
 }

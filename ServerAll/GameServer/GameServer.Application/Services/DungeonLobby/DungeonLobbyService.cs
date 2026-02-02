@@ -6,7 +6,7 @@ namespace GameServer.Application.Services.DungeonLobby;
 
 public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository) : IDungeonLobbyService
 {
-    public async Task<Result<DungeonRoom>> CreateDungeonRoomAsync(long userId, string roomName, int maxPlayers = 4)
+    public async Task<Result<DungeonRoom>> CreateDungeonRoomAsync(long userId, string roomName, int maxPlayers)
     {
         try
         {
@@ -55,6 +55,50 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository) :
                 return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
             }
 
+            return Result<DungeonRoom>.Success(room);
+        }
+        catch (Exception e)
+        {
+            return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, e.Message);
+        }
+    }
+    
+    public async Task<Result<DungeonRoom>> UpdateRoomSettingsAsync(
+        long userId, 
+        long roomId, 
+        string? roomName = null, 
+        int? maxPlayers = null)
+    {
+        try
+        {
+            // 1. 방 조회
+            var room = await dungeonRoomRepository.GetByIdAsync(roomId);
+            if (room is null)
+                return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
+        
+            // 2. 도메인 로직 (설정 변경)
+            try
+            {
+                room.UpdateRoomSettings(userId, roomName, maxPlayers);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Result<DungeonRoom>.Failure(ErrorCodes.NotRoomHost, ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Result<DungeonRoom>.Failure(ErrorCodes.UpdateRoomFailed, ex.Message);
+            }
+            
+            // 3. 저장
+            var updated = await dungeonRoomRepository.UpdateAsync(room);
+            if (!updated)
+                return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "방 업데이트 실패");
+        
             return Result<DungeonRoom>.Success(room);
         }
         catch (Exception e)

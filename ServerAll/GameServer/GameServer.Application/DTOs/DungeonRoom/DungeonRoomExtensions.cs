@@ -28,8 +28,9 @@ public static class DungeonRoomExtensions
                 room.Status.ToString()
             );
         }
-    }
 
+    }
+    
     public static GetRoomsResponse ToGetRoomsResponse(this IEnumerable<Domain.Entities.DungeonRoom> rooms)
     {
         var roomList = rooms.ToList();
