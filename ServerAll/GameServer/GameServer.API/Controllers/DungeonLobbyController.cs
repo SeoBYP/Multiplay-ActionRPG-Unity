@@ -2,6 +2,8 @@
 using GameServer.Application.DTOs.DungeonRoom.CreateRoom;
 using GameServer.Application.DTOs.DungeonRoom.JoinRoom;
 using GameServer.Application.DTOs.DungeonRoom.LeaveRoom;
+using GameServer.Application.DTOs.DungeonRoom.Room;
+using GameServer.Application.DTOs.DungeonRoom.Rooms;
 using GameServer.Application.DTOs.DungeonRoom.StartRoom;
 using GameServer.Application.Services.DungeonLobby;
 using GameServer.Application.Services.DungeonLobby.Interfaces;
@@ -35,25 +37,22 @@ public class DungeonLobbyController(IDungeonLobbyService dungeonLobbyService) : 
         var result = await dungeonLobbyService.GetActiveDungeonRoomsAsync();
         if(!result.IsSuccess)
             return BadRequest(result.Message);
-        if (result.Value != null)
-        {
-            var response = result.Value.ToGetRoomsResponse();
-            return Ok(response);
-        }
-        return Ok();
-    }
-    
-    [HttpGet("room/{roomId}")]
-    public async Task<IActionResult> GetRoom(long roomId)
-    {
-        var result = await dungeonLobbyService.GetDungeonRoomAsync(roomId);
-        if(!result.IsSuccess)
-            return BadRequest(result.Message);
-        var response = result.Value!.ToRoomInfoDto();
+        var response = result.Value!.ToGetRoomsResponse();
         return Ok(response);
     }
     
-    [HttpPost("room/{roomId}/join")]
+    [HttpPost("getRoom")]
+    public async Task<IActionResult> GetRoom([FromBody] GetRoomRequest request)
+    {
+        var result = await dungeonLobbyService.GetDungeonRoomAsync(request.RoomId);
+        if(!result.IsSuccess)
+            return BadRequest(result.Message);
+        var dto = result.Value!.ToRoomInfoDto();
+        var response = new GetRoomResponse(dto);
+        return Ok(response);
+    }
+    
+    [HttpPost("joinRoom")]
     public async Task<IActionResult> JoinRoom([FromBody] JoinRoomRequest request)
     {
         var result = await dungeonLobbyService.JoinRoomAsync(request.UserId, request.RoomId);
@@ -65,23 +64,24 @@ public class DungeonLobbyController(IDungeonLobbyService dungeonLobbyService) : 
         return Ok(response);
     }
     
-    [HttpPost("room/{roomId}/leave")]
+    [HttpPost("leaveRoom")]
     public async Task<IActionResult> LeaveRoom([FromBody] LeaveRoomRequest request)
     {
         var result = await dungeonLobbyService.LeaveRoomAsync(request.UserId, request.RoomId);
         if(!result.IsSuccess)
             return BadRequest(result.Message);
-        
-        return Ok();
+        var response = new LeaveRoomResponse(result.IsSuccess);
+        return Ok(response);
     }
     
-    [HttpPost("room/{roomId}/start")]
+    [HttpPost("startRoom")]
     public async Task<IActionResult> StartGame([FromBody] StartRoomRequest request)
     {
         var result = await dungeonLobbyService.StartGameAsync(request.UserId, request.RoomId);
         if(!result.IsSuccess)
             return BadRequest(result.Message);
-        
-        return Ok();
+        var roomInfo = result.Value!.ToRoomInfoDto();
+        var response = new StartRoomResponse(roomInfo);
+        return Ok(response);
     }
 }

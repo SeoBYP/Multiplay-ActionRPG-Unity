@@ -11,6 +11,8 @@ using DotNetEnv;
 using GameServer.API.Middleware;
 using GameServer.Application.Services.Auth;
 using GameServer.Application.Services.Auth.Interfaces;
+using GameServer.Application.Services.DungeonLobby;
+using GameServer.Application.Services.DungeonLobby.Interfaces;
 using GameServer.Domain.Entities;
 using GameServer.Domain.Interfaces.User;
 
@@ -63,6 +65,10 @@ builder.Services.AddSingleton<IUserSessionRepository, RedisUserSessionRepository
 
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+// DungeonLobby
+builder.Services.AddScoped<IDungeonLobbyService, DungeonLobbyService>();
+builder.Services.AddScoped<IDungeonRoomRepository, DungeonRoomRepository>();
 
 var app = builder.Build();
 

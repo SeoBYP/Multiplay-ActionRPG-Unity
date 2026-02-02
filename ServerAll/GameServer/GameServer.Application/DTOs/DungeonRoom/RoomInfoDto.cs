@@ -1,6 +1,6 @@
 ﻿using MemoryPack;
 
-namespace GameServer.Application.DTOs.DungeonRoom.Rooms;
+namespace GameServer.Application.DTOs.DungeonRoom;
 
 [MemoryPackable]
 public partial class RoomInfoDto
