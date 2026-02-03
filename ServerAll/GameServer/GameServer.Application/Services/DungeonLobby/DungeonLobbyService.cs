@@ -27,7 +27,7 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository) :
         }
         catch (Exception e)
         {
-            return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, e.Message);
+            return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
 
@@ -41,7 +41,7 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository) :
         }
         catch (Exception e)
         {
-            return Result<IEnumerable<DungeonRoom>>.Failure(ErrorCodes.InternalServerError, e.Message);
+            return Result<IEnumerable<DungeonRoom>>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
 
@@ -59,7 +59,7 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository) :
         }
         catch (Exception e)
         {
-            return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, e.Message);
+            return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
     
@@ -83,15 +83,15 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository) :
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Result<DungeonRoom>.Failure(ErrorCodes.NotRoomHost, ex.Message);
+                return Result<DungeonRoom>.Failure(ErrorCodes.NotRoomHost, ErrorMessages.InternalServerError);
             }
             catch (ArgumentException ex)
             {
-                return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ex.Message);
+                return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InternalServerError);
             }
             catch (InvalidOperationException ex)
             {
-                return Result<DungeonRoom>.Failure(ErrorCodes.UpdateRoomFailed, ex.Message);
+                return Result<DungeonRoom>.Failure(ErrorCodes.UpdateRoomFailed, ErrorMessages.InternalServerError);
             }
             
             // 3. 저장
@@ -103,7 +103,7 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository) :
         }
         catch (Exception e)
         {
-            return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, e.Message);
+            return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
 
@@ -136,7 +136,7 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository) :
             catch (InvalidOperationException ex)
             {
                 // room.Join에서 이미 검증함 (중복, Full, Status)
-                return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, ex.Message);
+                return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, ErrorMessages.InternalServerError);
             }
 
             // 4. 저장
@@ -150,7 +150,7 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository) :
         }
         catch (Exception e)
         {
-            return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, e.Message);
+            return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
 
@@ -191,7 +191,7 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository) :
         }
         catch (Exception e)
         {
-            return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, e.Message);
+            return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
 
@@ -220,7 +220,7 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository) :
         }
         catch (Exception e)
         {
-            return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, e.Message);
+            return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
 }
