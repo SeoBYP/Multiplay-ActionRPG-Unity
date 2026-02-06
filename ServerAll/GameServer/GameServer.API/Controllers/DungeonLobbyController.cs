@@ -1,15 +1,15 @@
-﻿using GameServer.Application.DTOs.DungeonRoom;
+﻿using System.Security.Claims;
+using GameServer.Application.DTOs.DungeonRoom;
 using GameServer.Application.DTOs.DungeonRoom.CreateRoom;
 using GameServer.Application.DTOs.DungeonRoom.JoinRoom;
 using GameServer.Application.DTOs.DungeonRoom.LeaveRoom;
 using GameServer.Application.DTOs.DungeonRoom.Room;
-using GameServer.Application.DTOs.DungeonRoom.Rooms;
 using GameServer.Application.DTOs.DungeonRoom.StartRoom;
 using GameServer.Application.DTOs.DungeonRoom.UpdateRoom;
-using GameServer.Application.Services.DungeonLobby;
 using GameServer.Application.Services.DungeonLobby.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace GameServer.API.Controllers;
 
@@ -18,10 +18,15 @@ namespace GameServer.API.Controllers;
 public class DungeonLobbyController(IDungeonLobbyService dungeonLobbyService) : ControllerBase
 {
     [HttpPost("room")]
+    [Authorize]
     public async Task<IActionResult> CreateRoom([FromBody] CreateRoomRequest request)
     {
+        var sessionId = User.FindFirstValue(JwtRegisteredClaimNames.Sid);
+        if (sessionId is null)
+            return Unauthorized();
+        
         var result = await dungeonLobbyService.CreateDungeonRoomAsync(
-            request.UserId,
+            sessionId,
             request.RoomName,
             request.MaxPlayers);
 
@@ -33,8 +38,13 @@ public class DungeonLobbyController(IDungeonLobbyService dungeonLobbyService) : 
     }
 
     [HttpGet("rooms")]
+    [Authorize]
     public async Task<IActionResult> GetActiveRooms()
     {
+        var sessionId = User.FindFirstValue(JwtRegisteredClaimNames.Sid);
+        if (sessionId is null)
+            return Unauthorized();
+        
         var result = await dungeonLobbyService.GetActiveDungeonRoomsAsync();
         if (!result.IsSuccess)
             return BadRequest(result.Message);
@@ -43,8 +53,13 @@ public class DungeonLobbyController(IDungeonLobbyService dungeonLobbyService) : 
     }
 
     [HttpPost("getRoom")]
+    [Authorize]
     public async Task<IActionResult> GetRoom([FromBody] GetRoomRequest request)
     {
+        var sessionId = User.FindFirstValue(JwtRegisteredClaimNames.Sid);
+        if (sessionId is null)
+            return Unauthorized();
+        
         var result = await dungeonLobbyService.GetDungeonRoomAsync(request.RoomId);
         if (!result.IsSuccess)
             return BadRequest(result.Message);
@@ -54,9 +69,14 @@ public class DungeonLobbyController(IDungeonLobbyService dungeonLobbyService) : 
     }
 
     [HttpPatch("updateRoom")]
+    [Authorize]
     public async Task<IActionResult> UpdateRoom([FromBody] UpdateRoomRequest request)
     {
-        var result = await dungeonLobbyService.UpdateRoomSettingsAsync(request.UserId, request.RoomId,
+        var sessionId = User.FindFirstValue(JwtRegisteredClaimNames.Sid);
+        if (sessionId is null)
+            return Unauthorized();
+        
+        var result = await dungeonLobbyService.UpdateRoomSettingsAsync(sessionId, request.RoomId,
             request.RoomName, request.MaxPlayers);
         if (!result.IsSuccess)
             return BadRequest(result.Message);
@@ -67,9 +87,14 @@ public class DungeonLobbyController(IDungeonLobbyService dungeonLobbyService) : 
     }
 
     [HttpPost("joinRoom")]
+    [Authorize]
     public async Task<IActionResult> JoinRoom([FromBody] JoinRoomRequest request)
     {
-        var result = await dungeonLobbyService.JoinRoomAsync(request.UserId, request.RoomId);
+        var sessionId = User.FindFirstValue(JwtRegisteredClaimNames.Sid);
+        if (sessionId is null)
+            return Unauthorized();
+        
+        var result = await dungeonLobbyService.JoinRoomAsync(sessionId, request.RoomId);
         if (!result.IsSuccess)
             return BadRequest(result.Message);
 
@@ -79,9 +104,14 @@ public class DungeonLobbyController(IDungeonLobbyService dungeonLobbyService) : 
     }
 
     [HttpPost("leaveRoom")]
+    [Authorize]
     public async Task<IActionResult> LeaveRoom([FromBody] LeaveRoomRequest request)
     {
-        var result = await dungeonLobbyService.LeaveRoomAsync(request.UserId, request.RoomId);
+        var sessionId = User.FindFirstValue(JwtRegisteredClaimNames.Sid);
+        if (sessionId is null)
+            return Unauthorized();
+        
+        var result = await dungeonLobbyService.LeaveRoomAsync(sessionId, request.RoomId);
         if (!result.IsSuccess)
             return BadRequest(result.Message);
         var response = new LeaveRoomResponse(result.IsSuccess);
@@ -89,9 +119,14 @@ public class DungeonLobbyController(IDungeonLobbyService dungeonLobbyService) : 
     }
 
     [HttpPost("startRoom")]
+    [Authorize]
     public async Task<IActionResult> StartGame([FromBody] StartRoomRequest request)
     {
-        var result = await dungeonLobbyService.StartGameAsync(request.UserId, request.RoomId);
+        var sessionId = User.FindFirstValue(JwtRegisteredClaimNames.Sid);
+        if (sessionId is null)
+            return Unauthorized();
+        
+        var result = await dungeonLobbyService.StartGameAsync(sessionId, request.RoomId);
         if (!result.IsSuccess)
             return BadRequest(result.Message);
         var roomInfo = result.Value!.ToRoomInfoDto();

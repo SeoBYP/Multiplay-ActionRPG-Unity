@@ -1,8 +1,9 @@
 ﻿using System.Globalization;
 using GameServer.Domain.Entities;
-using GameServer.Infrastructure.Security;
-using Microsoft.Extensions.Options;
+using GameServer.Domain.Interfaces.DungeonRoom;
 using StackExchange.Redis;
+
+namespace GameServer.Infrastructure.Repositories.DungeonRoom;
 
 public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer) : IDungeonRoomRepository
 {
@@ -13,12 +14,12 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
     private const string UserRoomMappingKey = "game:user:room";
     private const string RoomCounterKey = "game:room:id:counter";
 
-    public async Task<DungeonRoom?> CreateAsync(long hostId, string roomName,  int maxPlayers = 4)
+    public async Task<Domain.Entities.DungeonRoom?> CreateAsync(long hostId, string roomName,  int maxPlayers = 4)
     {
         try
         {
             // 1. 도메인 모델 생성
-            var room = DungeonRoom.Create(roomName, hostId,maxPlayers);
+            var room = Domain.Entities.DungeonRoom.Create(roomName, hostId,maxPlayers);
 
             // 2. Redis INCR로 RoomId 생성
             var roomId = await _database.StringIncrementAsync(RoomCounterKey);
@@ -71,7 +72,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
     }
 
-    public async Task<DungeonRoom?> GetByIdAsync(long roomId)
+    public async Task<Domain.Entities.DungeonRoom?> GetByIdAsync(long roomId)
     {
         try
         {
@@ -100,7 +101,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
     }
 
-    public async Task<DungeonRoom?> GetByUserIdAsync(long userId)
+    public async Task<Domain.Entities.DungeonRoom?> GetByUserIdAsync(long userId)
     {
         try
         {
@@ -111,7 +112,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
             
             // long 파싱 안됨
             if (!long.TryParse(roomIdValue.ToString(), out var roomIdParsed))
-                 return null;
+                return null;
             
             return await GetByIdAsync(roomIdParsed);
         }
@@ -122,7 +123,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
     }
 
-    public async Task<IEnumerable<DungeonRoom>> GetAllActiveRoomsAsync()
+    public async Task<IEnumerable<Domain.Entities.DungeonRoom>> GetAllActiveRoomsAsync()
     {
         try
         {
@@ -130,7 +131,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
             var roomIds = await _database.SetMembersAsync(ActiveRoomsKey);
            
             if (roomIds.Length == 0)
-                return Enumerable.Empty<DungeonRoom>();
+                return Enumerable.Empty<Domain.Entities.DungeonRoom>();
             
             // 2. Batch를 통해서 Redis 요청을 병렬 처리
             var batch = _database.CreateBatch();
@@ -146,7 +147,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
             batch.Execute();
 
             // 3. 결과 파싱
-            var rooms = new List<DungeonRoom>();
+            var rooms = new List<Domain.Entities.DungeonRoom>();
             for (int i = 0; i < roomIds.Length; i++)
             {
                 var entries = await roomTasks[i];
@@ -179,7 +180,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         return await _database.SetLengthAsync(ActiveRoomsKey);
     }
 
-    public async Task<bool> UpdateAsync(DungeonRoom room)
+    public async Task<bool> UpdateAsync(Domain.Entities.DungeonRoom room)
     {
         try
         {
@@ -313,7 +314,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
     }
 
-    private DungeonRoom? ParseDungeonRoomFromRedis(
+    private Domain.Entities.DungeonRoom? ParseDungeonRoomFromRedis(
         long roomId,
         HashEntry[] entries,
         RedisValue[] players)
@@ -373,7 +374,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         );
         
         // 5. FromRedis로 DungeonRoom 재구성
-        return DungeonRoom.FromRedis(
+        return Domain.Entities.DungeonRoom.FromRedis(
             id, 
             roomName, 
             hostUserId, 

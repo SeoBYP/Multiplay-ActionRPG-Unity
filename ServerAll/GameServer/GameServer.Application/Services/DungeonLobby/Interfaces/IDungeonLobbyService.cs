@@ -12,7 +12,7 @@ public interface IDungeonLobbyService
     /// <param name="roomName">방 이름</param>
     /// <param name="maxPlayers">최대 플레이어 수 (기본 4명)</param>
     /// <returns>생성된 방 정보</returns>
-    Task<Result<DungeonRoom>> CreateDungeonRoomAsync(long userId, string roomName, int maxPlayers);
+    Task<Result<DungeonRoom>> CreateDungeonRoomAsync(string sessionId, string roomName, int maxPlayers);
 
     /// <summary>
     /// 활성 방 목록을 조회합니다
@@ -32,7 +32,7 @@ public interface IDungeonLobbyService
     /// </summary>
     /// <param name="userId"></param>
     /// <returns></returns>
-    Task<Result<DungeonRoom>> UpdateRoomSettingsAsync(long userId, long roomId,
+    Task<Result<DungeonRoom>> UpdateRoomSettingsAsync(string sessionId, long roomId,
         string? roomName = null, int? maxPlayers = null);
 
     /// <summary>
@@ -41,7 +41,7 @@ public interface IDungeonLobbyService
     /// <param name="userId">입장할 사용자 ID</param>
     /// <param name="roomId">입장할 방 ID</param>
     /// <returns>입장 결과</returns>
-    Task<Result<DungeonRoom>> JoinRoomAsync(long userId, long roomId);
+    Task<Result<DungeonRoom>> JoinRoomAsync(string sessionId, long roomId);
 
     /// <summary>
     /// 방에서 퇴장합니다
@@ -49,7 +49,7 @@ public interface IDungeonLobbyService
     /// <param name="userId">퇴장할 사용자 ID</param>
     /// <param name="roomId">퇴장할 방 ID</param>
     /// <returns>퇴장 결과</returns>
-    Task<Result<DungeonRoom>> LeaveRoomAsync(long userId, long roomId);
+    Task<Result<DungeonRoom>> LeaveRoomAsync(string sessionId, long roomId);
 
     // ========== 게임 시작 ==========
 
@@ -59,5 +59,5 @@ public interface IDungeonLobbyService
     /// <param name="userId">게임 시작을 요청한 사용자 ID</param>
     /// <param name="roomId">게임을 시작할 방 ID</param>
     /// <returns>게임 시작 결과</returns>
-    Task<Result<DungeonRoom>> StartGameAsync(long userId, long roomId);
+    Task<Result<DungeonRoom>> StartGameAsync(string sessionId, long roomId);
 }

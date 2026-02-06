@@ -1,447 +1,552 @@
 ﻿using GameServer.Application.Common;
 using GameServer.Application.Services.DungeonLobby;
 using GameServer.Domain.Entities;
+using GameServer.Domain.Interfaces.DungeonRoom;
+using GameServer.Domain.Interfaces.User;
 using GameServer.Tests.Fakes;
 
 namespace GameServer.Tests.Application.Services;
 
 public class DungeonLobbyServiceTests
 {
-    private readonly IDungeonRoomRepository _repository;
+    private readonly IUserSessionRepository _sessionRepository;
     private readonly DungeonLobbyService _service;
 
     public DungeonLobbyServiceTests()
     {
-        _repository = new FakeDungeonRoomRepository();
-        _service = new DungeonLobbyService(_repository);
+        IDungeonRoomRepository roomRepository = new FakeDungeonRoomRepository();
+        _sessionRepository = new FakeUserSessionRepository();
+        _service = new DungeonLobbyService(roomRepository, _sessionRepository);
     }
 
+    #region CreateDungeonRoomAsync Tests
+
     [Fact]
-    public async Task CreateDungeonRoomAsync_는_새로운_방을_생성한다()
+    public async Task CreateDungeonRoomAsync_ValidSessionId_Success()
     {
-        // given
-        var userId = 1L;
-        var roomName = "초보자방";
+        // Arrange
+        var sessionId = await CreateTestSession(userId: 1, userName: "user1");
+        var roomName = "Test Room";
         var maxPlayers = 4;
 
-        // when
-        var result = await _service.CreateDungeonRoomAsync(userId, roomName, maxPlayers);
-        
-        // then
-        var room = result.Value;
-        Assert.True(room.RoomId > 0);
-        Assert.Equal(roomName, room.RoomName);
-        Assert.Equal(userId, room.HostUserId);
-        Assert.Equal(maxPlayers, room.MaxPlayers);
-        Assert.Equal(RoomStatus.Waiting, room.Status);
-        Assert.Single(room.CurrentPlayers);
-        Assert.Contains(userId, room.CurrentPlayers);
-    }
+        // Act
+        var result = await _service.CreateDungeonRoomAsync(sessionId, roomName, maxPlayers);
 
-    [Fact]
-    public async Task CreateDungeonRoomAsync_는_이미_방에_있는_유저면_실패한다()
-    {
-        // given
-        var userId = 1L;
-        await _service.CreateDungeonRoomAsync(userId, "첫번째방", 4);
-        
-        // when - 같은 유저가 또 방 생성 시도
-        var result = await _service.CreateDungeonRoomAsync(userId, "두번째방", 4);
-
-        // then
-        Assert.False(result.IsSuccess);
-        Assert.Equal(ErrorMessages.AlreadyInRoom, result.Message);
-    }
-
-    [Fact]
-    public async Task CreateDungeonRoomAsync_는_커스텀_MaxPlayers로_방을_생성한다()
-    {
-        // given
-        var userId = 1L;
-        var maxPlayers = 2;
-
-        // when
-        var result = await _service.CreateDungeonRoomAsync(userId, "2인방", maxPlayers);
-
-        // then
-        Assert.True(result.IsSuccess);
-        Assert.Equal(maxPlayers, result.Value!.MaxPlayers);
-    }
-
-    [Fact]
-    public async Task GetActiveDungeonRoomsAsync_는_모든_활성_방을_반환한다()
-    {
-        // given - 3개 방 생성
-        await _service.CreateDungeonRoomAsync(1L, "방1", 4);
-        await _service.CreateDungeonRoomAsync(2L, "방2", 4);
-        await _service.CreateDungeonRoomAsync(3L, "방3", 4);
-
-        // when
-        var result = await _service.GetActiveDungeonRoomsAsync();
-
-        // then
+        // Assert
         Assert.True(result.IsSuccess);
         Assert.NotNull(result.Value);
-        Assert.Equal(3, result.Value.Count());
+        Assert.Equal(roomName, result.Value.RoomName);
+        Assert.Equal(1, result.Value.HostUserId);
+        Assert.Equal(maxPlayers, result.Value.MaxPlayers);
+        Assert.Single(result.Value.CurrentPlayers);
+        Assert.Contains(1, result.Value.CurrentPlayers);
     }
 
     [Fact]
-    public async Task GetActiveDungeonRoomsAsync_는_Closed_상태_방은_제외한다()
+    public async Task CreateDungeonRoomAsync_InvalidSessionId_Failure()
     {
-        // given - 방 생성 후 모든 플레이어 퇴장 (Closed)
-        var createResult = await _service.CreateDungeonRoomAsync(1L, "방1", 4);
-        var roomId = createResult.Value!.RoomId;
+        // Arrange
+        var invalidSessionId = "invalid-session-id";
+        var roomName = "Test Room";
+        var maxPlayers = 4;
+
+        // Act
+        var result = await _service.CreateDungeonRoomAsync(invalidSessionId, roomName, maxPlayers);
+
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.InvalidRequest, result.InternalErrorCode);
+    }
+
+    [Fact]
+    public async Task CreateDungeonRoomAsync_UserAlreadyInRoom_Failure()
+    {
+        // Arrange
+        var sessionId = await CreateTestSession(userId: 1, userName: "user1");
         
-        await _service.LeaveRoomAsync(1L, roomId);  // 방장 퇴장 → Closed
+        // 첫 번째 방 생성
+        await _service.CreateDungeonRoomAsync(sessionId, "Room1", 4);
 
-        // when
+        // Act - 같은 유저가 두 번째 방 생성 시도
+        var result = await _service.CreateDungeonRoomAsync(sessionId, "Room2", 4);
+
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.AlreadyInRoom, result.InternalErrorCode);
+    }
+
+    #endregion
+
+    #region GetActiveDungeonRoomsAsync Tests
+
+    [Fact]
+    public async Task GetActiveDungeonRoomsAsync_NoRooms_ReturnsEmptyList()
+    {
+        // Act
         var result = await _service.GetActiveDungeonRoomsAsync();
 
-        // then
+        // Assert
         Assert.True(result.IsSuccess);
-        Assert.Empty(result.Value!);  // Closed 방은 조회 안 됨
+        Assert.NotNull(result.Value);
+        Assert.Empty(result.Value);
     }
 
     [Fact]
-    public async Task GetActiveDungeonRoomsAsync_는_방이_없으면_빈_목록을_반환한다()
+    public async Task GetActiveDungeonRoomsAsync_MultipleRooms_ReturnsAllActiveRooms()
     {
-        // given - 방 없음
+        // Arrange
+        var session1 = await CreateTestSession(1, "user1");
+        var session2 = await CreateTestSession(2, "user2");
+        
+        await _service.CreateDungeonRoomAsync(session1, "Room1", 4);
+        await _service.CreateDungeonRoomAsync(session2, "Room2", 4);
 
-        // when
+        // Act
         var result = await _service.GetActiveDungeonRoomsAsync();
 
-        // then
+        // Assert
         Assert.True(result.IsSuccess);
-        Assert.Empty(result.Value!);
+        Assert.NotNull(result.Value);
+        Assert.Equal(2, result.Value.Count());
     }
 
     [Fact]
-    public async Task GetDungeonRoomAsync_는_방_정보를_조회한다()
+    public async Task GetActiveDungeonRoomsAsync_ExcludesClosedRooms()
     {
-        // given
-        var createResult = await _service.CreateDungeonRoomAsync(1L, "테스트방", 4);
+        // Arrange
+        var session1 = await CreateTestSession(1, "user1");
+        var session2 = await CreateTestSession(2, "user2");
+        
+        var room1Result = await _service.CreateDungeonRoomAsync(session1, "Room1", 4);
+        await _service.CreateDungeonRoomAsync(session2, "Room2", 4);
+        
+        // Room1 닫기 (모든 플레이어 퇴장)
+        await _service.LeaveRoomAsync(session1, room1Result.Value!.RoomId);
+
+        // Act
+        var result = await _service.GetActiveDungeonRoomsAsync();
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Single(result.Value!);
+        Assert.Equal("Room2", result.Value!.First().RoomName);
+    }
+
+    #endregion
+
+    #region GetDungeonRoomAsync Tests
+
+    [Fact]
+    public async Task GetDungeonRoomAsync_ExistingRoom_ReturnsRoom()
+    {
+        // Arrange
+        var sessionId = await CreateTestSession(1, "user1");
+        var createResult = await _service.CreateDungeonRoomAsync(sessionId, "Test Room", 4);
         var roomId = createResult.Value!.RoomId;
 
-        // when
+        // Act
         var result = await _service.GetDungeonRoomAsync(roomId);
 
-        // then
+        // Assert
         Assert.True(result.IsSuccess);
         Assert.NotNull(result.Value);
         Assert.Equal(roomId, result.Value.RoomId);
-        Assert.Equal("테스트방", result.Value.RoomName);
+        Assert.Equal("Test Room", result.Value.RoomName);
     }
-    
+
     [Fact]
-    public async Task GetDungeonRoomAsync_는_존재하지않는_방이면_실패한다()
+    public async Task GetDungeonRoomAsync_NonExistentRoom_ReturnsFailure()
     {
-        // given
+        // Arrange
         var nonExistentRoomId = 999L;
 
-        // when
+        // Act
         var result = await _service.GetDungeonRoomAsync(nonExistentRoomId);
 
-        // then
+        // Assert
         Assert.False(result.IsSuccess);
-        Assert.Equal(ErrorMessages.RoomNotFound, result.Message);
+        Assert.Equal(ErrorCodes.RoomNotFound, result.InternalErrorCode);
     }
 
+    #endregion
+
+    #region UpdateRoomSettingsAsync Tests
+
     [Fact]
-    public async Task JoinRoomAsync_는_방에_정상적으로_입장한다()
+    public async Task UpdateRoomSettingsAsync_ValidHost_Success()
     {
-        // given
-        var hostId = 1L;
-        var userId = 2L;
-        var createResult = await _service.CreateDungeonRoomAsync(hostId, "테스트방", 4);
+        // Arrange
+        var sessionId = await CreateTestSession(1, "user1");
+        var createResult = await _service.CreateDungeonRoomAsync(sessionId, "Old Name", 4);
         var roomId = createResult.Value!.RoomId;
 
-        // when
-        var result = await _service.JoinRoomAsync(userId, roomId);
+        // Act
+        var result = await _service.UpdateRoomSettingsAsync(
+            sessionId, roomId, "New Name", 3);
 
-        // then
+        // Assert
         Assert.True(result.IsSuccess);
-        Assert.NotNull(result.Value);
-        Assert.Equal(2, result.Value.GetPlayerCount());
-        Assert.Contains(userId, result.Value.CurrentPlayers);
+        Assert.Equal("New Name", result.Value!.RoomName);
+        Assert.Equal(3, result.Value.MaxPlayers);
     }
 
     [Fact]
-    public async Task JoinRoomAsync_는_이미_다른_방에_있으면_실패한다()
+    public async Task UpdateRoomSettingsAsync_NonHost_Failure()
     {
-        // given
-        var userId = 2L;
-        var room1Result = await _service.CreateDungeonRoomAsync(1L, "방1", 4);
-        var room2Result = await _service.CreateDungeonRoomAsync(3L, "방2", 4);
+        // Arrange
+        var hostSession = await CreateTestSession(1, "host");
+        var otherSession = await CreateTestSession(2, "other");
         
-        var room1Id = room1Result.Value!.RoomId;
-        var room2Id = room2Result.Value!.RoomId;
+        var createResult = await _service.CreateDungeonRoomAsync(hostSession, "Room", 4);
+        var roomId = createResult.Value!.RoomId;
+
+        // Act - 다른 유저가 설정 변경 시도
+        var result = await _service.UpdateRoomSettingsAsync(
+            otherSession, roomId, "Hacked", 2);
+
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.NotRoomHost, result.InternalErrorCode);
+    }
+
+    [Fact]
+    public async Task UpdateRoomSettingsAsync_InvalidSessionId_Failure()
+    {
+        // Arrange
+        var sessionId = await CreateTestSession(1, "user1");
+        var createResult = await _service.CreateDungeonRoomAsync(sessionId, "Room", 4);
+        var roomId = createResult.Value!.RoomId;
+
+        // Act - 잘못된 세션으로 시도
+        var result = await _service.UpdateRoomSettingsAsync(
+            "invalid-session", roomId, "New Name", 3);
+
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.InvalidRequest, result.InternalErrorCode);
+    }
+
+    [Fact]
+    public async Task UpdateRoomSettingsAsync_ReduceMaxPlayersWithTooManyPlayers_Failure()
+    {
+        // Arrange
+        var hostSession = await CreateTestSession(1, "host");
+        var user2Session = await CreateTestSession(2, "user2");
+        var user3Session = await CreateTestSession(3, "user3");
         
-        await _service.JoinRoomAsync(userId, room1Id);  // 방1에 입장
-
-        // when - 방2에 입장 시도
-        var result = await _service.JoinRoomAsync(userId, room2Id);
-
-        // then
-        Assert.False(result.IsSuccess);
-        Assert.Equal(ErrorMessages.AlreadyInRoom, result.Message);
-    }
-
-    [Fact]
-    public async Task JoinRoomAsync_는_존재하지않는_방이면_실패한다()
-    {
-        // given
-        var userId = 2L;
-        var roomId = 999L;
-
-        // when
-        var result = await _service.JoinRoomAsync(userId, roomId);
-
-        // then
-        Assert.False(result.IsSuccess);
-        Assert.Equal(ErrorMessages.RoomNotFound, result.Message);
-    }
-
-    [Fact]
-    public async Task JoinRoomAsync_는_방이_가득_차면_실패한다()
-    {
-        // given - 2인 방 생성
-        var createResult = await _service.CreateDungeonRoomAsync(1L, "2인방", 2);
+        var createResult = await _service.CreateDungeonRoomAsync(hostSession, "Room", 4);
         var roomId = createResult.Value!.RoomId;
         
-        await _service.JoinRoomAsync(2L, roomId);  // 2명 모두 입장
+        await _service.JoinRoomAsync(user2Session, roomId);
+        await _service.JoinRoomAsync(user3Session, roomId);
 
-        // when - 3번째 유저 입장 시도
-        var result = await _service.JoinRoomAsync(3L, roomId);
+        // Act - 3명 있는데 maxPlayers를 2로 줄이려고 시도
+        var result = await _service.UpdateRoomSettingsAsync(
+            hostSession, roomId, null, 2);
 
-        // then
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.UpdateRoomFailed, result.InternalErrorCode);
+    }
+
+    #endregion
+
+    #region JoinRoomAsync Tests
+
+    [Fact]
+    public async Task JoinRoomAsync_ValidUser_Success()
+    {
+        // Arrange
+        var hostSession = await CreateTestSession(1, "host");
+        var joinSession = await CreateTestSession(2, "joiner");
+        
+        var createResult = await _service.CreateDungeonRoomAsync(hostSession, "Room", 4);
+        var roomId = createResult.Value!.RoomId;
+
+        // Act
+        var result = await _service.JoinRoomAsync(joinSession, roomId);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.Value!.CurrentPlayers.Count);
+        Assert.Contains(2, result.Value.CurrentPlayers);
+    }
+
+    [Fact]
+    public async Task JoinRoomAsync_InvalidSessionId_Failure()
+    {
+        // Arrange
+        var hostSession = await CreateTestSession(1, "host");
+        var createResult = await _service.CreateDungeonRoomAsync(hostSession, "Room", 4);
+        var roomId = createResult.Value!.RoomId;
+
+        // Act
+        var result = await _service.JoinRoomAsync("invalid-session", roomId);
+
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.InvalidRequest, result.InternalErrorCode);
+    }
+
+    [Fact]
+    public async Task JoinRoomAsync_RoomNotFound_Failure()
+    {
+        // Arrange
+        var sessionId = await CreateTestSession(1, "user1");
+
+        // Act
+        var result = await _service.JoinRoomAsync(sessionId, 999L);
+
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.RoomNotFound, result.InternalErrorCode);
+    }
+
+    [Fact]
+    public async Task JoinRoomAsync_AlreadyInAnotherRoom_Failure()
+    {
+        // Arrange
+        var user1Session = await CreateTestSession(1, "user1");
+        var user2Session = await CreateTestSession(2, "user2");
+        
+        var room1Result = await _service.CreateDungeonRoomAsync(user1Session, "Room1", 4);
+        var room2Result = await _service.CreateDungeonRoomAsync(user2Session, "Room2", 4);
+
+        // Act - user1이 Room2에 입장 시도 (이미 Room1에 있음)
+        var result = await _service.JoinRoomAsync(user1Session, room2Result.Value!.RoomId);
+
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.AlreadyInRoom, result.InternalErrorCode);
+    }
+
+    [Fact]
+    public async Task JoinRoomAsync_RoomFull_Failure()
+    {
+        // Arrange
+        var hostSession = await CreateTestSession(1, "host");
+        var user2Session = await CreateTestSession(2, "user2");
+        var user3Session = await CreateTestSession(3, "user3");
+        var user4Session = await CreateTestSession(4, "user4");
+        
+        var createResult = await _service.CreateDungeonRoomAsync(hostSession, "Room", 2);
+        var roomId = createResult.Value!.RoomId;
+        
+        await _service.JoinRoomAsync(user2Session, roomId);
+
+        // Act - 방이 꽉 찼는데 입장 시도
+        var result = await _service.JoinRoomAsync(user3Session, roomId);
+
+        // Assert
         Assert.False(result.IsSuccess);
         Assert.Equal(ErrorCodes.JoinRoomFailed, result.InternalErrorCode);
     }
 
     [Fact]
-    public async Task JoinRoomAsync_는_같은_방에_중복_입장을_불허용한다()
+    public async Task JoinRoomAsync_AlreadyInRoom_Failure()
     {
-        // given
-        var userId = 2L;
-        var createResult = await _service.CreateDungeonRoomAsync(1L, "테스트방", 4);
+        // Arrange
+        var sessionId = await CreateTestSession(1, "user1");
+        var createResult = await _service.CreateDungeonRoomAsync(sessionId, "Room", 4);
         var roomId = createResult.Value!.RoomId;
-        
-        await _service.JoinRoomAsync(userId, roomId);  // 첫 입장
 
-        // when - 같은 방에 다시 입장 (재접속 시나리오)
-        var result = await _service.JoinRoomAsync(userId, roomId);
+        // Act - 이미 방에 있는데 다시 입장 시도
+        var result = await _service.JoinRoomAsync(sessionId, roomId);
 
-        // then - 실패
-        Assert.True(!result.IsSuccess);
+        // Assert
+        Assert.False(result.IsSuccess);
         Assert.Equal(ErrorCodes.AlreadyInRoom, result.InternalErrorCode);
     }
 
+    #endregion
+
+    #region LeaveRoomAsync Tests
+
     [Fact]
-    public async Task LeaveRoomAsync_는_방에서_정상적으로_퇴장한다()
+    public async Task LeaveRoomAsync_ValidUser_Success()
     {
-        // given
-        var userId = 2L;
-        var createResult = await _service.CreateDungeonRoomAsync(1L, "테스트방", 4);
+        // Arrange
+        var hostSession = await CreateTestSession(1, "host");
+        var joinSession = await CreateTestSession(2, "joiner");
+        
+        var createResult = await _service.CreateDungeonRoomAsync(hostSession, "Room", 4);
         var roomId = createResult.Value!.RoomId;
         
-        await _service.JoinRoomAsync(userId, roomId);
+        await _service.JoinRoomAsync(joinSession, roomId);
 
-        // when
-        var result = await _service.LeaveRoomAsync(userId, roomId);
+        // Act
+        var result = await _service.LeaveRoomAsync(joinSession, roomId);
 
-        // then
+        // Assert
         Assert.True(result.IsSuccess);
-        
-        // 방 확인
-        var room = await _service.GetDungeonRoomAsync(roomId);
-        Assert.Equal(1, room.Value!.GetPlayerCount());
-        Assert.DoesNotContain(userId, room.Value.CurrentPlayers);
+        Assert.Single(result.Value!.CurrentPlayers);
+        Assert.DoesNotContain(2, result.Value.CurrentPlayers);
     }
 
     [Fact]
-    public async Task LeaveRoomAsync_는_존재하지않는_방이면_실패한다()
+    public async Task LeaveRoomAsync_InvalidSessionId_Failure()
     {
-        // given
-        var userId = 1L;
-        var roomId = 999L;
+        // Arrange
+        var sessionId = await CreateTestSession(1, "user1");
+        var createResult = await _service.CreateDungeonRoomAsync(sessionId, "Room", 4);
+        var roomId = createResult.Value!.RoomId;
 
-        // when
-        var result = await _service.LeaveRoomAsync(userId, roomId);
+        // Act
+        var result = await _service.LeaveRoomAsync("invalid-session", roomId);
 
-        // then
+        // Assert
         Assert.False(result.IsSuccess);
-        Assert.Equal(ErrorMessages.RoomNotFound, result.Message);
+        Assert.Equal(ErrorCodes.InvalidRequest, result.InternalErrorCode);
     }
 
     [Fact]
-    public async Task LeaveRoomAsync_는_방에_없는_유저면_실패한다()
+    public async Task LeaveRoomAsync_NotInRoom_Failure()
     {
-        // given
-        var createResult = await _service.CreateDungeonRoomAsync(1L, "테스트방", 4);
-        var roomId = createResult.Value!.RoomId;
+        // Arrange
+        var hostSession = await CreateTestSession(1, "host");
+        var otherSession = await CreateTestSession(2, "other");
         
-        var userId = 999L;  // 방에 없는 유저
+        var createResult = await _service.CreateDungeonRoomAsync(hostSession, "Room", 4);
+        var roomId = createResult.Value!.RoomId;
 
-        // when
-        var result = await _service.LeaveRoomAsync(userId, roomId);
+        // Act - 방에 없는 유저가 퇴장 시도
+        var result = await _service.LeaveRoomAsync(otherSession, roomId);
 
-        // then
+        // Assert
         Assert.False(result.IsSuccess);
-        Assert.Equal(ErrorMessages.NotInRoom, result.Message);
+        Assert.Equal(ErrorCodes.NotInRoom, result.InternalErrorCode);
     }
 
     [Fact]
-    public async Task LeaveRoomAsync_는_방장이_퇴장하면_다음_플레이어가_방장이_된다()
+    public async Task LeaveRoomAsync_LastPlayerLeaves_RoomClosed()
     {
-        // given
-        var hostId = 1L;
-        var userId = 2L;
-        var createResult = await _service.CreateDungeonRoomAsync(hostId, "테스트방", 4);
-        var roomId = createResult.Value!.RoomId;
-        
-        await _service.JoinRoomAsync(userId, roomId);
-
-        // when - 방장 퇴장
-        await _service.LeaveRoomAsync(hostId, roomId);
-
-        // then - userId가 새 방장
-        var room = await _service.GetDungeonRoomAsync(roomId);
-        Assert.Equal(userId, room.Value!.HostUserId);
-    }
-
-    [Fact]
-    public async Task LeaveRoomAsync_는_모든_플레이어가_퇴장하면_방이_삭제된다()
-    {
-        // given
-        var hostId = 1L;
-        var createResult = await _service.CreateDungeonRoomAsync(hostId, "테스트방", 4);
+        // Arrange
+        var sessionId = await CreateTestSession(1, "user1");
+        var createResult = await _service.CreateDungeonRoomAsync(sessionId, "Room", 4);
         var roomId = createResult.Value!.RoomId;
 
-        // when - 방장 퇴장 (유일한 플레이어)
-        await _service.LeaveRoomAsync(hostId, roomId);
+        // Act
+        var result = await _service.LeaveRoomAsync(sessionId, roomId);
 
-        // then - 방이 삭제됨
-        var room = await _service.GetDungeonRoomAsync(roomId);
-        Assert.False(room.IsSuccess);
-        Assert.Equal(ErrorMessages.RoomNotFound, room.Message);
-    }
-    
-    [Fact]
-    public async Task StartGameAsync_는_게임을_정상적으로_시작한다()
-    {
-        // given
-        var hostId = 1L;
-        var createResult = await _service.CreateDungeonRoomAsync(hostId, "테스트방", 4);
-        var roomId = createResult.Value!.RoomId;
-        
-        await _service.JoinRoomAsync(2L, roomId);  // 2명 이상 필요
-
-        // when
-        var result = await _service.StartGameAsync(hostId, roomId);
-
-        // then
+        // Assert
         Assert.True(result.IsSuccess);
+        Assert.Equal(RoomStatus.Closed, result.Value!.Status);
         
-        // 방 상태 확인
-        var room = await _service.GetDungeonRoomAsync(roomId);
-        Assert.Equal(RoomStatus.Playing, room.Value!.Status);
-    }
-
-    [Fact]
-    public async Task StartGameAsync_는_존재하지않는_방이면_실패한다()
-    {
-        // given
-        var userId = 1L;
-        var roomId = 999L;
-
-        // when
-        var result = await _service.StartGameAsync(userId, roomId);
-
-        // then
-        Assert.False(result.IsSuccess);
-        Assert.Equal(ErrorMessages.RoomNotFound, result.Message);
-    }
-
-    [Fact]
-    public async Task StartGameAsync_는_방장이_아니면_실패한다()
-    {
-        // given
-        var hostId = 1L;
-        var userId = 2L;
-        var createResult = await _service.CreateDungeonRoomAsync(hostId, "테스트방", 4);
-        var roomId = createResult.Value!.RoomId;
-        await _service.JoinRoomAsync(userId, roomId);
-        // when
-        var result = await _service.StartGameAsync(userId, roomId);
-        
-        // then
-        Assert.False(result.IsSuccess);
-        Assert.Equal(ErrorMessages.NotRoomHost, result.Message);
-    }
-
-
-    [Fact]
-    public async Task StartGameAsync_는_플레이어가_1명이면_실패한다()
-    {
-        // given
-        var hostId = 1L;
-        var createResult = await _service.CreateDungeonRoomAsync(hostId, "테스트방", 4);
-        var roomId = createResult.Value!.RoomId;
-
-        // when - 방장 혼자 시작 시도
-        var result = await _service.StartGameAsync(hostId, roomId);
-
-        // then
-        Assert.False(result.IsSuccess);
-    }
-
-    [Fact]
-    public async Task 전체_플로우_방생성_입장_퇴장_삭제()
-    {
-        // 1. 방생성
-        var createResult = await _service.CreateDungeonRoomAsync(1L, "테스트방", 4);
-        Assert.True(createResult.IsSuccess);
-        var roomId = createResult.Value!.RoomId;
-        
-        // 2. 방 입장
-        var joinResult = await _service.JoinRoomAsync(2L, roomId);
-        Assert.True(joinResult.IsSuccess);
-        Assert.Equal(2, joinResult.Value!.GetPlayerCount());
-        
-        // 3. 플레이어 퇴장
-        var leaveResult = await _service.LeaveRoomAsync(2L, roomId);
-        Assert.True(leaveResult.IsSuccess);
-        
-        // 4. 방장 퇴장 (방 삭제)
-        await _service.LeaveRoomAsync(1L, roomId);
-        
-        // 5. 방이 삭제되었는지 확인
+        // 방이 삭제되었는지 확인
         var getResult = await _service.GetDungeonRoomAsync(roomId);
         Assert.False(getResult.IsSuccess);
+        Assert.Equal(ErrorCodes.RoomNotFound, getResult.InternalErrorCode);
     }
 
     [Fact]
-    public async Task 전체_플로우_방생성_입장_게임시작()
+    public async Task LeaveRoomAsync_HostLeaves_NewHostAssigned()
     {
-        // 1. 방 생성
-        var createResult = await _service.CreateDungeonRoomAsync(1L, "레이드방", 4);
+        // Arrange
+        var hostSession = await CreateTestSession(1, "host");
+        var user2Session = await CreateTestSession(2, "user2");
+        
+        var createResult = await _service.CreateDungeonRoomAsync(hostSession, "Room", 4);
+        var roomId = createResult.Value!.RoomId;
+        
+        await _service.JoinRoomAsync(user2Session, roomId);
+
+        // Act - 방장이 퇴장
+        var result = await _service.LeaveRoomAsync(hostSession, roomId);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.Value!.HostUserId); // user2가 새 방장
+        Assert.Single(result.Value.CurrentPlayers);
+        Assert.Contains(2, result.Value.CurrentPlayers);
+    }
+
+    #endregion
+
+    #region StartGameAsync Tests
+
+    [Fact]
+    public async Task StartGameAsync_ValidHost_Success()
+    {
+        // Arrange
+        var hostSession = await CreateTestSession(1, "host");
+        var user2Session = await CreateTestSession(2, "user2");
+        
+        var createResult = await _service.CreateDungeonRoomAsync(hostSession, "Room", 4);
+        var roomId = createResult.Value!.RoomId;
+        
+        await _service.JoinRoomAsync(user2Session, roomId);
+
+        // Act
+        var result = await _service.StartGameAsync(hostSession, roomId);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(RoomStatus.Playing, result.Value!.Status);
+    }
+
+    [Fact]
+    public async Task StartGameAsync_InvalidSessionId_Failure()
+    {
+        // Arrange
+        var sessionId = await CreateTestSession(1, "user1");
+        var createResult = await _service.CreateDungeonRoomAsync(sessionId, "Room", 4);
         var roomId = createResult.Value!.RoomId;
 
-        // 2. 플레이어들 입장
-        await _service.JoinRoomAsync(2L, roomId);
-        await _service.JoinRoomAsync(3L, roomId);
-        await _service.JoinRoomAsync(4L, roomId);
+        // Act
+        var result = await _service.StartGameAsync("invalid-session", roomId);
 
-        // 3. 방 가득 참 확인
-        var room = await _service.GetDungeonRoomAsync(roomId);
-        Assert.True(room.Value!.IsFull);
-
-        // 4. 게임 시작
-        var startResult = await _service.StartGameAsync(1L, roomId);
-        Assert.True(startResult.IsSuccess);
-
-        // 5. 상태 확인
-        room = await _service.GetDungeonRoomAsync(roomId);
-        Assert.Equal(RoomStatus.Playing, room.Value!.Status);
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.InvalidRequest, result.InternalErrorCode);
     }
+
+    [Fact]
+    public async Task StartGameAsync_NotHost_Failure()
+    {
+        // Arrange
+        var hostSession = await CreateTestSession(1, "host");
+        var otherSession = await CreateTestSession(2, "other");
+        
+        var createResult = await _service.CreateDungeonRoomAsync(hostSession, "Room", 4);
+        var roomId = createResult.Value!.RoomId;
+        
+        await _service.JoinRoomAsync(otherSession, roomId);
+
+        // Act - 방장이 아닌 사람이 게임 시작 시도
+        var result = await _service.StartGameAsync(otherSession, roomId);
+
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.NotRoomHost, result.InternalErrorCode);
+    }
+
+    [Fact]
+    public async Task StartGameAsync_NotEnoughPlayers_Failure()
+    {
+        // Arrange
+        var sessionId = await CreateTestSession(1, "user1");
+        var createResult = await _service.CreateDungeonRoomAsync(sessionId, "Room", 4);
+        var roomId = createResult.Value!.RoomId;
+
+        // Act - 혼자서 게임 시작 시도
+        var result = await _service.StartGameAsync(sessionId, roomId);
+
+        // Assert
+        Assert.False(result.IsSuccess);
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    /// <summary>
+    /// 테스트용 세션 생성
+    /// </summary>
+    private async Task<string> CreateTestSession(long userId, string userName)
+    {
+        var session = await _sessionRepository.CreateSessionAsync(userId, userName);
+        return session!.SessionId;
+    }
+
+    #endregion
 }

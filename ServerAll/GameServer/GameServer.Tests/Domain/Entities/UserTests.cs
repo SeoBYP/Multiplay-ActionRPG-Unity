@@ -1,4 +1,5 @@
 ﻿using GameServer.Domain.Entities;
+using GameServer.Domain.Entities.User;
 
 namespace GameServer.Tests.Domain.Entities;
 

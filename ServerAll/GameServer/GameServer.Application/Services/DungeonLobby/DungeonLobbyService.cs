@@ -1,15 +1,22 @@
 ﻿using GameServer.Application.Common;
 using GameServer.Application.Services.DungeonLobby.Interfaces;
 using GameServer.Domain.Entities;
+using GameServer.Domain.Interfaces.DungeonRoom;
+using GameServer.Domain.Interfaces.User;
 
 namespace GameServer.Application.Services.DungeonLobby;
 
-public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository) : IDungeonLobbyService
+public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,IUserSessionRepository userSessionRepository) : IDungeonLobbyService
 {
-    public async Task<Result<DungeonRoom>> CreateDungeonRoomAsync(long userId, string roomName, int maxPlayers)
+    public async Task<Result<DungeonRoom>> CreateDungeonRoomAsync(string sessionId, string roomName, int maxPlayers)
     {
         try
         {
+            var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId);
+            if (userSession is null)
+                return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+            var userId = userSession.UserId;
+            
             var existingRoom = await dungeonRoomRepository.GetByUserIdAsync(userId);
             if (existingRoom is not null)
             {
@@ -64,7 +71,7 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository) :
     }
     
     public async Task<Result<DungeonRoom>> UpdateRoomSettingsAsync(
-        long userId, 
+        string sessionId,  
         long roomId, 
         string? roomName = null, 
         int? maxPlayers = null)
@@ -76,6 +83,11 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository) :
             if (room is null)
                 return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
         
+            var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId);
+            if (userSession is null)
+                return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+            var userId = userSession.UserId;
+            
             // 2. 도메인 로직 (설정 변경)
             try
             {
@@ -107,10 +119,15 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository) :
         }
     }
 
-    public async Task<Result<DungeonRoom>> JoinRoomAsync(long userId, long roomId)
+    public async Task<Result<DungeonRoom>> JoinRoomAsync(string sessionId, long roomId)
     {
         try
         {
+            var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId);
+            if (userSession is null)
+                return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+            var userId = userSession.UserId;
+            
             // 이미 다른 방이 있는지 확인
             var existingRoom = await dungeonRoomRepository.GetByUserIdAsync(userId);
             if (existingRoom is not null && existingRoom.RoomId != roomId)
@@ -154,10 +171,15 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository) :
         }
     }
 
-    public async Task<Result<DungeonRoom>> LeaveRoomAsync(long userId, long roomId)
+    public async Task<Result<DungeonRoom>> LeaveRoomAsync(string sessionId, long roomId)
     {
         try
         {
+            var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId);
+            if (userSession is null)
+                return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+            var userId = userSession.UserId;
+            
             // 방이 있는지 확인
             var room = await dungeonRoomRepository.GetByIdAsync(roomId);
             if (room is null)
@@ -195,10 +217,15 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository) :
         }
     }
 
-    public async Task<Result<DungeonRoom>> StartGameAsync(long userId, long roomId)
+    public async Task<Result<DungeonRoom>> StartGameAsync(string sessionId, long roomId)
     {
         try
         {
+            var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId);
+            if (userSession is null)
+                return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+            var userId = userSession.UserId;
+            
             // 방이 있는지 확인
             var room = await dungeonRoomRepository.GetByIdAsync(roomId);
             if (room is null)

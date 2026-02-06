@@ -1,4 +1,5 @@
-﻿using GameServer.Application.DTOs.Auth.Login;
+﻿using System.Security.Claims;
+using GameServer.Application.DTOs.Auth.Login;
 using GameServer.Application.DTOs.Auth.Register;
 using GameServer.Application.Services.Auth.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -70,13 +71,14 @@ public class AuthController(IAuthService authService) : ControllerBase
         }
         return Ok();
     }
-
-    // TODO : SwaggerUI로 테스트 용, 추후에는 JWT로 통신 예정
+    
     [HttpPost("logout")]
-    // [Authorize]
-    public async Task<IActionResult> Logout([FromBody] string sessionId)
+    [Authorize]
+    public async Task<IActionResult> Logout()
     {
-        // var sessionId = User.FindFirst(JwtRegisteredClaimNames.Sid)?.Value;
+        var sessionId = User.FindFirstValue(JwtRegisteredClaimNames.Sid);
+        if (sessionId is null)
+            return Unauthorized();
         var result = await authService.LogoutAsync(sessionId);
         return Ok(result);
     }

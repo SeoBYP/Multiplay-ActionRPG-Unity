@@ -1,19 +1,22 @@
 ﻿using GameServer.Domain.Entities;
+using GameServer.Domain.Interfaces.User;
+
+namespace GameServer.Infrastructure.Repositories.User;
 
 public class UserRepository : IUserRepository
 {
     // TODO : 동시 접속자
-    public Task<User?> GetByUsernameAsync(string userName)
+    public Task<Domain.Entities.User.User?> GetByUsernameAsync(string userName)
     {
         throw new NotImplementedException();
     }
 
-    public Task AddAsync(User user)
+    public Task AddAsync(Domain.Entities.User.User user)
     {
         throw new NotImplementedException();
     }
 
-    public Task<User?> GetByIdAsync(long userId)
+    public Task<Domain.Entities.User.User?> GetByIdAsync(long userId)
     {
         throw new NotImplementedException();
     }

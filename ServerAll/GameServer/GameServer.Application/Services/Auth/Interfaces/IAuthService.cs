@@ -1,5 +1,6 @@
 ﻿using GameServer.Application.Common;
 using GameServer.Domain.Entities;
+using GameServer.Domain.Entities.User;
 using LoginRequest = GameServer.Application.DTOs.Auth.Login.LoginRequest;
 using LoginResponse = GameServer.Application.DTOs.Auth.Login.LoginResponse;
 using RegisterRequest = GameServer.Application.DTOs.Auth.Register.RegisterRequest;

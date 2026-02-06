@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace GameServer.Domain.Entities;
+namespace GameServer.Domain.Entities.User;
 
 public class User
 {

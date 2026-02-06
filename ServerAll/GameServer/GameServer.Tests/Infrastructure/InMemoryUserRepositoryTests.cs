@@ -1,5 +1,7 @@
 ﻿using GameServer.Domain.Entities;
+using GameServer.Domain.Entities.User;
 using GameServer.Infrastructure.Repositories;
+using GameServer.Infrastructure.Repositories.User;
 
 namespace GameServer.Tests.Infrastructure;
 

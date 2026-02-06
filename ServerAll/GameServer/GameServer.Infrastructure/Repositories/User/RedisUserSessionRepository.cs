@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Globalization;
 using GameServer.Domain.Entities;
 using GameServer.Domain.Interfaces.User;
@@ -6,7 +5,7 @@ using GameServer.Infrastructure.Security;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
-namespace GameServer.Infrastructure.Repositories;
+namespace GameServer.Infrastructure.Repositories.User;
 
 /// <summary>
 /// Redis 기반 사용자 세션 저장소

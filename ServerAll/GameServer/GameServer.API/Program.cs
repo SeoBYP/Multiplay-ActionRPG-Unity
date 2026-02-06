@@ -1,7 +1,4 @@
 using System.Text;
-using GameServer.Application.Services;
-using GameServer.Domain.Interfaces;
-using GameServer.Infrastructure.Repositories;
 using GameServer.Infrastructure.Security;
 using GameServer.Infrastructure.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -13,8 +10,11 @@ using GameServer.Application.Services.Auth;
 using GameServer.Application.Services.Auth.Interfaces;
 using GameServer.Application.Services.DungeonLobby;
 using GameServer.Application.Services.DungeonLobby.Interfaces;
-using GameServer.Domain.Entities;
+using GameServer.Domain.Interfaces.DungeonRoom;
 using GameServer.Domain.Interfaces.User;
+using GameServer.Infrastructure.Repositories.DungeonRoom;
+using GameServer.Infrastructure.Repositories.User;
+using Microsoft.OpenApi;
 
 var envPaths = new[]
 {
@@ -35,7 +35,31 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Swagger에서 JWT 토큰 인증 단계 추가
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new()
+    {
+        Title = "GameServer.API", 
+        Version = "v1",
+        Description = "멀티플레이 액션 RPG 게임 서버 API"
+    });
+    
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",           // 소문자 권장
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "JWT Authorization header. Enter only the token (without 'Bearer ')."
+    });
+    
+    // 모든 API에 JWT 인증 요구
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
+});
 
 var redisConnection = ConnectionMultiplexer.Connect(
     builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379"

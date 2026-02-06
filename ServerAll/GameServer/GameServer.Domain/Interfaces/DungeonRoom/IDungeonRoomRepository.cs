@@ -1,17 +1,17 @@
-﻿namespace GameServer.Domain.Entities;
+﻿namespace GameServer.Domain.Interfaces.DungeonRoom;
 
 public interface IDungeonRoomRepository
 {
-    Task<DungeonRoom?> CreateAsync(long hostId, string roomName, int maxPlayers);
+    Task<Entities.DungeonRoom?> CreateAsync(long hostId, string roomName, int maxPlayers);
 
-    Task<DungeonRoom?> GetByIdAsync(long roomId);
+    Task<Entities.DungeonRoom?> GetByIdAsync(long roomId);
 
-    Task<DungeonRoom?> GetByUserIdAsync(long userId);
+    Task<Entities.DungeonRoom?> GetByUserIdAsync(long userId);
 
-    Task<IEnumerable<DungeonRoom>> GetAllActiveRoomsAsync();
+    Task<IEnumerable<Entities.DungeonRoom>> GetAllActiveRoomsAsync();
     Task<long> GetActiveRoomCountAsync();
 
-    Task<bool> UpdateAsync(DungeonRoom room);
+    Task<bool> UpdateAsync(Entities.DungeonRoom room);
 
     Task<bool> DeleteAsync(long roomId);
 }

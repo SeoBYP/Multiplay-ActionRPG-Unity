@@ -1,20 +1,23 @@
 ﻿using GameServer.Domain.Entities;
+using GameServer.Domain.Interfaces.User;
+
+namespace GameServer.Infrastructure.Repositories.User;
 
 public class InMemoryUserRepository : IUserRepository
 {
-    private readonly Dictionary<long, User> _users = new();
+    private readonly Dictionary<long, Domain.Entities.User.User> _users = new();
     
     private long _nextId = 1;
     
-    public Task<User?> GetByUsernameAsync(string userName)
+    public Task<Domain.Entities.User.User?> GetByUsernameAsync(string userName)
     {
         if(string.IsNullOrWhiteSpace(userName)) 
-            return Task.FromResult<User?>(null);
+            return Task.FromResult<Domain.Entities.User.User?>(null);
         
         return Task.FromResult(_users.Values.FirstOrDefault(u => u.UserName == userName));
     }
 
-    public Task AddAsync(User user)
+    public Task AddAsync(Domain.Entities.User.User user)
     {
         if(user is null) throw new ArgumentNullException(nameof(user));
         
@@ -23,7 +26,7 @@ public class InMemoryUserRepository : IUserRepository
         return Task.CompletedTask;
     }
 
-    public Task<User?> GetByIdAsync(long userId)
+    public Task<Domain.Entities.User.User?> GetByIdAsync(long userId)
     {
         return Task.FromResult(_users.GetValueOrDefault(userId));
     }

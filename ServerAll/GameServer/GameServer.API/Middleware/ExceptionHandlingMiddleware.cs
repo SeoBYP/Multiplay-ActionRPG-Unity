@@ -10,21 +10,17 @@ public class ExceptionHandlingMiddleware(
     ILogger<ExceptionHandlingMiddleware> logger,
     IHostEnvironment env)
 {
-    private readonly RequestDelegate _next = next;
-    private readonly ILogger<ExceptionHandlingMiddleware> _logger = logger;
-    private readonly IHostEnvironment _env = env;
-    
     public async Task InvokeAsync(HttpContext context)
     {
         try
         {
             // 다음 미들웨어 실행
-            await _next(context);
+            await next(context);
         }
         catch (Exception ex)
         {
             // 예외 로깅
-            _logger.LogError(ex, 
+            logger.LogError(ex, 
                 "Unhandled exception occurred. Path: {Path}, Method: {Method}", 
                 context.Request.Path, 
                 context.Request.Method);
@@ -69,8 +65,8 @@ public class ExceptionHandlingMiddleware(
             {
                 message = message,
                 // 개발 환경에서만 상세 정보 제공
-                detail = _env.IsDevelopment() ? exception.Message : null,
-                stackTrace = _env.IsDevelopment() ? exception.StackTrace : null
+                detail = env.IsDevelopment() ? exception.Message : null,
+                stackTrace = env.IsDevelopment() ? exception.StackTrace : null
             }
         };
 
