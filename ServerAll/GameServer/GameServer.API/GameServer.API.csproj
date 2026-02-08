@@ -9,6 +9,7 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1"/>
         <PackageReference Include="DotNetEnv" Version="2.5.0" />
+        <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.2" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
     </ItemGroup>
 
@@ -21,5 +22,11 @@
       <ProjectReference Include="..\GameServer.Infrastructure\GameServer.Infrastructure.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Content Update="wwwroot\**\*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+    
 </Project>
 

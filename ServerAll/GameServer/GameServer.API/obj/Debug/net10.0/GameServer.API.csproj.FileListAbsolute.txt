@@ -144,3 +144,10 @@ C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.A
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\obj\Debug\net10.0\ref\GameServer.API.dll
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\DotNetEnv.dll
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Sprache.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\GameServer.API.staticwebassets.runtime.json
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Microsoft.AspNetCore.Http.Connections.Client.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Microsoft.AspNetCore.SignalR.Client.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Microsoft.AspNetCore.SignalR.Client.Core.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\obj\Debug\net10.0\compressed\lt88qqffwx-{0}-lg8nm9o8o7-lg8nm9o8o7.gz
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\wwwroot\chat.html.gz
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\wwwroot\chat.html

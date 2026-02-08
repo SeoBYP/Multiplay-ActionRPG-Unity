@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using DotNetEnv;
+using GameServer.API.Hubs;
 using GameServer.API.Middleware;
 using GameServer.Application.Services.Auth;
 using GameServer.Application.Services.Auth.Interfaces;
@@ -14,6 +15,7 @@ using GameServer.Domain.Interfaces.DungeonRoom;
 using GameServer.Domain.Interfaces.User;
 using GameServer.Infrastructure.Repositories.DungeonRoom;
 using GameServer.Infrastructure.Repositories.User;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.OpenApi;
 
 var envPaths = new[]
@@ -84,6 +86,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddSignalR();
+
+builder.Services.AddResponseCompression(opts =>
+{
+    opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        ["application/octet-stream"]);
+});
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("http://localhost:5131")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
+
 builder.Services.AddSingleton<IUserRepository, InMemoryUserRepository>();
 builder.Services.AddSingleton<IUserSessionRepository, RedisUserSessionRepository>();
 
@@ -102,10 +124,98 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+
+
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // app.UseHttpsRedirection();
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseCors();                  // 1. CORS 먼저
+app.UseDefaultFiles();          // 2. 기본 파일 (index.html 등)
+app.UseStaticFiles();           // 3. 정적 파일 서빙
+app.UseResponseCompression();   // 4. 압축
+app.UseAuthentication();        // 5. 인증
+app.UseAuthorization();         // 6. 권한
+
 app.MapControllers();
+// ✅ 이거 추가!
+app.MapGet("/", () => Results.Content("""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SignalR Chat Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+</head>
+<body>
+<h2>SignalR Chat Test</h2>
+
+<div>
+    <label>Username:</label>
+    <input type="text" id="userInput" value="TestUser" />
+</div>
+
+<div>
+    <label>Message:</label>
+    <input type="text" id="messageInput" />
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<div>
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Disconnect</button>
+</div>
+
+<hr />
+<ul id="messagesList"></ul>
+
+<script>
+    let connection = null;
+
+    async function connect() {
+        connection = new signalR.HubConnectionBuilder()
+            .withUrl("/chathub")
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        connection.on("ReceiveMessage", (user, message) => {
+            const li = document.createElement("li");
+            li.textContent = `${user}: ${message}`;
+            document.getElementById("messagesList").appendChild(li);
+        });
+
+        try {
+            await connection.start();
+            console.log("SignalR Connected!");
+            alert("Connected!");
+        } catch (err) {
+            console.error(err);
+            alert("Connection failed: " + err);
+        }
+    }
+
+    async function disconnect() {
+        if (connection) {
+            await connection.stop();
+            console.log("Disconnected");
+        }
+    }
+
+    async function sendMessage() {
+        const user = document.getElementById("userInput").value;
+        const message = document.getElementById("messageInput").value;
+
+        try {
+            await connection.invoke("SendMessage", user, message);
+            document.getElementById("messageInput").value = "";
+        } catch (err) {
+            console.error(err);
+            alert("Send failed: " + err);
+        }
+    }
+</script>
+</body>
+</html>
+""", "text/html"));
+
+app.MapHub<ChatHub>("/chathub");
+
 app.Run();
