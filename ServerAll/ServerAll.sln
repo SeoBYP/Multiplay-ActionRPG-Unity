@@ -31,6 +31,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameServer.Tests", "GameSer
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Temp", "Temp\Temp.csproj", "{F254BCF8-6388-40CF-8F2B-E6ED00C152D8}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Protos", "Protos", "{160F86D5-5448-41E9-8E48-F71134A2832D}"
+	ProjectSection(SolutionItems) = preProject
+		GameServer\Protos\auth.proto = GameServer\Protos\auth.proto
+		GameServer\Protos\common.proto = GameServer\Protos\common.proto
+		GameServer\Protos\lobby.proto = GameServer\Protos\lobby.proto
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -89,5 +96,6 @@ Global
 		{9CE745C8-F9B5-480B-8B2E-ADA8B51C518F} = {5EB48421-481B-42F9-8FC7-93D06F0EF9A2}
 		{6BB44ABD-1D57-4654-8775-6AF67DDAE8D9} = {5EB48421-481B-42F9-8FC7-93D06F0EF9A2}
 		{00347F7D-10D6-4E37-B21C-9F2895A555E5} = {5EB48421-481B-42F9-8FC7-93D06F0EF9A2}
+		{160F86D5-5448-41E9-8E48-F71134A2832D} = {5EB48421-481B-42F9-8FC7-93D06F0EF9A2}
 	EndGlobalSection
 EndGlobal

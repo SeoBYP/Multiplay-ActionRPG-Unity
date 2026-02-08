@@ -148,6 +148,12 @@ C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.A
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Microsoft.AspNetCore.Http.Connections.Client.dll
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Microsoft.AspNetCore.SignalR.Client.dll
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Microsoft.AspNetCore.SignalR.Client.Core.dll
-C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\obj\Debug\net10.0\compressed\lt88qqffwx-{0}-lg8nm9o8o7-lg8nm9o8o7.gz
-C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\wwwroot\chat.html.gz
-C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\wwwroot\chat.html
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Google.Protobuf.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Grpc.AspNetCore.Server.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Grpc.AspNetCore.Server.ClientFactory.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Grpc.Core.Api.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Grpc.Net.Client.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Grpc.Net.ClientFactory.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Grpc.Net.Common.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Grpc.AspNetCore.Server.Reflection.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Grpc.Reflection.dll

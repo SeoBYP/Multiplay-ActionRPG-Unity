@@ -1,0 +1,13 @@
+﻿syntax = "proto3";
+
+package gameserver.common.v1;
+
+// C# 네임스페이스 (선택사항이지만 추천)
+option csharp_namespace = "GameServer.Grpc.Common";
+
+// 공통 응답 래퍼
+message Result {
+  bool success = 1;
+  string message = 2;
+  string error_code = 3;  // 내부 에러 코드 (예: "INVALID_REQUEST")
+}

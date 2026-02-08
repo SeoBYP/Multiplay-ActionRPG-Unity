@@ -7,6 +7,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Grpc.AspNetCore" Version="2.76.0" />
+        <PackageReference Include="Grpc.AspNetCore.Server.Reflection" Version="2.76.0" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1"/>
         <PackageReference Include="DotNetEnv" Version="2.5.0" />
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.2" />
@@ -15,6 +17,7 @@
 
     <ItemGroup>
       <Folder Include="Application\" />
+      <Folder Include="wwwroot\" />
     </ItemGroup>
 
     <ItemGroup>
@@ -23,10 +26,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Content Update="wwwroot\**\*">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
+        <!-- .proto 파일 참조 (솔루션 루트의 Protos 폴더) -->
+        <Protobuf Include="..\Protos\**\*.proto"
+                  GrpcServices="Server"
+                  Link="Protos\%(RecursiveDir)%(Filename)%(Extension)" />
     </ItemGroup>
-    
 </Project>
 

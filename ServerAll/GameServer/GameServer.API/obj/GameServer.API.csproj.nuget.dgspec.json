@@ -61,6 +61,14 @@
               "target": "Package",
               "version": "[2.5.0, )"
             },
+            "Grpc.AspNetCore": {
+              "target": "Package",
+              "version": "[2.76.0, )"
+            },
+            "Grpc.AspNetCore.Server.Reflection": {
+              "target": "Package",
+              "version": "[2.76.0, )"
+            },
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[10.0.1, )"
