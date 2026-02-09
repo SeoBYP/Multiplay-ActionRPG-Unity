@@ -24,9 +24,9 @@ namespace GameServer.Grpc.Common {
     static CommonReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "Cgxjb21tb24ucHJvdG8SFGdhbWVzZXJ2ZXIuY29tbW9uLnYxIj4KBlJlc3Vs",
-            "dBIPCgdzdWNjZXNzGAEgASgIEg8KB21lc3NhZ2UYAiABKAkSEgoKZXJyb3Jf",
-            "Y29kZRgDIAEoCUIZqgIWR2FtZVNlcnZlci5HcnBjLkNvbW1vbmIGcHJvdG8z"));
+            "Cgxjb21tb24ucHJvdG8SEWdhbWVzZXJ2ZXIuY29tbW9uIj4KBlJlc3VsdBIP",
+            "CgdzdWNjZXNzGAEgASgIEg8KB21lc3NhZ2UYAiABKAkSEgoKZXJyb3JfY29k",
+            "ZRgDIAEoBUIZqgIWR2FtZVNlcnZlci5HcnBjLkNvbW1vbmIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
@@ -113,16 +113,16 @@ namespace GameServer.Grpc.Common {
 
     /// <summary>Field number for the "error_code" field.</summary>
     public const int ErrorCodeFieldNumber = 3;
-    private string errorCode_ = "";
+    private int errorCode_;
     /// <summary>
     /// 내부 에러 코드 (예: "INVALID_REQUEST")
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string ErrorCode {
+    public int ErrorCode {
       get { return errorCode_; }
       set {
-        errorCode_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        errorCode_ = value;
       }
     }
 
@@ -153,7 +153,7 @@ namespace GameServer.Grpc.Common {
       int hash = 1;
       if (Success != false) hash ^= Success.GetHashCode();
       if (Message.Length != 0) hash ^= Message.GetHashCode();
-      if (ErrorCode.Length != 0) hash ^= ErrorCode.GetHashCode();
+      if (ErrorCode != 0) hash ^= ErrorCode.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -180,9 +180,9 @@ namespace GameServer.Grpc.Common {
         output.WriteRawTag(18);
         output.WriteString(Message);
       }
-      if (ErrorCode.Length != 0) {
-        output.WriteRawTag(26);
-        output.WriteString(ErrorCode);
+      if (ErrorCode != 0) {
+        output.WriteRawTag(24);
+        output.WriteInt32(ErrorCode);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -202,9 +202,9 @@ namespace GameServer.Grpc.Common {
         output.WriteRawTag(18);
         output.WriteString(Message);
       }
-      if (ErrorCode.Length != 0) {
-        output.WriteRawTag(26);
-        output.WriteString(ErrorCode);
+      if (ErrorCode != 0) {
+        output.WriteRawTag(24);
+        output.WriteInt32(ErrorCode);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -222,8 +222,8 @@ namespace GameServer.Grpc.Common {
       if (Message.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Message);
       }
-      if (ErrorCode.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(ErrorCode);
+      if (ErrorCode != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(ErrorCode);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -243,7 +243,7 @@ namespace GameServer.Grpc.Common {
       if (other.Message.Length != 0) {
         Message = other.Message;
       }
-      if (other.ErrorCode.Length != 0) {
+      if (other.ErrorCode != 0) {
         ErrorCode = other.ErrorCode;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
@@ -273,8 +273,8 @@ namespace GameServer.Grpc.Common {
             Message = input.ReadString();
             break;
           }
-          case 26: {
-            ErrorCode = input.ReadString();
+          case 24: {
+            ErrorCode = input.ReadInt32();
             break;
           }
         }
@@ -304,8 +304,8 @@ namespace GameServer.Grpc.Common {
             Message = input.ReadString();
             break;
           }
-          case 26: {
-            ErrorCode = input.ReadString();
+          case 24: {
+            ErrorCode = input.ReadInt32();
             break;
           }
         }

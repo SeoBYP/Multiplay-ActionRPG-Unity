@@ -8,9 +8,6 @@
 using grpc = global::Grpc.Core;
 
 namespace GameServer.Grpc.Auth {
-  /// <summary>
-  /// 인증 서비스 정의
-  /// </summary>
   public static partial class AuthService
   {
     static readonly string __ServiceName = "gameserver.auth.v1.AuthService";
@@ -95,36 +92,18 @@ namespace GameServer.Grpc.Auth {
     [grpc::BindServiceMethod(typeof(AuthService), "BindService")]
     public abstract partial class AuthServiceBase
     {
-      /// <summary>
-      /// 회원가입
-      /// </summary>
-      /// <param name="request">The request received from the client.</param>
-      /// <param name="context">The context of the server-side call handler being invoked.</param>
-      /// <returns>The response to send back to the client (wrapped by a task).</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::GameServer.Grpc.Auth.RegisterResponse> Register(global::GameServer.Grpc.Auth.RegisterRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
 
-      /// <summary>
-      /// 로그인
-      /// </summary>
-      /// <param name="request">The request received from the client.</param>
-      /// <param name="context">The context of the server-side call handler being invoked.</param>
-      /// <returns>The response to send back to the client (wrapped by a task).</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::GameServer.Grpc.Auth.LoginResponse> Login(global::GameServer.Grpc.Auth.LoginRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
 
-      /// <summary>
-      /// 로그아웃
-      /// </summary>
-      /// <param name="request">The request received from the client.</param>
-      /// <param name="context">The context of the server-side call handler being invoked.</param>
-      /// <returns>The response to send back to the client (wrapped by a task).</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::GameServer.Grpc.Auth.LogoutResponse> Logout(global::GameServer.Grpc.Auth.LogoutRequest request, grpc::ServerCallContext context)
       {

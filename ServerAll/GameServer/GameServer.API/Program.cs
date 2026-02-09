@@ -202,6 +202,10 @@ static void ConfigurePipeline(WebApplication app)
 
     // endpoints
     app.MapControllers();
+    
+    // gRPC services
     app.MapGrpcService<AuthGrpcService>();
+    app.MapGrpcService<DungeonLobbyGrpcService>();
+    
     app.MapHub<ChatHub>("/chathub");
 }

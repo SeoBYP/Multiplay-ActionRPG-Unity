@@ -24,35 +24,35 @@ namespace GameServer.Grpc.Auth {
     static AuthReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "CgphdXRoLnByb3RvEhJnYW1lc2VydmVyLmF1dGgudjEiRQoPUmVnaXN0ZXJS",
-            "ZXF1ZXN0EhEKCXVzZXJfbmFtZRgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRIN",
-            "CgVlbWFpbBgDIAEoCSJgChBSZWdpc3RlclJlc3BvbnNlEg8KB3N1Y2Nlc3MY",
-            "ASABKAgSDwoHbWVzc2FnZRgCIAEoCRIqCgR1c2VyGAMgASgLMhwuZ2FtZXNl",
-            "cnZlci5hdXRoLnYxLlVzZXJJbmZvIjMKDExvZ2luUmVxdWVzdBIRCgl1c2Vy",
-            "X25hbWUYASABKAkSEAoIcGFzc3dvcmQYAiABKAkimwEKDUxvZ2luUmVzcG9u",
-            "c2USDwoHc3VjY2VzcxgBIAEoCBIPCgdtZXNzYWdlGAIgASgJEhQKDGFjY2Vz",
-            "c190b2tlbhgDIAEoCRISCgpzZXNzaW9uX2lkGAQgASgJEhIKCmV4cGlyZXNf",
-            "YXQYBSABKAMSKgoEdXNlchgGIAEoCzIcLmdhbWVzZXJ2ZXIuYXV0aC52MS5V",
-            "c2VySW5mbyIPCg1Mb2dvdXRSZXF1ZXN0IjIKDkxvZ291dFJlc3BvbnNlEg8K",
-            "B3N1Y2Nlc3MYASABKAgSDwoHbWVzc2FnZRgCIAEoCSJRCghVc2VySW5mbxIP",
-            "Cgd1c2VyX2lkGAEgASgDEhEKCXVzZXJfbmFtZRgCIAEoCRINCgVlbWFpbBgD",
-            "IAEoCRISCgpjcmVhdGVkX2F0GAQgASgDMoMCCgtBdXRoU2VydmljZRJVCghS",
-            "ZWdpc3RlchIjLmdhbWVzZXJ2ZXIuYXV0aC52MS5SZWdpc3RlclJlcXVlc3Qa",
-            "JC5nYW1lc2VydmVyLmF1dGgudjEuUmVnaXN0ZXJSZXNwb25zZRJMCgVMb2dp",
-            "bhIgLmdhbWVzZXJ2ZXIuYXV0aC52MS5Mb2dpblJlcXVlc3QaIS5nYW1lc2Vy",
-            "dmVyLmF1dGgudjEuTG9naW5SZXNwb25zZRJPCgZMb2dvdXQSIS5nYW1lc2Vy",
-            "dmVyLmF1dGgudjEuTG9nb3V0UmVxdWVzdBoiLmdhbWVzZXJ2ZXIuYXV0aC52",
-            "MS5Mb2dvdXRSZXNwb25zZUIXqgIUR2FtZVNlcnZlci5HcnBjLkF1dGhiBnBy",
-            "b3RvMw=="));
+            "CgphdXRoLnByb3RvEhJnYW1lc2VydmVyLmF1dGgudjEaDGNvbW1vbi5wcm90",
+            "byJFCg9SZWdpc3RlclJlcXVlc3QSEQoJdXNlcl9uYW1lGAEgASgJEhAKCHBh",
+            "c3N3b3JkGAIgASgJEg0KBWVtYWlsGAMgASgJImkKEFJlZ2lzdGVyUmVzcG9u",
+            "c2USKQoGcmVzdWx0GAEgASgLMhkuZ2FtZXNlcnZlci5jb21tb24uUmVzdWx0",
+            "EioKBHVzZXIYAiABKAsyHC5nYW1lc2VydmVyLmF1dGgudjEuVXNlckluZm8i",
+            "MwoMTG9naW5SZXF1ZXN0EhEKCXVzZXJfbmFtZRgBIAEoCRIQCghwYXNzd29y",
+            "ZBgCIAEoCSKkAQoNTG9naW5SZXNwb25zZRIpCgZyZXN1bHQYASABKAsyGS5n",
+            "YW1lc2VydmVyLmNvbW1vbi5SZXN1bHQSFAoMYWNjZXNzX3Rva2VuGAIgASgJ",
+            "EhIKCnNlc3Npb25faWQYAyABKAkSEgoKZXhwaXJlc19hdBgEIAEoAxIqCgR1",
+            "c2VyGAUgASgLMhwuZ2FtZXNlcnZlci5hdXRoLnYxLlVzZXJJbmZvIg8KDUxv",
+            "Z291dFJlcXVlc3QiOwoOTG9nb3V0UmVzcG9uc2USKQoGcmVzdWx0GAEgASgL",
+            "MhkuZ2FtZXNlcnZlci5jb21tb24uUmVzdWx0IlEKCFVzZXJJbmZvEg8KB3Vz",
+            "ZXJfaWQYASABKAMSEQoJdXNlcl9uYW1lGAIgASgJEg0KBWVtYWlsGAMgASgJ",
+            "EhIKCmNyZWF0ZWRfYXQYBCABKAMygwIKC0F1dGhTZXJ2aWNlElUKCFJlZ2lz",
+            "dGVyEiMuZ2FtZXNlcnZlci5hdXRoLnYxLlJlZ2lzdGVyUmVxdWVzdBokLmdh",
+            "bWVzZXJ2ZXIuYXV0aC52MS5SZWdpc3RlclJlc3BvbnNlEkwKBUxvZ2luEiAu",
+            "Z2FtZXNlcnZlci5hdXRoLnYxLkxvZ2luUmVxdWVzdBohLmdhbWVzZXJ2ZXIu",
+            "YXV0aC52MS5Mb2dpblJlc3BvbnNlEk8KBkxvZ291dBIhLmdhbWVzZXJ2ZXIu",
+            "YXV0aC52MS5Mb2dvdXRSZXF1ZXN0GiIuZ2FtZXNlcnZlci5hdXRoLnYxLkxv",
+            "Z291dFJlc3BvbnNlQheqAhRHYW1lU2VydmVyLkdycGMuQXV0aGIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { },
+          new pbr::FileDescriptor[] { global::GameServer.Grpc.Common.CommonReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.RegisterRequest), global::GameServer.Grpc.Auth.RegisterRequest.Parser, new[]{ "UserName", "Password", "Email" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.RegisterResponse), global::GameServer.Grpc.Auth.RegisterResponse.Parser, new[]{ "Success", "Message", "User" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.RegisterResponse), global::GameServer.Grpc.Auth.RegisterResponse.Parser, new[]{ "Result", "User" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.LoginRequest), global::GameServer.Grpc.Auth.LoginRequest.Parser, new[]{ "UserName", "Password" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.LoginResponse), global::GameServer.Grpc.Auth.LoginResponse.Parser, new[]{ "Success", "Message", "AccessToken", "SessionId", "ExpiresAt", "User" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.LoginResponse), global::GameServer.Grpc.Auth.LoginResponse.Parser, new[]{ "Result", "AccessToken", "SessionId", "ExpiresAt", "User" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.LogoutRequest), global::GameServer.Grpc.Auth.LogoutRequest.Parser, null, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.LogoutResponse), global::GameServer.Grpc.Auth.LogoutResponse.Parser, new[]{ "Success", "Message" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.LogoutResponse), global::GameServer.Grpc.Auth.LogoutResponse.Parser, new[]{ "Result" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.UserInfo), global::GameServer.Grpc.Auth.UserInfo.Parser, new[]{ "UserId", "UserName", "Email", "CreatedAt" }, null, null, null, null)
           }));
     }
@@ -60,9 +60,6 @@ namespace GameServer.Grpc.Auth {
 
   }
   #region Messages
-  /// <summary>
-  /// 회원가입 요청
-  /// </summary>
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class RegisterRequest : pb::IMessage<RegisterRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
@@ -370,8 +367,7 @@ namespace GameServer.Grpc.Auth {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public RegisterResponse(RegisterResponse other) : this() {
-      success_ = other.success_;
-      message_ = other.message_;
+      result_ = other.result_ != null ? other.result_.Clone() : null;
       user_ = other.user_ != null ? other.user_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
@@ -382,35 +378,26 @@ namespace GameServer.Grpc.Auth {
       return new RegisterResponse(this);
     }
 
-    /// <summary>Field number for the "success" field.</summary>
-    public const int SuccessFieldNumber = 1;
-    private bool success_;
+    /// <summary>Field number for the "result" field.</summary>
+    public const int ResultFieldNumber = 1;
+    private global::GameServer.Grpc.Common.Result result_;
+    /// <summary>
+    /// ✅ 전체 패키지명
+    /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Success {
-      get { return success_; }
+    public global::GameServer.Grpc.Common.Result Result {
+      get { return result_; }
       set {
-        success_ = value;
-      }
-    }
-
-    /// <summary>Field number for the "message" field.</summary>
-    public const int MessageFieldNumber = 2;
-    private string message_ = "";
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Message {
-      get { return message_; }
-      set {
-        message_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        result_ = value;
       }
     }
 
     /// <summary>Field number for the "user" field.</summary>
-    public const int UserFieldNumber = 3;
+    public const int UserFieldNumber = 2;
     private global::GameServer.Grpc.Auth.UserInfo user_;
     /// <summary>
-    /// 성공 시 유저 정보
+    /// field 번호 수정 (1, 2, 3 순서대로)
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -436,8 +423,7 @@ namespace GameServer.Grpc.Auth {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (Success != other.Success) return false;
-      if (Message != other.Message) return false;
+      if (!object.Equals(Result, other.Result)) return false;
       if (!object.Equals(User, other.User)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -446,8 +432,7 @@ namespace GameServer.Grpc.Auth {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (Success != false) hash ^= Success.GetHashCode();
-      if (Message.Length != 0) hash ^= Message.GetHashCode();
+      if (result_ != null) hash ^= Result.GetHashCode();
       if (user_ != null) hash ^= User.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -467,16 +452,12 @@ namespace GameServer.Grpc.Auth {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (Success != false) {
-        output.WriteRawTag(8);
-        output.WriteBool(Success);
-      }
-      if (Message.Length != 0) {
-        output.WriteRawTag(18);
-        output.WriteString(Message);
+      if (result_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Result);
       }
       if (user_ != null) {
-        output.WriteRawTag(26);
+        output.WriteRawTag(18);
         output.WriteMessage(User);
       }
       if (_unknownFields != null) {
@@ -489,16 +470,12 @@ namespace GameServer.Grpc.Auth {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Success != false) {
-        output.WriteRawTag(8);
-        output.WriteBool(Success);
-      }
-      if (Message.Length != 0) {
-        output.WriteRawTag(18);
-        output.WriteString(Message);
+      if (result_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Result);
       }
       if (user_ != null) {
-        output.WriteRawTag(26);
+        output.WriteRawTag(18);
         output.WriteMessage(User);
       }
       if (_unknownFields != null) {
@@ -511,11 +488,8 @@ namespace GameServer.Grpc.Auth {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (Success != false) {
-        size += 1 + 1;
-      }
-      if (Message.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Message);
+      if (result_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Result);
       }
       if (user_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(User);
@@ -532,11 +506,11 @@ namespace GameServer.Grpc.Auth {
       if (other == null) {
         return;
       }
-      if (other.Success != false) {
-        Success = other.Success;
-      }
-      if (other.Message.Length != 0) {
-        Message = other.Message;
+      if (other.result_ != null) {
+        if (result_ == null) {
+          Result = new global::GameServer.Grpc.Common.Result();
+        }
+        Result.MergeFrom(other.Result);
       }
       if (other.user_ != null) {
         if (user_ == null) {
@@ -563,15 +537,14 @@ namespace GameServer.Grpc.Auth {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
-          case 8: {
-            Success = input.ReadBool();
+          case 10: {
+            if (result_ == null) {
+              Result = new global::GameServer.Grpc.Common.Result();
+            }
+            input.ReadMessage(Result);
             break;
           }
           case 18: {
-            Message = input.ReadString();
-            break;
-          }
-          case 26: {
             if (user_ == null) {
               User = new global::GameServer.Grpc.Auth.UserInfo();
             }
@@ -597,15 +570,14 @@ namespace GameServer.Grpc.Auth {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 8: {
-            Success = input.ReadBool();
+          case 10: {
+            if (result_ == null) {
+              Result = new global::GameServer.Grpc.Common.Result();
+            }
+            input.ReadMessage(Result);
             break;
           }
           case 18: {
-            Message = input.ReadString();
-            break;
-          }
-          case 26: {
             if (user_ == null) {
               User = new global::GameServer.Grpc.Auth.UserInfo();
             }
@@ -619,9 +591,6 @@ namespace GameServer.Grpc.Auth {
 
   }
 
-  /// <summary>
-  /// 로그인 요청
-  /// </summary>
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class LoginRequest : pb::IMessage<LoginRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
@@ -892,8 +861,7 @@ namespace GameServer.Grpc.Auth {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public LoginResponse(LoginResponse other) : this() {
-      success_ = other.success_;
-      message_ = other.message_;
+      result_ = other.result_ != null ? other.result_.Clone() : null;
       accessToken_ = other.accessToken_;
       sessionId_ = other.sessionId_;
       expiresAt_ = other.expiresAt_;
@@ -907,36 +875,24 @@ namespace GameServer.Grpc.Auth {
       return new LoginResponse(this);
     }
 
-    /// <summary>Field number for the "success" field.</summary>
-    public const int SuccessFieldNumber = 1;
-    private bool success_;
+    /// <summary>Field number for the "result" field.</summary>
+    public const int ResultFieldNumber = 1;
+    private global::GameServer.Grpc.Common.Result result_;
+    /// <summary>
+    /// ✅ 전체 패키지명
+    /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Success {
-      get { return success_; }
+    public global::GameServer.Grpc.Common.Result Result {
+      get { return result_; }
       set {
-        success_ = value;
-      }
-    }
-
-    /// <summary>Field number for the "message" field.</summary>
-    public const int MessageFieldNumber = 2;
-    private string message_ = "";
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Message {
-      get { return message_; }
-      set {
-        message_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        result_ = value;
       }
     }
 
     /// <summary>Field number for the "access_token" field.</summary>
-    public const int AccessTokenFieldNumber = 3;
+    public const int AccessTokenFieldNumber = 2;
     private string accessToken_ = "";
-    /// <summary>
-    /// 성공 시 토큰 및 유저 정보
-    /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public string AccessToken {
@@ -947,7 +903,7 @@ namespace GameServer.Grpc.Auth {
     }
 
     /// <summary>Field number for the "session_id" field.</summary>
-    public const int SessionIdFieldNumber = 4;
+    public const int SessionIdFieldNumber = 3;
     private string sessionId_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -959,11 +915,8 @@ namespace GameServer.Grpc.Auth {
     }
 
     /// <summary>Field number for the "expires_at" field.</summary>
-    public const int ExpiresAtFieldNumber = 5;
+    public const int ExpiresAtFieldNumber = 4;
     private long expiresAt_;
-    /// <summary>
-    /// Unix timestamp
-    /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long ExpiresAt {
@@ -974,7 +927,7 @@ namespace GameServer.Grpc.Auth {
     }
 
     /// <summary>Field number for the "user" field.</summary>
-    public const int UserFieldNumber = 6;
+    public const int UserFieldNumber = 5;
     private global::GameServer.Grpc.Auth.UserInfo user_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -1000,8 +953,7 @@ namespace GameServer.Grpc.Auth {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (Success != other.Success) return false;
-      if (Message != other.Message) return false;
+      if (!object.Equals(Result, other.Result)) return false;
       if (AccessToken != other.AccessToken) return false;
       if (SessionId != other.SessionId) return false;
       if (ExpiresAt != other.ExpiresAt) return false;
@@ -1013,8 +965,7 @@ namespace GameServer.Grpc.Auth {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (Success != false) hash ^= Success.GetHashCode();
-      if (Message.Length != 0) hash ^= Message.GetHashCode();
+      if (result_ != null) hash ^= Result.GetHashCode();
       if (AccessToken.Length != 0) hash ^= AccessToken.GetHashCode();
       if (SessionId.Length != 0) hash ^= SessionId.GetHashCode();
       if (ExpiresAt != 0L) hash ^= ExpiresAt.GetHashCode();
@@ -1037,28 +988,24 @@ namespace GameServer.Grpc.Auth {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (Success != false) {
-        output.WriteRawTag(8);
-        output.WriteBool(Success);
-      }
-      if (Message.Length != 0) {
-        output.WriteRawTag(18);
-        output.WriteString(Message);
+      if (result_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Result);
       }
       if (AccessToken.Length != 0) {
-        output.WriteRawTag(26);
+        output.WriteRawTag(18);
         output.WriteString(AccessToken);
       }
       if (SessionId.Length != 0) {
-        output.WriteRawTag(34);
+        output.WriteRawTag(26);
         output.WriteString(SessionId);
       }
       if (ExpiresAt != 0L) {
-        output.WriteRawTag(40);
+        output.WriteRawTag(32);
         output.WriteInt64(ExpiresAt);
       }
       if (user_ != null) {
-        output.WriteRawTag(50);
+        output.WriteRawTag(42);
         output.WriteMessage(User);
       }
       if (_unknownFields != null) {
@@ -1071,28 +1018,24 @@ namespace GameServer.Grpc.Auth {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Success != false) {
-        output.WriteRawTag(8);
-        output.WriteBool(Success);
-      }
-      if (Message.Length != 0) {
-        output.WriteRawTag(18);
-        output.WriteString(Message);
+      if (result_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Result);
       }
       if (AccessToken.Length != 0) {
-        output.WriteRawTag(26);
+        output.WriteRawTag(18);
         output.WriteString(AccessToken);
       }
       if (SessionId.Length != 0) {
-        output.WriteRawTag(34);
+        output.WriteRawTag(26);
         output.WriteString(SessionId);
       }
       if (ExpiresAt != 0L) {
-        output.WriteRawTag(40);
+        output.WriteRawTag(32);
         output.WriteInt64(ExpiresAt);
       }
       if (user_ != null) {
-        output.WriteRawTag(50);
+        output.WriteRawTag(42);
         output.WriteMessage(User);
       }
       if (_unknownFields != null) {
@@ -1105,11 +1048,8 @@ namespace GameServer.Grpc.Auth {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (Success != false) {
-        size += 1 + 1;
-      }
-      if (Message.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Message);
+      if (result_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Result);
       }
       if (AccessToken.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(AccessToken);
@@ -1135,11 +1075,11 @@ namespace GameServer.Grpc.Auth {
       if (other == null) {
         return;
       }
-      if (other.Success != false) {
-        Success = other.Success;
-      }
-      if (other.Message.Length != 0) {
-        Message = other.Message;
+      if (other.result_ != null) {
+        if (result_ == null) {
+          Result = new global::GameServer.Grpc.Common.Result();
+        }
+        Result.MergeFrom(other.Result);
       }
       if (other.AccessToken.Length != 0) {
         AccessToken = other.AccessToken;
@@ -1175,27 +1115,26 @@ namespace GameServer.Grpc.Auth {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
-          case 8: {
-            Success = input.ReadBool();
+          case 10: {
+            if (result_ == null) {
+              Result = new global::GameServer.Grpc.Common.Result();
+            }
+            input.ReadMessage(Result);
             break;
           }
           case 18: {
-            Message = input.ReadString();
-            break;
-          }
-          case 26: {
             AccessToken = input.ReadString();
             break;
           }
-          case 34: {
+          case 26: {
             SessionId = input.ReadString();
             break;
           }
-          case 40: {
+          case 32: {
             ExpiresAt = input.ReadInt64();
             break;
           }
-          case 50: {
+          case 42: {
             if (user_ == null) {
               User = new global::GameServer.Grpc.Auth.UserInfo();
             }
@@ -1221,27 +1160,26 @@ namespace GameServer.Grpc.Auth {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 8: {
-            Success = input.ReadBool();
+          case 10: {
+            if (result_ == null) {
+              Result = new global::GameServer.Grpc.Common.Result();
+            }
+            input.ReadMessage(Result);
             break;
           }
           case 18: {
-            Message = input.ReadString();
-            break;
-          }
-          case 26: {
             AccessToken = input.ReadString();
             break;
           }
-          case 34: {
+          case 26: {
             SessionId = input.ReadString();
             break;
           }
-          case 40: {
+          case 32: {
             ExpiresAt = input.ReadInt64();
             break;
           }
-          case 50: {
+          case 42: {
             if (user_ == null) {
               User = new global::GameServer.Grpc.Auth.UserInfo();
             }
@@ -1255,9 +1193,6 @@ namespace GameServer.Grpc.Auth {
 
   }
 
-  /// <summary>
-  /// 로그아웃 요청
-  /// </summary>
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class LogoutRequest : pb::IMessage<LogoutRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
@@ -1454,8 +1389,7 @@ namespace GameServer.Grpc.Auth {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public LogoutResponse(LogoutResponse other) : this() {
-      success_ = other.success_;
-      message_ = other.message_;
+      result_ = other.result_ != null ? other.result_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1465,27 +1399,18 @@ namespace GameServer.Grpc.Auth {
       return new LogoutResponse(this);
     }
 
-    /// <summary>Field number for the "success" field.</summary>
-    public const int SuccessFieldNumber = 1;
-    private bool success_;
+    /// <summary>Field number for the "result" field.</summary>
+    public const int ResultFieldNumber = 1;
+    private global::GameServer.Grpc.Common.Result result_;
+    /// <summary>
+    /// ✅ 전체 패키지명
+    /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Success {
-      get { return success_; }
+    public global::GameServer.Grpc.Common.Result Result {
+      get { return result_; }
       set {
-        success_ = value;
-      }
-    }
-
-    /// <summary>Field number for the "message" field.</summary>
-    public const int MessageFieldNumber = 2;
-    private string message_ = "";
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Message {
-      get { return message_; }
-      set {
-        message_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        result_ = value;
       }
     }
 
@@ -1504,8 +1429,7 @@ namespace GameServer.Grpc.Auth {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (Success != other.Success) return false;
-      if (Message != other.Message) return false;
+      if (!object.Equals(Result, other.Result)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1513,8 +1437,7 @@ namespace GameServer.Grpc.Auth {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (Success != false) hash ^= Success.GetHashCode();
-      if (Message.Length != 0) hash ^= Message.GetHashCode();
+      if (result_ != null) hash ^= Result.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1533,13 +1456,9 @@ namespace GameServer.Grpc.Auth {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (Success != false) {
-        output.WriteRawTag(8);
-        output.WriteBool(Success);
-      }
-      if (Message.Length != 0) {
-        output.WriteRawTag(18);
-        output.WriteString(Message);
+      if (result_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Result);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -1551,13 +1470,9 @@ namespace GameServer.Grpc.Auth {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Success != false) {
-        output.WriteRawTag(8);
-        output.WriteBool(Success);
-      }
-      if (Message.Length != 0) {
-        output.WriteRawTag(18);
-        output.WriteString(Message);
+      if (result_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Result);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -1569,11 +1484,8 @@ namespace GameServer.Grpc.Auth {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (Success != false) {
-        size += 1 + 1;
-      }
-      if (Message.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Message);
+      if (result_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Result);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1587,11 +1499,11 @@ namespace GameServer.Grpc.Auth {
       if (other == null) {
         return;
       }
-      if (other.Success != false) {
-        Success = other.Success;
-      }
-      if (other.Message.Length != 0) {
-        Message = other.Message;
+      if (other.result_ != null) {
+        if (result_ == null) {
+          Result = new global::GameServer.Grpc.Common.Result();
+        }
+        Result.MergeFrom(other.Result);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1612,12 +1524,11 @@ namespace GameServer.Grpc.Auth {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
-          case 8: {
-            Success = input.ReadBool();
-            break;
-          }
-          case 18: {
-            Message = input.ReadString();
+          case 10: {
+            if (result_ == null) {
+              Result = new global::GameServer.Grpc.Common.Result();
+            }
+            input.ReadMessage(Result);
             break;
           }
         }
@@ -1639,12 +1550,11 @@ namespace GameServer.Grpc.Auth {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 8: {
-            Success = input.ReadBool();
-            break;
-          }
-          case 18: {
-            Message = input.ReadString();
+          case 10: {
+            if (result_ == null) {
+              Result = new global::GameServer.Grpc.Common.Result();
+            }
+            input.ReadMessage(Result);
             break;
           }
         }
@@ -1654,9 +1564,6 @@ namespace GameServer.Grpc.Auth {
 
   }
 
-  /// <summary>
-  /// 공통 유저 정보
-  /// </summary>
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class UserInfo : pb::IMessage<UserInfo>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
@@ -1744,9 +1651,6 @@ namespace GameServer.Grpc.Auth {
     /// <summary>Field number for the "created_at" field.</summary>
     public const int CreatedAtFieldNumber = 4;
     private long createdAt_;
-    /// <summary>
-    /// Unix timestamp
-    /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long CreatedAt {

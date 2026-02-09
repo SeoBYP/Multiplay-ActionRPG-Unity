@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using GameServer.API.Extensions;
 using GameServer.Application.Common;
 using GameServer.Application.Services.Auth.Interfaces;
 using GameServer.Grpc.Auth;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.JsonWebTokens;
 using AuthService = GameServer.Grpc.Auth.AuthService;
 using RegisterResponse = GameServer.Grpc.Auth.RegisterResponse;
+using Result = GameServer.Grpc.Common.Result;
 
 namespace GameServer.API.Services;
 
@@ -20,8 +22,7 @@ public class AuthGrpcService(IAuthService authService) : AuthService.AuthService
 
         return new RegisterResponse
         {
-            Success = result.IsSuccess,
-            Message = result.Message,
+            Result = result.ToGrpcResult(),
             User = result.IsSuccess
                 ? new UserInfo
                 {
@@ -41,8 +42,7 @@ public class AuthGrpcService(IAuthService authService) : AuthService.AuthService
 
         return new LoginResponse
         {
-            Success = result.IsSuccess,
-            Message = result.Message,
+            Result = result.ToGrpcResult(),
             AccessToken = result.IsSuccess ? result.Value!.AccessToken : null,
             SessionId = result.Value?.Session.SessionId,
             User = result.IsSuccess
@@ -62,13 +62,12 @@ public class AuthGrpcService(IAuthService authService) : AuthService.AuthService
         var httpContext = context.GetHttpContext();
         var sessionId = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sid);
         if (sessionId is null) 
-            return new LogoutResponse { Success = false, Message = ErrorMessages.Unauthorized };
+            return new LogoutResponse { Result = ResultExtensions.CreateUnauthorizedGrpcResult() };
         
         var result = await authService.LogoutAsync(sessionId);
         return new LogoutResponse
         {
-            Success = result.IsSuccess,
-            Message = result.Message
+            Result = result.ToGrpcResult(),
         };
     }
 }

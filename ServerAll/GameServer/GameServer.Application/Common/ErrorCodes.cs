@@ -2,6 +2,10 @@
 
 public enum ErrorCodes : ushort
 {
+    Success = 200,
+    
+    Unauthorized = 400,
+    
     UserAlreadyExists = 1000,
     InvalidCredentials = 1001,
     InvalidToken = 1002,

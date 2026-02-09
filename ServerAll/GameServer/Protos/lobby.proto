@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+import "common.proto";
+import "auth.proto";
+
+package gameserver.lobby.v1;
+
+option csharp_namespace = "GameServer.Grpc.DungeonLobby";
+
+service DungeonLobbyService{
+  // 방 생성
+  rpc CreateRoom(CreateRoomRequest) returns (CreateRoomResponse);
+  // 특정 방 정보 가져오기
+  rpc GetRoom(GetRoomRequest) returns (GetRoomResponse);
+  // 방 목록 가져오기
+  rpc GetRooms(GetRoomsRequest) returns (GetRoomsResponse);
+  // 방 갱신
+  rpc UpdateRoom(UpdateRoomRequest) returns (UpdateRoomResponse);
+  // 방 참가
+  rpc JoinRoom(JoinRoomRequest) returns (JoinRoomResponse);
+  // 방 떠남
+  rpc LeaveRoom(LeaveRoomRequest) returns (LeaveRoomResponse);
+  // 방 시작
+  rpc StartRoom(StartRoomRequest) returns (StartRoomResponse);
+}
+
+message CreateRoomRequest{
+  string room_name = 1;
+  int32 max_players = 2;
+}
+
+message CreateRoomResponse{
+  gameserver.common.Result result = 1;
+  RoomInfo room_info = 2;
+  int64 created_at = 3; // Unix timestamp
+}
+
+message JoinRoomRequest
+{
+  int64 room_id = 1;
+}
+
+message JoinRoomResponse{
+  gameserver.common.Result result = 1;
+  RoomInfo room_info = 2;
+}
+
+message LeaveRoomRequest{
+  int64 room_id = 1;
+}
+
+message LeaveRoomResponse{
+  gameserver.common.Result result = 1;
+}
+
+message GetRoomRequest{
+  int64 room_id = 1;
+}
+
+message GetRoomResponse{
+  gameserver.common.Result result = 1;
+  RoomInfo room_info = 2;
+}
+
+message GetRoomsRequest{
+  int32 room_count = 1; // 가져올 방 목록 갯수
+}
+
+message GetRoomsResponse{
+  gameserver.common.Result result = 1;
+  repeated RoomInfo room_infos = 2;
+}
+
+message StartRoomRequest{
+  int64 room_id = 1;
+}
+
+message StartRoomResponse{
+  gameserver.common.Result result = 1;
+  RoomInfo room_info = 2;
+}
+
+message UpdateRoomRequest{
+  int64 room_id = 1;
+  string room_name = 2;
+  int32 max_players = 3;
+}
+
+message UpdateRoomResponse{
+  gameserver.common.Result result = 1;
+  RoomInfo room_info = 2;
+}
+
+message RoomInfo{
+  int64 room_id = 1;
+  string room_name = 2;
+  int64 host_user_id = 3;
+  repeated int64 current_players = 4; // TODO : 추후 UserInfo 들로 수정
+  int32 max_players = 5;
+  string status = 6;
+}
+
+
