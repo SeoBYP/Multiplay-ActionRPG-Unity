@@ -1,7 +1,7 @@
 ﻿// GameServer.Tests/Fakes/FakeDungeonRoomRepository.cs
 using System.Collections.Concurrent;
 using GameServer.Domain.Entities;
-using GameServer.Domain.Interfaces.DungeonRoom;
+using GameServer.Infrastructure.Interfaces.DungeonRoom;
 
 namespace GameServer.Tests.Fakes;
 

@@ -1,6 +1,6 @@
 ﻿using GameServer.Domain.Entities;
 
-namespace GameServer.Domain.Interfaces.User;
+namespace GameServer.Infrastructure.Interfaces.User;
 
 public interface IUserSessionRepository
 {

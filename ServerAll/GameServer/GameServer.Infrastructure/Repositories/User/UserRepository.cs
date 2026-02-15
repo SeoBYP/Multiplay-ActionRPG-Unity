@@ -1,5 +1,5 @@
 ﻿using GameServer.Domain.Entities;
-using GameServer.Domain.Interfaces.User;
+using GameServer.Infrastructure.Interfaces.User;
 
 namespace GameServer.Infrastructure.Repositories.User;
 

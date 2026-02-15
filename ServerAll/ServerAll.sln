@@ -36,6 +36,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Protos", "Protos", "{160F86
 		GameServer\Protos\auth.proto = GameServer\Protos\auth.proto
 		GameServer\Protos\common.proto = GameServer\Protos\common.proto
 		GameServer\Protos\lobby.proto = GameServer\Protos\lobby.proto
+		GameServer\Protos\chat.proto = GameServer\Protos\chat.proto
 	EndProjectSection
 EndProject
 Global

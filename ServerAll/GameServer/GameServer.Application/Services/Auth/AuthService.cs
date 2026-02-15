@@ -2,8 +2,8 @@
 using GameServer.Application.Services.Auth.Interfaces;
 using GameServer.Domain.Entities;
 using GameServer.Domain.Entities.User;
-using GameServer.Domain.Interfaces.User;
 using GameServer.Infrastructure.Interfaces;
+using GameServer.Infrastructure.Interfaces.User;
 using GameServer.Infrastructure.Security;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;

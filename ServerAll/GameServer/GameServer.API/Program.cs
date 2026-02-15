@@ -1,6 +1,5 @@
 using System.Text;
 using DotNetEnv;
-using GameServer.API.Hubs;
 using GameServer.API.Interceptors;
 using GameServer.API.Middleware;
 using GameServer.API.Services;
@@ -8,9 +7,9 @@ using GameServer.Application.Services.Auth;
 using GameServer.Application.Services.Auth.Interfaces;
 using GameServer.Application.Services.DungeonLobby;
 using GameServer.Application.Services.DungeonLobby.Interfaces;
-using GameServer.Domain.Interfaces.DungeonRoom;
-using GameServer.Domain.Interfaces.User;
 using GameServer.Infrastructure.Interfaces;
+using GameServer.Infrastructure.Interfaces.DungeonRoom;
+using GameServer.Infrastructure.Interfaces.User;
 using GameServer.Infrastructure.Repositories.DungeonRoom;
 using GameServer.Infrastructure.Repositories.User;
 using GameServer.Infrastructure.Security;
@@ -169,7 +168,7 @@ static void ConfigureServices(WebApplicationBuilder builder)
 
     // DI registrations
     services.AddSingleton<IUserRepository, InMemoryUserRepository>();
-    services.AddSingleton<IUserSessionRepository, RedisUserSessionRepository>();
+    services.AddSingleton<IUserSessionRepository, UserSessionRepository>();
 
     services.AddScoped<IPasswordHasher, PasswordHasher>();
     services.AddScoped<IAuthService, AuthService>();
@@ -206,6 +205,4 @@ static void ConfigurePipeline(WebApplication app)
     // gRPC services
     app.MapGrpcService<AuthGrpcService>();
     app.MapGrpcService<DungeonLobbyGrpcService>();
-    
-    app.MapHub<ChatHub>("/chathub");
 }

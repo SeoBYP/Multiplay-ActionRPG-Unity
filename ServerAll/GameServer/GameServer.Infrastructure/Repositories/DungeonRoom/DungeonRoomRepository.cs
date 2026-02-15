@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 using GameServer.Domain.Entities;
-using GameServer.Domain.Interfaces.DungeonRoom;
+using GameServer.Infrastructure.Interfaces.DungeonRoom;
 using StackExchange.Redis;
 
 namespace GameServer.Infrastructure.Repositories.DungeonRoom;

@@ -1,6 +1,6 @@
 ﻿// 테스트용 Fake 구현
 using GameServer.Domain.Entities;
-using GameServer.Domain.Interfaces.User;
+using GameServer.Infrastructure.Interfaces.User;
 
 public class FakeUserSessionRepository : IUserSessionRepository
 {

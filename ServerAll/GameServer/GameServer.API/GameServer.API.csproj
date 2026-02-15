@@ -26,7 +26,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- .proto 파일 참조 (솔루션 루트의 Protos 폴더) -->
         <Protobuf Include="..\Protos\**\*.proto"
                   GrpcServices="Server"
                   Link="Protos\%(RecursiveDir)%(Filename)%(Extension)" />

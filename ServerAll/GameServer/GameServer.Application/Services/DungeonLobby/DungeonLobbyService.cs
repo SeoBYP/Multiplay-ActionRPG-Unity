@@ -1,8 +1,8 @@
 ﻿using GameServer.Application.Common;
 using GameServer.Application.Services.DungeonLobby.Interfaces;
 using GameServer.Domain.Entities;
-using GameServer.Domain.Interfaces.DungeonRoom;
-using GameServer.Domain.Interfaces.User;
+using GameServer.Infrastructure.Interfaces.DungeonRoom;
+using GameServer.Infrastructure.Interfaces.User;
 
 namespace GameServer.Application.Services.DungeonLobby;
 

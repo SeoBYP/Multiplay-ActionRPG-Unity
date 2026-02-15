@@ -1,0 +1,51 @@
+﻿syntax = "proto3";
+
+import "common.proto";
+
+package gameserver.chat.v1;
+
+option csharp_namespace = "GameServer.Grpc.Chat";
+
+service ChatService{
+  // 채팅 메시지 전송
+  rpc SendChat(SendChatRequest) returns (SendChatResponse);
+  // 채팅 구독
+  rpc SubscribeChat(SubscribeChatRequest) returns (stream ChatMessageInfo);
+}
+
+enum ChatType{
+  CHAT_TYPE_UNSPECIFIED = 0;  // proto3 필수
+  CHAT_TYPE_GLOBAL = 1;       // 전체 채팅
+  CHAT_TYPE_ROOM = 2;         // 방 채팅
+  CHAT_TYPE_WHISPER = 3;      // 귓속말
+}
+
+message SendChatRequest{
+  ChatType chat_type = 1;
+  string message = 2;
+  
+  int64 room_id = 3;
+  int64 target_user_id = 4;
+}
+
+message SendChatResponse {
+  gameserver.common.Result result = 1;
+}
+
+message SubscribeChatRequest {
+  ChatType chat_type = 1;
+  int64 room_id = 2;  // ROOM 구독 시 필요
+}
+
+message ChatMessageInfo {
+  ChatType chat_type = 1;
+  int64 sender_user_id = 2;
+  string sender_user_name = 3;
+  string message = 4;
+  int64 sent_at = 5;  // Unix timestamp
+
+  // 선택적 필드
+  int64 room_id = 6;            // ROOM일 때
+  int64 target_user_id = 7;     // WHISPER일 때
+  string target_user_name = 8;  // WHISPER일 때
+}

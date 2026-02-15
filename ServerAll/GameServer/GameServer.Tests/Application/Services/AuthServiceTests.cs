@@ -1,9 +1,9 @@
 ﻿using GameServer.Application.Common;
 using GameServer.Application.Services.Auth;
 using GameServer.Domain.Entities;
-using GameServer.Domain.Interfaces.User;
 using GameServer.Infrastructure.Security;
 using GameServer.Infrastructure.Interfaces;
+using GameServer.Infrastructure.Interfaces.User;
 using GameServer.Infrastructure.Repositories.User;
 using Microsoft.Extensions.Options;
 
