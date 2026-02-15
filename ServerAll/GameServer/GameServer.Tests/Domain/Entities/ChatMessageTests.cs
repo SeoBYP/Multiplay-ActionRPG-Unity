@@ -124,7 +124,6 @@ public class ChatMessageTests
         Assert.NotNull(chatMessage);
         Assert.Equal(ChatType.Whisper, chatMessage.ChatType);
         Assert.Equal(targetUserId, chatMessage.TargetUserId);
-        Assert.Equal(targetUserName, chatMessage.TargetUserName);
     }
     
     [Fact]
@@ -481,7 +480,6 @@ public class ChatMessageTests
         // given
         var messageId = 123L;
         var targetUserId = 2L;
-        var targetUserName = "target";
         
         // when
         var chatMessage = ChatMessage.FromRedis(
@@ -491,13 +489,11 @@ public class ChatMessageTests
             ChatType.Whisper,
             "Private message",
             DateTime.UtcNow,
-            targetUserId: targetUserId,
-            targetUserName: targetUserName);
+            targetUserId: targetUserId);
         
         // then
         Assert.Equal(ChatType.Whisper, chatMessage.ChatType);
         Assert.Equal(targetUserId, chatMessage.TargetUserId);
-        Assert.Equal(targetUserName, chatMessage.TargetUserName);
     }
     
     // ========================================
@@ -557,7 +553,6 @@ public class ChatMessageTests
         // then
         Assert.NotNull(chatMessage);
         Assert.Equal(ChatType.Whisper, chatMessage.ChatType);
-        Assert.Null(chatMessage.TargetUserName);
     }
     
     [Fact]

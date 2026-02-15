@@ -12,7 +12,6 @@ public class ChatMessage
     // Optional fields
     public long? RoomId { get; private set; }
     public long? TargetUserId { get; private set; }
-    public string? TargetUserName { get; private set; }
 
     public ChatMessage()
     {
@@ -57,8 +56,6 @@ public class ChatMessage
             Message = filteredMessage,
             SentAt = DateTime.UtcNow,
             RoomId = roomId,
-            TargetUserId = targetUserId,
-            TargetUserName = targetUserName
         };
     }
     
@@ -73,8 +70,7 @@ public class ChatMessage
         string message,
         DateTime sentAt,
         long? roomId = null,
-        long? targetUserId = null,
-        string? targetUserName = null)
+        long? targetUserId = null)
     {
         return new ChatMessage
         {
@@ -86,7 +82,6 @@ public class ChatMessage
             SentAt = sentAt,
             RoomId = roomId,
             TargetUserId = targetUserId,
-            TargetUserName = targetUserName
         };
     }
     

@@ -1,4 +1,5 @@
-﻿using MemoryPack;
+﻿using GameServer.Domain.Entities.Chat;
+using MemoryPack;
 
 namespace GameServer.Application.Common;
 
@@ -12,7 +13,7 @@ public partial class Result<T> where T : class
 
     public string? Message { get; private set; }
 
-    public static Result<T> Success(T value)
+    public static Result<T?> Success(T value)
     {
         return new Result<T> { IsSuccess = true, Message = "Success", InternalErrorCode = ErrorCodes.Success, Value = value };
     }

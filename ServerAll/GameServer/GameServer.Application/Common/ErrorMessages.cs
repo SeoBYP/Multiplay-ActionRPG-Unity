@@ -31,6 +31,9 @@ public class ErrorMessages
     
     // Session
     public const string SessionNotFound = "SESSION_NOT_FOUND";
+    
+    // ChatMessage
+    public const string MessageNotFound = "MESSAGE_NOT_FOUND";
 
     // Request
     public const string InvalidRequest = "INVALID_REQUEST";

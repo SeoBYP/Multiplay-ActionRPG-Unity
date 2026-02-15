@@ -366,8 +366,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
             Console.WriteLine($"Invalid CreatedAt: {createdAtStr}");
             return null;
         }
-
-        // 4. 플레이어 목록 변환
+        
         // 4. 플레이어 목록 변환
         var currentPlayers = new HashSet<long>(
             players.Select(p => (long)p)

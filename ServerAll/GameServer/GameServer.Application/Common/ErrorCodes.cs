@@ -27,5 +27,7 @@ public enum ErrorCodes : ushort
     StartGameFailed = 2012,
     UpdateRoomFailed = 2013,
     
+    MessageNotFound = 3000,
+    
     InternalServerError = 5000,
 }
