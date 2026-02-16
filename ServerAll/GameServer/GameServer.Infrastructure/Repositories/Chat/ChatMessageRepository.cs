@@ -67,7 +67,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
             bool committed = await transaction.ExecuteAsync();
             if (!committed)
             {
-                throw new InvalidOperationException("Failed to create session");
+                throw new InvalidOperationException("Failed to create chat message");
             }
 
             await Task.WhenAll(tasks);
@@ -198,17 +198,25 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
                 return false;
             
             var transaction = _database.CreateTransaction();
-            
-            Task hashTask = transaction.KeyDeleteAsync($"{ChatMessageKey}:{messageId}");
-            Task roomTask = transaction.SetRemoveAsync(string.Format(ChatMessageByRoomIdKey, message.RoomId), messageId);
-            Task userTask = transaction.SetRemoveAsync(string.Format(ChatMessageByUserIdKey, message.SenderUserId), messageId);
-            Task targetUserTask = transaction.SetRemoveAsync(string.Format(ChatMessageByTargetUserIdKey, message.TargetUserId), messageId);
+            var tasks = new List<Task>();
+            tasks.Add(transaction.KeyDeleteAsync($"{ChatMessageKey}:{messageId}"));
+            tasks.Add(transaction.SetRemoveAsync(string.Format(ChatMessageByUserIdKey, message.SenderUserId), messageId));
+
+            if (message.RoomId.HasValue)
+            {
+                tasks.Add(transaction.SetRemoveAsync(string.Format(ChatMessageByRoomIdKey, message.RoomId), messageId));
+            }
+
+            if (message.TargetUserId.HasValue)
+            {
+                tasks.Add(transaction.SetRemoveAsync(string.Format(ChatMessageByTargetUserIdKey, message.TargetUserId), messageId));
+            }
             
             bool committed = await transaction.ExecuteAsync();
             if (!committed)
                 return false;
         
-            await Task.WhenAll(hashTask, roomTask, userTask, targetUserTask);
+            await Task.WhenAll(tasks);
             return true;
         }
         catch (Exception e)
@@ -222,21 +230,30 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
     {
         try
         {
-            var transaction = _database.CreateTransaction();
-                    
-            Task counterTask = transaction.KeyDeleteAsync(ChatMessageCounterKey);
-            
             var server = connectionMultiplexer.GetServer(connectionMultiplexer.GetEndPoints().First());
-            var keys = server.Keys(pattern: $"{ChatMessageKey}:*");
+            var keysToDelete = new List<RedisKey>
+            {
+                (RedisKey)ChatMessageCounterKey
+            };
             
-            var deleteTasks = keys.Select(key => transaction.KeyDeleteAsync(key)).ToList();
-            
-            bool committed = await transaction.ExecuteAsync();
-            if (!committed)
-                return false;
-            
-            await Task.WhenAll(deleteTasks.Concat([counterTask]));
-            return true;
+            // 1) 메시지 본문 키들
+            keysToDelete.AddRange(server.Keys(pattern: $"{ChatMessageKey}:*").ToArray());
+
+            // 2) 인덱스 키들 (패턴에 *가 반드시 들어가야 함)
+            keysToDelete.AddRange(server.Keys(pattern: "game:chat:message:room:*").ToArray());
+            keysToDelete.AddRange(server.Keys(pattern: "game:chat:message:user:*").ToArray());
+            keysToDelete.AddRange(server.Keys(pattern: "game:chat:message:target:*").ToArray());
+
+            if (keysToDelete.Count == 0)
+                return true;
+
+            var transaction = _database.CreateTransaction();
+            var tasks = new List<Task>(keysToDelete.Count);
+
+            foreach (var key in keysToDelete.Distinct())
+                tasks.Add(transaction.KeyDeleteAsync(key));
+
+            return await ExecuteTransactionAsync(transaction, tasks).ConfigureAwait(false);
         }
         catch (Exception e)
         {
@@ -248,13 +265,14 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
     {
         try
         {
-            var userMessageIds = await _database.SetMembersAsync(string.Format(ChatMessageByUserIdKey, userId));
+            var userKey = string.Format(ChatMessageByUserIdKey, userId);
+            var userMessageIds = await _database.SetMembersAsync(userKey).ConfigureAwait(false);
             if (userMessageIds.Length == 0)
                 return true;
     
             var transaction = _database.CreateTransaction();
         
-            var deleteTasks = new List<Task>();
+            var tasks  = new List<Task>();
         
             foreach (var messageIdValue in userMessageIds)
             {
@@ -265,19 +283,25 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
                 if (message is null)
                     continue;
             
-                deleteTasks.Add(transaction.KeyDeleteAsync($"{ChatMessageKey}:{messageId}"));
-                deleteTasks.Add(transaction.SetRemoveAsync(string.Format(ChatMessageByRoomIdKey, message.RoomId), messageId));
-                deleteTasks.Add(transaction.SetRemoveAsync(string.Format(ChatMessageByTargetUserIdKey, message.TargetUserId), messageId));
+                tasks .Add(transaction.KeyDeleteAsync($"{ChatMessageKey}:{messageId}"));
+                if (message.RoomId.HasValue)
+                {
+                    tasks.Add(transaction.SetRemoveAsync(
+                        string.Format(ChatMessageByRoomIdKey, message.RoomId.Value),
+                        (RedisValue)messageId));
+                }
+
+                if (message.TargetUserId.HasValue)
+                {
+                    tasks.Add(transaction.SetRemoveAsync(
+                        string.Format(ChatMessageByTargetUserIdKey, message.TargetUserId.Value),
+                        (RedisValue)messageId));
+                }
             }
         
-            deleteTasks.Add(transaction.KeyDeleteAsync(string.Format(ChatMessageByUserIdKey, userId)));
-        
-            bool committed = await transaction.ExecuteAsync();
-            if (!committed)
-                return false;
-        
-            await Task.WhenAll(deleteTasks);
-            return true;
+            tasks.Add(transaction.KeyDeleteAsync(string.Format(ChatMessageByUserIdKey, userId)));
+
+            return await ExecuteTransactionAsync(transaction, tasks).ConfigureAwait(false);
         }
         catch (Exception e)
         {
@@ -290,13 +314,14 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
     {
         try
         {
-            var roomMessageIds = await _database.SetMembersAsync(string.Format(ChatMessageByRoomIdKey, roomId));
+            var roomKey = string.Format(ChatMessageByRoomIdKey, roomId);
+            var roomMessageIds = await _database.SetMembersAsync(roomKey).ConfigureAwait(false);
             if (roomMessageIds.Length == 0)
                 return true;
     
             var transaction = _database.CreateTransaction();
-        
-            var deleteTasks = new List<Task>();
+            var tasks = new List<Task>();
+
         
             foreach (var messageIdValue in roomMessageIds)
             {
@@ -307,19 +332,24 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
                 if (message is null)
                     continue;
             
-                deleteTasks.Add(transaction.KeyDeleteAsync($"{ChatMessageKey}:{messageId}"));
-                deleteTasks.Add(transaction.SetRemoveAsync(string.Format(ChatMessageByUserIdKey, message.SenderUserId), messageId));
-                deleteTasks.Add(transaction.SetRemoveAsync(string.Format(ChatMessageByTargetUserIdKey, message.TargetUserId), messageId));
+                tasks.Add(transaction.KeyDeleteAsync($"{ChatMessageKey}:{messageId}"));
+                // sender 인덱스에서 제거
+                tasks.Add(transaction.SetRemoveAsync(
+                    string.Format(ChatMessageByUserIdKey, message.SenderUserId),
+                    (RedisValue)messageId));
+
+                // target 인덱스에서 제거
+                if (message.TargetUserId.HasValue)
+                {
+                    tasks.Add(transaction.SetRemoveAsync(
+                        string.Format(ChatMessageByTargetUserIdKey, message.TargetUserId.Value),
+                        (RedisValue)messageId));
+                }
             }
         
-            deleteTasks.Add(transaction.KeyDeleteAsync(string.Format(ChatMessageByRoomIdKey, roomId)));
-        
-            bool committed = await transaction.ExecuteAsync();
-            if (!committed)
-                return false;
-        
-            await Task.WhenAll(deleteTasks);
-            return true;
+            tasks.Add(transaction.KeyDeleteAsync(string.Format(ChatMessageByRoomIdKey, roomId)));
+
+            return await ExecuteTransactionAsync(transaction, tasks).ConfigureAwait(false);
         }
         catch (Exception e)
         {
@@ -327,6 +357,22 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
             throw;
         }
     }
+    
+    
+    private async Task<bool> ExecuteTransactionAsync(ITransaction transaction, List<Task> queuedTasks)
+    {
+        // IMPORTANT:
+        // - StackExchange.Redis 트랜잭션은 "명령을 큐잉"하고 ExecuteAsync에서 한번에 커밋 시도.
+        // - 큐잉된 Task들은 ExecuteAsync 이후에 완료됨.
+        bool committed = await transaction.ExecuteAsync().ConfigureAwait(false);
+        if (!committed)
+            return false;
+
+        // Execute 이후 queuedTasks를 await 해야 실제 서버 응답을 반영
+        await Task.WhenAll(queuedTasks).ConfigureAwait(false);
+        return true;
+    }
+
 
     private ChatMessage? ParseChatMessageFromEntries(long messageId, HashEntry[] entries)
     {
