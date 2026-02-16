@@ -34,7 +34,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
 
             var transaction = _database.CreateTransaction();
 
-            Task hashTask = _database.HashSetAsync($"{ChatMessageKey}:{messageId}",[
+            Task hashTask = transaction.HashSetAsync($"{ChatMessageKey}:{messageId}",[
                 new HashEntry("MessageId", messageId),
                 new HashEntry("SenderId", senderId),
                 new HashEntry("SenderName", senderName),
@@ -45,12 +45,12 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
                 new HashEntry("SentAt", chatMessage.SentAt.ToString("O"))
             ]);
 
-            Task roomTask = _database.SetAddAsync(string.Format(ChatMessageByRoomIdKey, roomId), messageId);
+            Task roomTask = transaction.SetAddAsync(string.Format(ChatMessageByRoomIdKey, roomId), messageId);
 
-            Task userTask = _database.SetAddAsync(string.Format(ChatMessageByUserIdKey, senderId), messageId);
+            Task userTask = transaction.SetAddAsync(string.Format(ChatMessageByUserIdKey, senderId), messageId);
 
             Task targetUserTask =
-                _database.SetAddAsync(string.Format(ChatMessageByTargetUserIdKey, targetUserId), messageId);
+                transaction.SetAddAsync(string.Format(ChatMessageByTargetUserIdKey, targetUserId), messageId);
 
             bool committed = await transaction.ExecuteAsync();
             if (!committed)
@@ -187,10 +187,10 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
             
             var transaction = _database.CreateTransaction();
             
-            Task hashTask = _database.HashDeleteAsync(ChatMessageKey, "MessageId");
-            Task roomTask = _database.SetRemoveAsync(string.Format(ChatMessageByRoomIdKey, message.RoomId), messageId);
-            Task userTask = _database.SetRemoveAsync(string.Format(ChatMessageByUserIdKey, message.SenderUserId), messageId);
-            Task targetUserTask = _database.SetRemoveAsync(string.Format(ChatMessageByTargetUserIdKey, message.TargetUserId), messageId);
+            Task hashTask = transaction.HashDeleteAsync(ChatMessageKey, "MessageId");
+            Task roomTask = transaction.SetRemoveAsync(string.Format(ChatMessageByRoomIdKey, message.RoomId), messageId);
+            Task userTask = transaction.SetRemoveAsync(string.Format(ChatMessageByUserIdKey, message.SenderUserId), messageId);
+            Task targetUserTask = transaction.SetRemoveAsync(string.Format(ChatMessageByTargetUserIdKey, message.TargetUserId), messageId);
             
             bool committed = await transaction.ExecuteAsync();
             if (!committed)
@@ -212,13 +212,13 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         {
             var transaction = _database.CreateTransaction();
                     
-            Task counterTask = _database.KeyDeleteAsync(ChatMessageCounterKey);
-            Task messagesTask = _database.KeyDeleteAsync(ChatMessageKey);
+            Task counterTask = transaction.KeyDeleteAsync(ChatMessageCounterKey);
+            Task messagesTask = transaction.KeyDeleteAsync(ChatMessageKey);
             
             var server = connectionMultiplexer.GetServer(connectionMultiplexer.GetEndPoints().First());
             var keys = server.Keys(pattern: $"{ChatMessageKey}:*");
             
-            var deleteTasks = keys.Select(key => _database.KeyDeleteAsync(key)).ToList();
+            var deleteTasks = keys.Select(key => transaction.KeyDeleteAsync(key)).ToList();
             
             bool committed = await transaction.ExecuteAsync();
             if (!committed)
@@ -254,12 +254,12 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
                 if (message is null)
                     continue;
             
-                deleteTasks.Add(_database.HashDeleteAsync(ChatMessageKey, "MessageId"));
-                deleteTasks.Add(_database.SetRemoveAsync(string.Format(ChatMessageByRoomIdKey, message.RoomId), messageId));
-                deleteTasks.Add(_database.SetRemoveAsync(string.Format(ChatMessageByTargetUserIdKey, message.TargetUserId), messageId));
+                deleteTasks.Add(transaction.HashDeleteAsync(ChatMessageKey, "MessageId"));
+                deleteTasks.Add(transaction.SetRemoveAsync(string.Format(ChatMessageByRoomIdKey, message.RoomId), messageId));
+                deleteTasks.Add(transaction.SetRemoveAsync(string.Format(ChatMessageByTargetUserIdKey, message.TargetUserId), messageId));
             }
         
-            deleteTasks.Add(_database.KeyDeleteAsync(string.Format(ChatMessageByUserIdKey, userId)));
+            deleteTasks.Add(transaction.KeyDeleteAsync(string.Format(ChatMessageByUserIdKey, userId)));
         
             bool committed = await transaction.ExecuteAsync();
             if (!committed)
@@ -296,12 +296,12 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
                 if (message is null)
                     continue;
             
-                deleteTasks.Add(_database.HashDeleteAsync(ChatMessageKey, "MessageId"));
-                deleteTasks.Add(_database.SetRemoveAsync(string.Format(ChatMessageByUserIdKey, message.SenderUserId), messageId));
-                deleteTasks.Add(_database.SetRemoveAsync(string.Format(ChatMessageByTargetUserIdKey, message.TargetUserId), messageId));
+                deleteTasks.Add(transaction.HashDeleteAsync(ChatMessageKey, "MessageId"));
+                deleteTasks.Add(transaction.SetRemoveAsync(string.Format(ChatMessageByUserIdKey, message.SenderUserId), messageId));
+                deleteTasks.Add(transaction.SetRemoveAsync(string.Format(ChatMessageByTargetUserIdKey, message.TargetUserId), messageId));
             }
         
-            deleteTasks.Add(_database.KeyDeleteAsync(string.Format(ChatMessageByRoomIdKey, roomId)));
+            deleteTasks.Add(transaction.KeyDeleteAsync(string.Format(ChatMessageByRoomIdKey, roomId)));
         
             bool committed = await transaction.ExecuteAsync();
             if (!committed)
