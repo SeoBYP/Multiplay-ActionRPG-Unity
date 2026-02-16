@@ -108,7 +108,6 @@ public class ChatMessageTests
         var senderUserId = 1L;
         var senderUserName = "sender";
         var targetUserId = 2L;
-        var targetUserName = "target";
         var message = "Private message";
         
         // when
@@ -117,8 +116,7 @@ public class ChatMessageTests
             senderUserName,
             ChatType.Whisper,
             message,
-            targetUserId: targetUserId,
-            targetUserName: targetUserName);
+            targetUserId: targetUserId);
         
         // then
         Assert.NotNull(chatMessage);
@@ -547,8 +545,7 @@ public class ChatMessageTests
             "sender",
             ChatType.Whisper,
             "Private message",
-            targetUserId: 2L,
-            targetUserName: null);  // null이어도 OK
+            targetUserId: 2L);  // null이어도 OK
         
         // then
         Assert.NotNull(chatMessage);

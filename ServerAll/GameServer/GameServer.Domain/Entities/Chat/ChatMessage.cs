@@ -23,8 +23,7 @@ public class ChatMessage
         ChatType chatType,
         string message,
         long? roomId = null,
-        long? targetUserId = null,
-        string? targetUserName = null)
+        long? targetUserId = null)
     {
         // 1. SenderUserId 검증
         if (senderUserId <= 0)
@@ -56,6 +55,7 @@ public class ChatMessage
             Message = filteredMessage,
             SentAt = DateTime.UtcNow,
             RoomId = roomId,
+            TargetUserId = targetUserId,
         };
     }
     

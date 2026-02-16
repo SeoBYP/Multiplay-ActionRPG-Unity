@@ -7,7 +7,7 @@ public interface IChatMessageRepository
     /// <summary>
     /// 새로운 채팅 메시지를 비동기적으로 생성합니다.
     /// </summary>
-    Task<ChatMessage> CreateAsync(long senderId,string senderName, ChatType chatType, string message, long? roomId, long? targetUserId,string? targetUserName);
+    Task<ChatMessage> CreateAsync(long senderId,string senderName, ChatType chatType, string message, long? roomId, long? targetUserId);
 
     /// <summary>
     /// 식별자를 통해 채팅 메시지를 비동기적으로 조회합니다.

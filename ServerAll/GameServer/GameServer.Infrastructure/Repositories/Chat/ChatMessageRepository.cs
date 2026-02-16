@@ -21,19 +21,18 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         ChatType chatType,
         string message,
         long? roomId,
-        long? targetUserId,
-        string? targetUserName)
+        long? targetUserId)
     {
         try
         {
-            var chatMessage = ChatMessage.Create(senderId, senderName, chatType, message, roomId, targetUserId,
-                targetUserName);
+            var chatMessage = ChatMessage.Create(senderId, senderName, chatType, message, roomId, targetUserId);
 
             var messageId = _database.StringIncrement(ChatMessageCounterKey);
             chatMessage.SetMessageId(messageId);
 
             var transaction = _database.CreateTransaction();
 
+            var tasks = new List<Task>();
             var hashFields = new List<HashEntry>
             {
                 new HashEntry("MessageId", messageId),
@@ -42,7 +41,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
                 new HashEntry("ChatType", chatType.ToString()),
                 new HashEntry("Message", message),
                 new HashEntry("SentAt", chatMessage.SentAt.ToString("O")),
-                new HashEntry("RoomId", roomId),
+      
             };
             // 귓속말 채팅
             if (chatType == ChatType.Whisper)
@@ -50,29 +49,28 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
                 if(!targetUserId.HasValue)
                     throw new ArgumentException("TargetUserId is required for whisper", nameof(targetUserId));
                 hashFields.Add(new HashEntry("TargetUserId", targetUserId));
+                tasks.Add(transaction.SetAddAsync(string.Format(ChatMessageByTargetUserIdKey, targetUserId), messageId));
             }
             // Room 채팅
             if (chatType == ChatType.Room)
             {
                 if(!roomId.HasValue)
                     throw new ArgumentException("RoomId is required for room chat", nameof(roomId));
-                hashFields.Add(new HashEntry("TargetUserName", targetUserName));
+                hashFields.Add(new HashEntry("RoomId", roomId));
+                tasks.Add(transaction.SetAddAsync(string.Format(ChatMessageByRoomIdKey, roomId), messageId));
             }
             
-            Task hashTask = transaction.HashSetAsync($"{ChatMessageKey}:{messageId}",hashFields.ToArray());
-            Task roomTask = transaction.SetAddAsync(string.Format(ChatMessageByRoomIdKey, roomId), messageId);
-            Task userTask = transaction.SetAddAsync(string.Format(ChatMessageByUserIdKey, senderId), messageId);
-
-            Task targetUserTask =
-                transaction.SetAddAsync(string.Format(ChatMessageByTargetUserIdKey, targetUserId), messageId);
-
+            tasks.Add(transaction.HashSetAsync($"{ChatMessageKey}:{messageId}",hashFields.ToArray()));
+            
+            tasks.Add(transaction.SetAddAsync(string.Format(ChatMessageByUserIdKey, senderId), messageId));
+            
             bool committed = await transaction.ExecuteAsync();
             if (!committed)
             {
                 throw new InvalidOperationException("Failed to create session");
             }
 
-            await Task.WhenAll(hashTask, roomTask, userTask, targetUserTask);
+            await Task.WhenAll(tasks);
             return chatMessage;
         }
         catch (Exception e)
@@ -369,7 +367,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         }
 
         long? roomId = null;
-        if (chatType == ChatType.Room && !dict.TryGetValue("RoomId", out var roomIdStr))
+        if (chatType == ChatType.Room && dict.TryGetValue("RoomId", out var roomIdStr))
         {
             if (!long.TryParse(roomIdStr, out var id))
             {
@@ -380,7 +378,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         }
         
         long? targetUserId = null;
-        if(chatType == ChatType.Whisper && !dict.TryGetValue("TargetUserId", out var targetUserIdStr))
+        if(chatType == ChatType.Whisper && dict.TryGetValue("TargetUserId", out var targetUserIdStr))
         {
             if (!long.TryParse(targetUserIdStr, out var id))
             {
