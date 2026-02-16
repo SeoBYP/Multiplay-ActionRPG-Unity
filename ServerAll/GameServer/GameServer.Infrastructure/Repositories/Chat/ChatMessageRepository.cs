@@ -187,7 +187,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
             
             var transaction = _database.CreateTransaction();
             
-            Task hashTask = transaction.HashDeleteAsync(ChatMessageKey, "MessageId");
+            Task hashTask = transaction.KeyDeleteAsync($"{ChatMessageKey}:{messageId}");
             Task roomTask = transaction.SetRemoveAsync(string.Format(ChatMessageByRoomIdKey, message.RoomId), messageId);
             Task userTask = transaction.SetRemoveAsync(string.Format(ChatMessageByUserIdKey, message.SenderUserId), messageId);
             Task targetUserTask = transaction.SetRemoveAsync(string.Format(ChatMessageByTargetUserIdKey, message.TargetUserId), messageId);
@@ -254,7 +254,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
                 if (message is null)
                     continue;
             
-                deleteTasks.Add(transaction.HashDeleteAsync(ChatMessageKey, "MessageId"));
+                deleteTasks.Add(transaction.KeyDeleteAsync($"{ChatMessageKey}:{messageId}"));
                 deleteTasks.Add(transaction.SetRemoveAsync(string.Format(ChatMessageByRoomIdKey, message.RoomId), messageId));
                 deleteTasks.Add(transaction.SetRemoveAsync(string.Format(ChatMessageByTargetUserIdKey, message.TargetUserId), messageId));
             }
@@ -296,7 +296,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
                 if (message is null)
                     continue;
             
-                deleteTasks.Add(transaction.HashDeleteAsync(ChatMessageKey, "MessageId"));
+                deleteTasks.Add(transaction.KeyDeleteAsync($"{ChatMessageKey}:{messageId}"));
                 deleteTasks.Add(transaction.SetRemoveAsync(string.Format(ChatMessageByUserIdKey, message.SenderUserId), messageId));
                 deleteTasks.Add(transaction.SetRemoveAsync(string.Format(ChatMessageByTargetUserIdKey, message.TargetUserId), messageId));
             }
