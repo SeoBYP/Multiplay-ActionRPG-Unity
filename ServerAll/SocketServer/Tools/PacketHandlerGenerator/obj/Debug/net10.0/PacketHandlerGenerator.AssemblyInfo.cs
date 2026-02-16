@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PacketHandlerGenerator")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+dc1f13bea40ea9067d3d3e1311781dc5bc255e36")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0f1ffc50ff3f09aa9d9523bc1dc502166a6448c6")]
 [assembly: System.Reflection.AssemblyProductAttribute("PacketHandlerGenerator")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PacketHandlerGenerator")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

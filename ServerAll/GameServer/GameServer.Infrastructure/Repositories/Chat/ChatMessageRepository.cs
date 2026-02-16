@@ -34,7 +34,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
 
             var transaction = _database.CreateTransaction();
 
-            Task hashTask = _database.HashSetAsync(ChatMessageKey, [
+            Task hashTask = _database.HashSetAsync($"{ChatMessageKey}:{messageId}",[
                 new HashEntry("MessageId", messageId),
                 new HashEntry("SenderId", senderId),
                 new HashEntry("SenderName", senderName),
@@ -72,7 +72,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
     {
         try
         {
-            var entries = await _database.HashGetAllAsync(string.Format(ChatMessageKey, messageId));
+            var entries = await _database.HashGetAllAsync($"{ChatMessageKey}:{messageId}");
             if (entries.Length == 0)
                 return null;
             return ParseChatMessageFromEntries(messageId, entries);
@@ -125,7 +125,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         }
     }
 
-    public async Task<IEnumerable<ChatMessage>> GetMessagesByUserIdAsync(long userId)
+    public async Task<IEnumerable<ChatMessage>> GetMessagesByUserIdAsync(long userId, int limit, long? beforeMessageId)
     {
         try
         {
@@ -151,7 +151,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         }
     }
 
-    public async Task<IEnumerable<ChatMessage>> GetMessagesByRoomIdAsync(long roomId)
+    public async Task<IEnumerable<ChatMessage>> GetMessagesByRoomIdAsync(long roomId, int limit, long? beforeMessageId)
     {
         try
         {
