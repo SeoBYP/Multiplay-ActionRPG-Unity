@@ -34,19 +34,33 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
 
             var transaction = _database.CreateTransaction();
 
-            Task hashTask = transaction.HashSetAsync($"{ChatMessageKey}:{messageId}",[
+            var hashFields = new List<HashEntry>
+            {
                 new HashEntry("MessageId", messageId),
                 new HashEntry("SenderId", senderId),
                 new HashEntry("SenderName", senderName),
                 new HashEntry("ChatType", chatType.ToString()),
                 new HashEntry("Message", message),
+                new HashEntry("SentAt", chatMessage.SentAt.ToString("O")),
                 new HashEntry("RoomId", roomId),
-                new HashEntry("TargetUserId", targetUserId),
-                new HashEntry("SentAt", chatMessage.SentAt.ToString("O"))
-            ]);
-
+            };
+            // 귓속말 채팅
+            if (chatType == ChatType.Whisper)
+            {
+                if(!targetUserId.HasValue)
+                    throw new ArgumentException("TargetUserId is required for whisper", nameof(targetUserId));
+                hashFields.Add(new HashEntry("TargetUserId", targetUserId));
+            }
+            // Room 채팅
+            if (chatType == ChatType.Room)
+            {
+                if(!roomId.HasValue)
+                    throw new ArgumentException("RoomId is required for room chat", nameof(roomId));
+                hashFields.Add(new HashEntry("TargetUserName", targetUserName));
+            }
+            
+            Task hashTask = transaction.HashSetAsync($"{ChatMessageKey}:{messageId}",hashFields.ToArray());
             Task roomTask = transaction.SetAddAsync(string.Format(ChatMessageByRoomIdKey, roomId), messageId);
-
             Task userTask = transaction.SetAddAsync(string.Format(ChatMessageByUserIdKey, senderId), messageId);
 
             Task targetUserTask =
@@ -213,7 +227,6 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
             var transaction = _database.CreateTransaction();
                     
             Task counterTask = transaction.KeyDeleteAsync(ChatMessageCounterKey);
-            Task messagesTask = transaction.KeyDeleteAsync(ChatMessageKey);
             
             var server = connectionMultiplexer.GetServer(connectionMultiplexer.GetEndPoints().First());
             var keys = server.Keys(pattern: $"{ChatMessageKey}:*");
@@ -224,7 +237,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
             if (!committed)
                 return false;
             
-            await Task.WhenAll(deleteTasks.Concat(new[] { counterTask, messagesTask }));
+            await Task.WhenAll(deleteTasks.Concat([counterTask]));
             return true;
         }
         catch (Exception e)
@@ -329,8 +342,6 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
             !dict.TryGetValue("SenderName", out var senderName) ||
             !dict.TryGetValue("ChatType", out var chatTypeStr) ||
             !dict.TryGetValue("Message", out var message) ||
-            !dict.TryGetValue("RoomId", out var roomIdStr) ||
-            !dict.TryGetValue("TargetUserId", out var targetUserIdStr) ||
             !dict.TryGetValue("SentAt", out var sentAtStr)
            )
         {
@@ -350,23 +361,34 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
             return null;
         }
 
-        if (!long.TryParse(roomIdStr, out var roomId))
-        {
-            Console.WriteLine("Invalid RoomId");
-            return null;
-        }
-
-        if (!long.TryParse(targetUserIdStr, out var targetUserId))
-        {
-            Console.WriteLine("Invalid TargetUserId");
-            return null;
-        }
 
         if (!DateTime.TryParse(sentAtStr, null, DateTimeStyles.RoundtripKind, out var sentAt))
         {
             Console.WriteLine($"Invalid SentAt: {sentAtStr}");
             return null;
         }
+
+        long? roomId = null;
+        if (chatType == ChatType.Room && !dict.TryGetValue("RoomId", out var roomIdStr))
+        {
+            if (!long.TryParse(roomIdStr, out var id))
+            {
+                Console.WriteLine("Invalid RoomId");
+                return null;
+            }
+            roomId = id;
+        }
+        
+        long? targetUserId = null;
+        if(chatType == ChatType.Whisper && !dict.TryGetValue("TargetUserId", out var targetUserIdStr))
+        {
+            if (!long.TryParse(targetUserIdStr, out var id))
+            {
+                Console.WriteLine("Invalid TargetUserId");
+                return null;
+            }
+            targetUserId = id;
+        };
 
         return ChatMessage.FromRedis(messageId,
             senderId,

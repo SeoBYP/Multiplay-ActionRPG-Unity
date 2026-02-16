@@ -480,5 +480,5 @@ com_crashlytics_export_strings.xml
 
 # https://www.toptal.com/developers/gitignore/api/csharp,rider 끝
  
- **/obj/
- **/bin/
+**/obj/
+**/bin/
