@@ -47,5 +47,4 @@ message ChatMessageInfo {
   // 선택적 필드
   int64 room_id = 6;            // ROOM일 때
   int64 target_user_id = 7;     // WHISPER일 때
-  string target_user_name = 8;  // WHISPER일 때
 }

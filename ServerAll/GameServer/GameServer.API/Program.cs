@@ -5,11 +5,15 @@ using GameServer.API.Middleware;
 using GameServer.API.Services;
 using GameServer.Application.Services.Auth;
 using GameServer.Application.Services.Auth.Interfaces;
+using GameServer.Application.Services.Chat;
+using GameServer.Application.Services.Chat.Interfaces;
 using GameServer.Application.Services.DungeonLobby;
 using GameServer.Application.Services.DungeonLobby.Interfaces;
 using GameServer.Infrastructure.Interfaces;
+using GameServer.Infrastructure.Interfaces.Chat;
 using GameServer.Infrastructure.Interfaces.DungeonRoom;
 using GameServer.Infrastructure.Interfaces.User;
+using GameServer.Infrastructure.Repositories.Chat;
 using GameServer.Infrastructure.Repositories.DungeonRoom;
 using GameServer.Infrastructure.Repositories.User;
 using GameServer.Infrastructure.Security;
@@ -175,6 +179,10 @@ static void ConfigureServices(WebApplicationBuilder builder)
 
     services.AddScoped<IDungeonLobbyService, DungeonLobbyService>();
     services.AddScoped<IDungeonRoomRepository, DungeonRoomRepository>();
+    
+    builder.Services.AddScoped<IChatService, ChatService>();
+    builder.Services.AddScoped<IChatSubscriptionService, ChatSubscriptionService>();
+    builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 }
 
 static void ConfigurePipeline(WebApplication app)
@@ -205,4 +213,5 @@ static void ConfigurePipeline(WebApplication app)
     // gRPC services
     app.MapGrpcService<AuthGrpcService>();
     app.MapGrpcService<DungeonLobbyGrpcService>();
+    app.MapGrpcService<ChatGrpcService>();
 }

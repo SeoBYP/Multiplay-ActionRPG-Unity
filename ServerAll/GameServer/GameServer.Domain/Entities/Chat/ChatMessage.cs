@@ -2,16 +2,16 @@
 
 public class ChatMessage
 {
-    public long MessageId { get; private set; }
-    public ChatType ChatType { get; private set; }
-    public long SenderUserId { get; private set; }
-    public string SenderUserName { get; private set; } = "";
-    public string Message { get; private set; } = "";
-    public DateTime SentAt { get; private set; }
+    public long MessageId { get; set; }
+    public ChatType ChatType { get; set; }
+    public long SenderUserId { get; set; }
+    public string SenderUserName { get; set; } = "";
+    public string Message { get; set; } = "";
+    public DateTime SentAt { get; set; }
 
     // Optional fields
-    public long? RoomId { get; private set; }
-    public long? TargetUserId { get; private set; }
+    public long? RoomId { get; set; }
+    public long? TargetUserId { get; set; }
 
     public ChatMessage()
     {

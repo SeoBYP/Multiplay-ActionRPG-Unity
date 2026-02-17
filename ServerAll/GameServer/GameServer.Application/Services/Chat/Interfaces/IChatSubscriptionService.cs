@@ -4,6 +4,6 @@ namespace GameServer.Application.Services.Chat.Interfaces;
 
 public interface IChatSubscriptionService
 {
-    IAsyncEnumerable<ChatMessage> SubscribeRoomAsync(long actorUserId, long roomId, CancellationToken ct = default);
-    IAsyncEnumerable<ChatMessage> SubscribeGlobalAsync(long actorUserId, CancellationToken ct = default);
+    IAsyncEnumerable<ChatMessage> SubscribeGlobalAsync(string sessionId, CancellationToken ct = default);
+    IAsyncEnumerable<ChatMessage> SubscribeRoomAsync(string sessionId, long roomId, CancellationToken ct = default);
 }

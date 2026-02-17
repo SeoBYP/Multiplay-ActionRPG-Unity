@@ -1,14 +1,17 @@
-﻿using GameServer.Application.Common;
+﻿using System.Text.Json;
+using GameServer.Application.Common;
 using GameServer.Application.Services.Chat.Interfaces;
 using GameServer.Domain.Entities;
 using GameServer.Domain.Entities.Chat;
 using GameServer.Infrastructure.Interfaces.Chat;
 using GameServer.Infrastructure.Interfaces.User;
+using StackExchange.Redis;
 
 namespace GameServer.Application.Services.Chat;
 
 public class ChatService(IChatMessageRepository chatMessageRepository,
-    IUserSessionRepository userSessionRepository) : IChatService
+    IUserSessionRepository userSessionRepository,
+    IConnectionMultiplexer redis) : IChatService
 {
     public async Task<Result<ChatMessage>> SendMessageAsync(string sessionId, ChatType chatType, string message, long? roomId, long? targetUserId,
         CancellationToken ct = default)
@@ -19,18 +22,18 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
 
             if(userSession is null)
                 return Result<ChatMessage>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            UserSession? targetSession = null;
-            if (targetUserId.HasValue)
-            {
-                targetSession = await userSessionRepository.GetSessionByUserIdAsync(targetUserId.Value);
-            }
+
             var chatMessage = await chatMessageRepository.CreateAsync(userSession.UserId, 
                 userSession.UserName,
                 chatType, 
                 message, 
                 roomId,
-                targetSession?.UserId, 
-                targetSession?.UserName);
+                targetUserId);
+            
+            var channel = ChatChannels.GetChannel(chatType, roomId, targetUserId);
+            var json = JsonSerializer.Serialize(chatMessage);
+            await redis.GetSubscriber().PublishAsync(channel, json);
+            
             return Result<ChatMessage>.Success(chatMessage);
         }
         catch (Exception e)
