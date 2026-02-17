@@ -482,3 +482,5 @@ com_crashlytics_export_strings.xml
  
 **/obj/
 **/bin/
+
+GameServer/GameServer.API/Protos
