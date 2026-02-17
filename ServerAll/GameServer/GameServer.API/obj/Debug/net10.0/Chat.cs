@@ -31,26 +31,26 @@ namespace GameServer.Grpc.Chat {
             "Q2hhdFJlc3BvbnNlEikKBnJlc3VsdBgBIAEoCzIZLmdhbWVzZXJ2ZXIuY29t",
             "bW9uLlJlc3VsdCJYChRTdWJzY3JpYmVDaGF0UmVxdWVzdBIvCgljaGF0X3R5",
             "cGUYASABKA4yHC5nYW1lc2VydmVyLmNoYXQudjEuQ2hhdFR5cGUSDwoHcm9v",
-            "bV9pZBgCIAEoAyLZAQoPQ2hhdE1lc3NhZ2VJbmZvEi8KCWNoYXRfdHlwZRgB",
+            "bV9pZBgCIAEoAyK/AQoPQ2hhdE1lc3NhZ2VJbmZvEi8KCWNoYXRfdHlwZRgB",
             "IAEoDjIcLmdhbWVzZXJ2ZXIuY2hhdC52MS5DaGF0VHlwZRIWCg5zZW5kZXJf",
             "dXNlcl9pZBgCIAEoAxIYChBzZW5kZXJfdXNlcl9uYW1lGAMgASgJEg8KB21l",
             "c3NhZ2UYBCABKAkSDwoHc2VudF9hdBgFIAEoAxIPCgdyb29tX2lkGAYgASgD",
-            "EhYKDnRhcmdldF91c2VyX2lkGAcgASgDEhgKEHRhcmdldF91c2VyX25hbWUY",
-            "CCABKAkqZgoIQ2hhdFR5cGUSGQoVQ0hBVF9UWVBFX1VOU1BFQ0lGSUVEEAAS",
-            "FAoQQ0hBVF9UWVBFX0dMT0JBTBABEhIKDkNIQVRfVFlQRV9ST09NEAISFQoR",
-            "Q0hBVF9UWVBFX1dISVNQRVIQAzLGAQoLQ2hhdFNlcnZpY2USVQoIU2VuZENo",
-            "YXQSIy5nYW1lc2VydmVyLmNoYXQudjEuU2VuZENoYXRSZXF1ZXN0GiQuZ2Ft",
-            "ZXNlcnZlci5jaGF0LnYxLlNlbmRDaGF0UmVzcG9uc2USYAoNU3Vic2NyaWJl",
-            "Q2hhdBIoLmdhbWVzZXJ2ZXIuY2hhdC52MS5TdWJzY3JpYmVDaGF0UmVxdWVz",
-            "dBojLmdhbWVzZXJ2ZXIuY2hhdC52MS5DaGF0TWVzc2FnZUluZm8wAUIXqgIU",
-            "R2FtZVNlcnZlci5HcnBjLkNoYXRiBnByb3RvMw=="));
+            "EhYKDnRhcmdldF91c2VyX2lkGAcgASgDKmYKCENoYXRUeXBlEhkKFUNIQVRf",
+            "VFlQRV9VTlNQRUNJRklFRBAAEhQKEENIQVRfVFlQRV9HTE9CQUwQARISCg5D",
+            "SEFUX1RZUEVfUk9PTRACEhUKEUNIQVRfVFlQRV9XSElTUEVSEAMyxgEKC0No",
+            "YXRTZXJ2aWNlElUKCFNlbmRDaGF0EiMuZ2FtZXNlcnZlci5jaGF0LnYxLlNl",
+            "bmRDaGF0UmVxdWVzdBokLmdhbWVzZXJ2ZXIuY2hhdC52MS5TZW5kQ2hhdFJl",
+            "c3BvbnNlEmAKDVN1YnNjcmliZUNoYXQSKC5nYW1lc2VydmVyLmNoYXQudjEu",
+            "U3Vic2NyaWJlQ2hhdFJlcXVlc3QaIy5nYW1lc2VydmVyLmNoYXQudjEuQ2hh",
+            "dE1lc3NhZ2VJbmZvMAFCF6oCFEdhbWVTZXJ2ZXIuR3JwYy5DaGF0YgZwcm90",
+            "bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::GameServer.Grpc.Common.CommonReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::GameServer.Grpc.Chat.ChatType), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Chat.SendChatRequest), global::GameServer.Grpc.Chat.SendChatRequest.Parser, new[]{ "ChatType", "Message", "RoomId", "TargetUserId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Chat.SendChatResponse), global::GameServer.Grpc.Chat.SendChatResponse.Parser, new[]{ "Result" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Chat.SubscribeChatRequest), global::GameServer.Grpc.Chat.SubscribeChatRequest.Parser, new[]{ "ChatType", "RoomId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Chat.ChatMessageInfo), global::GameServer.Grpc.Chat.ChatMessageInfo.Parser, new[]{ "ChatType", "SenderUserId", "SenderUserName", "Message", "SentAt", "RoomId", "TargetUserId", "TargetUserName" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Chat.ChatMessageInfo), global::GameServer.Grpc.Chat.ChatMessageInfo.Parser, new[]{ "ChatType", "SenderUserId", "SenderUserName", "Message", "SentAt", "RoomId", "TargetUserId" }, null, null, null, null)
           }));
     }
     #endregion
@@ -875,7 +875,6 @@ namespace GameServer.Grpc.Chat {
       sentAt_ = other.sentAt_;
       roomId_ = other.roomId_;
       targetUserId_ = other.targetUserId_;
-      targetUserName_ = other.targetUserName_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -978,21 +977,6 @@ namespace GameServer.Grpc.Chat {
       }
     }
 
-    /// <summary>Field number for the "target_user_name" field.</summary>
-    public const int TargetUserNameFieldNumber = 8;
-    private string targetUserName_ = "";
-    /// <summary>
-    /// WHISPER일 때
-    /// </summary>
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string TargetUserName {
-      get { return targetUserName_; }
-      set {
-        targetUserName_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
-      }
-    }
-
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1015,7 +999,6 @@ namespace GameServer.Grpc.Chat {
       if (SentAt != other.SentAt) return false;
       if (RoomId != other.RoomId) return false;
       if (TargetUserId != other.TargetUserId) return false;
-      if (TargetUserName != other.TargetUserName) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1030,7 +1013,6 @@ namespace GameServer.Grpc.Chat {
       if (SentAt != 0L) hash ^= SentAt.GetHashCode();
       if (RoomId != 0L) hash ^= RoomId.GetHashCode();
       if (TargetUserId != 0L) hash ^= TargetUserId.GetHashCode();
-      if (TargetUserName.Length != 0) hash ^= TargetUserName.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1077,10 +1059,6 @@ namespace GameServer.Grpc.Chat {
         output.WriteRawTag(56);
         output.WriteInt64(TargetUserId);
       }
-      if (TargetUserName.Length != 0) {
-        output.WriteRawTag(66);
-        output.WriteString(TargetUserName);
-      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1119,10 +1097,6 @@ namespace GameServer.Grpc.Chat {
         output.WriteRawTag(56);
         output.WriteInt64(TargetUserId);
       }
-      if (TargetUserName.Length != 0) {
-        output.WriteRawTag(66);
-        output.WriteString(TargetUserName);
-      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1153,9 +1127,6 @@ namespace GameServer.Grpc.Chat {
       }
       if (TargetUserId != 0L) {
         size += 1 + pb::CodedOutputStream.ComputeInt64Size(TargetUserId);
-      }
-      if (TargetUserName.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(TargetUserName);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1189,9 +1160,6 @@ namespace GameServer.Grpc.Chat {
       }
       if (other.TargetUserId != 0L) {
         TargetUserId = other.TargetUserId;
-      }
-      if (other.TargetUserName.Length != 0) {
-        TargetUserName = other.TargetUserName;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1240,10 +1208,6 @@ namespace GameServer.Grpc.Chat {
             TargetUserId = input.ReadInt64();
             break;
           }
-          case 66: {
-            TargetUserName = input.ReadString();
-            break;
-          }
         }
       }
     #endif
@@ -1289,10 +1253,6 @@ namespace GameServer.Grpc.Chat {
           }
           case 56: {
             TargetUserId = input.ReadInt64();
-            break;
-          }
-          case 66: {
-            TargetUserName = input.ReadString();
             break;
           }
         }

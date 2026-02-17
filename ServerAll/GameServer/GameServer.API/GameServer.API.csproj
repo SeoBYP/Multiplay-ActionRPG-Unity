@@ -29,7 +29,6 @@
         <Protobuf Include="..\Protos\**\*.proto"
                   GrpcServices="Server"
                   Link="Protos\%(RecursiveDir)%(Filename)%(Extension)" />
-        <Protobuf Remove="..\Protos\**" />
     </ItemGroup>
 </Project>
 
