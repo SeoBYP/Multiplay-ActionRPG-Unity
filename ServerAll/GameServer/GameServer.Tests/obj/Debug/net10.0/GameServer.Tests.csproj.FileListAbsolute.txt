@@ -393,3 +393,5 @@ C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.T
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Tests\bin\Debug\net10.0\Microsoft.Extensions.Logging.Abstractions.dll
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Tests\bin\Debug\net10.0\Microsoft.Extensions.Options.dll
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Tests\bin\Debug\net10.0\Microsoft.Extensions.Primitives.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Tests\bin\Debug\net10.0\Castle.Core.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.Tests\bin\Debug\net10.0\Moq.dll
