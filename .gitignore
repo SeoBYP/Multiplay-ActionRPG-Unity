@@ -1,5 +1,5 @@
-# https://www.toptal.com/developers/gitignore/api/csharp,rider 에서 생성됨
-# https://www.toptal.com/developers/gitignore?templates=csharp,rider 에서 수정하세요
+# https://www.toptal.com/developers/gitignore/api/unity,csharp,rider 에서 생성됨
+# https://www.toptal.com/developers/gitignore?templates=unity,csharp,rider 에서 수정하세요
 
 ### C# ###
 ## Visual Studio 임시 파일, 빌드 결과 등을 무시합니다
@@ -106,7 +106,7 @@ ScaffoldingReadMe.txt
 _뻔뻔함*
 
 # Visual C++ 캐시 파일
-이프치/
+ipch/
 *.aps
 *.ncb
 *.opendb
@@ -202,7 +202,7 @@ PublishScripts/
 *.스눕kg
 # 패키지 복원 기능 때문에 패키지 폴더는 무시해도 됩니다.
 **/[Pp]패키지/*
-# MSBuild 대상으로 사용되는 build/는 예외입니다.
+# build/는 MSBuild 대상으로 사용되므로 예외입니다.
 !**/[Pp]packages/build/
 # 필요한 경우 주석 처리를 해제하세요. 하지만 일반적으로 필요할 때 자동으로 다시 생성됩니다.
 #!**/[Pp]packages/repositories.config
@@ -257,7 +257,7 @@ _pkginfo.txt
 
 # 기존 프로젝트 파일 변환 후 백업 및 보고서 파일 생성
 # 최신 Visual Studio 버전으로 업그레이드하세요. 백업 파일은 필요하지 않습니다.
-# 왜냐하면 우리에겐 Git이 있으니까요 ;-)
+# 우리에겐 Git이 있으니까요 ;-)
 _업그레이드 보고서_파일/
 지원*/
 업그레이드로그*.XML
@@ -478,9 +478,68 @@ com_crashlytics_export_strings.xml
 # 안드로이드 스튜디오 3.1 이상 버전의 직렬화된 캐시 파일
 .idea/caches/build_file_checksums.ser
 
-# https://www.toptal.com/developers/gitignore/api/csharp,rider 끝
- 
-**/obj/
-**/bin/
+### 유니티 ###
+# 이 .gitignore 파일은 Unity 프로젝트 디렉토리의 루트에 위치해야 합니다.
+#
+# https://github.com/github/gitignore/blob/main/Unity.gitignore 에서 최신 버전을 가져오세요
+/[Ll]도서관/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]빌드/
+/[Bb]건물/
+/[Ll]ogs/
+/[Uu]ser[Ss]설정/
 
-GameServer/GameServer.API/Protos
+# MemoryCaptures의 크기가 지나치게 커질 수 있습니다.
+# 또한 매우 민감한 데이터가 포함될 수도 있습니다.
+/[Mm]emoryCaptures/
+
+# 녹음 파일 크기가 지나치게 커질 수 있습니다
+/[Rr]녹음/
+
+# 에셋 스토어 도구 플러그인을 무시하려면 이 줄의 주석 처리를 해제하세요.
+# /[Aa]ssets/AssetStoreTools*
+
+# JetBrains Rider 플러그인 자동 생성
+/[Aa]sets/플러그인/에디터/JetBrains*
+
+# Visual Studio 캐시 디렉터리
+
+# Gradle 캐시 디렉토리
+.gradle/
+
+# VS/MD/Consulo 솔루션 및 프로젝트 파일 자동 생성
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.booproj
+*.svd
+*.mdb
+
+# Unity3D에서 생성된 메타 파일
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Unity3D에서 생성된 충돌 보고서 파일
+시스템 정보 파일
+
+# 빌드
+*.apk
+*.aab
+*.유니티패키지
+*.앱
+
+# Crashlytics에서 생성된 파일
+
+# 패킹된 주소 지정 가능 항목
+/[Aa]자산/[Aa]주소 지정 가능[Aa]자산[Dd]데이터/*/*.bin*
+
+# 임시로 자동 생성된 Android 에셋
+/[Aa]자산/[Ss]스트리밍자산/aa.meta
+/[Aa]자산/[Ss]스트리밍자산/aa/*
+
+# https://www.toptal.com/developers/gitignore/api/unity,csharp,rider 끝
+ 
