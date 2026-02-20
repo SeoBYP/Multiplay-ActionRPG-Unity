@@ -4,6 +4,6 @@ namespace GameServer.Infrastructure.Interfaces;
 
 public interface IJwtTokenGenerator
 {
-    string GenerateAccessToken(long userId, string userName, string email, string sessionId);
+    string GenerateAccessToken(long userId, string nickName, string email, string sessionId);
     ValueTask<ClaimsPrincipal?> ValidateToken(string token, bool validateLifetime = true);
 }

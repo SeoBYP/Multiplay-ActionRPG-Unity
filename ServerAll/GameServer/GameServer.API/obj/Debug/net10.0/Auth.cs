@@ -25,35 +25,35 @@ namespace GameServer.Grpc.Auth {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "CgphdXRoLnByb3RvEhJnYW1lc2VydmVyLmF1dGgudjEaDGNvbW1vbi5wcm90",
-            "byJFCg9SZWdpc3RlclJlcXVlc3QSEQoJdXNlcl9uYW1lGAEgASgJEhAKCHBh",
-            "c3N3b3JkGAIgASgJEg0KBWVtYWlsGAMgASgJImkKEFJlZ2lzdGVyUmVzcG9u",
-            "c2USKQoGcmVzdWx0GAEgASgLMhkuZ2FtZXNlcnZlci5jb21tb24uUmVzdWx0",
-            "EioKBHVzZXIYAiABKAsyHC5nYW1lc2VydmVyLmF1dGgudjEuVXNlckluZm8i",
-            "MwoMTG9naW5SZXF1ZXN0EhEKCXVzZXJfbmFtZRgBIAEoCRIQCghwYXNzd29y",
-            "ZBgCIAEoCSKkAQoNTG9naW5SZXNwb25zZRIpCgZyZXN1bHQYASABKAsyGS5n",
-            "YW1lc2VydmVyLmNvbW1vbi5SZXN1bHQSFAoMYWNjZXNzX3Rva2VuGAIgASgJ",
-            "EhIKCnNlc3Npb25faWQYAyABKAkSEgoKZXhwaXJlc19hdBgEIAEoAxIqCgR1",
-            "c2VyGAUgASgLMhwuZ2FtZXNlcnZlci5hdXRoLnYxLlVzZXJJbmZvIg8KDUxv",
-            "Z291dFJlcXVlc3QiOwoOTG9nb3V0UmVzcG9uc2USKQoGcmVzdWx0GAEgASgL",
-            "MhkuZ2FtZXNlcnZlci5jb21tb24uUmVzdWx0IlEKCFVzZXJJbmZvEg8KB3Vz",
-            "ZXJfaWQYASABKAMSEQoJdXNlcl9uYW1lGAIgASgJEg0KBWVtYWlsGAMgASgJ",
-            "EhIKCmNyZWF0ZWRfYXQYBCABKAMygwIKC0F1dGhTZXJ2aWNlElUKCFJlZ2lz",
-            "dGVyEiMuZ2FtZXNlcnZlci5hdXRoLnYxLlJlZ2lzdGVyUmVxdWVzdBokLmdh",
-            "bWVzZXJ2ZXIuYXV0aC52MS5SZWdpc3RlclJlc3BvbnNlEkwKBUxvZ2luEiAu",
-            "Z2FtZXNlcnZlci5hdXRoLnYxLkxvZ2luUmVxdWVzdBohLmdhbWVzZXJ2ZXIu",
-            "YXV0aC52MS5Mb2dpblJlc3BvbnNlEk8KBkxvZ291dBIhLmdhbWVzZXJ2ZXIu",
-            "YXV0aC52MS5Mb2dvdXRSZXF1ZXN0GiIuZ2FtZXNlcnZlci5hdXRoLnYxLkxv",
-            "Z291dFJlc3BvbnNlQheqAhRHYW1lU2VydmVyLkdycGMuQXV0aGIGcHJvdG8z"));
+            "byJECg9SZWdpc3RlclJlcXVlc3QSDQoFZW1haWwYASABKAkSEAoIcGFzc3dv",
+            "cmQYAiABKAkSEAoIbmlja25hbWUYAyABKAkiaQoQUmVnaXN0ZXJSZXNwb25z",
+            "ZRIpCgZyZXN1bHQYASABKAsyGS5nYW1lc2VydmVyLmNvbW1vbi5SZXN1bHQS",
+            "KgoEdXNlchgCIAEoCzIcLmdhbWVzZXJ2ZXIuYXV0aC52MS5Vc2VySW5mbyIv",
+            "CgxMb2dpblJlcXVlc3QSDQoFZW1haWwYASABKAkSEAoIcGFzc3dvcmQYAiAB",
+            "KAkipAEKDUxvZ2luUmVzcG9uc2USKQoGcmVzdWx0GAEgASgLMhkuZ2FtZXNl",
+            "cnZlci5jb21tb24uUmVzdWx0EhQKDGFjY2Vzc190b2tlbhgCIAEoCRISCgpz",
+            "ZXNzaW9uX2lkGAMgASgJEhIKCmV4cGlyZXNfYXQYBCABKAMSKgoEdXNlchgF",
+            "IAEoCzIcLmdhbWVzZXJ2ZXIuYXV0aC52MS5Vc2VySW5mbyIPCg1Mb2dvdXRS",
+            "ZXF1ZXN0IjsKDkxvZ291dFJlc3BvbnNlEikKBnJlc3VsdBgBIAEoCzIZLmdh",
+            "bWVzZXJ2ZXIuY29tbW9uLlJlc3VsdCJRCghVc2VySW5mbxIPCgd1c2VyX2lk",
+            "GAEgASgDEhEKCW5pY2tfbmFtZRgCIAEoCRINCgVlbWFpbBgDIAEoCRISCgpj",
+            "cmVhdGVkX2F0GAQgASgDMoMCCgtBdXRoU2VydmljZRJVCghSZWdpc3RlchIj",
+            "LmdhbWVzZXJ2ZXIuYXV0aC52MS5SZWdpc3RlclJlcXVlc3QaJC5nYW1lc2Vy",
+            "dmVyLmF1dGgudjEuUmVnaXN0ZXJSZXNwb25zZRJMCgVMb2dpbhIgLmdhbWVz",
+            "ZXJ2ZXIuYXV0aC52MS5Mb2dpblJlcXVlc3QaIS5nYW1lc2VydmVyLmF1dGgu",
+            "djEuTG9naW5SZXNwb25zZRJPCgZMb2dvdXQSIS5nYW1lc2VydmVyLmF1dGgu",
+            "djEuTG9nb3V0UmVxdWVzdBoiLmdhbWVzZXJ2ZXIuYXV0aC52MS5Mb2dvdXRS",
+            "ZXNwb25zZUIXqgIUR2FtZVNlcnZlci5HcnBjLkF1dGhiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::GameServer.Grpc.Common.CommonReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.RegisterRequest), global::GameServer.Grpc.Auth.RegisterRequest.Parser, new[]{ "UserName", "Password", "Email" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.RegisterRequest), global::GameServer.Grpc.Auth.RegisterRequest.Parser, new[]{ "Email", "Password", "Nickname" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.RegisterResponse), global::GameServer.Grpc.Auth.RegisterResponse.Parser, new[]{ "Result", "User" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.LoginRequest), global::GameServer.Grpc.Auth.LoginRequest.Parser, new[]{ "UserName", "Password" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.LoginRequest), global::GameServer.Grpc.Auth.LoginRequest.Parser, new[]{ "Email", "Password" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.LoginResponse), global::GameServer.Grpc.Auth.LoginResponse.Parser, new[]{ "Result", "AccessToken", "SessionId", "ExpiresAt", "User" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.LogoutRequest), global::GameServer.Grpc.Auth.LogoutRequest.Parser, null, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.LogoutResponse), global::GameServer.Grpc.Auth.LogoutResponse.Parser, new[]{ "Result" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.UserInfo), global::GameServer.Grpc.Auth.UserInfo.Parser, new[]{ "UserId", "UserName", "Email", "CreatedAt" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Auth.UserInfo), global::GameServer.Grpc.Auth.UserInfo.Parser, new[]{ "UserId", "NickName", "Email", "CreatedAt" }, null, null, null, null)
           }));
     }
     #endregion
@@ -95,9 +95,9 @@ namespace GameServer.Grpc.Auth {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public RegisterRequest(RegisterRequest other) : this() {
-      userName_ = other.userName_;
-      password_ = other.password_;
       email_ = other.email_;
+      password_ = other.password_;
+      nickname_ = other.nickname_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -107,15 +107,15 @@ namespace GameServer.Grpc.Auth {
       return new RegisterRequest(this);
     }
 
-    /// <summary>Field number for the "user_name" field.</summary>
-    public const int UserNameFieldNumber = 1;
-    private string userName_ = "";
+    /// <summary>Field number for the "email" field.</summary>
+    public const int EmailFieldNumber = 1;
+    private string email_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string UserName {
-      get { return userName_; }
+    public string Email {
+      get { return email_; }
       set {
-        userName_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        email_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
 
@@ -131,15 +131,15 @@ namespace GameServer.Grpc.Auth {
       }
     }
 
-    /// <summary>Field number for the "email" field.</summary>
-    public const int EmailFieldNumber = 3;
-    private string email_ = "";
+    /// <summary>Field number for the "nickname" field.</summary>
+    public const int NicknameFieldNumber = 3;
+    private string nickname_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Email {
-      get { return email_; }
+    public string Nickname {
+      get { return nickname_; }
       set {
-        email_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        nickname_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
 
@@ -158,9 +158,9 @@ namespace GameServer.Grpc.Auth {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (UserName != other.UserName) return false;
-      if (Password != other.Password) return false;
       if (Email != other.Email) return false;
+      if (Password != other.Password) return false;
+      if (Nickname != other.Nickname) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -168,9 +168,9 @@ namespace GameServer.Grpc.Auth {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (UserName.Length != 0) hash ^= UserName.GetHashCode();
-      if (Password.Length != 0) hash ^= Password.GetHashCode();
       if (Email.Length != 0) hash ^= Email.GetHashCode();
+      if (Password.Length != 0) hash ^= Password.GetHashCode();
+      if (Nickname.Length != 0) hash ^= Nickname.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -189,17 +189,17 @@ namespace GameServer.Grpc.Auth {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (UserName.Length != 0) {
+      if (Email.Length != 0) {
         output.WriteRawTag(10);
-        output.WriteString(UserName);
+        output.WriteString(Email);
       }
       if (Password.Length != 0) {
         output.WriteRawTag(18);
         output.WriteString(Password);
       }
-      if (Email.Length != 0) {
+      if (Nickname.Length != 0) {
         output.WriteRawTag(26);
-        output.WriteString(Email);
+        output.WriteString(Nickname);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -211,17 +211,17 @@ namespace GameServer.Grpc.Auth {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (UserName.Length != 0) {
+      if (Email.Length != 0) {
         output.WriteRawTag(10);
-        output.WriteString(UserName);
+        output.WriteString(Email);
       }
       if (Password.Length != 0) {
         output.WriteRawTag(18);
         output.WriteString(Password);
       }
-      if (Email.Length != 0) {
+      if (Nickname.Length != 0) {
         output.WriteRawTag(26);
-        output.WriteString(Email);
+        output.WriteString(Nickname);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -233,14 +233,14 @@ namespace GameServer.Grpc.Auth {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (UserName.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(UserName);
+      if (Email.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Email);
       }
       if (Password.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Password);
       }
-      if (Email.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Email);
+      if (Nickname.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Nickname);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -254,14 +254,14 @@ namespace GameServer.Grpc.Auth {
       if (other == null) {
         return;
       }
-      if (other.UserName.Length != 0) {
-        UserName = other.UserName;
+      if (other.Email.Length != 0) {
+        Email = other.Email;
       }
       if (other.Password.Length != 0) {
         Password = other.Password;
       }
-      if (other.Email.Length != 0) {
-        Email = other.Email;
+      if (other.Nickname.Length != 0) {
+        Nickname = other.Nickname;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -283,7 +283,7 @@ namespace GameServer.Grpc.Auth {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10: {
-            UserName = input.ReadString();
+            Email = input.ReadString();
             break;
           }
           case 18: {
@@ -291,7 +291,7 @@ namespace GameServer.Grpc.Auth {
             break;
           }
           case 26: {
-            Email = input.ReadString();
+            Nickname = input.ReadString();
             break;
           }
         }
@@ -314,7 +314,7 @@ namespace GameServer.Grpc.Auth {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 10: {
-            UserName = input.ReadString();
+            Email = input.ReadString();
             break;
           }
           case 18: {
@@ -322,7 +322,7 @@ namespace GameServer.Grpc.Auth {
             break;
           }
           case 26: {
-            Email = input.ReadString();
+            Nickname = input.ReadString();
             break;
           }
         }
@@ -626,7 +626,7 @@ namespace GameServer.Grpc.Auth {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public LoginRequest(LoginRequest other) : this() {
-      userName_ = other.userName_;
+      email_ = other.email_;
       password_ = other.password_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
@@ -637,15 +637,15 @@ namespace GameServer.Grpc.Auth {
       return new LoginRequest(this);
     }
 
-    /// <summary>Field number for the "user_name" field.</summary>
-    public const int UserNameFieldNumber = 1;
-    private string userName_ = "";
+    /// <summary>Field number for the "email" field.</summary>
+    public const int EmailFieldNumber = 1;
+    private string email_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string UserName {
-      get { return userName_; }
+    public string Email {
+      get { return email_; }
       set {
-        userName_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        email_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
 
@@ -676,7 +676,7 @@ namespace GameServer.Grpc.Auth {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (UserName != other.UserName) return false;
+      if (Email != other.Email) return false;
       if (Password != other.Password) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -685,7 +685,7 @@ namespace GameServer.Grpc.Auth {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (UserName.Length != 0) hash ^= UserName.GetHashCode();
+      if (Email.Length != 0) hash ^= Email.GetHashCode();
       if (Password.Length != 0) hash ^= Password.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -705,9 +705,9 @@ namespace GameServer.Grpc.Auth {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (UserName.Length != 0) {
+      if (Email.Length != 0) {
         output.WriteRawTag(10);
-        output.WriteString(UserName);
+        output.WriteString(Email);
       }
       if (Password.Length != 0) {
         output.WriteRawTag(18);
@@ -723,9 +723,9 @@ namespace GameServer.Grpc.Auth {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (UserName.Length != 0) {
+      if (Email.Length != 0) {
         output.WriteRawTag(10);
-        output.WriteString(UserName);
+        output.WriteString(Email);
       }
       if (Password.Length != 0) {
         output.WriteRawTag(18);
@@ -741,8 +741,8 @@ namespace GameServer.Grpc.Auth {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (UserName.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(UserName);
+      if (Email.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Email);
       }
       if (Password.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Password);
@@ -759,8 +759,8 @@ namespace GameServer.Grpc.Auth {
       if (other == null) {
         return;
       }
-      if (other.UserName.Length != 0) {
-        UserName = other.UserName;
+      if (other.Email.Length != 0) {
+        Email = other.Email;
       }
       if (other.Password.Length != 0) {
         Password = other.Password;
@@ -785,7 +785,7 @@ namespace GameServer.Grpc.Auth {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10: {
-            UserName = input.ReadString();
+            Email = input.ReadString();
             break;
           }
           case 18: {
@@ -812,7 +812,7 @@ namespace GameServer.Grpc.Auth {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 10: {
-            UserName = input.ReadString();
+            Email = input.ReadString();
             break;
           }
           case 18: {
@@ -1600,7 +1600,7 @@ namespace GameServer.Grpc.Auth {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public UserInfo(UserInfo other) : this() {
       userId_ = other.userId_;
-      userName_ = other.userName_;
+      nickName_ = other.nickName_;
       email_ = other.email_;
       createdAt_ = other.createdAt_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
@@ -1624,15 +1624,15 @@ namespace GameServer.Grpc.Auth {
       }
     }
 
-    /// <summary>Field number for the "user_name" field.</summary>
-    public const int UserNameFieldNumber = 2;
-    private string userName_ = "";
+    /// <summary>Field number for the "nick_name" field.</summary>
+    public const int NickNameFieldNumber = 2;
+    private string nickName_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string UserName {
-      get { return userName_; }
+    public string NickName {
+      get { return nickName_; }
       set {
-        userName_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        nickName_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
 
@@ -1676,7 +1676,7 @@ namespace GameServer.Grpc.Auth {
         return true;
       }
       if (UserId != other.UserId) return false;
-      if (UserName != other.UserName) return false;
+      if (NickName != other.NickName) return false;
       if (Email != other.Email) return false;
       if (CreatedAt != other.CreatedAt) return false;
       return Equals(_unknownFields, other._unknownFields);
@@ -1687,7 +1687,7 @@ namespace GameServer.Grpc.Auth {
     public override int GetHashCode() {
       int hash = 1;
       if (UserId != 0L) hash ^= UserId.GetHashCode();
-      if (UserName.Length != 0) hash ^= UserName.GetHashCode();
+      if (NickName.Length != 0) hash ^= NickName.GetHashCode();
       if (Email.Length != 0) hash ^= Email.GetHashCode();
       if (CreatedAt != 0L) hash ^= CreatedAt.GetHashCode();
       if (_unknownFields != null) {
@@ -1712,9 +1712,9 @@ namespace GameServer.Grpc.Auth {
         output.WriteRawTag(8);
         output.WriteInt64(UserId);
       }
-      if (UserName.Length != 0) {
+      if (NickName.Length != 0) {
         output.WriteRawTag(18);
-        output.WriteString(UserName);
+        output.WriteString(NickName);
       }
       if (Email.Length != 0) {
         output.WriteRawTag(26);
@@ -1738,9 +1738,9 @@ namespace GameServer.Grpc.Auth {
         output.WriteRawTag(8);
         output.WriteInt64(UserId);
       }
-      if (UserName.Length != 0) {
+      if (NickName.Length != 0) {
         output.WriteRawTag(18);
-        output.WriteString(UserName);
+        output.WriteString(NickName);
       }
       if (Email.Length != 0) {
         output.WriteRawTag(26);
@@ -1763,8 +1763,8 @@ namespace GameServer.Grpc.Auth {
       if (UserId != 0L) {
         size += 1 + pb::CodedOutputStream.ComputeInt64Size(UserId);
       }
-      if (UserName.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(UserName);
+      if (NickName.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(NickName);
       }
       if (Email.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Email);
@@ -1787,8 +1787,8 @@ namespace GameServer.Grpc.Auth {
       if (other.UserId != 0L) {
         UserId = other.UserId;
       }
-      if (other.UserName.Length != 0) {
-        UserName = other.UserName;
+      if (other.NickName.Length != 0) {
+        NickName = other.NickName;
       }
       if (other.Email.Length != 0) {
         Email = other.Email;
@@ -1820,7 +1820,7 @@ namespace GameServer.Grpc.Auth {
             break;
           }
           case 18: {
-            UserName = input.ReadString();
+            NickName = input.ReadString();
             break;
           }
           case 26: {
@@ -1855,7 +1855,7 @@ namespace GameServer.Grpc.Auth {
             break;
           }
           case 18: {
-            UserName = input.ReadString();
+            NickName = input.ReadString();
             break;
           }
           case 26: {

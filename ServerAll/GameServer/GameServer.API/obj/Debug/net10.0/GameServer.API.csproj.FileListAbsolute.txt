@@ -157,3 +157,4 @@ C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.A
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Grpc.Net.Common.dll
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Grpc.AspNetCore.Server.Reflection.dll
 C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Grpc.Reflection.dll
+C:\Users\user\Github\Multiplay-ActionRPG-Unity\ServerAll\GameServer\GameServer.API\bin\Debug\net10.0\Nanoid.dll

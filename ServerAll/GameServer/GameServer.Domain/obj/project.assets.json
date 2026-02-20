@@ -37,6 +37,19 @@
           "buildTransitive/net6.0/Microsoft.Extensions.Logging.Abstractions.targets": {}
         }
       },
+      "Nanoid/3.1.0": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/Nanoid.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/Nanoid.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "Pipelines.Sockets.Unofficial/2.2.8": {
         "type": "package",
         "compile": {
@@ -192,6 +205,24 @@
         "useSharedDesignerContext.txt"
       ]
     },
+    "Nanoid/3.1.0": {
+      "sha512": "5vhxZ+1iVH213boPsR3KYQXWObZQcaGvLU9ytTroWJFeVzV2EFAtGgrmMpb8BCxd+KWeBASniZLzd3UQ0tkhRQ==",
+      "type": "package",
+      "path": "nanoid/3.1.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "lib/net48/Nanoid.dll",
+        "lib/net48/Nanoid.xml",
+        "lib/net8.0/Nanoid.dll",
+        "lib/net8.0/Nanoid.xml",
+        "lib/netstandard2.0/Nanoid.dll",
+        "lib/netstandard2.0/Nanoid.xml",
+        "nanoid.3.1.0.nupkg.sha512",
+        "nanoid.nuspec"
+      ]
+    },
     "Pipelines.Sockets.Unofficial/2.2.8": {
       "sha512": "zG2FApP5zxSx6OcdJQLbZDk2AVlN2BNQD6MorwIfV6gVj0RRxWPEp2LXAxqDGZqeNV1Zp0BNPcNaey/GXmTdvQ==",
       "type": "package",
@@ -270,6 +301,7 @@
   },
   "projectFileDependencyGroups": {
     "net10.0": [
+      "Nanoid >= 3.1.0",
       "StackExchange.Redis >= 2.10.1"
     ]
   },
@@ -323,6 +355,10 @@
       "net10.0": {
         "targetAlias": "net10.0",
         "dependencies": {
+          "Nanoid": {
+            "target": "Package",
+            "version": "[3.1.0, )"
+          },
           "StackExchange.Redis": {
             "target": "Package",
             "version": "[2.10.1, )"

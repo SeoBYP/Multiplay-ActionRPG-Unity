@@ -171,7 +171,7 @@ static void ConfigureServices(WebApplicationBuilder builder)
     });
 
     // DI registrations
-    services.AddSingleton<IUserRepository, InMemoryUserRepository>();
+    services.AddSingleton<IUserRepository, UserRepository>();
     services.AddSingleton<IUserSessionRepository, UserSessionRepository>();
 
     services.AddScoped<IPasswordHasher, PasswordHasher>();

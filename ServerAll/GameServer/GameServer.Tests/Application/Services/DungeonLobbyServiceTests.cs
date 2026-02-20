@@ -4,6 +4,7 @@ using GameServer.Domain.Entities;
 using GameServer.Infrastructure.Interfaces.DungeonRoom;
 using GameServer.Infrastructure.Interfaces.User;
 using GameServer.Tests.Fakes;
+using GameServer.Tests.Infrastructure;
 
 namespace GameServer.Tests.Application.Services;
 
@@ -544,7 +545,9 @@ public class DungeonLobbyServiceTests
     /// </summary>
     private async Task<string> CreateTestSession(long userId, string userName)
     {
-        var session = await _sessionRepository.CreateSessionAsync(userId, userName);
+        var email = $"{userName}@example.com";
+        var publicId = $"PUB{userId:D8}";
+        var session = await _sessionRepository.CreateSessionAsync(userId, userName, email, publicId);
         return session!.SessionId;
     }
 

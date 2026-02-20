@@ -163,6 +163,19 @@
           }
         }
       },
+      "Nanoid/3.1.0": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/Nanoid.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/Nanoid.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "Pipelines.Sockets.Unofficial/2.2.8": {
         "type": "package",
         "compile": {
@@ -231,6 +244,7 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
+          "Nanoid": "3.1.0",
           "StackExchange.Redis": "2.10.1"
         },
         "compile": {
@@ -531,6 +545,24 @@
         "lib/netstandard2.0/Microsoft.IdentityModel.Tokens.xml",
         "microsoft.identitymodel.tokens.8.0.1.nupkg.sha512",
         "microsoft.identitymodel.tokens.nuspec"
+      ]
+    },
+    "Nanoid/3.1.0": {
+      "sha512": "5vhxZ+1iVH213boPsR3KYQXWObZQcaGvLU9ytTroWJFeVzV2EFAtGgrmMpb8BCxd+KWeBASniZLzd3UQ0tkhRQ==",
+      "type": "package",
+      "path": "nanoid/3.1.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "lib/net48/Nanoid.dll",
+        "lib/net48/Nanoid.xml",
+        "lib/net8.0/Nanoid.dll",
+        "lib/net8.0/Nanoid.xml",
+        "lib/netstandard2.0/Nanoid.dll",
+        "lib/netstandard2.0/Nanoid.xml",
+        "nanoid.3.1.0.nupkg.sha512",
+        "nanoid.nuspec"
       ]
     },
     "Pipelines.Sockets.Unofficial/2.2.8": {

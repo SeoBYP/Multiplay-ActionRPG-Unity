@@ -24,9 +24,14 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
     private TimeSpan SessionTtl => _jwtOptions.AccessTokenExpiration;
 
     /// <summary>
-    /// 사용자 세션 생성
+    /// 새로운 사용자 세션을 생성하고 Redis에 저장합니다.
     /// </summary>
-    public async Task<UserSession?> CreateSessionAsync(long userId, string userName)
+    /// <param name="userId">사용자 고유 식별자</param>
+    /// <param name="userName">사용자 이름</param>
+    /// <param name="userEmail">사용자 이메일</param>
+    /// <param name="publicId">사용자 공개 ID</param>
+    /// <returns>생성된 세션 객체, 실패 시 예외 발생</returns>
+    public async Task<UserSession?> CreateSessionAsync(long userId, string userName, string userEmail, string publicId)
     {
         try
         {
@@ -35,13 +40,15 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
             var transaction = _database.CreateTransaction();
 
             var sessionId = Guid.CreateVersion7().ToString();
-            var newSession = UserSession.Create(userId, userName, sessionId);
+            var newSession = UserSession.Create(userId, userEmail, userName, publicId, sessionId);
 
             // Redis Hash에 세션 정보 저장
             Task hashTask = transaction.HashSetAsync($"{SessionKey}:{sessionId}",
             [
                 new HashEntry("UserId", userId),
                 new HashEntry("UserName", userName),
+                new HashEntry("Email", userEmail),
+                new HashEntry("PublicId", publicId),
                 new HashEntry("LoginAt", newSession.LoginAt.ToString("O")),
                 new HashEntry("LastActiveAt", newSession.LastActiveAt.ToString("O"))
             ]);
@@ -74,8 +81,10 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
     }
 
     /// <summary>
-    /// SessionId로 세션 조회
+    /// 세션 ID를 사용하여 활성화된 세션 정보를 조회합니다.
     /// </summary>
+    /// <param name="sessionId">조회할 세션 ID</param>
+    /// <returns>세션 정보 객체, 없거나 만료된 경우 null</returns>
     public async Task<UserSession?> GetBySessionIdAsync(string sessionId)
     {
         try
@@ -101,8 +110,10 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
     }
 
     /// <summary>
-    /// UserId로 세션 조회
+    /// 사용자 ID를 사용하여 해당 사용자의 현재 세션을 조회합니다.
     /// </summary>
+    /// <param name="userId">조회할 사용자 ID</param>
+    /// <returns>세션 정보 객체, 세션이 없는 경우 null</returns>
     public async Task<UserSession?> GetSessionByUserIdAsync(long userId)
     {
         var sessionId = await _database.StringGetAsync($"{UserSessionMappingKey}:{userId}");
@@ -119,8 +130,9 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
     }
 
     /// <summary>
-    /// 세션 제거
+    /// 지정된 세션 ID에 해당하는 세션 정보를 삭제합니다.
     /// </summary>
+    /// <param name="sessionId">삭제할 세션 ID</param>
     public async Task RemoveSessionAsync(string sessionId)
     {
         try
@@ -157,7 +169,7 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
     }
 
     /// <summary>
-    /// 현재 활성 세션 수 조회
+    /// 현재 시스템에서 활성화된 전체 세션의 개수를 반환합니다.
     /// </summary>
     public async Task<long> GetActiveSessionCountAsync()
     {
@@ -165,7 +177,7 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
     }
 
     /// <summary>
-    /// 모든 활성 세션 조회
+    /// 현재 활성화된 모든 세션 목록을 조회합니다.
     /// </summary>
     public async Task<IEnumerable<UserSession>> GetActiveSessionsAsync()
     {
@@ -199,8 +211,9 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
     }
 
     /// <summary>
-    /// TTL 만료로 사라진 세션을 Active Set에서 정리
+    /// Redis 키 만료(TTL)로 인해 사라진 세션들을 활성 세션 목록(Set)에서 정리합니다.
     /// </summary>
+    /// <param name="timeout">정리 작업 시 고려할 타임아웃 설정 (현재 로직에서는 존재 여부 확인용)</param>
     public async Task CleanupExpiredSessionsAsync(TimeSpan timeout)
     {
         try
@@ -248,6 +261,9 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
     /// <summary>
     /// Redis HashEntry를 UserSession 도메인 객체로 변환
     /// </summary>
+    /// <summary>
+    /// Redis에서 가져온 Hash 항목들을 UserSession 객체로 변환합니다.
+    /// </summary>
     private UserSession? ParseSessionFromEntries(string sessionId, HashEntry[] entries)
     {
         // HashEntry 배열을 Dictionary로 변환
@@ -259,6 +275,8 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
         // 필수 필드 검증
         if (!dict.TryGetValue("UserId", out var userIdStr) ||
             !dict.TryGetValue("UserName", out var userName) ||
+            !dict.TryGetValue("Email", out var email) ||
+            !dict.TryGetValue("PublicId", out var publicId) ||
             !dict.TryGetValue("LoginAt", out var loginAtStr) ||
             !dict.TryGetValue("LastActiveAt", out var lastActiveAtStr))
         {
@@ -286,6 +304,6 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
             return null;
         }
 
-        return UserSession.FromRedis(sessionId, userId, userName, loginAt, lastActiveAt);
+        return UserSession.FromRedis(sessionId, userId, email, userName, publicId, loginAt, lastActiveAt);
     }
 }

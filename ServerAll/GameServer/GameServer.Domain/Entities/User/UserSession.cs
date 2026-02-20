@@ -2,36 +2,46 @@
 
 public class UserSession
 {
-    public string SessionId { get; set; } = string.Empty;
+    public string SessionId { get; set; }
     public long UserId { get; set; }
-    public string UserName { get; set; } = string.Empty;
+    public string Email { get; set; } 
+    public string NickName { get; set; } 
+    
+    public string PublicId { get; set; }
     public DateTime LoginAt { get; set; }
     public DateTime LastActiveAt { get; set; }
     
     private UserSession(){ }
     
-    public static UserSession Create(long userId, string userName, string sessionId)
+    public static UserSession Create(long userId, string email, string nickName, string publicId, string sessionId)
     {
-        if(string.IsNullOrWhiteSpace(sessionId))
+        if (string.IsNullOrWhiteSpace(sessionId))
             throw new ArgumentException("Session id cannot be null or whitespace", nameof(sessionId));
+        if (string.IsNullOrWhiteSpace(publicId))
+            throw new ArgumentException("Public id cannot be null or whitespace", nameof(publicId));
+            
         return new UserSession
         {
             SessionId = sessionId,
             UserId = userId,
-            UserName = userName,
+            Email = email,
+            NickName = nickName,
+            PublicId = publicId,
             LoginAt = DateTime.UtcNow,
             LastActiveAt = DateTime.UtcNow
         };
     }
 
-    public static UserSession FromRedis(string sessionId, long userId, string userName,
+    public static UserSession FromRedis(string sessionId, long userId, string email, string userName, string publicId,
         DateTime loginAt, DateTime lastActiveAt)
     {
         return new UserSession
         {
             SessionId = sessionId,
             UserId = userId,
-            UserName = userName,
+            Email = email,
+            NickName = userName,
+            PublicId = publicId,
             LoginAt = loginAt,
             LastActiveAt = lastActiveAt
         };

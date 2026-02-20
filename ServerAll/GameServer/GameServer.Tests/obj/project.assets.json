@@ -1092,6 +1092,19 @@
           "lib/net6.0/Moq.dll": {}
         }
       },
+      "Nanoid/3.1.0": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/Nanoid.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/Nanoid.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "NETStandard.Library/1.6.1": {
         "type": "package",
         "dependencies": {
@@ -1419,6 +1432,7 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
+          "Nanoid": "3.1.0",
           "StackExchange.Redis": "2.10.1"
         },
         "compile": {
@@ -3273,6 +3287,24 @@
         "moq.4.20.72.nupkg.sha512",
         "moq.nuspec",
         "readme.md"
+      ]
+    },
+    "Nanoid/3.1.0": {
+      "sha512": "5vhxZ+1iVH213boPsR3KYQXWObZQcaGvLU9ytTroWJFeVzV2EFAtGgrmMpb8BCxd+KWeBASniZLzd3UQ0tkhRQ==",
+      "type": "package",
+      "path": "nanoid/3.1.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "lib/net48/Nanoid.dll",
+        "lib/net48/Nanoid.xml",
+        "lib/net8.0/Nanoid.dll",
+        "lib/net8.0/Nanoid.xml",
+        "lib/netstandard2.0/Nanoid.dll",
+        "lib/netstandard2.0/Nanoid.xml",
+        "nanoid.3.1.0.nupkg.sha512",
+        "nanoid.nuspec"
       ]
     },
     "NETStandard.Library/1.6.1": {

@@ -31,9 +31,10 @@ public class ChatServiceTests
         _service = new ChatService(_chatRepo, _sessionRepo, _mockRedis.Object);
     }
 
-    private async Task<string> CreateSessionAsync(long userId = 100, string userName = "Tester")
+    private async Task<string> CreateSessionAsync(long userId = 100, string nickname = "test",
+        string userEmail = "test@test.com", string publicId = "public123")
     {
-        var session = await _sessionRepo.CreateSessionAsync(userId, userName);
+        var session = await _sessionRepo.CreateSessionAsync(userId, nickname,userEmail, publicId);
         return session!.SessionId;
     }
 

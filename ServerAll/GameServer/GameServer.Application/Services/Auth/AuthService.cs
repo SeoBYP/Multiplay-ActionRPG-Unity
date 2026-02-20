@@ -1,16 +1,12 @@
 ﻿using GameServer.Application.Common;
 using GameServer.Application.Services.Auth.Interfaces;
-using GameServer.Domain.Entities;
+
 using GameServer.Domain.Entities.User;
 using GameServer.Infrastructure.Interfaces;
 using GameServer.Infrastructure.Interfaces.User;
 using GameServer.Infrastructure.Security;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
-using LoginRequest = GameServer.Application.DTOs.Auth.Login.LoginRequest;
-using LoginResponse = GameServer.Application.DTOs.Auth.Login.LoginResponse;
-using RegisterRequest = GameServer.Application.DTOs.Auth.Register.RegisterRequest;
-using RegisterResponse = GameServer.Application.DTOs.Auth.Register.RegisterResponse;
 
 namespace GameServer.Application.Services.Auth;
 
@@ -24,41 +20,44 @@ public class AuthService(
 {
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
     
-    public async Task<Result<User>> RegisterAsync(string userName, string password, string email)
+    public async Task<Result<User>> RegisterAsync(string nickName, string password, string email)
     {
         // 중복 체크
-        if (string.IsNullOrWhiteSpace(userName))
+        if (string.IsNullOrWhiteSpace(nickName))
         {
             return Result<User>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
         }
 
-        var existing = await userRepository.GetByUsernameAsync(userName);
-        if (existing is not null)
+        // 닉네임 중복 체크
+        var existingNickname = await userRepository.IsNicknameExistsAsync(nickName);
+        if (existingNickname)
+            return Result<User>.Failure(ErrorCodes.UserAlreadyExists, ErrorMessages.UserAlreadyExists);
+
+        // 이메일 중복 체크
+        var existingEmail = await userRepository.IsEmailExistsAsync(email);
+        if (existingEmail)
             return Result<User>.Failure(ErrorCodes.UserAlreadyExists, ErrorMessages.UserAlreadyExists);
 
         // 비밀번호 해싱
         var hash = passwordHasher.HashPassword(password);
 
         // User Entity 생성
-        var user = User.Create(userName, hash, email);
-
-        // Add
-        await userRepository.AddAsync(user);
-
+        var user = await userRepository.AddAsync(nickName, hash, email);
+        
         // Response
         return Result<User>.Success(user);
     }
 
-    public async Task<Result<LoginResult>> LoginAsync(string userName, string password)
+    public async Task<Result<LoginResult>> LoginAsync(string email, string password)
     {
         // 잘못된 요청
-        if (string.IsNullOrWhiteSpace(userName))
+        if (string.IsNullOrWhiteSpace(email))
         {
             return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
         }
 
-        // User 조회
-        var user = await userRepository.GetByUsernameAsync(userName);
+        // User 조회: 먼저 닉네임으로, 없으면 이메일로 재시도
+        var user = await userRepository.GetByEmailAsync(email);
         if (user is null)
             return Result<LoginResult>.Failure(ErrorCodes.UserNotFound, ErrorMessages.UserNotFound);
 
@@ -68,12 +67,12 @@ public class AuthService(
             return Result<LoginResult>.Failure(ErrorCodes.InvalidCredentials, ErrorMessages.InvalidCredentials);
 
         // 세션 생성
-        var userSession = await userSessionRepository.CreateSessionAsync(user.UserId, user.UserName);
+        var userSession = await userSessionRepository.CreateSessionAsync(user.UserId, user.NickName, user.Email, user.PublicId);
         if (userSession is null)
             return Result<LoginResult>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
 
         var accessToken =
-            jwtTokenGenerator.GenerateAccessToken(user.UserId, user.UserName, user.Email, userSession.SessionId);
+            jwtTokenGenerator.GenerateAccessToken(user.UserId, user.NickName, user.Email, userSession.SessionId);
         var expiresAt = _jwtOptions.GetExpirationTime();
         // 성공
         return Result<LoginResult>.Success(new LoginResult(

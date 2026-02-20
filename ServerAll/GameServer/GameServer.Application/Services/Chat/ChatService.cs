@@ -24,7 +24,7 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
                 return Result<ChatMessage>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
 
             var chatMessage = await chatMessageRepository.CreateAsync(userSession.UserId, 
-                userSession.UserName,
+                userSession.NickName,
                 chatType, 
                 message, 
                 roomId,

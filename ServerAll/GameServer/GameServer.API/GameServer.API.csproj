@@ -17,6 +17,7 @@
 
     <ItemGroup>
       <Folder Include="Application\" />
+      <Folder Include="Protos\" />
       <Folder Include="wwwroot\" />
     </ItemGroup>
 
@@ -29,7 +30,7 @@
         <Protobuf Include="..\Protos\**\*.proto"
                   GrpcServices="Server"
                   Link="Protos\%(RecursiveDir)%(Filename)%(Extension)" />
-        <Protobuf Remove="..\Protos\**" />
+    
     </ItemGroup>
 </Project>
 

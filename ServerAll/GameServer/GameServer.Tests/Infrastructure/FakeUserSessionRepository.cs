@@ -1,4 +1,5 @@
-﻿// 테스트용 Fake 구현
+﻿namespace GameServer.Tests.Infrastructure;
+
 using GameServer.Domain.Entities;
 using GameServer.Infrastructure.Interfaces.User;
 
@@ -7,10 +8,10 @@ public class FakeUserSessionRepository : IUserSessionRepository
     private readonly Dictionary<string, UserSession> _sessions = new();
     private readonly Dictionary<long, string> _userToSession = new();
 
-    public Task<UserSession?> CreateSessionAsync(long userId, string userName)
+    public Task<UserSession?> CreateSessionAsync(long userId, string userName, string userEmail, string publicId)
     {
         var sessionId = Guid.NewGuid().ToString();
-        var session = UserSession.Create(userId, userName, sessionId);
+        var session = UserSession.Create(userId, userEmail, userName, publicId, sessionId);
         
         _sessions[sessionId] = session;
         _userToSession[userId] = sessionId;

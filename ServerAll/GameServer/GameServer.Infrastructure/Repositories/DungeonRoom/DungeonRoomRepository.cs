@@ -5,6 +5,9 @@ using StackExchange.Redis;
 
 namespace GameServer.Infrastructure.Repositories.DungeonRoom;
 
+/// <summary>
+/// Redis 기반 던전 방 저장소 구현체
+/// </summary>
 public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer) : IDungeonRoomRepository
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
@@ -14,6 +17,13 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
     private const string UserRoomMappingKey = "game:user:room";
     private const string RoomCounterKey = "game:room:id:counter";
 
+    /// <summary>
+    /// 새로운 던전 방을 생성하고 Redis에 저장합니다.
+    /// </summary>
+    /// <param name="hostId">방을 생성하는 방장의 사용자 ID</param>
+    /// <param name="roomName">생성할 방의 이름</param>
+    /// <param name="maxPlayers">방의 최대 수용 인원 (기본값: 4)</param>
+    /// <returns>생성된 DungeonRoom 객체</returns>
     public async Task<Domain.Entities.DungeonRoom?> CreateAsync(long hostId, string roomName,  int maxPlayers = 4)
     {
         try
@@ -72,6 +82,11 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
     }
 
+    /// <summary>
+    /// 방 고유 ID를 사용하여 던전 방 정보를 상세 조회합니다. (플레이어 목록 포함)
+    /// </summary>
+    /// <param name="roomId">조회할 방 ID</param>
+    /// <returns>DungeonRoom 객체, 존재하지 않는 경우 null</returns>
     public async Task<Domain.Entities.DungeonRoom?> GetByIdAsync(long roomId)
     {
         try
@@ -101,6 +116,11 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
     }
 
+    /// <summary>
+    /// 사용자 ID를 사용하여 해당 사용자가 현재 참여 중인 던전 방 정보를 조회합니다.
+    /// </summary>
+    /// <param name="userId">참여 중인 사용자 ID</param>
+    /// <returns>DungeonRoom 객체, 참여 중인 방이 없는 경우 null</returns>
     public async Task<Domain.Entities.DungeonRoom?> GetByUserIdAsync(long userId)
     {
         try
@@ -123,6 +143,10 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
     }
 
+    /// <summary>
+    /// 현재 서버에 존재하는 모든 활성 던전 방 목록을 조회합니다.
+    /// </summary>
+    /// <returns>활성 던전 방 객체 리스트</returns>
     public async Task<IEnumerable<Domain.Entities.DungeonRoom>> GetAllActiveRoomsAsync()
     {
         try
@@ -175,11 +199,19 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
     }
 
+    /// <summary>
+    /// 현재 활성화된 던전 방의 총 개수를 조회합니다.
+    /// </summary>
     public async Task<long> GetActiveRoomCountAsync()
     {
         return await _database.SetLengthAsync(ActiveRoomsKey);
     }
 
+    /// <summary>
+    /// 던전 방의 상태(이름, 방장, 인원, 상태 등) 및 플레이어 목록을 업데이트합니다.
+    /// </summary>
+    /// <param name="room">업데이트할 방 객체</param>
+    /// <returns>업데이트 성공 여부</returns>
     public async Task<bool> UpdateAsync(Domain.Entities.DungeonRoom room)
     {
         try
@@ -270,6 +302,11 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
     }
 
+    /// <summary>
+    /// 지정된 방 ID에 해당하는 던전 방 정보를 Redis에서 영구 삭제합니다.
+    /// </summary>
+    /// <param name="roomId">삭제할 방 ID</param>
+    /// <returns>삭제 성공 여부</returns>
     public async Task<bool> DeleteAsync(long roomId)
     {
         try
@@ -314,6 +351,9 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
     }
 
+    /// <summary>
+    /// Redis에서 조회한 Hash 데이터와 Set 데이터를 사용하여 DungeonRoom 도메인 객체로 변환합니다.
+    /// </summary>
     private Domain.Entities.DungeonRoom? ParseDungeonRoomFromRedis(
         long roomId,
         HashEntry[] entries,

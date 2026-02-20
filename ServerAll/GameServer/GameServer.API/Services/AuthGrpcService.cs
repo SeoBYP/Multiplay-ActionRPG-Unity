@@ -18,7 +18,7 @@ public class AuthGrpcService(IAuthService authService) : AuthService.AuthService
     public override async Task<RegisterResponse> Register(RegisterRequest request,
         ServerCallContext context)
     {
-        var result = await authService.RegisterAsync(request.UserName, request.Password, request.Email);
+        var result = await authService.RegisterAsync(request.Nickname, request.Password, request.Email);
 
         return new RegisterResponse
         {
@@ -27,7 +27,7 @@ public class AuthGrpcService(IAuthService authService) : AuthService.AuthService
                 ? new UserInfo
                 {
                     UserId = result.Value!.UserId,
-                    UserName = result.Value!.UserName,
+                    NickName = result.Value!.NickName,
                     Email = result.Value.Email,
                     CreatedAt = new DateTimeOffset(result.Value!.CreatedAt).ToUnixTimeSeconds()
                 }
@@ -38,7 +38,7 @@ public class AuthGrpcService(IAuthService authService) : AuthService.AuthService
     [AllowAnonymous]
     public override async Task<LoginResponse> Login(LoginRequest request, ServerCallContext context)
     {
-        var result = await authService.LoginAsync(request.UserName, request.Password);
+        var result = await authService.LoginAsync(request.Email, request.Password);
 
         return new LoginResponse
         {
@@ -49,7 +49,7 @@ public class AuthGrpcService(IAuthService authService) : AuthService.AuthService
                 ? new UserInfo
                 {
                     UserId = result.Value!.User.UserId,
-                    UserName = result.Value!.User.UserName,
+                    NickName = result.Value!.User.NickName,
                     Email = result.Value.User.Email,
                     CreatedAt = new DateTimeOffset(result.Value!.User.CreatedAt).ToUnixTimeSeconds()
                 }
