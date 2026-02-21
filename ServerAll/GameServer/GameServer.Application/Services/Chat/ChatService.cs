@@ -13,7 +13,7 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
     IUserSessionRepository userSessionRepository,
     IConnectionMultiplexer redis) : IChatService
 {
-    public async Task<Result<ChatMessage>> SendMessageAsync(string sessionId, ChatType chatType, string message, long? roomId, long? targetUserId,
+    public async Task<Result<ChatMessage>> SendMessageAsync(string sessionId, ChatType chatType, string message, long? roomId, string? targetUserNickName,
         CancellationToken ct = default)
     {
         try
@@ -23,14 +23,13 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
             if(userSession is null)
                 return Result<ChatMessage>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
 
-            var chatMessage = await chatMessageRepository.CreateAsync(userSession.UserId, 
-                userSession.NickName,
+            var chatMessage = await chatMessageRepository.CreateAsync(userSession.NickName,
                 chatType, 
                 message, 
                 roomId,
-                targetUserId);
+                targetUserNickName);
             
-            var channel = ChatChannels.GetChannel(chatType, roomId, targetUserId);
+            var channel = ChatChannels.GetChannel(chatType, roomId, targetUserNickName);
             var json = JsonSerializer.Serialize(chatMessage);
             await redis.GetSubscriber().PublishAsync(channel, json);
             
@@ -83,7 +82,7 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
         }
     }
 
-    public async Task<Result<IReadOnlyList<ChatMessage>>> GetMessagesByUserAsync(string sessionId, long userId, int limit = 50, long? beforeMessageId = null,
+    public async Task<Result<IReadOnlyList<ChatMessage>>> GetMessagesByUserAsync(string sessionId, string userName, int limit = 50, long? beforeMessageId = null,
         CancellationToken ct = default)
     {
         try
@@ -92,7 +91,7 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
             if(userSession is null)
                 return Result<IReadOnlyList<ChatMessage>>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
             
-            var chatMessages = await chatMessageRepository.GetMessagesByUserIdAsync(userId, limit, beforeMessageId);
+            var chatMessages = await chatMessageRepository.GetMessagesByUserNameAsync(userName, limit, beforeMessageId);
             return Result<IReadOnlyList<ChatMessage>>.Success(chatMessages.ToList());
         }
         catch (Exception e)

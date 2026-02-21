@@ -10,9 +10,9 @@ public class FakeChatMessageRepository : IChatMessageRepository
     private long _nextMessageId = 1;
 
 
-    public Task<ChatMessage> CreateAsync(long senderId, string senderName, ChatType chatType, string message, long? roomId, long? targetUserId)
+    public Task<ChatMessage> CreateAsync(string senderName, ChatType chatType, string message, long? roomId, string? targetUserNickName)
     {
-        var chatMessage = ChatMessage.Create(senderId, senderName, chatType, message, roomId, targetUserId);
+        var chatMessage = ChatMessage.Create(senderName, chatType, message, roomId, targetUserNickName);
         var messageId = Interlocked.Increment(ref _nextMessageId);
         chatMessage.SetMessageId(messageId);
         
@@ -31,10 +31,10 @@ public class FakeChatMessageRepository : IChatMessageRepository
         return Task.FromResult(_messages.Values.AsEnumerable());
     }
 
-    public Task<IEnumerable<ChatMessage>> GetMessagesByUserIdAsync(long userId, int limit, long? beforeMessageId)
+    public Task<IEnumerable<ChatMessage>> GetMessagesByUserNameAsync(string userName, int limit, long? beforeMessageId)
     {
         var query = _messages.Values
-            .Where(m => m.SenderUserId == userId || m.TargetUserId == userId);
+            .Where(m => m.SenderUserName == userName || m.TargetUserNickName == userName);
 
         if (beforeMessageId.HasValue)
         {
@@ -76,10 +76,10 @@ public class FakeChatMessageRepository : IChatMessageRepository
         return Task.FromResult(true);
     }
 
-    public Task<bool> DeleteByUserIdAsync(long userId)
+    public Task<bool> DeleteByUserNameAsync(string userName)
     {
         var messagesToRemove = _messages.Values
-            .Where(m => m.SenderUserId == userId)
+            .Where(m => m.SenderUserName == userName)
             .ToList();
 
         bool anyRemoved = false;

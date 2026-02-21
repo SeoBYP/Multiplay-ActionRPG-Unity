@@ -2,33 +2,27 @@
 
 public class ChatMessage
 {
-    public long MessageId { get; set; }
-    public ChatType ChatType { get; set; }
-    public long SenderUserId { get; set; }
-    public string SenderUserName { get; set; } = "";
-    public string Message { get; set; } = "";
-    public DateTime SentAt { get; set; }
+    public long MessageId { get; private set; }
+    public ChatType ChatType { get; private set; }
+    public string SenderUserName { get; private set; } = "";
+    public string Message { get; private set; } = "";
+    public DateTime SentAt { get; private set; }
 
     // Optional fields
-    public long? RoomId { get; set; }
-    public long? TargetUserId { get; set; }
+    public long? RoomId { get; private set; }
+    public string? TargetUserNickName { get; private set; }
 
     public ChatMessage()
     {
     }
 
     public static ChatMessage Create (
-        long senderUserId,
         string senderUserName,
         ChatType chatType,
         string message,
         long? roomId = null,
-        long? targetUserId = null)
+        string? targetUserNickName = null)
     {
-        // 1. SenderUserId 검증
-        if (senderUserId <= 0)
-            throw new ArgumentException("SenderUserId must be positive", nameof(senderUserId));
-        
         // 2. SenderUserName 검증
         if (string.IsNullOrWhiteSpace(senderUserName))
             throw new ArgumentException("SenderUserName cannot be empty", nameof(senderUserName));
@@ -40,22 +34,21 @@ public class ChatMessage
         // 4. ChatType별 검증
         if (chatType == ChatType.Room && (!roomId.HasValue || roomId <= 0))
             throw new ArgumentException("RoomId is required for room chat", nameof(roomId));
-        
-        if (chatType == ChatType.Whisper && (!targetUserId.HasValue || targetUserId <= 0))
-            throw new ArgumentException("TargetUserId is required for whisper", nameof(targetUserId));
+
+        if (chatType == ChatType.Whisper && string.IsNullOrWhiteSpace(targetUserNickName))
+            throw new ArgumentException("TargetUserNickName is required for whisper", nameof(targetUserNickName));
 
         // 5. 욕설 필터링 (선택)
         var filteredMessage = FilterProfanity(message);
         
         return new ChatMessage
         {
-            SenderUserId = senderUserId,
             SenderUserName = senderUserName,
             ChatType = chatType,
             Message = filteredMessage,
             SentAt = DateTime.UtcNow,
             RoomId = roomId,
-            TargetUserId = targetUserId,
+            TargetUserNickName = targetUserNickName,
         };
     }
     
@@ -64,24 +57,22 @@ public class ChatMessage
     /// </summary>
     public static ChatMessage FromRedis(
         long messageId,
-        long senderUserId,
         string senderUserName,
         ChatType chatType,
         string message,
         DateTime sentAt,
         long? roomId = null,
-        long? targetUserId = null)
+        string? targetUserNickName = null)
     {
         return new ChatMessage
         {
             MessageId = messageId,
-            SenderUserId = senderUserId,
             SenderUserName = senderUserName,
             ChatType = chatType,
             Message = message,
             SentAt = sentAt,
             RoomId = roomId,
-            TargetUserId = targetUserId,
+            TargetUserNickName = targetUserNickName,
         };
     }
     

@@ -25,7 +25,7 @@ public class ChatGrpcService(IChatService chatService,
             request.ChatType.ToDomain(), 
             request.Message,
             request.RoomId > 0 ? request.RoomId : null,
-            request.TargetUserId > 0 ? request.TargetUserId : null);
+            !string.IsNullOrWhiteSpace(request.TargetUserNickname) ? request.TargetUserNickname : null);
 
         return new SendChatResponse
         {
@@ -44,6 +44,7 @@ public class ChatGrpcService(IChatService chatService,
         {
             ChatType.Global => subscriptionService.SubscribeGlobalAsync(sessionId, context.CancellationToken),
             ChatType.Room   => subscriptionService.SubscribeRoomAsync(sessionId, request.RoomId, context.CancellationToken),
+            ChatType.Whisper => subscriptionService.SubscribeWhisperAsync(sessionId, context.CancellationToken),
             _ => subscriptionService.SubscribeGlobalAsync(sessionId, context.CancellationToken)
         };
         

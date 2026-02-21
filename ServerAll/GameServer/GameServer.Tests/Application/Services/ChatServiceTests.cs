@@ -77,15 +77,15 @@ public class ChatServiceTests
     public async Task SendMessageAsync_Whisper_성공_및_채널확인()
     {
         var sessionId = await CreateSessionAsync(3, "Carol");
-        long targetId = 99;
+        string targetNickname = "TargetUser";
 
-        var result = await _service.SendMessageAsync(sessionId, ChatType.Whisper, "psst", null, targetId);
+        var result = await _service.SendMessageAsync(sessionId, ChatType.Whisper, "psst", null, targetNickname);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(ChatType.Whisper, result.Value!.ChatType);
-        Assert.Equal(targetId, result.Value.TargetUserId);
+        Assert.Equal(targetNickname, result.Value.TargetUserNickName);
         _mockSubscriber.Verify(x => x.PublishAsync(
-            It.Is<RedisChannel>(c => c == ChatChannels.WhisperChannel(targetId)),
+            It.Is<RedisChannel>(c => c == ChatChannels.WhisperChannel(targetNickname)),
             It.IsAny<RedisValue>(),
             It.IsAny<CommandFlags>()), Times.Once);
     }
@@ -151,7 +151,7 @@ public class ChatServiceTests
     public async Task GetMessagesByUserAsync_리미트_및_정렬()
     {
         var sessionId = await CreateSessionAsync(30, "UserA");
-        long other = 31;
+        string other = "UserB";
 
         // UserA Global 3개, whisper 2개
         for (int i = 0; i < 3; i++)
@@ -159,7 +159,7 @@ public class ChatServiceTests
         for (int i = 0; i < 2; i++)
             await _service.SendMessageAsync(sessionId, ChatType.Whisper, $"w-{i}", null, other);
 
-        var listResult = await _service.GetMessagesByUserAsync(sessionId, 30, limit: 4);
+        var listResult = await _service.GetMessagesByUserAsync(sessionId, "UserA", limit: 4);
 
         Assert.True(listResult.IsSuccess);
         Assert.Equal(4, listResult.Value!.Count);
@@ -172,7 +172,7 @@ public class ChatServiceTests
     public async Task 목록_API_세션없음_InvalidRequest()
     {
         var byRoom = await _service.GetMessagesByRoomAsync("nope", 1);
-        var byUser = await _service.GetMessagesByUserAsync("nope", 1);
+        var byUser = await _service.GetMessagesByUserAsync("nope", "UserA");
 
         Assert.False(byRoom.IsSuccess);
         Assert.Equal(ErrorCodes.InvalidRequest, byRoom.InternalErrorCode);

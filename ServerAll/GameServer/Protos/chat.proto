@@ -25,7 +25,7 @@ message SendChatRequest{
   string message = 2;
   
   int64 room_id = 3;
-  int64 target_user_id = 4;
+  string target_user_nickname = 4;
 }
 
 message SendChatResponse {
@@ -39,12 +39,11 @@ message SubscribeChatRequest {
 
 message ChatMessageInfo {
   ChatType chat_type = 1;
-  int64 sender_user_id = 2;
-  string sender_user_name = 3;
-  string message = 4;
-  int64 sent_at = 5;  // Unix timestamp
+  string sender_user_name = 2;
+  string message = 3;
+  int64 sent_at = 4;  // Unix timestamp
 
   // 선택적 필드
-  int64 room_id = 6;            // ROOM일 때
-  int64 target_user_id = 7;     // WHISPER일 때
+  int64 room_id = 5;            // ROOM일 때
+  string target_user_nickname = 6;     // WHISPER일 때
 }

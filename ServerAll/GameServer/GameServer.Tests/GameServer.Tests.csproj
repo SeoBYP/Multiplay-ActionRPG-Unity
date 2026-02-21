@@ -26,4 +26,8 @@
       <ProjectReference Include="..\GameServer.Infrastructure\GameServer.Infrastructure.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="E2E\" />
+    </ItemGroup>
+
 </Project>

@@ -4,13 +4,14 @@ using System.Threading.Channels;
 using GameServer.Application.Services.Auth.Interfaces;
 using GameServer.Application.Services.Chat.Interfaces;
 using GameServer.Domain.Entities.Chat;
+using GameServer.Infrastructure.Interfaces.DungeonRoom;
 using GameServer.Infrastructure.Interfaces.User;
 using StackExchange.Redis;
 
 namespace GameServer.Application.Services.Chat;
 
 public class ChatSubscriptionService(IConnectionMultiplexer redis,
-    IUserSessionRepository sessionRepository) : IChatSubscriptionService
+    IUserSessionRepository sessionRepository, IDungeonRoomRepository roomRepository) : IChatSubscriptionService
 {
     public async IAsyncEnumerable<ChatMessage> SubscribeGlobalAsync(string sessionId,[EnumeratorCancellation] CancellationToken ct = default)
     {
@@ -33,10 +34,30 @@ public class ChatSubscriptionService(IConnectionMultiplexer redis,
         if (session is null) yield break;
 
         // 2. RoomId 검증
-        if (roomId <= 0) yield break;
+        var room = await roomRepository.GetByIdAsync(roomId);
+        if (room is null) yield break;
 
+        // 3. 방에 존재하는 지 확인
+        if(!room.IsExist(session.UserId))
+            yield break;
+        
         // 3. 실제 구독
         await foreach (var msg in SubscribeChannelAsync(ChatChannels.RoomChannel(roomId), ct))
+        {
+            yield return msg;
+        }
+    }
+
+    public async IAsyncEnumerable<ChatMessage> SubscribeWhisperAsync(string sessionId, [EnumeratorCancellation]  CancellationToken ct = default)
+    {
+        // 1. 인증 확인
+        var session = await sessionRepository.GetBySessionIdAsync(sessionId);
+        if (session is null) yield break;
+
+        // 2. 내 닉네임 채널 구독
+        // SendMessageAsync에서 Whisper 발송 시 chat:user:{targetNickName} 채널로 publish
+        // 그러므로 나는 chat:user:{내닉네임} 을 구독하면 귓속말 수신 가능
+        await foreach (var msg in SubscribeChannelAsync(ChatChannels.WhisperChannel(session.NickName), ct))
         {
             yield return msg;
         }

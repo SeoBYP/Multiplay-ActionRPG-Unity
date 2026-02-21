@@ -12,20 +12,19 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
     private const string MessageHashKey = "game:chat:message:{0}";          // 메시지 본문
     private const string MessageCounterKey = "game:chat:message:id:counter"; // ID 카운터
     private const string AllMessagesKey = "game:chat:message:all";           // 전체 인덱스
-    private const string UserIndexKey = "game:chat:message:user:{0}";        // 유저별 인덱스
+    private const string UserIndexKey = "game:chat:message:user:{0}";        // 유저별 인덱스 (닉네임 기준)
     private const string RoomIndexKey = "game:chat:message:room:{0}";        // 방별 인덱스
-    private const string TargetIndexKey = "game:chat:message:target:{0}";    // 귓속말 대상 인덱스
+    private const string TargetIndexKey = "game:chat:message:target:{0}";    // 귓속말 대상 인덱스 (닉네임 기준)
     
     public async Task<ChatMessage> CreateAsync(
-        long senderId,
         string senderName,
         ChatType chatType,
         string message,
         long? roomId,
-        long? targetUserId)
+        string? targetUserNickName)
     {
         // 1. Domain Entity 생성 (검증 + 욕설 필터링)
-        var chatMessage = ChatMessage.Create(senderId, senderName, chatType, message, roomId, targetUserId);
+        var chatMessage = ChatMessage.Create(senderName, chatType, message, roomId, targetUserNickName);
         
         var messageId = await _database.StringIncrementAsync(MessageCounterKey);
         chatMessage.SetMessageId(messageId);
@@ -38,7 +37,6 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         var hashFields = new List<HashEntry>
         {
             new("MessageId", messageId),
-            new("SenderId", senderId),
             new("SenderName", senderName),
             new("ChatType", chatType.ToString()),
             new("Message", chatMessage.Message), // 욕설 필터링된 메시지 저장
@@ -54,9 +52,9 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
 
         if (chatType == ChatType.Whisper)
         {
-            if (!targetUserId.HasValue)
-                throw new ArgumentException("TargetUserId is required for whisper", nameof(targetUserId));
-            hashFields.Add(new HashEntry("TargetUserId", targetUserId.Value));
+            if (string.IsNullOrWhiteSpace(targetUserNickName))
+                throw new ArgumentException("TargetUserNickName is required for whisper", nameof(targetUserNickName));
+            hashFields.Add(new HashEntry("TargetUserNickName", targetUserNickName));
         }
 
         tasks.Add(transaction.HashSetAsync(
@@ -68,7 +66,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
 
         // 유저 인덱스
         tasks.Add(transaction.SortedSetAddAsync(
-            string.Format(UserIndexKey, senderId), messageId, messageId));
+            string.Format(UserIndexKey, senderName), messageId, messageId));
 
         // 방 인덱스 (Room 채팅일 때만)
         if (chatType == ChatType.Room && roomId.HasValue)
@@ -78,10 +76,10 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         }
 
         // 귓속말 대상 인덱스 (Whisper일 때만)
-        if (chatType == ChatType.Whisper && targetUserId.HasValue)
+        if (chatType == ChatType.Whisper && !string.IsNullOrWhiteSpace(targetUserNickName))
         {
             tasks.Add(transaction.SortedSetAddAsync(
-                string.Format(TargetIndexKey, targetUserId.Value), messageId, messageId));
+                string.Format(TargetIndexKey, targetUserNickName), messageId, messageId));
         }
 
         // 4. 트랜잭션 실행
@@ -115,8 +113,8 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         return await FetchMessagesByIds(messageIds);
     }
     
-    public async Task<IEnumerable<ChatMessage>> GetMessagesByUserIdAsync(
-        long userId, int limit, long? beforeMessageId)
+    public async Task<IEnumerable<ChatMessage>> GetMessagesByUserNameAsync(
+        string userName, int limit, long? beforeMessageId)
     {
         
         var maxScore = beforeMessageId.HasValue
@@ -124,7 +122,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
             : double.MaxValue;                    // 처음 조회 시 최신부터
 
         var messageIds = await _database.SortedSetRangeByScoreAsync(
-            string.Format(UserIndexKey, userId),
+            string.Format(UserIndexKey, userName),
             stop: maxScore,
             take: limit,
             order: Order.Descending); // 최신 메시지부터
@@ -170,7 +168,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         // 인덱스 삭제 - [수정] SortedSetRemoveAsync 사용
         tasks.Add(transaction.SortedSetRemoveAsync(AllMessagesKey, messageId));
         tasks.Add(transaction.SortedSetRemoveAsync(
-            string.Format(UserIndexKey, message.SenderUserId), messageId));
+            string.Format(UserIndexKey, message.SenderUserName), messageId));
 
         if (message.RoomId.HasValue)
         {
@@ -178,10 +176,10 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
                 string.Format(RoomIndexKey, message.RoomId.Value), messageId));
         }
 
-        if (message.TargetUserId.HasValue)
+        if (!string.IsNullOrWhiteSpace(message.TargetUserNickName))
         {
             tasks.Add(transaction.SortedSetRemoveAsync(
-                string.Format(TargetIndexKey, message.TargetUserId.Value), messageId));
+                string.Format(TargetIndexKey, message.TargetUserNickName), messageId));
         }
 
         return await ExecuteTransactionAsync(transaction, tasks);
@@ -206,9 +204,9 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         return await ExecuteTransactionAsync(transaction, tasks);
     }
     
-    public async Task<bool> DeleteByUserIdAsync(long userId)
+    public async Task<bool> DeleteByUserNameAsync(string userName)
     {
-        var userKey = string.Format(UserIndexKey, userId);
+        var userKey = string.Format(UserIndexKey, userName);
 
         // [수정] SortedSetRangeByRankAsync 사용
         var messageIds = await _database.SortedSetRangeByRankAsync(userKey);
@@ -233,9 +231,9 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
                 tasks.Add(transaction.SortedSetRemoveAsync(
                     string.Format(RoomIndexKey, message.RoomId.Value), (RedisValue)messageId));
 
-            if (message.TargetUserId.HasValue)
+            if (!string.IsNullOrWhiteSpace(message.TargetUserNickName))
                 tasks.Add(transaction.SortedSetRemoveAsync(
-                    string.Format(TargetIndexKey, message.TargetUserId.Value), (RedisValue)messageId));
+                    string.Format(TargetIndexKey, message.TargetUserNickName), (RedisValue)messageId));
         }
 
         tasks.Add(transaction.KeyDeleteAsync(userKey));
@@ -265,11 +263,11 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
             tasks.Add(transaction.KeyDeleteAsync(string.Format(MessageHashKey, messageId)));
             tasks.Add(transaction.SortedSetRemoveAsync(AllMessagesKey, messageId));
             tasks.Add(transaction.SortedSetRemoveAsync(
-                string.Format(UserIndexKey, message.SenderUserId), (RedisValue)messageId));
+                string.Format(UserIndexKey, message.SenderUserName), (RedisValue)messageId));
 
-            if (message.TargetUserId.HasValue)
+            if (!string.IsNullOrWhiteSpace(message.TargetUserNickName))
                 tasks.Add(transaction.SortedSetRemoveAsync(
-                    string.Format(TargetIndexKey, message.TargetUserId.Value), (RedisValue)messageId));
+                    string.Format(TargetIndexKey, message.TargetUserNickName), (RedisValue)messageId));
         }
 
         tasks.Add(transaction.KeyDeleteAsync(roomKey));
@@ -321,19 +319,12 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
             x => x.Name.ToString(),
             x => x.Value.ToString());
 
-        if (!dict.TryGetValue("SenderId", out var senderIdStr) ||
-            !dict.TryGetValue("SenderName", out var senderName) ||
+        if (!dict.TryGetValue("SenderName", out var senderName) ||
             !dict.TryGetValue("ChatType", out var chatTypeStr) ||
             !dict.TryGetValue("Message", out var message) ||
             !dict.TryGetValue("SentAt", out var sentAtStr))
         {
             Console.WriteLine($"[ChatMessageRepository] Message {messageId} has missing fields");
-            return null;
-        }
-
-        if (!long.TryParse(senderIdStr, out var senderId))
-        {
-            Console.WriteLine("[ChatMessageRepository] Invalid SenderId");
             return null;
         }
 
@@ -360,18 +351,13 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
             roomId = rid;
         }
 
-        long? targetUserId = null;
-        if (chatType == ChatType.Whisper && dict.TryGetValue("TargetUserId", out var targetStr))
+        string? targetUserNickName = null;
+        if (chatType == ChatType.Whisper && dict.TryGetValue("TargetUserNickName", out var targetStr))
         {
-            if (!long.TryParse(targetStr, out var tid))
-            {
-                Console.WriteLine("[ChatMessageRepository] Invalid TargetUserId");
-                return null;
-            }
-            targetUserId = tid;
+            targetUserNickName = targetStr;
         }
 
-        return ChatMessage.FromRedis(messageId, senderId, senderName, chatType, message, sentAt, roomId, targetUserId);
+        return ChatMessage.FromRedis(messageId, senderName, chatType, message, sentAt, roomId, targetUserNickName);
     }
 
     /// <summary>
