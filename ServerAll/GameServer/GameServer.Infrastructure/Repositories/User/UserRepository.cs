@@ -21,11 +21,11 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
     /// <summary>
     /// 새로운 사용자를 추가합니다. (회원가입)
     /// </summary>
-    public async Task<User> AddAsync(string nickname, string passwordHash, string email)
+    public async Task<User> AddAsync(string passwordHash, string email)
     {
         try
         {
-            var user = User.Create(nickname, passwordHash, email);
+            var user = User.Create(passwordHash, email);
 
             var userId = _database.StringIncrement(UserCounterKey);
             user.SetUserId(userId);
@@ -42,10 +42,10 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
                 new HashEntry("PasswordHash", user.PasswordHash),
                 new HashEntry("CreatedAt", user.CreatedAt.ToString("O"))
             ]));
-            tasks.Add(transaction.StringSetAsync($"{UserNicknameMappingKey}:{user.NickName}", user.UserId, when: When.NotExists));
             tasks.Add(transaction.StringSetAsync($"{UserEmailMappingKey}:{user.Email}", user.UserId, when: When.NotExists));
+            tasks.Add(transaction.StringSetAsync($"{UserNicknameMappingKey}:{user.NickName}", user.UserId, when: When.NotExists));
             tasks.Add(transaction.StringSetAsync($"{UserPublicIdMappingKey}:{user.PublicId}", user.UserId, when: When.NotExists));
-
+            
 
             // 4. 트랜잭션 실행
             bool committed = await transaction.ExecuteAsync();
@@ -270,6 +270,6 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
             createdAt = DateTime.UtcNow;
         }
 
-        return User.FromRedis(id, nickName, email, publicId, passwordHash, createdAt);
+        return User.FromRedis(id, email, publicId, passwordHash, createdAt, nickName);
     }
 }

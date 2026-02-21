@@ -12,10 +12,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="DTOs\Auth\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <PackageReference Include="MemoryPack" Version="1.21.4" />
       <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.2" />
     </ItemGroup>

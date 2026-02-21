@@ -1,8 +1,7 @@
 ﻿using GameServer.Domain.Entities;
-using GameServer.Domain.Entities.User;
 
 namespace GameServer.Application.Services.Auth;
-
+using User = Domain.Entities.User.User;
 public class LoginResult(User user, UserSession session, string accessToken, DateTime expiresAt)
 {
     public User User { get; } = user;

@@ -13,6 +13,8 @@ public enum ErrorCodes : ushort
     SessionNotFound = 1004,
     InvalidRequest = 1005,
     SessionExpired = 1006,
+    NickNameAlreadyTaken = 1007,
+    EmailAlreadyTaken = 1008,
     
     RoomNotFound = 2000,
     RoomFull = 2001,

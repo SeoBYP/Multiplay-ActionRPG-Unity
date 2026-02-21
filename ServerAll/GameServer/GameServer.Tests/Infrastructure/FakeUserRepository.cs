@@ -9,9 +9,9 @@ public class FakeUserRepository : IUserRepository
     private readonly ConcurrentDictionary<long, User> _users = new();
     private long _idCounter = 0;
 
-    public Task<User> AddAsync(string nickname, string passwordHash, string email)
+    public Task<User> AddAsync(string passwordHash, string email)
     {
-        var user = User.Create(nickname, passwordHash, email);
+        var user = User.Create(passwordHash, email);
         var userId = Interlocked.Increment(ref _idCounter);
         user.SetUserId(userId);
         

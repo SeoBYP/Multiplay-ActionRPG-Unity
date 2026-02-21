@@ -1,7 +1,6 @@
 ﻿using GameServer.Application.Common;
 using GameServer.Application.Services.Auth.Interfaces;
 
-using GameServer.Domain.Entities.User;
 using GameServer.Infrastructure.Interfaces;
 using GameServer.Infrastructure.Interfaces.User;
 using GameServer.Infrastructure.Security;
@@ -9,6 +8,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace GameServer.Application.Services.Auth;
+
+using User = Domain.Entities.User.User;
 
 public class AuthService(
     IUserRepository userRepository,
@@ -20,29 +21,21 @@ public class AuthService(
 {
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
     
-    public async Task<Result<User>> RegisterAsync(string nickName, string password, string email)
+    public async Task<Result<User>> RegisterAsync(string password, string email)
     {
-        // 중복 체크
-        if (string.IsNullOrWhiteSpace(nickName))
-        {
+        if(string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(email))
             return Result<User>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-        }
-
-        // 닉네임 중복 체크
-        var existingNickname = await userRepository.IsNicknameExistsAsync(nickName);
-        if (existingNickname)
-            return Result<User>.Failure(ErrorCodes.UserAlreadyExists, ErrorMessages.UserAlreadyExists);
-
+        
         // 이메일 중복 체크
         var existingEmail = await userRepository.IsEmailExistsAsync(email);
         if (existingEmail)
-            return Result<User>.Failure(ErrorCodes.UserAlreadyExists, ErrorMessages.UserAlreadyExists);
-
+            return Result<User>.Failure(ErrorCodes.EmailAlreadyTaken, ErrorMessages.EmailAlreadyTaken);
+        
         // 비밀번호 해싱
         var hash = passwordHasher.HashPassword(password);
 
         // User Entity 생성
-        var user = await userRepository.AddAsync(nickName, hash, email);
+        var user = await userRepository.AddAsync(hash, email);
         
         // Response
         return Result<User>.Success(user);

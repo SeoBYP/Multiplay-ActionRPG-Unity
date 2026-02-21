@@ -38,7 +38,7 @@ public class User
     /// </summary>
     public DateTime CreatedAt { get; private set; }
 
-    public static User FromRedis(long userId, string nickName, string email, string publicId, string passwordHash, DateTime createdAt)
+    public static User FromRedis(long userId, string email, string publicId, string passwordHash, DateTime createdAt, string nickName)
     {
         return new User
         {
@@ -56,15 +56,12 @@ public class User
     /// <summary>
     /// 새로운 User 객체를 생성합니다.
     /// </summary>
-    /// <param name="nickname">사용자 닉네임</param>
     /// <param name="password">비밀번호 (해시 권장)</param>
     /// <param name="email">이메일 주소</param>
     /// <returns>생성된 User 인스턴스</returns>
     /// <exception cref="ArgumentException">입력값이 유효하지 않을 경우 발생</exception>
-    public static User Create(string nickname, string password, string email)
+    public static User Create(string password, string email)
     {
-        if (string.IsNullOrWhiteSpace(nickname))
-            throw new ArgumentException("nickname cannot be null or whitespace", nameof(nickname));
 
         if (string.IsNullOrWhiteSpace(password))
             throw new ArgumentException("Password cannot be null or whitespace", nameof(password));
@@ -75,12 +72,6 @@ public class User
         if(!IsValidateEmail(email))
             throw new ArgumentException("Email is invalid", nameof(email));
         
-        if(nickname.Length < 3 || nickname.Length > 20)
-            throw new ArgumentException("nickname length must be between 3 and 20 characters", nameof(nickname));
-        
-        if(!IsValidateNickname(nickname))
-            throw new ArgumentException("Nickname is invalid", nameof(nickname));
-        
         var publicId = Nanoid.Generate(Const.AllowedPublicIdChars, size:10);
         
         if(publicId == null)
@@ -89,8 +80,8 @@ public class User
         return new User
         {
             PublicId = publicId,
-            NickName = nickname,
             PasswordHash = password,
+            NickName = $"Guest_{publicId}",
             Email = email,
             CreatedAt = DateTime.UtcNow
         };
@@ -108,6 +99,36 @@ public class User
         UserId = userId;
     }
 
+    public void SetNickName(string nickname)
+    {
+        if (string.IsNullOrWhiteSpace(nickname))
+            throw new ArgumentException("nickname cannot be null or whitespace", nameof(nickname));
+        
+        if(nickname.Length < 3 || nickname.Length > 20)
+            throw new ArgumentException("nickname length must be between 3 and 20 characters", nameof(nickname));
+        
+        if(!IsValidateNickname(nickname))
+            throw new ArgumentException("Nickname is invalid", nameof(nickname));
+        NickName = nickname;
+    }
+    
+    public void SetEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            throw new ArgumentException("Email cannot be null or whitespace", nameof(email));
+        
+        if(!IsValidateEmail(email))
+            throw new ArgumentException("Email is invalid", nameof(email));
+        
+        Email = email;
+    }
+
+    public void SetProfile(string nickname, string email)
+    {
+        SetNickName(nickname);
+        SetEmail(email);
+    }
+    
     /// <summary>
     /// 이메일 주소의 유효성을 검사합니다.
     /// </summary>
@@ -131,5 +152,6 @@ public class User
         var nicknameRegex = new Regex(@"^[\uAC00-\uD7A3a-zA-Z0-9_]+$");
         return nicknameRegex.IsMatch(nickname);
     }
+
 
 }

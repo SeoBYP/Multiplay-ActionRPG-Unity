@@ -11,9 +11,10 @@ public interface IUserRepository
     /// <summary>
     /// 새로운 사용자를 추가합니다.
     /// </summary>
-    /// <param name="user">추가할 사용자 엔티티</param>
+    /// <param name="passwordHash">비밀번호 해시</param>
+    /// <param name="email">이메일</param>
     /// <returns>추가된 사용자 엔티티</returns>
-    Task<User> AddAsync(string nickname, string passwordHash, string email);
+    Task<User> AddAsync(string passwordHash, string email);
 
     /// <summary>
     /// 사용자를 삭제합니다.
