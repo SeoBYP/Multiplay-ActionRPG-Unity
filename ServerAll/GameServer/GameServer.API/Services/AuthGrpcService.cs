@@ -1,6 +1,6 @@
 ﻿using System.Security.Claims;
+using GameServer.API.Extension;
 using GameServer.API.Extensions;
-using GameServer.Application.Common;
 using GameServer.Application.Services.Auth.Interfaces;
 using GameServer.Grpc.Auth;
 using Grpc.Core;
@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.JsonWebTokens;
 using AuthService = GameServer.Grpc.Auth.AuthService;
 using RegisterResponse = GameServer.Grpc.Auth.RegisterResponse;
-using Result = GameServer.Grpc.Common.Result;
+using GameServer.Grpc.User;
 
 namespace GameServer.API.Services;
 
@@ -18,43 +18,38 @@ public class AuthGrpcService(IAuthService authService) : AuthService.AuthService
     public override async Task<RegisterResponse> Register(RegisterRequest request,
         ServerCallContext context)
     {
-        var result = await authService.RegisterAsync(request.Nickname, request.Password, request.Email);
-
-        return new RegisterResponse
+        var result = await authService.RegisterAsync(request.Password, request.Email);
+        
+        if (result.IsSuccess)
         {
-            Result = result.ToGrpcResult(),
-            User = result.IsSuccess
-                ? new UserInfo
-                {
-                    UserId = result.Value!.UserId,
-                    NickName = result.Value!.NickName,
-                    Email = result.Value.Email,
-                    CreatedAt = new DateTimeOffset(result.Value!.CreatedAt).ToUnixTimeSeconds()
-                }
-                : null
-        };
+            var response = new RegisterResponse
+            {
+                Result = result.ToGrpcResult(),
+                User = result.Value?.ToUserInfo(),
+            };
+            return response;
+        }
+
+        return new RegisterResponse { Result = result.ToGrpcResult() };
     }
 
     [AllowAnonymous]
     public override async Task<LoginResponse> Login(LoginRequest request, ServerCallContext context)
     {
         var result = await authService.LoginAsync(request.Email, request.Password);
-
-        return new LoginResponse
+        
+        if (result.IsSuccess)
         {
-            Result = result.ToGrpcResult(),
-            AccessToken = result.IsSuccess ? result.Value!.AccessToken : null,
-            SessionId = result.Value?.Session.SessionId,
-            User = result.IsSuccess
-                ? new UserInfo
-                {
-                    UserId = result.Value!.User.UserId,
-                    NickName = result.Value!.User.NickName,
-                    Email = result.Value.User.Email,
-                    CreatedAt = new DateTimeOffset(result.Value!.User.CreatedAt).ToUnixTimeSeconds()
-                }
-                : null
-        };
+            var response = new LoginResponse
+            {
+                Result = result.ToGrpcResult(),
+                AccessToken = result.IsSuccess? result.Value!.AccessToken : null,
+                SessionId = result.Value?.Session.SessionId,
+                User = result.Value?.User.ToUserInfo()
+            };
+            return response;
+        }
+        return new LoginResponse { Result = result.ToGrpcResult() };
     }
 
     public override async Task<LogoutResponse> Logout(LogoutRequest request, ServerCallContext context)

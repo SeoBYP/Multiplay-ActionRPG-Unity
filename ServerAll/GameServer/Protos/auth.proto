@@ -1,7 +1,7 @@
 ﻿syntax = "proto3";
 
 import "common.proto";
-
+import "user.proto";
 package gameserver.auth.v1;
 
 option csharp_namespace = "GameServer.Grpc.Auth";
@@ -15,12 +15,11 @@ service AuthService {
 message RegisterRequest {
   string email = 1;
   string password = 2;
-  string nickname = 3;
 }
 
 message RegisterResponse {
   gameserver.common.Result result = 1;  // ✅ 전체 패키지명
-  UserInfo user = 2;  // field 번호 수정 (1, 2, 3 순서대로)
+  gameserver.user.v1.UserInfo user = 2;  // field 번호 수정 (1, 2, 3 순서대로)
 }
 
 message LoginRequest {
@@ -33,7 +32,7 @@ message LoginResponse {
   string access_token = 2;
   string session_id = 3;
   int64 expires_at = 4;
-  UserInfo user = 5;
+  gameserver.user.v1.UserInfo user = 5;
 }
 
 message LogoutRequest {
@@ -41,11 +40,4 @@ message LogoutRequest {
 
 message LogoutResponse {
   gameserver.common.Result result = 1;  // ✅ 전체 패키지명
-}
-
-message UserInfo {
-  int64 user_id = 1;
-  string nick_name = 2;
-  string email = 3;
-  int64 created_at = 4;
 }

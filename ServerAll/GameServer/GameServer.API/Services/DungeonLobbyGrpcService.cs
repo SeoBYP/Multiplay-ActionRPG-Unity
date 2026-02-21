@@ -1,10 +1,7 @@
 ﻿using System.Security.Claims;
 using GameServer.API.Extension;
 using GameServer.API.Extensions;
-using GameServer.Application.Common;
-using GameServer.Application.DTOs.DungeonRoom;
 using GameServer.Application.Services.DungeonLobby.Interfaces;
-using GameServer.Grpc.Auth;
 using GameServer.Grpc.DungeonLobby;
 using Grpc.Core;
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -26,11 +23,13 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
             };
 
         var result = await dungeonLobbyService.CreateDungeonRoomAsync(sessionId, request.RoomName, request.MaxPlayers);
+        if (!result.IsSuccess || result.Value is null)
+            return new CreateRoomResponse { Result = result.ToGrpcResult() };
         return new CreateRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = result.Value?.ToRoomInfo(),
-            CreatedAt = new DateTimeOffset(result.Value!.CreatedAt).ToUnixTimeSeconds(),
+            RoomInfo = result.Value.ToRoomInfo(),
+            CreatedAt = new DateTimeOffset(result.Value.CreatedAt).ToUnixTimeSeconds(),
         };
     }
 

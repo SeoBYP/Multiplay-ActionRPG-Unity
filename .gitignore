@@ -548,3 +548,7 @@ ServerAll/GameServer/GameServer.Domain/obj
 ServerAll/GameServer/GameServer.Infrastructure/obj
 ServerAll/GameServer/GameServer.Tests/obj
 ServerAll/SocketServer/Tools/PacketHandlerGenerator/obj
+ServerAll/SocketServer/DummyClient/obj
+ServerAll/SocketServer/ServerCore/obj
+ServerAll/SocketServer/SocketServer/obj
+ServerAll/Temp/obj

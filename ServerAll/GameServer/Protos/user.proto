@@ -1,0 +1,28 @@
+﻿syntax = "proto3";
+
+import "common.proto";
+
+package gameserver.user.v1;
+
+option csharp_namespace = "GameServer.Grpc.User";
+
+// TODO : 추후 계정 정보 연동 혹은 다른 유저 관련 기능들 추가 될 수 있음
+service UserService{
+  rpc SetNickName(SetNicknameRequest) returns (SetNicknameResponse);
+}
+
+message SetNicknameRequest{
+  string nickname = 1;
+}
+
+message SetNicknameResponse{
+  gameserver.common.Result result = 1;
+  UserInfo user = 2;
+}
+
+message UserInfo {
+  string nick_name = 1;
+  string public_id = 2;
+  string email = 3;
+  int64 created_at = 4;
+}
