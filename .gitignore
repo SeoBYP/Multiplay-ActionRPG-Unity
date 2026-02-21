@@ -542,3 +542,9 @@ sysinfo.txt
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 
 # End of https://www.toptal.com/developers/gitignore/api/unity,csharp,rider
+ServerAll/GameServer/GameServer.API/obj
+ServerAll/GameServer/GameServer.Application/obj
+ServerAll/GameServer/GameServer.Domain/obj
+ServerAll/GameServer/GameServer.Infrastructure/obj
+ServerAll/GameServer/GameServer.Tests/obj
+ServerAll/SocketServer/Tools/PacketHandlerGenerator/obj

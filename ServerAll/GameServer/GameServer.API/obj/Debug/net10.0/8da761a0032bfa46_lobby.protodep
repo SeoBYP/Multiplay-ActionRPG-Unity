@@ -1,4 +1,0 @@
-obj\Debug\net10.0/Lobby.cs \
-obj\Debug\net10.0/LobbyGrpc.cs: ../Protos/common.proto\
- ../Protos/auth.proto\
- ../Protos/lobby.proto
