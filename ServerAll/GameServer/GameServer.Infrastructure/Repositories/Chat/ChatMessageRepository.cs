@@ -15,7 +15,17 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
     private const string UserIndexKey = "game:chat:message:user:{0}";        // 유저별 인덱스 (닉네임 기준)
     private const string RoomIndexKey = "game:chat:message:room:{0}";        // 방별 인덱스
     private const string TargetIndexKey = "game:chat:message:target:{0}";    // 귓속말 대상 인덱스 (닉네임 기준)
-    
+
+    public async Task<IEnumerable<ChatMessage>> GetMessagesAfterAsync(long afterMessageId, CancellationToken ct = default)
+    {
+        var messageIds = await _database.SortedSetRangeByScoreAsync(
+            AllMessagesKey,
+            start: afterMessageId + 1,  // afterMessageId 초과
+            stop: double.MaxValue,
+            order: Order.Ascending);    // 오래된 것부터 (순서대로 전달)
+        return await FetchMessagesByIds(messageIds);
+    }
+
     public async Task<ChatMessage> CreateAsync(
         string senderName,
         ChatType chatType,
@@ -23,11 +33,17 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         long? roomId,
         string? targetUserNickName)
     {
-        // 1. Domain Entity 생성 (검증 + 욕설 필터링)
-        var chatMessage = ChatMessage.Create(senderName, chatType, message, roomId, targetUserNickName);
-        
+        // 1) ID 먼저 채번
         var messageId = await _database.StringIncrementAsync(MessageCounterKey);
-        chatMessage.SetMessageId(messageId);
+        
+        // 1. Domain Entity 생성 (검증 + 욕설 필터링)
+        var chatMessage = ChatMessage.CreateNew(
+            messageId,
+            senderName,
+            chatType,
+            message,
+            roomId,
+            targetUserNickName);
 
         // 3. Redis 트랜잭션으로 원자적 저장
         var transaction = _database.CreateTransaction();
@@ -168,7 +184,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         // 인덱스 삭제 - [수정] SortedSetRemoveAsync 사용
         tasks.Add(transaction.SortedSetRemoveAsync(AllMessagesKey, messageId));
         tasks.Add(transaction.SortedSetRemoveAsync(
-            string.Format(UserIndexKey, message.SenderUserName), messageId));
+            string.Format(UserIndexKey, message.SenderUserNickName), messageId));
 
         if (message.RoomId.HasValue)
         {
@@ -263,7 +279,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
             tasks.Add(transaction.KeyDeleteAsync(string.Format(MessageHashKey, messageId)));
             tasks.Add(transaction.SortedSetRemoveAsync(AllMessagesKey, messageId));
             tasks.Add(transaction.SortedSetRemoveAsync(
-                string.Format(UserIndexKey, message.SenderUserName), (RedisValue)messageId));
+                string.Format(UserIndexKey, message.SenderUserNickName), (RedisValue)messageId));
 
             if (!string.IsNullOrWhiteSpace(message.TargetUserNickName))
                 tasks.Add(transaction.SortedSetRemoveAsync(

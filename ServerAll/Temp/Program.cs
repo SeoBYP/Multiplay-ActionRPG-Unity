@@ -1,60 +1,34 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿using System.Diagnostics;
+using System.Threading.Channels;
 
-using StackExchange.Redis;
+var channel = Channel.CreateUnbounded<string>();
 
-Console.WriteLine("Hello, World!");
-
-ConnectionMultiplexer connectionMultiplexer = ConnectionMultiplexer.Connect("localhost");
-IDatabase db = connectionMultiplexer.GetDatabase(0);
-
-var result = db.HashGet("test", "test");
-if (result.HasValue)
+var producer = Task.Run(async () =>
 {
-    Console.WriteLine(result);
-}
-else
-{
-    Console.WriteLine("null");
-}
-
-db.HashSet("test", [new HashEntry("test", "Hello, World!")]);
-var result2 = db.HashGet("test", "test");
-if (result2.HasValue)
-{
-    Console.WriteLine(result2);
-}
-else
-{
-    Console.WriteLine("null");
-}
-
-var session = new Session("123", 1, "test", DateTime.Now, DateTime.Now);
-db.HashSet(session.SessionId, [new HashEntry("UserId", session.UserId), new HashEntry("UserName", session.UserName)]);
-var sessionResult = db.HashGetAll(session.SessionId);
-foreach (var item in sessionResult)
-{
-    Console.WriteLine($"{item.Name}: {item.Value}");
-}
-
-var userName = sessionResult.First(x => x.Name == "UserName").Value;
-Console.WriteLine($"UserName is {userName}");
-
-public class Session
-{
-    public string SessionId { get; set; } = string.Empty;
-    public long UserId { get; set; }
-    public string UserName { get; set; } = string.Empty;
-    public DateTime LoginAt { get; set; }
-    public DateTime LastActiveAt { get; set; }
-    
-    private Session(){ }
-    
-    public Session(string sessionId, long userId, string userName, DateTime loginAt, DateTime lastActiveAt)
+    while (true)
     {
-        SessionId = sessionId;
-        UserId = userId;
-        UserName = userName;
-        LoginAt = loginAt;
-        LastActiveAt = lastActiveAt;
+        var input = Console.ReadLine();
+        if (input == "exit") break;
+        await channel.Writer.WriteAsync(input);
     }
-}
+    await channel.Writer.WriteAsync("exit");
+    channel.Writer.Complete();
+    if (channel.Writer.TryWrite("Another Message"))
+    {
+        Console.WriteLine("Another Message");
+    }
+    else
+    {
+        Console.WriteLine("Channel is closed");
+    }
+});
+
+var consumer = Task.Run(async () =>
+{
+    await foreach (var msg in channel.Reader.ReadAllAsync())
+    {
+        Console.WriteLine($"Received: {msg}");
+    }
+});
+
+await Task.WhenAll(producer, consumer);

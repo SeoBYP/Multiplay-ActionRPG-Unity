@@ -1,4 +1,5 @@
 ﻿using GameServer.Application.Common;
+using GameServer.Application.Services.Chat.Interfaces;
 using GameServer.Application.Services.DungeonLobby.Interfaces;
 using GameServer.Domain.Entities;
 using GameServer.Infrastructure.Interfaces.DungeonRoom;
@@ -6,7 +7,9 @@ using GameServer.Infrastructure.Interfaces.User;
 
 namespace GameServer.Application.Services.DungeonLobby;
 
-public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,IUserSessionRepository userSessionRepository) : IDungeonLobbyService
+public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
+    IUserSessionRepository userSessionRepository,
+    IChatSubscriptionService chatSubscriptionService) : IDungeonLobbyService
 {
     public async Task<Result<DungeonRoom>> CreateDungeonRoomAsync(string sessionId, string roomName, int maxPlayers)
     {
@@ -29,7 +32,10 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,IU
             {
                 return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
             }
-
+            
+            userSession.SetRoomId(newRoom.RoomId);
+            await userSessionRepository.UpdateRoomIdAsync(sessionId, newRoom.RoomId);
+ 
             return Result<DungeonRoom>.Success(newRoom);
         }
         catch (Exception e)
@@ -155,6 +161,10 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,IU
                 // room.Join에서 이미 검증함 (중복, Full, Status)
                 return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, ErrorMessages.InternalServerError);
             }
+            
+            // Join 성공 후 세션 업데이트
+            userSession.SetRoomId(roomId);
+            await userSessionRepository.UpdateRoomIdAsync(sessionId, roomId);
 
             // 4. 저장
             var success = await dungeonRoomRepository.UpdateAsync(room);
@@ -162,8 +172,17 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,IU
             {
                 return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.JoinRoomFailed);
             }
+            
+            await chatSubscriptionService.SwitchRoomAsync(sessionId, roomId, CancellationToken.None);
+
 
             return Result<DungeonRoom>.Success(room);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // room.Join 예외만 잡으려 했는데
+            // UpdateRoomIdAsync가 InvalidOperationException 던지면 JoinRoomFailed 반환
+            return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, ErrorMessages.JoinRoomFailed);
         }
         catch (Exception e)
         {
@@ -195,7 +214,9 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,IU
             // 방 Leave 처리 
             // 내부적으로 ErrorMessage 처리 
             room.Leave(userId);
-
+            userSession.SetRoomId(0);
+            await userSessionRepository.UpdateRoomIdAsync(sessionId, 0);
+            await chatSubscriptionService.SwitchRoomAsync(sessionId, 0, CancellationToken.None);
             if (room.Status == RoomStatus.Closed)
             {
                 var deleted = await dungeonRoomRepository.DeleteAsync(roomId);

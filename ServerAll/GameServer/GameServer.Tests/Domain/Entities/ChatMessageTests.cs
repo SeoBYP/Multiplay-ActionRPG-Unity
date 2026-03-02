@@ -16,14 +16,15 @@ public class ChatMessageTests
         var message = "Hello, World!";
         
         // when
-        var chatMessage = ChatMessage.Create(
+        var chatMessage = ChatMessage.CreateNew(
+            1L,
             senderUserName, 
             ChatType.Global, 
             message);
         
         // then
         Assert.NotNull(chatMessage);
-        Assert.Equal(senderUserName, chatMessage.SenderUserName);
+        Assert.Equal(senderUserName, chatMessage.SenderUserNickName);
         Assert.Equal(ChatType.Global, chatMessage.ChatType);
         Assert.Equal(message, chatMessage.Message);
         Assert.Null(chatMessage.RoomId);
@@ -43,7 +44,8 @@ public class ChatMessageTests
         var roomId = 100L;
         
         // when
-        var chatMessage = ChatMessage.Create(
+        var chatMessage = ChatMessage.CreateNew(
+            1L,
             senderUserName,
             ChatType.Room,
             message,
@@ -64,7 +66,8 @@ public class ChatMessageTests
         
         // when & then - RoomId 없음
         Assert.Throws<ArgumentException>(() =>
-            ChatMessage.Create(
+            ChatMessage.CreateNew(
+                1L,
                 senderUserName,
                 ChatType.Room,
                 message));
@@ -81,7 +84,8 @@ public class ChatMessageTests
         
         // when & then
         Assert.Throws<ArgumentException>(() =>
-            ChatMessage.Create(
+            ChatMessage.CreateNew(
+                1L,
                 senderUserName,
                 ChatType.Room,
                 message,
@@ -101,7 +105,8 @@ public class ChatMessageTests
         var message = "Private message";
         
         // when
-        var chatMessage = ChatMessage.Create(
+        var chatMessage = ChatMessage.CreateNew(
+            1L,
             senderUserName,
             ChatType.Whisper,
             message,
@@ -122,7 +127,8 @@ public class ChatMessageTests
         
         // when & then
         Assert.Throws<ArgumentException>(() =>
-            ChatMessage.Create(
+            ChatMessage.CreateNew(
+                1L,
                 senderUserName,
                 ChatType.Whisper,
                 message));
@@ -141,7 +147,8 @@ public class ChatMessageTests
         
         // when & then
         Assert.Throws<ArgumentException>(() =>
-            ChatMessage.Create(
+            ChatMessage.CreateNew(
+                1L,
                 senderUserName,
                 ChatType.Global,
                 message));
@@ -156,7 +163,8 @@ public class ChatMessageTests
         
         // when & then
         Assert.Throws<ArgumentException>(() =>
-            ChatMessage.Create(
+            ChatMessage.CreateNew(
+                1L,
                 senderUserName,
                 ChatType.Global,
                 message));
@@ -171,7 +179,8 @@ public class ChatMessageTests
         
         // when & then
         Assert.Throws<ArgumentException>(() =>
-            ChatMessage.Create(
+            ChatMessage.CreateNew(
+                1L,
                 senderUserName,
                 ChatType.Global,
                 message));
@@ -190,7 +199,8 @@ public class ChatMessageTests
         
         // when & then
         Assert.Throws<ArgumentException>(() =>
-            ChatMessage.Create(
+            ChatMessage.CreateNew(
+                1L,
                 senderUserName,
                 ChatType.Global,
                 message));
@@ -205,7 +215,8 @@ public class ChatMessageTests
         
         // when & then
         Assert.Throws<ArgumentException>(() =>
-            ChatMessage.Create(
+            ChatMessage.CreateNew(
+                1L,
                 senderUserName,
                 ChatType.Global,
                 message));
@@ -220,7 +231,8 @@ public class ChatMessageTests
         
         // when & then
         Assert.Throws<ArgumentException>(() =>
-            ChatMessage.Create(
+            ChatMessage.CreateNew(
+                1L,
                 senderUserName,
                 ChatType.Global,
                 message));
@@ -238,7 +250,8 @@ public class ChatMessageTests
         var message = "이건 욕설1이 포함된 메시지";
         
         // when
-        var chatMessage = ChatMessage.Create(
+        var chatMessage = ChatMessage.CreateNew(
+            1L,
             senderUserName,
             ChatType.Global,
             message);
@@ -256,7 +269,8 @@ public class ChatMessageTests
         var message = "욕설2 테스트";
         
         // when
-        var chatMessage = ChatMessage.Create(
+        var chatMessage = ChatMessage.CreateNew(
+            1L,
             senderUserName,
             ChatType.Global,
             message);
@@ -274,7 +288,8 @@ public class ChatMessageTests
         var message = "비속어 포함";
         
         // when
-        var chatMessage = ChatMessage.Create(
+        var chatMessage = ChatMessage.CreateNew(
+            1L,
             senderUserName,
             ChatType.Global,
             message);
@@ -292,7 +307,8 @@ public class ChatMessageTests
         var message = "욕설1 그리고 욕설2 그리고 비속어";
         
         // when
-        var chatMessage = ChatMessage.Create(
+        var chatMessage = ChatMessage.CreateNew(
+            1L,
             senderUserName,
             ChatType.Global,
             message);
@@ -312,7 +328,8 @@ public class ChatMessageTests
         var message = "깨끗한 메시지입니다";
         
         // when
-        var chatMessage = ChatMessage.Create(
+        var chatMessage = ChatMessage.CreateNew(
+            1L,
             senderUserName,
             ChatType.Global,
             message);
@@ -344,7 +361,7 @@ public class ChatMessageTests
         
         // then
         Assert.Equal(messageId, chatMessage.MessageId);
-        Assert.Equal(senderUserName, chatMessage.SenderUserName);
+        Assert.Equal(senderUserName, chatMessage.SenderUserNickName);
         Assert.Equal(ChatType.Global, chatMessage.ChatType);
         Assert.Equal(message, chatMessage.Message);
         Assert.Equal(sentAt, chatMessage.SentAt);
@@ -397,36 +414,22 @@ public class ChatMessageTests
     // ========================================
     
     [Fact]
-    public void SetMessageId_는_MessageId를_설정한다()
+    public void SetMessageId_는_MessageId를_생성시_설정한다()
     {
         // given
-        var chatMessage = ChatMessage.Create(
-            "testuser",
-            ChatType.Global,
-            "Hello");
         var messageId = 123L;
         
         // when
-        chatMessage.SetMessageId(messageId);
+        var chatMessage = ChatMessage.CreateNew(
+            messageId,
+            "testuser",
+            ChatType.Global,
+            "Hello");
         
         // then
         Assert.Equal(messageId, chatMessage.MessageId);
     }
     
-    [Fact]
-    public void SetMessageId_는_이미_설정된_MessageId는_변경_불가()
-    {
-        // given
-        var chatMessage = ChatMessage.Create(
-            "testuser",
-            ChatType.Global,
-            "Hello");
-        chatMessage.SetMessageId(123L);
-        
-        // when & then
-        Assert.Throws<InvalidOperationException>(() => 
-            chatMessage.SetMessageId(456L));
-    }
     
     // ========================================
     // 엣지 케이스 테스트
@@ -436,7 +439,8 @@ public class ChatMessageTests
     public void Create_는_Global_채팅에서_RoomId가_있어도_무시한다()
     {
         // given - Global은 RoomId 불필요
-        var chatMessage = ChatMessage.Create(
+        var chatMessage = ChatMessage.CreateNew(
+            1L,
             "testuser",
             ChatType.Global,
             "Global message",

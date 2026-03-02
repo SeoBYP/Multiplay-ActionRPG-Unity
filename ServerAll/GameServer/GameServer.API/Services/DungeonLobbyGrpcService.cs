@@ -12,8 +12,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
 {
     public override async Task<CreateRoomResponse> CreateRoom(CreateRoomRequest request, ServerCallContext context)
     {
-        var httpContext = context.GetHttpContext();
-        var sessionId = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sid);
+        var sessionId = context.GetSessionId();
         if (sessionId is null) 
             return new CreateRoomResponse
             {
@@ -35,8 +34,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
 
     public override async Task<GetRoomResponse> GetRoom(GetRoomRequest request, ServerCallContext context)
     {
-        var httpContext = context.GetHttpContext();
-        var sessionId = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sid);
+        var sessionId = context.GetSessionId();
         if (sessionId is null) 
             return new GetRoomResponse
             {
@@ -54,8 +52,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
 
     public override async Task<GetRoomsResponse> GetRooms(GetRoomsRequest request, ServerCallContext context)
     {
-        var httpContext = context.GetHttpContext();
-        var sessionId = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sid);
+        var sessionId = context.GetSessionId();
         if (sessionId is null) 
             return new GetRoomsResponse
             {
@@ -78,8 +75,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
 
     public override async Task<JoinRoomResponse> JoinRoom(JoinRoomRequest request, ServerCallContext context)
     {
-        var httpContext = context.GetHttpContext();
-        var sessionId = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sid);
+        var sessionId = context.GetSessionId();
         if (sessionId is null) 
             return new JoinRoomResponse
             {
@@ -96,8 +92,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
 
     public override async Task<LeaveRoomResponse> LeaveRoom(LeaveRoomRequest request, ServerCallContext context)
     {
-        var httpContext = context.GetHttpContext();
-        var sessionId = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sid);
+        var sessionId = context.GetSessionId();
         if (sessionId is null) 
             return new LeaveRoomResponse
             {
@@ -112,8 +107,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
 
     public override async Task<StartRoomResponse> StartRoom(StartRoomRequest request, ServerCallContext context)
     {
-        var httpContext = context.GetHttpContext();
-        var sessionId = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sid);
+        var sessionId = context.GetSessionId();
         if (sessionId is null) 
             return new StartRoomResponse
             {
@@ -130,8 +124,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
 
     public override async Task<UpdateRoomResponse> UpdateRoom(UpdateRoomRequest request, ServerCallContext context)
     {
-        var httpContext = context.GetHttpContext();
-        var sessionId = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sid);
+        var sessionId = context.GetSessionId();
         if (sessionId is null) 
             return new UpdateRoomResponse
             {

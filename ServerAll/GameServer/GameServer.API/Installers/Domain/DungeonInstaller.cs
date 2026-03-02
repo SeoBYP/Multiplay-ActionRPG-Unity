@@ -10,6 +10,6 @@ public class DungeonInstaller : IServiceInstaller
     public void Install(IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IDungeonLobbyService, DungeonLobbyService>();
-        services.AddScoped<IDungeonRoomRepository, DungeonRoomRepository>();
+        services.AddSingleton<IDungeonRoomRepository, DungeonRoomRepository>();
     }
 }

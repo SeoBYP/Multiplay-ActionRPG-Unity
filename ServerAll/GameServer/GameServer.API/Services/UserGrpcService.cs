@@ -13,7 +13,7 @@ public class UserGrpcService(IUserService userService) : UserService.UserService
 {
     public override async Task<SetNicknameResponse> SetNickName(SetNicknameRequest request, ServerCallContext context)
     {
-        var sessionId = context.GetHttpContext().User.FindFirstValue(JwtRegisteredClaimNames.Sid);
+        var sessionId = context.GetSessionId();
         if (sessionId is null) 
             return new SetNicknameResponse
             {

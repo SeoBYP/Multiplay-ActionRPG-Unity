@@ -2,48 +2,38 @@
 
 public class ChatMessage
 {
-    public long MessageId { get; private set; }
-    public ChatType ChatType { get; private set; }
-    public string SenderUserName { get; private set; } = "";
-    public string Message { get; private set; } = "";
-    public DateTime SentAt { get; private set; }
+    public long MessageId { get; init; }
+    public ChatType ChatType { get; init; }
+    public string SenderUserNickName { get; init; } = "";
+    public string Message { get; init; } = "";
+    public DateTime SentAt { get; init; }
 
     // Optional fields
-    public long? RoomId { get; private set; }
-    public string? TargetUserNickName { get; private set; }
+    public long? RoomId { get; init; }
+    public string? TargetUserNickName { get; init; }
 
-    public ChatMessage()
-    {
-    }
+    public ChatMessage() { }
 
-    public static ChatMessage Create (
+    /// <summary>
+    /// 신규 메시지 생성 (ID는 Repository가 먼저 채번해서 전달)
+    /// - 검증 + 욕설 필터 + SentAt(UtcNow) 포함
+    /// </summary>
+    public static ChatMessage CreateNew(
+        long messageId,
         string senderUserName,
         ChatType chatType,
         string message,
         long? roomId = null,
         string? targetUserNickName = null)
     {
-        // 2. SenderUserName 검증
-        if (string.IsNullOrWhiteSpace(senderUserName))
-            throw new ArgumentException("SenderUserName cannot be empty", nameof(senderUserName));
-        
-        // 3. Message 검증
-        if (string.IsNullOrWhiteSpace(message))
-            throw new ArgumentException("Message cannot be empty", nameof(message));
+        Validate(senderUserName, chatType, message, roomId, targetUserNickName);
 
-        // 4. ChatType별 검증
-        if (chatType == ChatType.Room && (!roomId.HasValue || roomId <= 0))
-            throw new ArgumentException("RoomId is required for room chat", nameof(roomId));
-
-        if (chatType == ChatType.Whisper && string.IsNullOrWhiteSpace(targetUserNickName))
-            throw new ArgumentException("TargetUserNickName is required for whisper", nameof(targetUserNickName));
-
-        // 5. 욕설 필터링 (선택)
         var filteredMessage = FilterProfanity(message);
-        
+
         return new ChatMessage
         {
-            SenderUserName = senderUserName,
+            MessageId = messageId,
+            SenderUserNickName = senderUserName,
             ChatType = chatType,
             Message = filteredMessage,
             SentAt = DateTime.UtcNow,
@@ -51,9 +41,9 @@ public class ChatMessage
             TargetUserNickName = targetUserNickName,
         };
     }
-    
+
     /// <summary>
-    /// Redis에서 복원 (히스토리용)
+    /// Redis에서 복원 (히스토리용) - 저장된 값 그대로 복원
     /// </summary>
     public static ChatMessage FromRedis(
         long messageId,
@@ -67,7 +57,7 @@ public class ChatMessage
         return new ChatMessage
         {
             MessageId = messageId,
-            SenderUserName = senderUserName,
+            SenderUserNickName = senderUserName,
             ChatType = chatType,
             Message = message,
             SentAt = sentAt,
@@ -75,36 +65,48 @@ public class ChatMessage
             TargetUserNickName = targetUserNickName,
         };
     }
-    
+
+    /// <summary>
+    /// 검증 로직 (도메인 규칙)
+    /// </summary>
+    public static void Validate(
+        string senderUserName,
+        ChatType chatType,
+        string message,
+        long? roomId,
+        string? targetUserNickName)
+    {
+        if (string.IsNullOrWhiteSpace(senderUserName))
+            throw new ArgumentException("SenderUserName cannot be empty", nameof(senderUserName));
+
+        if (string.IsNullOrWhiteSpace(message))
+            throw new ArgumentException("Message cannot be empty", nameof(message));
+
+        if (chatType == ChatType.Room && (!roomId.HasValue || roomId <= 0))
+            throw new ArgumentException("RoomId is required for room chat", nameof(roomId));
+
+        if (chatType == ChatType.Whisper && string.IsNullOrWhiteSpace(targetUserNickName))
+            throw new ArgumentException("TargetUserNickName is required for whisper", nameof(targetUserNickName));
+    }
+
     /// <summary>
     /// 욕설 필터링 (비즈니스 로직)
     /// </summary>
-    private static string FilterProfanity(string message)
+    public static string FilterProfanity(string message)
     {
         // TODO: 실제 욕설 필터 라이브러리 사용
-        // 예시: 간단한 치환
         var filtered = message;
         var profanities = new[] { "욕설1", "욕설2", "비속어" };
-        
+
         foreach (var word in profanities)
         {
             if (filtered.Contains(word, StringComparison.OrdinalIgnoreCase))
             {
-                filtered = filtered.Replace(word, new string('*', word.Length), 
+                filtered = filtered.Replace(word, new string('*', word.Length),
                     StringComparison.OrdinalIgnoreCase);
             }
         }
-        
+
         return filtered;
-    }
-    
-    /// <summary>
-    /// MessageId 설정 (Repository에서만 호출)
-    /// </summary>
-    public void SetMessageId(long messageId)
-    {
-        if (MessageId != 0)
-            throw new InvalidOperationException("MessageId already set");
-        MessageId = messageId;
     }
 }

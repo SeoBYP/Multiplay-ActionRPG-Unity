@@ -34,6 +34,15 @@ public class FakeUserSessionRepository : IUserSessionRepository
         return Task.FromResult<UserSession?>(null);
     }
 
+    public Task UpdateRoomIdAsync(string sessionId, long roomId)
+    {
+        if (_sessions.TryGetValue(sessionId, out var session))
+        {
+            session.SetRoomId(roomId);
+        }
+        return Task.CompletedTask;
+    }
+
     public Task RemoveSessionAsync(string sessionId)
     {
         if (_sessions.TryGetValue(sessionId, out var session))

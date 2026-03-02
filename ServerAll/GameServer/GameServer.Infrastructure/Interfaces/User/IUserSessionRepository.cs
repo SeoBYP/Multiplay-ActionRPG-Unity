@@ -31,6 +31,13 @@ public interface IUserSessionRepository
     Task<UserSession?> GetSessionByUserIdAsync(long userId);
     
     /// <summary>
+    /// 세션의 현재 방 ID를 업데이트합니다.
+    /// </summary>
+    /// <param name="sessionId">세션 ID</param>
+    /// <param name="roomId">업데이트할 방 ID</param>
+    Task UpdateRoomIdAsync(string sessionId, long roomId);
+
+    /// <summary>
     /// 세션을 제거합니다.
     /// </summary>
     /// <param name="sessionId">제거할 세션 ID</param>

@@ -54,10 +54,7 @@ public class AuthGrpcService(IAuthService authService) : AuthService.AuthService
 
     public override async Task<LogoutResponse> Logout(LogoutRequest request, ServerCallContext context)
     {
-        var httpContext = context.GetHttpContext();
-        var sessionId = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sid);
-        if (sessionId is null) 
-            return new LogoutResponse { Result = ResultExtensions.CreateUnauthorizedGrpcResult() };
+        var sessionId = context.GetSessionId();
         
         var result = await authService.LogoutAsync(sessionId);
         return new LogoutResponse

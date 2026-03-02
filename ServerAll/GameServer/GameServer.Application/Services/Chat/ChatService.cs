@@ -13,91 +13,56 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
     IUserSessionRepository userSessionRepository,
     IConnectionMultiplexer redis) : IChatService
 {
-    public async Task<Result<ChatMessage>> SendMessageAsync(string sessionId, ChatType chatType, string message, long? roomId, string? targetUserNickName,
+    public async Task<Result<ChatMessage>> SendMessageAsync(
+        string sessionId,
+        string message,
+        string? targetUserNickName,
         CancellationToken ct = default)
     {
         try
         {
             var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId);
-
-            if(userSession is null)
+            if (userSession is null)
                 return Result<ChatMessage>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
 
-            var chatMessage = await chatMessageRepository.CreateAsync(userSession.NickName,
-                chatType, 
-                message, 
+            // ChatType 자동 결정
+            var chatType =
+                !string.IsNullOrWhiteSpace(targetUserNickName) ? ChatType.Whisper :
+                userSession.CurrentRoomId > 0 ? ChatType.Room :
+                ChatType.Global;
+
+            long? roomId = chatType == ChatType.Room ? userSession.CurrentRoomId : null;
+
+            // 저장(메시지ID/히스토리 등)
+            var chatMessage = await chatMessageRepository.CreateAsync(
+                userSession.NickName,
+                chatType,
+                message,
                 roomId,
                 targetUserNickName);
-            
+
+            // Redis publish
             var channel = ChatChannels.GetChannel(chatType, roomId, targetUserNickName);
             var json = JsonSerializer.Serialize(chatMessage);
             await redis.GetSubscriber().PublishAsync(channel, json);
-            
+
             return Result<ChatMessage>.Success(chatMessage);
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
-            return Result<ChatMessage>.Failure(ErrorCodes.InternalServerError,ErrorMessages.InternalServerError);
+            return Result<ChatMessage>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
-
-    public async Task<Result<ChatMessage>> GetMessageByIdAsync(string sessionId, long messageId, CancellationToken ct = default)
-    {
-        try
-        {
-            var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId);
-
-            if(userSession is null)
-                return Result<ChatMessage>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-
-            var chatMessage = await chatMessageRepository.GetMessageByIdAsync(messageId);
-            if(chatMessage is null)
-                return Result<ChatMessage>.Failure(ErrorCodes.MessageNotFound, ErrorMessages.MessageNotFound);
-            return Result<ChatMessage>.Success(chatMessage);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            return Result<ChatMessage>.Failure(ErrorCodes.InternalServerError,ErrorMessages.InternalServerError);
-        }
-    }
-
-    public async Task<Result<IReadOnlyList<ChatMessage>>> GetMessagesByRoomAsync(string sessionId, long roomId, int limit = 50, long? beforeMessageId = null,
+    public async Task<IEnumerable<ChatMessage>> GetMessagesAfterAsync(
+        string sessionId,
+        long afterMessageId,
         CancellationToken ct = default)
     {
-        try
-        {
-            var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId);
-            if(userSession is null)
-                return Result<IReadOnlyList<ChatMessage>>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            
-            var chatMessages = await chatMessageRepository.GetMessagesByRoomIdAsync(roomId, limit, beforeMessageId);
-            return Result<IReadOnlyList<ChatMessage>>.Success(chatMessages.ToList());
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            return Result<IReadOnlyList<ChatMessage>>.Failure(ErrorCodes.InternalServerError,ErrorMessages.InternalServerError);
-        }
-    }
+        var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId);
+        if (userSession is null) return Array.Empty<ChatMessage>();
 
-    public async Task<Result<IReadOnlyList<ChatMessage>>> GetMessagesByUserAsync(string sessionId, string userName, int limit = 50, long? beforeMessageId = null,
-        CancellationToken ct = default)
-    {
-        try
-        {
-            var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId);
-            if(userSession is null)
-                return Result<IReadOnlyList<ChatMessage>>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            
-            var chatMessages = await chatMessageRepository.GetMessagesByUserNameAsync(userName, limit, beforeMessageId);
-            return Result<IReadOnlyList<ChatMessage>>.Success(chatMessages.ToList());
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            return Result<IReadOnlyList<ChatMessage>>.Failure(ErrorCodes.InternalServerError,ErrorMessages.InternalServerError);
-        }
+        // repo에 필요: after id 이후 메시지
+        return await chatMessageRepository.GetMessagesAfterAsync(afterMessageId, ct);
     }
 }

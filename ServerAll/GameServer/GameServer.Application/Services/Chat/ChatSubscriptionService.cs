@@ -1,7 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Text.Json;
-using System.Threading.Channels;
-using GameServer.Application.Services.Auth.Interfaces;
+﻿using System.Collections.Concurrent;
 using GameServer.Application.Services.Chat.Interfaces;
 using GameServer.Domain.Entities.Chat;
 using GameServer.Infrastructure.Interfaces.DungeonRoom;
@@ -10,111 +7,90 @@ using StackExchange.Redis;
 
 namespace GameServer.Application.Services.Chat;
 
-public class ChatSubscriptionService(IConnectionMultiplexer redis,
-    IUserSessionRepository sessionRepository, IDungeonRoomRepository roomRepository) : IChatSubscriptionService
+public sealed class ChatSubscriptionService(
+    IConnectionMultiplexer redis,
+    IUserSessionRepository sessionRepository,
+    IDungeonRoomRepository roomRepository) : IChatSubscriptionService
 {
-    public async IAsyncEnumerable<ChatMessage> SubscribeGlobalAsync(string sessionId,[EnumeratorCancellation] CancellationToken ct = default)
-    {
-        // 1. 인증 확인
-        var session = await sessionRepository.GetBySessionIdAsync(sessionId);
-        if (session is null) yield break; // 인증 실패 → 빈 스트림 반환
-
-        // 2. 실제 구독
-        await foreach (var msg in SubscribeChannelAsync(ChatChannels.GlobalChannel, ct))
-        {
-            yield return msg;
-        }
-    }
-
+    private readonly ConcurrentDictionary<long, UserChatContext> _contexts = new();
     
-    public async IAsyncEnumerable<ChatMessage> SubscribeRoomAsync(string sessionId, long roomId,[EnumeratorCancellation] CancellationToken ct = default)
+    public async Task<UserChatContext?> ConnectAsync(string sessionId, CancellationToken ct)
     {
-        // 1. 인증 확인
         var session = await sessionRepository.GetBySessionIdAsync(sessionId);
-        if (session is null) yield break;
+        if (session is null) return null;
 
-        // 2. RoomId 검증
-        var room = await roomRepository.GetByIdAsync(roomId);
-        if (room is null) yield break;
+        var sub = redis.GetSubscriber();
+        var ctx = new UserChatContext(session.UserId, session.NickName, session.CurrentRoomId, sub);
 
-        // 3. 방에 존재하는 지 확인
-        if(!room.IsExist(session.UserId))
-            yield break;
-        
-        // 3. 실제 구독
-        await foreach (var msg in SubscribeChannelAsync(ChatChannels.RoomChannel(roomId), ct))
+        // (중요) 같은 유저가 이미 연결 중이면 교체 정책 필요
+        // 1) 기존 ctx.Stop() + 구독 해제 후 교체 (권장)
+        if (_contexts.TryGetValue(session.UserId, out var existing))
         {
-            yield return msg;
+            await DisconnectAsync(existing);
         }
+        _contexts[session.UserId] = ctx;
+
+        await SubscribeIfNeeded(ctx, ChatChannels.GlobalChannel);
+        await SubscribeIfNeeded(ctx, ChatChannels.WhisperChannel(ctx.Nickname));
+        if (ctx.CurrentRoomId != 0)
+            await SubscribeIfNeeded(ctx, ChatChannels.RoomChannel(ctx.CurrentRoomId));
+
+        return ctx;
     }
 
-    public async IAsyncEnumerable<ChatMessage> SubscribeWhisperAsync(string sessionId, [EnumeratorCancellation]  CancellationToken ct = default)
+    public async Task SwitchRoomAsync(string sessionId, long roomId, CancellationToken ct)
     {
-        // 1. 인증 확인
         var session = await sessionRepository.GetBySessionIdAsync(sessionId);
-        if (session is null) yield break;
+        if (session is null) return;
 
-        // 2. 내 닉네임 채널 구독
-        // SendMessageAsync에서 Whisper 발송 시 chat:user:{targetNickName} 채널로 publish
-        // 그러므로 나는 chat:user:{내닉네임} 을 구독하면 귓속말 수신 가능
-        await foreach (var msg in SubscribeChannelAsync(ChatChannels.WhisperChannel(session.NickName), ct))
+        // 연결중인 유저가 아니면(채팅 스트림 연결이 없으면) 구독 바꿀 필요 없음
+        if (!_contexts.TryGetValue(session.UserId, out var ctx))
+            return;
+
+        // roomId 검증 (0은 leave)
+        if (roomId != 0)
         {
-            yield return msg;
+            var room = await roomRepository.GetByIdAsync(roomId);
+            if (room is null) return;
+            if (!room.IsExist(ctx.UserId)) return;
         }
+
+        // 기존 방 구독 해제
+        if (ctx.CurrentRoomId != 0)
+            await UnsubscribeIfNeeded(ctx, ChatChannels.RoomChannel(ctx.CurrentRoomId));
+
+        ctx.CurrentRoomId = roomId;
+
+        // 새 방 구독
+        if (ctx.CurrentRoomId != 0)
+            await SubscribeIfNeeded(ctx, ChatChannels.RoomChannel(ctx.CurrentRoomId));
+    }
+    
+    public async Task DisconnectAsync(UserChatContext ctx)
+    {
+        ctx.Stop();
+
+        foreach (var ch in ctx.SubscribedChannels)
+        {
+            try { await ctx.Subscriber.UnsubscribeAsync(ch, ctx.OnRedisMessage); }
+            catch { }
+        }
+        ctx.SubscribedChannels.Clear();
+
+        _contexts.TryRemove(ctx.UserId, out _);
     }
 
-    private async IAsyncEnumerable<ChatMessage> SubscribeChannelAsync(
-        string channelName,
-        [EnumeratorCancellation] CancellationToken ct)
+    private static async Task SubscribeIfNeeded(UserChatContext ctx, string channel)
     {
-        // Channel<T>: 스레드 안전한 큐
-        // Capacity 100: 버퍼 제한 (메모리 보호)
-        var queue = Channel.CreateBounded<ChatMessage>(new BoundedChannelOptions(100)
-        {
-            FullMode = BoundedChannelFullMode.DropOldest // 큐 가득 차면 오래된 것 삭제
-        });
+        RedisChannel ch = channel;
+        if (ctx.SubscribedChannels.Add(ch))
+            await ctx.Subscriber.SubscribeAsync(ch, ctx.OnRedisMessage);
+    }
 
-        var subscriber = redis.GetSubscriber();
-
-        // Redis 콜백: 메시지 도착 시 큐에 넣기
-        // 주의: 이 콜백은 Redis 스레드에서 실행됨!
-        void OnMessage(RedisChannel channel, RedisValue value)
-        {
-            if (value.IsNullOrEmpty) return;
-
-            try
-            {
-                var chatData = value.ToString();
-                var chatMessage = JsonSerializer.Deserialize<ChatMessage>(chatData);
-                if (chatMessage != null)
-                {
-                    // TryWrite: 큐가 가득 차도 예외 발생 안 함
-                    queue.Writer.TryWrite(chatMessage);
-                }
-            }
-            catch
-            {
-                // 역직렬화 실패 무시 (잘못된 메시지)
-            }
-        }
-
-        // Redis 구독 시작
-        await subscriber.SubscribeAsync(channelName, OnMessage);
-
-        try
-        {
-            // ct(CancellationToken)이 취소될 때까지 큐에서 메시지를 꺼내서 반환
-            await foreach (var msg in queue.Reader.ReadAllAsync(ct))
-            {
-                yield return msg;
-            }
-        }
-        finally
-        {
-            // 클라이언트 연결 끊김 or 취소 시 반드시 정리!
-            // 정리 안 하면 Redis 메모리 누수 발생
-            await subscriber.UnsubscribeAsync(channelName, OnMessage);
-            queue.Writer.TryComplete();
-        }
+    private static async Task UnsubscribeIfNeeded(UserChatContext ctx, string channel)
+    {
+        RedisChannel ch = channel;
+        if (ctx.SubscribedChannels.Remove(ch))
+            await ctx.Subscriber.UnsubscribeAsync(ch, ctx.OnRedisMessage);
     }
 }

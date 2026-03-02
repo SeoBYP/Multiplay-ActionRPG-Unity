@@ -49,6 +49,7 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
                 new HashEntry("UserName", userName),
                 new HashEntry("Email", userEmail),
                 new HashEntry("PublicId", publicId),
+                new HashEntry("CurrentRoomId", 0),
                 new HashEntry("LoginAt", newSession.LoginAt.ToString("O")),
                 new HashEntry("LastActiveAt", newSession.LastActiveAt.ToString("O"))
             ]);
@@ -107,6 +108,11 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
             Console.WriteLine($"Unexpected error while getting session {sessionId}");
             throw;
         }
+    }
+
+    public async Task UpdateRoomIdAsync(string sessionId, long roomId)
+    {
+        await _database.HashSetAsync($"{SessionKey}:{sessionId}", "CurrentRoomId", roomId);
     }
 
     /// <summary>
@@ -277,6 +283,7 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
             !dict.TryGetValue("UserName", out var userName) ||
             !dict.TryGetValue("Email", out var email) ||
             !dict.TryGetValue("PublicId", out var publicId) ||
+            !dict.TryGetValue("CurrentRoomId", out var roomIdStr) ||
             !dict.TryGetValue("LoginAt", out var loginAtStr) ||
             !dict.TryGetValue("LastActiveAt", out var lastActiveAtStr))
         {
@@ -288,6 +295,13 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
         if (!long.TryParse(userIdStr, out var userId))
         {
             Console.WriteLine($"Invalid UserId in session {sessionId}");
+            return null;
+        }
+
+        // CurrentRoomId 파싱
+        if (!long.TryParse(roomIdStr, out var roomId))
+        {
+            Console.WriteLine($"Invalid CurrentRoomId in session {sessionId}");
             return null;
         }
 
@@ -304,6 +318,6 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
             return null;
         }
 
-        return UserSession.FromRedis(sessionId, userId, email, userName, publicId, loginAt, lastActiveAt);
+        return UserSession.FromRedis(sessionId, userId, email, userName, publicId, roomId, loginAt, lastActiveAt);
     }
 }

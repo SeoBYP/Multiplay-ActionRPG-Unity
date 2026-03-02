@@ -7,43 +7,75 @@ package gameserver.chat.v1;
 option csharp_namespace = "GameServer.Grpc.Chat";
 
 service ChatService{
-  // 채팅 메시지 전송
-  rpc SendChat(SendChatRequest) returns (SendChatResponse);
-  // 채팅 구독
-  rpc SubscribeChat(SubscribeChatRequest) returns (stream ChatMessageInfo);
+  // 채팅 메세지
+  rpc ChatStream(stream ChatClientMessage) returns (stream ChatServerMessage);
 }
 
-enum ChatType{
-  CHAT_TYPE_UNSPECIFIED = 0;  // proto3 필수
-  CHAT_TYPE_GLOBAL = 1;       // 전체 채팅
-  CHAT_TYPE_ROOM = 2;         // 방 채팅
-  CHAT_TYPE_WHISPER = 3;      // 귓속말
+// ============================================================
+// 클라이언트 → 서버
+// ============================================================
+
+message ChatClientMessage {
+  oneof payload {
+    ChatPayload chat = 1;         // 일반 채팅 전송
+    ReconnectPayload reconnect = 2; // 재접속 시 밀린 메시지 요청
+  }
 }
 
-message SendChatRequest{
-  ChatType chat_type = 1;
-  string message = 2;
-  
-  int64 room_id = 3;
-  string target_user_nickname = 4;
+// 채팅 전송 페이로드
+message ChatPayload {
+  string message = 1;
+  string target_user_nickname = 2; // 비어있으면 Global or Room, 있으면 Whisper
 }
 
-message SendChatResponse {
-  gameserver.common.Result result = 1;
+// 재접속 페이로드
+// 클라이언트가 마지막으로 수신한 ID 이후의 메시지/공지를 서버에서 전송
+message ReconnectPayload {
+  int64 last_message_id = 1; // 마지막으로 받은 채팅 메시지 ID (없으면 0)
+  int64 last_notice_id = 2;  // 마지막으로 받은 시스템 공지 ID (없으면 0)
 }
 
-message SubscribeChatRequest {
-  ChatType chat_type = 1;
-  int64 room_id = 2;  // ROOM 구독 시 필요
+// ============================================================
+// 서버 → 클라이언트
+// ============================================================
+
+message ChatServerMessage {
+  oneof payload {
+    ChatMessageInfo chat = 1;   // 채팅 메시지
+    SystemNotice notice = 2;    // 시스템 공지
+  }
 }
 
+// 채팅 메시지
 message ChatMessageInfo {
-  ChatType chat_type = 1;
-  string sender_user_name = 2;
-  string message = 3;
-  int64 sent_at = 4;  // Unix timestamp
+  int64 message_id = 1;            // 재접속 resume token용
+  ChatType chat_type = 2;          // 채팅 타입
+  string sender_nickname = 3;      // 발신자 닉네임
+  string message = 4;              // 메시지 내용
+  int64 sent_at = 5;               // 전송 시각 (Unix timestamp)
+  int64 room_id = 6;               // 방 채팅일 때
+  string target_user_nickname = 7; // 귓속말일 때 수신자 닉네임
+}
 
-  // 선택적 필드
-  int64 room_id = 5;            // ROOM일 때
-  string target_user_nickname = 6;     // WHISPER일 때
+// 시스템 공지
+message SystemNotice {
+  int64 notice_id = 1;       // 재접속 resume token용
+  SystemNoticeType type = 2; // 공지 타입
+  string message = 3;        // 공지 내용
+  int64 sent_at = 4;         // 전송 시각 (Unix timestamp)
+}
+
+enum ChatType {
+  CHAT_TYPE_UNSPECIFIED = 0; // proto3 기본값 필수
+  CHAT_TYPE_GLOBAL = 1;      // 전체 채팅
+  CHAT_TYPE_ROOM = 2;        // 방 채팅
+  CHAT_TYPE_WHISPER = 3;     // 귓속말
+}
+
+enum SystemNoticeType {
+  SYSTEM_NOTICE_TYPE_UNSPECIFIED = 0; // proto3 기본값 필수
+  SYSTEM_NOTICE_TYPE_ROOM_JOIN = 1;   // 방 입장
+  SYSTEM_NOTICE_TYPE_ROOM_LEAVE = 2;  // 방 퇴장
+  SYSTEM_NOTICE_TYPE_ADMIN = 3;       // 운영 공지
+  SYSTEM_NOTICE_TYPE_SERVER = 4;      // 서버 점검 등 서버 공지
 }

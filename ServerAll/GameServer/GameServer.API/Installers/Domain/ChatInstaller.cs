@@ -10,7 +10,7 @@ public class ChatInstaller : IServiceInstaller
     public void Install(IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IChatService, ChatService>();
-        services.AddScoped<IChatSubscriptionService, ChatSubscriptionService>();
+        services.AddSingleton<IChatSubscriptionService, ChatSubscriptionService>();
         services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
     }
 }

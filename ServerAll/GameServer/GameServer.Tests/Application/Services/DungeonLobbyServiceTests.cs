@@ -1,4 +1,5 @@
 ﻿using GameServer.Application.Common;
+using GameServer.Application.Services.Chat.Interfaces;
 using GameServer.Application.Services.DungeonLobby;
 using GameServer.Domain.Entities;
 using GameServer.Infrastructure.Interfaces.DungeonRoom;
@@ -17,7 +18,8 @@ public class DungeonLobbyServiceTests
     {
         IDungeonRoomRepository roomRepository = new FakeDungeonRoomRepository();
         _sessionRepository = new FakeUserSessionRepository();
-        _service = new DungeonLobbyService(roomRepository, _sessionRepository);
+        IChatSubscriptionService chatSubscriptionService = new FakeChatSubscriptionService();
+        _service = new DungeonLobbyService(roomRepository, _sessionRepository, chatSubscriptionService);
     }
 
     #region CreateDungeonRoomAsync Tests
