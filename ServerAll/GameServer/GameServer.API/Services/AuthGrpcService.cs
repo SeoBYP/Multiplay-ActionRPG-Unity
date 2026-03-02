@@ -18,7 +18,7 @@ public class AuthGrpcService(IAuthService authService) : AuthService.AuthService
     public override async Task<RegisterResponse> Register(RegisterRequest request,
         ServerCallContext context)
     {
-        var result = await authService.RegisterAsync(request.Password, request.Email);
+        var result = await authService.RegisterAsync(request.Password, request.Email, context.CancellationToken);
         
         if (result.IsSuccess)
         {
@@ -36,7 +36,7 @@ public class AuthGrpcService(IAuthService authService) : AuthService.AuthService
     [AllowAnonymous]
     public override async Task<LoginResponse> Login(LoginRequest request, ServerCallContext context)
     {
-        var result = await authService.LoginAsync(request.Email, request.Password);
+        var result = await authService.LoginAsync(request.Email, request.Password, context.CancellationToken);
         
         if (result.IsSuccess)
         {
@@ -56,7 +56,7 @@ public class AuthGrpcService(IAuthService authService) : AuthService.AuthService
     {
         var sessionId = context.GetSessionId();
         
-        var result = await authService.LogoutAsync(sessionId);
+        var result = await authService.LogoutAsync(sessionId, context.CancellationToken);
         return new LogoutResponse
         {
             Result = result.ToGrpcResult(),

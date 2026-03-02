@@ -14,61 +14,61 @@ public interface IUserRepository
     /// <param name="passwordHash">비밀번호 해시</param>
     /// <param name="email">이메일</param>
     /// <returns>추가된 사용자 엔티티</returns>
-    Task<User> AddAsync(string passwordHash, string email);
+    Task<User> AddAsync(string passwordHash, string email, CancellationToken ct = default);
 
     /// <summary>
     /// 사용자를 삭제합니다.
     /// </summary>
     /// <param name="userId">삭제할 사용자 ID</param>
     /// <returns>삭제 성공 여부</returns>
-    Task<bool> RemoveAsync(long userId);
+    Task<bool> RemoveAsync(long userId, CancellationToken ct = default);
 
     /// <summary>
     /// 사용자 정보를 업데이트합니다.
     /// </summary>
     /// <param name="user">업데이트할 정보를 가진 사용자 엔티티</param>
     /// <returns>업데이트 성공 여부</returns>
-    Task<bool> UpdateAsync(User user);
+    Task<bool> UpdateAsync(User user, CancellationToken ct = default);
 
     /// <summary>
     /// ID로 사용자를 조회합니다.
     /// </summary>
     /// <param name="userId">사용자 ID</param>
     /// <returns>찾은 사용자 엔티티 (없으면 null)</returns>
-    Task<User?> GetByIdAsync(long userId);
+    Task<User?> GetByIdAsync(long userId, CancellationToken ct = default);
 
     /// <summary>
     /// 이메일로 사용자를 조회합니다.
     /// </summary>
     /// <param name="email">사용자 이메일</param>
     /// <returns>찾은 사용자 엔티티 (없으면 null)</returns>
-    Task<User?> GetByEmailAsync(string email);
+    Task<User?> GetByEmailAsync(string email, CancellationToken ct = default);
 
     /// <summary>
     /// 공개 ID로 사용자를 조회합니다.
     /// </summary>
     /// <param name="publicId">사용자 공개 ID</param>
     /// <returns>찾은 사용자 엔티티 (없으면 null)</returns>
-    Task<User?> GetByPublicIdAsync(string publicId);
+    Task<User?> GetByPublicIdAsync(string publicId, CancellationToken ct = default);
 
     /// <summary>
     /// 닉네임으로 사용자를 조회합니다.
     /// </summary>
     /// <param name="nickname">사용자 닉네임</param>
     /// <returns>찾은 사용자 엔티티 (없으면 null)</returns>
-    Task<User?> GetByNicknameAsync(string nickname);
+    Task<User?> GetByNicknameAsync(string nickname, CancellationToken ct = default);
     
     /// <summary>
     /// 이메일이 이미 존재하는지 확인합니다.
     /// </summary>
     /// <param name="email"></param>
     /// <returns></returns>
-    Task<bool> IsEmailExistsAsync(string email);
+    Task<bool> IsEmailExistsAsync(string email, CancellationToken ct = default);
     
     /// <summary>
     /// 닉네임이 이미 존재하는지 확인합니다.
     /// </summary>
     /// <param name="nickname"></param>
     /// <returns></returns>
-    Task<bool> IsNicknameExistsAsync(string nickname);
+    Task<bool> IsNicknameExistsAsync(string nickname, CancellationToken ct = default);
 }

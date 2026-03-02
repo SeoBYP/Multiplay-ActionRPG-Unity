@@ -31,7 +31,8 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         ChatType chatType,
         string message,
         long? roomId,
-        string? targetUserNickName)
+        string? targetUserNickName,
+        CancellationToken ct = default)
     {
         // 1) ID 먼저 채번
         var messageId = await _database.StringIncrementAsync(MessageCounterKey);
@@ -107,7 +108,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         return chatMessage;
     }
     
-    public async Task<ChatMessage?> GetMessageByIdAsync(long messageId)
+    public async Task<ChatMessage?> GetMessageByIdAsync(long messageId, CancellationToken ct = default)
     {
         var entries = await _database.HashGetAllAsync(string.Format(MessageHashKey, messageId));
         if (entries.Length == 0)
@@ -117,7 +118,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
     }
 
     
-    public async Task<IEnumerable<ChatMessage>> GetAllMessagesAsync()
+    public async Task<IEnumerable<ChatMessage>> GetAllMessagesAsync(CancellationToken ct = default)
     {
         var messageIds = await _database.SortedSetRangeByRankAsync(
             AllMessagesKey,
@@ -130,7 +131,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
     }
     
     public async Task<IEnumerable<ChatMessage>> GetMessagesByUserNameAsync(
-        string userName, int limit, long? beforeMessageId)
+        string userName, int limit, long? beforeMessageId, CancellationToken ct = default)
     {
         
         var maxScore = beforeMessageId.HasValue
@@ -150,7 +151,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
     }
     
     public async Task<IEnumerable<ChatMessage>> GetMessagesByRoomIdAsync(
-        long roomId, int limit, long? beforeMessageId)
+        long roomId, int limit, long? beforeMessageId, CancellationToken ct = default)
     {
         // [수정] GetMessagesByUserIdAsync와 동일한 패턴으로 수정
         var maxScore = beforeMessageId.HasValue
@@ -169,9 +170,9 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         return await FetchMessagesByIds(messageIds);
     }
 
-    public async Task<bool> DeleteAsync(long messageId)
+    public async Task<bool> DeleteAsync(long messageId, CancellationToken ct = default)
     {
-        var message = await GetMessageByIdAsync(messageId);
+        var message = await GetMessageByIdAsync(messageId, ct);
         if (message is null)
             return false;
 
@@ -201,7 +202,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         return await ExecuteTransactionAsync(transaction, tasks);
     }
     
-    public async Task<bool> DeleteAllAsync()
+    public async Task<bool> DeleteAllAsync(CancellationToken ct = default)
     {
         var server = connectionMultiplexer.GetServer(connectionMultiplexer.GetEndPoints().First());
 
@@ -220,7 +221,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         return await ExecuteTransactionAsync(transaction, tasks);
     }
     
-    public async Task<bool> DeleteByUserNameAsync(string userName)
+    public async Task<bool> DeleteByUserNameAsync(string userName, CancellationToken ct = default)
     {
         var userKey = string.Format(UserIndexKey, userName);
 
@@ -237,7 +238,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
             if (!long.TryParse(idValue.ToString(), out var messageId))
                 continue;
 
-            var message = await GetMessageByIdAsync(messageId);
+            var message = await GetMessageByIdAsync(messageId, ct);
             if (message is null) continue;
 
             tasks.Add(transaction.KeyDeleteAsync(string.Format(MessageHashKey, messageId)));
@@ -257,7 +258,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         return await ExecuteTransactionAsync(transaction, tasks);
     }
     
-    public async Task<bool> DeleteByRoomIdAsync(long roomId)
+    public async Task<bool> DeleteByRoomIdAsync(long roomId, CancellationToken ct = default)
     {
         var roomKey = string.Format(RoomIndexKey, roomId);
 
@@ -273,7 +274,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
             if (!long.TryParse(idValue.ToString(), out var messageId))
                 continue;
 
-            var message = await GetMessageByIdAsync(messageId);
+            var message = await GetMessageByIdAsync(messageId, ct);
             if (message is null) continue;
 
             tasks.Add(transaction.KeyDeleteAsync(string.Format(MessageHashKey, messageId)));

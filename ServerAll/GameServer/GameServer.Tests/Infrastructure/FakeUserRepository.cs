@@ -9,7 +9,7 @@ public class FakeUserRepository : IUserRepository
     private readonly ConcurrentDictionary<long, User> _users = new();
     private long _idCounter = 0;
 
-    public Task<User> AddAsync(string passwordHash, string email)
+    public Task<User> AddAsync(string passwordHash, string email, CancellationToken ct = default)
     {
         var user = User.Create(passwordHash, email);
         var userId = Interlocked.Increment(ref _idCounter);
@@ -19,12 +19,12 @@ public class FakeUserRepository : IUserRepository
         return Task.FromResult(user);
     }
 
-    public Task<bool> RemoveAsync(long userId)
+    public Task<bool> RemoveAsync(long userId, CancellationToken ct = default)
     {
         return Task.FromResult(_users.TryRemove(userId, out _));
     }
 
-    public Task<bool> UpdateAsync(User user)
+    public Task<bool> UpdateAsync(User user, CancellationToken ct = default)
     {
         if (!_users.ContainsKey(user.UserId))
         {
@@ -35,36 +35,36 @@ public class FakeUserRepository : IUserRepository
         return Task.FromResult(true);
     }
 
-    public Task<User?> GetByIdAsync(long userId)
+    public Task<User?> GetByIdAsync(long userId, CancellationToken ct = default)
     {
         _users.TryGetValue(userId, out var user);
         return Task.FromResult(user);
     }
 
-    public Task<User?> GetByEmailAsync(string email)
+    public Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
     {
         var user = _users.Values.FirstOrDefault(u => u.Email == email);
         return Task.FromResult(user);
     }
 
-    public Task<User?> GetByPublicIdAsync(string publicId)
+    public Task<User?> GetByPublicIdAsync(string publicId, CancellationToken ct = default)
     {
         var user = _users.Values.FirstOrDefault(u => u.PublicId == publicId);
         return Task.FromResult(user);
     }
 
-    public Task<User?> GetByNicknameAsync(string nickname)
+    public Task<User?> GetByNicknameAsync(string nickname, CancellationToken ct = default)
     {
         var user = _users.Values.FirstOrDefault(u => u.NickName == nickname);
         return Task.FromResult(user);
     }
 
-    public Task<bool> IsEmailExistsAsync(string email)
+    public Task<bool> IsEmailExistsAsync(string email, CancellationToken ct = default)
     {
         return Task.FromResult(_users.Values.Any(u => u.Email == email));
     }
 
-    public Task<bool> IsNicknameExistsAsync(string nickname)
+    public Task<bool> IsNicknameExistsAsync(string nickname, CancellationToken ct = default)
     {
         return Task.FromResult(_users.Values.Any(u => u.NickName == nickname));
     }

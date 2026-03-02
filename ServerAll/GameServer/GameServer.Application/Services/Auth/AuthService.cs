@@ -21,13 +21,13 @@ public class AuthService(
 {
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
     
-    public async Task<Result<User>> RegisterAsync(string password, string email)
+    public async Task<Result<User>> RegisterAsync(string password, string email, CancellationToken ct = default)
     {
         if(string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(email))
             return Result<User>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
         
         // 이메일 중복 체크
-        var existingEmail = await userRepository.IsEmailExistsAsync(email);
+        var existingEmail = await userRepository.IsEmailExistsAsync(email, ct);
         if (existingEmail)
             return Result<User>.Failure(ErrorCodes.EmailAlreadyTaken, ErrorMessages.EmailAlreadyTaken);
         
@@ -35,13 +35,13 @@ public class AuthService(
         var hash = passwordHasher.HashPassword(password);
 
         // User Entity 생성
-        var user = await userRepository.AddAsync(hash, email);
+        var user = await userRepository.AddAsync(hash, email, ct);
         
         // Response
         return Result<User>.Success(user);
     }
 
-    public async Task<Result<LoginResult>> LoginAsync(string email, string password)
+    public async Task<Result<LoginResult>> LoginAsync(string email, string password, CancellationToken ct = default)
     {
         // 잘못된 요청
         if (string.IsNullOrWhiteSpace(email))
@@ -50,7 +50,7 @@ public class AuthService(
         }
 
         // User 조회: 먼저 닉네임으로, 없으면 이메일로 재시도
-        var user = await userRepository.GetByEmailAsync(email);
+        var user = await userRepository.GetByEmailAsync(email, ct);
         if (user is null)
             return Result<LoginResult>.Failure(ErrorCodes.UserNotFound, ErrorMessages.UserNotFound);
 
@@ -60,7 +60,7 @@ public class AuthService(
             return Result<LoginResult>.Failure(ErrorCodes.InvalidCredentials, ErrorMessages.InvalidCredentials);
 
         // 세션 생성
-        var userSession = await userSessionRepository.CreateSessionAsync(user.UserId, user.NickName, user.Email, user.PublicId);
+        var userSession = await userSessionRepository.CreateSessionAsync(user.UserId, user.NickName, user.Email, user.PublicId, ct);
         if (userSession is null)
             return Result<LoginResult>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
 
@@ -75,17 +75,17 @@ public class AuthService(
             expiresAt));
     }
 
-    public async Task<Result> LogoutAsync(string sessionId)
+    public async Task<Result> LogoutAsync(string sessionId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
             return Result.Failure(ErrorCodes.InvalidRequest,
                 ErrorMessages.InvalidRequest);
 
-        await userSessionRepository.RemoveSessionAsync(sessionId);
+        await userSessionRepository.RemoveSessionAsync(sessionId, ct);
         return Result.Success();
     }
 
-    public async Task<bool> ValidateTokenAsync(string token)
+    public async Task<bool> ValidateTokenAsync(string token, CancellationToken ct = default)
     {
         // 토큰이 유효한 값인지 검증
         if (string.IsNullOrWhiteSpace(token))
@@ -102,7 +102,7 @@ public class AuthService(
             return false;
 
         // 현재 session이 활성화 되었는지 
-        var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId.Value);
+        var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId.Value, ct);
         if (userSession is null)
             return false;
         

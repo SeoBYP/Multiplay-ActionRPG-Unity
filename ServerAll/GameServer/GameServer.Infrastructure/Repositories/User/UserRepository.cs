@@ -21,13 +21,13 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
     /// <summary>
     /// 새로운 사용자를 추가합니다. (회원가입)
     /// </summary>
-    public async Task<User> AddAsync(string passwordHash, string email)
+    public async Task<User> AddAsync(string passwordHash, string email, CancellationToken ct = default)
     {
         try
         {
             var user = User.Create(passwordHash, email);
 
-            var userId = _database.StringIncrement(UserCounterKey);
+            var userId = await _database.StringIncrementAsync(UserCounterKey);
             user.SetUserId(userId);
 
             var transaction = _database.CreateTransaction();
@@ -62,11 +62,11 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
     }
 
-    public async Task<bool> RemoveAsync(long userId)
+    public async Task<bool> RemoveAsync(long userId, CancellationToken ct = default)
     {
         try
         {
-            var user = await GetByIdAsync(userId);
+            var user = await GetByIdAsync(userId, ct);
             if (user is null)
                 return true;
             
@@ -93,7 +93,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
     }
 
-    public async Task<bool> UpdateAsync(User user)
+    public async Task<bool> UpdateAsync(User user, CancellationToken ct = default)
     {
         try
         {
@@ -101,7 +101,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
                 throw new InvalidOperationException("Invalid user id");
 
             // 기존 User 정보 가져오기
-            var existingUser = await GetByIdAsync(user.UserId);
+            var existingUser = await GetByIdAsync(user.UserId, ct);
             if (existingUser is null)
                 return false;
 
@@ -152,7 +152,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
     }
 
-    public async Task<User?> GetByIdAsync(long userId)
+    public async Task<User?> GetByIdAsync(long userId, CancellationToken ct = default)
     {
         try
         {
@@ -168,7 +168,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
     }
 
-    public async Task<User?> GetByEmailAsync(string email)
+    public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
     {
         try
         {
@@ -177,7 +177,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
                 return null;
             if (long.TryParse(userId.ToString(), out var id))
             {
-                return await GetByIdAsync(id);
+                return await GetByIdAsync(id, ct);
             }
 
             return null;
@@ -189,7 +189,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
     }
 
-    public async Task<User?> GetByPublicIdAsync(string publicId)
+    public async Task<User?> GetByPublicIdAsync(string publicId, CancellationToken ct = default)
     {
         try
         {
@@ -198,7 +198,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
                 return null;
             if (long.TryParse(userId.ToString(), out var id))
             {
-                return await GetByIdAsync(id);
+                return await GetByIdAsync(id, ct);
             }
 
             return null;
@@ -210,7 +210,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
     }
 
-    public async Task<User?> GetByNicknameAsync(string nickname)
+    public async Task<User?> GetByNicknameAsync(string nickname, CancellationToken ct = default)
     {
         try
         {
@@ -219,7 +219,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
                 return null;
             if (long.TryParse(userId.ToString(), out var id))
             {
-                return await GetByIdAsync(id);
+                return await GetByIdAsync(id, ct);
             }
 
             return null;
@@ -231,13 +231,13 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
     }
 
-    public async Task<bool> IsEmailExistsAsync(string email)
+    public async Task<bool> IsEmailExistsAsync(string email, CancellationToken ct = default)
     {
         var userId = await _database.StringGetAsync($"{UserEmailMappingKey}:{email}");
         return userId.HasValue;
     }
 
-    public async Task<bool> IsNicknameExistsAsync(string nickname)
+    public async Task<bool> IsNicknameExistsAsync(string nickname, CancellationToken ct = default)
     {
         var userId = await _database.StringGetAsync($"{UserNicknameMappingKey}:{nickname}");
         return userId.HasValue;

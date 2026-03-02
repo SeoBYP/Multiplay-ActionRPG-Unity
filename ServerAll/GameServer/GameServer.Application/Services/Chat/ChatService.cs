@@ -21,7 +21,7 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
     {
         try
         {
-            var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId);
+            var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
             if (userSession is null)
                 return Result<ChatMessage>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
 
@@ -39,7 +39,8 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
                 chatType,
                 message,
                 roomId,
-                targetUserNickName);
+                targetUserNickName,
+                ct);
 
             // Redis publish
             var channel = ChatChannels.GetChannel(chatType, roomId, targetUserNickName);
@@ -59,7 +60,7 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
         long afterMessageId,
         CancellationToken ct = default)
     {
-        var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId);
+        var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
         if (userSession is null) return Array.Empty<ChatMessage>();
 
         // repo에 필요: after id 이후 메시지

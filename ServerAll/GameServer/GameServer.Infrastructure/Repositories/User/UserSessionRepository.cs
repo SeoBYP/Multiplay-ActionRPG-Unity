@@ -31,7 +31,7 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
     /// <param name="userEmail">사용자 이메일</param>
     /// <param name="publicId">사용자 공개 ID</param>
     /// <returns>생성된 세션 객체, 실패 시 예외 발생</returns>
-    public async Task<UserSession?> CreateSessionAsync(long userId, string userName, string userEmail, string publicId)
+    public async Task<UserSession?> CreateSessionAsync(long userId, string userName, string userEmail, string publicId, CancellationToken ct = default)
     {
         try
         {
@@ -86,7 +86,7 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
     /// </summary>
     /// <param name="sessionId">조회할 세션 ID</param>
     /// <returns>세션 정보 객체, 없거나 만료된 경우 null</returns>
-    public async Task<UserSession?> GetBySessionIdAsync(string sessionId)
+    public async Task<UserSession?> GetBySessionIdAsync(string sessionId, CancellationToken ct = default)
     {
         try
         {
@@ -110,7 +110,7 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
         }
     }
 
-    public async Task UpdateRoomIdAsync(string sessionId, long roomId)
+    public async Task UpdateRoomIdAsync(string sessionId, long roomId, CancellationToken ct = default)
     {
         await _database.HashSetAsync($"{SessionKey}:{sessionId}", "CurrentRoomId", roomId);
     }
@@ -120,7 +120,7 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
     /// </summary>
     /// <param name="userId">조회할 사용자 ID</param>
     /// <returns>세션 정보 객체, 세션이 없는 경우 null</returns>
-    public async Task<UserSession?> GetSessionByUserIdAsync(long userId)
+    public async Task<UserSession?> GetSessionByUserIdAsync(long userId, CancellationToken ct = default)
     {
         var sessionId = await _database.StringGetAsync($"{UserSessionMappingKey}:{userId}");
 
@@ -132,14 +132,14 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
         if (string.IsNullOrWhiteSpace(sessionId.ToString()))
             return null;
 
-        return await GetBySessionIdAsync(sessionId.ToString());
+        return await GetBySessionIdAsync(sessionId.ToString(), ct);
     }
 
     /// <summary>
     /// 지정된 세션 ID에 해당하는 세션 정보를 삭제합니다.
     /// </summary>
     /// <param name="sessionId">삭제할 세션 ID</param>
-    public async Task RemoveSessionAsync(string sessionId)
+    public async Task RemoveSessionAsync(string sessionId, CancellationToken ct = default)
     {
         try
         {
@@ -177,7 +177,7 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
     /// <summary>
     /// 현재 시스템에서 활성화된 전체 세션의 개수를 반환합니다.
     /// </summary>
-    public async Task<long> GetActiveSessionCountAsync()
+    public async Task<long> GetActiveSessionCountAsync(CancellationToken ct = default)
     {
         return await _database.SetLengthAsync(ActiveSessionsKey);
     }
@@ -185,7 +185,7 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
     /// <summary>
     /// 현재 활성화된 모든 세션 목록을 조회합니다.
     /// </summary>
-    public async Task<IEnumerable<UserSession>> GetActiveSessionsAsync()
+    public async Task<IEnumerable<UserSession>> GetActiveSessionsAsync(CancellationToken ct = default)
     {
         // 활성 세션 Set에서 모든 SessionId 조회
         var sessionIds = await _database.SetMembersAsync(ActiveSessionsKey);
@@ -220,7 +220,7 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
     /// Redis 키 만료(TTL)로 인해 사라진 세션들을 활성 세션 목록(Set)에서 정리합니다.
     /// </summary>
     /// <param name="timeout">정리 작업 시 고려할 타임아웃 설정 (현재 로직에서는 존재 여부 확인용)</param>
-    public async Task CleanupExpiredSessionsAsync(TimeSpan timeout)
+    public async Task CleanupExpiredSessionsAsync(TimeSpan timeout, CancellationToken ct = default)
     {
         try
         {

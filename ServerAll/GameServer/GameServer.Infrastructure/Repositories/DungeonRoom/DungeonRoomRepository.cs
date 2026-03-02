@@ -24,7 +24,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
     /// <param name="roomName">생성할 방의 이름</param>
     /// <param name="maxPlayers">방의 최대 수용 인원 (기본값: 4)</param>
     /// <returns>생성된 DungeonRoom 객체</returns>
-    public async Task<Domain.Entities.DungeonRoom?> CreateAsync(long hostId, string roomName,  int maxPlayers = 4)
+    public async Task<Domain.Entities.DungeonRoom?> CreateAsync(long hostId, string roomName,  int maxPlayers = 4, CancellationToken ct = default)
     {
         try
         {
@@ -87,7 +87,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
     /// </summary>
     /// <param name="roomId">조회할 방 ID</param>
     /// <returns>DungeonRoom 객체, 존재하지 않는 경우 null</returns>
-    public async Task<Domain.Entities.DungeonRoom?> GetByIdAsync(long roomId)
+    public async Task<Domain.Entities.DungeonRoom?> GetByIdAsync(long roomId, CancellationToken ct = default)
     {
         try
         {
@@ -121,7 +121,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
     /// </summary>
     /// <param name="userId">참여 중인 사용자 ID</param>
     /// <returns>DungeonRoom 객체, 참여 중인 방이 없는 경우 null</returns>
-    public async Task<Domain.Entities.DungeonRoom?> GetByUserIdAsync(long userId)
+    public async Task<Domain.Entities.DungeonRoom?> GetByUserIdAsync(long userId, CancellationToken ct = default)
     {
         try
         {
@@ -134,7 +134,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
             if (!long.TryParse(roomIdValue.ToString(), out var roomIdParsed))
                 return null;
             
-            return await GetByIdAsync(roomIdParsed);
+            return await GetByIdAsync(roomIdParsed, ct);
         }
         catch (Exception e)
         {
@@ -147,7 +147,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
     /// 현재 서버에 존재하는 모든 활성 던전 방 목록을 조회합니다.
     /// </summary>
     /// <returns>활성 던전 방 객체 리스트</returns>
-    public async Task<IEnumerable<Domain.Entities.DungeonRoom>> GetAllActiveRoomsAsync()
+    public async Task<IEnumerable<Domain.Entities.DungeonRoom>> GetAllActiveRoomsAsync(CancellationToken ct = default)
     {
         try
         {
@@ -202,7 +202,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
     /// <summary>
     /// 현재 활성화된 던전 방의 총 개수를 조회합니다.
     /// </summary>
-    public async Task<long> GetActiveRoomCountAsync()
+    public async Task<long> GetActiveRoomCountAsync(CancellationToken ct = default)
     {
         return await _database.SetLengthAsync(ActiveRoomsKey);
     }
@@ -212,7 +212,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
     /// </summary>
     /// <param name="room">업데이트할 방 객체</param>
     /// <returns>업데이트 성공 여부</returns>
-    public async Task<bool> UpdateAsync(Domain.Entities.DungeonRoom room)
+    public async Task<bool> UpdateAsync(Domain.Entities.DungeonRoom room, CancellationToken ct = default)
     {
         try
         {
@@ -221,7 +221,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
                 throw new InvalidOperationException("UpdateAsync는 기존 방만 업데이트 가능");
             
             // 2. 기존 방 조회 (존재 여부 확인)
-            var existingRoom = await GetByIdAsync(room.RoomId);
+            var existingRoom = await GetByIdAsync(room.RoomId, ct);
             if (existingRoom == null)
                 return false;
             
@@ -307,12 +307,12 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
     /// </summary>
     /// <param name="roomId">삭제할 방 ID</param>
     /// <returns>삭제 성공 여부</returns>
-    public async Task<bool> DeleteAsync(long roomId)
+    public async Task<bool> DeleteAsync(long roomId, CancellationToken ct = default)
     {
         try
         {
             // 1. 먼저 방 정보 조회 (플레이어 목록 필요)
-            var room = await GetByIdAsync(roomId);
+            var room = await GetByIdAsync(roomId, ct);
             if (room == null)
                 return false;
         
@@ -336,7 +336,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
             bool committed = await transaction.ExecuteAsync();
             if (!committed)
                 return false;
-            
+        
             // 7. 모든 Task 완료 대기
             await Task.WhenAll(
                 new[] { delRoomTask, removeActiveTask, delPlayersTask }

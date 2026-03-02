@@ -40,7 +40,7 @@ public class ChatGrpcService(
         finally
         {
             // DisconnectAsync 내부에서 ctx.Stop() + UnsubscribeAll + registry 제거
-            await subscriptionService.DisconnectAsync(ctx);
+            await subscriptionService.DisconnectAsync(ctx, context.CancellationToken);
         }
     }
 

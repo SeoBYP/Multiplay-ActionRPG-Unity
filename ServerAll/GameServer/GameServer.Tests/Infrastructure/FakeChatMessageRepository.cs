@@ -19,7 +19,7 @@ public class FakeChatMessageRepository : IChatMessageRepository
         return Task.FromResult<IEnumerable<ChatMessage>>(result);
     }
 
-    public Task<ChatMessage> CreateAsync(string senderName, ChatType chatType, string message, long? roomId, string? targetUserNickName)
+    public Task<ChatMessage> CreateAsync(string senderName, ChatType chatType, string message, long? roomId, string? targetUserNickName, CancellationToken ct = default)
     {
         var messageId = Interlocked.Increment(ref _nextMessageId);
         var chatMessage = ChatMessage.CreateNew(messageId, senderName, chatType, message, roomId, targetUserNickName);
@@ -28,18 +28,18 @@ public class FakeChatMessageRepository : IChatMessageRepository
         return Task.FromResult(chatMessage);
     }
 
-    public Task<ChatMessage?> GetMessageByIdAsync(long messageId)
+    public Task<ChatMessage?> GetMessageByIdAsync(long messageId, CancellationToken ct = default)
     {
         _messages.TryGetValue(messageId, out var message);
         return Task.FromResult(message);
     }
 
-    public Task<IEnumerable<ChatMessage>> GetAllMessagesAsync()
+    public Task<IEnumerable<ChatMessage>> GetAllMessagesAsync(CancellationToken ct = default)
     {
         return Task.FromResult(_messages.Values.AsEnumerable());
     }
 
-    public Task<IEnumerable<ChatMessage>> GetMessagesByUserNameAsync(string userName, int limit, long? beforeMessageId)
+    public Task<IEnumerable<ChatMessage>> GetMessagesByUserNameAsync(string userName, int limit, long? beforeMessageId, CancellationToken ct = default)
     {
         var query = _messages.Values
             .Where(m => m.SenderUserNickName == userName || m.TargetUserNickName == userName);
@@ -56,7 +56,7 @@ public class FakeChatMessageRepository : IChatMessageRepository
         return Task.FromResult<IEnumerable<ChatMessage>>(result);
     }
 
-    public Task<IEnumerable<ChatMessage>> GetMessagesByRoomIdAsync(long roomId, int limit, long? beforeMessageId)
+    public Task<IEnumerable<ChatMessage>> GetMessagesByRoomIdAsync(long roomId, int limit, long? beforeMessageId, CancellationToken ct = default)
     {
         var query = _messages.Values
             .Where(m => m.RoomId == roomId);
@@ -73,18 +73,18 @@ public class FakeChatMessageRepository : IChatMessageRepository
         return Task.FromResult<IEnumerable<ChatMessage>>(result);
     }
 
-    public Task<bool> DeleteAsync(long messageId)
+    public Task<bool> DeleteAsync(long messageId, CancellationToken ct = default)
     {
         return Task.FromResult(_messages.TryRemove(messageId, out _));
     }
 
-    public Task<bool> DeleteAllAsync()
+    public Task<bool> DeleteAllAsync(CancellationToken ct = default)
     {
         _messages.Clear();
         return Task.FromResult(true);
     }
 
-    public Task<bool> DeleteByUserNameAsync(string userName)
+    public Task<bool> DeleteByUserNameAsync(string userName, CancellationToken ct = default)
     {
         var messagesToRemove = _messages.Values
             .Where(m => m.SenderUserNickName == userName)
@@ -102,7 +102,7 @@ public class FakeChatMessageRepository : IChatMessageRepository
         return Task.FromResult(anyRemoved);
     }
 
-    public Task<bool> DeleteByRoomIdAsync(long roomId)
+    public Task<bool> DeleteByRoomIdAsync(long roomId, CancellationToken ct = default)
     {
         var messagesToRemove = _messages.Values
             .Where(m => m.RoomId == roomId)

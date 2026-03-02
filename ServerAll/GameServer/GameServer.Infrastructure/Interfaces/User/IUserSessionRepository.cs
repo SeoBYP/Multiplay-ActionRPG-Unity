@@ -14,50 +14,50 @@ public interface IUserSessionRepository
     /// <param name="userEmail">사용자 이메일</param>
     /// <param name="publicId">사용자 공개 ID</param>
     /// <returns>생성된 세션 정보 (실패 시 null)</returns>
-    Task<UserSession?> CreateSessionAsync(long userId, string userName, string userEmail, string publicId);
+    Task<UserSession?> CreateSessionAsync(long userId, string userName, string userEmail, string publicId, CancellationToken ct = default);
 
     /// <summary>
     /// 세션 ID로 세션 정보를 조회합니다.
     /// </summary>
     /// <param name="sessionId">세션 ID</param>
     /// <returns>찾은 세션 정보 (없으면 null)</returns>
-    Task<UserSession?> GetBySessionIdAsync(string sessionId);
+    Task<UserSession?> GetBySessionIdAsync(string sessionId, CancellationToken ct = default);
 
     /// <summary>
     /// 사용자 ID로 세션 정보를 조회합니다.
     /// </summary>
     /// <param name="userId">사용자 ID</param>
     /// <returns>찾은 세션 정보 (없으면 null)</returns>
-    Task<UserSession?> GetSessionByUserIdAsync(long userId);
+    Task<UserSession?> GetSessionByUserIdAsync(long userId, CancellationToken ct = default);
     
     /// <summary>
     /// 세션의 현재 방 ID를 업데이트합니다.
     /// </summary>
     /// <param name="sessionId">세션 ID</param>
     /// <param name="roomId">업데이트할 방 ID</param>
-    Task UpdateRoomIdAsync(string sessionId, long roomId);
+    Task UpdateRoomIdAsync(string sessionId, long roomId, CancellationToken ct = default);
 
     /// <summary>
     /// 세션을 제거합니다.
     /// </summary>
     /// <param name="sessionId">제거할 세션 ID</param>
-    Task RemoveSessionAsync(string sessionId);
+    Task RemoveSessionAsync(string sessionId, CancellationToken ct = default);
 
     /// <summary>
     /// 활성 상태인 세션의 총 개수를 조회합니다.
     /// </summary>
     /// <returns>활성 세션 수</returns>
-    Task<long> GetActiveSessionCountAsync();
+    Task<long> GetActiveSessionCountAsync(CancellationToken ct = default);
 
     /// <summary>
     /// 활성 상태인 모든 세션 목록을 조회합니다.
     /// </summary>
     /// <returns>활성 세션 목록</returns>
-    Task<IEnumerable<UserSession>> GetActiveSessionsAsync();
+    Task<IEnumerable<UserSession>> GetActiveSessionsAsync(CancellationToken ct = default);
 
     /// <summary>
     /// 일정 시간이 경과하여 만료된 세션들을 정리합니다.
     /// </summary>
     /// <param name="timeout">만료 기준 시간</param>
-    Task CleanupExpiredSessionsAsync(TimeSpan timeout);
+    Task CleanupExpiredSessionsAsync(TimeSpan timeout, CancellationToken ct = default);
 }

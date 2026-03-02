@@ -20,7 +20,7 @@ public class UserGrpcService(IUserService userService) : UserService.UserService
                 Result = ResultExtensions.CreateUnauthorizedGrpcResult()
             };
 
-        var result = await userService.SetNicknameAsync(sessionId,request.Nickname);
+        var result = await userService.SetNicknameAsync(sessionId,request.Nickname, context.CancellationToken);
         if (result.IsSuccess)
         {
             return new SetNicknameResponse

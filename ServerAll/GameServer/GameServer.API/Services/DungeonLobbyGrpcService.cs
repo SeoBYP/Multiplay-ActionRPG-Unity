@@ -21,7 +21,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
                 CreatedAt = new DateTimeOffset(DateTime.MinValue).ToUnixTimeSeconds(),
             };
 
-        var result = await dungeonLobbyService.CreateDungeonRoomAsync(sessionId, request.RoomName, request.MaxPlayers);
+        var result = await dungeonLobbyService.CreateDungeonRoomAsync(sessionId, request.RoomName, request.MaxPlayers, context.CancellationToken);
         if (!result.IsSuccess || result.Value is null)
             return new CreateRoomResponse { Result = result.ToGrpcResult() };
         return new CreateRoomResponse
@@ -42,7 +42,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
                 RoomInfo = null,
             };
 
-        var result = await dungeonLobbyService.GetDungeonRoomAsync(request.RoomId);
+        var result = await dungeonLobbyService.GetDungeonRoomAsync(request.RoomId, context.CancellationToken);
         return new GetRoomResponse
         {
             Result = result.ToGrpcResult(),
@@ -59,7 +59,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
                 Result = ResultExtensions.CreateUnauthorizedGrpcResult(),
                 RoomInfos = { }
             };
-        var result = await dungeonLobbyService.GetActiveDungeonRoomsAsync();
+        var result = await dungeonLobbyService.GetActiveDungeonRoomsAsync(context.CancellationToken);
         
         var response = new GetRoomsResponse
         {
@@ -82,7 +82,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
                 Result = ResultExtensions.CreateUnauthorizedGrpcResult(),
                 RoomInfo = null
             };
-        var result = await dungeonLobbyService.JoinRoomAsync(sessionId, request.RoomId);
+        var result = await dungeonLobbyService.JoinRoomAsync(sessionId, request.RoomId, context.CancellationToken);
         return new JoinRoomResponse
         {
             Result = result.ToGrpcResult(),
@@ -98,7 +98,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
             {
                 Result = ResultExtensions.CreateUnauthorizedGrpcResult(),
             };
-        var result = await dungeonLobbyService.LeaveRoomAsync(sessionId, request.RoomId);
+        var result = await dungeonLobbyService.LeaveRoomAsync(sessionId, request.RoomId, context.CancellationToken);
         return new LeaveRoomResponse
         {
             Result = result.ToGrpcResult(),
@@ -114,7 +114,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
                 Result = ResultExtensions.CreateUnauthorizedGrpcResult(),
                 RoomInfo = null
             };
-        var result = await dungeonLobbyService.StartGameAsync(sessionId, request.RoomId);
+        var result = await dungeonLobbyService.StartGameAsync(sessionId, request.RoomId, context.CancellationToken);
         return new StartRoomResponse
         {
             Result = result.ToGrpcResult(),
@@ -131,7 +131,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
                 Result = ResultExtensions.CreateUnauthorizedGrpcResult(),
                 RoomInfo = null
             };
-        var result = await dungeonLobbyService.UpdateRoomSettingsAsync(sessionId, request.RoomId, request.RoomName, request.MaxPlayers);
+        var result = await dungeonLobbyService.UpdateRoomSettingsAsync(sessionId, request.RoomId, request.RoomName, request.MaxPlayers, context.CancellationToken);
         return new UpdateRoomResponse
         {
             Result = result.ToGrpcResult(),

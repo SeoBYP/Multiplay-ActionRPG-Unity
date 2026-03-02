@@ -16,7 +16,7 @@ public sealed class ChatSubscriptionService(
     
     public async Task<UserChatContext?> ConnectAsync(string sessionId, CancellationToken ct)
     {
-        var session = await sessionRepository.GetBySessionIdAsync(sessionId);
+        var session = await sessionRepository.GetBySessionIdAsync(sessionId, ct);
         if (session is null) return null;
 
         var sub = redis.GetSubscriber();
@@ -26,7 +26,7 @@ public sealed class ChatSubscriptionService(
         // 1) 기존 ctx.Stop() + 구독 해제 후 교체 (권장)
         if (_contexts.TryGetValue(session.UserId, out var existing))
         {
-            await DisconnectAsync(existing);
+            await DisconnectAsync(existing, ct);
         }
         _contexts[session.UserId] = ctx;
 
@@ -40,7 +40,7 @@ public sealed class ChatSubscriptionService(
 
     public async Task SwitchRoomAsync(string sessionId, long roomId, CancellationToken ct)
     {
-        var session = await sessionRepository.GetBySessionIdAsync(sessionId);
+        var session = await sessionRepository.GetBySessionIdAsync(sessionId, ct);
         if (session is null) return;
 
         // 연결중인 유저가 아니면(채팅 스트림 연결이 없으면) 구독 바꿀 필요 없음
@@ -50,7 +50,7 @@ public sealed class ChatSubscriptionService(
         // roomId 검증 (0은 leave)
         if (roomId != 0)
         {
-            var room = await roomRepository.GetByIdAsync(roomId);
+            var room = await roomRepository.GetByIdAsync(roomId, ct);
             if (room is null) return;
             if (!room.IsExist(ctx.UserId)) return;
         }
@@ -66,7 +66,7 @@ public sealed class ChatSubscriptionService(
             await SubscribeIfNeeded(ctx, ChatChannels.RoomChannel(ctx.CurrentRoomId));
     }
     
-    public async Task DisconnectAsync(UserChatContext ctx)
+    public async Task DisconnectAsync(UserChatContext ctx, CancellationToken ct = default)
     {
         ctx.Stop();
 

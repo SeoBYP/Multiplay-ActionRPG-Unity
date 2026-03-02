@@ -16,7 +16,7 @@ public class FakeChatSubscriptionService : IChatSubscriptionService
         return Task.CompletedTask;
     }
 
-    public Task DisconnectAsync(UserChatContext ctx)
+    public Task DisconnectAsync(UserChatContext ctx, CancellationToken ct = default)
     {
         return Task.CompletedTask;
     }
