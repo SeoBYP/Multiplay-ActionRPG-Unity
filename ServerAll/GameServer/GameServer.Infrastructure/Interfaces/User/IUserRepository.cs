@@ -71,4 +71,23 @@ public interface IUserRepository
     /// <param name="nickname"></param>
     /// <returns></returns>
     Task<bool> IsNicknameExistsAsync(string nickname, CancellationToken ct = default);
+
+    /// <summary>
+    /// 사용자 리프레시 토큰을 업데이트합니다.
+    /// </summary>
+    /// <param name="userId">업데이트할 사용자 ID</param>
+    /// <param name="hashedToken">새로운 리프레시 토큰(해시된 값)</param>
+    /// <param name="expiry">토큰 만료 시간</param>
+    /// <param name="ct">작업 취소를 위한 토큰</param>
+    /// <returns>업데이트 성공 여부</returns>
+    Task<bool> UpdateRefreshTokenAsync(long userId, string hashedToken, DateTime expiry,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// 사용자의 리프레시 토큰을 제거합니다.
+    /// </summary>
+    /// <param name="userId">리프레시 토큰을 삭제할 사용자 ID</param>
+    /// <param name="ct">작업 취소를 위한 토큰</param>
+    /// <returns>리프레시 토큰 삭제 성공 여부</returns>
+    Task<bool> ClearRefreshTokenAsync(long userId, CancellationToken ct = default);
 }

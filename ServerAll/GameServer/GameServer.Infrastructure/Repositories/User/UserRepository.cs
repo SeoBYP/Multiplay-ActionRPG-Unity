@@ -243,6 +243,46 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         return userId.HasValue;
     }
 
+    public async Task<bool> UpdateRefreshTokenAsync(long userId, string hashedToken, DateTime expiry, CancellationToken ct = default)
+    {
+        try
+        {
+            // PostgreSQL로 이전 예정이지만 현재는 Redis Hash에 통합 저장
+            var key = $"{UserKey}:{userId}";
+            
+            // 유저 본체 데이터가 존재할 때만 리프레시 토큰 필드를 업데이트하도록 트랜잭션 사용
+            var transaction = _database.CreateTransaction();
+            transaction.AddCondition(Condition.KeyExists(key));
+
+            _ = transaction.HashSetAsync(key, [
+                new HashEntry("RefreshToken", hashedToken),
+                new HashEntry("RefreshTokenExpiresAt", expiry.ToString("O"))
+            ]);
+            
+            return await transaction.ExecuteAsync();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return false;
+        }
+    }
+    
+    public async Task<bool> ClearRefreshTokenAsync(long userId, CancellationToken ct = default)
+    {
+        try
+        {
+            // PostgreSQL로 이전 예정이지만 현재는 Redis Hash에서 필드 삭제
+            var key = $"{UserKey}:{userId}";
+            return await _database.HashDeleteAsync(key, ["RefreshToken", "RefreshTokenExpiresAt"]) > 0;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return false;
+        }
+    }
+
     private User? ParseUserFromRedis(long userId, HashEntry[] entries)
     {
         var dict = entries.ToDictionary(
@@ -270,6 +310,16 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
             createdAt = DateTime.UtcNow;
         }
 
-        return User.FromRedis(id, email, publicId, passwordHash, createdAt, nickName);
+        // 리프레시 토큰 정보 추출 (선택적)
+        string? refreshToken = dict.GetValueOrDefault("RefreshToken");
+        DateTime refreshTokenExpiresAt = default;
+        if (dict.TryGetValue("RefreshTokenExpiresAt", out var expiresAtStr))
+        {
+            DateTime.TryParse(expiresAtStr, out refreshTokenExpiresAt);
+        }
+
+        return User.FromRedis(id, email, publicId, passwordHash, createdAt, nickName, refreshToken, refreshTokenExpiresAt);
     }
+    
+    
 }

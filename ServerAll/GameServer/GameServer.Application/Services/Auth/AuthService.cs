@@ -67,6 +67,14 @@ public class AuthService(
         var accessToken =
             jwtTokenGenerator.GenerateAccessToken(user.UserId, user.NickName, user.Email, userSession.SessionId);
         var expiresAt = _jwtOptions.GetExpirationTime();
+
+        var refreshToken = jwtTokenGenerator.GenerateRefreshToken();
+        var refreshTokenExpiry = DateTime.UtcNow.AddHours(_jwtOptions.RefreshTokenExpirationHours);
+        
+        // 유저 정보에 리프레시 토큰 저장
+        var hashedRefreshToken = HashRefreshToken(refreshToken);
+        await userRepository.UpdateRefreshTokenAsync(user.UserId, hashedRefreshToken, refreshTokenExpiry, ct);
+
         // 성공
         return Result<LoginResult>.Success(new LoginResult(
             user, 
@@ -81,9 +89,76 @@ public class AuthService(
             return Result.Failure(ErrorCodes.InvalidRequest,
                 ErrorMessages.InvalidRequest);
 
+        // 로그아웃 시 리프레시 토큰도 삭제 (세션 정보를 통해 유저 ID를 알아내야 함)
+        var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
+        if (userSession is not null)
+        {
+            await userRepository.ClearRefreshTokenAsync(userSession.UserId, ct);
+        }
+
         await userSessionRepository.RemoveSessionAsync(sessionId, ct);
         return Result.Success();
     }
+
+    public async Task<Result<LoginResult>> RefreshTokenAsync(string accessToken, CancellationToken ct = default)
+    {
+        var claimsPrincipal = await jwtTokenGenerator.ValidateToken(accessToken, false);
+        if (claimsPrincipal is null)
+            return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+        
+        var sessionIdClaim = claimsPrincipal.FindFirst(JwtRegisteredClaimNames.Sid);
+        if (sessionIdClaim is null)
+            return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+            
+        var userSession = await userSessionRepository.GetBySessionIdAsync(sessionIdClaim.Value, ct);
+        if (userSession is null)
+            return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+        
+        // 3. UserId → User 조회 → RefreshToken 꺼내기
+        var user = await userRepository.GetByIdAsync(userSession.UserId, ct);
+        if (user is null)
+        {
+            return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+        }
+
+        // 4. RefreshToken null 체크
+        if (user.RefreshToken is null)
+        {
+            await userSessionRepository.RemoveSessionAsync(userSession.SessionId, ct); // 세션 강제 종료
+            return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+        }
+
+        // 4. RefreshToken 만료일 검사
+        if (user.RefreshTokenExpiresAt <= DateTime.UtcNow)
+        {
+            return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+        }
+
+        // 5. 새 AccessToken 발급 + RefreshToken Rotation
+        var newAccessToken = jwtTokenGenerator.GenerateAccessToken(user.UserId, user.NickName, user.Email, userSession.SessionId);
+        var accessTokenExpiresAt = _jwtOptions.GetExpirationTime();
+
+        var newRawRefreshToken = jwtTokenGenerator.GenerateRefreshToken();
+        var refreshTokenExpiry = DateTime.UtcNow.AddHours(_jwtOptions.RefreshTokenExpirationHours);
+
+        // 로테이션된 토큰 저장
+        var hashedNewRefreshToken = HashRefreshToken(newRawRefreshToken);
+        await userRepository.UpdateRefreshTokenAsync(user.UserId, hashedNewRefreshToken, refreshTokenExpiry, ct);
+
+        return Result<LoginResult>.Success(new LoginResult(
+            user, 
+            userSession, 
+            newAccessToken, 
+            accessTokenExpiresAt));
+    }
+
+    private static string HashRefreshToken(string token)
+    {
+        var bytes = System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(token));
+        return Convert.ToHexString(bytes);
+    }
+
 
     public async Task<bool> ValidateTokenAsync(string token, CancellationToken ct = default)
     {

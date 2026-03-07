@@ -68,4 +68,26 @@ public class FakeUserRepository : IUserRepository
     {
         return Task.FromResult(_users.Values.Any(u => u.NickName == nickname));
     }
+
+    public Task<bool> UpdateRefreshTokenAsync(long userId, string hashedToken, DateTime expiry, CancellationToken ct = default)
+    {
+        if (!_users.TryGetValue(userId, out var user))
+        {
+            return Task.FromResult(false);
+        }
+
+        user.SetRefreshToken(hashedToken, expiry);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> ClearRefreshTokenAsync(long userId, CancellationToken ct = default)
+    {
+        if (!_users.TryGetValue(userId, out var user))
+        {
+            return Task.FromResult(false);
+        }
+
+        user.ClearRefreshToken();
+        return Task.FromResult(true);
+    }
 }

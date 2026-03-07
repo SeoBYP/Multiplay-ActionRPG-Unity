@@ -40,7 +40,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task SendMessageAsync_Global_성공_및_퍼블리시()
+    public async Task 전역_메시지_전송_성공_및_발행()
     {
         var sessionId = await CreateSessionAsync(1, "Alice");
     
@@ -58,7 +58,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task SendMessageAsync_Room_성공_및_채널확인()
+    public async Task 방_메시지_전송_성공_및_채널_확인()
     {
         var sessionId = await CreateSessionAsync(2, "Bob");
         long roomId = 777;
@@ -76,7 +76,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task SendMessageAsync_Whisper_성공_및_채널확인()
+    public async Task 귓속말_전송_성공_및_채널_확인()
     {
         var sessionId = await CreateSessionAsync(3, "Carol");
         string targetNickname = "TargetUser";
@@ -93,7 +93,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task SendMessageAsync_세션없음_InvalidRequest()
+    public async Task 세션_없을_때_메시지_전송_실패()
     {
         var result = await _service.SendMessageAsync("invalid-session", "hi", null);
     
@@ -106,7 +106,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task GetMessageByIdAsync_정상조회()
+    public async Task ID로_메시지_조회_성공()
     {
         var sessionId = await CreateSessionAsync(10, "Dave");
         var send = await _service.SendMessageAsync(sessionId, "hello id", null);
@@ -119,7 +119,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task GetMessageByIdAsync_없으면_MessageNotFound()
+    public async Task 존재하지_않는_메시지_ID_조회_시_실패()
     {
         var sessionId = await CreateSessionAsync(11, "Eve");
     
@@ -130,7 +130,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task GetMessagesByRoomAsync_리미트_및_정렬()
+    public async Task 방_메시지_목록_조회_제한_및_정렬_확인()
     {
         var sessionId = await CreateSessionAsync(20, "RoomUser");
         long roomId = 5555;
@@ -151,7 +151,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task GetMessagesByUserAsync_리미트_및_정렬()
+    public async Task 사용자_메시지_목록_조회_제한_및_정렬_확인()
     {
         var sessionId = await CreateSessionAsync(30, "UserA");
         string other = "UserB";
@@ -172,7 +172,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task GetMessagesAfterAsync_필터링_확인()
+    public async Task 특정_ID_이후_메시지_필터링_확인()
     {
         // 1. 유저 세션 생성 (Alice, Room 101)
         var userId = 100L;
@@ -204,7 +204,7 @@ public class ChatServiceTests
     }
 
     [Fact]
-    public async Task GetMessagesAfterAsync_중간_ID_조회()
+    public async Task 중간_ID_이후_메시지_조회()
     {
         // 1. 유저 세션 생성 (ID 100)
         var sessionId = await CreateSessionAsync(200, "User200");
@@ -224,14 +224,14 @@ public class ChatServiceTests
     }
 
     [Fact]
-    public async Task GetMessagesAfterAsync_세션없음_빈결과()
+    public async Task 세션_없을_때_메시지_이후_조회_빈_결과()
     {
         var results = await _service.GetMessagesAfterAsync("invalid-session", 0);
         Assert.Empty(results);
     }
 
     [Fact]
-    public async Task GetMessagesAfterAsync_방에_없을_때_방채팅_제외()
+    public async Task 방에_없을_때_방_채팅_제외하고_조회()
     {
         // 1. 유저 세션 생성 (No Room)
         var sessionId = await CreateSessionAsync(300, "NoRoomUser");

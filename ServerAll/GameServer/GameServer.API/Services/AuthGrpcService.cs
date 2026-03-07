@@ -52,6 +52,29 @@ public class AuthGrpcService(IAuthService authService) : AuthService.AuthService
         return new LoginResponse { Result = result.ToGrpcResult() };
     }
 
+    [AllowAnonymous]
+    public override async Task<RefreshResponse> Refresh(RefreshRequest request, ServerCallContext context)
+    {
+        var accessToken = context.GetAccessToken();
+
+        if (string.IsNullOrWhiteSpace(accessToken))
+            return new RefreshResponse { Result = ResultExtensions.CreateUnauthorizedGrpcResult() };
+        
+        var result = await authService.RefreshTokenAsync(accessToken, context.CancellationToken);
+        if (result.IsSuccess)
+        {
+            return new RefreshResponse
+            {
+                Result = result.ToGrpcResult(),
+                AccessToken = result.Value?.AccessToken,
+                SessionId = result.Value?.Session.SessionId,
+                ExpiresAt = new DateTimeOffset(result.Value!.ExpiresAt).ToUnixTimeSeconds()
+            };
+        }
+
+        return new RefreshResponse { Result = ResultExtensions.CreateFailureGrpcResult() };
+    }
+
     public override async Task<LogoutResponse> Logout(LogoutRequest request, ServerCallContext context)
     {
         var sessionId = context.GetSessionId();

@@ -1,6 +1,7 @@
 ﻿using GameServer.Application.Common;
 using GameServer.Application.Services.Auth;
 using GameServer.Domain.Entities;
+using GameServer.Domain.Entities.User;
 using GameServer.Infrastructure.Security;
 using GameServer.Infrastructure.Interfaces;
 using GameServer.Infrastructure.Interfaces.User;
@@ -350,5 +351,131 @@ public class AuthServiceTests
         // 두 번째 세션도 존재
         var secondSession = await _userSessionRepository.GetBySessionIdAsync(secondSessionId);
         Assert.NotNull(secondSession);
+    }
+
+    [Fact]
+    public async Task LoginAsync_는_리프레시_토큰을_생성한다()
+    {
+        // given
+        var password = "password123";
+        var email = "login_refresh@test.com";
+        await _authService.RegisterAsync(password, email);
+
+        // when
+        var result = await _authService.LoginAsync(email, password);
+
+        // then
+        Assert.True(result.IsSuccess);
+        
+        var user = await _userRepository.GetByEmailAsync(email);
+        Assert.NotNull(user.RefreshToken);
+        Assert.True(user.RefreshTokenExpiresAt > DateTime.UtcNow);
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_는_유효한_토큰으로_새_토큰을_발급한다()
+    {
+        // given
+        var password = "password123";
+        var email = "refresh_success@test.com";
+        await _authService.RegisterAsync(password, email);
+        var loginResult = (await _authService.LoginAsync(email, password)).Value;
+        var oldAccessToken = loginResult.AccessToken;
+
+        // when - 갱신 시도
+        var result = await _authService.RefreshTokenAsync(oldAccessToken);
+
+        // then
+        Assert.True(result.IsSuccess);
+        Assert.NotEmpty(result.Value.AccessToken);
+        Assert.NotEqual(oldAccessToken, result.Value.AccessToken);
+
+        // DB 확인 (로테이션 확인)
+        var user = await _userRepository.GetByEmailAsync(email);
+        Assert.NotNull(user.RefreshToken);
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_는_만료된_리프레시_토큰이면_실패한다()
+    {
+        // given
+        var password = "password123";
+        var email = "refresh_expired@test.com";
+        await _authService.RegisterAsync(password, email);
+        var loginResult = (await _authService.LoginAsync(email, password)).Value;
+
+        // 강제로 리프레시 토큰 만료시킴
+        var user = await _userRepository.GetByEmailAsync(email);
+        var userInRepo = await _userRepository.GetByIdAsync(user.UserId);
+        
+        var expiredUser = User.FromRedis(
+            userInRepo.UserId, userInRepo.Email, userInRepo.PublicId, 
+            userInRepo.PasswordHash, userInRepo.CreatedAt, userInRepo.NickName, 
+            userInRepo.RefreshToken, DateTime.UtcNow.AddDays(-1));
+        await _userRepository.UpdateAsync(expiredUser);
+
+        // when
+        var result = await _authService.RefreshTokenAsync(loginResult.AccessToken);
+
+        // then
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.InvalidRequest, result.InternalErrorCode);
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_는_만료된_AccessToken으로도_갱신_성공한다()
+    {
+        // given
+        var password = "password123";
+        var email = "refresh_expired_access@test.com";
+        await _authService.RegisterAsync(password, email);
+        
+        // 액세스 토큰 만료 시간을 아주 짧게 설정한 옵션으로 새로 생성
+        var shortJwtOptions = new JwtOptions
+        {
+            Issuer = "TestIssuer",
+            Audience = "TestAudience",
+            Secret = "test-secret-key-at-least-32-chars-long",
+            AccessTokenMinutes = -1 // 이미 만료됨
+        };
+        var generator = new JwtTokenGenerator(Options.Create(shortJwtOptions));
+        
+        var loginResult = (await _authService.LoginAsync(email, password)).Value;
+        var expiredAccessToken = generator.GenerateAccessToken(
+            loginResult.User.UserId, loginResult.User.NickName, loginResult.User.Email, loginResult.Session.SessionId);
+
+        // when
+        // AuthService 내부에서 validateLifetime: false를 사용하므로 만료되었어도 통과해야 함
+        var result = await _authService.RefreshTokenAsync(expiredAccessToken);
+
+        // then
+        Assert.True(result.IsSuccess);
+        Assert.NotEmpty(result.Value.AccessToken);
+        Assert.NotEqual(expiredAccessToken, result.Value.AccessToken);
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_는_RefreshToken이_null이면_세션을_종료하고_실패한다()
+    {
+        // given
+        var password = "password123";
+        var email = "refresh_null@test.com";
+        await _authService.RegisterAsync(password, email);
+        var loginResult = (await _authService.LoginAsync(email, password)).Value;
+        var sessionId = loginResult.Session.SessionId;
+
+        // DB에서 RefreshToken을 강제로 null로 만듦
+        await _userRepository.ClearRefreshTokenAsync(loginResult.User.UserId);
+
+        // when
+        var result = await _authService.RefreshTokenAsync(loginResult.AccessToken);
+
+        // then
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.InvalidRequest, result.InternalErrorCode);
+
+        // 세션이 삭제되었는지 확인 (강제 종료 확인)
+        var session = await _userSessionRepository.GetBySessionIdAsync(sessionId);
+        Assert.Null(session);
     }
 }

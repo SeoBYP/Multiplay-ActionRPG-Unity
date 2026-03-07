@@ -15,5 +15,7 @@ public interface IAuthService
     
     Task<Result> LogoutAsync(string sessionId, CancellationToken ct = default);
     
+    Task<Result<LoginResult>> RefreshTokenAsync(string accessToken, CancellationToken ct = default);   
+    
     Task<bool> ValidateTokenAsync(string token, CancellationToken ct = default);
 }

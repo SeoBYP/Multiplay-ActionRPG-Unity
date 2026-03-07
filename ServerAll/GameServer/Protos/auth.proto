@@ -10,6 +10,7 @@ service AuthService {
   rpc Register(RegisterRequest) returns (RegisterResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
+  rpc Refresh(RefreshRequest) returns (RefreshResponse);
 }
 
 message RegisterRequest {
@@ -35,9 +36,22 @@ message LoginResponse {
   gameserver.user.v1.UserInfo user = 5;
 }
 
+message RefreshRequest{
+
+}
+
+message RefreshResponse{
+  gameserver.common.Result result = 1;
+  string access_token = 2;
+  string session_id = 3;
+  int64 expires_at = 4;
+}
+
 message LogoutRequest {
 }
 
 message LogoutResponse {
   gameserver.common.Result result = 1;  // ✅ 전체 패키지명
 }
+
+

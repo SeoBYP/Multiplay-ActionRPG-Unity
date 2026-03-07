@@ -38,7 +38,17 @@ public class User
     /// </summary>
     public DateTime CreatedAt { get; private set; }
 
-    public static User FromRedis(long userId, string email, string publicId, string passwordHash, DateTime createdAt, string nickName)
+    /// <summary>
+    /// 사용자 인증을 위한 갱신 토큰
+    /// </summary>
+    public string? RefreshToken { get; private set; }
+
+    /// <summary>
+    /// 리프레시 토큰의 만료 시간을 나타냅니다.
+    /// </summary>
+    public DateTime RefreshTokenExpiresAt { get; private set; }
+
+    public static User FromRedis(long userId, string email, string publicId, string passwordHash, DateTime createdAt, string nickName, string? refreshToken = null, DateTime refreshTokenExpiresAt = default)
     {
         return new User
         {
@@ -47,7 +57,9 @@ public class User
             Email = email,
             PublicId = publicId,
             PasswordHash = passwordHash,
-            CreatedAt = createdAt
+            CreatedAt = createdAt,
+            RefreshToken = refreshToken,
+            RefreshTokenExpiresAt = refreshTokenExpiresAt
         };
     }
 
@@ -127,6 +139,23 @@ public class User
     {
         SetNickName(nickname);
         SetEmail(email);
+    }
+
+    public void SetRefreshToken(string refreshToken, DateTime refreshTokenExpiresAt)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            throw new ArgumentException("refreshToken cannot be null or whitespace", nameof(refreshToken));
+        if (refreshTokenExpiresAt < DateTime.UtcNow)
+            throw new ArgumentException("refreshTokenExpiresAt must be in the future", nameof(refreshTokenExpiresAt));
+        
+        RefreshToken = refreshToken;
+        RefreshTokenExpiresAt = refreshTokenExpiresAt;
+    }
+
+    public void ClearRefreshToken()
+    {
+        RefreshToken = null;
+        RefreshTokenExpiresAt = default;
     }
     
     /// <summary>
