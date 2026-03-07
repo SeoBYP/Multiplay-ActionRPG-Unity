@@ -1,14 +1,20 @@
 ﻿using System.Security.Claims;
 using GameServer.API.Extension;
 using GameServer.API.Extensions;
+using GameServer.Application.Services.DungeonLobby;
 using GameServer.Application.Services.DungeonLobby.Interfaces;
+using GameServer.Domain.Entities;
 using GameServer.Grpc.DungeonLobby;
+using GameServer.Infrastructure.Interfaces.User;
 using Grpc.Core;
 using Microsoft.IdentityModel.JsonWebTokens;
+using DungeonLobbyService = GameServer.Grpc.DungeonLobby.DungeonLobbyService;
 
 namespace GameServer.API.Services;
 
-public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) : DungeonLobbyService.DungeonLobbyServiceBase
+public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
+    IDungeonLobbySubscriptionService subscriptionService,
+    IUserRepository userRepository) : DungeonLobbyService.DungeonLobbyServiceBase
 {
     public override async Task<CreateRoomResponse> CreateRoom(CreateRoomRequest request, ServerCallContext context)
     {
@@ -27,7 +33,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
         return new CreateRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = result.Value.ToRoomInfo(),
+            RoomInfo = await result.Value.ToRoomInfo(userRepository),
             CreatedAt = new DateTimeOffset(result.Value.CreatedAt).ToUnixTimeSeconds(),
         };
     }
@@ -46,7 +52,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
         return new GetRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = result.Value?.ToRoomInfo(),
+            RoomInfo = await result.Value?.ToRoomInfo(userRepository),
         };
     }
 
@@ -68,7 +74,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
         // TODO : ROOM Count 방안 고민
         foreach (var dungeonRoom in result.Value!)
         {
-            response.RoomInfos.Add(dungeonRoom.ToRoomInfo());
+            response.RoomInfos.Add(await dungeonRoom.ToRoomInfo(userRepository));
         }
         return response;
     }
@@ -86,7 +92,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
         return new JoinRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = result.Value?.ToRoomInfo()
+            RoomInfo =  await result.Value?.ToRoomInfo(userRepository)
         };
     }
 
@@ -118,7 +124,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
         return new StartRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = result.Value?.ToRoomInfo(),
+            RoomInfo = await result.Value?.ToRoomInfo( userRepository),
         };
     }
 
@@ -135,7 +141,68 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService) :
         return new UpdateRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = result.Value?.ToRoomInfo()
+            RoomInfo = await result.Value?.ToRoomInfo(userRepository)
         };
+    }
+
+    public override async Task SubscribeRoom(SubscribeRoomRequest request,
+        IServerStreamWriter<SubscribeRoomResponse> responseStream,
+        ServerCallContext context)
+    {
+        var ct = context.CancellationToken;
+        var sessionId = context.GetSessionId();
+        
+        // ConnectAsync 내부: 세션 조회 + ctx 생성 + Redis 구독
+        var ctx = await subscriptionService.SubscribeAsync(sessionId,request.RoomId, ct);
+        if (ctx is null)
+            return;
+
+        try
+        {
+            await SendLoopAsync(responseStream, ctx, ct);  // 이것만 있으면 돼요
+        }
+        finally
+        {
+            await subscriptionService.UnsubscribeAsync(ctx, ct);
+        }
+    }
+
+    private async Task SendLoopAsync(
+        IServerStreamWriter<SubscribeRoomResponse> responseStream,
+        UserRoomContext ctx,
+        CancellationToken ct)
+    {
+        try
+        {
+            await foreach (var roomId in ctx.Outbound.Reader.ReadAllAsync(ct))
+            {
+                var room = await dungeonLobbyService.GetDungeonRoomAsync(roomId, ct);
+                if(room.IsSuccess == false) continue;
+                var serverMsg = new SubscribeRoomResponse();
+                switch (room.Value.Status)
+                {
+                    case RoomStatus.Playing:
+                        serverMsg.StartEvent = new GameStartedEvent
+                        {
+                            RoomInfo = await room.Value.ToRoomInfo(userRepository),
+                            Ip = "127.0.0.1", // Test용 IP
+                            Port = 12345, // Test용 Port
+                        };
+                        break;
+                    default:
+                        serverMsg.UpdateEvent = new RoomUpdatedEvent
+                        {
+                            RoomInfo = await room.Value.ToRoomInfo(userRepository),
+                        };
+                        break;
+                }
+                await responseStream.WriteAsync(serverMsg, ct);
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
     }
 }

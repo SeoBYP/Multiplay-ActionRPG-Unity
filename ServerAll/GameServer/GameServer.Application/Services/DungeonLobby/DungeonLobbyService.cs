@@ -8,6 +8,7 @@ using GameServer.Infrastructure.Interfaces.User;
 namespace GameServer.Application.Services.DungeonLobby;
 
 public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
+    IDungeonLobbySubscriptionService dungeonLobbySubscriptionService,
     IUserSessionRepository userSessionRepository,
     IChatSubscriptionService chatSubscriptionService) : IDungeonLobbyService
 {
@@ -35,7 +36,7 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
             
             userSession.SetRoomId(newRoom.RoomId);
             await userSessionRepository.UpdateRoomIdAsync(sessionId, newRoom.RoomId, ct);
- 
+            
             return Result<DungeonRoom>.Success(newRoom);
         }
         catch (Exception e)
@@ -117,7 +118,9 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
             var updated = await dungeonRoomRepository.UpdateAsync(room, ct);
             if (!updated)
                 return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "방 업데이트 실패");
-        
+            
+            await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
+            
             return Result<DungeonRoom>.Success(room);
         }
         catch (Exception e)
@@ -175,8 +178,8 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
             }
             
             await chatSubscriptionService.SwitchRoomAsync(sessionId, roomId, ct);
-
-
+            
+            await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
             return Result<DungeonRoom>.Success(room);
         }
         catch (InvalidOperationException ex)
@@ -229,8 +232,10 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
                 var updated = await dungeonRoomRepository.UpdateAsync(room, ct);
                 if (!updated)
                     return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "방 업데이트 실패");
+                            
+                await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
             }
-
+            
             return Result<DungeonRoom>.Success(room);
         }
         catch (Exception e)
@@ -265,6 +270,8 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
             if (!updated)
                 return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "방 업데이트 실패");
 
+            await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
+            
             return Result<DungeonRoom>.Success(room);
         }
         catch (Exception e)

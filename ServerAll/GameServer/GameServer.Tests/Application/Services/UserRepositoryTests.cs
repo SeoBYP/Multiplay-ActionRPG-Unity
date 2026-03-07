@@ -14,7 +14,7 @@ public class UserRepositoryTests
     }
 
     [Fact]
-    public async Task 리프레시_토큰_업데이트_후_조회_시_토큰_정보_포함()
+    public async Task 사용자의_리프레시_토큰과_만료_시간을_업데이트하면_조회_시_해당_정보가_포함되어_반환된다()
     {
         // Given
         var user = await _userRepository.AddAsync("hash", "test@test.com");
@@ -33,7 +33,7 @@ public class UserRepositoryTests
     }
 
     [Fact]
-    public async Task 리프레시_토큰_삭제_후_조회_시_토큰_정보_없음()
+    public async Task 리프레시_토큰_삭제_호출_후_사용자_조회_시_토큰_정보가_제거되어_있음을_확인한다()
     {
         // Given
         var user = await _userRepository.AddAsync("hash", "test@test.com");
@@ -53,7 +53,7 @@ public class UserRepositoryTests
     }
 
     [Fact]
-    public async Task 존재하지_않는_사용자_리프레시_토큰_업데이트_시_실패한다()
+    public async Task 가입되지_않은_사용자_ID로_리프레시_토큰_업데이트를_시도하면_실패를_반환한다()
     {
         // Given
         var nonExistentUserId = 9999L;
@@ -68,7 +68,7 @@ public class UserRepositoryTests
     }
 
     [Fact]
-    public async Task 만료된_만료_시간으로_리프레시_토큰_업데이트_시_예외_발생()
+    public async Task 과거의_시간을_만료_일자로_리프레시_토큰을_설정하려고_하면_예외가_발생한다()
     {
         // Given
         var user = await _userRepository.AddAsync("hash", "test@test.com");
@@ -82,7 +82,7 @@ public class UserRepositoryTests
     }
 
     [Fact]
-    public async Task 리프레시_토큰_로테이션_시_최신_토큰만_남아있는지_확인()
+    public async Task 연속적인_리프레시_토큰_업데이트_발생_시_마지막으로_설정된_최신_토큰_정보만_유지된다()
     {
         // Given
         var user = await _userRepository.AddAsync("hash", "test@test.com");

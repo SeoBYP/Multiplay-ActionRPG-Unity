@@ -40,7 +40,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task 전역_메시지_전송_성공_및_발행()
+    public async Task 전역_채팅_메시지_전송_시_성공적으로_저장되고_Redis_글로벌_채널에_발행된다()
     {
         var sessionId = await CreateSessionAsync(1, "Alice");
     
@@ -58,7 +58,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task 방_메시지_전송_성공_및_채널_확인()
+    public async Task 방_채팅_메시지_전송_시_해당_방의_ID가_포함되어_저장되고_전용_방_채널에_발행된다()
     {
         var sessionId = await CreateSessionAsync(2, "Bob");
         long roomId = 777;
@@ -76,7 +76,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task 귓속말_전송_성공_및_채널_확인()
+    public async Task 특정_대상에게_귓속말_전송_시_대상_닉네임이_기록되고_개인_채널에_발행된다()
     {
         var sessionId = await CreateSessionAsync(3, "Carol");
         string targetNickname = "TargetUser";
@@ -93,7 +93,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task 세션_없을_때_메시지_전송_실패()
+    public async Task 유효하지_않은_세션으로_채팅_메시지_전송_시도_시_실패하고_발행되지_않는다()
     {
         var result = await _service.SendMessageAsync("invalid-session", "hi", null);
     
@@ -106,7 +106,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task ID로_메시지_조회_성공()
+    public async Task 메시지_고유_ID를_통해_저장된_채팅_내용을_성공적으로_조회한다()
     {
         var sessionId = await CreateSessionAsync(10, "Dave");
         var send = await _service.SendMessageAsync(sessionId, "hello id", null);
@@ -119,7 +119,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task 존재하지_않는_메시지_ID_조회_시_실패()
+    public async Task 존재하지_않는_메시지_ID로_조회_시_메시지를_찾을_수_없음_에러를_반환한다()
     {
         var sessionId = await CreateSessionAsync(11, "Eve");
     
@@ -130,7 +130,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task 방_메시지_목록_조회_제한_및_정렬_확인()
+    public async Task 특정_방의_채팅_내역_조회_시_지정한_개수만큼_최신순으로_정렬되어_반환된다()
     {
         var sessionId = await CreateSessionAsync(20, "RoomUser");
         long roomId = 5555;
@@ -151,7 +151,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task 사용자_메시지_목록_조회_제한_및_정렬_확인()
+    public async Task 특정_사용자가_작성한_메시지_목록_조회_시_지정한_개수만큼_최신순으로_정렬되어_반환된다()
     {
         var sessionId = await CreateSessionAsync(30, "UserA");
         string other = "UserB";
@@ -172,7 +172,7 @@ public class ChatServiceTests
     }
     
     [Fact]
-    public async Task 특정_ID_이후_메시지_필터링_확인()
+    public async Task 주어진_메시지_ID_이후에_발생한_메시지들_중_사용자가_볼_수_있는_채팅만_필터링하여_조회한다()
     {
         // 1. 유저 세션 생성 (Alice, Room 101)
         var userId = 100L;
@@ -204,7 +204,7 @@ public class ChatServiceTests
     }
 
     [Fact]
-    public async Task 중간_ID_이후_메시지_조회()
+    public async Task 중간_지점의_메시지_ID를_기준으로_그_이후의_메시지가_정상적으로_조회되는지_확인한다()
     {
         // 1. 유저 세션 생성 (ID 100)
         var sessionId = await CreateSessionAsync(200, "User200");
@@ -224,14 +224,14 @@ public class ChatServiceTests
     }
 
     [Fact]
-    public async Task 세션_없을_때_메시지_이후_조회_빈_결과()
+    public async Task 유효하지_않은_세션으로_메시지_이후_조회_시_빈_목록을_반환한다()
     {
         var results = await _service.GetMessagesAfterAsync("invalid-session", 0);
         Assert.Empty(results);
     }
 
     [Fact]
-    public async Task 방에_없을_때_방_채팅_제외하고_조회()
+    public async Task 유저가_어떤_방에도_속해있지_않을_때_메시지_조회_시_방_채팅은_제외하고_반환한다()
     {
         // 1. 유저 세션 생성 (No Room)
         var sessionId = await CreateSessionAsync(300, "NoRoomUser");

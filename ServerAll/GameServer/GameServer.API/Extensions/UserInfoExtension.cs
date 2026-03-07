@@ -11,8 +11,8 @@ public static class UserInfoExtension
         {
             PublicId = value.PublicId,
             NickName = value.NickName,
-            Email = value.Email,
-            CreatedAt = new DateTimeOffset(value.CreatedAt).ToUnixTimeSeconds(),
+            // Email = value.Email,
+            // CreatedAt = new DateTimeOffset(value.CreatedAt).ToUnixTimeSeconds(),
         };
     }
 }

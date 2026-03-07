@@ -11,5 +11,6 @@ public class DungeonInstaller : IServiceInstaller
     {
         services.AddScoped<IDungeonLobbyService, DungeonLobbyService>();
         services.AddSingleton<IDungeonRoomRepository, DungeonRoomRepository>();
+        services.AddSingleton<IDungeonLobbySubscriptionService, DungeonLobbySubscriptionService>();
     }
 }

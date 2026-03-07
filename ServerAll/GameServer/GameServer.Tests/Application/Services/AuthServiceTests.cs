@@ -48,7 +48,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_는_새로운_User를_생성한다()
+    public async Task 회원가입_시_새로운_사용자가_성공적으로_생성되고_저장소에_반영된다()
     {
         // given
         var password = "password123";
@@ -73,7 +73,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_는_중복_이메일이면_실패한다()
+    public async Task 이미_가입된_이메일로_회원가입_시도_시_중복_에러로_실패한다()
     {
         // given
         var password = "password123";
@@ -91,7 +91,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_는_올바른_정보로_로그인한다()
+    public async Task 정확한_이메일과_비밀번호로_로그인_시_액세스_토큰과_세션_정보를_반환한다()
     {
         // given - 회원가입
         var password = "password123";
@@ -119,7 +119,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_는_존재하지않는_User면_실패한다()
+    public async Task 가입되지_않은_이메일로_로그인_시도_시_사용자를_찾을_수_없음_에러로_실패한다()
     {
         // given
         var email = "test@example.com";
@@ -135,7 +135,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_는_잘못된_비밀번호면_실패한다()
+    public async Task 로그인_시_비밀번호가_일치하지_않으면_인증_실패_에러를_반환한다()
     {
         // given - 회원가입
         var password = "password123";
@@ -153,7 +153,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_는_빈_nickname이면_실패한다()
+    public async Task 로그인_요청_시_필수_입력값이_누락되면_잘못된_요청_에러로_실패한다()
     {
         // given
         var email = "";
@@ -169,7 +169,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LogoutAsync_는_세션을_삭제한다()
+    public async Task 로그아웃_요청_시_사용자의_세션과_리프레시_토큰_정보가_성공적으로_삭제된다()
     {
         // given - 회원가입 & 로그인
         var password = "password123";
@@ -192,7 +192,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LogoutAsync_는_빈_SessionId면_실패한다()
+    public async Task 로그아웃_요청_시_세션_ID_값이_비어있으면_실패한다()
     {
         // given
         var sessionId = "";
@@ -207,7 +207,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LogoutAsync_는_존재하지않는_SessionId도_성공한다()
+    public async Task 이미_로그아웃되었거나_존재하지_않는_세션_ID로_로그아웃_시도_시에도_성공으로_처리한다()
     {
         // given - 존재하지 않는 세션 ID
         var sessionId = "non-existent-session-id";
@@ -221,7 +221,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task ValidateTokenAsync_는_유효한_토큰을_검증한다()
+    public async Task 유효한_액세스_토큰을_검증하면_성공을_반환한다()
     {
         // given - 회원가입 & 로그인
         var password = "password123";
@@ -239,7 +239,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task ValidateTokenAsync_는_빈_토큰이면_실패한다()
+    public async Task 토큰_값이_비어있는_경우_검증에_실패한다()
     {
         // given
         var token = "";
@@ -252,7 +252,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task ValidateTokenAsync_는_잘못된_토큰이면_실패한다()
+    public async Task 위변조되거나_형식이_잘못된_토큰을_검증하면_실패한다()
     {
         // given
         var invalidToken = "invalid-token-string";
@@ -265,7 +265,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task ValidateTokenAsync_는_로그아웃된_세션이면_실패한다()
+    public async Task 토큰은_유효하지만_세션이_만료되거나_제거된_상태면_검증에_실패한다()
     {
         // given - 회원가입 & 로그인
         var password = "password123";
@@ -287,7 +287,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task 전체_플로우_회원가입_로그인_로그아웃()
+    public async Task 회원가입부터_로그인_토큰검증_로그아웃까지의_전체_인증_프로세스가_정상_작동한다()
     {
         // given
         var password = "password123";
@@ -325,7 +325,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task 동일_계정으로_여러_번_로그인하면_새로운_세션이_생성된다()
+    public async Task 동일한_계정으로_중복_로그인_시_매번_새로운_세션_ID가_발급됨을_확인한다()
     {
         // given - 회원가입
         var password = "password123";
@@ -354,7 +354,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_는_리프레시_토큰을_생성한다()
+    public async Task 로그인_성공_시_사용자_정보에_보안_해싱된_리프레시_토큰과_만료일이_저장된다()
     {
         // given
         var password = "password123";
@@ -373,7 +373,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RefreshTokenAsync_는_유효한_토큰으로_새_토큰을_발급한다()
+    public async Task 만료되지_않은_리프레시_토큰을_사용하여_액세스_토큰_갱신_및_토큰_로테이션을_수행한다()
     {
         // given
         var password = "password123";
@@ -396,7 +396,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RefreshTokenAsync_는_만료된_리프레시_토큰이면_실패한다()
+    public async Task 서버에_저장된_리프레시_토큰이_만료된_상태에서_갱신_요청_시_실패한다()
     {
         // given
         var password = "password123";
@@ -423,7 +423,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RefreshTokenAsync_는_만료된_AccessToken으로도_갱신_성공한다()
+    public async Task 액세스_토큰의_수명이_다했어도_리프레시_토큰이_유효하면_성공적으로_새_토큰을_발급한다()
     {
         // given
         var password = "password123";
@@ -455,7 +455,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RefreshTokenAsync_는_RefreshToken이_null이면_세션을_종료하고_실패한다()
+    public async Task 서버에_리프레시_토큰이_없는_상태에서_갱신_요청_시_보안을_위해_세션을_강제_종료하고_실패한다()
     {
         // given
         var password = "password123";

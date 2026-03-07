@@ -14,13 +14,7 @@ public static class ChatMessageInfoExtension
         return new ChatMessageInfo
         {
             MessageId = msg.MessageId,
-            ChatType = msg.ChatType switch
-            {
-                GameServer.Domain.Entities.Chat.ChatType.Global => GameServer.Grpc.Chat.ChatType.Global,
-                GameServer.Domain.Entities.Chat.ChatType.Room => GameServer.Grpc.Chat.ChatType.Room,
-                GameServer.Domain.Entities.Chat.ChatType.Whisper => GameServer.Grpc.Chat.ChatType.Whisper,
-                _ => GameServer.Grpc.Chat.ChatType.Unspecified
-            },
+            ChatType = msg.ChatType.ToGrpc(),
             SenderNickname = msg.SenderUserNickName,
             Message = msg.Message,
             SentAt = sentAtUnixMs,
@@ -28,4 +22,19 @@ public static class ChatMessageInfoExtension
             TargetUserNickname = msg.TargetUserNickName ?? ""
         };
     }
+    
+    public static Domain.Entities.Chat.ChatType ToDomain(this Grpc.Chat.ChatType grpcType) => grpcType switch {
+        Grpc.Chat.ChatType.Global  => Domain.Entities.Chat.ChatType.Global,
+        Grpc.Chat.ChatType.Room    => Domain.Entities.Chat.ChatType.Room,
+        Grpc.Chat.ChatType.Whisper => Domain.Entities.Chat.ChatType.Whisper,
+        _ => throw new ArgumentException()
+    };
+    
+    public static Grpc.Chat.ChatType ToGrpc(this Domain.Entities.Chat.ChatType domainType) => domainType switch
+    {
+        Domain.Entities.Chat.ChatType.Global  => Grpc.Chat.ChatType.Global,
+        Domain.Entities.Chat.ChatType.Room    => Grpc.Chat.ChatType.Room,
+        Domain.Entities.Chat.ChatType.Whisper => Grpc.Chat.ChatType.Whisper,
+        _ => throw new ArgumentException()
+    };
 }

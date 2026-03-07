@@ -27,7 +27,7 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task GetProfileAsync_는_유효한_세션이면_프로필을_반환한다()
+    public async Task 유효한_세션으로_사용자_프로필_조회_시_정확한_사용자_정보를_반환한다()
     {
         // given
         var (sessionId, user) = await CreateTestUserAndSessionAsync();
@@ -43,7 +43,7 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task GetProfileAsync_는_유효하지_않은_세션이면_실패한다()
+    public async Task 로그아웃되었거나_존재하지_않는_세션으로_프로필_조회_시_실패한다()
     {
         // given
         var invalidSessionId = "invalid-session";
@@ -57,7 +57,7 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task SetNicknameAsync_는_존해하지_않는_세션이면_실패한다()
+    public async Task 유효하지_않은_세션으로_닉네임_변경_시도_시_실패한다()
     {
         var result = await _userService.SetNicknameAsync("invalid-session", "NewNick");
         Assert.False(result.IsSuccess);
@@ -65,7 +65,7 @@ public class UserServiceTests
     }
     
     [Fact]
-    public async Task SetNicknameAsync_는_닉네임을_변경한다()
+    public async Task 새로운_닉네임으로_변경_요청_시_사용자_정보와_저장소에_정상적으로_반영된다()
     {
         // given
         var (sessionId, user) = await CreateTestUserAndSessionAsync();
@@ -83,7 +83,7 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task SetNicknameAsync_는_중복된_닉네임이면_실패한다()
+    public async Task 이미_다른_사용자가_사용_중인_닉네임으로_변경하려고_하면_실패한다()
     {
         // given
         var (sessionId1, user1) = await CreateTestUserAndSessionAsync("user1@example.com");
@@ -101,7 +101,7 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task SetNicknameAsync_는_유효하지_않은_닉네임_형식이면_실패한다()
+    public async Task 길이가_너무_짧거나_허용되지_않는_문자가_포함된_닉네임으로_변경_시도_시_실패한다()
     {
         // given
         var (sessionId, _) = await CreateTestUserAndSessionAsync();
@@ -116,7 +116,7 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task SetEmailAsync_는_이메일을_변경한다()
+    public async Task 새로운_이메일_주소로_변경_요청_시_성공적으로_업데이트된다()
     {
         // given
         var (sessionId, user) = await CreateTestUserAndSessionAsync();
@@ -134,7 +134,7 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task SetEmailAsync_는_중복된_이메일이면_실패한다()
+    public async Task 이미_가입된_다른_사용자의_이메일로_변경하려고_하면_실패한다()
     {
         // given
         var (sessionId1, user1) = await CreateTestUserAndSessionAsync("user1@example.com");
@@ -152,7 +152,7 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task UpdateProfileAsync_는_닉네임과_이메일을_동시에_변경한다()
+    public async Task 닉네임과_이메일을_동시에_수정_요청_시_두_정보가_모두_성공적으로_반영된다()
     {
         // given
         var (sessionId, user) = await CreateTestUserAndSessionAsync();
@@ -173,7 +173,7 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task UpdateProfileAsync_는_입력값이_비어있으면_실패한다()
+    public async Task 프로필_업데이트_시_필수_값이_누락되면_실패한다()
     {
         // given
         var (sessionId, _) = await CreateTestUserAndSessionAsync();

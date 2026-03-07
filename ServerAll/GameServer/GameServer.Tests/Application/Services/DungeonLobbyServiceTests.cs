@@ -1,6 +1,7 @@
 ﻿using GameServer.Application.Common;
 using GameServer.Application.Services.Chat.Interfaces;
 using GameServer.Application.Services.DungeonLobby;
+using GameServer.Application.Services.DungeonLobby.Interfaces;
 using GameServer.Domain.Entities;
 using GameServer.Infrastructure.Interfaces.DungeonRoom;
 using GameServer.Infrastructure.Interfaces.User;
@@ -19,13 +20,14 @@ public class DungeonLobbyServiceTests
         IDungeonRoomRepository roomRepository = new FakeDungeonRoomRepository();
         _sessionRepository = new FakeUserSessionRepository();
         IChatSubscriptionService chatSubscriptionService = new FakeChatSubscriptionService();
-        _service = new DungeonLobbyService(roomRepository, _sessionRepository, chatSubscriptionService);
+        IDungeonLobbySubscriptionService dungeonLobbySubscriptionService = new FakeDungeonLobbySubscriptionService();
+        _service = new DungeonLobbyService(roomRepository, dungeonLobbySubscriptionService, _sessionRepository, chatSubscriptionService);
     }
 
     #region CreateDungeonRoomAsync Tests
 
     [Fact]
-    public async Task 던전_방_생성_성공()
+    public async Task 유효한_정보로_던전_방_생성_성공_및_생성자_자동_입장_확인()
     {
         // Arrange
         var sessionId = await CreateTestSession(userId: 1, userName: "user1");
@@ -46,7 +48,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 잘못된_세션으로_방_생성_실패()
+    public async Task 유효하지_않은_세션으로_방_생성_시도_시_실패한다()
     {
         // Arrange
         var invalidSessionId = "invalid-session-id";
@@ -62,7 +64,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 이미_방에_있는_유저의_방_생성_실패()
+    public async Task 이미_방에_참여_중인_유저가_새_방을_생성하려고_하면_실패한다()
     {
         // Arrange
         var sessionId = await CreateTestSession(userId: 1, userName: "user1");
@@ -83,7 +85,7 @@ public class DungeonLobbyServiceTests
     #region GetActiveDungeonRoomsAsync Tests
 
     [Fact]
-    public async Task 방이_없을_때_활성_방_목록_빈_리스트_반환()
+    public async Task 개설된_방이_하나도_없을_때_활성_방_목록_조회_시_빈_리스트를_반환한다()
     {
         // Act
         var result = await _service.GetActiveDungeonRoomsAsync();
@@ -95,7 +97,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 여러_방이_있을_때_모든_활성_방_반환()
+    public async Task 여러_개의_방이_존재할_때_모든_활성_방_목록을_성공적으로_조회한다()
     {
         // Arrange
         var session1 = await CreateTestSession(1, "user1");
@@ -114,7 +116,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 닫힌_방은_목록에서_제외()
+    public async Task 종료되거나_닫힌_방은_활성_방_목록_조회_결과에서_제외된다()
     {
         // Arrange
         var session1 = await CreateTestSession(1, "user1");
@@ -140,7 +142,7 @@ public class DungeonLobbyServiceTests
     #region GetDungeonRoomAsync Tests
 
     [Fact]
-    public async Task 존재하는_방_조회_성공()
+    public async Task 방_ID로_존재하는_방의_정보를_성공적으로_조회한다()
     {
         // Arrange
         var sessionId = await CreateTestSession(1, "user1");
@@ -158,7 +160,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 존재하지_않는_방_조회_실패()
+    public async Task 존재하지_않는_방_ID로_조회_시_방을_찾을_수_없다는_에러를_반환한다()
     {
         // Arrange
         var nonExistentRoomId = 999L;
@@ -176,7 +178,7 @@ public class DungeonLobbyServiceTests
     #region UpdateRoomSettingsAsync Tests
 
     [Fact]
-    public async Task 방장이_방_설정_변경_성공()
+    public async Task 방장이_방_이름과_최대_인원_설정을_변경하면_성공적으로_반영된다()
     {
         // Arrange
         var sessionId = await CreateTestSession(1, "user1");
@@ -194,7 +196,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 방장이_아닌_경우_설정_변경_실패()
+    public async Task 방장이_아닌_일반_플레이어가_방_설정_변경_시도_시_권한_에러로_실패한다()
     {
         // Arrange
         var hostSession = await CreateTestSession(1, "host");
@@ -213,7 +215,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 잘못된_세션으로_설정_변경_실패()
+    public async Task 유효하지_않은_세션으로_방_설정_변경_시도_시_실패한다()
     {
         // Arrange
         var sessionId = await CreateTestSession(1, "user1");
@@ -230,7 +232,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 현재_인원보다_적게_최대_인원_수정_시_실패()
+    public async Task 방에_참여_중인_인원보다_더_작은_인원수로_최대_인원을_수정하려고_하면_실패한다()
     {
         // Arrange
         var hostSession = await CreateTestSession(1, "host");
@@ -257,7 +259,7 @@ public class DungeonLobbyServiceTests
     #region JoinRoomAsync Tests
 
     [Fact]
-    public async Task 방_입장_성공()
+    public async Task 다른_유저가_존재하는_방에_성공적으로_입장하고_플레이어_목록에_추가된다()
     {
         // Arrange
         var hostSession = await CreateTestSession(1, "host");
@@ -276,7 +278,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 잘못된_세션으로_방_입장_실패()
+    public async Task 유효하지_않은_세션으로_방_입장_시도_시_실패한다()
     {
         // Arrange
         var hostSession = await CreateTestSession(1, "host");
@@ -292,7 +294,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 존재하지_않는_방_입장_실패()
+    public async Task 존재하지_않는_방_ID로_입장_시도_시_실패한다()
     {
         // Arrange
         var sessionId = await CreateTestSession(1, "user1");
@@ -306,7 +308,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 이미_다른_방에_있을_때_입장_실패()
+    public async Task 유저가_이미_다른_방에_참여_중인_상태에서_새로운_방에_입장하려고_하면_실패한다()
     {
         // Arrange
         var user1Session = await CreateTestSession(1, "user1");
@@ -324,7 +326,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 가득_찬_방_입장_실패()
+    public async Task 최대_인원이_모두_찬_방에_입장하려고_하면_실패한다()
     {
         // Arrange
         var hostSession = await CreateTestSession(1, "host");
@@ -346,7 +348,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 이미_해당_방에_있을_때_입장_실패()
+    public async Task 이미_해당_방에_참여_중인_유저가_다시_입장하려고_하면_실패한다()
     {
         // Arrange
         var sessionId = await CreateTestSession(1, "user1");
@@ -366,7 +368,7 @@ public class DungeonLobbyServiceTests
     #region LeaveRoomAsync Tests
 
     [Fact]
-    public async Task 방_퇴장_성공()
+    public async Task 참여_중인_방에서_성공적으로_퇴장하고_플레이어_목록에서_제거된다()
     {
         // Arrange
         var hostSession = await CreateTestSession(1, "host");
@@ -387,7 +389,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 잘못된_세션으로_방_퇴장_실패()
+    public async Task 유효하지_않은_세션으로_방_퇴장_시도_시_실패한다()
     {
         // Arrange
         var sessionId = await CreateTestSession(1, "user1");
@@ -403,7 +405,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 방에_없을_때_퇴장_시도_실패()
+    public async Task 방에_참여하지_않은_유저가_해당_방에서_퇴장하려고_하면_실패한다()
     {
         // Arrange
         var hostSession = await CreateTestSession(1, "host");
@@ -421,7 +423,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 마지막_플레이어_퇴장_시_방_닫힘()
+    public async Task 방에_혼자_남은_마지막_플레이어가_퇴장하면_방이_자동으로_닫히고_삭제된다()
     {
         // Arrange
         var sessionId = await CreateTestSession(1, "user1");
@@ -442,7 +444,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 방장_퇴장_시_새로운_방장_선출()
+    public async Task 방장이_퇴장하면_남아있는_플레이어_중_한_명이_새로운_방장으로_선출된다()
     {
         // Arrange
         var hostSession = await CreateTestSession(1, "host");
@@ -468,7 +470,7 @@ public class DungeonLobbyServiceTests
     #region StartGameAsync Tests
 
     [Fact]
-    public async Task 게임_시작_성공()
+    public async Task 방장이_게임_시작을_요청하면_방_상태가_게임_중으로_변경된다()
     {
         // Arrange
         var hostSession = await CreateTestSession(1, "host");
@@ -488,7 +490,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 잘못된_세션으로_게임_시작_실패()
+    public async Task 유효하지_않은_세션으로_게임_시작_시도_시_실패한다()
     {
         // Arrange
         var sessionId = await CreateTestSession(1, "user1");
@@ -504,7 +506,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 방장이_아닌_경우_게임_시작_실패()
+    public async Task 방장이_아닌_일반_플레이어가_게임_시작_시도_시_권한_에러로_실패한다()
     {
         // Arrange
         var hostSession = await CreateTestSession(1, "host");
@@ -524,7 +526,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task 인원이_부족할_때_게임_시작_실패()
+    public async Task 게임_시작에_필요한_최소_인원_미만일_때_게임_시작을_시도하면_실패한다()
     {
         // Arrange
         var sessionId = await CreateTestSession(1, "user1");
