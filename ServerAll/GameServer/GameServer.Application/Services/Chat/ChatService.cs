@@ -1,4 +1,6 @@
 ﻿using System.Text.Json;
+using System.Collections.Generic;
+using System.Linq;
 using GameServer.Application.Common;
 using GameServer.Application.Services.Chat.Interfaces;
 using GameServer.Domain.Entities;
@@ -63,7 +65,57 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
         var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
         if (userSession is null) return Array.Empty<ChatMessage>();
 
-        // repo에 필요: after id 이후 메시지
-        return await chatMessageRepository.GetMessagesAfterAsync(afterMessageId, ct);
+        // (UserId, MessageId 기준 필터링) - Global, 현재 Room, 본인 관련 Whisper
+        return await chatMessageRepository.GetMessagesAfterAsync(
+            afterMessageId,
+            userSession.NickName,
+            userSession.CurrentRoomId > 0 ? userSession.CurrentRoomId : null,
+            ct);
+    }
+
+    public async Task<Result<ChatMessage>> GetMessageByIdAsync(
+        string sessionId,
+        long messageId,
+        CancellationToken ct = default)
+    {
+        var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
+        if (userSession is null)
+            return Result<ChatMessage>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+
+        var message = await chatMessageRepository.GetMessageByIdAsync(messageId, ct);
+        if (message is null)
+            return Result<ChatMessage>.Failure(ErrorCodes.MessageNotFound, ErrorMessages.MessageNotFound);
+
+        return Result<ChatMessage>.Success(message);
+    }
+
+    public async Task<Result<List<ChatMessage>>> GetMessagesByRoomAsync(
+        string sessionId,
+        long roomId,
+        int limit = 50,
+        long? beforeMessageId = null,
+        CancellationToken ct = default)
+    {
+        var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
+        if (userSession is null)
+            return Result<List<ChatMessage>>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+
+        var messages = await chatMessageRepository.GetMessagesByRoomIdAsync(roomId, limit, beforeMessageId, ct);
+        return Result<List<ChatMessage>>.Success(messages.ToList());
+    }
+
+    public async Task<Result<List<ChatMessage>>> GetMessagesByUserAsync(
+        string sessionId,
+        string userName,
+        int limit = 50,
+        long? beforeMessageId = null,
+        CancellationToken ct = default)
+    {
+        var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
+        if (userSession is null)
+            return Result<List<ChatMessage>>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+
+        var messages = await chatMessageRepository.GetMessagesByUserNameAsync(userName, limit, beforeMessageId, ct);
+        return Result<List<ChatMessage>>.Success(messages.ToList());
     }
 }

@@ -16,14 +16,22 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
     private const string RoomIndexKey = "game:chat:message:room:{0}";        // 방별 인덱스
     private const string TargetIndexKey = "game:chat:message:target:{0}";    // 귓속말 대상 인덱스 (닉네임 기준)
 
-    public async Task<IEnumerable<ChatMessage>> GetMessagesAfterAsync(long afterMessageId, CancellationToken ct = default)
+    public async Task<IEnumerable<ChatMessage>> GetMessagesAfterAsync(long afterMessageId, string userNickname, long? currentRoomId, CancellationToken ct = default)
     {
         var messageIds = await _database.SortedSetRangeByScoreAsync(
             AllMessagesKey,
             start: afterMessageId + 1,  // afterMessageId 초과
             stop: double.MaxValue,
             order: Order.Ascending);    // 오래된 것부터 (순서대로 전달)
-        return await FetchMessagesByIds(messageIds);
+
+        var messages = await FetchMessagesByIds(messageIds);
+
+        // 유저가 볼 권한이 있는 메시지만 필터링하여 반환
+        return messages.Where(m =>
+            m.ChatType == ChatType.Global ||
+            (m.ChatType == ChatType.Room && m.RoomId == currentRoomId) ||
+            (m.ChatType == ChatType.Whisper && (m.SenderUserNickName == userNickname || m.TargetUserNickName == userNickname))
+        );
     }
 
     public async Task<ChatMessage> CreateAsync(

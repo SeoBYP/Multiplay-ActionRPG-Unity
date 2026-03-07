@@ -17,4 +17,23 @@ public interface IChatService
         string sessionId,
         long afterMessageId,
         CancellationToken ct = default);
+
+    Task<Result<ChatMessage>> GetMessageByIdAsync(
+        string sessionId,
+        long messageId,
+        CancellationToken ct = default);
+
+    Task<Result<List<ChatMessage>>> GetMessagesByRoomAsync(
+        string sessionId,
+        long roomId,
+        int limit = 50,
+        long? beforeMessageId = null,
+        CancellationToken ct = default);
+
+    Task<Result<List<ChatMessage>>> GetMessagesByUserAsync(
+        string sessionId,
+        string userName,
+        int limit = 50,
+        long? beforeMessageId = null,
+        CancellationToken ct = default);
 }

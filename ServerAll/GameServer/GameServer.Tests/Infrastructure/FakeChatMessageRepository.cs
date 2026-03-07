@@ -10,10 +10,15 @@ public class FakeChatMessageRepository : IChatMessageRepository
     private long _nextMessageId = 1;
 
 
-    public Task<IEnumerable<ChatMessage>> GetMessagesAfterAsync(long afterMessageId, CancellationToken ct = default)
+    public Task<IEnumerable<ChatMessage>> GetMessagesAfterAsync(long afterMessageId, string userNickname, long? currentRoomId, CancellationToken ct = default)
     {
         var result = _messages.Values
             .Where(m => m.MessageId > afterMessageId)
+            .Where(m =>
+                m.ChatType == ChatType.Global ||
+                (m.ChatType == ChatType.Room && m.RoomId == currentRoomId) ||
+                (m.ChatType == ChatType.Whisper && (m.SenderUserNickName == userNickname || m.TargetUserNickName == userNickname))
+            )
             .OrderBy(m => m.MessageId)
             .ToList();
         return Task.FromResult<IEnumerable<ChatMessage>>(result);

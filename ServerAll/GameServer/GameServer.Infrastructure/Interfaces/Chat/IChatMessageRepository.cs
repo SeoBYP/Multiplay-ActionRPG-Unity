@@ -5,7 +5,7 @@ namespace GameServer.Infrastructure.Interfaces.Chat;
 public interface IChatMessageRepository
 {
     // IChatMessageRepository에 추가
-    Task<IEnumerable<ChatMessage>> GetMessagesAfterAsync(long afterMessageId, CancellationToken ct = default);
+    Task<IEnumerable<ChatMessage>> GetMessagesAfterAsync(long afterMessageId, string userNickname, long? currentRoomId, CancellationToken ct = default);
     
     /// <summary>
     /// 새로운 채팅 메시지를 비동기적으로 생성합니다.
