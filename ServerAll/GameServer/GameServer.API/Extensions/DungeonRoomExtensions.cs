@@ -1,7 +1,6 @@
-﻿using GameServer.Domain.Entities;
+﻿using GameServer.Application.Domains.User.Interfaces;
+using GameServer.Domain.Entities;
 using GameServer.Grpc.DungeonLobby;
-using GameServer.Infrastructure.Interfaces.User;
-using GameServer.Infrastructure.Repositories.User;
 
 namespace GameServer.API.Extension;
 

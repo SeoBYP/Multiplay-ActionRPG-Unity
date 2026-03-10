@@ -1,7 +1,6 @@
-﻿using GameServer.Application.Services.User;
-using GameServer.Application.Services.User.Interfaces;
-using GameServer.Infrastructure.Interfaces.User;
-using GameServer.Infrastructure.Repositories.User;
+﻿using GameServer.Application.Domains.User;
+using GameServer.Application.Domains.User.Interfaces;
+using GameServer.Infrastructure.Domains.User;
 
 namespace GameServer.API.Installers.Domain;
 

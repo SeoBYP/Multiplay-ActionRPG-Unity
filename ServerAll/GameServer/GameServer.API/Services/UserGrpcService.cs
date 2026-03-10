@@ -1,7 +1,7 @@
 ﻿using System.Security.Claims;
 using GameServer.API.Extension;
 using GameServer.API.Extensions;
-using GameServer.Application.Services.User.Interfaces;
+using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Grpc.Auth;
 using GameServer.Grpc.User;
 using Grpc.Core;

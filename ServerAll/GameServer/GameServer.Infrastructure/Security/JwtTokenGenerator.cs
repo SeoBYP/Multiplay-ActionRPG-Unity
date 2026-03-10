@@ -1,5 +1,7 @@
 ﻿using System.Security.Claims;
 using System.Text;
+using GameServer.Application.Security;
+using GameServer.Application.Security.Interface;
 using GameServer.Infrastructure.Interfaces;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;

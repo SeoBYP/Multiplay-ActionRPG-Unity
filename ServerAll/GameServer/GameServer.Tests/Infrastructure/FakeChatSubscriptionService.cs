@@ -1,5 +1,5 @@
-﻿using GameServer.Application.Services.Chat;
-using GameServer.Application.Services.Chat.Interfaces;
+﻿using GameServer.Application.Domains.Chat;
+using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Domain.Entities.Chat;
 
 namespace GameServer.Tests.Infrastructure;

@@ -1,7 +1,7 @@
-﻿using GameServer.Application.Services.DungeonLobby;
+﻿using GameServer.Application.Domains.DungeonLobby;
+using GameServer.Application.Domains.DungeonLobby.Interfaces;
+using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
-using GameServer.Infrastructure.Interfaces.DungeonRoom;
-using GameServer.Infrastructure.Interfaces.User;
 using GameServer.Tests.Fakes;
 using GameServer.Tests.Infrastructure;
 using Moq;

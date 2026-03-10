@@ -1,11 +1,10 @@
 ﻿using GameServer.Application.Common;
-using GameServer.Application.Services.Auth;
-using GameServer.Domain.Entities;
+using GameServer.Application.Domains.Auth;
+using GameServer.Application.Domains.User.Interfaces;
+using GameServer.Application.Security;
+using GameServer.Application.Security.Interface;
 using GameServer.Domain.Entities.User;
 using GameServer.Infrastructure.Security;
-using GameServer.Infrastructure.Interfaces;
-using GameServer.Infrastructure.Interfaces.User;
-using GameServer.Infrastructure.Repositories.User;
 using GameServer.Tests.Infrastructure;
 using Microsoft.Extensions.Options;
 
@@ -100,7 +99,7 @@ public class AuthServiceTests
         await _authService.RegisterAsync(password, email);
 
         // when - 로그인
-        var result = await _authService.LoginAsync(email, password);
+        var result = await _authService.LoginAsync(email, password, "test-device-id");
 
         // then
         Assert.NotNull(result);
@@ -126,7 +125,7 @@ public class AuthServiceTests
         var password = "password123";
 
         // when
-        var result = await _authService.LoginAsync(email, password);
+        var result = await _authService.LoginAsync(email, password, "test-device-id");
 
         // then
         Assert.NotNull(result);
@@ -144,7 +143,7 @@ public class AuthServiceTests
         await _authService.RegisterAsync(password, email);
 
         // when - 잘못된 비밀번호로 로그인 시도
-        var result = await _authService.LoginAsync(email, "wrongpassword");
+        var result = await _authService.LoginAsync(email, "wrongpassword", "test-device-id");
 
         // then
         Assert.NotNull(result);
@@ -160,7 +159,7 @@ public class AuthServiceTests
         var password = "password123";
 
         // when
-        var result = await _authService.LoginAsync(email, password);
+        var result = await _authService.LoginAsync(email, password, "test-device-id");
 
         // then
         Assert.NotNull(result);
@@ -176,7 +175,7 @@ public class AuthServiceTests
         var email = "test@example.com";
         
         await _authService.RegisterAsync(password, email);
-        var loginResult = await _authService.LoginAsync(email, password);
+        var loginResult = await _authService.LoginAsync(email, password, "test-device-id");
         var sessionId = loginResult.Value.Session.SessionId;
 
         // when - 로그아웃
@@ -228,7 +227,7 @@ public class AuthServiceTests
         var email = "test@example.com";
         
         await _authService.RegisterAsync(password, email);
-        var loginResult = await _authService.LoginAsync(email, password);
+        var loginResult = await _authService.LoginAsync(email, password, "test-device-id");
         var accessToken = loginResult.Value.AccessToken;
 
         // when
@@ -272,7 +271,7 @@ public class AuthServiceTests
         var email = "test@example.com";
         
         await _authService.RegisterAsync(password, email);
-        var loginResult = await _authService.LoginAsync(email, password);
+        var loginResult = await _authService.LoginAsync(email, password, "test-device-id");
         var accessToken = loginResult.Value.AccessToken;
         var sessionId = loginResult.Value.Session.SessionId;
 
@@ -301,7 +300,7 @@ public class AuthServiceTests
         Assert.Equal(email, registerResult.Value.Email);
 
         // 2. 로그인
-        var loginResult = await _authService.LoginAsync(email, password);
+        var loginResult = await _authService.LoginAsync(email, password, "test-device-id");
         
         Assert.True(loginResult.IsSuccess);
         Assert.NotNull(loginResult.Value);
@@ -334,11 +333,11 @@ public class AuthServiceTests
         await _authService.RegisterAsync(password, email);
 
         // when - 첫 번째 로그인
-        var firstLogin = await _authService.LoginAsync(email, password);
+        var firstLogin = await _authService.LoginAsync(email, password, "device-1");
         var firstSessionId = firstLogin.Value.Session.SessionId;
 
         // when - 두 번째 로그인 (같은 계정)
-        var secondLogin = await _authService.LoginAsync(email, password);
+        var secondLogin = await _authService.LoginAsync(email, password, "device-2");
         var secondSessionId = secondLogin.Value.Session.SessionId;
 
         // then - 새로운 세션 ID가 생성됨
@@ -362,7 +361,7 @@ public class AuthServiceTests
         await _authService.RegisterAsync(password, email);
 
         // when
-        var result = await _authService.LoginAsync(email, password);
+        var result = await _authService.LoginAsync(email, password, "test-device-id");
 
         // then
         Assert.True(result.IsSuccess);
@@ -379,11 +378,11 @@ public class AuthServiceTests
         var password = "password123";
         var email = "refresh_success@test.com";
         await _authService.RegisterAsync(password, email);
-        var loginResult = (await _authService.LoginAsync(email, password)).Value;
+        var loginResult = (await _authService.LoginAsync(email, password, "test-device-id")).Value;
         var oldAccessToken = loginResult.AccessToken;
 
         // when - 갱신 시도
-        var result = await _authService.RefreshTokenAsync(oldAccessToken);
+        var result = await _authService.RefreshTokenAsync(oldAccessToken, loginResult.RefreshToken, "test-device-id");
 
         // then
         Assert.True(result.IsSuccess);
@@ -402,7 +401,7 @@ public class AuthServiceTests
         var password = "password123";
         var email = "refresh_expired@test.com";
         await _authService.RegisterAsync(password, email);
-        var loginResult = (await _authService.LoginAsync(email, password)).Value;
+        var loginResult = (await _authService.LoginAsync(email, password, "test-device-id")).Value;
 
         // 강제로 리프레시 토큰 만료시킴
         var user = await _userRepository.GetByEmailAsync(email);
@@ -415,7 +414,7 @@ public class AuthServiceTests
         await _userRepository.UpdateAsync(expiredUser);
 
         // when
-        var result = await _authService.RefreshTokenAsync(loginResult.AccessToken);
+        var result = await _authService.RefreshTokenAsync(loginResult.AccessToken, loginResult.RefreshToken, "test-device-id");
 
         // then
         Assert.False(result.IsSuccess);
@@ -440,13 +439,13 @@ public class AuthServiceTests
         };
         var generator = new JwtTokenGenerator(Options.Create(shortJwtOptions));
         
-        var loginResult = (await _authService.LoginAsync(email, password)).Value;
+        var loginResult = (await _authService.LoginAsync(email, password, "test-device-id")).Value;
         var expiredAccessToken = generator.GenerateAccessToken(
             loginResult.User.UserId, loginResult.User.NickName, loginResult.User.Email, loginResult.Session.SessionId);
 
         // when
         // AuthService 내부에서 validateLifetime: false를 사용하므로 만료되었어도 통과해야 함
-        var result = await _authService.RefreshTokenAsync(expiredAccessToken);
+        var result = await _authService.RefreshTokenAsync(expiredAccessToken, loginResult.RefreshToken, "test-device-id");
 
         // then
         Assert.True(result.IsSuccess);
@@ -461,14 +460,14 @@ public class AuthServiceTests
         var password = "password123";
         var email = "refresh_null@test.com";
         await _authService.RegisterAsync(password, email);
-        var loginResult = (await _authService.LoginAsync(email, password)).Value;
+        var loginResult = (await _authService.LoginAsync(email, password, "test-device-id")).Value;
         var sessionId = loginResult.Session.SessionId;
 
         // DB에서 RefreshToken을 강제로 null로 만듦
         await _userRepository.ClearRefreshTokenAsync(loginResult.User.UserId);
 
         // when
-        var result = await _authService.RefreshTokenAsync(loginResult.AccessToken);
+        var result = await _authService.RefreshTokenAsync(loginResult.AccessToken, "dummy-token", "test-device-id");
 
         // then
         Assert.False(result.IsSuccess);
@@ -477,5 +476,42 @@ public class AuthServiceTests
         // 세션이 삭제되었는지 확인 (강제 종료 확인)
         var session = await _userSessionRepository.GetBySessionIdAsync(sessionId);
         Assert.Null(session);
+    }
+
+    [Fact]
+    public async Task 다른_디바이스_ID로_리프레시_시도_시_바인딩_실패로_거부된다()
+    {
+        // given
+        var password = "password123";
+        var email = "refresh_binding_fail@test.com";
+        await _authService.RegisterAsync(password, email);
+        
+        // device-A로 로그인
+        var loginResult = (await _authService.LoginAsync(email, password, "device-A")).Value;
+        
+        // when - device-B로 리프레시 시도
+        var result = await _authService.RefreshTokenAsync(loginResult.AccessToken, loginResult.RefreshToken, "device-B");
+        
+        // then
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.InvalidRequest, result.InternalErrorCode);
+    }
+
+    [Fact]
+    public async Task 잘못된_리프레시_토큰으로_리프레시_시도_시_거부된다()
+    {
+        // given
+        var password = "password123";
+        var email = "refresh_token_fail@test.com";
+        await _authService.RegisterAsync(password, email);
+        
+        var loginResult = (await _authService.LoginAsync(email, password, "device-A")).Value;
+        
+        // when - 잘못된 리프레시 토큰으로 시도
+        var result = await _authService.RefreshTokenAsync(loginResult.AccessToken, "invalid-refresh-token", "device-A");
+        
+        // then
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.InvalidRequest, result.InternalErrorCode);
     }
 }

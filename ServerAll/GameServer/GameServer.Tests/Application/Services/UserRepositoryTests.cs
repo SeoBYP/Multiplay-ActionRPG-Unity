@@ -1,4 +1,4 @@
-﻿using GameServer.Infrastructure.Interfaces.User;
+﻿using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Tests.Infrastructure;
 using GameServer.Domain.Entities.User;
 

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
+using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Domain.Entities.Chat;
-using GameServer.Infrastructure.Interfaces.Chat;
 
 namespace GameServer.Tests.Infrastructure;
 

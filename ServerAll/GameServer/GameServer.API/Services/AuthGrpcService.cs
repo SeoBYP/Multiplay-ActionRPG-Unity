@@ -1,7 +1,7 @@
 ﻿using System.Security.Claims;
 using GameServer.API.Extension;
 using GameServer.API.Extensions;
-using GameServer.Application.Services.Auth.Interfaces;
+using GameServer.Application.Domains.Auth.Interfaces;
 using GameServer.Grpc.Auth;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
@@ -36,7 +36,7 @@ public class AuthGrpcService(IAuthService authService) : AuthService.AuthService
     [AllowAnonymous]
     public override async Task<LoginResponse> Login(LoginRequest request, ServerCallContext context)
     {
-        var result = await authService.LoginAsync(request.Email, request.Password, context.CancellationToken);
+        var result = await authService.LoginAsync(request.Email, request.Password, request.DeviceId, context.CancellationToken);
         
         if (result.IsSuccess)
         {
@@ -44,7 +44,9 @@ public class AuthGrpcService(IAuthService authService) : AuthService.AuthService
             {
                 Result = result.ToGrpcResult(),
                 AccessToken = result.IsSuccess? result.Value!.AccessToken : null,
+                RefreshToken = result.Value?.RefreshToken,
                 SessionId = result.Value?.Session.SessionId,
+                ExpiresAt = result.Value is not null ? new DateTimeOffset(result.Value.ExpiresAt).ToUnixTimeSeconds() : 0,
                 User = result.Value?.User.ToUserInfo()
             };
             return response;
@@ -60,13 +62,14 @@ public class AuthGrpcService(IAuthService authService) : AuthService.AuthService
         if (string.IsNullOrWhiteSpace(accessToken))
             return new RefreshResponse { Result = ResultExtensions.CreateUnauthorizedGrpcResult() };
         
-        var result = await authService.RefreshTokenAsync(accessToken, context.CancellationToken);
+        var result = await authService.RefreshTokenAsync(accessToken, request.RefreshToken, request.DeviceId, context.CancellationToken);
         if (result.IsSuccess)
         {
             return new RefreshResponse
             {
                 Result = result.ToGrpcResult(),
                 AccessToken = result.Value?.AccessToken,
+                RefreshToken = result.Value?.RefreshToken,
                 SessionId = result.Value?.Session.SessionId,
                 ExpiresAt = new DateTimeOffset(result.Value!.ExpiresAt).ToUnixTimeSeconds()
             };

@@ -7,6 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\GameServer.Application\GameServer.Application.csproj" />
       <ProjectReference Include="..\GameServer.Domain\GameServer.Domain.csproj" />
     </ItemGroup>
 

@@ -1,6 +1,8 @@
 ﻿using System.Text;
 using GameServer.API.Installers.Domain;
 using GameServer.API.Interceptors;
+using GameServer.Application.Security;
+using GameServer.Application.Security.Interface;
 using GameServer.Infrastructure.Interfaces;
 using GameServer.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;

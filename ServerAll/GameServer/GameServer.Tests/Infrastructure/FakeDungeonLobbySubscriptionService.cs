@@ -1,5 +1,5 @@
-﻿using GameServer.Application.Services.DungeonLobby;
-using GameServer.Application.Services.DungeonLobby.Interfaces;
+﻿using GameServer.Application.Domains.DungeonLobby;
+using GameServer.Application.Domains.DungeonLobby.Interfaces;
 
 namespace GameServer.Tests.Infrastructure;
 

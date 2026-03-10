@@ -1,4 +1,4 @@
-﻿using GameServer.Application.Services.Auth.Interfaces;
+﻿using GameServer.Application.Domains.Auth.Interfaces;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Microsoft.AspNetCore.Authorization;

@@ -1,6 +1,6 @@
 ﻿using GameServer.Application.Common;
-using GameServer.Application.Services.User;
-using GameServer.Infrastructure.Interfaces.User;
+using GameServer.Application.Domains.User;
+using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Tests.Infrastructure;
 using GameServer.Domain.Entities.User;
 

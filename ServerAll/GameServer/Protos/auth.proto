@@ -26,6 +26,7 @@ message RegisterResponse {
 message LoginRequest {
   string email = 1;
   string password = 2;
+  string device_id = 3;
 }
 
 message LoginResponse {
@@ -34,10 +35,12 @@ message LoginResponse {
   string session_id = 3;
   int64 expires_at = 4;
   gameserver.user.v1.UserInfo user = 5;
+  string refresh_token = 6;
 }
 
 message RefreshRequest{
-
+  string refresh_token = 1;
+  string device_id = 2;
 }
 
 message RefreshResponse{
@@ -45,6 +48,7 @@ message RefreshResponse{
   string access_token = 2;
   string session_id = 3;
   int64 expires_at = 4;
+  string refresh_token = 5;
 }
 
 message LogoutRequest {

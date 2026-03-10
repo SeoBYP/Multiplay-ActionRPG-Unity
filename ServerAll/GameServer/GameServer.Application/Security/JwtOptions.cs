@@ -1,0 +1,13 @@
+﻿namespace GameServer.Application.Security;
+
+public class JwtOptions
+{
+    public string Issuer { get; init; } = "";
+    public string Audience { get; init; } = "";
+    public string Secret { get; init; } = "";
+    public int AccessTokenMinutes { get; init; } = 15;
+    public int RefreshTokenExpirationHours { get; init; } = 24 * 7; // 기본 7일 (168시간)
+    
+    public TimeSpan AccessTokenExpiration => TimeSpan.FromMinutes(AccessTokenMinutes);
+    public DateTime GetExpirationTime() => DateTime.UtcNow.Add(AccessTokenExpiration);
+}

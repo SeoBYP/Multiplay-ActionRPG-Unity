@@ -1,10 +1,9 @@
 ﻿using System.Net;
 using GameServer.Application.Common;
-using GameServer.Application.Services.Chat;
-using GameServer.Application.Services.Chat.Interfaces;
+using GameServer.Application.Domains.Chat;
+using GameServer.Application.Domains.Chat.Interfaces;
+using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities.Chat;
-using GameServer.Infrastructure.Interfaces.Chat;
-using GameServer.Infrastructure.Interfaces.User;
 using GameServer.Tests.Infrastructure;
 using Moq;
 using StackExchange.Redis;

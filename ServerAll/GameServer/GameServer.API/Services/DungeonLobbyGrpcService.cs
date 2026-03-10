@@ -1,11 +1,11 @@
 ﻿using System.Security.Claims;
 using GameServer.API.Extension;
 using GameServer.API.Extensions;
-using GameServer.Application.Services.DungeonLobby;
-using GameServer.Application.Services.DungeonLobby.Interfaces;
+using GameServer.Application.Domains.DungeonLobby;
+using GameServer.Application.Domains.DungeonLobby.Interfaces;
+using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
 using GameServer.Grpc.DungeonLobby;
-using GameServer.Infrastructure.Interfaces.User;
 using Grpc.Core;
 using Microsoft.IdentityModel.JsonWebTokens;
 using DungeonLobbyService = GameServer.Grpc.DungeonLobby.DungeonLobbyService;

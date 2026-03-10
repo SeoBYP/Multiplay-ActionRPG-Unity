@@ -1,7 +1,6 @@
-﻿using GameServer.Application.Services.Chat;
-using GameServer.Application.Services.Chat.Interfaces;
-using GameServer.Infrastructure.Interfaces.Chat;
-using GameServer.Infrastructure.Repositories.Chat;
+﻿using GameServer.Application.Domains.Chat;
+using GameServer.Application.Domains.Chat.Interfaces;
+using GameServer.Infrastructure.Domains.Chat;
 
 namespace GameServer.API.Installers.Domain;
 

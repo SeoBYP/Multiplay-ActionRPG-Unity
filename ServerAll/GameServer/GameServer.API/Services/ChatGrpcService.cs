@@ -1,9 +1,11 @@
 ﻿using GameServer.API.Extension;
 using GameServer.API.Extensions;
-using GameServer.Application.Services.Chat.Interfaces;
+using GameServer.Application.Domains.Chat;
+using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Domain.Entities.Chat;
 using GameServer.Grpc.Chat;
 using Grpc.Core;
+using ChatService = GameServer.Grpc.Chat.ChatService;
 
 namespace GameServer.API.Services;
 
@@ -46,7 +48,7 @@ public class ChatGrpcService(
 
     private async Task ReceiveLoopAsync(
         IAsyncStreamReader<ChatClientMessage> requestStream,
-        GameServer.Application.Services.Chat.UserChatContext ctx,
+        UserChatContext ctx,
         string sessionId,
         CancellationToken ct)
     {
@@ -115,7 +117,7 @@ public class ChatGrpcService(
 
     private async Task SendLoopAsync(
         IServerStreamWriter<ChatServerMessage> responseStream,
-        GameServer.Application.Services.Chat.UserChatContext ctx,
+        UserChatContext ctx,
         CancellationToken ct)
     {
         try

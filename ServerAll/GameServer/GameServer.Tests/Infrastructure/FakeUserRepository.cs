@@ -1,5 +1,5 @@
 ﻿using System.Collections.Concurrent;
-using GameServer.Infrastructure.Interfaces.User;
+using GameServer.Application.Domains.User.Interfaces;
 using User = GameServer.Domain.Entities.User.User;
 
 namespace GameServer.Tests.Infrastructure;

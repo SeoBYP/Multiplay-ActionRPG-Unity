@@ -1,7 +1,8 @@
-﻿namespace GameServer.Tests.Infrastructure;
+﻿using GameServer.Application.Domains.User.Interfaces;
+
+namespace GameServer.Tests.Infrastructure;
 
 using GameServer.Domain.Entities;
-using GameServer.Infrastructure.Interfaces.User;
 
 public class FakeUserSessionRepository : IUserSessionRepository
 {

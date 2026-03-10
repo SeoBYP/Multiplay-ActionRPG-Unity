@@ -1,7 +1,6 @@
-﻿using GameServer.Application.Services.DungeonLobby;
-using GameServer.Application.Services.DungeonLobby.Interfaces;
-using GameServer.Infrastructure.Interfaces.DungeonRoom;
-using GameServer.Infrastructure.Repositories.DungeonRoom;
+﻿using GameServer.Application.Domains.DungeonLobby;
+using GameServer.Application.Domains.DungeonLobby.Interfaces;
+using GameServer.Infrastructure.Domains.DungeonRoom;
 
 namespace GameServer.API.Installers.Domain;
 

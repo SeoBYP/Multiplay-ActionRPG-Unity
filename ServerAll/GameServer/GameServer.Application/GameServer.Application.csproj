@@ -8,12 +8,15 @@
 
     <ItemGroup>
       <ProjectReference Include="..\GameServer.Domain\GameServer.Domain.csproj" />
-      <ProjectReference Include="..\GameServer.Infrastructure\GameServer.Infrastructure.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="MemoryPack" Version="1.21.4" />
       <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Domains\" />
     </ItemGroup>
 
 </Project>

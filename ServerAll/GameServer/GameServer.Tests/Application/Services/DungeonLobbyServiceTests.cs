@@ -1,10 +1,9 @@
 ﻿using GameServer.Application.Common;
-using GameServer.Application.Services.Chat.Interfaces;
-using GameServer.Application.Services.DungeonLobby;
-using GameServer.Application.Services.DungeonLobby.Interfaces;
+using GameServer.Application.Domains.Chat.Interfaces;
+using GameServer.Application.Domains.DungeonLobby;
+using GameServer.Application.Domains.DungeonLobby.Interfaces;
+using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
-using GameServer.Infrastructure.Interfaces.DungeonRoom;
-using GameServer.Infrastructure.Interfaces.User;
 using GameServer.Tests.Fakes;
 using GameServer.Tests.Infrastructure;
 
