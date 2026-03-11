@@ -1,5 +1,6 @@
 ﻿// GameServer.Tests/Fakes/FakeDungeonRoomRepository.cs
 using System.Collections.Concurrent;
+using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Domain.Entities;
 
@@ -90,5 +91,31 @@ public class FakeDungeonRoomRepository : IDungeonRoomRepository
         }
         
         return Task.FromResult(true);
+    }
+
+    public Task<JoinRoomAtomicResult> TryJoinRoomAsync(long userId, long roomId, CancellationToken ct = default)
+    {
+        lock (_rooms)
+        {
+            if (!_rooms.TryGetValue(roomId, out var room))
+                return Task.FromResult(JoinRoomAtomicResult.RoomNotFound);
+
+            if (room.Status != RoomStatus.Waiting)
+                return Task.FromResult(JoinRoomAtomicResult.InvalidStatus);
+
+            if (_userRoomMapping.TryGetValue(userId, out var joinedRoomId) && joinedRoomId != roomId)
+                return Task.FromResult(JoinRoomAtomicResult.AlreadyInOtherRoom);
+
+            if (room.IsExist(userId))
+                return Task.FromResult(JoinRoomAtomicResult.AlreadyInThisRoom);
+
+            if (room.IsFull)
+                return Task.FromResult(JoinRoomAtomicResult.RoomFull);
+
+            room.Join(userId);
+            _userRoomMapping[userId] = roomId;
+
+            return Task.FromResult(JoinRoomAtomicResult.Success);
+        }
     }
 }

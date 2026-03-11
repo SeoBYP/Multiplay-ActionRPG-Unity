@@ -16,12 +16,10 @@ public static class DungeonRoomExtensions
             MaxPlayers = room.MaxPlayers,
             Status = room.Status.ToGrpc(),
         };
-        foreach (var currentPlayerId in room.CurrentPlayers)
+        var users = await userRepository.GetByIdsAsync(room.CurrentPlayers);
+        foreach (var user in users)
         {
-            var currentPlayer = await userRepository.GetByIdAsync(currentPlayerId);
-            if (currentPlayer is null) 
-                continue;
-            info.CurrentPlayers.Add(currentPlayer.ToUserInfo());
+            info.CurrentPlayers.Add(user.ToUserInfo());
         }
 
         return info;

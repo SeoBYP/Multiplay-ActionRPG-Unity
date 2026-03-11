@@ -34,13 +34,25 @@ public class DungeonRoom
     public int MaxPlayers { get; private set; }
     
     /// <summary>현재 방에 있는 플레이어 UserId 목록 (HashSet으로 중복 방지)</summary>
-    public HashSet<long> CurrentPlayers { get; private set; }
+    public List<long> CurrentPlayers { get; private set; }
     
     /// <summary>방 상태 (대기/게임중/종료)</summary>
     public RoomStatus Status { get; private set; }
     
     /// <summary>방 생성 시각 (UTC)</summary>
     public DateTime CreatedAt { get; private set; }
+
+    public DungeonRoom Clone()
+    {
+        return FromRedis(
+            RoomId,
+            RoomName,
+            HostUserId,
+            MaxPlayers,
+            Status,
+            new List<long>(CurrentPlayers),
+            CreatedAt);
+    }
     
     
     private DungeonRoom(){ }
@@ -70,7 +82,7 @@ public class DungeonRoom
             HostUserId = hostUserId,
             MaxPlayers = maxPlayers,
             Status = RoomStatus.Waiting, // 생성 직후는 항상 대기 상태
-            CurrentPlayers = new HashSet<long> { hostUserId }, // 방장을 첫 플레이어로 자동 추가
+            CurrentPlayers = new List<long> { hostUserId }, // 방장을 첫 플레이어로 자동 추가
             CreatedAt = DateTime.UtcNow // UTC 시간으로 저장 (서버 위치와 무관하게 통일)
         };
     }
@@ -84,7 +96,7 @@ public class DungeonRoom
         long hostUserId,
         int maxPlayers,
         RoomStatus status,
-        HashSet<long> currentPlayers,
+        List<long> currentPlayers,
         DateTime createdAt)
     {
         // 검증 없이 바로 생성 (Redis에서 가져온 데이터는 이미 검증됨)

@@ -1,26 +1,141 @@
-﻿using GameServer.Application.Common;
+﻿using Moq;
+using GameServer.Application.Common;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
-using GameServer.Tests.Fakes;
-using GameServer.Tests.Infrastructure;
+using System.Collections.Concurrent;
 
 namespace GameServer.Tests.Application.Services;
 
 public class DungeonLobbyServiceTests
 {
-    private readonly IUserSessionRepository _sessionRepository;
+    private readonly Mock<IUserSessionRepository> _mockSessionRepository;
+    private readonly Mock<IDungeonRoomRepository> _mockRoomRepository;
+    private readonly Mock<IChatSubscriptionService> _mockChatSubscriptionService;
+    private readonly Mock<IDungeonLobbySubscriptionService> _mockDungeonLobbySubscriptionService;
     private readonly DungeonLobbyService _service;
+
+    // 테스트용 인메모리 저장소
+    private readonly ConcurrentDictionary<long, DungeonRoom> _rooms = new();
+    private readonly ConcurrentDictionary<string, UserSession> _sessions = new();
+    private readonly ConcurrentDictionary<long, long> _userRoomMapping = new();
+    private long _nextRoomId = 1;
 
     public DungeonLobbyServiceTests()
     {
-        IDungeonRoomRepository roomRepository = new FakeDungeonRoomRepository();
-        _sessionRepository = new FakeUserSessionRepository();
-        IChatSubscriptionService chatSubscriptionService = new FakeChatSubscriptionService();
-        IDungeonLobbySubscriptionService dungeonLobbySubscriptionService = new FakeDungeonLobbySubscriptionService();
-        _service = new DungeonLobbyService(roomRepository, dungeonLobbySubscriptionService, _sessionRepository, chatSubscriptionService);
+        _mockRoomRepository = new Mock<IDungeonRoomRepository>();
+        _mockSessionRepository = new Mock<IUserSessionRepository>();
+        _mockChatSubscriptionService = new Mock<IChatSubscriptionService>();
+        _mockDungeonLobbySubscriptionService = new Mock<IDungeonLobbySubscriptionService>();
+
+        SetupMocks();
+
+        _service = new DungeonLobbyService(
+            _mockRoomRepository.Object, 
+            _mockDungeonLobbySubscriptionService.Object, 
+            _mockSessionRepository.Object, 
+            _mockChatSubscriptionService.Object);
+    }
+
+    private void SetupMocks()
+    {
+        // IDungeonRoomRepository Setup
+        _mockRoomRepository.Setup(r => r.CreateAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((long hostId, string roomName, int maxPlayers, CancellationToken ct) =>
+            {
+                var room = DungeonRoom.Create(roomName, hostId, maxPlayers);
+                var roomId = Interlocked.Increment(ref _nextRoomId);
+                room.SetRoomId(roomId);
+                _rooms[roomId] = room;
+                _userRoomMapping[hostId] = roomId;
+                return room;
+            });
+
+        _mockRoomRepository.Setup(r => r.GetByIdAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((long roomId, CancellationToken ct) => _rooms.TryGetValue(roomId, out var room) ? room.Clone() : null);
+
+        _mockRoomRepository.Setup(r => r.GetByUserIdAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((long userId, CancellationToken ct) => 
+                _userRoomMapping.TryGetValue(userId, out var roomId) && _rooms.TryGetValue(roomId, out var room) ? room.Clone() : null);
+
+        _mockRoomRepository.Setup(r => r.GetAllActiveRoomsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => _rooms.Values.Where(r => r.Status != RoomStatus.Closed).ToList());
+
+        _mockRoomRepository.Setup(r => r.UpdateAsync(It.IsAny<DungeonRoom>(), It.IsAny<CancellationToken>()))
+            .Returns((DungeonRoom room, CancellationToken ct) =>
+            {
+                if (!_rooms.ContainsKey(room.RoomId)) return Task.FromResult(false);
+                
+                return Task.Run(async () =>
+                {
+                    // 지연을 추가하여 Race Condition이 발생할 확률을 높임
+                    await Task.Delay(10);
+
+                    // 매핑 업데이트
+                    foreach (var userId in room.CurrentPlayers)
+                    {
+                        _userRoomMapping[userId] = room.RoomId;
+                    }
+                    _rooms[room.RoomId] = room;
+                    return true;
+                });
+            });
+
+        _mockRoomRepository.Setup(r => r.DeleteAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((long roomId, CancellationToken ct) =>
+            {
+                if (!_rooms.TryRemove(roomId, out var room)) return false;
+                foreach (var userId in room.CurrentPlayers)
+                {
+                    _userRoomMapping.TryRemove(userId, out _);
+                }
+                return true;
+            });
+
+        _mockRoomRepository.Setup(r => r.TryJoinRoomAsync(It.IsAny<long>(), It.IsAny<long>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((long roomId, long userId, CancellationToken ct) =>
+            {
+                // 실제 Redis Lua 스크립트처럼 원자적으로 처리되어야 함
+                lock (_rooms)
+                {
+                    if (!_rooms.TryGetValue(roomId, out var room))
+                        return JoinRoomAtomicResult.RoomNotFound;
+
+                    if (room.Status != RoomStatus.Waiting)
+                        return JoinRoomAtomicResult.InvalidStatus;
+
+                    if (_userRoomMapping.TryGetValue(userId, out var joinedRoomId) && joinedRoomId != roomId)
+                        return JoinRoomAtomicResult.AlreadyInOtherRoom;
+
+                    if (room.IsExist(userId))
+                        return JoinRoomAtomicResult.AlreadyInThisRoom;
+
+                    if (room.IsFull)
+                        return JoinRoomAtomicResult.RoomFull;
+
+                    // 입장 처리 (상태 변경)
+                    room.Join(userId);
+                    _userRoomMapping[userId] = roomId;
+                    
+                    return JoinRoomAtomicResult.Success;
+                }
+            });
+
+        // IUserSessionRepository Setup
+        _mockSessionRepository.Setup(s => s.GetBySessionIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string sessionId, CancellationToken ct) => _sessions.TryGetValue(sessionId, out var session) ? session : null);
+
+        _mockSessionRepository.Setup(s => s.UpdateRoomIdAsync(It.IsAny<string>(), It.IsAny<long>(), It.IsAny<CancellationToken>()))
+            .Callback<string, long, CancellationToken>((sessionId, roomId, ct) =>
+            {
+                if (_sessions.TryGetValue(sessionId, out var session))
+                {
+                    session.SetRoomId(roomId);
+                }
+            })
+            .Returns(Task.CompletedTask);
     }
 
     #region CreateDungeonRoomAsync Tests
@@ -362,6 +477,60 @@ public class DungeonLobbyServiceTests
         Assert.Equal(ErrorCodes.AlreadyInRoom, result.InternalErrorCode);
     }
 
+    [Fact]
+    public async Task 대기_상태가_아닌_방에_입장하려고_하면_실패한다()
+    {
+        // Arrange
+        var hostSession = await CreateTestSession(1, "host");
+        var user2Session = await CreateTestSession(2, "user2");
+        var user3Session = await CreateTestSession(3, "user3");
+        
+        var createResult = await _service.CreateDungeonRoomAsync(hostSession, "Playing Room", 4);
+        var roomId = createResult.Value!.RoomId;
+        
+        await _service.JoinRoomAsync(user2Session, roomId);
+        
+        // 게임 시작 (상태를 Playing으로 변경)
+        await _service.StartGameAsync(hostSession, roomId);
+
+        // Act - 게임 중인 방에 입장 시도
+        var result = await _service.JoinRoomAsync(user3Session, roomId);
+
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.JoinRoomFailed, result.InternalErrorCode);
+        Assert.Equal("입장 가능한 방 상태가 아닙니다.", result.Message);
+    }
+
+    [Fact]
+    public async Task 여러_유저가_동시에_한_방에_입장을_시도할_때_최대_인원_제한이_지켜져야_한다()
+    {
+        // Arrange
+        var maxPlayers = 2;
+        var hostSession = await CreateTestSession(1, "host");
+        var roomResult = await _service.CreateDungeonRoomAsync(hostSession, "Concurrent Room", maxPlayers);
+        var roomId = roomResult.Value!.RoomId;
+
+        // 동시에 입장 시도할 유저들 (이미 방장이 있으므로 1명만 더 들어올 수 있음)
+        var playerSessions = new List<string>();
+        for (int i = 2; i <= 10; i++)
+        {
+            playerSessions.Add(await CreateTestSession(i, $"user{i}"));
+        }
+
+        // Act
+        var tasks = playerSessions.Select(session => _service.JoinRoomAsync(session, roomId)).ToList();
+        var results = await Task.WhenAll(tasks);
+
+        // Assert
+        var successCount = results.Count(r => r.IsSuccess);
+        var room = await _service.GetDungeonRoomAsync(roomId);
+
+        // 방장(1명) + 추가 성공(1명) = 총 2명이어야 함 (maxPlayers)
+        Assert.Equal(maxPlayers - 1, successCount); 
+        Assert.Equal(maxPlayers, room.Value!.CurrentPlayers.Count);
+    }
+
     #endregion
 
     #region LeaveRoomAsync Tests
@@ -550,8 +719,10 @@ public class DungeonLobbyServiceTests
     {
         var email = $"{userName}@example.com";
         var publicId = $"PUB{userId:D8}";
-        var session = await _sessionRepository.CreateSessionAsync(userId, userName, email, publicId);
-        return session!.SessionId;
+        var sessionId = Guid.NewGuid().ToString();
+        var session = UserSession.Create(userId, email, userName, publicId, sessionId);
+        _sessions[sessionId] = session;
+        return sessionId;
     }
 
     #endregion

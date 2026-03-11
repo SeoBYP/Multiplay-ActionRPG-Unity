@@ -39,4 +39,7 @@ public interface IDungeonRoomRepository
     /// 방 삭제
     /// </summary>
     Task<bool> DeleteAsync(long roomId, CancellationToken ct = default);
+    
+    
+    Task<JoinRoomAtomicResult> TryJoinRoomAsync(long userId, long roomId, CancellationToken ct = default);
 }

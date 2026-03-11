@@ -72,7 +72,9 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
             Result = result.ToGrpcResult(),
         };
         // TODO : ROOM Count 방안 고민
-        foreach (var dungeonRoom in result.Value!)
+        if (result.Value is null) 
+            throw new InvalidOperationException("Room List is null");
+        foreach (var dungeonRoom in result.Value)
         {
             response.RoomInfos.Add(await dungeonRoom.ToRoomInfo(userRepository));
         }
@@ -151,6 +153,8 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
     {
         var ct = context.CancellationToken;
         var sessionId = context.GetSessionId();
+        if (sessionId is null) 
+            throw new InvalidOperationException("Session ID cannot be null");
         
         // ConnectAsync 내부: 세션 조회 + ctx 생성 + Redis 구독
         var ctx = await subscriptionService.SubscribeAsync(sessionId,request.RoomId, ct);

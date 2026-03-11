@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Domain.Entities;
 using StackExchange.Redis;
@@ -351,6 +352,77 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
     }
 
+    private const string JoinRoomLua = """
+                                       local roomKey = KEYS[1]
+                                       local roomPlayersKey = KEYS[2]
+                                       local userRoomKey = KEYS[3]
+                                       
+                                       local roomId = ARGV[1]
+                                       local userId = ARGV[2]
+                                       local waitingStatus = ARGV[3]
+                                       
+                                       if(redis.call('EXISTS', roomKey) == 0) then
+                                            return -1
+                                       end
+                                       
+                                       local status = redis.call('HGET', roomKey, 'Status')
+                                       if not status or status ~= waitingStatus then
+                                           return -2
+                                       end
+                                       
+                                       local joinedRoomId = redis.call('GET', userRoomKey)
+                                       if joinedRoomId and joinedRoomId ~= roomId then
+                                           return -3
+                                       end
+                                       
+                                       if redis.call('SISMEMBER', roomPlayersKey, userId) == 1 then
+                                           return -4
+                                       end
+                                       
+                                       local maxPlayers = tonumber(redis.call('HGET', roomKey, 'MaxPlayers'))
+                                       local currentCount = tonumber(redis.call('SCARD', roomPlayersKey))
+                                       
+                                       if currentCount >= maxPlayers then
+                                           return -5
+                                       end
+                                       
+                                       redis.call('SADD', roomPlayersKey, userId)
+                                       redis.call('SET', userRoomKey, roomId)
+                                       
+                                       return 1
+                                       
+                                       """;
+
+    public async Task<JoinRoomAtomicResult> TryJoinRoomAsync(long userId, long roomId, CancellationToken ct = default)
+    {
+        var result = await _database.ScriptEvaluateAsync(
+            JoinRoomLua,
+            new RedisKey[]
+            {
+                $"{RoomKey}:{roomId}",
+                $"{RoomKey}:{roomId}:players",
+                $"{UserRoomMappingKey}:{userId}"
+            },
+            new RedisValue[]
+            {
+                roomId.ToString(),
+                userId.ToString(),
+                RoomStatus.Waiting.ToString()
+            });
+        var code = (int)(long)result;
+
+        return code switch
+        {
+            1 => JoinRoomAtomicResult.Success,
+            -1 => JoinRoomAtomicResult.RoomNotFound,
+            -2 => JoinRoomAtomicResult.InvalidStatus,
+            -3 => JoinRoomAtomicResult.AlreadyInOtherRoom,
+            -4 => JoinRoomAtomicResult.AlreadyInThisRoom,
+            -5 => JoinRoomAtomicResult.RoomFull,
+            _ => JoinRoomAtomicResult.UnknownError
+        };
+    }
+
     /// <summary>
     /// Redis에서 조회한 Hash 데이터와 Set 데이터를 사용하여 DungeonRoom 도메인 객체로 변환합니다.
     /// </summary>
@@ -408,7 +480,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
         
         // 4. 플레이어 목록 변환
-        var currentPlayers = new HashSet<long>(
+        var currentPlayers = new List<long>(
             players.Select(p => (long)p)
         );
         

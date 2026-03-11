@@ -41,6 +41,11 @@ public class FakeUserRepository : IUserRepository
         return Task.FromResult(user);
     }
 
+    public Task<List<User>> GetByIdsAsync(IEnumerable<long> userIds, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
     {
         var user = _users.Values.FirstOrDefault(u => u.Email == email);

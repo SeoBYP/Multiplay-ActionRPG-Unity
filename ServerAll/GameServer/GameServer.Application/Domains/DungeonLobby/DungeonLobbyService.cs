@@ -137,57 +137,41 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
                 return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
             var userId = userSession.UserId;
             
-            // 이미 다른 방이 있는지 확인
-            var existingRoom = await dungeonRoomRepository.GetByUserIdAsync(userId, ct);
-            if (existingRoom is not null && existingRoom.RoomId != roomId)
-            {
-                return Result<DungeonRoom>.Failure(
-                    ErrorCodes.AlreadyInRoom,
-                    ErrorMessages.AlreadyInRoom);
-            }
+            var joinResult = await dungeonRoomRepository.TryJoinRoomAsync(userId,roomId ,ct);
 
-            // 2. 방 조회
-            var room = await dungeonRoomRepository.GetByIdAsync(roomId, ct);
-            if (room is null)
-                return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
-            
-            if(room.IsExist(userId))
-                return Result<DungeonRoom>.Failure(ErrorCodes.AlreadyInRoom, ErrorMessages.AlreadyInRoom);
-            
-            // 3. 도메인 로직 (Join)
-            try
+            switch (joinResult)
             {
-                room.Join(userId);
-            }
-            catch (InvalidOperationException ex)
-            {
-                // room.Join에서 이미 검증함 (중복, Full, Status)
-                return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, ErrorMessages.InternalServerError);
+                case JoinRoomAtomicResult.RoomNotFound:
+                    return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
+
+                case JoinRoomAtomicResult.AlreadyInOtherRoom:
+                case JoinRoomAtomicResult.AlreadyInThisRoom:
+                    return Result<DungeonRoom>.Failure(ErrorCodes.AlreadyInRoom, ErrorMessages.AlreadyInRoom);
+
+                case JoinRoomAtomicResult.RoomFull:
+                    return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, "방이 가득 찼습니다.");
+
+                case JoinRoomAtomicResult.InvalidStatus:
+                    return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, "입장 가능한 방 상태가 아닙니다.");
+
+                case JoinRoomAtomicResult.UnknownError:
+                    return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
             }
             
             // Join 성공 후 세션 업데이트
             userSession.SetRoomId(roomId);
             await userSessionRepository.UpdateRoomIdAsync(sessionId, roomId, ct);
-
-            // 4. 저장
-            var success = await dungeonRoomRepository.UpdateAsync(room, ct);
-            if (!success)
-            {
-                return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.JoinRoomFailed);
-            }
-            
             await chatSubscriptionService.SwitchRoomAsync(sessionId, roomId, ct);
-            
+
+            var room = await dungeonRoomRepository.GetByIdAsync(roomId, ct);
+            if (room is null)
+                return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
+
             await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
+
             return Result<DungeonRoom>.Success(room);
         }
-        catch (InvalidOperationException ex)
-        {
-            // room.Join 예외만 잡으려 했는데
-            // UpdateRoomIdAsync가 InvalidOperationException 던지면 JoinRoomFailed 반환
-            return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, ErrorMessages.JoinRoomFailed);
-        }
-        catch (Exception e)
+        catch (Exception)
         {
             return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }

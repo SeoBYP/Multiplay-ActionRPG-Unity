@@ -168,6 +168,39 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
     }
 
+    public async Task<List<User>> GetByIdsAsync(List<long> userIds, CancellationToken ct = default)
+    {
+        try
+        {
+            var batch = _database.CreateBatch();
+            var userEntries = userIds
+                .Select(userId => batch.HashGetAllAsync($"{UserKey}:{userId}"))
+                .ToList();
+            
+            batch.Execute();
+            
+            var users = new List<User>();
+            // idList.Count는 O(1) 속성 접근 (List<T>의 경우)
+            for (int i = 0; i < userIds.Count; i++)
+            {
+                var entries = await userEntries[i];
+                if (entries.Length == 0)
+                    continue;
+                
+                // idList[i]는 O(1) 인덱서 접근 (List<T>의 경우)
+                var user = ParseUserFromRedis(userIds[i], entries);
+                if (user is not null)
+                    users.Add(user);
+            }
+
+            return users;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+    }
     public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
     {
         try

@@ -38,6 +38,14 @@ public interface IUserRepository
     Task<User?> GetByIdAsync(long userId, CancellationToken ct = default);
 
     /// <summary>
+    /// 지정된 사용자 ID 목록에 해당하는 사용자 엔티티를 반환합니다.
+    /// </summary>
+    /// <param name="userIds">조회할 사용자 ID 목록</param>
+    /// <param name="ct">작업 취소를 위한 토큰</param>
+    /// <returns>사용자 엔티티 목록</returns>
+    Task<List<User>> GetByIdsAsync(List<long> userIds, CancellationToken ct = default);
+
+    /// <summary>
     /// 이메일로 사용자를 조회합니다.
     /// </summary>
     /// <param name="email">사용자 이메일</param>
