@@ -95,7 +95,7 @@ public class DungeonLobbyServiceTests
             });
 
         _mockRoomRepository.Setup(r => r.TryJoinRoomAsync(It.IsAny<long>(), It.IsAny<long>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((long roomId, long userId, CancellationToken ct) =>
+            .ReturnsAsync((long userId, long roomId, CancellationToken ct) =>
             {
                 // 실제 Redis Lua 스크립트처럼 원자적으로 처리되어야 함
                 lock (_rooms)

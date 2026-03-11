@@ -418,7 +418,7 @@ public class AuthServiceTests
 
         // then
         Assert.False(result.IsSuccess);
-        Assert.Equal(ErrorCodes.InvalidRequest, result.InternalErrorCode);
+        Assert.Equal(ErrorCodes.SessionExpired, result.InternalErrorCode);
     }
 
     [Fact]
@@ -494,7 +494,7 @@ public class AuthServiceTests
         
         // then
         Assert.False(result.IsSuccess);
-        Assert.Equal(ErrorCodes.InvalidRequest, result.InternalErrorCode);
+        Assert.Equal(ErrorCodes.SessionExpired, result.InternalErrorCode);
     }
 
     [Fact]
@@ -512,6 +512,6 @@ public class AuthServiceTests
         
         // then
         Assert.False(result.IsSuccess);
-        Assert.Equal(ErrorCodes.InvalidRequest, result.InternalErrorCode);
+        Assert.Equal(ErrorCodes.SessionExpired, result.InternalErrorCode);
     }
 }
