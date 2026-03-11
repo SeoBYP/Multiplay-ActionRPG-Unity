@@ -1,7 +1,6 @@
 ﻿using GameServer.Application.Domains.Auth;
 using GameServer.Application.Domains.Auth.Interfaces;
 using GameServer.Application.Security.Interface;
-using GameServer.Infrastructure.Interfaces;
 using GameServer.Infrastructure.Security;
 
 namespace GameServer.API.Installers.Domain;

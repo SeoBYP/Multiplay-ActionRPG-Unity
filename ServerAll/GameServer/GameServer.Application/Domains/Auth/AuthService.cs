@@ -137,13 +137,20 @@ public class AuthService(
         
         // 5. RefreshToken 및 DeviceId 검증 (Binding 확인)
         // !=는 타이밍 공격(Timing Attack)에 이론적으로 취약해
+        /*
+         * 1. CryptographicOperations.FixedTimeEquals란?
+         * 일반적인 비교 연산자(== 또는 SequenceEqual)는 두 배열을 앞에서부터 비교하다가 다른 값이 발견되는 즉시 비교를 중단합니다. 이로 인해 비교하는 데이터가 앞부분에서 틀렸을 때와 뒷부분에서 틀렸을 때의 실행 시간이 미세하게 달라집니다.
+         * 공격자는 이 미세한 시간 차이를 측정하여 비밀 값(이 경우 RefreshToken)을 한 글자씩 유추해낼 수 있는데, 이를 **타이밍 공격(Side-channel attack)**이라고 합니다.
+         * FixedTimeEquals는 데이터의 일치 여부와 상관없이 항상 모든 바이트를 끝까지 비교하여 실행 시간을 일정하게 유지함으로써 이러한 공격을 원천 차단합니다.
+         */
         var hashedInputToken = HashRefreshToken(refreshToken, deviceId);
-        if (CryptographicOperations.FixedTimeEquals(
+        if (!CryptographicOperations.FixedTimeEquals(
                 Convert.FromHexString(user.RefreshToken),
                 Convert.FromHexString(hashedInputToken)))
         {
-            // Binding 실패 시 보안 위험으로 간주하고 세션 종료 고려 가능
-            // 여기서는 일단 실패 반환
+            // Binding 실패 시 보안 위험으로 간주하고 세션 종료
+            user.ClearRefreshToken();
+            await userSessionRepository.RemoveSessionAsync(userSession.SessionId, ct);
             return Result<LoginResult>.Failure(ErrorCodes.SessionExpired, ErrorMessages.SessionExpired);
         }
 
