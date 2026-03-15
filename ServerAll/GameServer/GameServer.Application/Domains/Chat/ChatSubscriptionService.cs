@@ -6,7 +6,7 @@ using GameServer.Application.Domains.User.Interfaces;
 namespace GameServer.Application.Domains.Chat;
 
 public sealed class ChatSubscriptionService(
-    IChatStreamReader chatStreamReader,
+    IChatEventStream chatEventStream,
     IUserSessionRepository sessionRepository,
     IDungeonRoomRepository roomRepository) : IChatSubscriptionService
 {
@@ -19,9 +19,7 @@ public sealed class ChatSubscriptionService(
         
         var ctx = new UserChatContext(session.UserId, session.NickName, session.CurrentRoomId);
         
-        // TODO : Redis Pub/Sub을 사용하면 Network 혹은 서버 장애시 메세지 유실에 대한 처리 필요,Pub/Sub을 MessageQueue로 변경 필요
-        // Redis List를 활용해서 Queue로 활용, 또는 Kafka와 같은 Message Queue를 사용, 혹시 OutBox로 수정
-        // => 결론은 메세지 유실에 대한 처리가 필요
+        
         if (_contexts.TryGetValue(session.UserId, out var existing))
         {
             await DisconnectAsync(existing, ct);
@@ -89,9 +87,10 @@ public sealed class ChatSubscriptionService(
     {
         try
         {
-            await foreach (var msg in chatStreamReader.ReadAsync(channels, "0-0", ct))
+            await foreach (var msg in chatEventStream.ReadAsync(channels, "0-0", ct))
                 ctx.Outbound.Writer.TryWrite(msg);
         }
+        catch (OperationCanceledException) { /* 정상 종료, 무시 */ }
         catch (Exception e)
         {
             Console.WriteLine(e);

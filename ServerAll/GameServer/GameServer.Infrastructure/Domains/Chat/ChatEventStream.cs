@@ -5,8 +5,14 @@ using GameServer.Infrastructure.MessageQueue;
 
 namespace GameServer.Infrastructure.Domains.Chat;
 
-public class ChatStreamReader(IBroadcastChannel<ChatMessage> broadcastChannel) : IChatStreamReader
+public class ChatEventStream(IBroadcastChannel<ChatMessage> broadcastChannel) : IChatEventStream
 {
+    public async Task PublishAsync(string channel, ChatMessage message, CancellationToken ct)
+    {
+        await broadcastChannel.PublishAsync(channel, message, ct);
+    }
+    
+    
     public async IAsyncEnumerable<ChatMessage> ReadAsync(IReadOnlyList<string> channels, string lastMessageId, CancellationToken ct = default)
     {
         // 결과를 합쳐서 반환할 내부 채널

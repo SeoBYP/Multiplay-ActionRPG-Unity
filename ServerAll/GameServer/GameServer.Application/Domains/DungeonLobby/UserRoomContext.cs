@@ -1,53 +1,22 @@
 ﻿using System.Threading.Channels;
-using StackExchange.Redis;
 
 namespace GameServer.Application.Domains.DungeonLobby;
 
-public class UserRoomContext
+public class UserRoomContext(long userId, long roomId, int capacity = 256)
 {
-    public long UserId { get; }
+    public long UserId { get; } = userId;
+
     /// <summary>방 고유 식별자 </summary>
-    public long RoomId { get; }
+    public long RoomId { get; } = roomId;
 
-    public Channel<long> Outbound { get; }
-    public ISubscriber Subscriber { get; }
-    public Action<RedisChannel, RedisValue> OnRedisMessage { get; }
-    
-    public CancellationTokenSource Cts { get; } = new();
-    
-    public UserRoomContext(long userId, long roomId, 
-        ISubscriber subscriber, int capacity = 256)
+    public Channel<long> Outbound { get; } = Channel.CreateBounded<long>(new BoundedChannelOptions(capacity)
     {
-        RoomId = roomId;
-        UserId = userId;
-        Subscriber = subscriber;
-
-        Outbound = Channel.CreateBounded<long>(new BoundedChannelOptions(capacity)
-        {
-            SingleReader = true,
-            SingleWriter = false,
-            FullMode = BoundedChannelFullMode.DropOldest
-        });
-
-        OnRedisMessage = (_, value) =>
-        {
-            if (value.IsNullOrEmpty) return;
-            try
-            {
-                Console.WriteLine($"[Redis 수신] {value}"); // ← 추가
-                if (long.TryParse(value.ToString(), out var parsedRoomId))
-                {
-                    Console.WriteLine($"[역직렬화] RoomId={parsedRoomId}"); // ← 추가
-                    Outbound.Writer.TryWrite(parsedRoomId);
-                    return;
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"[역직렬화 실패] {e.Message}"); // ← 추가
-            }
-        };
-    }
+        SingleReader = true,
+        SingleWriter = false,
+        FullMode = BoundedChannelFullMode.DropOldest
+    });
+    
+    public CancellationTokenSource Cts { get; set;} = new();
 
     public void Stop()
     {

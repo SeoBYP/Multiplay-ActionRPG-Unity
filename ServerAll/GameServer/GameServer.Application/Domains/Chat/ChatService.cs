@@ -1,16 +1,14 @@
 ﻿using System.Collections.Concurrent;
-using System.Text.Json;
 using GameServer.Application.Common;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities.Chat;
-using StackExchange.Redis;
 
 namespace GameServer.Application.Domains.Chat;
 
 public class ChatService(IChatMessageRepository chatMessageRepository,
     IUserSessionRepository userSessionRepository,
-    IChatPublisher chatPublisher) : IChatService
+    IChatEventStream chatEventStream) : IChatService
 {
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _userLocks = new();
 
@@ -48,7 +46,7 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
 
             // Redis publish
             var channel = ChatChannels.GetChannel(chatType, roomId, targetUserNickName);
-            await chatPublisher.PublishAsync(channel, chatMessage, ct);
+            await chatEventStream.PublishAsync(channel, chatMessage, ct);
 
             return Result<ChatMessage>.Success(chatMessage);
         }

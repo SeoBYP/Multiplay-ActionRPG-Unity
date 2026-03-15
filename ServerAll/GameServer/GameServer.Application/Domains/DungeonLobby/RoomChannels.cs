@@ -2,5 +2,5 @@
 
 public static class RoomChannels
 {
-    public static string RoomChannel(long roomId) => $"game:room:{roomId}";
+    public static string RoomChannel(long roomId) => $"stream:room:{roomId}";
 }

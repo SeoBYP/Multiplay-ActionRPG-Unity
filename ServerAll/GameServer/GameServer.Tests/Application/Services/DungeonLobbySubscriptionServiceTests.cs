@@ -11,23 +11,22 @@ namespace GameServer.Tests.Application.Services;
 
 public class DungeonLobbySubscriptionServiceTests
 {
-    private readonly Mock<IConnectionMultiplexer> _mockRedis;
-    private readonly Mock<ISubscriber> _mockSubscriber;
+    private readonly Mock<IDungeonRoomEventStream> _mockEventStream;
     private readonly IDungeonRoomRepository _roomRepository;
     private readonly IUserSessionRepository _sessionRepository;
     private readonly DungeonLobbySubscriptionService _service;
 
     public DungeonLobbySubscriptionServiceTests()
     {
-        _mockRedis = new Mock<IConnectionMultiplexer>();
-        _mockSubscriber = new Mock<ISubscriber>();
+        _mockEventStream = new Mock<IDungeonRoomEventStream>();
         _roomRepository = new FakeDungeonRoomRepository();
         _sessionRepository = new FakeUserSessionRepository();
 
-        _mockRedis.Setup(x => x.GetSubscriber(It.IsAny<object>())).Returns(_mockSubscriber.Object);
+        _mockEventStream.Setup(x => x.ReadAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(AsyncEnumerable.Empty<long>());
 
         _service = new DungeonLobbySubscriptionService(
-            _mockRedis.Object,
+            _mockEventStream.Object,
             _roomRepository,
             _sessionRepository);
     }
@@ -54,10 +53,12 @@ public class DungeonLobbySubscriptionServiceTests
         Assert.NotNull(result);
         Assert.Equal(userId, result.UserId);
         Assert.Equal(actualRoomId, result.RoomId);
-        _mockSubscriber.Verify(x => x.SubscribeAsync(
-            It.Is<RedisChannel>(c => c == RoomChannels.RoomChannel(actualRoomId)),
-            It.IsAny<Action<RedisChannel, RedisValue>>(),
-            It.IsAny<CommandFlags>()), Times.Once);
+        
+        // ReadAsync should be called for the room
+        _mockEventStream.Verify(x => x.ReadAsync(
+            It.Is<long>(id => id == actualRoomId),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -110,10 +111,9 @@ public class DungeonLobbySubscriptionServiceTests
         await _service.PublishAsync(roomId, CancellationToken.None);
 
         // Assert
-        _mockSubscriber.Verify(x => x.PublishAsync(
-            It.Is<RedisChannel>(c => c == RoomChannels.RoomChannel(roomId)),
-            It.Is<RedisValue>(v => (long)v == roomId),
-            It.IsAny<CommandFlags>()), Times.Once);
+        _mockEventStream.Verify(x => x.PublishAsync(
+            It.Is<long>(id => id == roomId),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -139,13 +139,11 @@ public class DungeonLobbySubscriptionServiceTests
         Assert.NotNull(result);
         Assert.Equal(room2.RoomId, result.RoomId);
         
-        // UnsubscribeAllAsync should be called for the first room
-        _mockSubscriber.Verify(x => x.UnsubscribeAllAsync(It.IsAny<CommandFlags>()), Times.Once);
-        // SubscribeAsync should be called twice (once for each room)
-        _mockSubscriber.Verify(x => x.SubscribeAsync(
-            It.IsAny<RedisChannel>(),
-            It.IsAny<Action<RedisChannel, RedisValue>>(),
-            It.IsAny<CommandFlags>()), Times.Exactly(2));
+        // ReadAsync should be called for both rooms
+        _mockEventStream.Verify(x => x.ReadAsync(
+            It.IsAny<long>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]
@@ -154,13 +152,41 @@ public class DungeonLobbySubscriptionServiceTests
         // Arrange
         var userId = 1L;
         var roomId = 100L;
-        var ctx = new UserRoomContext(userId, roomId, _mockSubscriber.Object);
+        var ctx = new UserRoomContext(userId, roomId);
 
         // Act
         await _service.UnsubscribeAsync(ctx, CancellationToken.None);
 
         // Assert
-        _mockSubscriber.Verify(x => x.UnsubscribeAllAsync(It.IsAny<CommandFlags>()), Times.Once);
         Assert.True(ctx.Cts.IsCancellationRequested);
+    }
+
+    [Fact]
+    public async Task 동일_유저가_동시에_여러_번_구독_시_모든_요청이_성공적으로_처리된다()
+    {
+        // Arrange
+        var userId = 1L;
+        var roomId = 100L;
+        var session = await _sessionRepository.CreateSessionAsync(userId, "user1", "user1@test.com", "pub1");
+        var sessionId = session!.SessionId;
+        
+        var room = await _roomRepository.CreateAsync(userId, "Room1", 4);
+        await _sessionRepository.UpdateRoomIdAsync(sessionId, room!.RoomId);
+
+        var tasks = new List<Task<UserRoomContext?>>();
+        for (int i = 0; i < 10; i++)
+        {
+            tasks.Add(_service.SubscribeAsync(sessionId, room.RoomId, CancellationToken.None));
+        }
+
+        // Act
+        var results = await Task.WhenAll(tasks);
+
+        // Assert
+        Assert.All(results, Assert.NotNull);
+        _mockEventStream.Verify(x => x.ReadAsync(
+            It.IsAny<long>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Exactly(10));
     }
 }

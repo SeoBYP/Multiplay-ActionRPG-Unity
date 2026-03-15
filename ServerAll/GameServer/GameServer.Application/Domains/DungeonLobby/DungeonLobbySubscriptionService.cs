@@ -1,12 +1,11 @@
 ﻿using System.Collections.Concurrent;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
-using StackExchange.Redis;
 
 namespace GameServer.Application.Domains.DungeonLobby;
 
 public class DungeonLobbySubscriptionService(
-    IConnectionMultiplexer redis,
+    IDungeonRoomEventStream dungeonRoomEventStream,
     IDungeonRoomRepository roomRepository,
     IUserSessionRepository sessionRepository) : IDungeonLobbySubscriptionService
 {
@@ -25,19 +24,18 @@ public class DungeonLobbySubscriptionService(
             if(session.CurrentRoomId != roomId || room.IsExist(session.UserId) == false)
                 return null;
             
-            var sub = redis.GetSubscriber();
-            var ctx = new UserRoomContext(session.UserId, roomId, sub);
+            var ctx = new UserRoomContext(session.UserId, roomId);
 
+            // 기존 구독 삭제
             if (_contexts.TryGetValue(session.UserId, out var existing))
             {
-                // 이미 구독 중인 방이 있으면 Disconnect
-                await UnsubscribeAsync(existing, ct);
+                existing.Stop();
             }
-
-            var redisChannel = new RedisChannel(RoomChannels.RoomChannel(roomId), RedisChannel.PatternMode.Auto);
-            await ctx.Subscriber.SubscribeAsync(redisChannel, ctx.OnRedisMessage);
+            
             _contexts[session.UserId] = ctx;
 
+            _ = Task.Run(() => ReadLoopAsync(ctx, ctx.Cts.Token));
+            
             return ctx;
         }
         catch (Exception e)
@@ -51,9 +49,23 @@ public class DungeonLobbySubscriptionService(
     {
         try
         {
-            var redisChannel = new RedisChannel(RoomChannels.RoomChannel(roomId), RedisChannel.PatternMode.Auto);
-            await redis.GetSubscriber().PublishAsync(redisChannel, roomId);
+            await dungeonRoomEventStream.PublishAsync(roomId,ct);
         }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+    }
+
+    private async Task ReadLoopAsync(UserRoomContext ctx, CancellationToken ct)
+    {
+        try
+        {
+            await foreach(var msg in dungeonRoomEventStream.ReadAsync(ctx.RoomId, "0-0", ct)) 
+                ctx.Outbound.Writer.TryWrite(msg);
+        }
+        catch (OperationCanceledException) { /* 정상 종료, 무시 */ }
         catch (Exception e)
         {
             Console.WriteLine(e);
@@ -63,12 +75,9 @@ public class DungeonLobbySubscriptionService(
 
     public async Task UnsubscribeAsync(UserRoomContext ctx, CancellationToken ct = default)
     {
-        if (ctx is null)
-            return;
         try
         {
             ctx.Stop();
-            await ctx.Subscriber.UnsubscribeAllAsync();
             _contexts.TryRemove(ctx.UserId, out _);
         }
         catch (Exception e)

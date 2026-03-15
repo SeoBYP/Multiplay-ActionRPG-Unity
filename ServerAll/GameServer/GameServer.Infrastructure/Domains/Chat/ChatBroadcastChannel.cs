@@ -7,7 +7,7 @@ namespace GameServer.Infrastructure.Domains.Chat;
 
 public class ChatBroadcastChannel(IConnectionMultiplexer redis) : RedisBroadcastChannelBase<ChatMessage>(redis)
 {
-    private const string EntryId = "msg";
+    private const string EntryId = "game:chat:msg";
 
     
     public override async Task PublishAsync(string channel, ChatMessage message, CancellationToken ct = default)

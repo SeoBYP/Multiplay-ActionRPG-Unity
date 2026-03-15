@@ -13,8 +13,7 @@ public class ChatInstaller : IServiceInstaller
         services.AddScoped<IChatService, ChatService>();
         services.AddSingleton<IChatSubscriptionService, ChatSubscriptionService>();
         services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
-        services.AddScoped<IChatPublisher, ChatPublisher>();      
-        services.AddSingleton<IChatStreamReader, ChatStreamReader>();
+        services.AddSingleton<IChatEventStream, ChatEventStream>();
         services.AddSingleton<IBroadcastChannel<ChatMessage>, ChatBroadcastChannel>();
     }
 }
