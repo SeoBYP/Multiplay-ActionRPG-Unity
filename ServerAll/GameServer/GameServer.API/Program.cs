@@ -40,8 +40,8 @@ serviceInstaller.Install(builder.Services, builder.Configuration);
 // Domain DI registrations
 new UserInstaller().Install(builder.Services, builder.Configuration);
 new AuthInstaller().Install(builder.Services, builder.Configuration);
-new DungeonInstaller().Install(builder.Services, builder.Configuration);
 new ChatInstaller().Install(builder.Services, builder.Configuration);
+new DungeonInstaller().Install(builder.Services, builder.Configuration);
 
 var app = builder.Build();
 

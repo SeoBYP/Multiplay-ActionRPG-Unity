@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Collections.Concurrent;
+using System.Text.Json;
 using GameServer.Application.Common;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
@@ -9,14 +10,19 @@ namespace GameServer.Application.Domains.Chat;
 
 public class ChatService(IChatMessageRepository chatMessageRepository,
     IUserSessionRepository userSessionRepository,
-    IConnectionMultiplexer redis) : IChatService
+    IChatPublisher chatPublisher) : IChatService
 {
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _userLocks = new();
+
     public async Task<Result<ChatMessage>> SendMessageAsync(
         string sessionId,
         string message,
         string? targetUserNickName,
         CancellationToken ct = default)
     {
+        var semaphore = _userLocks.GetOrAdd(sessionId, _ => new SemaphoreSlim(1, 1));
+        await semaphore.WaitAsync(ct);
+
         try
         {
             var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
@@ -42,8 +48,7 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
 
             // Redis publish
             var channel = ChatChannels.GetChannel(chatType, roomId, targetUserNickName);
-            var json = JsonSerializer.Serialize(chatMessage);
-            await redis.GetSubscriber().PublishAsync(channel, json);
+            await chatPublisher.PublishAsync(channel, chatMessage, ct);
 
             return Result<ChatMessage>.Success(chatMessage);
         }
@@ -51,6 +56,10 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
         {
             Console.WriteLine(e);
             return Result<ChatMessage>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
+        }
+        finally
+        {
+            semaphore.Release();
         }
     }
     public async Task<IEnumerable<ChatMessage>> GetMessagesAfterAsync(

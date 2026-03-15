@@ -21,7 +21,26 @@ public class ServiceInstaller : IServiceInstaller
 
         // Redis
         var redisConnStr = configuration.GetConnectionString("Redis") ?? "localhost:6379";
-        var redis = ConnectionMultiplexer.Connect(redisConnStr);
+        var options = ConfigurationOptions.Parse(redisConnStr);
+        options.AllowAdmin = true;
+        
+        var redis = ConnectionMultiplexer.Connect(options);
+        
+        // Clear Redis on start
+        foreach (var endpoint in redis.GetEndPoints())
+        {
+            var server = redis.GetServer(endpoint);
+            try
+            {
+                server.FlushAllDatabases();
+                Console.WriteLine($"[Redis] Flushed all databases on {endpoint}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Redis] Failed to flush databases on {endpoint}: {ex.Message}");
+            }
+        }
+        
         services.AddSingleton<IConnectionMultiplexer>(redis);
 
         // JWT Auth

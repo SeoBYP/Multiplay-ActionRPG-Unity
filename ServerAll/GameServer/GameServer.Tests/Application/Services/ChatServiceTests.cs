@@ -15,20 +15,16 @@ public class ChatServiceTests
 {
     private readonly IChatMessageRepository _chatRepo;
     private readonly IUserSessionRepository _sessionRepo;
-    private readonly Mock<IConnectionMultiplexer> _mockRedis;
-    private readonly Mock<ISubscriber> _mockSubscriber;
+    private readonly Mock<IChatPublisher> _mockPublisher;
     private readonly IChatService _service;
 
     public ChatServiceTests()
     {
         _chatRepo = new FakeChatMessageRepository();
         _sessionRepo = new FakeUserSessionRepository();
-        _mockRedis = new Mock<IConnectionMultiplexer>();
-        _mockSubscriber = new Mock<ISubscriber>();
+        _mockPublisher = new Mock<IChatPublisher>();
 
-        _mockRedis.Setup(x => x.GetSubscriber(It.IsAny<object>())).Returns(_mockSubscriber.Object);
-
-        _service = new ChatService(_chatRepo, _sessionRepo, _mockRedis.Object);
+        _service = new ChatService(_chatRepo, _sessionRepo, _mockPublisher.Object);
     }
 
     private async Task<string> CreateSessionAsync(long userId = 100, string nickname = "test",
@@ -50,10 +46,10 @@ public class ChatServiceTests
         Assert.True(result.Value!.MessageId > 0);
         Assert.Equal(ChatType.Global, result.Value.ChatType);
         // Redis Publish 확인
-        _mockSubscriber.Verify(x => x.PublishAsync(
-            It.Is<RedisChannel>(c => c == ChatChannels.GlobalChannel),
-            It.IsAny<RedisValue>(),
-            It.IsAny<CommandFlags>()), Times.Once);
+        _mockPublisher.Verify(x => x.PublishAsync(
+            It.Is<string>(c => c == ChatChannels.GlobalChannel),
+            It.IsAny<ChatMessage>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
     
     [Fact]
@@ -68,10 +64,10 @@ public class ChatServiceTests
         Assert.True(result.IsSuccess);
         Assert.Equal(ChatType.Room, result.Value!.ChatType);
         Assert.Equal(roomId, result.Value.RoomId);
-        _mockSubscriber.Verify(x => x.PublishAsync(
-            It.Is<RedisChannel>(c => c == ChatChannels.RoomChannel(roomId)),
-            It.IsAny<RedisValue>(),
-            It.IsAny<CommandFlags>()), Times.Once);
+        _mockPublisher.Verify(x => x.PublishAsync(
+            It.Is<string>(c => c == ChatChannels.RoomChannel(roomId)),
+            It.IsAny<ChatMessage>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
     
     [Fact]
@@ -85,10 +81,10 @@ public class ChatServiceTests
         Assert.True(result.IsSuccess);
         Assert.Equal(ChatType.Whisper, result.Value!.ChatType);
         Assert.Equal(targetNickname, result.Value.TargetUserNickName);
-        _mockSubscriber.Verify(x => x.PublishAsync(
-            It.Is<RedisChannel>(c => c == ChatChannels.WhisperChannel(targetNickname)),
-            It.IsAny<RedisValue>(),
-            It.IsAny<CommandFlags>()), Times.Once);
+        _mockPublisher.Verify(x => x.PublishAsync(
+            It.Is<string>(c => c == ChatChannels.WhisperChannel(targetNickname)),
+            It.IsAny<ChatMessage>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
     
     [Fact]
@@ -98,10 +94,10 @@ public class ChatServiceTests
     
         Assert.False(result.IsSuccess);
         Assert.Equal(ErrorCodes.InvalidRequest, result.InternalErrorCode);
-        _mockSubscriber.Verify(x => x.PublishAsync(
-            It.IsAny<RedisChannel>(),
-            It.IsAny<RedisValue>(),
-            It.IsAny<CommandFlags>()), Times.Never);
+        _mockPublisher.Verify(x => x.PublishAsync(
+            It.IsAny<string>(),
+            It.IsAny<ChatMessage>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
     
     [Fact]
@@ -246,5 +242,25 @@ public class ChatServiceTests
         Assert.Single(results);
         Assert.Equal("Global", results[0].Message);
         Assert.DoesNotContain(results, m => m.ChatType == ChatType.Room);
+    }
+
+    [Fact]
+    public async Task 동일_세션에서_동시에_여러_메시지_전송_시_동시성_제어가_작동하여_모두_성공한다()
+    {
+        var sessionId = await CreateSessionAsync(400, "ConcurrentUser");
+        var tasks = new List<Task<Result<ChatMessage>>>();
+
+        for (int i = 0; i < 10; i++)
+        {
+            tasks.Add(_service.SendMessageAsync(sessionId, $"msg-{i}", null));
+        }
+
+        var results = await Task.WhenAll(tasks);
+
+        Assert.All(results, r => Assert.True(r.IsSuccess));
+        _mockPublisher.Verify(x => x.PublishAsync(
+            It.IsAny<string>(),
+            It.IsAny<ChatMessage>(),
+            It.IsAny<CancellationToken>()), Times.Exactly(10));
     }
 }

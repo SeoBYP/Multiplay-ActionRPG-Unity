@@ -2,12 +2,11 @@
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
-using StackExchange.Redis;
 
 namespace GameServer.Application.Domains.Chat;
 
 public sealed class ChatSubscriptionService(
-    IConnectionMultiplexer redis,
+    IChatStreamReader chatStreamReader,
     IUserSessionRepository sessionRepository,
     IDungeonRoomRepository roomRepository) : IChatSubscriptionService
 {
@@ -17,10 +16,9 @@ public sealed class ChatSubscriptionService(
     {
         var session = await sessionRepository.GetBySessionIdAsync(sessionId, ct);
         if (session is null) return null;
-
-        var sub = redis.GetSubscriber();
-        var ctx = new UserChatContext(session.UserId, session.NickName, session.CurrentRoomId, sub);
-
+        
+        var ctx = new UserChatContext(session.UserId, session.NickName, session.CurrentRoomId);
+        
         // TODO : Redis Pub/Sub을 사용하면 Network 혹은 서버 장애시 메세지 유실에 대한 처리 필요,Pub/Sub을 MessageQueue로 변경 필요
         // Redis List를 활용해서 Queue로 활용, 또는 Kafka와 같은 Message Queue를 사용, 혹시 OutBox로 수정
         // => 결론은 메세지 유실에 대한 처리가 필요
@@ -30,11 +28,12 @@ public sealed class ChatSubscriptionService(
         }
         _contexts[session.UserId] = ctx;
 
-        await SubscribeIfNeeded(ctx, ChatChannels.GlobalChannel);
-        await SubscribeIfNeeded(ctx, ChatChannels.WhisperChannel(ctx.Nickname));
+        var list = new List<string> { ChatChannels.GlobalChannel, ChatChannels.WhisperChannel(ctx.Nickname) };
         if (ctx.CurrentRoomId != 0)
-            await SubscribeIfNeeded(ctx, ChatChannels.RoomChannel(ctx.CurrentRoomId));
+            list.Add(ChatChannels.RoomChannel(ctx.CurrentRoomId));
 
+        _ = Task.Run(() => ReadLoopAsync(ctx, list, ctx.ReadLoopCts.Token));
+        
         return ctx;
     }
 
@@ -56,41 +55,53 @@ public sealed class ChatSubscriptionService(
         }
 
         // 기존 방 구독 해제
-        if (ctx.CurrentRoomId != 0)
-            await UnsubscribeIfNeeded(ctx, ChatChannels.RoomChannel(ctx.CurrentRoomId));
-
+        await ctx.ReadLoopCts.CancelAsync();               // ReadLoop만 종료
+        ctx.ReadLoopCts = new CancellationTokenSource();  // 새 토큰
+        
         ctx.CurrentRoomId = roomId;
-
-        // 새 방 구독
+        
+        // 새 채널로 ReadLoop 재시작
+        var newChannels = new List<string> { ChatChannels.GlobalChannel, ChatChannels.WhisperChannel(ctx.Nickname) };
         if (ctx.CurrentRoomId != 0)
-            await SubscribeIfNeeded(ctx, ChatChannels.RoomChannel(ctx.CurrentRoomId));
+            newChannels.Add(ChatChannels.RoomChannel(ctx.CurrentRoomId));
+
+        _ = Task.Run(() => ReadLoopAsync(ctx, newChannels, ctx.ReadLoopCts.Token));
+
     }
     
-    public async Task DisconnectAsync(UserChatContext ctx, CancellationToken ct = default)
+    public Task DisconnectAsync(UserChatContext ctx, CancellationToken ct = default)
     {
-        ctx.Stop();
-
-        foreach (var ch in ctx.SubscribedChannels)
+        try
         {
-            try { await ctx.Subscriber.UnsubscribeAsync(ch, ctx.OnRedisMessage); }
-            catch { }
+            ctx.Stop();
+            _contexts.TryRemove(ctx.UserId, out _);
+            return Task.CompletedTask;
         }
-        ctx.SubscribedChannels.Clear();
-
-        _contexts.TryRemove(ctx.UserId, out _);
+        catch (Exception exception)
+        {
+            return Task.FromException(exception);
+        }
     }
 
-    private static async Task SubscribeIfNeeded(UserChatContext ctx, string channel)
+    private async Task ReadLoopAsync(UserChatContext ctx,
+        IReadOnlyList<string> channels,
+        CancellationToken ct)
     {
-        RedisChannel ch = channel;
-        if (ctx.SubscribedChannels.Add(ch))
-            await ctx.Subscriber.SubscribeAsync(ch, ctx.OnRedisMessage);
-    }
-
-    private static async Task UnsubscribeIfNeeded(UserChatContext ctx, string channel)
-    {
-        RedisChannel ch = channel;
-        if (ctx.SubscribedChannels.Remove(ch))
-            await ctx.Subscriber.UnsubscribeAsync(ch, ctx.OnRedisMessage);
+        try
+        {
+            await foreach (var msg in chatStreamReader.ReadAsync(channels, "0-0", ct))
+                ctx.Outbound.Writer.TryWrite(msg);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        finally
+        {
+            // 전체 연결이 끊어질 때만 Outbound 닫기
+            if (ctx.Cts.IsCancellationRequested)
+                ctx.Outbound.Writer.TryComplete();
+        }
     }
 }

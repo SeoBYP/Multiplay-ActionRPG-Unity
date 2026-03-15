@@ -47,7 +47,13 @@ public class AuthService(
         // 잘못된 요청
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(deviceId) || string.IsNullOrWhiteSpace(password))
         {
-            return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+            var missingFields = new List<string>();
+            if (string.IsNullOrWhiteSpace(email)) missingFields.Add("email");
+            if (string.IsNullOrWhiteSpace(password)) missingFields.Add("password");
+            if (string.IsNullOrWhiteSpace(deviceId)) missingFields.Add("deviceId");
+            
+            var msg = $"{ErrorMessages.InvalidRequest} (Missing: {string.Join(", ", missingFields)})";
+            return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, msg);
         }
 
         // User 조회: 먼저 닉네임으로, 없으면 이메일로 재시도

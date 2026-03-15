@@ -5,54 +5,27 @@ using StackExchange.Redis;
 
 namespace GameServer.Application.Domains.Chat;
 
-public class UserChatContext
+public class UserChatContext(long userId, string nickname, long roomId, int capacity = 256)
 {
-    public long UserId { get; }
-    public string Nickname { get; }
-    public long CurrentRoomId { get; set; } // 0 = none
+    public long UserId { get; } = userId;
+    public string Nickname { get; } = nickname;
+    public long CurrentRoomId { get; set; } = roomId; // 0 = none
 
-    public Channel<ChatMessage> Outbound { get; }
-    public ISubscriber Subscriber { get; }
-    public Action<RedisChannel, RedisValue> OnRedisMessage { get; }
-    public HashSet<RedisChannel> SubscribedChannels { get; } = new();
-    public CancellationTokenSource Cts { get; } = new();
-
-
-    public UserChatContext(long userId, string nickname, long roomId, ISubscriber subscriber, int capacity = 256)
+    public Channel<ChatMessage> Outbound { get; } = Channel.CreateBounded<ChatMessage>(new BoundedChannelOptions(capacity)
     {
-        UserId = userId;
-        Nickname = nickname;
-        CurrentRoomId = roomId;
+        SingleReader = true,
+        SingleWriter = false,
+        FullMode = BoundedChannelFullMode.DropOldest
+    }); // gRPC 스트림 버퍼 → 여전히 필요
 
-        Subscriber = subscriber;
-
-        Outbound = Channel.CreateBounded<ChatMessage>(new BoundedChannelOptions(capacity)
-        {
-            SingleReader = true,
-            SingleWriter = false,
-            FullMode = BoundedChannelFullMode.DropOldest
-        });
-
-        OnRedisMessage = (_, value) =>
-        {
-            if (value.IsNullOrEmpty) return;
-            try
-            {
-                Console.WriteLine($"[Redis 수신] {value}"); // ← 추가
-                var msg = JsonSerializer.Deserialize<ChatMessage>(value.ToString());
-                Console.WriteLine($"[역직렬화] MessageId={msg?.MessageId}, Message={msg?.Message}"); // ← 추가
-                if (msg != null) Outbound.Writer.TryWrite(msg);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[역직렬화 실패] {ex.Message}"); // ← 추가
-            }
-        };
-    }
+    public CancellationTokenSource Cts { get; } = new(); // 연결 종료 제어 → 여전히 필요
+    
+    public CancellationTokenSource ReadLoopCts { get; set; } = new();
     
     public void Stop()
     {
         if (!Cts.IsCancellationRequested) Cts.Cancel();
+        if (!ReadLoopCts.IsCancellationRequested) ReadLoopCts.Cancel();
         Outbound.Writer.TryComplete();
     }
 }

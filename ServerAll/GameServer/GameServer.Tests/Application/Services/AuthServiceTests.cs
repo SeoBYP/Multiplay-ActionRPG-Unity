@@ -164,7 +164,8 @@ public class AuthServiceTests
         // then
         Assert.NotNull(result);
         Assert.False(result.IsSuccess);
-        Assert.Equal(ErrorMessages.InvalidRequest, result.Message);
+        Assert.Contains(ErrorMessages.InvalidRequest, result.Message);
+        Assert.Contains("email", result.Message);
     }
 
     [Fact]
