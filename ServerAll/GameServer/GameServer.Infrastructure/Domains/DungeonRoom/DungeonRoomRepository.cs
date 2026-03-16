@@ -47,7 +47,9 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
                 new HashEntry("HostUserId", hostId),
                 new HashEntry("MaxPlayers", room.MaxPlayers),
                 new HashEntry("Status", room.Status.ToString()), // Enum → String
-                new HashEntry("CreatedAt", room.CreatedAt.ToString("O")) // ISO 8601
+                new HashEntry("CreatedAt", room.CreatedAt.ToString("O")), // ISO 8601
+                new HashEntry("SocketIp", room.SocketIp),
+                new HashEntry("SocketPort", room.SocketPort.ToString())
             ]);
 
             // 5. 플레이어 목록 저장 (Set)
@@ -236,6 +238,8 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
                 new HashEntry("HostUserId", room.HostUserId),
                 new HashEntry("MaxPlayers", room.MaxPlayers),
                 new HashEntry("Status", room.Status.ToString()),
+                new HashEntry("SocketIp", room.SocketIp),
+                new HashEntry("SocketPort", room.SocketPort.ToString())
             ]);
             
             // 5. 플레이어 목록 업데이트 (기존 삭제 후 재추가)
@@ -442,7 +446,9 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
             !dict.TryGetValue("HostUserId", out var hostUserIdStr) ||
             !dict.TryGetValue("MaxPlayers", out var maxPlayersStr) ||
             !dict.TryGetValue("Status", out var statusStr) ||
-            !dict.TryGetValue("CreatedAt", out var createdAtStr))
+            !dict.TryGetValue("CreatedAt", out var createdAtStr) ||
+            !dict.TryGetValue("SocketIp", out var socketIp) ||
+            !dict.TryGetValue("SocketPort", out var socketPortStr))
         {
             Console.WriteLine($"DungeonRoom {roomId} has missing fields");
             return null;
@@ -478,6 +484,12 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
             Console.WriteLine($"Invalid CreatedAt: {createdAtStr}");
             return null;
         }
+
+        if (!int.TryParse(socketPortStr, out var socketPort))
+        {
+            Console.WriteLine($"Invalid SocketPort: {socketPortStr}");
+            return null;
+        }
         
         // 4. 플레이어 목록 변환
         var currentPlayers = new List<long>(
@@ -492,6 +504,8 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
             maxPlayers, 
             status, 
             currentPlayers,
-            createdAt);
+            createdAt,
+            socketIp,
+            socketPort);
     }
 }

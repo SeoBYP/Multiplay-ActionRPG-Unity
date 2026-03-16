@@ -13,6 +13,7 @@ public class DungeonInstaller : IServiceInstaller
         services.AddSingleton<IDungeonLobbySubscriptionService, DungeonLobbySubscriptionService>();
         services.AddSingleton<DungeonRoomBroadcastChannel>();
         services.AddSingleton<IDungeonRoomEventStream, DungeonRoomEventStream>();
-
+        services.AddSingleton<IGameStartPublisher, GameStartMessageQueue>();
+        services.AddSingleton<ISocketReadyChecker, RedisSocketReadyChecker>();
     }
 }

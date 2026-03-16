@@ -1,6 +1,6 @@
 ﻿using StackExchange.Redis;
 
-namespace GameServer.Infrastructure.MessageQueue;
+namespace Shared.Infrastructure.MessageQueue;
 
 public abstract class RedisMessageQueueBase<T> : IMessageQueue<T>
 {

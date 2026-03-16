@@ -1,4 +1,4 @@
-﻿namespace GameServer.Infrastructure.MessageQueue;
+﻿namespace Shared.Infrastructure.MessageQueue;
 
 /// <summary>
 /// 메시지 큐의 인터페이스 정의

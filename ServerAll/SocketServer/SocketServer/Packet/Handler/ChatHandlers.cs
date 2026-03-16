@@ -94,26 +94,26 @@ public sealed class ChatHandlers
 
     private static void HandleRoomChat(Session sender, S_Chat chatPacket, CancellationToken ct)
     {
-        var currentRoom = sender.GetPlayerRoom();
-        if (currentRoom is null)
-        {
-            var errorPacket = new S_Chat
-            {
-                ChatType = ChatType.Room,
-                SenderNickname = "SYSTEM",
-                Message = "You are not in a room"
-            };
-            SendSChat(sender, errorPacket, ct);
-            return;
-        }
-        
-        var responsePacket = new ServerCore.Protocol.Packet
-        {
-            SChat = chatPacket
-        };
-        currentRoom.Broadcast(responsePacket);
-        
-        Console.WriteLine($"[ROOM {currentRoom.RoomId}] {sender.Nickname}: {chatPacket.Message}");
+        // var currentRoom = sender.GetPlayerRoom();
+        // if (currentRoom is null)
+        // {
+        //     var errorPacket = new S_Chat
+        //     {
+        //         ChatType = ChatType.Room,
+        //         SenderNickname = "SYSTEM",
+        //         Message = "You are not in a room"
+        //     };
+        //     SendSChat(sender, errorPacket, ct);
+        //     return;
+        // }
+        //
+        // var responsePacket = new ServerCore.Protocol.Packet
+        // {
+        //     SChat = chatPacket
+        // };
+        // currentRoom.Broadcast(responsePacket);
+        //
+        // Console.WriteLine($"[ROOM {currentRoom.RoomId}] {sender.Nickname}: {chatPacket.Message}");
     }
 
     private static ValueTask SendSChat(Session session, S_Chat chatPacket, CancellationToken ct)

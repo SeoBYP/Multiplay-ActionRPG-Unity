@@ -41,7 +41,14 @@ public class DungeonRoom
     
     /// <summary>방 생성 시각 (UTC)</summary>
     public DateTime CreatedAt { get; private set; }
+    
+    /// <summary>
+    /// 방 서버 IP
+    /// </summary>
+    public string SocketIp { get; private set; } = string.Empty;
 
+    public int SocketPort { get; private set; } = 0;
+    
     public DungeonRoom Clone()
     {
         return FromRedis(
@@ -51,7 +58,9 @@ public class DungeonRoom
             MaxPlayers,
             Status,
             new List<long>(CurrentPlayers),
-            CreatedAt);
+            CreatedAt,
+            SocketIp,
+            SocketPort);
     }
     
     
@@ -97,7 +106,9 @@ public class DungeonRoom
         int maxPlayers,
         RoomStatus status,
         List<long> currentPlayers,
-        DateTime createdAt)
+        DateTime createdAt,
+        string socketIp,
+        int socketPort)
     {
         // 검증 없이 바로 생성 (Redis에서 가져온 데이터는 이미 검증됨)
         return new DungeonRoom
@@ -108,7 +119,9 @@ public class DungeonRoom
             MaxPlayers = maxPlayers,
             Status = status,
             CurrentPlayers = currentPlayers,
-            CreatedAt = createdAt
+            CreatedAt = createdAt,
+            SocketIp = socketIp,
+            SocketPort = socketPort,
         };
     }
 
@@ -269,5 +282,9 @@ public class DungeonRoom
         Status = RoomStatus.Playing;
     }
 
-
+    public void SetSocketInfo(string socketIp, int socketPort)
+    {
+        SocketIp = socketIp;
+        SocketPort = socketPort;
+    }
 }

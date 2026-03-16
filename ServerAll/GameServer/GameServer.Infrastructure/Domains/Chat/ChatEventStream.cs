@@ -1,7 +1,7 @@
 ﻿using System.Threading.Channels;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Domain.Entities.Chat;
-using GameServer.Infrastructure.MessageQueue;
+using Shared.Infrastructure.MessageQueue;
 
 namespace GameServer.Infrastructure.Domains.Chat;
 

@@ -3,11 +3,14 @@ using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
+using Shared.Infrastructure.Messages;
 
 namespace GameServer.Application.Domains.DungeonLobby;
 
 public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
     IDungeonLobbySubscriptionService dungeonLobbySubscriptionService,
+    IGameStartPublisher gameStartPublisher,
+    ISocketReadyChecker socketReadyChecker,
     IUserSessionRepository userSessionRepository,
     IChatSubscriptionService chatSubscriptionService) : IDungeonLobbyService
 {
@@ -247,12 +250,25 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
             if (!room.IsHost(userId))
                 return Result<DungeonRoom>.Failure(ErrorCodes.NotRoomHost, ErrorMessages.NotRoomHost);
 
-            room.StartGame(userId);
 
+
+            await gameStartPublisher.PublishAsync(new GameStartMessage
+            {
+                RoomId = roomId,
+                PlayerIds = room.CurrentPlayers.ToList()
+            }, ct);
+            
+            // SocketServer 준비 대기
+            var socketInfo = await socketReadyChecker.WaitAsync(roomId, ct);
+            if (socketInfo is null)
+                return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "SocketServer 응답 없음");
+            
+            room.StartGame(userId);
+            var parts = socketInfo.Split(':');
+            room.SetSocketInfo(parts[0], int.Parse(parts[1]));
             var updated = await dungeonRoomRepository.UpdateAsync(room, ct);
             if (!updated)
                 return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "방 업데이트 실패");
-
             await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
             
             return Result<DungeonRoom>.Success(room);

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 using GameServer.Domain.Entities.Chat;
-using GameServer.Infrastructure.MessageQueue;
+using Shared.Infrastructure.MessageQueue;
 using StackExchange.Redis;
 
 namespace GameServer.Infrastructure.Domains.Chat;

@@ -1,4 +1,4 @@
-﻿using GameServer.Infrastructure.MessageQueue;
+﻿using Shared.Infrastructure.MessageQueue;
 using StackExchange.Redis;
 
 namespace GameServer.Infrastructure.Domains.DungeonRoom;

@@ -5,6 +5,7 @@ using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
+using Shared.Infrastructure.Messages;
 using System.Collections.Concurrent;
 
 namespace GameServer.Tests.Application.Services;
@@ -15,6 +16,8 @@ public class DungeonLobbyServiceTests
     private readonly Mock<IDungeonRoomRepository> _mockRoomRepository;
     private readonly Mock<IChatSubscriptionService> _mockChatSubscriptionService;
     private readonly Mock<IDungeonLobbySubscriptionService> _mockDungeonLobbySubscriptionService;
+    private readonly Mock<IGameStartPublisher> _mockGameStartPublisher;
+    private readonly Mock<ISocketReadyChecker> _mockSocketReadyChecker;
     private readonly DungeonLobbyService _service;
 
     // 테스트용 인메모리 저장소
@@ -29,12 +32,16 @@ public class DungeonLobbyServiceTests
         _mockSessionRepository = new Mock<IUserSessionRepository>();
         _mockChatSubscriptionService = new Mock<IChatSubscriptionService>();
         _mockDungeonLobbySubscriptionService = new Mock<IDungeonLobbySubscriptionService>();
+        _mockGameStartPublisher = new Mock<IGameStartPublisher>();
+        _mockSocketReadyChecker = new Mock<ISocketReadyChecker>();
 
         SetupMocks();
 
         _service = new DungeonLobbyService(
             _mockRoomRepository.Object, 
             _mockDungeonLobbySubscriptionService.Object, 
+            _mockGameStartPublisher.Object,
+            _mockSocketReadyChecker.Object,
             _mockSessionRepository.Object, 
             _mockChatSubscriptionService.Object);
     }
@@ -136,6 +143,10 @@ public class DungeonLobbyServiceTests
                 }
             })
             .Returns(Task.CompletedTask);
+
+        // ISocketReadyChecker Setup
+        _mockSocketReadyChecker.Setup(s => s.WaitAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("127.0.0.1:12345");
     }
 
     #region CreateDungeonRoomAsync Tests
@@ -655,6 +666,11 @@ public class DungeonLobbyServiceTests
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(RoomStatus.Playing, result.Value!.Status);
+        
+        // 추가 검증
+        _mockGameStartPublisher.Verify(p => p.PublishAsync(It.Is<GameStartMessage>(m => m.RoomId == roomId), It.IsAny<CancellationToken>()), Times.Once());
+        _mockSocketReadyChecker.Verify(s => s.WaitAsync(roomId, It.IsAny<CancellationToken>()), Times.Once());
+        _mockDungeonLobbySubscriptionService.Verify(s => s.PublishAsync(roomId, It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]
@@ -706,6 +722,32 @@ public class DungeonLobbyServiceTests
 
         // Assert
         Assert.False(result.IsSuccess);
+        
+        // 게임 시작 발행 및 대기가 호출되지 않아야 함
+        _mockGameStartPublisher.Verify(p => p.PublishAsync(It.IsAny<GameStartMessage>(), It.IsAny<CancellationToken>()), Times.Never());
+        _mockSocketReadyChecker.Verify(s => s.WaitAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()), Times.Never());
+    }
+
+    [Fact]
+    public async Task 소켓서버가_준비되지_않아_WaitAsync가_null을_반환하면_게임_시작이_실패한다()
+    {
+        // Arrange
+        var hostSession = await CreateTestSession(1, "host");
+        var user2Session = await CreateTestSession(2, "user2");
+        var createResult = await _service.CreateDungeonRoomAsync(hostSession, "Room", 4);
+        var roomId = createResult.Value!.RoomId;
+        await _service.JoinRoomAsync(user2Session, roomId);
+
+        _mockSocketReadyChecker.Setup(s => s.WaitAsync(roomId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+
+        // Act
+        var result = await _service.StartGameAsync(hostSession, roomId);
+
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.InternalServerError, result.InternalErrorCode);
+        Assert.Contains("SocketServer 응답 없음", result.Message);
     }
 
     #endregion

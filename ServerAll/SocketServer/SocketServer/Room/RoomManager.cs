@@ -4,16 +4,16 @@ namespace Server.Room;
 
 public class RoomManager
 {
-    private int _nextRoomId = 1;
-    private readonly ConcurrentDictionary<int, Room> _rooms = new();
-    private readonly ConcurrentDictionary<ulong, int> _playerRooms = new();
+    private long _nextRoomId = 1;
+    private readonly ConcurrentDictionary<long, Room> _rooms = new();
+    private readonly ConcurrentDictionary<ulong, long> _playerRooms = new();
 
     /// <summary>
     /// 방 생성
     /// </summary>
     public Room CreateRoom(int maxMembers = 4)
     {
-        int roomId = Interlocked.Increment(ref _nextRoomId);
+        long roomId = Interlocked.Increment(ref _nextRoomId);
         var room = new Room(roomId, maxMembers);
         
         if (!_rooms.TryAdd(roomId, room))
@@ -26,7 +26,21 @@ public class RoomManager
         return room;
     }
 
-    
+    /// <summary>
+    /// 방 생성
+    /// </summary>
+    public Room CreateRoom(long msgRoomId, List<long> msgPlayerIds)
+    {
+        var room = new Room(msgRoomId, msgPlayerIds.Count);
+        
+        if (!_rooms.TryAdd(msgRoomId, room))
+        {
+            Console.WriteLine($"[RoomManager] Failed to create room {msgRoomId}");
+            return null;
+        }
+        Console.WriteLine($"[RoomManager] Room {msgRoomId} created (max: {msgPlayerIds.Count})");
+        return room;
+    }
     
     /// <summary>
     /// 플레이어 방 입장
@@ -68,7 +82,7 @@ public class RoomManager
     /// </summary>
     public bool LeaveRoom(ulong sessionId)
     {
-        if(!_playerRooms.TryRemove(sessionId, out int roomId))
+        if(!_playerRooms.TryRemove(sessionId, out long roomId))
             return false;
 
         var room = _rooms.GetValueOrDefault(roomId);
@@ -92,7 +106,7 @@ public class RoomManager
     /// </summary>
     public Room? GetPlayerRoom(ulong sessionId)
     {
-        if (_playerRooms.TryGetValue(sessionId, out int roomId))
+        if (_playerRooms.TryGetValue(sessionId, out long roomId))
         {
             return _rooms.GetValueOrDefault(roomId);
         }
@@ -128,4 +142,6 @@ public class RoomManager
     /// 방 개수
     /// </summary>
     public int RoomCount => _rooms.Count;
+
+
 }

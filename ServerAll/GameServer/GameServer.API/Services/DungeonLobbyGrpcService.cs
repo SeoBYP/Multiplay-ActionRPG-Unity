@@ -1,5 +1,4 @@
-﻿using System.Security.Claims;
-using GameServer.API.Extension;
+﻿using GameServer.API.Extension;
 using GameServer.API.Extensions;
 using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
@@ -7,7 +6,6 @@ using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
 using GameServer.Grpc.DungeonLobby;
 using Grpc.Core;
-using Microsoft.IdentityModel.JsonWebTokens;
 using DungeonLobbyService = GameServer.Grpc.DungeonLobby.DungeonLobbyService;
 
 namespace GameServer.API.Services;
@@ -30,6 +28,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         var result = await dungeonLobbyService.CreateDungeonRoomAsync(sessionId, request.RoomName, request.MaxPlayers, context.CancellationToken);
         if (!result.IsSuccess || result.Value is null)
             return new CreateRoomResponse { Result = result.ToGrpcResult() };
+
         return new CreateRoomResponse
         {
             Result = result.ToGrpcResult(),
@@ -52,7 +51,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         return new GetRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = await result.Value?.ToRoomInfo(userRepository),
+            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository),
         };
     }
 
@@ -65,19 +64,23 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
                 Result = ResultExtensions.CreateUnauthorizedGrpcResult(),
                 RoomInfos = { }
             };
+
         var result = await dungeonLobbyService.GetActiveDungeonRoomsAsync(context.CancellationToken);
         
         var response = new GetRoomsResponse
         {
             Result = result.ToGrpcResult(),
         };
+
         // TODO : ROOM Count 방안 고민
         if (result.Value is null) 
             throw new InvalidOperationException("Room List is null");
+
         foreach (var dungeonRoom in result.Value)
         {
             response.RoomInfos.Add(await dungeonRoom.ToRoomInfo(userRepository));
         }
+
         return response;
     }
 
@@ -90,11 +93,12 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
                 Result = ResultExtensions.CreateUnauthorizedGrpcResult(),
                 RoomInfo = null
             };
+
         var result = await dungeonLobbyService.JoinRoomAsync(sessionId, request.RoomId, context.CancellationToken);
         return new JoinRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo =  await result.Value?.ToRoomInfo(userRepository)
+            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository)
         };
     }
 
@@ -106,6 +110,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
             {
                 Result = ResultExtensions.CreateUnauthorizedGrpcResult(),
             };
+
         var result = await dungeonLobbyService.LeaveRoomAsync(sessionId, request.RoomId, context.CancellationToken);
         return new LeaveRoomResponse
         {
@@ -122,11 +127,12 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
                 Result = ResultExtensions.CreateUnauthorizedGrpcResult(),
                 RoomInfo = null
             };
+
         var result = await dungeonLobbyService.StartGameAsync(sessionId, request.RoomId, context.CancellationToken);
         return new StartRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = await result.Value?.ToRoomInfo( userRepository),
+            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository),
         };
     }
 
@@ -139,11 +145,12 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
                 Result = ResultExtensions.CreateUnauthorizedGrpcResult(),
                 RoomInfo = null
             };
+
         var result = await dungeonLobbyService.UpdateRoomSettingsAsync(sessionId, request.RoomId, request.RoomName, request.MaxPlayers, context.CancellationToken);
         return new UpdateRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = await result.Value?.ToRoomInfo(userRepository)
+            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository)
         };
     }
 
@@ -157,13 +164,13 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
             throw new InvalidOperationException("Session ID cannot be null");
         
         // ConnectAsync 내부: 세션 조회 + ctx 생성 + Redis 구독
-        var ctx = await subscriptionService.SubscribeAsync(sessionId,request.RoomId, ct);
+        var ctx = await subscriptionService.SubscribeAsync(sessionId, request.RoomId, ct);
         if (ctx is null)
             return;
 
         try
         {
-            await SendLoopAsync(responseStream, ctx, ct);  // 이것만 있으면 돼요
+            await SendLoopAsync(responseStream, ctx, ct);
         }
         finally
         {
@@ -181,7 +188,8 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
             await foreach (var roomId in ctx.Outbound.Reader.ReadAllAsync(ct))
             {
                 var room = await dungeonLobbyService.GetDungeonRoomAsync(roomId, ct);
-                if(room.IsSuccess == false) continue;
+                if (room.IsSuccess == false) continue;
+
                 var serverMsg = new SubscribeRoomResponse();
                 switch (room.Value.Status)
                 {
@@ -189,10 +197,11 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
                         serverMsg.StartEvent = new GameStartedEvent
                         {
                             RoomInfo = await room.Value.ToRoomInfo(userRepository),
-                            Ip = "127.0.0.1", // Test용 IP
-                            Port = 12345, // Test용 Port
+                            Ip = room.Value.SocketIp,
+                            Port = room.Value.SocketPort,
                         };
                         break;
+
                     default:
                         serverMsg.UpdateEvent = new RoomUpdatedEvent
                         {
@@ -200,6 +209,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
                         };
                         break;
                 }
+
                 await responseStream.WriteAsync(serverMsg, ct);
             }
         }

@@ -1,4 +1,4 @@
-﻿namespace GameServer.Infrastructure.MessageQueue;
+﻿namespace Shared.Infrastructure.MessageQueue;
 
 public interface IBroadcastChannel<T>
 {

@@ -12,13 +12,12 @@ public sealed class SessionManager
     private ulong _nextSessionId = 0;
     
     private readonly ConcurrentDictionary<ulong, Session> _sessions = new();
-    private readonly RoomManager _roomManager;
+
     private readonly PacketDispatcher _dispatcher; 
     
     public SessionManager(PacketDispatcher dispatcher)
     {
         Instance = this;
-        _roomManager = new RoomManager();
         _dispatcher = dispatcher;
     }
     
@@ -28,7 +27,6 @@ public sealed class SessionManager
         var session = new Session(
             sessionId: id,
             socket: clientSocket,
-            roomManager: _roomManager,
             dispatcher: _dispatcher,  // ✅ Dispatcher 주입
             onDisconnected: OnSessionDisconnected);
 
@@ -36,8 +34,6 @@ public sealed class SessionManager
             return null;
 
         Console.WriteLine($"Session {id} created.");
-
-        _roomManager.JoinRoom(session);
         
         _ = session.RunAsync(ct);
 
@@ -58,8 +54,6 @@ public sealed class SessionManager
     private void OnSessionDisconnected(ulong sessionId)
     {
         // Room에서 자동 퇴장
-        _roomManager.LeaveRoom(sessionId);
-
         _sessions.TryRemove(sessionId, out _);
         
         Console.WriteLine($"[SessionManager] Session {sessionId} disconnected");

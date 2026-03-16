@@ -15,20 +15,17 @@ public sealed class Session
     
     private Socket Socket;
     private Action<ulong> _onDisconnected;
-    private RoomManager _roomManager;
     private PacketDispatcher _dispatcher;  // ✅ Dispatcher 추가
 
 
     public Session(
         ulong sessionId,
         Socket socket,
-        RoomManager roomManager,
         PacketDispatcher dispatcher,  // ✅ Dispatcher 주입
         Action<ulong> onDisconnected = null)
     {
         SessionId = sessionId;
         Socket = socket;
-        _roomManager = roomManager;
         _dispatcher = dispatcher;
         _onDisconnected = onDisconnected;
 
@@ -136,12 +133,6 @@ public sealed class Session
             Disconnect();
         }
     }
-
-    public Room? GetPlayerRoom()
-    {
-        return _roomManager.GetPlayerRoom(SessionId);
-    }
-    
 
     public void Disconnect()
     {

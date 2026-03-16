@@ -1,11 +1,10 @@
-﻿using System.Collections.Concurrent;
-using ServerCore.Protocol;
+﻿using ServerCore.Protocol;
 
 namespace Server.Room;
 
 public class Room
 {
-    public int RoomId { get; private set; }
+    public long RoomId { get; private set; }
     public int MaxMembers { get; private set; }
     
     private readonly Dictionary<ulong, Session> _players = new();
@@ -23,7 +22,7 @@ public class Room
     
     public bool IsFull => MemberCount >= MaxMembers;
 
-    public Room(int roomId, int maxMembers = 4)
+    public Room(long roomId, int maxMembers = 4)
     {
         RoomId = roomId;
         MaxMembers = maxMembers;
