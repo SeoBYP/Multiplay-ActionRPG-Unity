@@ -1,27 +1,35 @@
-﻿using GameServer.Application.Common;
+﻿using System.Collections.Concurrent;
+using GameServer.Application.Common;
 using GameServer.Application.Domains.Auth;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Application.Security;
 using GameServer.Application.Security.Interface;
+using GameServer.Domain.Entities;
 using GameServer.Domain.Entities.User;
 using GameServer.Infrastructure.Security;
-using GameServer.Tests.Infrastructure;
 using Microsoft.Extensions.Options;
+using Moq;
 
 namespace GameServer.Tests.Application.Services;
 
 public class AuthServiceTests
 {
-    private readonly IUserRepository _userRepository;
+    private readonly Mock<IUserRepository> _mockUserRepository;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly IUserSessionRepository _userSessionRepository;
+    private readonly Mock<IUserSessionRepository> _mockUserSessionRepository;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly AuthService _authService;
     private readonly JwtOptions _jwtOptions;
 
+    private readonly ConcurrentDictionary<long, User> _users = new();
+    private readonly ConcurrentDictionary<string, UserSession> _sessions = new();
+    private long _idCounter = 0;
+
     public AuthServiceTests()
     {
-        _userRepository = new FakeUserRepository();
+        _mockUserRepository = new Mock<IUserRepository>();
+        _mockUserSessionRepository = new Mock<IUserSessionRepository>();
+        
         _passwordHasher = new PasswordHasher();
 
         _jwtOptions = new JwtOptions
@@ -29,21 +37,87 @@ public class AuthServiceTests
             Issuer = "TestIssuer",
             Audience = "TestAudience",
             Secret = "test-secret-key-at-least-32-chars-long",
-            AccessTokenMinutes = 60
+            AccessTokenMinutes = 60,
+            RefreshTokenExpirationHours = 24
         };
 
         var jwtOptionsWrapper = Options.Create(_jwtOptions);
-
         _jwtTokenGenerator = new JwtTokenGenerator(jwtOptionsWrapper);
-        _userSessionRepository = new FakeUserSessionRepository();
+
+        SetupMocks();
 
         _authService = new AuthService(
-            _userRepository,
+            _mockUserRepository.Object,
             _passwordHasher,
-            _userSessionRepository,
+            _mockUserSessionRepository.Object,
             _jwtTokenGenerator,
             jwtOptionsWrapper
         );
+    }
+
+    private void SetupMocks()
+    {
+        _mockUserRepository.Setup(r => r.AddAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string hash, string email, CancellationToken ct) =>
+            {
+                var user = User.Create(hash, email);
+                var id = Interlocked.Increment(ref _idCounter);
+                user.SetUserId(id);
+                _users[id] = user;
+                return user;
+            });
+
+        _mockUserRepository.Setup(r => r.GetByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string email, CancellationToken ct) => _users.Values.FirstOrDefault(u => u.Email == email));
+
+        _mockUserRepository.Setup(r => r.GetByIdAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((long id, CancellationToken ct) => _users.TryGetValue(id, out var user) ? user : null);
+
+        _mockUserRepository.Setup(r => r.IsEmailExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string email, CancellationToken ct) => _users.Values.Any(u => u.Email == email));
+
+        _mockUserRepository.Setup(r => r.UpdateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User user, CancellationToken ct) =>
+            {
+                if (!_users.ContainsKey(user.UserId)) return false;
+                _users[user.UserId] = user;
+                return true;
+            });
+
+        _mockUserRepository.Setup(r => r.UpdateRefreshTokenAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((long userId, string token, DateTime expiry, CancellationToken ct) =>
+            {
+                if (!_users.TryGetValue(userId, out var user)) return false;
+                user.SetRefreshToken(token, expiry);
+                return true;
+            });
+
+        _mockUserRepository.Setup(r => r.ClearRefreshTokenAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((long userId, CancellationToken ct) =>
+            {
+                if (!_users.TryGetValue(userId, out var user)) return false;
+                user.ClearRefreshToken();
+                return true;
+            });
+
+        _mockUserSessionRepository.Setup(r => r.CreateSessionAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((long userId, string nick, string email, string pubId, CancellationToken ct) =>
+            {
+                var sessionId = Guid.NewGuid().ToString();
+                var session = UserSession.Create(userId, email, nick, pubId, sessionId);
+                _sessions[sessionId] = session;
+                return session;
+            });
+
+        _mockUserSessionRepository.Setup(r => r.GetBySessionIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string id, CancellationToken ct) => _sessions.TryGetValue(id, out var session) ? session : null);
+
+        _mockUserSessionRepository.Setup(r => r.RemoveSessionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns((string id, CancellationToken ct) =>
+            {
+                _sessions.TryRemove(id, out _);
+                return Task.CompletedTask;
+            });
     }
 
     [Fact]
@@ -66,9 +140,7 @@ public class AuthServiceTests
         Assert.Equal(email, user.Email);
 
         // Repository에 저장되었는지 확인
-        var savedUser = await _userRepository.GetByEmailAsync(email);
-        Assert.NotNull(savedUser);
-        Assert.Equal(email, savedUser.Email);
+        _mockUserRepository.Verify(r => r.AddAsync(It.IsAny<string>(), email, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -187,8 +259,8 @@ public class AuthServiceTests
         Assert.True(result.IsSuccess);
 
         // 세션이 삭제되었는지 확인
-        var session = await _userSessionRepository.GetBySessionIdAsync(sessionId);
-        Assert.Null(session);
+        _mockUserSessionRepository.Verify(r => r.RemoveSessionAsync(sessionId, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.False(_sessions.ContainsKey(sessionId));
     }
 
     [Fact]
@@ -345,12 +417,10 @@ public class AuthServiceTests
         Assert.NotEqual(firstSessionId, secondSessionId);
 
         // 첫 번째 세션은 여전히 존재 (현재 구현에서는 다중 세션 허용)
-        var firstSession = await _userSessionRepository.GetBySessionIdAsync(firstSessionId);
-        Assert.NotNull(firstSession);
+        Assert.True(_sessions.ContainsKey(firstSessionId));
 
         // 두 번째 세션도 존재
-        var secondSession = await _userSessionRepository.GetBySessionIdAsync(secondSessionId);
-        Assert.NotNull(secondSession);
+        Assert.True(_sessions.ContainsKey(secondSessionId));
     }
 
     [Fact]
@@ -367,7 +437,7 @@ public class AuthServiceTests
         // then
         Assert.True(result.IsSuccess);
         
-        var user = await _userRepository.GetByEmailAsync(email);
+        var user = _users.Values.First(u => u.Email == email);
         Assert.NotNull(user.RefreshToken);
         Assert.True(user.RefreshTokenExpiresAt > DateTime.UtcNow);
     }
@@ -391,7 +461,7 @@ public class AuthServiceTests
         Assert.NotEqual(oldAccessToken, result.Value.AccessToken);
 
         // DB 확인 (로테이션 확인)
-        var user = await _userRepository.GetByEmailAsync(email);
+        var user = _users.Values.First(u => u.Email == email);
         Assert.NotNull(user.RefreshToken);
     }
 
@@ -405,14 +475,9 @@ public class AuthServiceTests
         var loginResult = (await _authService.LoginAsync(email, password, "test-device-id")).Value;
 
         // 강제로 리프레시 토큰 만료시킴
-        var user = await _userRepository.GetByEmailAsync(email);
-        var userInRepo = await _userRepository.GetByIdAsync(user.UserId);
-        
-        var expiredUser = User.FromRedis(
-            userInRepo.UserId, userInRepo.Email, userInRepo.PublicId, 
-            userInRepo.PasswordHash, userInRepo.CreatedAt, userInRepo.NickName, 
-            userInRepo.RefreshToken, DateTime.UtcNow.AddDays(-1));
-        await _userRepository.UpdateAsync(expiredUser);
+        var user = _users.Values.First(u => u.Email == email);
+        var expiredUser = User.FromRedis(user.UserId, user.Email, user.PublicId, user.PasswordHash, user.CreatedAt, user.NickName, user.RefreshToken, DateTime.UtcNow.AddDays(-1));
+        _users[user.UserId] = expiredUser;
 
         // when
         var result = await _authService.RefreshTokenAsync(loginResult.AccessToken, loginResult.RefreshToken, "test-device-id");
@@ -465,7 +530,8 @@ public class AuthServiceTests
         var sessionId = loginResult.Session.SessionId;
 
         // DB에서 RefreshToken을 강제로 null로 만듦
-        await _userRepository.ClearRefreshTokenAsync(loginResult.User.UserId);
+        var user = _users.Values.First(u => u.Email == email);
+        user.ClearRefreshToken();
 
         // when
         var result = await _authService.RefreshTokenAsync(loginResult.AccessToken, "dummy-token", "test-device-id");
@@ -475,8 +541,7 @@ public class AuthServiceTests
         Assert.Equal(ErrorCodes.InvalidRequest, result.InternalErrorCode);
 
         // 세션이 삭제되었는지 확인 (강제 종료 확인)
-        var session = await _userSessionRepository.GetBySessionIdAsync(sessionId);
-        Assert.Null(session);
+        Assert.False(_sessions.ContainsKey(sessionId));
     }
 
     [Fact]

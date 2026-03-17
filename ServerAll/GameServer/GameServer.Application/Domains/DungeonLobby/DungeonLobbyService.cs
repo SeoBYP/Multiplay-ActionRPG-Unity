@@ -252,6 +252,8 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
 
 
 
+            room.StartGame(userId);
+
             await gameStartPublisher.PublishAsync(new GameStartMessage
             {
                 RoomId = roomId,
@@ -263,7 +265,6 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
             if (socketInfo is null)
                 return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "SocketServer 응답 없음");
             
-            room.StartGame(userId);
             var parts = socketInfo.Split(':');
             room.SetSocketInfo(parts[0], int.Parse(parts[1]));
             var updated = await dungeonRoomRepository.UpdateAsync(room, ct);

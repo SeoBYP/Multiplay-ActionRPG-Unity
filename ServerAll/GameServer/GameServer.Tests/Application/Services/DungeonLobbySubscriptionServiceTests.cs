@@ -2,33 +2,30 @@
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
-using GameServer.Tests.Fakes;
-using GameServer.Tests.Infrastructure;
 using Moq;
-using StackExchange.Redis;
 
 namespace GameServer.Tests.Application.Services;
 
 public class DungeonLobbySubscriptionServiceTests
 {
     private readonly Mock<IDungeonRoomEventStream> _mockEventStream;
-    private readonly IDungeonRoomRepository _roomRepository;
-    private readonly IUserSessionRepository _sessionRepository;
+    private readonly Mock<IDungeonRoomRepository> _mockRoomRepository;
+    private readonly Mock<IUserSessionRepository> _mockSessionRepository;
     private readonly DungeonLobbySubscriptionService _service;
 
     public DungeonLobbySubscriptionServiceTests()
     {
         _mockEventStream = new Mock<IDungeonRoomEventStream>();
-        _roomRepository = new FakeDungeonRoomRepository();
-        _sessionRepository = new FakeUserSessionRepository();
+        _mockRoomRepository = new Mock<IDungeonRoomRepository>();
+        _mockSessionRepository = new Mock<IUserSessionRepository>();
 
         _mockEventStream.Setup(x => x.ReadAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(AsyncEnumerable.Empty<long>());
 
         _service = new DungeonLobbySubscriptionService(
             _mockEventStream.Object,
-            _roomRepository,
-            _sessionRepository);
+            _mockRoomRepository.Object,
+            _mockSessionRepository.Object);
     }
 
     [Fact]
@@ -37,26 +34,34 @@ public class DungeonLobbySubscriptionServiceTests
         // Arrange
         var userId = 1L;
         var roomId = 100L;
-        var session = await _sessionRepository.CreateSessionAsync(userId, "user1", "user1@test.com", "pub1");
-        var sessionId = session!.SessionId;
+        var sessionId = "test-session";
+        var readCalled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         
-        var room = await _roomRepository.CreateAsync(userId, "Room1", 4);
-        // FakeDungeonRoomRepository creates room with incremented ID, but let's just get it
-        var actualRoomId = room!.RoomId;
+        var session = UserSession.Create(userId, "user1@test.com", "user1", "pub1", sessionId);
+        session.SetRoomId(roomId);
         
-        await _sessionRepository.UpdateRoomIdAsync(sessionId, actualRoomId);
+        var room = DungeonRoom.Create("Room1", userId, 4);
+        
+        _mockSessionRepository.Setup(x => x.GetBySessionIdAsync(sessionId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(session);
+        _mockRoomRepository.Setup(x => x.GetByIdAsync(roomId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(room);
+        _mockEventStream.Setup(x => x.ReadAsync(roomId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback(() => readCalled.TrySetResult())
+            .Returns(AsyncEnumerable.Empty<long>());
 
         // Act
-        var result = await _service.SubscribeAsync(sessionId, actualRoomId, CancellationToken.None);
+        var result = await _service.SubscribeAsync(sessionId, roomId, CancellationToken.None);
+        await readCalled.Task.WaitAsync(TimeSpan.FromSeconds(1));
 
         // Assert
         Assert.NotNull(result);
         Assert.Equal(userId, result.UserId);
-        Assert.Equal(actualRoomId, result.RoomId);
+        Assert.Equal(roomId, result.RoomId);
         
         // ReadAsync should be called for the room
         _mockEventStream.Verify(x => x.ReadAsync(
-            It.Is<long>(id => id == actualRoomId),
+            It.Is<long>(id => id == roomId),
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -64,6 +69,10 @@ public class DungeonLobbySubscriptionServiceTests
     [Fact]
     public async Task 유효하지_않은_세션으로_구독_시도_시_실패한다()
     {
+        // Arrange
+        _mockSessionRepository.Setup(x => x.GetBySessionIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserSession?)null);
+
         // Act
         var result = await _service.SubscribeAsync("invalid-session", 100L, CancellationToken.None);
 
@@ -75,10 +84,18 @@ public class DungeonLobbySubscriptionServiceTests
     public async Task 존재하지_않는_방에_대해_구독_시도_시_실패한다()
     {
         // Arrange
-        var session = await _sessionRepository.CreateSessionAsync(1, "user1", "user1@test.com", "pub1");
+        var userId = 1L;
+        var roomId = 999L;
+        var sessionId = "test-session";
+        var session = UserSession.Create(userId, "user1@test.com", "user1", "pub1", sessionId);
+        
+        _mockSessionRepository.Setup(x => x.GetBySessionIdAsync(sessionId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(session);
+        _mockRoomRepository.Setup(x => x.GetByIdAsync(roomId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DungeonRoom?)null);
         
         // Act
-        var result = await _service.SubscribeAsync(session!.SessionId, 999L, CancellationToken.None);
+        var result = await _service.SubscribeAsync(sessionId, roomId, CancellationToken.None);
 
         // Assert
         Assert.Null(result);
@@ -89,13 +106,20 @@ public class DungeonLobbySubscriptionServiceTests
     {
         // Arrange
         var userId = 1L;
-        var session = await _sessionRepository.CreateSessionAsync(userId, "user1", "user1@test.com", "pub1");
-        var room = await _roomRepository.CreateAsync(2L, "Room1", 4); // Host is 2
+        var roomId = 100L;
+        var sessionId = "test-session";
+        var session = UserSession.Create(userId, "user1@test.com", "user1", "pub1", sessionId);
         
-        // 유저는 방에 들어가지 않음
+        var room = DungeonRoom.Create("Room1", 2L, 4); // Host is 2
+        // userId 1 is not in the room
+
+        _mockSessionRepository.Setup(x => x.GetBySessionIdAsync(sessionId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(session);
+        _mockRoomRepository.Setup(x => x.GetByIdAsync(roomId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(room);
 
         // Act
-        var result = await _service.SubscribeAsync(session!.SessionId, room!.RoomId, CancellationToken.None);
+        var result = await _service.SubscribeAsync(sessionId, roomId, CancellationToken.None);
 
         // Assert
         Assert.Null(result);
@@ -121,23 +145,50 @@ public class DungeonLobbySubscriptionServiceTests
     {
         // Arrange
         var userId = 1L;
-        var session = await _sessionRepository.CreateSessionAsync(userId, "user1", "user1@test.com", "pub1");
-        var sessionId = session!.SessionId;
+        var sessionId = "test-session";
+        var room1Id = 100L;
+        var room2Id = 200L;
+        var readCount = 0;
+        var readCalledTwice = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         
-        var room1 = await _roomRepository.CreateAsync(userId, "Room1", 4);
-        var room2 = await _roomRepository.CreateAsync(userId, "Room2", 4);
+        var session1 = UserSession.Create(userId, "user1@test.com", "user1", "pub1", sessionId);
+        session1.SetRoomId(room1Id);
+        var room1 = DungeonRoom.Create("Room1", userId, 4);
+
+        var session2 = UserSession.Create(userId, "user1@test.com", "user1", "pub1", sessionId);
+        session2.SetRoomId(room2Id);
+        var room2 = DungeonRoom.Create("Room2", userId, 4);
         
-        await _sessionRepository.UpdateRoomIdAsync(sessionId, room1!.RoomId);
-        await _service.SubscribeAsync(sessionId, room1.RoomId, CancellationToken.None);
+        // Setup for room 1
+        _mockSessionRepository.Setup(x => x.GetBySessionIdAsync(sessionId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(session1);
+        _mockRoomRepository.Setup(x => x.GetByIdAsync(room1Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(room1);
+        _mockEventStream.Setup(x => x.ReadAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback(() =>
+            {
+                if (Interlocked.Increment(ref readCount) == 2)
+                {
+                    readCalledTwice.TrySetResult();
+                }
+            })
+            .Returns(AsyncEnumerable.Empty<long>());
+
+        await _service.SubscribeAsync(sessionId, room1Id, CancellationToken.None);
         
-        await _sessionRepository.UpdateRoomIdAsync(sessionId, room2!.RoomId);
+        // Setup for room 2
+        _mockSessionRepository.Setup(x => x.GetBySessionIdAsync(sessionId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(session2);
+        _mockRoomRepository.Setup(x => x.GetByIdAsync(room2Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(room2);
 
         // Act
-        var result = await _service.SubscribeAsync(sessionId, room2.RoomId, CancellationToken.None);
+        var result = await _service.SubscribeAsync(sessionId, room2Id, CancellationToken.None);
+        await readCalledTwice.Task.WaitAsync(TimeSpan.FromSeconds(1));
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(room2.RoomId, result.RoomId);
+        Assert.Equal(room2Id, result.RoomId);
         
         // ReadAsync should be called for both rooms
         _mockEventStream.Verify(x => x.ReadAsync(
@@ -167,25 +218,42 @@ public class DungeonLobbySubscriptionServiceTests
         // Arrange
         var userId = 1L;
         var roomId = 100L;
-        var session = await _sessionRepository.CreateSessionAsync(userId, "user1", "user1@test.com", "pub1");
-        var sessionId = session!.SessionId;
+        var sessionId = "test-session";
+        var readCount = 0;
+        var allReadsObserved = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         
-        var room = await _roomRepository.CreateAsync(userId, "Room1", 4);
-        await _sessionRepository.UpdateRoomIdAsync(sessionId, room!.RoomId);
+        var session = UserSession.Create(userId, "user1@test.com", "user1", "pub1", sessionId);
+        session.SetRoomId(roomId);
+        var room = DungeonRoom.Create("Room1", userId, 4);
+        
+        _mockSessionRepository.Setup(x => x.GetBySessionIdAsync(sessionId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(session);
+        _mockRoomRepository.Setup(x => x.GetByIdAsync(roomId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(room);
+        _mockEventStream.Setup(x => x.ReadAsync(roomId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback(() =>
+            {
+                if (Interlocked.Increment(ref readCount) == 10)
+                {
+                    allReadsObserved.TrySetResult();
+                }
+            })
+            .Returns(AsyncEnumerable.Empty<long>());
 
         var tasks = new List<Task<UserRoomContext?>>();
         for (int i = 0; i < 10; i++)
         {
-            tasks.Add(_service.SubscribeAsync(sessionId, room.RoomId, CancellationToken.None));
+            tasks.Add(_service.SubscribeAsync(sessionId, roomId, CancellationToken.None));
         }
 
         // Act
         var results = await Task.WhenAll(tasks);
+        await allReadsObserved.Task.WaitAsync(TimeSpan.FromSeconds(1));
 
         // Assert
         Assert.All(results, Assert.NotNull);
         _mockEventStream.Verify(x => x.ReadAsync(
-            It.IsAny<long>(),
+            roomId,
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Exactly(10));
     }
