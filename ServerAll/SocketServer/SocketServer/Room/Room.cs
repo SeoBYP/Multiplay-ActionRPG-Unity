@@ -1,6 +1,7 @@
-﻿using ServerCore.Protocol;
-
+﻿
 namespace Server.Room;
+
+using Shared.Packet.Packets;
 
 public class Room
 {
@@ -8,7 +9,7 @@ public class Room
     public int MaxMembers { get; private set; }
     
     private readonly Dictionary<ulong, Session> _players = new();
-
+    private readonly HashSet<long> _expectedUserIds = new();
     public int MemberCount
     {
         get
@@ -22,11 +23,14 @@ public class Room
     
     public bool IsFull => MemberCount >= MaxMembers;
 
-    public Room(long roomId, int maxMembers = 4)
+    public Room(long roomId, List<long> expectedUserIds)
     {
         RoomId = roomId;
-        MaxMembers = maxMembers;
+        MaxMembers = expectedUserIds.Count;
+        _expectedUserIds = new HashSet<long>(expectedUserIds);
     }
+    
+    public bool IsExpectedPlayer(long userId) => _expectedUserIds.Contains(userId);
 
     /// <summary>
     /// 플레이어 입장
@@ -51,10 +55,7 @@ public class Room
 
                 _players.Add(session.SessionId, session);
                 Console.WriteLine($"[Room {RoomId}] Session {session.SessionId} joined. Members: {MemberCount}/{MaxMembers}");
-
-                // 입장 알림
-                NotifyJoin(session.SessionId);
-            
+                
                 return true;
             }
         }
@@ -82,9 +83,6 @@ public class Room
 
                 Console.WriteLine($"[Room {RoomId}] Session {sessionId} left. Members: {MemberCount}/{MaxMembers}");
 
-                // 퇴장 알림
-                NotifyLeave(sessionId);
-        
                 return true;
             }
         }
@@ -95,7 +93,7 @@ public class Room
         }
     }
 
-    public void Broadcast(ServerCore.Protocol.Packet packet, ulong? excludeSessionId = null)
+    public void Broadcast(Packet packet, ulong? excludeSessionId = null)
     {
         try
         {
@@ -120,35 +118,5 @@ public class Room
             Console.WriteLine(e);
             throw;
         }
-    }
-    
-    /// <summary>
-    /// 입장 알림 (시스템 메시지)
-    /// </summary>
-    private void NotifyJoin(ulong sessionId)
-    {
-        var packet = new ServerCore.Protocol.Packet();
-        packet.SChat = new S_Chat
-        {
-            SenderId = 0,  // 0 = 시스템
-            Message = $"[System] Player {sessionId} joined the room"
-        };
-
-        Broadcast(packet, excludeSessionId: sessionId);
-    }
-
-    /// <summary>
-    /// 퇴장 알림
-    /// </summary>
-    private void NotifyLeave(ulong sessionId)
-    {
-        var packet = new ServerCore.Protocol.Packet();
-        packet.SChat = new S_Chat
-        {
-            SenderId = 0,
-            Message = $"[System] Player {sessionId} left the room"
-        };
-
-        Broadcast(packet, excludeSessionId: sessionId);
     }
 }

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Server.Packet;
+using Server.PacketHandler;
 using Server.Room;
 using StackExchange.Redis;
 
@@ -12,7 +12,7 @@ namespace Server
         {
             // 1. 설정 로드
             var config = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
+                .SetBasePath(AppContext.BaseDirectory)
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .Build();
 
@@ -36,7 +36,7 @@ namespace Server
             var redis = ConnectionMultiplexer.Connect(redisConnStr);
             var gameStartQueue = new GameStartMessageQueue(redis, loggerFactory.CreateLogger<GameStartMessageQueue>());
             var roomManager = new RoomManager();
-            var sessionManager = new SessionManager(dispatcher);
+            var sessionManager = new SessionManager(dispatcher, roomManager);
             
             var listener = new TcpNetworkListener(ipAddress, port, sessionManager);
             listener.Start();

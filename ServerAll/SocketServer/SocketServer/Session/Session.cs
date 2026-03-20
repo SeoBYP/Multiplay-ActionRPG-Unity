@@ -1,28 +1,28 @@
 ﻿using System.Net.Sockets;
-using Google.Protobuf;
-using Server.Packet;
+using Server.PacketHandler;
 using Server.Room;
-using ServerCore.Protocol;
+using Shared.Packet;
+using Shared.Packet.Packets;
 
 
 public sealed class Session
 {
+    public long UserId { get; set; }
     public ulong SessionId { get; private set; }
     public bool Connected { get; private set; }
     public DateTime LastRecvAt { get; private set; }
     public DateTime ConnectedAt { get; }
     public string Nickname { get; set; }
     
+    public RoomManager RoomManager { get; }
+    
     private Socket Socket;
     private Action<ulong> _onDisconnected;
     private PacketDispatcher _dispatcher;  // ✅ Dispatcher 추가
 
 
-    public Session(
-        ulong sessionId,
-        Socket socket,
-        PacketDispatcher dispatcher,  // ✅ Dispatcher 주입
-        Action<ulong> onDisconnected = null)
+    public Session(ulong sessionId, Socket socket, PacketDispatcher dispatcher,
+        RoomManager roomManager, Action<ulong> onDisconnected = null)
     {
         SessionId = sessionId;
         Socket = socket;
@@ -33,6 +33,7 @@ public sealed class Session
         ConnectedAt = DateTime.UtcNow;
         LastRecvAt = ConnectedAt;
         Nickname = string.Empty;
+        RoomManager = roomManager;
     }
     
     public async Task RunAsync(CancellationToken ct)
@@ -51,8 +52,12 @@ public sealed class Session
                 }
 
                 byte[] protobufData = await ReceiveExactAsync(length, ct);
-                var packet = ServerCore.Protocol.Packet.Parser.ParseFrom(protobufData);
-
+                var packet = PacketSerializer.Deserialize(protobufData);
+                if (packet is null)
+                {
+                    Console.WriteLine($"[Session {SessionId}] Failed to deserialize packet");
+                    continue;  // break 대신 continue — 한 패킷 실패해도 연결 유지
+                }
                 LastRecvAt = DateTime.UtcNow;
 
                 // ✅ Dispatcher로 자동 라우팅
@@ -94,14 +99,14 @@ public sealed class Session
     /// <summary>
     /// 패킷 전송 (범용)
     /// </summary>
-    public async Task SendPacketAsync(ServerCore.Protocol.Packet packet, CancellationToken ct = default)
+    public async Task SendPacketAsync(Packet packet, CancellationToken ct = default)
     {
         if (!Connected) return;
 
         try
         {
             // Protobuf 직렬화
-            byte[] protobufData = packet.ToByteArray();
+            byte[] protobufData = PacketSerializer.Serialize(packet);
 
             // Length 추가
             int length = protobufData.Length;

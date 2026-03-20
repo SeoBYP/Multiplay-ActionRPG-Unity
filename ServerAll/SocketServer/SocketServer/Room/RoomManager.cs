@@ -11,27 +11,9 @@ public class RoomManager
     /// <summary>
     /// 방 생성
     /// </summary>
-    public Room CreateRoom(int maxMembers = 4)
-    {
-        long roomId = Interlocked.Increment(ref _nextRoomId);
-        var room = new Room(roomId, maxMembers);
-        
-        if (!_rooms.TryAdd(roomId, room))
-        {
-            Console.WriteLine($"[RoomManager] Failed to create room {roomId}");
-            return null;
-        }
-
-        Console.WriteLine($"[RoomManager] Room {roomId} created (max: {maxMembers})");
-        return room;
-    }
-
-    /// <summary>
-    /// 방 생성
-    /// </summary>
     public Room CreateRoom(long msgRoomId, List<long> msgPlayerIds)
     {
-        var room = new Room(msgRoomId, msgPlayerIds.Count);
+        var room = new Room(msgRoomId, msgPlayerIds); 
         
         if (!_rooms.TryAdd(msgRoomId, room))
         {
@@ -51,7 +33,7 @@ public class RoomManager
         LeaveRoom(session.SessionId);
         
         // roomId가 없으면 새 방 생성
-        Room room;
+        Room? room;
         if (roomId.HasValue)
         {
             room = _rooms.GetValueOrDefault(roomId.Value);
@@ -64,10 +46,10 @@ public class RoomManager
         else
         {
             // 자동 매칭: 빈 방 찾거나 새로 생성
-            room = FindAvailableRoom() ?? CreateRoom();
+            room = FindAvailableRoom();
         }
         
-        if (room.Join(session))
+        if (room != null && room.Join(session))
         {
             _playerRooms[session.SessionId] = room.RoomId;
             return true;
@@ -125,7 +107,7 @@ public class RoomManager
     /// <summary>
     /// 방 조회
     /// </summary>
-    public Room? GetRoom(int roomId)
+    public Room? GetRoom(long roomId)
     {
         return _rooms.GetValueOrDefault(roomId);
     }
@@ -142,6 +124,4 @@ public class RoomManager
     /// 방 개수
     /// </summary>
     public int RoomCount => _rooms.Count;
-
-
 }

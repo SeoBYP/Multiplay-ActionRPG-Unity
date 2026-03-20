@@ -1,8 +1,8 @@
 ﻿using System.Collections.Concurrent;
 using System.Net.Sockets;
-using Server.Packet;
+using Server.PacketHandler;
 using Server.Room;
-using ServerCore.Protocol;
+using Shared.Packet.Packets;
 
 
 public sealed class SessionManager
@@ -14,11 +14,12 @@ public sealed class SessionManager
     private readonly ConcurrentDictionary<ulong, Session> _sessions = new();
 
     private readonly PacketDispatcher _dispatcher; 
-    
-    public SessionManager(PacketDispatcher dispatcher)
+    private readonly RoomManager _roomManager;
+    public SessionManager(PacketDispatcher dispatcher, RoomManager roomManager)
     {
         Instance = this;
         _dispatcher = dispatcher;
+        _roomManager = roomManager;
     }
     
     public Session? CreateSession(Socket clientSocket, CancellationToken ct)
@@ -28,6 +29,7 @@ public sealed class SessionManager
             sessionId: id,
             socket: clientSocket,
             dispatcher: _dispatcher,  // ✅ Dispatcher 주입
+            roomManager: _roomManager,
             onDisconnected: OnSessionDisconnected);
 
         if (!_sessions.TryAdd(id, session))
@@ -53,9 +55,10 @@ public sealed class SessionManager
 
     private void OnSessionDisconnected(ulong sessionId)
     {
-        // Room에서 자동 퇴장
-        _sessions.TryRemove(sessionId, out _);
-        
+        if (_sessions.TryRemove(sessionId, out var session))
+        {
+            _roomManager.LeaveRoom(sessionId);  // Room에서도 퇴장
+        }
         Console.WriteLine($"[SessionManager] Session {sessionId} disconnected");
     }
 
