@@ -3,15 +3,13 @@ using GameServer.Application.Common;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities.Chat;
-using Microsoft.Extensions.Logging;
 
 namespace GameServer.Application.Domains.Chat;
 
 public class ChatService(
     IChatMessageRepository chatMessageRepository,
     IUserSessionRepository userSessionRepository,
-    IChatEventStream chatEventStream,
-    ILogger<ChatService> logger) : IChatService
+    IChatEventStream chatEventStream) : IChatService
 {
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _userLocks = new();
 
@@ -49,11 +47,6 @@ public class ChatService(
             await chatEventStream.PublishAsync(channel, chatMessage, ct);
 
             return Result<ChatMessage>.Success(chatMessage);
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Failed to send chat message");
-            return Result<ChatMessage>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
         finally
         {

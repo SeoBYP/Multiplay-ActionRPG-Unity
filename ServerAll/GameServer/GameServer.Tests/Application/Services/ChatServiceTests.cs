@@ -5,7 +5,6 @@ using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities.Chat;
 using GameServer.Tests.Infrastructure;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using StackExchange.Redis;
 using Xunit;
@@ -28,8 +27,7 @@ public class ChatServiceTests
         _service = new ChatService(
             _chatRepo,
             _sessionRepo,
-            _mockEventStream.Object,
-            NullLogger<ChatService>.Instance);
+            _mockEventStream.Object);
     }
 
     private async Task<string> CreateSessionAsync(long userId = 100, string nickname = "test",

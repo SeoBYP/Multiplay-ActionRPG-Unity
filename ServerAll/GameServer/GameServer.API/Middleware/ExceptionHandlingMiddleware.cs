@@ -1,7 +1,6 @@
 ﻿using System.Net;
 using System.Text.Json;
 using GameServer.Application.Common;
-using StackExchange.Redis;
 
 namespace GameServer.API.Middleware;
 
@@ -34,36 +33,14 @@ public class ExceptionHandlingMiddleware(
     {
         context.Response.ContentType = "application/json";
 
-        var (statusCode, message) = exception switch
-        {
-            // Redis 연결 오류
-            RedisConnectionException => 
-                (HttpStatusCode.ServiceUnavailable, ErrorMessages.ServiceUnavailable),
-            
-            RedisTimeoutException => 
-                (HttpStatusCode.ServiceUnavailable, ErrorMessages.ServiceUnavailable),
-            
-            // 일반 예외
-            InvalidOperationException => 
-                (HttpStatusCode.BadRequest,ErrorMessages.InvalidRequest),
-            
-            ArgumentException => 
-                (HttpStatusCode.BadRequest, ErrorMessages.InvalidRequest),
-            
-            UnauthorizedAccessException => 
-                (HttpStatusCode.Unauthorized, ErrorMessages.Unauthorized),
-            
-            // 기타 모든 예외
-            _ => (HttpStatusCode.InternalServerError, ErrorMessages.InvalidRequest)
-        };
-
-        context.Response.StatusCode = (int)statusCode;
+        var mapping = ExceptionMapper.Map(exception);
+        context.Response.StatusCode = (int)mapping.HttpStatusCode;
 
         var response = new
         {
             error = new
             {
-                message = message,
+                message = mapping.Message,
                 // 개발 환경에서만 상세 정보 제공
                 detail = env.IsDevelopment() ? exception.Message : null,
                 stackTrace = env.IsDevelopment() ? exception.StackTrace : null

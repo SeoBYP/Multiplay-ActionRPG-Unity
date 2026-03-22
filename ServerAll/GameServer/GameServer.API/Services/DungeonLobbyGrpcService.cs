@@ -241,41 +241,33 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         UserRoomContext ctx,
         CancellationToken ct)
     {
-        try
+        await foreach (var roomId in ctx.Outbound.Reader.ReadAllAsync(ct))
         {
-            await foreach (var roomId in ctx.Outbound.Reader.ReadAllAsync(ct))
+            var room = await dungeonLobbyService.GetDungeonRoomAsync(roomId, ct);
+            if (room.IsSuccess == false) continue;
+            if (room.Value is null) continue;
+
+            var serverMsg = new SubscribeRoomResponse();
+            switch (room.Value.Status)
             {
-                var room = await dungeonLobbyService.GetDungeonRoomAsync(roomId, ct);
-                if (room.IsSuccess == false) continue;
-                if (room.Value is null) continue;
+                case RoomStatus.Playing:
+                    serverMsg.StartEvent = new GameStartedEvent
+                    {
+                        RoomInfo = await room.Value.ToRoomInfo(userRepository),
+                        Ip = room.Value.SocketIp,
+                        Port = room.Value.SocketPort,
+                    };
+                    break;
 
-                var serverMsg = new SubscribeRoomResponse();
-                switch (room.Value.Status)
-                {
-                    case RoomStatus.Playing:
-                        serverMsg.StartEvent = new GameStartedEvent
-                        {
-                            RoomInfo = await room.Value.ToRoomInfo(userRepository),
-                            Ip = room.Value.SocketIp,
-                            Port = room.Value.SocketPort,
-                        };
-                        break;
-
-                    default:
-                        serverMsg.UpdateEvent = new RoomUpdatedEvent
-                        {
-                            RoomInfo = await room.Value.ToRoomInfo(userRepository),
-                        };
-                        break;
-                }
-
-                await responseStream.WriteAsync(serverMsg, ct);
+                default:
+                    serverMsg.UpdateEvent = new RoomUpdatedEvent
+                    {
+                        RoomInfo = await room.Value.ToRoomInfo(userRepository),
+                    };
+                    break;
             }
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Error while streaming room updates");
-            throw;
+
+            await responseStream.WriteAsync(serverMsg, ct);
         }
     }
 }

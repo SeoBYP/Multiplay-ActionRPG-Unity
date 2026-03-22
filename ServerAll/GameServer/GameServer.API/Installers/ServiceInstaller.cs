@@ -74,10 +74,12 @@ public class ServiceInstaller : IServiceInstaller
         services.AddAuthorization();
 
         // gRPC (+ interceptor + reflection)
+        services.AddScoped<GrpcExceptionInterceptor>();
         services.AddScoped<AuthInterceptor>();
         services.AddGrpc(o =>
         {
             o.EnableDetailedErrors = true;
+            o.Interceptors.Add<GrpcExceptionInterceptor>();
             o.Interceptors.Add<AuthInterceptor>();
         });
         services.AddGrpcReflection();

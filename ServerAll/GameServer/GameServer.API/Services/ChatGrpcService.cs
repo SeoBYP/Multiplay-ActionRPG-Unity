@@ -113,10 +113,6 @@ public class ChatGrpcService(
         {
             // stream cancelled/unavailable
         }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Unexpected error while receiving chat stream for user {UserId}", ctx.UserId);
-        }
         finally
         {
             // ReceiveLoop이 끝나면 SendLoop이 영원히 대기하지 않도록 종료 신호
@@ -148,10 +144,6 @@ public class ChatGrpcService(
         catch (RpcException ex) when (ex.StatusCode is StatusCode.Cancelled or StatusCode.Unavailable)
         {
             // stream cancelled/unavailable
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Unexpected error while sending chat stream for user {UserId}", ctx.UserId);
         }
         finally
         {
