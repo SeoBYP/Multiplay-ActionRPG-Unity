@@ -3,6 +3,7 @@ using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
+using Microsoft.Extensions.Logging;
 using Shared.Infrastructure.Messages;
 
 namespace GameServer.Application.Domains.DungeonLobby;
@@ -12,7 +13,8 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
     IGameStartPublisher gameStartPublisher,
     ISocketReadyChecker socketReadyChecker,
     IUserSessionRepository userSessionRepository,
-    IChatSubscriptionService chatSubscriptionService) : IDungeonLobbyService
+    IChatSubscriptionService chatSubscriptionService,
+    ILogger<DungeonLobbyService> logger) : IDungeonLobbyService
 {
     public async Task<Result<DungeonRoom>> CreateDungeonRoomAsync(string sessionId, string roomName, int maxPlayers, CancellationToken ct = default)
     {
@@ -43,6 +45,7 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
         }
         catch (Exception e)
         {
+            logger.LogError(e, "Failed to create dungeon room");
             return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
@@ -57,6 +60,7 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
         }
         catch (Exception e)
         {
+            logger.LogError(e, "Failed to get active dungeon rooms");
             return Result<IEnumerable<DungeonRoom>>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
@@ -75,6 +79,7 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
         }
         catch (Exception e)
         {
+            logger.LogError(e, "Failed to get dungeon room {RoomId}", roomId);
             return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
@@ -127,6 +132,7 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
         }
         catch (Exception e)
         {
+            logger.LogError(e, "Failed to update room settings for room {RoomId}", roomId);
             return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
@@ -174,8 +180,9 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
 
             return Result<DungeonRoom>.Success(room);
         }
-        catch (Exception)
+        catch (Exception e)
         {
+            logger.LogError(e, "Failed to join room {RoomId}", roomId);
             return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
@@ -226,11 +233,12 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
         }
         catch (Exception e)
         {
+            logger.LogError(e, "Failed to leave room {RoomId}", roomId);
             return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
 
-    public async Task<Result<DungeonRoom>> StartGameAsync(string sessionId, long roomId, CancellationToken ct = default)
+    public async Task<Result<DungeonRoom>> StartGameAsync(string sessionId, long roomId, string traceId, CancellationToken ct = default)
     {
         try
         {
@@ -257,7 +265,8 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
             await gameStartPublisher.PublishAsync(new GameStartMessage
             {
                 RoomId = roomId,
-                PlayerIds = room.CurrentPlayers.ToList()
+                PlayerIds = room.CurrentPlayers.ToList(),
+                TraceId = traceId
             }, ct);
             
             // SocketServer 준비 대기
@@ -276,6 +285,7 @@ public class DungeonLobbyService(IDungeonRoomRepository dungeonRoomRepository,
         }
         catch (Exception e)
         {
+            logger.LogError(e, "Failed to start game for room {RoomId}", roomId);
             return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }

@@ -1,28 +1,33 @@
-﻿using GameServer.Application.Common;
+using GameServer.Application.Common;
 using GameServer.Application.Domains.User.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace GameServer.Application.Domains.User;
+
 using User = Domain.Entities.User.User;
-public class UserService(IUserRepository userRepository,
-    IUserSessionRepository userSessionRepository) : IUserService
+
+public class UserService(
+    IUserRepository userRepository,
+    IUserSessionRepository userSessionRepository,
+    ILogger<UserService> logger) : IUserService
 {
     public async Task<Result<User>> GetProfileAsync(string sessionId, CancellationToken ct = default)
     {
         try
         {
             var session = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
-            if(session is null)
+            if (session is null)
                 return Result<User>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            
+
             var user = await userRepository.GetByIdAsync(session.UserId, ct);
-            if(user is null)
+            if (user is null)
                 return Result<User>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            
+
             return Result<User>.Success(user);
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to get user profile");
             return Result<User>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
@@ -31,25 +36,26 @@ public class UserService(IUserRepository userRepository,
     {
         try
         {
-            if(string.IsNullOrWhiteSpace(nickname))
+            if (string.IsNullOrWhiteSpace(nickname))
                 return Result<User>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            
+
             var session = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
-            if(session is null)
+            if (session is null)
                 return Result<User>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            
+
             if (await userRepository.IsNicknameExistsAsync(nickname, ct))
                 return Result<User>.Failure(ErrorCodes.NickNameAlreadyTaken, ErrorMessages.NickNameAlreadyTaken);
- 
+
             var user = await userRepository.GetByIdAsync(session.UserId, ct);
-            if(user is null)
+            if (user is null)
                 return Result<User>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            
+
             user.SetNickName(nickname);
             if (await userRepository.UpdateAsync(user, ct))
             {
                 return Result<User>.Success(user);
             }
+
             return Result<User>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
         catch (ArgumentException e)
@@ -58,7 +64,7 @@ public class UserService(IUserRepository userRepository,
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to set nickname");
             return Result<User>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
@@ -67,25 +73,26 @@ public class UserService(IUserRepository userRepository,
     {
         try
         {
-            if(string.IsNullOrWhiteSpace(email))
+            if (string.IsNullOrWhiteSpace(email))
                 return Result<User>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            
+
             var session = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
-            if(session is null)
+            if (session is null)
                 return Result<User>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
 
             if (await userRepository.IsEmailExistsAsync(email, ct))
                 return Result<User>.Failure(ErrorCodes.EmailAlreadyTaken, ErrorMessages.EmailAlreadyTaken);
 
             var user = await userRepository.GetByIdAsync(session.UserId, ct);
-            if(user is null)
+            if (user is null)
                 return Result<User>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            
+
             user.SetEmail(email);
             if (await userRepository.UpdateAsync(user, ct))
             {
                 return Result<User>.Success(user);
             }
+
             return Result<User>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
         catch (ArgumentException e)
@@ -94,7 +101,7 @@ public class UserService(IUserRepository userRepository,
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to set email");
             return Result<User>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
@@ -103,28 +110,29 @@ public class UserService(IUserRepository userRepository,
     {
         try
         {
-            if(string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(nickname))
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(nickname))
                 return Result<User>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            
+
             var session = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
-            if(session is null)
+            if (session is null)
                 return Result<User>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            
+
             if (await userRepository.IsNicknameExistsAsync(nickname, ct))
                 return Result<User>.Failure(ErrorCodes.NickNameAlreadyTaken, ErrorMessages.NickNameAlreadyTaken);
 
             if (await userRepository.IsEmailExistsAsync(email, ct))
                 return Result<User>.Failure(ErrorCodes.EmailAlreadyTaken, ErrorMessages.EmailAlreadyTaken);
-      
+
             var user = await userRepository.GetByIdAsync(session.UserId, ct);
-            if(user is null)
+            if (user is null)
                 return Result<User>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            
+
             user.SetProfile(nickname, email);
             if (await userRepository.UpdateAsync(user, ct))
             {
                 return Result<User>.Success(user);
             }
+
             return Result<User>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
         catch (ArgumentException e)
@@ -133,7 +141,7 @@ public class UserService(IUserRepository userRepository,
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to update profile");
             return Result<User>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }

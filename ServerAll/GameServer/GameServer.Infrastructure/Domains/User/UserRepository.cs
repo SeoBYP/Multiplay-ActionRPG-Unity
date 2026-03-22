@@ -1,4 +1,5 @@
 ﻿using GameServer.Application.Domains.User.Interfaces;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace GameServer.Infrastructure.Domains.User;
@@ -8,7 +9,9 @@ using User = Domain.Entities.User.User;
 /// <summary>
 /// 데이터베이스 연동 사용자 저장소 구현체 (미구현)
 /// </summary>
-public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUserRepository
+public class UserRepository(
+    IConnectionMultiplexer connectionMultiplexer,
+    ILogger<UserRepository> logger) : IUserRepository
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
 
@@ -57,7 +60,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to add user");
             throw;
         }
     }
@@ -88,7 +91,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to remove user {UserId}", userId);
             throw;
         }
     }
@@ -147,7 +150,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to update user {UserId}", user.UserId);
             throw;
         }
     }
@@ -163,7 +166,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to get user by id {UserId}", userId);
             throw;
         }
     }
@@ -197,7 +200,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to get users by ids");
             throw;
         }
     }
@@ -217,7 +220,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to get user by email {Email}", email);
             throw;
         }
     }
@@ -238,7 +241,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to get user by public id {PublicId}", publicId);
             throw;
         }
     }
@@ -259,7 +262,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to get user by nickname {Nickname}", nickname);
             throw;
         }
     }
@@ -296,7 +299,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to update refresh token for user {UserId}", userId);
             return false;
         }
     }
@@ -311,7 +314,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to clear refresh token for user {UserId}", userId);
             return false;
         }
     }
@@ -329,7 +332,7 @@ public class UserRepository(IConnectionMultiplexer connectionMultiplexer) : IUse
             !dict.TryGetValue("PasswordHash", out var passwordHash) ||
             !dict.TryGetValue("CreatedAt", out var createdAtStr))
         {
-            Console.WriteLine($"User {userId} has missing fields");
+            logger.LogWarning("User {UserId} has missing fields", userId);
             return null;
         }
 

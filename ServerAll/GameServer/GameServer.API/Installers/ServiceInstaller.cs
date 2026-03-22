@@ -6,6 +6,7 @@ using GameServer.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 using StackExchange.Redis;
 
 namespace GameServer.API.Installers;
@@ -33,11 +34,11 @@ public class ServiceInstaller : IServiceInstaller
             try
             {
                 server.FlushAllDatabases();
-                Console.WriteLine($"[Redis] Flushed all databases on {endpoint}");
+                Log.Information("Flushed all Redis databases on {Endpoint}", endpoint);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Redis] Failed to flush databases on {endpoint}: {ex.Message}");
+                Log.Error(ex, "Failed to flush Redis databases on {Endpoint}", endpoint);
             }
         }
         

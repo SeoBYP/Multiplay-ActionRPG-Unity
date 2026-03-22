@@ -1,14 +1,17 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using GameServer.Application.Common;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities.Chat;
+using Microsoft.Extensions.Logging;
 
 namespace GameServer.Application.Domains.Chat;
 
-public class ChatService(IChatMessageRepository chatMessageRepository,
+public class ChatService(
+    IChatMessageRepository chatMessageRepository,
     IUserSessionRepository userSessionRepository,
-    IChatEventStream chatEventStream) : IChatService
+    IChatEventStream chatEventStream,
+    ILogger<ChatService> logger) : IChatService
 {
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _userLocks = new();
 
@@ -27,7 +30,6 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
             if (userSession is null)
                 return Result<ChatMessage>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
 
-            // ChatType 자동 결정
             var chatType =
                 !string.IsNullOrWhiteSpace(targetUserNickName) ? ChatType.Whisper :
                 userSession.CurrentRoomId > 0 ? ChatType.Room :
@@ -35,7 +37,6 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
 
             long? roomId = chatType == ChatType.Room ? userSession.CurrentRoomId : null;
 
-            // 저장(메시지ID/히스토리 등)
             var chatMessage = await chatMessageRepository.CreateAsync(
                 userSession.NickName,
                 chatType,
@@ -44,7 +45,6 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
                 targetUserNickName,
                 ct);
 
-            // Redis publish
             var channel = ChatChannels.GetChannel(chatType, roomId, targetUserNickName);
             await chatEventStream.PublishAsync(channel, chatMessage, ct);
 
@@ -52,7 +52,7 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to send chat message");
             return Result<ChatMessage>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
         finally
@@ -60,6 +60,7 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
             semaphore.Release();
         }
     }
+
     public async Task<IEnumerable<ChatMessage>> GetMessagesAfterAsync(
         string sessionId,
         long afterMessageId,
@@ -68,7 +69,6 @@ public class ChatService(IChatMessageRepository chatMessageRepository,
         var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
         if (userSession is null) return Array.Empty<ChatMessage>();
 
-        // (UserId, MessageId 기준 필터링) - Global, 현재 Room, 본인 관련 Whisper
         return await chatMessageRepository.GetMessagesAfterAsync(
             afterMessageId,
             userSession.NickName,

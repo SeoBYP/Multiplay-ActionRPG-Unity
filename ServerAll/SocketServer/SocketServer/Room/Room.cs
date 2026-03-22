@@ -1,15 +1,18 @@
-﻿
+
 namespace Server.Room;
 
+using Microsoft.Extensions.Logging;
 using Shared.Packet.Packets;
 
 public class Room
 {
     public long RoomId { get; private set; }
     public int MaxMembers { get; private set; }
-    
+
     private readonly Dictionary<ulong, Session> _players = new();
-    private readonly HashSet<long> _expectedUserIds = new();
+    private readonly HashSet<long> _expectedUserIds;
+    private readonly ILogger<Room> _logger;
+
     public int MemberCount
     {
         get
@@ -20,21 +23,19 @@ public class Room
             }
         }
     }
-    
+
     public bool IsFull => MemberCount >= MaxMembers;
 
-    public Room(long roomId, List<long> expectedUserIds)
+    public Room(long roomId, List<long> expectedUserIds, ILogger<Room> logger)
     {
         RoomId = roomId;
         MaxMembers = expectedUserIds.Count;
         _expectedUserIds = new HashSet<long>(expectedUserIds);
+        _logger = logger;
     }
-    
+
     public bool IsExpectedPlayer(long userId) => _expectedUserIds.Contains(userId);
 
-    /// <summary>
-    /// 플레이어 입장
-    /// </summary>
     public bool Join(Session session)
     {
         try
@@ -43,52 +44,59 @@ public class Room
             {
                 if (IsFull)
                 {
-                    Console.WriteLine($"[Room {RoomId}] Full! Cannot join session {session.SessionId}");
+                    _logger.LogWarning("Room {RoomId} is full. Session {SessionId} cannot join", RoomId, session.SessionId);
                     return false;
                 }
 
                 if (_players.ContainsKey(session.SessionId))
                 {
-                    Console.WriteLine($"[Room {RoomId}] Session {session.SessionId} already in room");
+                    _logger.LogWarning("Session {SessionId} is already in room {RoomId}", session.SessionId, RoomId);
                     return false;
                 }
 
                 _players.Add(session.SessionId, session);
-                Console.WriteLine($"[Room {RoomId}] Session {session.SessionId} joined. Members: {MemberCount}/{MaxMembers}");
-                
+                _logger.LogInformation(
+                    "Session {SessionId} joined room {RoomId}. Members: {MemberCount}/{MaxMembers}",
+                    session.SessionId,
+                    RoomId,
+                    MemberCount,
+                    MaxMembers);
+
                 return true;
             }
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            _logger.LogError(e, "Failed to join room {RoomId}", RoomId);
             throw;
         }
     }
 
-    /// <summary>
-    /// 플레이어 퇴장
-    /// </summary>
     public bool Leave(ulong sessionId)
     {
         try
         {
-            lock (_players)  // ← lock 추가!
+            lock (_players)
             {
                 if (!_players.Remove(sessionId))
                 {
-                    Console.WriteLine($"[Room {RoomId}] Session {sessionId} not in room");
+                    _logger.LogWarning("Session {SessionId} is not in room {RoomId}", sessionId, RoomId);
                     return false;
                 }
 
-                Console.WriteLine($"[Room {RoomId}] Session {sessionId} left. Members: {MemberCount}/{MaxMembers}");
+                _logger.LogInformation(
+                    "Session {SessionId} left room {RoomId}. Members: {MemberCount}/{MaxMembers}",
+                    sessionId,
+                    RoomId,
+                    MemberCount,
+                    MaxMembers);
 
                 return true;
             }
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            _logger.LogError(e, "Failed to leave room {RoomId}", RoomId);
             throw;
         }
     }
@@ -100,7 +108,7 @@ public class Room
             lock (_players)
             {
                 int sentCount = 0;
-            
+
                 foreach (var (sessionId, session) in _players)
                 {
                     if (excludeSessionId.HasValue && sessionId == excludeSessionId.Value)
@@ -110,12 +118,12 @@ public class Room
                     sentCount++;
                 }
 
-                Console.WriteLine($"[Room {RoomId}] Broadcast to {sentCount} members");
+                _logger.LogInformation("Broadcasted packet to {SentCount} members in room {RoomId}", sentCount, RoomId);
             }
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            _logger.LogError(e, "Failed to broadcast in room {RoomId}", RoomId);
             throw;
         }
     }

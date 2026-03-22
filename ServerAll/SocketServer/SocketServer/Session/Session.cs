@@ -1,9 +1,9 @@
-﻿using System.Net.Sockets;
+using System.Net.Sockets;
+using Microsoft.Extensions.Logging;
 using Server.PacketHandler;
 using Server.Room;
 using Shared.Packet;
 using Shared.Packet.Packets;
-
 
 public sealed class Session
 {
@@ -13,21 +13,27 @@ public sealed class Session
     public DateTime LastRecvAt { get; private set; }
     public DateTime ConnectedAt { get; }
     public string Nickname { get; set; }
-    
+
     public RoomManager RoomManager { get; }
-    
+
     private Socket Socket;
-    private Action<ulong> _onDisconnected;
-    private PacketDispatcher _dispatcher;  // ✅ Dispatcher 추가
+    private Action<ulong>? _onDisconnected;
+    private PacketDispatcher _dispatcher;
+    private readonly ILogger<Session> _logger;
 
-
-    public Session(ulong sessionId, Socket socket, PacketDispatcher dispatcher,
-        RoomManager roomManager, Action<ulong> onDisconnected = null)
+    public Session(
+        ulong sessionId,
+        Socket socket,
+        PacketDispatcher dispatcher,
+        RoomManager roomManager,
+        ILogger<Session> logger,
+        Action<ulong>? onDisconnected = null)
     {
         SessionId = sessionId;
         Socket = socket;
         _dispatcher = dispatcher;
         _onDisconnected = onDisconnected;
+        _logger = logger;
 
         Connected = true;
         ConnectedAt = DateTime.UtcNow;
@@ -35,7 +41,7 @@ public sealed class Session
         Nickname = string.Empty;
         RoomManager = roomManager;
     }
-    
+
     public async Task RunAsync(CancellationToken ct)
     {
         try
@@ -47,7 +53,7 @@ public sealed class Session
 
                 if (length <= 0 || length > 65536)
                 {
-                    Console.WriteLine($"[Session {SessionId}] Invalid packet length: {length}");
+                    _logger.LogWarning("Invalid packet length {Length} for session {SessionId}", length, SessionId);
                     break;
                 }
 
@@ -55,18 +61,17 @@ public sealed class Session
                 var packet = PacketSerializer.Deserialize(protobufData);
                 if (packet is null)
                 {
-                    Console.WriteLine($"[Session {SessionId}] Failed to deserialize packet");
-                    continue;  // break 대신 continue — 한 패킷 실패해도 연결 유지
+                    _logger.LogWarning("Failed to deserialize packet for session {SessionId}", SessionId);
+                    continue;
                 }
-                LastRecvAt = DateTime.UtcNow;
 
-                // ✅ Dispatcher로 자동 라우팅
+                LastRecvAt = DateTime.UtcNow;
                 await _dispatcher.Dispatch(this, packet, ct);
             }
         }
         catch (Exception e)
         {
-            Console.WriteLine($"[Session {SessionId}] Error: {e.Message}");
+            _logger.LogError(e, "Session loop failed for session {SessionId}", SessionId);
         }
         finally
         {
@@ -95,29 +100,21 @@ public sealed class Session
 
         return buffer;
     }
-    
-    /// <summary>
-    /// 패킷 전송 (범용)
-    /// </summary>
+
     public async Task SendPacketAsync(Packet packet, CancellationToken ct = default)
     {
         if (!Connected) return;
 
         try
         {
-            // Protobuf 직렬화
             byte[] protobufData = PacketSerializer.Serialize(packet);
-
-            // Length 추가
             int length = protobufData.Length;
             byte[] lengthBytes = BitConverter.GetBytes(length);
 
-            // 합치기
             byte[] finalPacket = new byte[4 + length];
             Array.Copy(lengthBytes, 0, finalPacket, 0, 4);
             Array.Copy(protobufData, 0, finalPacket, 4, length);
 
-            // 전송
             int offset = 0;
             while (offset < finalPacket.Length)
             {
@@ -134,7 +131,7 @@ public sealed class Session
         }
         catch (Exception e)
         {
-            Console.WriteLine($"[Session {SessionId}] SendPacketAsync failed: {e.Message}");
+            _logger.LogError(e, "SendPacketAsync failed for session {SessionId}", SessionId);
             Disconnect();
         }
     }
@@ -149,12 +146,12 @@ public sealed class Session
             Socket.Shutdown(SocketShutdown.Both);
             Socket.Close();
         }
-        catch(Exception e)
+        catch (Exception e)
         {
-            Console.WriteLine($"[Session {SessionId}] Socket Close Error: {e.Message}");
+            _logger.LogError(e, "Socket close failed for session {SessionId}", SessionId);
             throw;
         }
 
-        Console.WriteLine($"[Session {SessionId}] Disconnected");
+        _logger.LogInformation("Session {SessionId} disconnected", SessionId);
     }
 }

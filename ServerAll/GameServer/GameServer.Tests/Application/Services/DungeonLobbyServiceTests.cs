@@ -5,6 +5,7 @@ using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
+using Microsoft.Extensions.Logging.Abstractions;
 using Shared.Infrastructure.Messages;
 using System.Collections.Concurrent;
 
@@ -43,7 +44,8 @@ public class DungeonLobbyServiceTests
             _mockGameStartPublisher.Object,
             _mockSocketReadyChecker.Object,
             _mockSessionRepository.Object, 
-            _mockChatSubscriptionService.Object);
+            _mockChatSubscriptionService.Object,
+            NullLogger<DungeonLobbyService>.Instance);
     }
 
     private void SetupMocks()
@@ -502,7 +504,7 @@ public class DungeonLobbyServiceTests
         await _service.JoinRoomAsync(user2Session, roomId);
         
         // 게임 시작 (상태를 Playing으로 변경)
-        await _service.StartGameAsync(hostSession, roomId);
+        await _service.StartGameAsync(hostSession, roomId, "trace-test");
 
         // Act - 게임 중인 방에 입장 시도
         var result = await _service.JoinRoomAsync(user3Session, roomId);
@@ -661,7 +663,7 @@ public class DungeonLobbyServiceTests
         await _service.JoinRoomAsync(user2Session, roomId);
 
         // Act
-        var result = await _service.StartGameAsync(hostSession, roomId);
+        var result = await _service.StartGameAsync(hostSession, roomId, "trace-test");
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -682,7 +684,7 @@ public class DungeonLobbyServiceTests
         var roomId = createResult.Value!.RoomId;
 
         // Act
-        var result = await _service.StartGameAsync("invalid-session", roomId);
+        var result = await _service.StartGameAsync("invalid-session", roomId, "trace-test");
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -702,7 +704,7 @@ public class DungeonLobbyServiceTests
         await _service.JoinRoomAsync(otherSession, roomId);
 
         // Act - 방장이 아닌 사람이 게임 시작 시도
-        var result = await _service.StartGameAsync(otherSession, roomId);
+        var result = await _service.StartGameAsync(otherSession, roomId, "trace-test");
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -718,7 +720,7 @@ public class DungeonLobbyServiceTests
         var roomId = createResult.Value!.RoomId;
 
         // Act - 혼자서 게임 시작 시도
-        var result = await _service.StartGameAsync(sessionId, roomId);
+        var result = await _service.StartGameAsync(sessionId, roomId, "trace-test");
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -742,7 +744,7 @@ public class DungeonLobbyServiceTests
             .ReturnsAsync((string?)null);
 
         // Act
-        var result = await _service.StartGameAsync(hostSession, roomId);
+        var result = await _service.StartGameAsync(hostSession, roomId, "trace-test");
 
         // Assert
         Assert.False(result.IsSuccess);

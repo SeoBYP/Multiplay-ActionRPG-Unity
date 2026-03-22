@@ -4,6 +4,7 @@ using GameServer.Application.Domains.Auth.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Application.Security;
 using GameServer.Application.Security.Interface;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 
@@ -16,7 +17,8 @@ public class AuthService(
     IPasswordHasher passwordHasher,
     IUserSessionRepository userSessionRepository,
     IJwtTokenGenerator jwtTokenGenerator,
-    IOptions<JwtOptions> jwtOptions)
+    IOptions<JwtOptions> jwtOptions,
+    ILogger<AuthService> logger)
     : IAuthService
 {
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
@@ -25,18 +27,25 @@ public class AuthService(
     public async Task<Result<User>> RegisterAsync(string password, string email, CancellationToken ct = default)
     {
         if(string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(email))
+        {
+            logger.LogWarning("Register failed because password or email was empty");
             return Result<User>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+        }
         
         // 이메일 중복 체크
         var existingEmail = await userRepository.IsEmailExistsAsync(email, ct);
         if (existingEmail)
+        {
+            logger.LogInformation("Register rejected because email already exists: {Email}", email);
             return Result<User>.Failure(ErrorCodes.EmailAlreadyTaken, ErrorMessages.EmailAlreadyTaken);
+        }
         
         // 비밀번호 해싱
         var hash = passwordHasher.HashPassword(password);
 
         // User Entity 생성
         var user = await userRepository.AddAsync(hash, email, ct);
+        logger.LogInformation("Registered user {UserId} with email {Email}", user.UserId, user.Email);
         
         // Response
         return Result<User>.Success(user);
@@ -53,23 +62,33 @@ public class AuthService(
             if (string.IsNullOrWhiteSpace(deviceId)) missingFields.Add("deviceId");
             
             var msg = $"{ErrorMessages.InvalidRequest} (Missing: {string.Join(", ", missingFields)})";
+            logger.LogWarning("Login failed due to invalid request. Missing fields: {MissingFields}", missingFields);
             return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, msg);
         }
 
         // User 조회: 먼저 닉네임으로, 없으면 이메일로 재시도
         var user = await userRepository.GetByEmailAsync(email, ct);
         if (user is null)
+        {
+            logger.LogInformation("Login failed because user was not found for email {Email}", email);
             return Result<LoginResult>.Failure(ErrorCodes.UserNotFound, ErrorMessages.UserNotFound);
+        }
 
         // 비밀번호 검증
         var isValid = passwordHasher.VerifyPassword(password, user.PasswordHash);
         if (!isValid)
+        {
+            logger.LogInformation("Login failed because credentials were invalid for user {UserId}", user.UserId);
             return Result<LoginResult>.Failure(ErrorCodes.InvalidCredentials, ErrorMessages.InvalidCredentials);
+        }
 
         // 세션 생성
         var userSession = await userSessionRepository.CreateSessionAsync(user.UserId, user.NickName, user.Email, user.PublicId, ct);
         if (userSession is null)
+        {
+            logger.LogError("Login failed because session creation returned null for user {UserId}", user.UserId);
             return Result<LoginResult>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
+        }
 
         // TODO : AccessToken에 대한 만료에 대한 처리가 없다
         var accessToken =
@@ -82,6 +101,7 @@ public class AuthService(
         // 유저 정보에 리프레시 토큰 저장
         var hashedRefreshToken = HashRefreshToken(refreshToken, deviceId);
         await userRepository.UpdateRefreshTokenAsync(user.UserId, hashedRefreshToken, refreshTokenExpiry, ct);
+        logger.LogInformation("Login succeeded for user {UserId} with session {SessionId}", user.UserId, userSession.SessionId);
 
         // 성공
         return Result<LoginResult>.Success(new LoginResult(
@@ -96,41 +116,59 @@ public class AuthService(
     public async Task<Result> LogoutAsync(string sessionId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
+        {
+            logger.LogWarning("Logout failed because session id was empty");
             return Result.Failure(ErrorCodes.InvalidRequest,
                 ErrorMessages.InvalidRequest);
+        }
 
         // 로그아웃 시 리프레시 토큰도 삭제 (세션 정보를 통해 유저 ID를 알아내야 함)
         var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
         if (userSession is not null)
         {
             await userRepository.ClearRefreshTokenAsync(userSession.UserId, ct);
+            logger.LogInformation("Cleared refresh token during logout for user {UserId}", userSession.UserId);
         }
 
         await userSessionRepository.RemoveSessionAsync(sessionId, ct);
+        logger.LogInformation("Logout completed for session {SessionId}", sessionId);
         return Result.Success();
     }
 
     public async Task<Result<LoginResult>> RefreshTokenAsync(string accessToken, string refreshToken, string deviceId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(refreshToken) || string.IsNullOrWhiteSpace(deviceId))
+        {
+            logger.LogWarning("Refresh failed because refresh token or device id was empty");
             return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+        }
             
         var claimsPrincipal = await jwtTokenGenerator.ValidateToken(accessToken, false);
         if (claimsPrincipal is null)
+        {
+            logger.LogWarning("Refresh failed because access token validation failed");
             return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+        }
         
         var sessionIdClaim = claimsPrincipal.FindFirst(JwtRegisteredClaimNames.Sid);
         if (sessionIdClaim is null)
+        {
+            logger.LogWarning("Refresh failed because session id claim was missing");
             return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+        }
             
         var userSession = await userSessionRepository.GetBySessionIdAsync(sessionIdClaim.Value, ct);
         if (userSession is null)
+        {
+            logger.LogInformation("Refresh failed because session {SessionId} was not found", sessionIdClaim.Value);
             return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+        }
         
         // 3. UserId → User 조회 → RefreshToken 꺼내기
         var user = await userRepository.GetByIdAsync(userSession.UserId, ct);
         if (user is null)
         {
+            logger.LogInformation("Refresh failed because user {UserId} was not found", userSession.UserId);
             return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
         }
 
@@ -138,6 +176,7 @@ public class AuthService(
         if (user.RefreshToken is null)
         {
             await userSessionRepository.RemoveSessionAsync(userSession.SessionId, ct); // 세션 강제 종료
+            logger.LogWarning("Refresh failed because stored refresh token was missing for user {UserId}", user.UserId);
             return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
         }
         
@@ -157,12 +196,14 @@ public class AuthService(
             // Binding 실패 시 보안 위험으로 간주하고 세션 종료
             user.ClearRefreshToken();
             await userSessionRepository.RemoveSessionAsync(userSession.SessionId, ct);
+            logger.LogWarning("Refresh failed because refresh token validation failed for user {UserId}", user.UserId);
             return Result<LoginResult>.Failure(ErrorCodes.SessionExpired, ErrorMessages.SessionExpired);
         }
 
         // 6. RefreshToken 만료일 검사
         if (user.RefreshTokenExpiresAt <= DateTime.UtcNow)
         {
+            logger.LogInformation("Refresh failed because refresh token expired for user {UserId}", user.UserId);
             return Result<LoginResult>.Failure(ErrorCodes.SessionExpired, ErrorMessages.SessionExpired);
         }
 
@@ -176,6 +217,7 @@ public class AuthService(
         // 로테이션된 토큰 저장
         var hashedNewRefreshToken = HashRefreshToken(newRawRefreshToken, deviceId);
         await userRepository.UpdateRefreshTokenAsync(user.UserId, hashedNewRefreshToken, refreshTokenExpiry, ct);
+        logger.LogInformation("Refresh succeeded for user {UserId} with session {SessionId}", user.UserId, userSession.SessionId);
 
         return Result<LoginResult>.Success(new LoginResult(
             user, 
@@ -197,23 +239,36 @@ public class AuthService(
     {
         // 토큰이 유효한 값인지 검증
         if (string.IsNullOrWhiteSpace(token))
+        {
+            logger.LogWarning("ValidateToken failed because token was empty");
             return false;
+        }
 
         // 토큰 검증
         var claimsPrincipal = await jwtTokenGenerator.ValidateToken(token);
         if (claimsPrincipal is null)
+        {
+            logger.LogInformation("ValidateToken failed because token validation returned null");
             return false;
+        }
 
         // sessionID 가져오기
         var sessionId = claimsPrincipal.FindFirst(JwtRegisteredClaimNames.Sid);
         if (sessionId is null)
+        {
+            logger.LogWarning("ValidateToken failed because sid claim was missing");
             return false;
+        }
 
         // 현재 session이 활성화 되었는지 
         var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId.Value, ct);
         if (userSession is null)
+        {
+            logger.LogInformation("ValidateToken failed because session {SessionId} was not found", sessionId.Value);
             return false;
+        }
         
+        logger.LogDebug("ValidateToken succeeded for session {SessionId}", sessionId.Value);
         return true;
     }
 }

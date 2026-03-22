@@ -1,11 +1,14 @@
 ﻿using System.Globalization;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Domain.Entities.Chat;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace GameServer.Infrastructure.Domains.Chat;
 
-public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer) : IChatMessageRepository
+public class ChatMessageRepository(
+    IConnectionMultiplexer connectionMultiplexer,
+    Microsoft.Extensions.Logging.ILogger<ChatMessageRepository> logger) : IChatMessageRepository
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
     
@@ -349,19 +352,19 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
             !dict.TryGetValue("Message", out var message) ||
             !dict.TryGetValue("SentAt", out var sentAtStr))
         {
-            Console.WriteLine($"[ChatMessageRepository] Message {messageId} has missing fields");
+            logger.LogWarning("Chat message {MessageId} has missing fields", messageId);
             return null;
         }
 
         if (!Enum.TryParse<ChatType>(chatTypeStr, out var chatType))
         {
-            Console.WriteLine($"[ChatMessageRepository] Invalid ChatType: {chatTypeStr}");
+            logger.LogWarning("Invalid chat type {ChatType}", chatTypeStr);
             return null;
         }
 
         if (!DateTime.TryParse(sentAtStr, null, DateTimeStyles.RoundtripKind, out var sentAt))
         {
-            Console.WriteLine($"[ChatMessageRepository] Invalid SentAt: {sentAtStr}");
+            logger.LogWarning("Invalid chat message SentAt value {SentAt}", sentAtStr);
             return null;
         }
 
@@ -370,7 +373,7 @@ public class ChatMessageRepository(IConnectionMultiplexer connectionMultiplexer)
         {
             if (!long.TryParse(roomIdStr, out var rid))
             {
-                Console.WriteLine("[ChatMessageRepository] Invalid RoomId");
+                logger.LogWarning("Invalid chat message room id for message {MessageId}", messageId);
                 return null;
             }
             roomId = rid;

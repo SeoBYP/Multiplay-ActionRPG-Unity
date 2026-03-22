@@ -1,6 +1,6 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Sockets;
-
+using Microsoft.Extensions.Logging;
 
 namespace Server
 {
@@ -9,25 +9,29 @@ namespace Server
         private readonly IPEndPoint _endpoint;
         private Socket? _listenSocket;
         private volatile int _running;
-
         private readonly SessionManager _sessionManager;
-
+        private readonly ILogger<TcpNetworkListener> _logger;
         private CancellationTokenSource? _cts;
         private Task? _acceptLoopTask;
 
-        public TcpNetworkListener(string ipAddress, int port, SessionManager sessionManager)
+        public TcpNetworkListener(
+            string ipAddress,
+            int port,
+            SessionManager sessionManager,
+            ILogger<TcpNetworkListener> logger)
         {
             if (string.IsNullOrWhiteSpace(ipAddress))
                 throw new ArgumentException("IpAddress cannot be null or whitespace", nameof(ipAddress));
 
             _endpoint = new IPEndPoint(IPAddress.Parse(ipAddress), port);
             _sessionManager = sessionManager;
+            _logger = logger;
         }
 
         public void Start(int backlog = 512)
         {
             if (Interlocked.Exchange(ref _running, 1) == 1)
-                return; 
+                return;
 
             _cts = new CancellationTokenSource();
 
@@ -35,7 +39,7 @@ namespace Server
             _listenSocket.NoDelay = true;
             _listenSocket.Bind(_endpoint);
             _listenSocket.Listen(backlog);
-            
+
             _acceptLoopTask = AcceptLoopAsync(_cts.Token);
         }
 
@@ -43,22 +47,19 @@ namespace Server
         {
             if (Interlocked.Exchange(ref _running, 0) == 0)
                 return;
-            
+
             try
             {
                 _cts?.Cancel();
-                
                 _listenSocket?.Close();
-                _listenSocket?.Dispose(); 
-                
+                _listenSocket?.Dispose();
                 _cts?.Dispose();
             }
             catch (Exception e)
             {
-                Console.WriteLine($"[Stop] Exception: {e}");
-                
+                _logger.LogError(e, "Exception while stopping listener");
             }
-            
+
             _listenSocket = null;
             _cts = null;
             _acceptLoopTask = null;
@@ -76,10 +77,9 @@ namespace Server
                 try
                 {
                     client = await listen.AcceptAsync(ct);
-
                     client.NoDelay = true;
 
-                    Console.WriteLine("Connected : " + client.RemoteEndPoint);
+                    _logger.LogInformation("Accepted connection from {RemoteEndPoint}", client.RemoteEndPoint);
                     _sessionManager.CreateSession(client, ct);
                 }
                 catch (ObjectDisposedException)
@@ -94,14 +94,16 @@ namespace Server
                     if (Volatile.Read(ref _running) == 0 || ct.IsCancellationRequested)
                         break;
 
-                    Console.WriteLine($"[AcceptLoop] SocketException: {e.SocketErrorCode} / {e.Message}");
+                    _logger.LogError(e, "SocketException in accept loop: {SocketErrorCode}", e.SocketErrorCode);
                 }
                 catch (Exception e)
                 {
                     client?.Dispose();
+
                     if (Volatile.Read(ref _running) == 0 || ct.IsCancellationRequested)
                         break;
-                    Console.WriteLine($"[AcceptLoop] Exception: {e}");
+
+                    _logger.LogError(e, "Exception in accept loop");
                 }
             }
         }

@@ -2,6 +2,7 @@
 using GameServer.API.Services;
 using Grpc.Core;
 using Microsoft.IdentityModel.JsonWebTokens;
+using Serilog;
 
 namespace GameServer.API.Extensions;
 
@@ -18,13 +19,13 @@ public static class ServerCallContextExtension
 
         if (string.IsNullOrEmpty(authHeader))
         {
-            Console.WriteLine("Authorization 헤더 없음");
+            Log.Warning("Authorization header is missing");
             return null;
         }
 
         if (!authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
         {
-            Console.WriteLine($"잘못된 Authorization 형식: {authHeader}");
+            Log.Warning("Invalid authorization header format: {AuthorizationHeader}", authHeader);
             return null;
         }
 

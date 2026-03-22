@@ -1,5 +1,10 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.Context;
+using Serilog.Extensions.Logging;
+using Serilog.Sinks.Graylog;
+using Serilog.Sinks.Graylog.Core.Transport;
 using Server.PacketHandler;
 using Server.Room;
 using StackExchange.Redis;
@@ -10,6 +15,8 @@ namespace Server
     {
         static async Task Main(string[] args)
         {
+
+            
             // 1. 설정 로드
             var config = new ConfigurationBuilder()
                 .SetBasePath(AppContext.BaseDirectory)
@@ -21,24 +28,38 @@ namespace Server
             var port = int.Parse(config["Server:Port"] ?? "7777");
 
             // 2. 로깅 설정
-            using var loggerFactory = LoggerFactory.Create(builder =>
-            {
-                builder.AddConfiguration(config.GetSection("Logging"))
-                       .AddConsole();
-            });
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .Enrich.FromLogContext()
+                .WriteTo.Console(outputTemplate:
+                    "[{Timestamp:HH:mm:ss} {Level:u3}] TraceId={TraceId} SessionId={SessionId} {Message:lj}{NewLine}{Exception}")
+                .WriteTo.File("logs/socketserver-.log", rollingInterval: RollingInterval.Day)
+                .WriteTo.Graylog(new GraylogSinkOptions
+                {
+                    HostnameOrAddress = "127.0.0.1",
+                    Port = 12201,
+                    TransportType = TransportType.Udp
+                })
+                .CreateLogger();
+            
+            using var loggerFactory = new SerilogLoggerFactory(Log.Logger);
             var logger = loggerFactory.CreateLogger<Program>();
 
             logger.LogInformation("Starting SocketServer at {Ip}:{Port}...", ipAddress, port);
 
             // 3. 인프라 초기화
-            var registry = PacketHandlerRegistry.Build();
-            var dispatcher = registry.CreateDispatcher();
+            var registry = PacketHandlerRegistry.Build(loggerFactory.CreateLogger<PacketHandlerRegistry>());
+            var dispatcher = registry.CreateDispatcher(loggerFactory.CreateLogger<PacketDispatcher>());
             var redis = ConnectionMultiplexer.Connect(redisConnStr);
             var gameStartQueue = new GameStartMessageQueue(redis, loggerFactory.CreateLogger<GameStartMessageQueue>());
-            var roomManager = new RoomManager();
-            var sessionManager = new SessionManager(dispatcher, roomManager);
+            var roomManager = new RoomManager(loggerFactory.CreateLogger<RoomManager>(), loggerFactory.CreateLogger<Server.Room.Room>());
+            var sessionManager = new SessionManager(
+                dispatcher,
+                roomManager,
+                loggerFactory.CreateLogger<SessionManager>(),
+                loggerFactory.CreateLogger<Session>());
             
-            var listener = new TcpNetworkListener(ipAddress, port, sessionManager);
+            var listener = new TcpNetworkListener(ipAddress, port, sessionManager, loggerFactory.CreateLogger<TcpNetworkListener>());
             listener.Start();
             
             var cts = new CancellationTokenSource();
@@ -56,14 +77,18 @@ namespace Server
                 {
                     await foreach (var msg in gameStartQueue.DequeueAllAsync(cts.Token))
                     {
-                        roomManager.CreateRoom(msg.RoomId, msg.PlayerIds);
-                        logger.LogInformation("[GameStart] RoomId={RoomId}, Players={PlayerCount}명", msg.RoomId, msg.PlayerIds.Count);
+                        using (LogContext.PushProperty("TraceId", msg.TraceId))
+                        using (LogContext.PushProperty("RoomId", msg.RoomId))
+                        {
+                            roomManager.CreateRoom(msg.RoomId, msg.PlayerIds);
+                            logger.LogInformation("[GameStart] RoomId={RoomId}, Players={PlayerCount}명", msg.RoomId, msg.PlayerIds.Count);
             
-                        // Redis에 준비 신호 설정 → GameServer 폴링이 읽어감
-                        await redis.GetDatabase().StringSetAsync(
-                            $"socket:room:{msg.RoomId}:ready",
-                            $"{ipAddress}:{port}",
-                            TimeSpan.FromMinutes(5));
+                            // Redis에 준비 신호 설정 → GameServer 폴링이 읽어감
+                            await redis.GetDatabase().StringSetAsync(
+                                $"socket:room:{msg.RoomId}:ready",
+                                $"{ipAddress}:{port}",
+                                TimeSpan.FromMinutes(5));
+                        }
                     }
                 }
                 catch (OperationCanceledException)

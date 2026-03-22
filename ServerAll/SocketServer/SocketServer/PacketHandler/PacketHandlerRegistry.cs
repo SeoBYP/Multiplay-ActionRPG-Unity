@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+using System.Reflection;
+using Microsoft.Extensions.Logging;
 using Shared.Packet.Packets;
 
 namespace Server.PacketHandler;
@@ -9,7 +10,7 @@ public sealed class PacketHandlerRegistry
 
     public int Count => _handlers.Count;
 
-    public static PacketHandlerRegistry Build()
+    public static PacketHandlerRegistry Build(ILogger<PacketHandlerRegistry> logger)
     {
         var registry = new PacketHandlerRegistry();
 
@@ -30,26 +31,29 @@ public sealed class PacketHandlerRegistry
 
                 if (!ValidateMethodSignature(method, attribute.PacketType))
                 {
-                    Console.WriteLine($"[PacketHandlerRegistry] Invalid signature: {type.Name}.{method.Name}");
+                    logger.LogWarning("Invalid packet handler signature: {TypeName}.{MethodName}", type.Name, method.Name);
                     continue;
                 }
 
                 if (registry._handlers.ContainsKey(attribute.PacketType))
                 {
-                    Console.WriteLine($"[PacketHandlerRegistry] Duplicate handler: {attribute.PacketType.Name}");
+                    logger.LogWarning("Duplicate packet handler for {PacketType}", attribute.PacketType.Name);
                     continue;
                 }
 
-                var wrapper = CreateWrapper(method, attribute.PacketType);
-
+                var wrapper = CreateWrapper(method, attribute.PacketType, logger);
                 registry._handlers.Add(attribute.PacketType, wrapper);
 
-                Console.WriteLine($"[PacketHandlerRegistry] Registered: {attribute.PacketType.Name} -> {type.Name}.{method.Name}");
+                logger.LogInformation(
+                    "Registered packet handler {PacketType} -> {TypeName}.{MethodName}",
+                    attribute.PacketType.Name,
+                    type.Name,
+                    method.Name);
                 registeredCount++;
             }
         }
 
-        Console.WriteLine($"[PacketHandlerRegistry] Total: {registeredCount}");
+        logger.LogInformation("Registered {RegisteredCount} packet handlers", registeredCount);
         return registry;
     }
 
@@ -77,29 +81,28 @@ public sealed class PacketHandlerRegistry
         return true;
     }
 
-    private static PacketHandler CreateWrapper(MethodInfo method, Type packetType)
+    private static PacketHandler CreateWrapper(MethodInfo method, Type packetType, ILogger<PacketHandlerRegistry> logger)
     {
         return (session, packet, ct) =>
         {
-            // 방어 코드
             if (packet is null)
                 return ValueTask.CompletedTask;
 
             if (packet.GetType() != packetType)
             {
-                Console.WriteLine(
-                    $"[PacketHandlerRegistry] Packet type mismatch. Expected={packetType.Name}, Actual={packet.GetType().Name}");
+                logger.LogWarning(
+                    "Packet type mismatch. Expected={ExpectedPacketType}, Actual={ActualPacketType}",
+                    packetType.Name,
+                    packet.GetType().Name);
                 return ValueTask.CompletedTask;
             }
 
-            // method: (Session, PingPackets, CancellationToken) 같은 구체 타입 메서드
-            // wrapper: (Session, Packet, CancellationToken) 공통 타입
-            return (ValueTask)method.Invoke(null, [session, packet, ct]);
+            return (ValueTask)method.Invoke(null, [session, packet, ct])!;
         };
     }
 
-    public PacketDispatcher CreateDispatcher()
+    public PacketDispatcher CreateDispatcher(ILogger<PacketDispatcher> logger)
     {
-        return new PacketDispatcher(_handlers);
+        return new PacketDispatcher(_handlers, logger);
     }
 }

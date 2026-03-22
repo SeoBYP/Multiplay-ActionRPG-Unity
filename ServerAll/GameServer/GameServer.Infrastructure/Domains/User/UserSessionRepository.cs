@@ -3,6 +3,7 @@ using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Application.Security;
 using GameServer.Domain.Entities;
 using GameServer.Infrastructure.Security;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
@@ -12,7 +13,8 @@ namespace GameServer.Infrastructure.Domains.User;
 /// Redis 기반 사용자 세션 저장소
 /// </summary>
 public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer, 
-    IOptions<JwtOptions> jwtOptions)
+    IOptions<JwtOptions> jwtOptions,
+    Microsoft.Extensions.Logging.ILogger<UserSessionRepository> logger)
     : IUserSessionRepository
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
@@ -100,13 +102,13 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
         catch (RedisException)
         {
             // Redis 통신 오류는 로그만 남기고 null 반환
-            Console.WriteLine($"Redis error while getting session {sessionId}");
+            logger.LogWarning("Redis error while getting session {SessionId}", sessionId);
             return null;
         }
         catch
         {
             // 예상치 못한 오류는 상위로 전파
-            Console.WriteLine($"Unexpected error while getting session {sessionId}");
+            logger.LogError("Unexpected error while getting session {SessionId}", sessionId);
             throw;
         }
     }
@@ -256,7 +258,7 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
             if (expiredCount > 0)
             {
                 await transaction.ExecuteAsync();
-                Console.WriteLine($"Removed {expiredCount} expired sessions");
+                logger.LogInformation("Removed {ExpiredCount} expired sessions", expiredCount);
             }
         }
         catch (Exception)
@@ -288,34 +290,34 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
             !dict.TryGetValue("LoginAt", out var loginAtStr) ||
             !dict.TryGetValue("LastActiveAt", out var lastActiveAtStr))
         {
-            Console.WriteLine($"Session {sessionId} has missing fields");
+            logger.LogWarning("Session {SessionId} has missing fields", sessionId);
             return null;
         }
 
         // UserId 파싱
         if (!long.TryParse(userIdStr, out var userId))
         {
-            Console.WriteLine($"Invalid UserId in session {sessionId}");
+            logger.LogWarning("Invalid UserId in session {SessionId}", sessionId);
             return null;
         }
 
         // CurrentRoomId 파싱
         if (!long.TryParse(roomIdStr, out var roomId))
         {
-            Console.WriteLine($"Invalid CurrentRoomId in session {sessionId}");
+            logger.LogWarning("Invalid CurrentRoomId in session {SessionId}", sessionId);
             return null;
         }
 
         // 날짜 파싱 (ISO 8601)
         if (!DateTime.TryParse(loginAtStr, null, DateTimeStyles.RoundtripKind, out var loginAt))
         {
-            Console.WriteLine($"Invalid LoginAt in session {sessionId}");
+            logger.LogWarning("Invalid LoginAt in session {SessionId}", sessionId);
             return null;
         }
 
         if (!DateTime.TryParse(lastActiveAtStr, null, DateTimeStyles.RoundtripKind, out var lastActiveAt))
         {
-            Console.WriteLine($"Invalid LastActiveAt in session {sessionId}");
+            logger.LogWarning("Invalid LastActiveAt in session {SessionId}", sessionId);
             return null;
         }
 

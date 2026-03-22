@@ -2,6 +2,7 @@
 using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Domain.Entities;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace GameServer.Infrastructure.Domains.DungeonRoom;
@@ -9,7 +10,9 @@ namespace GameServer.Infrastructure.Domains.DungeonRoom;
 /// <summary>
 /// Redis 기반 던전 방 저장소 구현체
 /// </summary>
-public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer) : IDungeonRoomRepository
+public class DungeonRoomRepository(
+    IConnectionMultiplexer connectionMultiplexer,
+    Microsoft.Extensions.Logging.ILogger<DungeonRoomRepository> logger) : IDungeonRoomRepository
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
 
@@ -80,7 +83,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to create dungeon room for host {HostUserId}", hostId);
             throw;
         }
     }
@@ -114,7 +117,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to get dungeon room {RoomId}", roomId);
             throw;
         }
     }
@@ -141,7 +144,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to get dungeon room by user {UserId}", userId);
             throw;
         }
     }
@@ -197,7 +200,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to get all active dungeon rooms");
             throw;
         }
     }
@@ -302,7 +305,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to update dungeon room {RoomId}", room.RoomId);
             throw;
         }
     }
@@ -351,7 +354,7 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError(e, "Failed to delete dungeon room {RoomId}", roomId);
             throw;
         }
     }
@@ -450,44 +453,44 @@ public class DungeonRoomRepository(IConnectionMultiplexer connectionMultiplexer)
             !dict.TryGetValue("SocketIp", out var socketIp) ||
             !dict.TryGetValue("SocketPort", out var socketPortStr))
         {
-            Console.WriteLine($"DungeonRoom {roomId} has missing fields");
+            logger.LogWarning("Dungeon room {RoomId} has missing fields", roomId);
             return null;
         }
 
         // 3. 파싱
         if (!long.TryParse(roomIdStr, out var id))
         {
-            Console.WriteLine($"Invalid RoomId: {roomIdStr}");
+            logger.LogWarning("Invalid dungeon room id value {RoomIdValue}", roomIdStr);
             return null;
         }
     
         if (!long.TryParse(hostUserIdStr, out var hostUserId))
         {
-            Console.WriteLine($"Invalid HostUserId: {hostUserIdStr}");
+            logger.LogWarning("Invalid host user id value {HostUserIdValue}", hostUserIdStr);
             return null;
         }
     
         if (!int.TryParse(maxPlayersStr, out var maxPlayers))
         {
-            Console.WriteLine($"Invalid MaxPlayers: {maxPlayersStr}");
+            logger.LogWarning("Invalid max players value {MaxPlayersValue}", maxPlayersStr);
             return null;
         }
     
         if (!Enum.TryParse<RoomStatus>(statusStr, out var status))
         {
-            Console.WriteLine($"Invalid Status: {statusStr}");
+            logger.LogWarning("Invalid dungeon room status value {StatusValue}", statusStr);
             return null;
         }
     
         if (!DateTime.TryParse(createdAtStr, null, DateTimeStyles.RoundtripKind, out var createdAt))
         {
-            Console.WriteLine($"Invalid CreatedAt: {createdAtStr}");
+            logger.LogWarning("Invalid dungeon room created-at value {CreatedAtValue}", createdAtStr);
             return null;
         }
 
         if (!int.TryParse(socketPortStr, out var socketPort))
         {
-            Console.WriteLine($"Invalid SocketPort: {socketPortStr}");
+            logger.LogWarning("Invalid socket port value {SocketPortValue}", socketPortStr);
             return null;
         }
         

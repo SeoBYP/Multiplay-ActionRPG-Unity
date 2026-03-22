@@ -9,3 +9,9 @@ public interface IMiddlewareInstaller
 {
     void Install(WebApplication app);
 }
+
+public interface IInstaller
+{
+    void Install(WebApplication app);
+}
+

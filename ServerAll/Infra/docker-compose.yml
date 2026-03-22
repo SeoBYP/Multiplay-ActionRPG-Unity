@@ -1,7 +1,47 @@
 version: '3.8'
 
 services:
-  # PostgreSQL 데이터베이스
+  mongodb:
+    image: mongo:7.0
+    container_name: gameserver-mongodb
+    restart: unless-stopped
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - gameserver-network
+
+  opensearch:
+    image: opensearchproject/opensearch:2.12.0
+    container_name: gameserver-opensearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    networks:
+      - gameserver-network
+
+  graylog:
+    image: graylog/graylog:5.2          # 6.0 → 5.2로 변경 admin / admin
+    container_name: gameserver-graylog
+    restart: unless-stopped
+    environment:
+      GRAYLOG_PASSWORD_SECRET: "somepasswordpeppersalt1234"  # 16자 이상
+      GRAYLOG_ROOT_PASSWORD_SHA2: "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"  # echo -n "admin" | sha256sum
+      GRAYLOG_HTTP_EXTERNAL_URI: "http://127.0.0.1:9000/"
+      GRAYLOG_ELASTICSEARCH_HOSTS: "http://opensearch:9200"
+      GRAYLOG_MONGODB_URI: "mongodb://mongodb:27017/graylog"
+    ports:
+      - "9000:9000"
+      - "12201:12201/udp"
+    depends_on:
+      - mongodb
+      - opensearch
+    networks:
+      - gameserver-network
+
   postgres:
     image: postgres:16-alpine
     container_name: gameserver-postgres
@@ -22,7 +62,6 @@ services:
     networks:
       - gameserver-network
 
-  # Redis 캐시
   redis:
     image: redis:7-alpine
     container_name: gameserver-redis
@@ -40,7 +79,6 @@ services:
     networks:
       - gameserver-network
 
-  # PgAdmin (PostgreSQL 관리 도구)
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: gameserver-pgadmin
@@ -61,11 +99,10 @@ services:
 
 volumes:
   pgdata:
-    driver: local
   redisdata:
-    driver: local
   pgadmin-data:
-    driver: local
+  mongodb_data:     
+  opensearch_data:   
 
 networks:
   gameserver-network:

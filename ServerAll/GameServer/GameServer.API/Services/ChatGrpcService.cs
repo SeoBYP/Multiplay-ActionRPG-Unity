@@ -5,13 +5,15 @@ using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Domain.Entities.Chat;
 using GameServer.Grpc.Chat;
 using Grpc.Core;
+using Microsoft.Extensions.Logging;
 using ChatService = GameServer.Grpc.Chat.ChatService;
 
 namespace GameServer.API.Services;
 
 public class ChatGrpcService(
     IChatService chatService,
-    IChatSubscriptionService subscriptionService) : ChatService.ChatServiceBase
+    IChatSubscriptionService subscriptionService,
+    ILogger<ChatGrpcService> logger) : ChatService.ChatServiceBase
 {
     public override async Task ChatStream(
         IAsyncStreamReader<ChatClientMessage> requestStream,
@@ -20,11 +22,15 @@ public class ChatGrpcService(
     {
         var ct = context.CancellationToken;
         var sessionId = context.GetSessionId();
+        logger.LogInformation("Chat stream connected for session {SessionId}", sessionId);
 
         // ConnectAsync 내부: 세션 조회 + ctx 생성 + Redis 구독
         var ctx = await subscriptionService.ConnectAsync(sessionId, ct);
         if (ctx is null)
+        {
+            logger.LogWarning("Chat stream connection rejected for session {SessionId}", sessionId);
             return;
+        }
 
         try
         {
@@ -43,6 +49,7 @@ public class ChatGrpcService(
         {
             // DisconnectAsync 내부에서 ctx.Stop() + UnsubscribeAll + registry 제거
             await subscriptionService.DisconnectAsync(ctx, context.CancellationToken);
+            logger.LogInformation("Chat stream disconnected for user {UserId}", ctx.UserId);
         }
     }
 
@@ -60,6 +67,7 @@ public class ChatGrpcService(
                 {
                     case ChatClientMessage.PayloadOneofCase.Chat:
                     {
+                        logger.LogDebug("Received chat message from user {UserId}", ctx.UserId);
                         // ChatService가 ChatType 결정 + 저장 + Redis Publish
                         // Redis → OnRedisMessage 콜백 → ctx.Outbound에 push
                         _ = await chatService.SendMessageAsync(
@@ -73,6 +81,7 @@ public class ChatGrpcService(
 
                     case ChatClientMessage.PayloadOneofCase.Reconnect:
                     {
+                        logger.LogInformation("Received chat reconnect for user {UserId} from message {LastMessageId}", ctx.UserId, msg.Reconnect.LastMessageId);
                         // 밀린 메시지 조회 후 큐에 직접 Push
                         var history = await chatService.GetMessagesAfterAsync(
                             sessionId,
@@ -104,9 +113,9 @@ public class ChatGrpcService(
         {
             // stream cancelled/unavailable
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // TODO: log
+            logger.LogError(ex, "Unexpected error while receiving chat stream for user {UserId}", ctx.UserId);
         }
         finally
         {
@@ -140,9 +149,9 @@ public class ChatGrpcService(
         {
             // stream cancelled/unavailable
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // TODO: log
+            logger.LogError(ex, "Unexpected error while sending chat stream for user {UserId}", ctx.UserId);
         }
         finally
         {

@@ -7,6 +7,7 @@ using GameServer.Application.Security.Interface;
 using GameServer.Domain.Entities;
 using GameServer.Domain.Entities.User;
 using GameServer.Infrastructure.Security;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 
@@ -51,7 +52,8 @@ public class AuthServiceTests
             _passwordHasher,
             _mockUserSessionRepository.Object,
             _jwtTokenGenerator,
-            jwtOptionsWrapper
+            jwtOptionsWrapper,
+            NullLogger<AuthService>.Instance
         );
     }
 

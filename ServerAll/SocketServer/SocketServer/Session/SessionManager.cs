@@ -1,42 +1,51 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Net.Sockets;
+using Microsoft.Extensions.Logging;
 using Server.PacketHandler;
 using Server.Room;
 using Shared.Packet.Packets;
-
 
 public sealed class SessionManager
 {
     public static SessionManager? Instance { get; private set; }
 
     private ulong _nextSessionId = 0;
-    
-    private readonly ConcurrentDictionary<ulong, Session> _sessions = new();
 
-    private readonly PacketDispatcher _dispatcher; 
+    private readonly ConcurrentDictionary<ulong, Session> _sessions = new();
+    private readonly PacketDispatcher _dispatcher;
     private readonly RoomManager _roomManager;
-    public SessionManager(PacketDispatcher dispatcher, RoomManager roomManager)
+    private readonly ILogger<SessionManager> _logger;
+    private readonly ILogger<Session> _sessionLogger;
+
+    public SessionManager(
+        PacketDispatcher dispatcher,
+        RoomManager roomManager,
+        ILogger<SessionManager> logger,
+        ILogger<Session> sessionLogger)
     {
         Instance = this;
         _dispatcher = dispatcher;
         _roomManager = roomManager;
+        _logger = logger;
+        _sessionLogger = sessionLogger;
     }
-    
+
     public Session? CreateSession(Socket clientSocket, CancellationToken ct)
     {
         var id = Interlocked.Increment(ref _nextSessionId);
         var session = new Session(
             sessionId: id,
             socket: clientSocket,
-            dispatcher: _dispatcher,  // ✅ Dispatcher 주입
+            dispatcher: _dispatcher,
             roomManager: _roomManager,
+            logger: _sessionLogger,
             onDisconnected: OnSessionDisconnected);
 
         if (!_sessions.TryAdd(id, session))
             return null;
 
-        Console.WriteLine($"Session {id} created.");
-        
+        _logger.LogInformation("Session {SessionId} created", id);
+
         _ = session.RunAsync(ct);
 
         return session;
@@ -55,11 +64,12 @@ public sealed class SessionManager
 
     private void OnSessionDisconnected(ulong sessionId)
     {
-        if (_sessions.TryRemove(sessionId, out var session))
+        if (_sessions.TryRemove(sessionId, out _))
         {
-            _roomManager.LeaveRoom(sessionId);  // Room에서도 퇴장
+            _roomManager.LeaveRoom(sessionId);
         }
-        Console.WriteLine($"[SessionManager] Session {sessionId} disconnected");
+
+        _logger.LogInformation("Session {SessionId} disconnected", sessionId);
     }
 
     public Session? Get(ulong sessionId)
@@ -71,24 +81,22 @@ public sealed class SessionManager
     {
         return _sessions.Values.FirstOrDefault(s => s.Nickname == nickname);
     }
-    
+
     public void BroadcastAll(Packet packet, CancellationToken ct)
     {
-        foreach (var (key, session) in _sessions)
+        foreach (var (_, session) in _sessions)
         {
             _ = session.SendPacketAsync(packet, ct);
         }
     }
-    
+
     public void Clear()
     {
         foreach (var s in _sessions.Values)
             s.Disconnect();
+
         _sessions.Clear();
     }
-    
-    /// <summary>
-    /// 현재 접속자 수
-    /// </summary>
+
     public int SessionCount => _sessions.Count;
 }

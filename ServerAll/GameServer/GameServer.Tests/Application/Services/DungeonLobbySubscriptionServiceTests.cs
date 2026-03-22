@@ -2,6 +2,7 @@
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace GameServer.Tests.Application.Services;
@@ -25,7 +26,8 @@ public class DungeonLobbySubscriptionServiceTests
         _service = new DungeonLobbySubscriptionService(
             _mockEventStream.Object,
             _mockRoomRepository.Object,
-            _mockSessionRepository.Object);
+            _mockSessionRepository.Object,
+            NullLogger<DungeonLobbySubscriptionService>.Instance);
     }
 
     [Fact]

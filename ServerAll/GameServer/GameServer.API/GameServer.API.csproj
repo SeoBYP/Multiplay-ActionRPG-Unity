@@ -11,12 +11,14 @@
         <PackageReference Include="Grpc.AspNetCore.Server.Reflection" Version="2.76.0" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1"/>
         <PackageReference Include="DotNetEnv" Version="2.5.0" />
+        <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+        <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
+        <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+        <PackageReference Include="Serilog.Sinks.Graylog" Version="3.1.1" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Application\" />
-      <Folder Include="Chat\" />
       <Folder Include="Protos\" />
       <Folder Include="wwwroot\" />
     </ItemGroup>

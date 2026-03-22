@@ -59,5 +59,5 @@ public interface IDungeonLobbyService
     /// <param name="userId">게임 시작을 요청한 사용자 ID</param>
     /// <param name="roomId">게임을 시작할 방 ID</param>
     /// <returns>게임 시작 결과</returns>
-    Task<Result<DungeonRoom>> StartGameAsync(string sessionId, long roomId, CancellationToken ct = default);
+    Task<Result<DungeonRoom>> StartGameAsync(string sessionId, long roomId, string traceId, CancellationToken ct = default);
 }

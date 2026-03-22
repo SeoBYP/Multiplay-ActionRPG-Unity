@@ -3,6 +3,7 @@ using GameServer.Application.Domains.User;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
 using GameServer.Domain.Entities.User;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace GameServer.Tests.Application.Services;
@@ -17,7 +18,10 @@ public class UserServiceTests
     {
         _mockUserRepository = new Mock<IUserRepository>();
         _mockUserSessionRepository = new Mock<IUserSessionRepository>();
-        _userService = new UserService(_mockUserRepository.Object, _mockUserSessionRepository.Object);
+        _userService = new UserService(
+            _mockUserRepository.Object,
+            _mockUserSessionRepository.Object,
+            NullLogger<UserService>.Instance);
     }
 
     private (string sessionId, User user, UserSession session) CreateTestData(long userId = 1, string email = "test@example.com")
