@@ -7,20 +7,20 @@ using StackExchange.Redis;
 
 namespace Server;
 
-public class GameStartMessageQueue(
+public class GameStartRequestedMessageQueue(
     IConnectionMultiplexer redis,
-    ILogger<GameStartMessageQueue> logger)
-    : RedisMessageQueueBase<GameStartMessage>(redis, "stream:game:start")
+    ILogger<GameStartRequestedMessageQueue> logger)
+    : RedisMessageQueueBase<GameStartRequestedMessage>(redis, "stream:game:start:requested")
 {
     private const string EntryId    = "data";
     private const string GroupName  = "socket-server";
     private const string ConsumerName = "socket-1";
     
     // SocketServer는 발행 안 함
-    public override Task EnqueueAsync(GameStartMessage message)
+    public override Task EnqueueAsync(GameStartRequestedMessage message)
         => throw new NotSupportedException();
 
-    public override async IAsyncEnumerable<GameStartMessage> DequeueAllAsync(
+    public override async IAsyncEnumerable<GameStartRequestedMessage> DequeueAllAsync(
         [EnumeratorCancellation] CancellationToken ct = default)
     {
         await EnsureConsumerGroupAsync();
@@ -66,7 +66,7 @@ public class GameStartMessageQueue(
         }
     }
 
-    private async IAsyncEnumerable<GameStartMessage> ReadPendingAsync([EnumeratorCancellation] CancellationToken ct)
+    private async IAsyncEnumerable<GameStartRequestedMessage> ReadPendingAsync([EnumeratorCancellation] CancellationToken ct)
     {
         // "0" 또는 특정 ID를 주면 Pending 메시지를 읽음
         // 여기서는 간단히 한 번만 시도 (필요시 루프로 구현)
@@ -80,7 +80,7 @@ public class GameStartMessageQueue(
         }
     }
 
-    private async Task<GameStartMessage?> ProcessEntryAsync(StreamEntry entry)
+    private async Task<GameStartRequestedMessage?> ProcessEntryAsync(StreamEntry entry)
     {
         try
         {
@@ -115,9 +115,9 @@ public class GameStartMessageQueue(
             throw;
         }
     } 
-    protected override ValueTask<string> SerializeMessage(GameStartMessage message)
+    protected override ValueTask<string> SerializeMessage(GameStartRequestedMessage message)
         => ValueTask.FromResult(JsonSerializer.Serialize(message));
 
-    protected override ValueTask<GameStartMessage> DeserializeMessage(string data)
-        => ValueTask.FromResult(JsonSerializer.Deserialize<GameStartMessage>(data)!);
+    protected override ValueTask<GameStartRequestedMessage> DeserializeMessage(string data)
+        => ValueTask.FromResult(JsonSerializer.Deserialize<GameStartRequestedMessage>(data)!);
 }

@@ -1,9 +1,9 @@
-using GameServer.Application.Common.Consumer;
-using GameServer.Application.Common.MessageQueue;
 using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.GameSession;
 using GameServer.Application.Domains.GameSession.Interfaces;
+using GameServer.Infrastructure.Common;
+using GameServer.Infrastructure.Common.MessageQueue;
 using GameServer.Infrastructure.Domains.DungeonRoom;
 using GameServer.Infrastructure.Domains.GameSession;
 using Shared.Infrastructure.MessageQueue;
@@ -25,12 +25,9 @@ public class DungeonInstaller : IServiceInstaller
         services.AddSingleton<IGameSessionPlayerRepository, GameSessionPlayerRepository>();
 
         services.AddSingleton<DungeonRoomBroadcastChannel>();
-        services.AddSingleton<ISocketReadyChecker, RedisSocketReadyChecker>();
-        services.AddSingleton<IGameStartPublisher, GameStartPublisher>();
         services.AddSingleton<IMessageQueue<GameStartRequestedMessage>, GameStartRequestedMessageQueue>();
         services.AddSingleton<IMessageQueue<GameSessionReadyMessage>, GameSessionReadyMessageQueue>();
 
-        services.AddHostedService<GameStartRequestedConsumer>();
         services.AddHostedService<GameSessionReadyConsumer>();
     }
 }

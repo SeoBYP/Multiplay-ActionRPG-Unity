@@ -1,14 +1,16 @@
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
+using GameServer.Application.Domains.GameSession;
 using GameServer.Domain.Entities;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Shared.Infrastructure.MessageQueue;
 using Shared.Infrastructure.Messages;
 
-namespace GameServer.Application.Common.Consumer;
+namespace GameServer.Infrastructure.Domains.GameSession;
 
 public sealed class GameSessionReadyConsumer(
     IMessageQueue<GameSessionReadyMessage> gameSessionReadyMessageQueue,
+    IGameSessionService gameSessionService,
     IDungeonRoomRepository roomRepository,
     IDungeonLobbySubscriptionService subscriptionService,
     ILogger<GameSessionReadyConsumer> logger) : BackgroundService
@@ -25,6 +27,14 @@ public sealed class GameSessionReadyConsumer(
                     logger.LogWarning("Room {RoomId} was not found while handling game session ready", message.RoomId);
                     continue;
                 }
+
+                await gameSessionService.CreateGameSessionAsync(
+                    message.RoomId,
+                    room.CurrentPlayers.ToList(),
+                    message.Host,
+                    message.Port,
+                    message.TraceId,
+                    stoppingToken);
 
                 if (room.Status == RoomStatus.Starting)
                 {

@@ -70,7 +70,7 @@ public class DungeonLobbyServiceTests
 
                 var oldMappings = _userRoomMapping.Where(x => x.Value == room.RoomId).Select(x => x.Key).ToList();
                 foreach (var userId in oldMappings)
-                    _userRoomMapping.TryRemove(userId, out _);
+                    _userRoomMapping.TryRemove(userId, out long _);
                 foreach (var userId in room.CurrentPlayers)
                     _userRoomMapping[userId] = room.RoomId;
 
@@ -85,7 +85,7 @@ public class DungeonLobbyServiceTests
                     return false;
 
                 foreach (var userId in room.CurrentPlayers)
-                    _userRoomMapping.TryRemove(userId, out _);
+                    _userRoomMapping.TryRemove(userId, out long _);
 
                 return true;
             });

@@ -239,11 +239,11 @@ public class ChatMessageTests
     }
     
     // ========================================
-    // 욕설 필터링 테스트
+    // 메시지 원본 유지 테스트
     // ========================================
     
     [Fact]
-    public void Create_는_욕설1을_필터링한다()
+    public void Create_는_메시지_원본을_유지한다_1()
     {
         // given
         var senderUserName = "testuser";
@@ -257,12 +257,11 @@ public class ChatMessageTests
             message);
         
         // then
-        Assert.Contains("***", chatMessage.Message);
-        Assert.DoesNotContain("욕설1", chatMessage.Message);
+        Assert.Equal(message, chatMessage.Message);
     }
     
     [Fact]
-    public void Create_는_욕설2를_필터링한다()
+    public void Create_는_메시지_원본을_유지한다_2()
     {
         // given
         var senderUserName = "testuser";
@@ -276,12 +275,11 @@ public class ChatMessageTests
             message);
         
         // then
-        Assert.Contains("***", chatMessage.Message);
-        Assert.DoesNotContain("욕설2", chatMessage.Message);
+        Assert.Equal(message, chatMessage.Message);
     }
     
     [Fact]
-    public void Create_는_비속어를_필터링한다()
+    public void Create_는_메시지_원본을_유지한다_3()
     {
         // given
         var senderUserName = "testuser";
@@ -295,12 +293,11 @@ public class ChatMessageTests
             message);
         
         // then
-        Assert.Contains("***", chatMessage.Message);
-        Assert.DoesNotContain("비속어", chatMessage.Message);
+        Assert.Equal(message, chatMessage.Message);
     }
     
     [Fact]
-    public void Create_는_여러_욕설을_모두_필터링한다()
+    public void Create_는_메시지_원본을_유지한다_4()
     {
         // given
         var senderUserName = "testuser";
@@ -314,10 +311,7 @@ public class ChatMessageTests
             message);
         
         // then
-        Assert.DoesNotContain("욕설1", chatMessage.Message);
-        Assert.DoesNotContain("욕설2", chatMessage.Message);
-        Assert.DoesNotContain("비속어", chatMessage.Message);
-        Assert.Contains("***", chatMessage.Message);
+        Assert.Equal(message, chatMessage.Message);
     }
     
     [Fact]

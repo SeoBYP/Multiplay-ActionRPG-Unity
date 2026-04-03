@@ -1,4 +1,5 @@
 using GameServer.Application.Common;
+using GameServer.Application.Common.Interfaces;
 using GameServer.Application.Domains.Chat;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
@@ -16,6 +17,8 @@ public class ChatServiceTests
     private readonly IUserSessionRepository _sessionRepo;
     private readonly IDungeonRoomRepository _roomRepo;
     private readonly Mock<IChatEventStream> _mockEventStream;
+    private readonly IProfanityFilter _profanityFilter;
+    private readonly IUserLock _userLock;
     private readonly IChatService _service;
 
     public ChatServiceTests()
@@ -24,11 +27,15 @@ public class ChatServiceTests
         _sessionRepo = new FakeUserSessionRepository();
         _roomRepo = new FakeDungeonRoomRepository();
         _mockEventStream = new Mock<IChatEventStream>();
+        _profanityFilter = new PassThroughProfanityFilter();
+        _userLock = new NoOpUserLock();
 
         _service = new ChatService(
             _chatRepo,
             _sessionRepo,
             _roomRepo,
+            _profanityFilter,
+            _userLock,
             _mockEventStream.Object);
     }
 
@@ -197,5 +204,23 @@ public class ChatServiceTests
         Assert.Single(results);
         Assert.Equal("Global", results[0].Message);
         Assert.DoesNotContain(results, m => m.ChatType == ChatType.Room);
+    }
+
+    private sealed class PassThroughProfanityFilter : IProfanityFilter
+    {
+        public string Filter(string message) => message;
+
+        public bool IsProfane(string message) => false;
+    }
+
+    private sealed class NoOpUserLock : IUserLock
+    {
+        public Task<IAsyncDisposable> AcquireAsync(string lockKey, CancellationToken ct = default)
+            => Task.FromResult<IAsyncDisposable>(new Releaser());
+
+        private sealed class Releaser : IAsyncDisposable
+        {
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        }
     }
 }

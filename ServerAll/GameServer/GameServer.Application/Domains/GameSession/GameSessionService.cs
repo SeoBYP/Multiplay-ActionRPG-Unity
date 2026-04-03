@@ -1,15 +1,11 @@
-using GameServer.Application.Common.MessageQueue;
 using GameServer.Application.Domains.GameSession.Interfaces;
 using Microsoft.Extensions.Logging;
-using Shared.Infrastructure.MessageQueue;
-using Shared.Infrastructure.Messages;
 
 namespace GameServer.Application.Domains.GameSession;
 
 public class GameSessionService(
     IGameSessionRepository gameSessionRepository,
     IGameSessionPlayerRepository gameSessionPlayerRepository,
-    IMessageQueue<GameSessionReadyMessage> gameSessionReadyMessageQueue,
     ILogger<GameSessionService> logger) : IGameSessionService
 {
     public async Task<Domain.Entities.GameSession.GameSession> CreateGameSessionAsync(
@@ -34,15 +30,6 @@ public class GameSessionService(
             var existingSession = await gameSessionRepository.GetByRoomIdAsync(roomId, ct);
             if (existingSession is not null)
             {
-                await gameSessionReadyMessageQueue.EnqueueAsync(new GameSessionReadyMessage
-                {
-                    RoomId = roomId,
-                    GameSessionId = existingSession.GameSessionId,
-                    Host = existingSession.SocketIp,
-                    Port = existingSession.SocketPort,
-                    TraceId = traceId
-                });
-
                 logger.LogInformation(
                     "Game session already exists for room {RoomId}. Reusing session {GameSessionId}",
                     roomId,
@@ -55,15 +42,6 @@ public class GameSessionService(
             {
                 await gameSessionPlayerRepository.CreateAsync(gameSession.GameSessionId, playerId, ct);
             }
-
-            await gameSessionReadyMessageQueue.EnqueueAsync(new GameSessionReadyMessage
-            {
-                RoomId = roomId,
-                GameSessionId = gameSession.GameSessionId,
-                Host = host,
-                Port = port,
-                TraceId = traceId
-            });
 
             logger.LogInformation(
                 "Created game session {GameSessionId} for room {RoomId} with {PlayerCount} players",

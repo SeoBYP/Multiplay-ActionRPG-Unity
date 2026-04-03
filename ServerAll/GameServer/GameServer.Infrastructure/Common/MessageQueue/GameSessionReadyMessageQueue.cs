@@ -5,29 +5,29 @@ using Shared.Infrastructure.MessageQueue;
 using Shared.Infrastructure.Messages;
 using StackExchange.Redis;
 
-namespace GameServer.Application.Common.MessageQueue;
+namespace GameServer.Infrastructure.Common.MessageQueue;
 
-public class GameStartRequestedMessageQueue(
+public class GameSessionReadyMessageQueue(
     IConnectionMultiplexer redis,
-    ILogger<GameStartRequestedMessageQueue> logger)
-    : RedisMessageQueueBase<GameStartRequestedMessage>(redis, "stream:game:start:requested"),
-        IMessageQueue<GameStartRequestedMessage>
+    ILogger<GameSessionReadyMessageQueue> logger)
+    : RedisMessageQueueBase<GameSessionReadyMessage>(redis, "stream:game:session:ready"),
+        IMessageQueue<GameSessionReadyMessage>
 {
     private const string EntryKey = "data";
-    private const string GroupName = "game-session-service";
+    private const string GroupName = "dungeon-lobby-service";
     private readonly string _consumerName = $"{Environment.MachineName}-{Guid.NewGuid():N}";
 
-    public override async Task EnqueueAsync(GameStartRequestedMessage message)
+    public override async Task EnqueueAsync(GameSessionReadyMessage message)
     {
         var json = await SerializeMessage(message);
         await Database.StreamAddAsync(QueueKey, [new NameValueEntry(EntryKey, json)]);
         logger.LogInformation(
-            "Enqueued game start requested message for room {RoomId} with {PlayerCount} players",
+            "Enqueued game session ready message for room {RoomId}, session {GameSessionId}",
             message.RoomId,
-            message.PlayerIds.Count);
+            message.GameSessionId);
     }
 
-    public override async IAsyncEnumerable<GameStartRequestedMessage> DequeueAllAsync(
+    public override async IAsyncEnumerable<GameSessionReadyMessage> DequeueAllAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await EnsureConsumerGroupAsync();
@@ -69,7 +69,7 @@ public class GameStartRequestedMessageQueue(
         }
     }
 
-    private async IAsyncEnumerable<GameStartRequestedMessage> ReadPendingAsync(
+    private async IAsyncEnumerable<GameSessionReadyMessage> ReadPendingAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var entries = await Database.StreamReadGroupAsync(QueueKey, GroupName, _consumerName, "0", count: 10);
@@ -82,7 +82,7 @@ public class GameStartRequestedMessageQueue(
         }
     }
 
-    private async Task<GameStartRequestedMessage?> ProcessEntryAsync(StreamEntry entry)
+    private async Task<GameSessionReadyMessage?> ProcessEntryAsync(StreamEntry entry)
     {
         try
         {
@@ -93,7 +93,7 @@ public class GameStartRequestedMessageQueue(
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Failed to process game start requested entry {EntryId}", entry.Id);
+            logger.LogError(e, "Failed to process game session ready entry {EntryId}", entry.Id);
             return null;
         }
     }
@@ -113,9 +113,9 @@ public class GameStartRequestedMessageQueue(
         }
     }
 
-    protected override ValueTask<string> SerializeMessage(GameStartRequestedMessage message)
+    protected override ValueTask<string> SerializeMessage(GameSessionReadyMessage message)
         => ValueTask.FromResult(JsonSerializer.Serialize(message));
 
-    protected override ValueTask<GameStartRequestedMessage> DeserializeMessage(string data)
-        => ValueTask.FromResult(JsonSerializer.Deserialize<GameStartRequestedMessage>(data)!);
+    protected override ValueTask<GameSessionReadyMessage> DeserializeMessage(string data)
+        => ValueTask.FromResult(JsonSerializer.Deserialize<GameSessionReadyMessage>(data)!);
 }

@@ -12,8 +12,12 @@ using GameServer.Application.Domains.Auth.Interfaces;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
+using GameServer.Application.Domains.GameSession;
+using GameServer.Application.Domains.GameSession.Interfaces;
+using GameServer.Infrastructure.Domains.GameSession;
 using GameServer.Application.Domains.User;
 using GameServer.Application.Domains.User.Interfaces;
+using GameServer.Application.Common.Interfaces;
 using GameServer.Application.Security;
 using GameServer.Application.Security.Interface;
 using GameServer.Grpc.Auth;
@@ -30,6 +34,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Shared.Infrastructure.MessageQueue;
 using Shared.Infrastructure.Messages;
 using AuthProto = GameServer.Grpc.Auth.AuthService.AuthServiceClient;
 using LobbyProto = GameServer.Grpc.DungeonLobby.DungeonLobbyService.DungeonLobbyServiceClient;
@@ -46,8 +51,8 @@ public class GameStartE2ETest
         var authClient = new AuthProto(fixture.Channel);
         var lobbyClient = new LobbyProto(fixture.Channel);
 
-        var hostLogin = await 회원가입후_로그인한다(authClient, "host@test.com", "Password123!", "host-device");
-        var guestLogin = await 회원가입후_로그인한다(authClient, "guest@test.com", "Password123!", "guest-device");
+        var hostLogin = await 회원가입후_로그인한다(fixture, authClient, "host@test.com", "Password123!", "host-device");
+        var guestLogin = await 회원가입후_로그인한다(fixture, authClient, "guest@test.com", "Password123!", "guest-device");
 
         var createRoomResponse = await lobbyClient.CreateRoomAsync(
             new CreateRoomRequest
@@ -76,23 +81,16 @@ public class GameStartE2ETest
         await fixture.EventStream.WaitForSubscriberCountAsync(roomId, 2, TimeSpan.FromSeconds(2));
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        var hostMoveNextTask = hostSubscribeCall.ResponseStream.MoveNext(cts.Token);
-        var guestMoveNextTask = guestSubscribeCall.ResponseStream.MoveNext(cts.Token);
         var startRoomTask = lobbyClient.StartRoomAsync(
             new StartRoomRequest { RoomId = roomId },
             headers: 인증헤더(hostLogin.AccessToken)).ResponseAsync;
 
         var startRoomResponse = await startRoomTask;
-        var hostReceived = await hostMoveNextTask;
-        var guestReceived = await guestMoveNextTask;
+        var hostEvent = await WaitForGameSessionEventAsync(hostSubscribeCall.ResponseStream, cts.Token);
+        var guestEvent = await WaitForGameSessionEventAsync(guestSubscribeCall.ResponseStream, cts.Token);
 
         Assert.True(startRoomResponse.Result.Success);
-        Assert.True(hostReceived);
-        Assert.True(guestReceived);
-        Assert.NotNull(fixture.GameStartPublisher.LastPublishedMessage);
-
-        var hostEvent = hostSubscribeCall.ResponseStream.Current.StartEvent;
-        var guestEvent = guestSubscribeCall.ResponseStream.Current.StartEvent;
+        Assert.NotNull(fixture.GameStartRequestedQueue.LastEnqueuedMessage);
 
         Assert.NotNull(hostEvent);
         Assert.NotNull(guestEvent);
@@ -100,15 +98,12 @@ public class GameStartE2ETest
         Assert.Equal(12345, hostEvent.Port);
         Assert.Equal("127.0.0.1", guestEvent.Ip);
         Assert.Equal(12345, guestEvent.Port);
-        Assert.Equal(roomId, hostEvent.RoomInfo.RoomId);
-        Assert.Equal(roomId, guestEvent.RoomInfo.RoomId);
-        Assert.Equal(RoomStatusType.Playing, hostEvent.RoomInfo.Status);
-        Assert.Equal(RoomStatusType.Playing, guestEvent.RoomInfo.Status);
-        Assert.Equal(roomId, fixture.GameStartPublisher.LastPublishedMessage!.RoomId);
-        Assert.Equal(new long[] { 1L, 2L }, fixture.GameStartPublisher.LastPublishedMessage.PlayerIds.OrderBy(x => x).ToArray());
+        Assert.Equal(roomId, fixture.GameStartRequestedQueue.LastEnqueuedMessage!.RoomId);
+        Assert.Equal(new long[] { 1L, 2L }, fixture.GameStartRequestedQueue.LastEnqueuedMessage.PlayerIds.OrderBy(x => x).ToArray());
     }
 
     private static async Task<LoginResponse> 회원가입후_로그인한다(
+        TestGameServerHost fixture,
         AuthProto authClient,
         string email,
         string password,
@@ -121,6 +116,11 @@ public class GameStartE2ETest
         }).ResponseAsync;
 
         Assert.True(registerResponse.Result.Success);
+        Assert.NotNull(registerResponse.User);
+
+        var registeredUser = await fixture.UserRepository.GetByPublicIdAsync(registerResponse.User.PublicId);
+        Assert.NotNull(registeredUser);
+        await fixture.UserProfileRepository.CreateAsync(registeredUser!.UserId, registerResponse.User.PublicId);
 
         var loginResponse = await authClient.LoginAsync(new LoginRequest
         {
@@ -143,24 +143,43 @@ public class GameStartE2ETest
         };
     }
 
+    private static async Task<GameSessionReadyEvent?> WaitForGameSessionEventAsync(
+        IAsyncStreamReader<SubscribeRoomResponse> responseStream,
+        CancellationToken ct)
+    {
+        while (await responseStream.MoveNext(ct))
+        {
+            if (responseStream.Current.GameSessionEvent is not null)
+                return responseStream.Current.GameSessionEvent;
+        }
+
+        return null;
+    }
+
     private sealed class TestGameServerHost : IAsyncDisposable
     {
         private readonly WebApplication _app;
 
         public GrpcChannel Channel { get; }
         public FakeDungeonRoomEventStream EventStream { get; }
-        public FakeGameStartPublisher GameStartPublisher { get; }
+        public FakeGameStartRequestedQueue GameStartRequestedQueue { get; }
+        public FakeUserRepository UserRepository { get; }
+        public FakeUserProfileRepository UserProfileRepository { get; }
 
         private TestGameServerHost(
             WebApplication app,
             GrpcChannel channel,
             FakeDungeonRoomEventStream eventStream,
-            FakeGameStartPublisher gameStartPublisher)
+            FakeGameStartRequestedQueue gameStartRequestedQueue,
+            FakeUserRepository userRepository,
+            FakeUserProfileRepository userProfileRepository)
         {
             _app = app;
             Channel = channel;
             EventStream = eventStream;
-            GameStartPublisher = gameStartPublisher;
+            GameStartRequestedQueue = gameStartRequestedQueue;
+            UserRepository = userRepository;
+            UserProfileRepository = userProfileRepository;
         }
 
         public static async Task<TestGameServerHost> CreateAsync()
@@ -204,17 +223,26 @@ public class GameStartE2ETest
                 });
 
             var eventStream = new FakeDungeonRoomEventStream();
-            var gameStartPublisher = new FakeGameStartPublisher();
+            var gameSessionReadyQueue = new InMemoryMessageQueue<GameSessionReadyMessage>();
+            var gameStartRequestedQueue = new FakeGameStartRequestedQueue(gameSessionReadyQueue);
+            var userRepository = new FakeUserRepository();
+            var userProfileRepository = new FakeUserProfileRepository();
 
-            builder.Services.AddSingleton<IUserRepository, FakeUserRepository>();
+            builder.Services.AddSingleton<IUserRepository>(userRepository);
             builder.Services.AddSingleton<IUserCredentialRepository, FakeUserCredentialRepository>();
             builder.Services.AddSingleton<IUserSessionRepository, FakeUserSessionRepository>();
+            builder.Services.AddSingleton<IUserProfileRepository>(userProfileRepository);
+            builder.Services.AddSingleton<IProfanityFilter, AllowAllProfanityFilter>();
             builder.Services.AddSingleton<IDungeonRoomRepository, FakeDungeonRoomRepository>();
             builder.Services.AddSingleton<IDungeonRoomEventStream>(eventStream);
-            builder.Services.AddSingleton<IGameStartPublisher>(gameStartPublisher);
-            builder.Services.AddSingleton<ISocketReadyChecker>(new FakeSocketReadyChecker("127.0.0.1:12345"));
+            builder.Services.AddSingleton<IMessageQueue<GameStartRequestedMessage>>(gameStartRequestedQueue);
+            builder.Services.AddSingleton<IMessageQueue<GameSessionReadyMessage>>(gameSessionReadyQueue);
+            builder.Services.AddSingleton<IGameSessionRepository, FakeGameSessionRepository>();
+            builder.Services.AddSingleton<IGameSessionPlayerRepository, FakeGameSessionPlayerRepository>();
+            builder.Services.AddSingleton<IGameSessionService, GameSessionService>();
             builder.Services.AddSingleton<IChatSubscriptionService, FakeChatSubscriptionService>();
             builder.Services.AddSingleton<IDungeonLobbySubscriptionService, DungeonLobbySubscriptionService>();
+            builder.Services.AddHostedService<GameSessionReadyConsumer>();
 
             builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
             builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
@@ -251,7 +279,7 @@ public class GameStartE2ETest
                     HttpHandler = httpHandler
                 });
 
-            return new TestGameServerHost(app, channel, eventStream, gameStartPublisher);
+            return new TestGameServerHost(app, channel, eventStream, gameStartRequestedQueue, userRepository, userProfileRepository);
         }
 
         public async ValueTask DisposeAsync()
@@ -271,31 +299,26 @@ public class GameStartE2ETest
         }
     }
 
-    private sealed class FakeGameStartPublisher : IGameStartPublisher
+    private sealed class FakeGameStartRequestedQueue(InMemoryMessageQueue<GameSessionReadyMessage> readyQueue)
+        : IMessageQueue<GameStartRequestedMessage>
     {
-        public GameStartMessage? LastPublishedMessage { get; private set; }
+        public GameStartRequestedMessage? LastEnqueuedMessage { get; private set; }
 
-        public Task PublishGameStartAsync(GameStartRequestedMessage message, CancellationToken ct = default)
+        public async Task EnqueueAsync(GameStartRequestedMessage message)
         {
-            LastPublishedMessage = new GameStartMessage
+            LastEnqueuedMessage = message;
+            await readyQueue.EnqueueAsync(new GameSessionReadyMessage
             {
                 RoomId = message.RoomId,
-                PlayerIds = [.. message.PlayerIds],
+                GameSessionId = 0,
+                Host = "127.0.0.1",
+                Port = 12345,
                 TraceId = message.TraceId
-            };
-            return Task.CompletedTask;
+            });
         }
-    }
 
-    private sealed class FakeSocketReadyChecker(string socketInfo) : ISocketReadyChecker
-    {
-        public Task<SocketEndpoint?> WaitForReadyAsync(long roomId, CancellationToken ct = default)
-        {
-            var separatorIndex = socketInfo.LastIndexOf(':');
-            var host = socketInfo[..separatorIndex];
-            var port = int.Parse(socketInfo[(separatorIndex + 1)..]);
-            return Task.FromResult<SocketEndpoint?>(new SocketEndpoint(host, port));
-        }
+        public IAsyncEnumerable<GameStartRequestedMessage> DequeueAllAsync(CancellationToken cancellationToken = default)
+            => AsyncEnumerable.Empty<GameStartRequestedMessage>();
     }
 
     private sealed class FakeDungeonRoomEventStream : IDungeonRoomEventStream
@@ -367,5 +390,74 @@ public class GameStartE2ETest
 
             throw new TimeoutException($"roomId={roomId} subscriber count did not reach {expectedCount}.");
         }
+    }
+
+    private sealed class InMemoryMessageQueue<T> : IMessageQueue<T>
+    {
+        private readonly Channel<T> _channel = Channel.CreateUnbounded<T>();
+
+        public Task EnqueueAsync(T message)
+            => _channel.Writer.WriteAsync(message).AsTask();
+
+        public IAsyncEnumerable<T> DequeueAllAsync(CancellationToken cancellationToken = default)
+            => _channel.Reader.ReadAllAsync(cancellationToken);
+    }
+
+    private sealed class AllowAllProfanityFilter : IProfanityFilter
+    {
+        public string Filter(string message) => message;
+
+        public bool IsProfane(string message) => false;
+    }
+
+    private sealed class FakeGameSessionRepository : IGameSessionRepository
+    {
+        private readonly ConcurrentDictionary<long, GameServer.Domain.Entities.GameSession.GameSession> _sessions = new();
+        private long _nextId = 1;
+
+        public Task<GameServer.Domain.Entities.GameSession.GameSession> CreateAsync(long roomId, string socketIp, int socketPort, CancellationToken ct = default)
+        {
+            var session = GameServer.Domain.Entities.GameSession.GameSession.Create(roomId, socketIp, socketPort);
+            session.SetId(Interlocked.Increment(ref _nextId));
+            _sessions[roomId] = session;
+            return Task.FromResult(session);
+        }
+
+        public Task<GameServer.Domain.Entities.GameSession.GameSession?> GetAsync(long gameSessionId, CancellationToken ct = default)
+            => Task.FromResult(_sessions.Values.FirstOrDefault(x => x.GameSessionId == gameSessionId));
+
+        public Task<GameServer.Domain.Entities.GameSession.GameSession?> GetByRoomIdAsync(long roomId, CancellationToken ct = default)
+            => Task.FromResult(_sessions.TryGetValue(roomId, out var session) ? session : null);
+
+        public Task<bool> UpdateAsync(GameServer.Domain.Entities.GameSession.GameSession gameSession, CancellationToken ct = default)
+        {
+            _sessions[gameSession.RoomId] = gameSession;
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> RemoveAsync(long gameSessionId, CancellationToken ct = default)
+        {
+            var roomId = _sessions.FirstOrDefault(x => x.Value.GameSessionId == gameSessionId).Key;
+            return Task.FromResult(roomId != 0 && _sessions.TryRemove(roomId, out _));
+        }
+    }
+
+    private sealed class FakeGameSessionPlayerRepository : IGameSessionPlayerRepository
+    {
+        public Task<GameServer.Domain.Entities.GameSession.GameSessionPlayer> CreateAsync(long gameSessionId, long userId, CancellationToken ct = default)
+            => Task.FromResult(
+                GameServer.Domain.Entities.GameSession.GameSessionPlayer.Create(gameSessionId, userId));
+
+        public Task<List<GameServer.Domain.Entities.GameSession.GameSessionPlayer>> GetPlayersByGameSessionIdAsync(long gameSessionId, CancellationToken ct = default)
+            => Task.FromResult(new List<GameServer.Domain.Entities.GameSession.GameSessionPlayer>());
+
+        public Task<GameServer.Domain.Entities.GameSession.GameSessionPlayer?> GetByUserIdAsync(long userId, CancellationToken ct = default)
+            => Task.FromResult<GameServer.Domain.Entities.GameSession.GameSessionPlayer?>(null);
+
+        public Task<bool> UpdateAsync(GameServer.Domain.Entities.GameSession.GameSessionPlayer gameSessionPlayer, CancellationToken ct = default)
+            => Task.FromResult(true);
+
+        public Task<bool> RemoveAsync(long gameSessionId, long userId, CancellationToken ct = default)
+            => Task.FromResult(true);
     }
 }

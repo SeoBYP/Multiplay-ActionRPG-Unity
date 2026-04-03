@@ -1,5 +1,4 @@
 using GameServer.Application.Common;
-using GameServer.Application.Common.MessageQueue;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;

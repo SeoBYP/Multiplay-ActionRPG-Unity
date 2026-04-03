@@ -353,6 +353,7 @@ public class DungeonRoomTests
         var room = DungeonRoom.Create("testRoom", hostUserId: 1,4);
         room.Join(2);
         room.StartGame(1);
+        room.MarkGameSessionReady();
         
         // when & then
         Assert.Throws<InvalidOperationException>(() => 
@@ -400,7 +401,7 @@ public class DungeonRoomTests
         room.StartGame(1);
         
         // then
-        Assert.Equal(RoomStatus.Playing, room.Status);
+        Assert.Equal(RoomStatus.Starting, room.Status);
     }
 
     [Fact]

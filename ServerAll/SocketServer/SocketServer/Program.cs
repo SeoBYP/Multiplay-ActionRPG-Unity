@@ -7,6 +7,7 @@ using Serilog.Sinks.Graylog;
 using Serilog.Sinks.Graylog.Core.Transport;
 using Server.PacketHandler;
 using Server.Room;
+using Shared.Infrastructure.Messages;
 using StackExchange.Redis;
 
 namespace Server
@@ -51,7 +52,8 @@ namespace Server
             var registry = PacketHandlerRegistry.Build(loggerFactory.CreateLogger<PacketHandlerRegistry>());
             var dispatcher = registry.CreateDispatcher(loggerFactory.CreateLogger<PacketDispatcher>());
             var redis = ConnectionMultiplexer.Connect(redisConnStr);
-            var gameStartQueue = new GameStartMessageQueue(redis, loggerFactory.CreateLogger<GameStartMessageQueue>());
+            var gameStartQueue = new GameStartRequestedMessageQueue(redis, loggerFactory.CreateLogger<GameStartRequestedMessageQueue>());
+            var gameSessionReadyQueue = new GameSessionReadyMessageQueue(redis, loggerFactory.CreateLogger<GameSessionReadyMessageQueue>());
             var roomManager = new RoomManager(loggerFactory.CreateLogger<RoomManager>(), loggerFactory.CreateLogger<Server.Room.Room>());
             var sessionManager = new SessionManager(
                 dispatcher,
@@ -80,14 +82,17 @@ namespace Server
                         using (LogContext.PushProperty("TraceId", msg.TraceId))
                         using (LogContext.PushProperty("RoomId", msg.RoomId))
                         {
-                            roomManager.CreateRoom(msg.RoomId, msg.PlayerIds);
+                            roomManager.CreateRoom(msg.RoomId, msg.PlayerIds.ToList());
                             logger.LogInformation("[GameStart] RoomId={RoomId}, Players={PlayerCount}명", msg.RoomId, msg.PlayerIds.Count);
             
-                            // Redis에 준비 신호 설정 → GameServer 폴링이 읽어감
-                            await redis.GetDatabase().StringSetAsync(
-                                $"socket:room:{msg.RoomId}:ready",
-                                $"{ipAddress}:{port}",
-                                TimeSpan.FromMinutes(5));
+                            await gameSessionReadyQueue.EnqueueAsync(new GameSessionReadyMessage
+                            {
+                                RoomId = msg.RoomId,
+                                GameSessionId = 0,
+                                Host = ipAddress,
+                                Port = port,
+                                TraceId = msg.TraceId
+                            });
                         }
                     }
                 }

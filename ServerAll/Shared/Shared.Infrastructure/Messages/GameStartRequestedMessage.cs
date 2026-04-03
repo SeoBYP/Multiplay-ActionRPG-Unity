@@ -1,4 +1,4 @@
-﻿namespace Shared.Infrastructure.Messages;
+namespace Shared.Infrastructure.Messages;
 
 public sealed class GameStartRequestedMessage
 {
