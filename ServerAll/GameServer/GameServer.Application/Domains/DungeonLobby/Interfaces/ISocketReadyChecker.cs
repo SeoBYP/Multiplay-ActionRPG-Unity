@@ -1,6 +1,6 @@
-﻿namespace GameServer.Application.Domains.DungeonLobby.Interfaces;
+namespace GameServer.Application.Domains.DungeonLobby.Interfaces;
 
 public interface ISocketReadyChecker
 {
-    Task<string?> WaitAsync(long roomId, CancellationToken ct = default);
+    Task<SocketEndpoint?> WaitForReadyAsync(long roomId, CancellationToken ct = default);
 }

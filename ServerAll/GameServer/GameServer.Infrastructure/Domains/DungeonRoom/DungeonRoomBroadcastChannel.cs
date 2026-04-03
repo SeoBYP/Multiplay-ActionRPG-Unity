@@ -16,7 +16,8 @@ public class DungeonRoomBroadcastChannel(IConnectionMultiplexer redis)
     public override async IAsyncEnumerable<(string messageId, long message)> ReadAsync(string channel, 
         string lastMessageId, CancellationToken ct = default)
     {
-        var currentId = lastMessageId;  // 파라미터를 로컬 복사
+        // 파라미터를 로컬 복사
+        var currentId = lastMessageId;
 
         while (!ct.IsCancellationRequested) 
         {

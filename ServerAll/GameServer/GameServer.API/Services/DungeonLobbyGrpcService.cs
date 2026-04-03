@@ -2,6 +2,7 @@
 using GameServer.API.Extensions;
 using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
+using GameServer.Application.Domains.GameSession.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
 using GameServer.Grpc.DungeonLobby;
@@ -13,6 +14,7 @@ namespace GameServer.API.Services;
 
 public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
     IDungeonLobbySubscriptionService subscriptionService,
+    IGameSessionRepository gameSessionRepository,
     IUserRepository userRepository,
     ILogger<DungeonLobbyGrpcService> logger) : DungeonLobbyService.DungeonLobbyServiceBase
 {
@@ -251,11 +253,17 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
             switch (room.Value.Status)
             {
                 case RoomStatus.Playing:
-                    serverMsg.StartEvent = new GameStartedEvent
+                    var gameSession = await gameSessionRepository.GetByRoomIdAsync(room.Value.RoomId, ct);
+                    if (gameSession is null)
                     {
-                        RoomInfo = await room.Value.ToRoomInfo(userRepository),
-                        Ip = room.Value.SocketIp,
-                        Port = room.Value.SocketPort,
+                        logger.LogWarning("Game session not found for playing room {RoomId}", room.Value.RoomId);
+                        continue;
+                    }
+
+                    serverMsg.GameSessionEvent = new GameSessionReadyEvent
+                    {
+                        Ip = gameSession.SocketIp,
+                        Port = gameSession.SocketPort
                     };
                     break;
 

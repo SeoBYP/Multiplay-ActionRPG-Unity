@@ -63,6 +63,7 @@ try
     serviceInstaller.Install(builder.Services, builder.Configuration);
 
     // Domain DI registrations
+    new CommonInstaller().Install(builder.Services, builder.Configuration);
     new UserInstaller().Install(builder.Services, builder.Configuration);
     new AuthInstaller().Install(builder.Services, builder.Configuration);
     new ChatInstaller().Install(builder.Services, builder.Configuration);

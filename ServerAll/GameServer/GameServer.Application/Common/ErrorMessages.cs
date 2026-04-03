@@ -17,6 +17,7 @@ public class ErrorMessages
     public const string InvalidCredentials = "INVALID_CREDENTIALS";
     public const string NickNameAlreadyTaken = "NICKNAME_ALREADY_TAKEN";
     public const string EmailAlreadyTaken = "EMAIL_ALREADY_TAKEN";
+    public const string Profanity = "PROFANITY";
     
     // DungeonRoom
     public const string RoomNotFound = "ROOM_NOT_FOUND";

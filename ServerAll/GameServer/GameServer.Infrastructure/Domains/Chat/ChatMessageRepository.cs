@@ -59,7 +59,6 @@ public class ChatMessageRepository(
 
         // 3. Redis 트랜잭션으로 원자적 저장
         var transaction = _database.CreateTransaction();
-        var tasks = new List<Task>();
 
         // 3-1. 메시지 본문 저장 (Hash)
         var hashFields = new List<HashEntry>
@@ -85,29 +84,29 @@ public class ChatMessageRepository(
             hashFields.Add(new HashEntry("TargetUserNickName", targetUserNickName));
         }
 
-        tasks.Add(transaction.HashSetAsync(
+        _ = transaction.HashSetAsync(
             string.Format(MessageHashKey, messageId),
-            hashFields.ToArray()));
+            hashFields.ToArray());
         
         // 전체 인덱스 - [수정] CreateAsync에서 빠져있던 전체 인덱스 추가
-        tasks.Add(transaction.SortedSetAddAsync(AllMessagesKey, messageId, messageId));
+        _ = transaction.SortedSetAddAsync(AllMessagesKey, messageId, messageId);
 
         // 유저 인덱스
-        tasks.Add(transaction.SortedSetAddAsync(
-            string.Format(UserIndexKey, senderName), messageId, messageId));
+        _ = transaction.SortedSetAddAsync(
+            string.Format(UserIndexKey, senderName), messageId, messageId);
 
         // 방 인덱스 (Room 채팅일 때만)
         if (chatType == ChatType.Room && roomId.HasValue)
         {
-            tasks.Add(transaction.SortedSetAddAsync(
-                string.Format(RoomIndexKey, roomId.Value), messageId, messageId));
+            _ = transaction.SortedSetAddAsync(
+                string.Format(RoomIndexKey, roomId.Value), messageId, messageId);
         }
 
         // 귓속말 대상 인덱스 (Whisper일 때만)
         if (chatType == ChatType.Whisper && !string.IsNullOrWhiteSpace(targetUserNickName))
         {
-            tasks.Add(transaction.SortedSetAddAsync(
-                string.Format(TargetIndexKey, targetUserNickName), messageId, messageId));
+            _ = transaction.SortedSetAddAsync(
+                string.Format(TargetIndexKey, targetUserNickName), messageId, messageId);
         }
 
         // 4. 트랜잭션 실행
@@ -115,7 +114,6 @@ public class ChatMessageRepository(
         if (!committed)
             throw new InvalidOperationException("Failed to create chat message: transaction rolled back");
 
-        await Task.WhenAll(tasks);
         return chatMessage;
     }
     

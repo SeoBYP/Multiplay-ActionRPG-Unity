@@ -8,7 +8,11 @@ public enum RoomStatus
     /// <summary>
     /// 대기 중 - 플레이어 입장 가능
     /// </summary>
-    Waiting,   
+    Waiting, 
+    /// <summary>
+    /// 게임 시작 중 - 플레이어 입장 불가
+    /// </summary>
+    Starting,
     /// <summary>
     /// 게임 중 - 플레이어 입장 불가
     /// </summary>
@@ -42,13 +46,6 @@ public class DungeonRoom
     /// <summary>방 생성 시각 (UTC)</summary>
     public DateTime CreatedAt { get; private set; }
     
-    /// <summary>
-    /// 방 서버 IP
-    /// </summary>
-    public string SocketIp { get; private set; } = string.Empty;
-
-    public int SocketPort { get; private set; } = 0;
-    
     public DungeonRoom Clone()
     {
         return FromRedis(
@@ -58,9 +55,7 @@ public class DungeonRoom
             MaxPlayers,
             Status,
             new List<long>(CurrentPlayers),
-            CreatedAt,
-            SocketIp,
-            SocketPort);
+            CreatedAt);
     }
     
     
@@ -106,9 +101,7 @@ public class DungeonRoom
         int maxPlayers,
         RoomStatus status,
         List<long> currentPlayers,
-        DateTime createdAt,
-        string socketIp,
-        int socketPort)
+        DateTime createdAt)
     {
         // 검증 없이 바로 생성 (Redis에서 가져온 데이터는 이미 검증됨)
         return new DungeonRoom
@@ -120,8 +113,6 @@ public class DungeonRoom
             Status = status,
             CurrentPlayers = currentPlayers,
             CreatedAt = createdAt,
-            SocketIp = socketIp,
-            SocketPort = socketPort,
         };
     }
 
@@ -275,16 +266,18 @@ public class DungeonRoom
             throw new InvalidOperationException("Room is already closed");
         
         // 상태 검증 3: 이미 게임이 진행 중이면 중복 시작 불가
-        if(Status == RoomStatus.Playing)
-            throw new InvalidOperationException("Room is already playing");
+        if(Status == RoomStatus.Starting)
+            throw new InvalidOperationException("Room is already starting");
         
         // 모든 검증을 통과하면 게임 시작 (상태 변경)
-        Status = RoomStatus.Playing;
+        Status = RoomStatus.Starting;
     }
 
-    public void SetSocketInfo(string socketIp, int socketPort)
+    public void MarkGameSessionReady()
     {
-        SocketIp = socketIp;
-        SocketPort = socketPort;
+        if (Status != RoomStatus.Starting)
+            throw new InvalidOperationException("Room is not starting");
+
+        Status = RoomStatus.Playing;
     }
 }

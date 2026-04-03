@@ -1,4 +1,5 @@
-﻿using GameServer.Application.Domains.Auth;
+using GameServer.Application.Domains.Account;
+using GameServer.Application.Domains.Auth;
 using GameServer.Application.Domains.Auth.Interfaces;
 using GameServer.Application.Security.Interface;
 using GameServer.Infrastructure.Security;
@@ -10,6 +11,7 @@ public class AuthInstaller : IServiceInstaller
     public void Install(IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IPasswordHasher, PasswordHasher>();
+        services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<IAuthService, AuthService>();
     }
 }

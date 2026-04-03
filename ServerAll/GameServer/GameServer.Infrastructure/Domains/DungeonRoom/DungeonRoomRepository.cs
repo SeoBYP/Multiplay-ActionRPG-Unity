@@ -12,13 +12,15 @@ namespace GameServer.Infrastructure.Domains.DungeonRoom;
 /// </summary>
 public class DungeonRoomRepository(
     IConnectionMultiplexer connectionMultiplexer,
-    Microsoft.Extensions.Logging.ILogger<DungeonRoomRepository> logger) : IDungeonRoomRepository
+    ILogger<DungeonRoomRepository> logger) : IDungeonRoomRepository
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
 
     private const string RoomKey = "game:room";
     private const string ActiveRoomsKey = "game:room:active";
     private const string UserRoomMappingKey = "game:user:room";
+    
+    
     private const string RoomCounterKey = "game:room:id:counter";
 
     /// <summary>
@@ -43,7 +45,7 @@ public class DungeonRoomRepository(
             var transaction = _database.CreateTransaction();
 
             // 4. 방 기본 정보 저장 (Hash)
-            Task hashTask = transaction.HashSetAsync($"{RoomKey}:{roomId}",
+            _ = transaction.HashSetAsync($"{RoomKey}:{roomId}",
             [
                 new HashEntry("RoomId", roomId),
                 new HashEntry("RoomName", roomName),
@@ -51,34 +53,29 @@ public class DungeonRoomRepository(
                 new HashEntry("MaxPlayers", room.MaxPlayers),
                 new HashEntry("Status", room.Status.ToString()), // Enum → String
                 new HashEntry("CreatedAt", room.CreatedAt.ToString("O")), // ISO 8601
-                new HashEntry("SocketIp", room.SocketIp),
-                new HashEntry("SocketPort", room.SocketPort.ToString())
             ]);
 
-            // 5. 플레이어 목록 저장 (Set)
+            // 5. 플레이어 목록 저장 (Set)  
             // CurrentPlayers를 RedisValue[]로 변환
             var playerValues = room.CurrentPlayers
                 .Select(p => (RedisValue)p)
                 .ToArray();
 
-            Task playersTask = transaction.SetAddAsync(
+            _ = transaction.SetAddAsync(
                 $"{RoomKey}:{roomId}:players",
                 playerValues);
 
             // 6. 활성 방 목록에 추가
-            Task activeTask = transaction.SetAddAsync(ActiveRoomsKey, roomId);
+            _ = transaction.SetAddAsync(ActiveRoomsKey, roomId);
 
             // 7. 사용자 → 방 매핑(Create에서는 Host만 있음)
-            Task mappingTask = transaction.StringSetAsync(
+            _ = transaction.StringSetAsync(
                 $"{UserRoomMappingKey}:{hostId}",
                 roomId);
 
             bool committed = await transaction.ExecuteAsync();
             if (!committed)
                 throw new InvalidOperationException("Failed to create room");
-
-            // 9. 모든 Task 완료 대기
-            await Task.WhenAll(hashTask, playersTask, activeTask, mappingTask);
             return room;
         }
         catch (Exception e)
@@ -240,9 +237,7 @@ public class DungeonRoomRepository(
                 new HashEntry("RoomName", room.RoomName),
                 new HashEntry("HostUserId", room.HostUserId),
                 new HashEntry("MaxPlayers", room.MaxPlayers),
-                new HashEntry("Status", room.Status.ToString()),
-                new HashEntry("SocketIp", room.SocketIp),
-                new HashEntry("SocketPort", room.SocketPort.ToString())
+                new HashEntry("Status", room.Status.ToString())
             ]);
             
             // 5. 플레이어 목록 업데이트 (기존 삭제 후 재추가)
@@ -507,8 +502,6 @@ public class DungeonRoomRepository(
             maxPlayers, 
             status, 
             currentPlayers,
-            createdAt,
-            socketIp,
-            socketPort);
+            createdAt);
     }
 }

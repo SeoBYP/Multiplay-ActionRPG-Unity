@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using GameServer.Application.Domains.User.Interfaces;
 using User = GameServer.Domain.Entities.User.User;
 
@@ -7,15 +7,13 @@ namespace GameServer.Tests.Infrastructure;
 public class FakeUserRepository : IUserRepository
 {
     private readonly ConcurrentDictionary<long, User> _users = new();
-    private long _idCounter = 0;
+    private long _idCounter;
 
-    public Task<User> AddAsync(string passwordHash, string email, CancellationToken ct = default)
+    public Task<User> CreateAsync(CancellationToken ct = default)
     {
-        var user = User.Create(passwordHash, email);
-        var userId = Interlocked.Increment(ref _idCounter);
-        user.SetUserId(userId);
-        
-        _users[userId] = user;
+        var user = User.Create();
+        user.SetUserId(Interlocked.Increment(ref _idCounter));
+        _users[user.UserId] = user;
         return Task.FromResult(user);
     }
 
@@ -27,9 +25,7 @@ public class FakeUserRepository : IUserRepository
     public Task<bool> UpdateAsync(User user, CancellationToken ct = default)
     {
         if (!_users.ContainsKey(user.UserId))
-        {
             return Task.FromResult(false);
-        }
 
         _users[user.UserId] = user;
         return Task.FromResult(true);
@@ -43,16 +39,7 @@ public class FakeUserRepository : IUserRepository
 
     public Task<List<User>> GetByIdsAsync(List<long> userIds, CancellationToken ct = default)
     {
-        var users = _users.Values
-            .Where(u => userIds.Contains(u.UserId))
-            .ToList();
-        return Task.FromResult(users);
-    }
-
-    public Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
-    {
-        var user = _users.Values.FirstOrDefault(u => u.Email == email);
-        return Task.FromResult(user);
+        return Task.FromResult(_users.Values.Where(u => userIds.Contains(u.UserId)).ToList());
     }
 
     public Task<User?> GetByPublicIdAsync(string publicId, CancellationToken ct = default)
@@ -61,41 +48,13 @@ public class FakeUserRepository : IUserRepository
         return Task.FromResult(user);
     }
 
-    public Task<User?> GetByNicknameAsync(string nickname, CancellationToken ct = default)
-    {
-        var user = _users.Values.FirstOrDefault(u => u.NickName == nickname);
-        return Task.FromResult(user);
-    }
-
-    public Task<bool> IsEmailExistsAsync(string email, CancellationToken ct = default)
-    {
-        return Task.FromResult(_users.Values.Any(u => u.Email == email));
-    }
-
-    public Task<bool> IsNicknameExistsAsync(string nickname, CancellationToken ct = default)
-    {
-        return Task.FromResult(_users.Values.Any(u => u.NickName == nickname));
-    }
-
     public Task<bool> UpdateRefreshTokenAsync(long userId, string hashedToken, DateTime expiry, CancellationToken ct = default)
     {
-        if (!_users.TryGetValue(userId, out var user))
-        {
-            return Task.FromResult(false);
-        }
-
-        user.SetRefreshToken(hashedToken, expiry);
-        return Task.FromResult(true);
+        return Task.FromResult(_users.ContainsKey(userId));
     }
 
     public Task<bool> ClearRefreshTokenAsync(long userId, CancellationToken ct = default)
     {
-        if (!_users.TryGetValue(userId, out var user))
-        {
-            return Task.FromResult(false);
-        }
-
-        user.ClearRefreshToken();
-        return Task.FromResult(true);
+        return Task.FromResult(_users.ContainsKey(userId));
     }
 }

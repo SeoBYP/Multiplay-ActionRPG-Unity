@@ -10,7 +10,7 @@ public static class UserInfoExtension
         return new UserInfo
         {
             PublicId = value.PublicId,
-            NickName = value.NickName,
+            // NickName = value.NickName,
             // Email = value.Email,
             // CreatedAt = new DateTimeOffset(value.CreatedAt).ToUnixTimeSeconds(),
         };

@@ -7,7 +7,7 @@ public class UserSession
     public string Email { get; set; } 
     public string NickName { get; set; } 
     public string PublicId { get; set; }
-    public long CurrentRoomId { get; set; }
+    public long CurrentRoomId { get; private set; }
     public DateTime LoginAt { get; set; }
     public DateTime LastActiveAt { get; set; }
     
@@ -27,29 +27,33 @@ public class UserSession
             Email = email,
             NickName = nickName,
             PublicId = publicId,
+            CurrentRoomId = 0,
             LoginAt = DateTime.UtcNow,
             LastActiveAt = DateTime.UtcNow
         };
     }
 
-    public void SetRoomId(long roomId)
-    {
-        CurrentRoomId = roomId;
-    }
-
-    public static UserSession FromRedis(string sessionId, long userId, string email, string userName, string publicId, long currentRoomId,
-        DateTime loginAt, DateTime lastActiveAt)
+    public static UserSession FromRedis(string sessionId, long userId, string email, string nickName, string publicId,
+        DateTime loginAt, DateTime lastActiveAt, long currentRoomId = 0)
     {
         return new UserSession
         {
             SessionId = sessionId,
             UserId = userId,
             Email = email,
-            NickName = userName,
+            NickName = nickName,
             PublicId = publicId,
             CurrentRoomId = currentRoomId,
             LoginAt = loginAt,
             LastActiveAt = lastActiveAt
         };
+    }
+
+    public void SetRoomId(long roomId)
+    {
+        if (roomId < 0)
+            throw new ArgumentException("RoomId cannot be negative", nameof(roomId));
+
+        CurrentRoomId = roomId;
     }
 }

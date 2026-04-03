@@ -8,25 +8,27 @@ namespace GameServer.Application.Domains.Chat;
 
 public sealed class ChatSubscriptionService(
     IChatEventStream chatEventStream,
-    IUserSessionRepository sessionRepository,
-    IDungeonRoomRepository roomRepository,
+    IUserSessionRepository userSessionRepository,
+    IDungeonRoomRepository dungeonRoomRepository,
     ILogger<ChatSubscriptionService> logger) : IChatSubscriptionService
 {
     private readonly ConcurrentDictionary<long, UserChatContext> _contexts = new();
 
     public async Task<UserChatContext?> ConnectAsync(string sessionId, CancellationToken ct)
     {
-        var session = await sessionRepository.GetBySessionIdAsync(sessionId, ct);
-        if (session is null) return null;
+        var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
+        if (userSession is null) return null;
 
-        var ctx = new UserChatContext(session.UserId, session.NickName, session.CurrentRoomId);
+        var currentRoom = await dungeonRoomRepository.GetByUserIdAsync(userSession.UserId, ct);
+        
+        var ctx = new UserChatContext(userSession.UserId, userSession.NickName, currentRoom?.RoomId ?? 0);
 
-        if (_contexts.TryGetValue(session.UserId, out var existing))
+        if (_contexts.TryGetValue(userSession.UserId, out var existing))
         {
             await DisconnectAsync(existing, ct);
         }
 
-        _contexts[session.UserId] = ctx;
+        _contexts[userSession.UserId] = ctx;
 
         var list = new List<string> { ChatChannels.GlobalChannel, ChatChannels.WhisperChannel(ctx.Nickname) };
         if (ctx.CurrentRoomId != 0)
@@ -39,15 +41,16 @@ public sealed class ChatSubscriptionService(
 
     public async Task SwitchRoomAsync(string sessionId, long roomId, CancellationToken ct)
     {
-        var session = await sessionRepository.GetBySessionIdAsync(sessionId, ct);
+        var session = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
         if (session is null) return;
 
         if (!_contexts.TryGetValue(session.UserId, out var ctx))
             return;
 
+        // TODO : 구독 
         if (roomId != 0)
         {
-            var room = await roomRepository.GetByIdAsync(roomId, ct);
+            var room = await dungeonRoomRepository.GetByIdAsync(roomId, ct);
             if (room is null) return;
             if (!room.IsExist(ctx.UserId)) return;
         }

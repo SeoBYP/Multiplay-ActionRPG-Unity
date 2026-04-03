@@ -28,14 +28,12 @@ public class ChatMessage
     {
         Validate(senderUserName, chatType, message, roomId, targetUserNickName);
 
-        var filteredMessage = FilterProfanity(message);
-
         return new ChatMessage
         {
             MessageId = messageId,
             SenderUserNickName = senderUserName,
             ChatType = chatType,
-            Message = filteredMessage,
+            Message = message,
             SentAt = DateTime.UtcNow,
             RoomId = roomId,
             TargetUserNickName = targetUserNickName,
@@ -87,26 +85,5 @@ public class ChatMessage
 
         if (chatType == ChatType.Whisper && string.IsNullOrWhiteSpace(targetUserNickName))
             throw new ArgumentException("TargetUserNickName is required for whisper", nameof(targetUserNickName));
-    }
-
-    /// <summary>
-    /// 욕설 필터링 (비즈니스 로직)
-    /// </summary>
-    public static string FilterProfanity(string message)
-    {
-        // TODO: 실제 욕설 필터 라이브러리 사용
-        var filtered = message;
-        var profanities = new[] { "욕설1", "욕설2", "비속어" };
-
-        foreach (var word in profanities)
-        {
-            if (filtered.Contains(word, StringComparison.OrdinalIgnoreCase))
-            {
-                filtered = filtered.Replace(word, new string('*', word.Length),
-                    StringComparison.OrdinalIgnoreCase);
-            }
-        }
-
-        return filtered;
     }
 }

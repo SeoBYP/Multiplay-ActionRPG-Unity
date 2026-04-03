@@ -1,57 +1,55 @@
 using System.Collections.Concurrent;
 using GameServer.Application.Common;
+using GameServer.Application.Common.Interfaces;
 using GameServer.Application.Domains.Chat.Interfaces;
+using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities.Chat;
+using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace GameServer.Application.Domains.Chat;
 
 public class ChatService(
     IChatMessageRepository chatMessageRepository,
     IUserSessionRepository userSessionRepository,
+    IDungeonRoomRepository dungeonRoomRepository,
+    IProfanityFilter profanityFilter,
+    IUserLock userLock,
     IChatEventStream chatEventStream) : IChatService
 {
-    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _userLocks = new();
-
     public async Task<Result<ChatMessage>> SendMessageAsync(
         string sessionId,
         string message,
         string? targetUserNickName,
         CancellationToken ct = default)
     {
-        var semaphore = _userLocks.GetOrAdd(sessionId, _ => new SemaphoreSlim(1, 1));
-        await semaphore.WaitAsync(ct);
+        var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
+        if (userSession is null)
+            return Result<ChatMessage>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
 
-        try
-        {
-            var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
-            if (userSession is null)
-                return Result<ChatMessage>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+        await using var _ = await userLock.AcquireAsync($"chat:user:{userSession.UserId}", ct);
+        
+        var currentRoom = await dungeonRoomRepository.GetByUserIdAsync(userSession.UserId, ct);
+        var chatType = !string.IsNullOrWhiteSpace(targetUserNickName) ? ChatType.Whisper :
+            currentRoom is not null ? ChatType.Room :
+            ChatType.Global;
 
-            var chatType =
-                !string.IsNullOrWhiteSpace(targetUserNickName) ? ChatType.Whisper :
-                userSession.CurrentRoomId > 0 ? ChatType.Room :
-                ChatType.Global;
+        long? roomId = chatType == ChatType.Room ? currentRoom?.RoomId : null;
 
-            long? roomId = chatType == ChatType.Room ? userSession.CurrentRoomId : null;
+        var filteredMessage = profanityFilter.Filter(message);
+            
+        var chatMessage = await chatMessageRepository.CreateAsync(
+            userSession.NickName,
+            chatType,
+            filteredMessage,
+            roomId,
+            targetUserNickName,
+            ct);
 
-            var chatMessage = await chatMessageRepository.CreateAsync(
-                userSession.NickName,
-                chatType,
-                message,
-                roomId,
-                targetUserNickName,
-                ct);
+        var channel = ChatChannels.GetChannel(chatType, roomId, targetUserNickName);
+        await chatEventStream.PublishAsync(channel, chatMessage, ct);
 
-            var channel = ChatChannels.GetChannel(chatType, roomId, targetUserNickName);
-            await chatEventStream.PublishAsync(channel, chatMessage, ct);
-
-            return Result<ChatMessage>.Success(chatMessage);
-        }
-        finally
-        {
-            semaphore.Release();
-        }
+        return Result<ChatMessage>.Success(chatMessage);
     }
 
     public async Task<IEnumerable<ChatMessage>> GetMessagesAfterAsync(
@@ -62,10 +60,12 @@ public class ChatService(
         var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
         if (userSession is null) return Array.Empty<ChatMessage>();
 
+        var currentRoom = await dungeonRoomRepository.GetByUserIdAsync(userSession.UserId, ct);
+        
         return await chatMessageRepository.GetMessagesAfterAsync(
             afterMessageId,
             userSession.NickName,
-            userSession.CurrentRoomId > 0 ? userSession.CurrentRoomId : null,
+            currentRoom?.RoomId,
             ct);
     }
 

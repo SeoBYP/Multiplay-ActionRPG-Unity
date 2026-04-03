@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using GameServer.API.Interceptors;
 using GameServer.API.Services;
+using GameServer.Application.Domains.Account;
 using GameServer.Application.Domains.Auth;
 using GameServer.Application.Domains.Auth.Interfaces;
 using GameServer.Application.Domains.Chat.Interfaces;
@@ -206,6 +207,7 @@ public class GameStartE2ETest
             var gameStartPublisher = new FakeGameStartPublisher();
 
             builder.Services.AddSingleton<IUserRepository, FakeUserRepository>();
+            builder.Services.AddSingleton<IUserCredentialRepository, FakeUserCredentialRepository>();
             builder.Services.AddSingleton<IUserSessionRepository, FakeUserSessionRepository>();
             builder.Services.AddSingleton<IDungeonRoomRepository, FakeDungeonRoomRepository>();
             builder.Services.AddSingleton<IDungeonRoomEventStream>(eventStream);
@@ -216,8 +218,9 @@ public class GameStartE2ETest
 
             builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
             builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
+            builder.Services.AddScoped<IAccountService, AccountService>();
             builder.Services.AddScoped<IAuthService, GameServer.Application.Domains.Auth.AuthService>();
-            builder.Services.AddSingleton<IUserService, UserService>();
+            builder.Services.AddSingleton<IUserProfileService, UserProfileService>();
             builder.Services.AddScoped<IDungeonLobbyService, GameServer.Application.Domains.DungeonLobby.DungeonLobbyService>();
 
             builder.Services.AddScoped<AuthInterceptor>();
@@ -272,12 +275,13 @@ public class GameStartE2ETest
     {
         public GameStartMessage? LastPublishedMessage { get; private set; }
 
-        public Task PublishAsync(GameStartMessage message, CancellationToken ct = default)
+        public Task PublishGameStartAsync(GameStartRequestedMessage message, CancellationToken ct = default)
         {
             LastPublishedMessage = new GameStartMessage
             {
                 RoomId = message.RoomId,
-                PlayerIds = [.. message.PlayerIds]
+                PlayerIds = [.. message.PlayerIds],
+                TraceId = message.TraceId
             };
             return Task.CompletedTask;
         }
@@ -285,9 +289,12 @@ public class GameStartE2ETest
 
     private sealed class FakeSocketReadyChecker(string socketInfo) : ISocketReadyChecker
     {
-        public Task<string?> WaitAsync(long roomId, CancellationToken ct = default)
+        public Task<SocketEndpoint?> WaitForReadyAsync(long roomId, CancellationToken ct = default)
         {
-            return Task.FromResult<string?>(socketInfo);
+            var separatorIndex = socketInfo.LastIndexOf(':');
+            var host = socketInfo[..separatorIndex];
+            var port = int.Parse(socketInfo[(separatorIndex + 1)..]);
+            return Task.FromResult<SocketEndpoint?>(new SocketEndpoint(host, port));
         }
     }
 
@@ -362,4 +369,3 @@ public class GameStartE2ETest
         }
     }
 }
-

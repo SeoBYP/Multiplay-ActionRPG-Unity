@@ -12,18 +12,19 @@ namespace GameServer.Infrastructure.Domains.User;
 /// <summary>
 /// Redis 기반 사용자 세션 저장소
 /// </summary>
-public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer, 
+public class UserSessionRepository(
+    IConnectionMultiplexer connectionMultiplexer,
     IOptions<JwtOptions> jwtOptions,
-    Microsoft.Extensions.Logging.ILogger<UserSessionRepository> logger)
+    ILogger<UserSessionRepository> logger)
     : IUserSessionRepository
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
-    
+
     private const string SessionKey = "game:session";
     private const string ActiveSessionsKey = "game:session:active";
     private const string UserSessionMappingKey = "game:user:session";
-    
+
     private TimeSpan SessionTtl => _jwtOptions.AccessTokenExpiration;
 
     /// <summary>
@@ -34,7 +35,8 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
     /// <param name="userEmail">사용자 이메일</param>
     /// <param name="publicId">사용자 공개 ID</param>
     /// <returns>생성된 세션 객체, 실패 시 예외 발생</returns>
-    public async Task<UserSession?> CreateSessionAsync(long userId, string userName, string userEmail, string publicId, CancellationToken ct = default)
+    public async Task<UserSession?> CreateSessionAsync(long userId, string nickName, string userEmail, string publicId,
+        CancellationToken ct = default)
     {
         try
         {
@@ -43,13 +45,13 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
             var transaction = _database.CreateTransaction();
 
             var sessionId = Guid.CreateVersion7().ToString();
-            var newSession = UserSession.Create(userId, userEmail, userName, publicId, sessionId);
+            var newSession = UserSession.Create(userId, userEmail, nickName, publicId, sessionId);
 
             // Redis Hash에 세션 정보 저장
-            Task hashTask = transaction.HashSetAsync($"{SessionKey}:{sessionId}",
+            _ = transaction.HashSetAsync($"{SessionKey}:{sessionId}",
             [
                 new HashEntry("UserId", userId),
-                new HashEntry("UserName", userName),
+                new HashEntry("UserName", nickName),
                 new HashEntry("Email", userEmail),
                 new HashEntry("PublicId", publicId),
                 new HashEntry("CurrentRoomId", 0),
@@ -58,24 +60,25 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
             ]);
 
             // 세션 TTL(Time To Live) 설정
-            Task expireTask = transaction.KeyExpireAsync($"{SessionKey}:{sessionId}", ttl);
+            _ = transaction.KeyExpireAsync($"{SessionKey}:{sessionId}", ttl);
 
             // 활성 세션 Set에 sessionId 추가 (현재 접속 세션 추적)
-            Task activeTask =  transaction.SetAddAsync(ActiveSessionsKey, sessionId);
+            _ = transaction.SetAddAsync(ActiveSessionsKey, sessionId);
 
             // UserId → SessionId 매핑 저장 (사용자당 하나의 세션 관리)
-            Task mappingTask =  transaction.StringSetAsync(
+            _ = transaction.StringSetAsync(
                 $"{UserSessionMappingKey}:{userId}",
                 sessionId,
                 ttl
             );
 
+            // Transation에 대한 처리가 ExecuteAsync()가 처리가 하낟.
             bool committed = await transaction.ExecuteAsync();
             if (!committed)
             {
                 throw new InvalidOperationException("Failed to create session");
             }
-            await Task.WhenAll(hashTask, expireTask, activeTask, mappingTask);
+
             return newSession;
         }
         catch (Exception)
@@ -113,11 +116,6 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
         }
     }
 
-    public async Task UpdateRoomIdAsync(string sessionId, long roomId, CancellationToken ct = default)
-    {
-        await _database.HashSetAsync($"{SessionKey}:{sessionId}", "CurrentRoomId", roomId);
-    }
-
     /// <summary>
     /// 사용자 ID를 사용하여 해당 사용자의 현재 세션을 조회합니다.
     /// </summary>
@@ -138,6 +136,24 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
         return await GetBySessionIdAsync(sessionId.ToString(), ct);
     }
 
+    public async Task UpdateRoomIdAsync(string sessionId, long roomId, CancellationToken ct = default)
+    {
+        try
+        {
+            var updated = await _database.HashSetAsync($"{SessionKey}:{sessionId}", "CurrentRoomId", roomId);
+            if (!updated)
+            {
+                var exists = await _database.KeyExistsAsync($"{SessionKey}:{sessionId}");
+                if (!exists)
+                    throw new InvalidOperationException("Session not found");
+            }
+        }
+        catch (Exception)
+        {
+            throw new InvalidOperationException("Failed to update room id");
+        }
+    }
+
     /// <summary>
     /// 지정된 세션 ID에 해당하는 세션 정보를 삭제합니다.
     /// </summary>
@@ -148,9 +164,9 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
         {
             // 세션에서 UserId 조회
             var userIdValue = await _database.HashGetAsync($"{SessionKey}:{sessionId}", "UserId");
-            
+
             var transaction = _database.CreateTransaction();
-            
+
             // 세션 데이터 삭제
             Task delSessionTask = transaction.KeyDeleteAsync($"{SessionKey}:{sessionId}");
 
@@ -165,11 +181,18 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
             var committed = await transaction.ExecuteAsync();
             if (!committed)
                 throw new InvalidOperationException("Failed to remove session");
-            
+
             if (delMappingTask is null)
-                await Task.WhenAll(delSessionTask, removeActiveTask);
+            {
+                await delSessionTask;
+                await removeActiveTask;
+            }
             else
-                await Task.WhenAll(delSessionTask, removeActiveTask, delMappingTask);
+            {
+                await delSessionTask;
+                await removeActiveTask;
+                await delMappingTask;
+            }
         }
         catch (Exception)
         {
@@ -286,7 +309,7 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
             !dict.TryGetValue("UserName", out var userName) ||
             !dict.TryGetValue("Email", out var email) ||
             !dict.TryGetValue("PublicId", out var publicId) ||
-            !dict.TryGetValue("CurrentRoomId", out var roomIdStr) ||
+            !dict.TryGetValue("CurrentRoomId", out var currentRoomIdStr) ||
             !dict.TryGetValue("LoginAt", out var loginAtStr) ||
             !dict.TryGetValue("LastActiveAt", out var lastActiveAtStr))
         {
@@ -301,13 +324,12 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
             return null;
         }
 
-        // CurrentRoomId 파싱
-        if (!long.TryParse(roomIdStr, out var roomId))
+        if (!long.TryParse(currentRoomIdStr, out var currentRoomId))
         {
             logger.LogWarning("Invalid CurrentRoomId in session {SessionId}", sessionId);
             return null;
         }
-
+        
         // 날짜 파싱 (ISO 8601)
         if (!DateTime.TryParse(loginAtStr, null, DateTimeStyles.RoundtripKind, out var loginAt))
         {
@@ -321,6 +343,6 @@ public class UserSessionRepository(IConnectionMultiplexer connectionMultiplexer,
             return null;
         }
 
-        return UserSession.FromRedis(sessionId, userId, email, userName, publicId, roomId, loginAt, lastActiveAt);
+        return UserSession.FromRedis(sessionId, userId, email, userName, publicId, loginAt, lastActiveAt, currentRoomId);
     }
 }

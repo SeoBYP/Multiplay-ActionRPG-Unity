@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using Microsoft.Extensions.Logging;
 using Shared.Infrastructure.MessageQueue;
@@ -7,25 +7,32 @@ using StackExchange.Redis;
 
 namespace GameServer.Infrastructure.Domains.DungeonRoom;
 
-public class GameStartMessageQueue(
+public class GameStartPublisher(
     IConnectionMultiplexer redis,
-    ILogger<GameStartMessageQueue> logger)
+    ILogger<GameStartPublisher> logger)
     : RedisMessageQueueBase<GameStartMessage>(redis, "stream:game:start"), IGameStartPublisher
 {
-    private const string EntryId = "data";
+    private const string EntryKey = "data";
 
-    public Task PublishAsync(GameStartMessage message, CancellationToken ct = default)
-        => EnqueueAsync(message);
+    public async Task PublishGameStartAsync(GameStartRequestedMessage message, CancellationToken ct = default)
+    {
+        await EnqueueAsync(new GameStartMessage
+        {
+            RoomId = message.RoomId,
+            PlayerIds = [.. message.PlayerIds],
+            TraceId = message.TraceId
+        });
+
+        logger.LogInformation("Published game start for room {RoomId}", message.RoomId);
+    }
 
     public override async Task EnqueueAsync(GameStartMessage message)
     {
         var json = await SerializeMessage(message);
-        await Database.StreamAddAsync(QueueKey, [new NameValueEntry(EntryId, json)]);
-        logger.LogInformation("Published game start message for room {RoomId} with {PlayerCount} players", message.RoomId, message.PlayerIds.Count);
+        await Database.StreamAddAsync(QueueKey, [new NameValueEntry(EntryKey, json)]);
     }
 
-    // GameServer는 소비 안 함
-    public override IAsyncEnumerable<GameStartMessage> DequeueAllAsync(CancellationToken ct = default)
+    public override IAsyncEnumerable<GameStartMessage> DequeueAllAsync(CancellationToken cancellationToken = default)
         => throw new NotSupportedException();
 
     protected override ValueTask<string> SerializeMessage(GameStartMessage message)

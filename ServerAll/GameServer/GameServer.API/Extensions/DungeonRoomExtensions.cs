@@ -28,6 +28,7 @@ public static class DungeonRoomExtensions
     public static RoomStatus ToDomain(this RoomStatusType grpcType) => grpcType switch
     {
         RoomStatusType.Waiting => RoomStatus.Waiting,
+        RoomStatusType.Starting => RoomStatus.Starting,
         RoomStatusType.Playing => RoomStatus.Playing,
         RoomStatusType.Closed => RoomStatus.Closed,
         _ => throw new ArgumentException()
@@ -36,6 +37,7 @@ public static class DungeonRoomExtensions
     public static RoomStatusType ToGrpc(this RoomStatus domainType) => domainType switch
     {
         RoomStatus.Waiting => RoomStatusType.Waiting,
+        RoomStatus.Starting => RoomStatusType.Starting,
         RoomStatus.Playing => RoomStatusType.Playing,
         RoomStatus.Closed => RoomStatusType.Closed,
         _ => throw new ArgumentException()

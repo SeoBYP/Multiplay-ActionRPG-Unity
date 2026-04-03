@@ -107,6 +107,7 @@ message SubscribeRoomResponse{
   oneof payload{
     RoomUpdatedEvent update_event = 1;
     GameStartedEvent start_event = 2;
+    GameSessionReadyEvent game_session_event = 3;
   }
 }
 
@@ -116,10 +117,13 @@ message RoomUpdatedEvent{
 
 message GameStartedEvent{
   RoomInfo room_info = 1;
-  string ip = 2;
-  int32 port = 3;
+
 }
 
+message GameSessionReadyEvent{
+  string ip = 1;
+  int32 port = 2;
+}
 
 message RoomInfo{
   int64 room_id = 1;
@@ -133,6 +137,7 @@ message RoomInfo{
 enum RoomStatusType{
   ROOM_STATUS_TYPE_UNSPECIFIED = 0;
   ROOM_STATUS_TYPE_WAITING = 1;
-  ROOM_STATUS_TYPE_PLAYING = 2;
-  ROOM_STATUS_TYPE_CLOSED = 3;
+  ROOM_STATUS_TYPE_STARTING = 2;
+  ROOM_STATUS_TYPE_PLAYING = 3;
+  ROOM_STATUS_TYPE_CLOSED = 4;
 }

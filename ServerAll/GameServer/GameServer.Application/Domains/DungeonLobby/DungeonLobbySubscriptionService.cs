@@ -20,10 +20,14 @@ public class DungeonLobbySubscriptionService(
             var session = await sessionRepository.GetBySessionIdAsync(sessionId, ct);
             if (session is null) return null;
 
+            // TODO : 구독 서비스가 비즈니스 로직을 하고 있다.
+            //      추후 MSA를 구현할 때는 이 부분을 분리해야 한다.
+            //      구독에 대한 책임만 처리한다.
+            //      roomRepository를 들고 있는 게 아니라 Service로 처리해야 한다.
             var room = await roomRepository.GetByIdAsync(roomId, ct);
             if (room is null) return null;
 
-            if (session.CurrentRoomId != roomId || room.IsExist(session.UserId) == false)
+            if (room.IsExist(session.UserId) == false)
                 return null;
 
             var ctx = new UserRoomContext(session.UserId, roomId);

@@ -9,7 +9,8 @@ public class UserInstaller : IServiceInstaller
     public void Install(IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<IUserRepository, UserRepository>();
+        services.AddSingleton<IUserCredentialRepository, UserCredentialRepository>();
         services.AddSingleton<IUserSessionRepository, UserSessionRepository>();
-        services.AddSingleton<IUserService, UserService>();
+        services.AddSingleton<IUserProfileService, UserProfileService>();
     }
 }
