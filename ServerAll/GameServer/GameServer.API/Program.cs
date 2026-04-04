@@ -47,7 +47,6 @@ try
         }
     }
 
-
     // 2) Kestrel endpoints / protocols
     builder.WebHost.ConfigureKestrel(options =>
     {
@@ -61,14 +60,16 @@ try
     // 3) Services
     var serviceInstaller = new ServiceInstaller();
     serviceInstaller.Install(builder.Services, builder.Configuration);
-
+    var dataBaseInstaller = new DataBaseInstaller();
+    dataBaseInstaller.Install(builder);
+    
     // Domain DI registrations
     new CommonInstaller().Install(builder.Services, builder.Configuration);
     new UserInstaller().Install(builder.Services, builder.Configuration);
     new AuthInstaller().Install(builder.Services, builder.Configuration);
     new ChatInstaller().Install(builder.Services, builder.Configuration);
     new DungeonInstaller().Install(builder.Services, builder.Configuration);
-
+    
     // 기존 ILogger 대신 Serilog 사용
     builder.Host.UseSerilog();
 
@@ -77,7 +78,7 @@ try
     // 4) Middleware pipeline
     var middlewareInstaller = new MiddlewareInstaller();
     middlewareInstaller.Install(app);
-
+    
     app.Run();
 }
 catch (Exception ex)

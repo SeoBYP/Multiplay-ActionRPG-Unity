@@ -12,6 +12,6 @@ public interface IMiddlewareInstaller
 
 public interface IInstaller
 {
-    void Install(WebApplication app);
+    void Install(WebApplicationBuilder app);
 }
 

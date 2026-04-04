@@ -30,7 +30,7 @@ public class UserCredential
     /// <summary>
     /// 리프레시 토큰의 만료 시간을 나타냅니다.
     /// </summary>
-    public DateTime RefreshTokenExpiresAt { get; private set; }
+    public DateTime? RefreshTokenExpiresAt { get; private set; }
 
     private UserCredential()
     {

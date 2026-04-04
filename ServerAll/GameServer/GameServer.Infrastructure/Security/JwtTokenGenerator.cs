@@ -13,14 +13,14 @@ public class JwtTokenGenerator(IOptions<JwtOptions> jwtOptions) : IJwtTokenGener
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
     private readonly JsonWebTokenHandler _jwtHandler = new();
 
-    public string GenerateAccessToken(long userId, string userName, string email, string sessionId)
+    public string GenerateAccessToken(long userId, string publicId, string email, string sessionId)
     {
         var claim = new List<Claim>
         {
             // Sub(Subject) : 토큰의 주인
             new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
-            // 사용자 이름
-            new Claim(JwtRegisteredClaimNames.UniqueName, userName),
+            // 사용자 공개 식별자
+            new Claim(JwtRegisteredClaimNames.UniqueName, publicId),
             // 이메일
             new Claim(JwtRegisteredClaimNames.Email, email),
             // SessionID

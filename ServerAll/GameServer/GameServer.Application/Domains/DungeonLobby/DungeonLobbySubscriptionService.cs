@@ -8,6 +8,7 @@ namespace GameServer.Application.Domains.DungeonLobby;
 public class DungeonLobbySubscriptionService(
     IDungeonRoomEventStream dungeonRoomEventStream,
     IDungeonRoomRepository roomRepository,
+    IDungeonRoomPlayerRepository roomPlayerRepository,
     IUserSessionRepository sessionRepository,
     ILogger<DungeonLobbySubscriptionService> logger) : IDungeonLobbySubscriptionService
 {
@@ -27,7 +28,8 @@ public class DungeonLobbySubscriptionService(
             var room = await roomRepository.GetByIdAsync(roomId, ct);
             if (room is null) return null;
 
-            if (room.IsExist(session.UserId) == false)
+            var roomPlayer = await roomPlayerRepository.GetByUserIdAsync(session.UserId, ct);
+            if (roomPlayer is null || roomPlayer.RoomId != roomId)
                 return null;
 
             var ctx = new UserRoomContext(session.UserId, roomId);

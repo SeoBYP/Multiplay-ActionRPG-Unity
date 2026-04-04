@@ -1,4 +1,5 @@
-﻿using GameServer.Application.Domains.User.Interfaces;
+using GameServer.Application.Domains.DungeonLobby.Interfaces;
+using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
 using GameServer.Grpc.DungeonLobby;
 
@@ -6,7 +7,10 @@ namespace GameServer.API.Extension;
 
 public static class DungeonRoomExtensions
 {
-    public static async Task<RoomInfo> ToRoomInfo(this DungeonRoom room, IUserRepository userRepository)
+    public static async Task<RoomInfo> ToRoomInfo(
+        this DungeonRoom room,
+        IUserRepository userRepository,
+        IDungeonRoomPlayerRepository dungeonRoomPlayerRepository)
     {
         var info = new RoomInfo
         {
@@ -16,7 +20,9 @@ public static class DungeonRoomExtensions
             MaxPlayers = room.MaxPlayers,
             Status = room.Status.ToGrpc(),
         };
-        var users = await userRepository.GetByIdsAsync(room.CurrentPlayers);
+
+        var players = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(room.RoomId);
+        var users = await userRepository.GetByIdsAsync(players.Select(player => player.UserId).ToList());
         foreach (var user in users)
         {
             info.CurrentPlayers.Add(user.ToUserInfo());

@@ -234,6 +234,7 @@ public class GameStartE2ETest
             builder.Services.AddSingleton<IUserProfileRepository>(userProfileRepository);
             builder.Services.AddSingleton<IProfanityFilter, AllowAllProfanityFilter>();
             builder.Services.AddSingleton<IDungeonRoomRepository, FakeDungeonRoomRepository>();
+            builder.Services.AddSingleton<IDungeonRoomPlayerRepository, FakeDungeonRoomPlayerRepository>();
             builder.Services.AddSingleton<IDungeonRoomEventStream>(eventStream);
             builder.Services.AddSingleton<IMessageQueue<GameStartRequestedMessage>>(gameStartRequestedQueue);
             builder.Services.AddSingleton<IMessageQueue<GameSessionReadyMessage>>(gameSessionReadyQueue);
@@ -459,5 +460,56 @@ public class GameStartE2ETest
 
         public Task<bool> RemoveAsync(long gameSessionId, long userId, CancellationToken ct = default)
             => Task.FromResult(true);
+    }
+
+    private sealed class FakeDungeonRoomPlayerRepository : IDungeonRoomPlayerRepository
+    {
+        private readonly ConcurrentDictionary<(long RoomId, long UserId), GameServer.Domain.Entities.DungeonRoomPlayer> _players = new();
+        private readonly ConcurrentDictionary<long, long> _userRoomMap = new();
+
+        public Task<GameServer.Domain.Entities.DungeonRoomPlayer> CreateAsync(long roomId, long userId, CancellationToken ct = default)
+        {
+            var player = GameServer.Domain.Entities.DungeonRoomPlayer.Create(roomId, userId);
+            _players[(roomId, userId)] = player;
+            _userRoomMap[userId] = roomId;
+            return Task.FromResult(player);
+        }
+
+        public Task<List<GameServer.Domain.Entities.DungeonRoomPlayer>> GetPlayersByRoomIdAsync(long roomId, CancellationToken ct = default)
+            => Task.FromResult(
+                _players.Values
+                    .Where(player => player.RoomId == roomId)
+                    .OrderBy(player => player.JoinedAt)
+                    .ToList());
+
+        public Task<GameServer.Domain.Entities.DungeonRoomPlayer?> GetByUserIdAsync(long userId, CancellationToken ct = default)
+        {
+            if (!_userRoomMap.TryGetValue(userId, out var roomId))
+                return Task.FromResult<GameServer.Domain.Entities.DungeonRoomPlayer?>(null);
+
+            _players.TryGetValue((roomId, userId), out var player);
+            return Task.FromResult<GameServer.Domain.Entities.DungeonRoomPlayer?>(player);
+        }
+
+        public Task<bool> RemoveAsync(long roomId, long userId, CancellationToken ct = default)
+        {
+            var removed = _players.TryRemove((roomId, userId), out _);
+            if (removed)
+                _userRoomMap.TryRemove(userId, out _);
+            return Task.FromResult(removed);
+        }
+
+        public Task<bool> RemoveByRoomIdAsync(long roomId, CancellationToken ct = default)
+        {
+            var removed = false;
+            var players = _players.Values.Where(player => player.RoomId == roomId).ToList();
+            foreach (var player in players)
+            {
+                removed |= _players.TryRemove((player.RoomId, player.UserId), out _);
+                _userRoomMap.TryRemove(player.UserId, out _);
+            }
+
+            return Task.FromResult(removed);
+        }
     }
 }

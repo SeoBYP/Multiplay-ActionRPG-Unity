@@ -19,6 +19,7 @@ public class DungeonInstaller : IServiceInstaller
         services.AddSingleton<IGameSessionService, GameSessionService>();
 
         services.AddSingleton<IDungeonRoomRepository, DungeonRoomRepository>();
+        services.AddSingleton<IDungeonRoomPlayerRepository, DungeonRoomPlayerRepository>();
         services.AddSingleton<IDungeonLobbySubscriptionService, DungeonLobbySubscriptionService>();
         services.AddSingleton<IDungeonRoomEventStream, DungeonRoomEventStream>();
         services.AddSingleton<IGameSessionRepository, GameSessionRepository>();

@@ -9,7 +9,9 @@ namespace GameServer.Application.Domains.Chat;
 public sealed class ChatSubscriptionService(
     IChatEventStream chatEventStream,
     IUserSessionRepository userSessionRepository,
+    IUserProfileRepository userProfileRepository,
     IDungeonRoomRepository dungeonRoomRepository,
+    IDungeonRoomPlayerRepository dungeonRoomPlayerRepository,
     ILogger<ChatSubscriptionService> logger) : IChatSubscriptionService
 {
     private readonly ConcurrentDictionary<long, UserChatContext> _contexts = new();
@@ -19,9 +21,15 @@ public sealed class ChatSubscriptionService(
         var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
         if (userSession is null) return null;
 
-        var currentRoom = await dungeonRoomRepository.GetByUserIdAsync(userSession.UserId, ct);
+        var userProfile = await userProfileRepository.GetByIdAsync(userSession.UserId, ct);
+        if (userProfile is null) return null;
+
+        var roomPlayer = await dungeonRoomPlayerRepository.GetByUserIdAsync(userSession.UserId, ct);
+        var currentRoom = roomPlayer is null
+            ? null
+            : await dungeonRoomRepository.GetByIdAsync(roomPlayer.RoomId, ct);
         
-        var ctx = new UserChatContext(userSession.UserId, userSession.NickName, currentRoom?.RoomId ?? 0);
+        var ctx = new UserChatContext(userSession.UserId, userProfile.NickName, currentRoom?.RoomId ?? 0);
 
         if (_contexts.TryGetValue(userSession.UserId, out var existing))
         {
@@ -52,7 +60,9 @@ public sealed class ChatSubscriptionService(
         {
             var room = await dungeonRoomRepository.GetByIdAsync(roomId, ct);
             if (room is null) return;
-            if (!room.IsExist(ctx.UserId)) return;
+
+            var roomPlayer = await dungeonRoomPlayerRepository.GetByUserIdAsync(ctx.UserId, ct);
+            if (roomPlayer is null || roomPlayer.RoomId != roomId) return;
         }
 
         await ctx.ReadLoopCts.CancelAsync();

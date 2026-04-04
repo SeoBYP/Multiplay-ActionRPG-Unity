@@ -8,6 +8,8 @@ namespace GameServer.Domain.Entities.User;
 /// </summary>
 public class User
 {
+    public const int MaxPublicIdLength = 10;
+    
     /// <summary>
     /// 내부 식별자 (DB PK)
     /// </summary>
@@ -42,7 +44,7 @@ public class User
     /// <exception cref="ArgumentException">입력값이 유효하지 않을 경우 발생</exception>
     public static User Create()
     {
-        var publicId = Nanoid.Generate(Const.AllowedPublicIdChars, size:10);
+        var publicId = Nanoid.Generate(Const.AllowedPublicIdChars, size:MaxPublicIdLength);
         
         if(publicId == null)
             throw new InvalidOperationException("Failed to generate public id");

@@ -183,7 +183,7 @@ public class AuthServiceTests
 
         var expiredAccessToken = expiredGenerator.GenerateAccessToken(
             login.Value!.User.UserId,
-            "expired_user",
+            login.Value.User.PublicId,
             "expired-access@example.com",
             login.Value.Session.SessionId);
 

@@ -12,6 +12,7 @@ public sealed class GameSessionReadyConsumer(
     IMessageQueue<GameSessionReadyMessage> gameSessionReadyMessageQueue,
     IGameSessionService gameSessionService,
     IDungeonRoomRepository roomRepository,
+    IDungeonRoomPlayerRepository roomPlayerRepository,
     IDungeonLobbySubscriptionService subscriptionService,
     ILogger<GameSessionReadyConsumer> logger) : BackgroundService
 {
@@ -28,9 +29,11 @@ public sealed class GameSessionReadyConsumer(
                     continue;
                 }
 
+                var players = await roomPlayerRepository.GetPlayersByRoomIdAsync(message.RoomId, stoppingToken);
+
                 await gameSessionService.CreateGameSessionAsync(
                     message.RoomId,
-                    room.CurrentPlayers.ToList(),
+                    players.Select(player => player.UserId).ToList(),
                     message.Host,
                     message.Port,
                     message.TraceId,

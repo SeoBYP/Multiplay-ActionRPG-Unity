@@ -24,7 +24,7 @@ public class UserProfileServiceTests
     public async Task 유효한_세션으로_프로필_조회_시_성공한다()
     {
         await _profileRepository.CreateAsync(1, "PlayerOne");
-        var session = await _sessionRepository.CreateSessionAsync(1, "PlayerOne", "test@example.com", "public-1");
+        var session = await _sessionRepository.CreateSessionAsync(1);
         var service = CreateService();
 
         var result = await service.GetProfileAsync(session!.SessionId);
@@ -49,7 +49,7 @@ public class UserProfileServiceTests
     public async Task 유효한_닉네임으로_프로필_업데이트_시_성공한다()
     {
         await _profileRepository.CreateAsync(1, "Before");
-        var session = await _sessionRepository.CreateSessionAsync(1, "Before", "test@example.com", "public-1");
+        var session = await _sessionRepository.CreateSessionAsync(1);
         var service = CreateService();
 
         var result = await service.UpdateProfileAsync(session!.SessionId, "AfterName");
@@ -62,7 +62,7 @@ public class UserProfileServiceTests
     public async Task 비속어가_포함된_닉네임은_거부된다()
     {
         await _profileRepository.CreateAsync(1, "Before");
-        var session = await _sessionRepository.CreateSessionAsync(1, "Before", "test@example.com", "public-1");
+        var session = await _sessionRepository.CreateSessionAsync(1);
         var service = CreateService(isProfane: true);
 
         var result = await service.UpdateProfileAsync(session!.SessionId, "BadWord");
@@ -75,7 +75,7 @@ public class UserProfileServiceTests
     public async Task 형식이_잘못된_닉네임은_거부된다()
     {
         await _profileRepository.CreateAsync(1, "Before");
-        var session = await _sessionRepository.CreateSessionAsync(1, "Before", "test@example.com", "public-1");
+        var session = await _sessionRepository.CreateSessionAsync(1);
         var service = CreateService();
 
         var result = await service.UpdateProfileAsync(session!.SessionId, "a");

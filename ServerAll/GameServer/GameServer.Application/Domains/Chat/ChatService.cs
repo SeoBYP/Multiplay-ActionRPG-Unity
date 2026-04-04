@@ -12,7 +12,9 @@ namespace GameServer.Application.Domains.Chat;
 public class ChatService(
     IChatMessageRepository chatMessageRepository,
     IUserSessionRepository userSessionRepository,
+    IUserProfileRepository userProfileRepository,
     IDungeonRoomRepository dungeonRoomRepository,
+    IDungeonRoomPlayerRepository dungeonRoomPlayerRepository,
     IProfanityFilter profanityFilter,
     IUserLock userLock,
     IChatEventStream chatEventStream) : IChatService
@@ -27,9 +29,16 @@ public class ChatService(
         if (userSession is null)
             return Result<ChatMessage>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
 
+        var userProfile = await userProfileRepository.GetByIdAsync(userSession.UserId, ct);
+        if (userProfile is null)
+            return Result<ChatMessage>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+        
         await using var _ = await userLock.AcquireAsync($"chat:user:{userSession.UserId}", ct);
         
-        var currentRoom = await dungeonRoomRepository.GetByUserIdAsync(userSession.UserId, ct);
+        var roomPlayer = await dungeonRoomPlayerRepository.GetByUserIdAsync(userSession.UserId, ct);
+        var currentRoom = roomPlayer is null
+            ? null
+            : await dungeonRoomRepository.GetByIdAsync(roomPlayer.RoomId, ct);
         var chatType = !string.IsNullOrWhiteSpace(targetUserNickName) ? ChatType.Whisper :
             currentRoom is not null ? ChatType.Room :
             ChatType.Global;
@@ -37,9 +46,23 @@ public class ChatService(
         long? roomId = chatType == ChatType.Room ? currentRoom?.RoomId : null;
 
         var filteredMessage = profanityFilter.Filter(message);
+
+        try
+        {
+            ChatMessage.Validate(
+                userProfile.NickName,
+                chatType,
+                filteredMessage,
+                roomId,
+                targetUserNickName);
+        }
+        catch (ArgumentException)
+        {
+            return Result<ChatMessage>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+        }
             
         var chatMessage = await chatMessageRepository.CreateAsync(
-            userSession.NickName,
+            userProfile.NickName,
             chatType,
             filteredMessage,
             roomId,
@@ -59,12 +82,18 @@ public class ChatService(
     {
         var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
         if (userSession is null) return Array.Empty<ChatMessage>();
+        
+        var userProfile = await userProfileRepository.GetByIdAsync(userSession.UserId, ct);
+        if (userProfile is null) return Array.Empty<ChatMessage>();
 
-        var currentRoom = await dungeonRoomRepository.GetByUserIdAsync(userSession.UserId, ct);
+        var roomPlayer = await dungeonRoomPlayerRepository.GetByUserIdAsync(userSession.UserId, ct);
+        var currentRoom = roomPlayer is null
+            ? null
+            : await dungeonRoomRepository.GetByIdAsync(roomPlayer.RoomId, ct);
         
         return await chatMessageRepository.GetMessagesAfterAsync(
             afterMessageId,
-            userSession.NickName,
+            userProfile.NickName,
             currentRoom?.RoomId,
             ct);
     }

@@ -18,9 +18,6 @@ public class DungeonRoomRepository(
 
     private const string RoomKey = "game:room";
     private const string ActiveRoomsKey = "game:room:active";
-    private const string UserRoomMappingKey = "game:user:room";
-    
-    
     private const string RoomCounterKey = "game:room:id:counter";
 
     /// <summary>
@@ -54,24 +51,9 @@ public class DungeonRoomRepository(
                 new HashEntry("Status", room.Status.ToString()), // Enum → String
                 new HashEntry("CreatedAt", room.CreatedAt.ToString("O")), // ISO 8601
             ]);
-
-            // 5. 플레이어 목록 저장 (Set)  
-            // CurrentPlayers를 RedisValue[]로 변환
-            var playerValues = room.CurrentPlayers
-                .Select(p => (RedisValue)p)
-                .ToArray();
-
-            _ = transaction.SetAddAsync(
-                $"{RoomKey}:{roomId}:players",
-                playerValues);
-
+            
             // 6. 활성 방 목록에 추가
             _ = transaction.SetAddAsync(ActiveRoomsKey, roomId);
-
-            // 7. 사용자 → 방 매핑(Create에서는 Host만 있음)
-            _ = transaction.StringSetAsync(
-                $"{UserRoomMappingKey}:{hostId}",
-                roomId);
 
             bool committed = await transaction.ExecuteAsync();
             if (!committed)
@@ -94,23 +76,12 @@ public class DungeonRoomRepository(
     {
         try
         {
-            // 1. 방 기본 정보 조회 (Hash)
-            var hashTask = _database.HashGetAllAsync($"{RoomKey}:{roomId}");
+            var entries = await _database.HashGetAllAsync($"{RoomKey}:{roomId}");
 
-            // 2. 플레이어 목록 조회 (Set)
-            var playersTask = _database.SetMembersAsync($"{RoomKey}:{roomId}:players");
-
-            await Task.WhenAll(hashTask, playersTask);
-
-            var entries = await hashTask;
-            var players = await playersTask;
-
-            // 3. 데이터 없으면 null 반환
             if (entries.Length == 0)
                 return null;
 
-            // 4. DungeonRoom 파싱
-            return ParseDungeonRoomFromRedis(roomId, entries, players);
+            return ParseDungeonRoomFromRedis(roomId, entries);
         }
         catch (Exception e)
         {
@@ -126,24 +97,7 @@ public class DungeonRoomRepository(
     /// <returns>DungeonRoom 객체, 참여 중인 방이 없는 경우 null</returns>
     public async Task<Domain.Entities.DungeonRoom?> GetByUserIdAsync(long userId, CancellationToken ct = default)
     {
-        try
-        {
-            var roomIdValue  = await _database.StringGetAsync($"{UserRoomMappingKey}:{userId}");
-            // 매핑 정보 없음
-            if (!roomIdValue.HasValue || roomIdValue.IsNullOrEmpty)
-                return null;
-            
-            // long 파싱 안됨
-            if (!long.TryParse(roomIdValue.ToString(), out var roomIdParsed))
-                return null;
-            
-            return await GetByIdAsync(roomIdParsed, ct);
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Failed to get dungeon room by user {UserId}", userId);
-            throw;
-        }
+        return null;
     }
 
     /// <summary>
@@ -162,13 +116,9 @@ public class DungeonRoomRepository(
             
             // 2. Batch를 통해서 Redis 요청을 병렬 처리
             var batch = _database.CreateBatch();
-        
+
             var roomTasks = roomIds
                 .Select(roomId => batch.HashGetAllAsync($"{RoomKey}:{roomId}"))
-                .ToList();
-
-            var playersTasks = roomIds
-                .Select(roomId => batch.SetMembersAsync($"{RoomKey}:{roomId}:players"))  // ← batch 사용!
                 .ToList();
             
             batch.Execute();
@@ -180,14 +130,10 @@ public class DungeonRoomRepository(
                 var entries = await roomTasks[i];
                 if (entries.Length == 0)
                     continue;
-                
-                var players = await playersTasks[i];
-                // players가 0이어도 방은 존재할 수 있음 (모두 퇴장 직전)
             
                 var room = ParseDungeonRoomFromRedis(
                     long.Parse(roomIds[i].ToString()), 
-                    entries, 
-                    players);
+                    entries);
             
                 if (room is not null)
                     rooms.Add(room);
@@ -240,40 +186,14 @@ public class DungeonRoomRepository(
                 new HashEntry("Status", room.Status.ToString())
             ]);
             
-            // 5. 플레이어 목록 업데이트 (기존 삭제 후 재추가)
-            var playersKey = $"{RoomKey}:{room.RoomId}:players";
-            
-            // 기존 플레이어 목록 삭제
-            Task deletePlayersTask = transaction.KeyDeleteAsync(playersKey);
-        
-            // 새 플레이어 목록 추가
-            var playerValues = room.CurrentPlayers
-                .Select(p => (RedisValue)p)
-                .ToArray();
-            
-            Task addPlayersTask = playerValues.Length > 0
-                ? transaction.SetAddAsync(playersKey, playerValues)
-                : Task.CompletedTask;
-        
-            // 6. 사용자 → 방 매핑 업데이트
-            // 기존 플레이어들의 매핑 삭제
-            var deleteMappingTasks = existingRoom.CurrentPlayers
-                .Select(userId => transaction.KeyDeleteAsync($"{UserRoomMappingKey}:{userId}"))
-                .ToArray();
-
-            
-            // 새 플레이어들의 매핑 추가
-            var addMappingTasks = room.CurrentPlayers
-                .Select(userId => transaction.StringSetAsync(
-                    $"{UserRoomMappingKey}:{userId}", 
-                    room.RoomId))
-                .ToArray();
-            
-            // 7. Closed 상태면 활성 목록에서 제거
-            Task? removeActiveTask = null;
+            Task? activeRoomsTask = null;
             if (room.Status == RoomStatus.Closed && existingRoom.Status != RoomStatus.Closed)
             {
-                removeActiveTask = transaction.SetRemoveAsync(ActiveRoomsKey, room.RoomId);
+                activeRoomsTask = transaction.SetRemoveAsync(ActiveRoomsKey, room.RoomId);
+            }
+            else if (room.Status != RoomStatus.Closed && existingRoom.Status == RoomStatus.Closed)
+            {
+                activeRoomsTask = transaction.SetAddAsync(ActiveRoomsKey, room.RoomId);
             }
             
             // 8. Transaction 실행
@@ -284,14 +204,10 @@ public class DungeonRoomRepository(
             // 9. 모든 Task 완료 대기
             var tasks = new List<Task> 
             { 
-                hashTask, 
-                deletePlayersTask, 
-                addPlayersTask 
+                hashTask
             };
-            tasks.AddRange(deleteMappingTasks);
-            tasks.AddRange(addMappingTasks);
-            if (removeActiveTask is not null)
-                tasks.Add(removeActiveTask);
+            if (activeRoomsTask is not null)
+                tasks.Add(activeRoomsTask);
         
             await Task.WhenAll(tasks);
 
@@ -314,9 +230,8 @@ public class DungeonRoomRepository(
     {
         try
         {
-            // 1. 먼저 방 정보 조회 (플레이어 목록 필요)
             var room = await GetByIdAsync(roomId, ct);
-            if (room == null)
+            if (room is null)
                 return false;
         
             var transaction = _database.CreateTransaction();
@@ -327,14 +242,6 @@ public class DungeonRoomRepository(
             // 3. 활성 목록에서 제거
             Task removeActiveTask = transaction.SetRemoveAsync(ActiveRoomsKey, roomId);
         
-            // 4. 플레이어 목록 삭제
-            Task delPlayersTask = transaction.KeyDeleteAsync($"{RoomKey}:{roomId}:players");
-        
-            // 5. 모든 플레이어의 UserId → RoomId 매핑 삭제
-            var delMappingTasks = room.CurrentPlayers
-                .Select(userId => transaction.KeyDeleteAsync($"{UserRoomMappingKey}:{userId}"))
-                .ToArray();
-            
             // 6. Transaction 실행
             bool committed = await transaction.ExecuteAsync();
             if (!committed)
@@ -342,8 +249,7 @@ public class DungeonRoomRepository(
         
             // 7. 모든 Task 완료 대기
             await Task.WhenAll(
-                new[] { delRoomTask, removeActiveTask, delPlayersTask }
-                    .Concat(delMappingTasks));
+                new[] { delRoomTask, removeActiveTask });
             
             return true;
         }
@@ -354,75 +260,15 @@ public class DungeonRoomRepository(
         }
     }
 
-    private const string JoinRoomLua = """
-                                       local roomKey = KEYS[1]
-                                       local roomPlayersKey = KEYS[2]
-                                       local userRoomKey = KEYS[3]
-                                       
-                                       local roomId = ARGV[1]
-                                       local userId = ARGV[2]
-                                       local waitingStatus = ARGV[3]
-                                       
-                                       if(redis.call('EXISTS', roomKey) == 0) then
-                                            return -1
-                                       end
-                                       
-                                       local status = redis.call('HGET', roomKey, 'Status')
-                                       if not status or status ~= waitingStatus then
-                                           return -2
-                                       end
-                                       
-                                       local joinedRoomId = redis.call('GET', userRoomKey)
-                                       if joinedRoomId and joinedRoomId ~= roomId then
-                                           return -3
-                                       end
-                                       
-                                       if redis.call('SISMEMBER', roomPlayersKey, userId) == 1 then
-                                           return -4
-                                       end
-                                       
-                                       local maxPlayers = tonumber(redis.call('HGET', roomKey, 'MaxPlayers'))
-                                       local currentCount = tonumber(redis.call('SCARD', roomPlayersKey))
-                                       
-                                       if currentCount >= maxPlayers then
-                                           return -5
-                                       end
-                                       
-                                       redis.call('SADD', roomPlayersKey, userId)
-                                       redis.call('SET', userRoomKey, roomId)
-                                       
-                                       return 1
-                                       
-                                       """;
-
     public async Task<JoinRoomAtomicResult> TryJoinRoomAsync(long userId, long roomId, CancellationToken ct = default)
     {
-        var result = await _database.ScriptEvaluateAsync(
-            JoinRoomLua,
-            new RedisKey[]
-            {
-                $"{RoomKey}:{roomId}",
-                $"{RoomKey}:{roomId}:players",
-                $"{UserRoomMappingKey}:{userId}"
-            },
-            new RedisValue[]
-            {
-                roomId.ToString(),
-                userId.ToString(),
-                RoomStatus.Waiting.ToString()
-            });
-        var code = (int)(long)result;
+        var room = await GetByIdAsync(roomId, ct);
+        if (room is null)
+            return JoinRoomAtomicResult.RoomNotFound;
 
-        return code switch
-        {
-            1 => JoinRoomAtomicResult.Success,
-            -1 => JoinRoomAtomicResult.RoomNotFound,
-            -2 => JoinRoomAtomicResult.InvalidStatus,
-            -3 => JoinRoomAtomicResult.AlreadyInOtherRoom,
-            -4 => JoinRoomAtomicResult.AlreadyInThisRoom,
-            -5 => JoinRoomAtomicResult.RoomFull,
-            _ => JoinRoomAtomicResult.UnknownError
-        };
+        return room.Status == RoomStatus.Waiting
+            ? JoinRoomAtomicResult.Success
+            : JoinRoomAtomicResult.InvalidStatus;
     }
 
     /// <summary>
@@ -430,8 +276,7 @@ public class DungeonRoomRepository(
     /// </summary>
     private Domain.Entities.DungeonRoom? ParseDungeonRoomFromRedis(
         long roomId,
-        HashEntry[] entries,
-        RedisValue[] players)
+        HashEntry[] entries)
     {
         // 1. Hash를 Dictionary로 변환
         var dict = entries.ToDictionary(
@@ -444,9 +289,7 @@ public class DungeonRoomRepository(
             !dict.TryGetValue("HostUserId", out var hostUserIdStr) ||
             !dict.TryGetValue("MaxPlayers", out var maxPlayersStr) ||
             !dict.TryGetValue("Status", out var statusStr) ||
-            !dict.TryGetValue("CreatedAt", out var createdAtStr) ||
-            !dict.TryGetValue("SocketIp", out var socketIp) ||
-            !dict.TryGetValue("SocketPort", out var socketPortStr))
+            !dict.TryGetValue("CreatedAt", out var createdAtStr))
         {
             logger.LogWarning("Dungeon room {RoomId} has missing fields", roomId);
             return null;
@@ -483,25 +326,13 @@ public class DungeonRoomRepository(
             return null;
         }
 
-        if (!int.TryParse(socketPortStr, out var socketPort))
-        {
-            logger.LogWarning("Invalid socket port value {SocketPortValue}", socketPortStr);
-            return null;
-        }
-        
-        // 4. 플레이어 목록 변환
-        var currentPlayers = new List<long>(
-            players.Select(p => (long)p)
-        );
-        
-        // 5. FromRedis로 DungeonRoom 재구성
+        // 4. FromRedis로 DungeonRoom 재구성
         return Domain.Entities.DungeonRoom.FromRedis(
             id, 
             roomName, 
             hostUserId, 
             maxPlayers, 
             status, 
-            currentPlayers,
             createdAt);
     }
 }

@@ -237,6 +237,20 @@ public class ChatMessageTests
                 ChatType.Global,
                 message));
     }
+
+    [Fact]
+    public void Create_는_Message가_MaxMessageLength를_초과하면_예외를_던진다()
+    {
+        var senderUserName = "testuser";
+        var message = new string('a', ChatMessage.MaxMessageLength + 1);
+
+        Assert.Throws<ArgumentException>(() =>
+            ChatMessage.CreateNew(
+                1L,
+                senderUserName,
+                ChatType.Global,
+                message));
+    }
     
     // ========================================
     // 메시지 원본 유지 테스트

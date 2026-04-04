@@ -41,7 +41,7 @@ public class FakeUserCredentialRepository : IUserCredentialRepository
             credential.Email,
             passwordHash,
             credential.RefreshToken,
-            credential.RefreshTokenExpiresAt);
+            credential.RefreshTokenExpiresAt ?? default);
 
         _credentials[userId] = updated;
         return Task.FromResult(true);

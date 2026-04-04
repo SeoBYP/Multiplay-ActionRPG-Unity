@@ -16,6 +16,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
     IDungeonLobbySubscriptionService subscriptionService,
     IGameSessionRepository gameSessionRepository,
     IUserRepository userRepository,
+    IDungeonRoomPlayerRepository dungeonRoomPlayerRepository,
     ILogger<DungeonLobbyGrpcService> logger) : DungeonLobbyService.DungeonLobbyServiceBase
 {
     public override async Task<CreateRoomResponse> CreateRoom(CreateRoomRequest request, ServerCallContext context)
@@ -44,7 +45,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         return new CreateRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = await result.Value.ToRoomInfo(userRepository),
+            RoomInfo = await result.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository),
             CreatedAt = new DateTimeOffset(result.Value.CreatedAt).ToUnixTimeSeconds(),
         };
     }
@@ -69,7 +70,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         return new GetRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository),
+            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository),
         };
     }
 
@@ -100,7 +101,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
 
         foreach (var dungeonRoom in result.Value)
         {
-            response.RoomInfos.Add(await dungeonRoom.ToRoomInfo(userRepository));
+            response.RoomInfos.Add(await dungeonRoom.ToRoomInfo(userRepository, dungeonRoomPlayerRepository));
         }
 
         logger.LogInformation("GetRooms succeeded for session {SessionId} with {RoomCount} rooms", sessionId, response.RoomInfos.Count);
@@ -129,7 +130,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         return new JoinRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository)
+            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository)
         };
     }
 
@@ -179,7 +180,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         return new StartRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository),
+            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository),
         };
     }
 
@@ -205,7 +206,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         return new UpdateRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository)
+            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository)
         };
     }
 
@@ -270,7 +271,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
                 default:
                     serverMsg.UpdateEvent = new RoomUpdatedEvent
                     {
-                        RoomInfo = await room.Value.ToRoomInfo(userRepository),
+                        RoomInfo = await room.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository),
                     };
                     break;
             }

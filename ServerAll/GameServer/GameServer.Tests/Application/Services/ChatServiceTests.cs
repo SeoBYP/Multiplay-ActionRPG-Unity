@@ -15,7 +15,9 @@ public class ChatServiceTests
 {
     private readonly IChatMessageRepository _chatRepo;
     private readonly IUserSessionRepository _sessionRepo;
+    private readonly FakeUserProfileRepository _profileRepo;
     private readonly IDungeonRoomRepository _roomRepo;
+    private readonly FakeDungeonRoomPlayerRepository _roomPlayerRepo;
     private readonly Mock<IChatEventStream> _mockEventStream;
     private readonly IProfanityFilter _profanityFilter;
     private readonly IUserLock _userLock;
@@ -25,7 +27,9 @@ public class ChatServiceTests
     {
         _chatRepo = new FakeChatMessageRepository();
         _sessionRepo = new FakeUserSessionRepository();
+        _profileRepo = new FakeUserProfileRepository();
         _roomRepo = new FakeDungeonRoomRepository();
+        _roomPlayerRepo = new FakeDungeonRoomPlayerRepository();
         _mockEventStream = new Mock<IChatEventStream>();
         _profanityFilter = new PassThroughProfanityFilter();
         _userLock = new NoOpUserLock();
@@ -33,15 +37,18 @@ public class ChatServiceTests
         _service = new ChatService(
             _chatRepo,
             _sessionRepo,
+            _profileRepo,
             _roomRepo,
+            _roomPlayerRepo,
             _profanityFilter,
             _userLock,
             _mockEventStream.Object);
     }
 
-    private async Task<string> CreateSessionAsync(long userId = 100, string nickname = "test", string userEmail = "test@test.com", string publicId = "public123")
+    private async Task<string> CreateSessionAsync(long userId = 100, string nickname = "test")
     {
-        var session = await _sessionRepo.CreateSessionAsync(userId, nickname, userEmail, publicId);
+        await _profileRepo.CreateAsync(userId, nickname);
+        var session = await _sessionRepo.CreateSessionAsync(userId);
         return session!.SessionId;
     }
 
@@ -65,6 +72,7 @@ public class ChatServiceTests
     {
         var sessionId = await CreateSessionAsync(2, "Bob");
         var room = await _roomRepo.CreateAsync(2, "room", 4);
+        await _roomPlayerRepo.CreateAsync(room!.RoomId, 2);
 
         var result = await _service.SendMessageAsync(sessionId, "room msg", null);
 
@@ -107,6 +115,22 @@ public class ChatServiceTests
     }
 
     [Fact]
+    public async Task SendMessage_MessageTooLong_FailsWithoutPublishing()
+    {
+        var sessionId = await CreateSessionAsync(4, "LongUser");
+        var message = new string('a', ChatMessage.MaxMessageLength + 1);
+
+        var result = await _service.SendMessageAsync(sessionId, message, null);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.InvalidRequest, result.InternalErrorCode);
+        _mockEventStream.Verify(x => x.PublishAsync(
+            It.IsAny<string>(),
+            It.IsAny<ChatMessage>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GetMessageById_ReturnsStoredMessage()
     {
         var sessionId = await CreateSessionAsync(10, "Dave");
@@ -134,6 +158,7 @@ public class ChatServiceTests
     {
         var sessionId = await CreateSessionAsync(20, "RoomUser");
         var room = await _roomRepo.CreateAsync(20, "room", 4);
+        await _roomPlayerRepo.CreateAsync(room!.RoomId, 20);
 
         for (int i = 0; i < 5; i++)
             await _service.SendMessageAsync(sessionId, $"msg-{i}", null);
@@ -163,11 +188,12 @@ public class ChatServiceTests
     [Fact]
     public async Task GetMessagesAfter_FiltersByVisibility()
     {
-        var aliceSessionId = await CreateSessionAsync(100, "Alice", "alice@test.com", "pub-alice");
+        var aliceSessionId = await CreateSessionAsync(100, "Alice");
         var room = await _roomRepo.CreateAsync(100, "room-101", 4);
+        await _roomPlayerRepo.CreateAsync(room!.RoomId, 100);
 
         await _chatRepo.CreateAsync("System", ChatType.Global, "Global Msg", null, null);
-        await _chatRepo.CreateAsync("Bob", ChatType.Room, "Room 101 Msg", room!.RoomId, null);
+        await _chatRepo.CreateAsync("Bob", ChatType.Room, "Room 101 Msg", room.RoomId, null);
         await _chatRepo.CreateAsync("Bob", ChatType.Room, "Room 102 Msg", 102, null);
         await _chatRepo.CreateAsync("Bob", ChatType.Whisper, "To Alice", null, "Alice");
         await _chatRepo.CreateAsync("Alice", ChatType.Whisper, "To Bob", null, "Bob");

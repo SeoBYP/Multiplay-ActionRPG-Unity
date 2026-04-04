@@ -9,10 +9,10 @@ public class FakeUserSessionRepository : IUserSessionRepository
     private readonly Dictionary<string, UserSession> _sessions = new();
     private readonly Dictionary<long, string> _userToSession = new();
 
-    public Task<UserSession?> CreateSessionAsync(long userId, string userName, string userEmail, string publicId, CancellationToken ct = default)
+    public Task<UserSession?> CreateSessionAsync(long userId, CancellationToken ct = default)
     {
         var sessionId = Guid.NewGuid().ToString();
-        var session = UserSession.Create(userId, userEmail, userName, publicId, sessionId);
+        var session = UserSession.Create(userId, sessionId);
         
         _sessions[sessionId] = session;
         _userToSession[userId] = sessionId;
@@ -33,15 +33,6 @@ public class FakeUserSessionRepository : IUserSessionRepository
             return GetBySessionIdAsync(sessionId, ct);
         }
         return Task.FromResult<UserSession?>(null);
-    }
-
-    public Task UpdateRoomIdAsync(string sessionId, long roomId, CancellationToken ct = default)
-    {
-        if (_sessions.TryGetValue(sessionId, out var session))
-        {
-            session.SetRoomId(roomId);
-        }
-        return Task.CompletedTask;
     }
 
     public Task RemoveSessionAsync(string sessionId, CancellationToken ct = default)

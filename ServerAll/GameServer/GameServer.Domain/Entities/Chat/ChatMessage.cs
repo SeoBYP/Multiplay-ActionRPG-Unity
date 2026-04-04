@@ -2,6 +2,8 @@
 
 public class ChatMessage
 {
+    public const int MaxMessageLength = 1000;
+    
     public long MessageId { get; init; }
     public ChatType ChatType { get; init; }
     public string SenderUserNickName { get; init; } = "";
@@ -79,6 +81,9 @@ public class ChatMessage
 
         if (string.IsNullOrWhiteSpace(message))
             throw new ArgumentException("Message cannot be empty", nameof(message));
+
+        if (message.Length > MaxMessageLength)
+            throw new ArgumentException($"Message cannot exceed {MaxMessageLength} characters", nameof(message));
 
         if (chatType == ChatType.Room && (!roomId.HasValue || roomId <= 0))
             throw new ArgumentException("RoomId is required for room chat", nameof(roomId));

@@ -12,6 +12,7 @@ namespace GameServer.Application.Domains.DungeonLobby;
 public class DungeonLobbyService(
     IDungeonRoomRepository dungeonRoomRepository,
     IDungeonLobbySubscriptionService dungeonLobbySubscriptionService,
+    IDungeonRoomPlayerRepository dungeonRoomPlayerRepository,
     IMessageQueue<GameStartRequestedMessage> gameStartRequestedMessageQueue,
     IUserSessionRepository userSessionRepository,
     IChatSubscriptionService chatSubscriptionService,
@@ -24,20 +25,16 @@ public class DungeonLobbyService(
             var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
             if (userSession is null)
                 return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            var userId = userSession.UserId;
 
-            var existingRoom = await dungeonRoomRepository.GetByUserIdAsync(userId, ct);
-            if (existingRoom is not null)
-            {
+            var existingRoomPlayer = await dungeonRoomPlayerRepository.GetByUserIdAsync(userSession.UserId, ct);
+            if (existingRoomPlayer is not null)
                 return Result<DungeonRoom>.Failure(ErrorCodes.AlreadyInRoom, ErrorMessages.AlreadyInRoom);
-            }
 
-            var newRoom = await dungeonRoomRepository.CreateAsync(userId, roomName, maxPlayers, ct);
+            var newRoom = await dungeonRoomRepository.CreateAsync(userSession.UserId, roomName, maxPlayers, ct);
             if (newRoom is null)
-            {
                 return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
-            }
 
+            await dungeonRoomPlayerRepository.CreateAsync(newRoom.RoomId, userSession.UserId, ct);
             return Result<DungeonRoom>.Success(newRoom);
         }
         catch (Exception e)
@@ -67,9 +64,7 @@ public class DungeonLobbyService(
         {
             var room = await dungeonRoomRepository.GetByIdAsync(roomId, ct);
             if (room is null)
-            {
                 return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
-            }
 
             return Result<DungeonRoom>.Success(room);
         }
@@ -96,11 +91,12 @@ public class DungeonLobbyService(
             var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
             if (userSession is null)
                 return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            var userId = userSession.UserId;
+
+            var players = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(roomId, ct);
 
             try
             {
-                room.UpdateRoomSettings(userId, roomName, maxPlayers);
+                room.UpdateRoomSettings(userSession.UserId, players.Count, roomName, maxPlayers);
             }
             catch (UnauthorizedAccessException)
             {
@@ -117,7 +113,7 @@ public class DungeonLobbyService(
 
             var updated = await dungeonRoomRepository.UpdateAsync(room, ct);
             if (!updated)
-                return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "방 업데이트 실패");
+                return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "諛??낅뜲?댄듃 ?ㅽ뙣");
 
             await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
             return Result<DungeonRoom>.Success(room);
@@ -136,30 +132,24 @@ public class DungeonLobbyService(
             var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
             if (userSession is null)
                 return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            var userId = userSession.UserId;
-
-            var joinResult = await dungeonRoomRepository.TryJoinRoomAsync(userId, roomId, ct);
-
-            switch (joinResult)
-            {
-                case JoinRoomAtomicResult.RoomNotFound:
-                    return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
-                case JoinRoomAtomicResult.AlreadyInOtherRoom:
-                case JoinRoomAtomicResult.AlreadyInThisRoom:
-                    return Result<DungeonRoom>.Failure(ErrorCodes.AlreadyInRoom, ErrorMessages.AlreadyInRoom);
-                case JoinRoomAtomicResult.RoomFull:
-                    return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, "방이 가득 찼습니다.");
-                case JoinRoomAtomicResult.InvalidStatus:
-                    return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, "입장 가능한 방 상태가 아닙니다.");
-                case JoinRoomAtomicResult.UnknownError:
-                    return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
-            }
-
-            await chatSubscriptionService.SwitchRoomAsync(sessionId, roomId, ct);
 
             var room = await dungeonRoomRepository.GetByIdAsync(roomId, ct);
             if (room is null)
                 return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
+
+            if (room.Status != RoomStatus.Waiting)
+                return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, "?낆옣 媛?ν븳 諛??곹깭媛 ?꾨떃?덈떎.");
+
+            var existingRoomPlayer = await dungeonRoomPlayerRepository.GetByUserIdAsync(userSession.UserId, ct);
+            if (existingRoomPlayer is not null)
+                return Result<DungeonRoom>.Failure(ErrorCodes.AlreadyInRoom, ErrorMessages.AlreadyInRoom);
+
+            var currentPlayers = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(roomId, ct);
+            if (currentPlayers.Count >= room.MaxPlayers)
+                return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, "諛⑹씠 媛??李쇱뒿?덈떎.");
+
+            await dungeonRoomPlayerRepository.CreateAsync(roomId, userSession.UserId, ct);
+            await chatSubscriptionService.SwitchRoomAsync(sessionId, roomId, ct);
 
             await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
             return Result<DungeonRoom>.Success(room);
@@ -178,32 +168,41 @@ public class DungeonLobbyService(
             var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
             if (userSession is null)
                 return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            var userId = userSession.UserId;
 
             var room = await dungeonRoomRepository.GetByIdAsync(roomId, ct);
             if (room is null)
-            {
                 return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
-            }
 
-            if (!room.IsExist(userId))
-            {
+            var roomPlayer = await dungeonRoomPlayerRepository.GetByUserIdAsync(userSession.UserId, ct);
+            if (roomPlayer is null || roomPlayer.RoomId != roomId)
                 return Result<DungeonRoom>.Failure(ErrorCodes.NotInRoom, ErrorMessages.NotInRoom);
-            }
 
-            room.Leave(userId);
+            var players = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(roomId, ct);
+            var remainingPlayers = players
+                .Where(player => player.UserId != userSession.UserId)
+                .OrderBy(player => player.JoinedAt)
+                .ToList();
+
+            await dungeonRoomPlayerRepository.RemoveAsync(roomId, userSession.UserId, ct);
             await chatSubscriptionService.SwitchRoomAsync(sessionId, 0, ct);
-            if (room.Status == RoomStatus.Closed)
+
+            if (remainingPlayers.Count == 0)
             {
+                room.Close();
+                await dungeonRoomPlayerRepository.RemoveByRoomIdAsync(roomId, ct);
+
                 var deleted = await dungeonRoomRepository.DeleteAsync(roomId, ct);
                 if (!deleted)
-                    return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "방 삭제 실패");
+                    return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "諛???젣 ?ㅽ뙣");
             }
             else
             {
+                if (room.IsHost(userSession.UserId))
+                    room.ChangeHost(remainingPlayers[0].UserId);
+
                 var updated = await dungeonRoomRepository.UpdateAsync(room, ct);
                 if (!updated)
-                    return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "방 업데이트 실패");
+                    return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "諛??낅뜲?댄듃 ?ㅽ뙣");
 
                 await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
             }
@@ -224,26 +223,25 @@ public class DungeonLobbyService(
             var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
             if (userSession is null)
                 return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-            var userId = userSession.UserId;
 
             var room = await dungeonRoomRepository.GetByIdAsync(roomId, ct);
             if (room is null)
-            {
                 return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
-            }
 
-            if (!room.IsHost(userId))
+            if (!room.IsHost(userSession.UserId))
                 return Result<DungeonRoom>.Failure(ErrorCodes.NotRoomHost, ErrorMessages.NotRoomHost);
 
-            room.StartGame(userId);
+            var players = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(roomId, ct);
+            room.StartGame(userSession.UserId, players.Count);
+
             var updated = await dungeonRoomRepository.UpdateAsync(room, ct);
             if (!updated)
-                return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "방 업데이트 실패");
+                return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "諛??낅뜲?댄듃 ?ㅽ뙣");
 
             await gameStartRequestedMessageQueue.EnqueueAsync(new GameStartRequestedMessage
             {
                 RoomId = room.RoomId,
-                PlayerIds = room.CurrentPlayers.ToList(),
+                PlayerIds = players.Select(player => player.UserId).ToList(),
                 TraceId = traceId
             });
 

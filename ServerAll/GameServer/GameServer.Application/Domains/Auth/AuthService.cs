@@ -54,17 +54,13 @@ public class AuthService(
             return Result<LoginResult>.Failure(ErrorCodes.UserNotFound, ErrorMessages.UserNotFound);
         }
 
-        var userSession = await userSessionRepository.CreateSessionAsync(user.UserId, user.PublicId, email, user.PublicId, ct);
+        var userSession = await userSessionRepository.CreateSessionAsync(user.UserId, ct);
         if (userSession is null)
         {
             logger.LogError("Login failed because session creation returned null for user {UserId}", user.UserId);
             return Result<LoginResult>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
-        var userProfile = await userProfileRepository.GetByIdAsync(user.UserId, ct);
-        if (userProfile is null)
-            throw new Exception("userProfile is null");
-
-        var accessToken = jwtTokenGenerator.GenerateAccessToken(user.UserId, userProfile.NickName, email, userSession.SessionId);
+        var accessToken = jwtTokenGenerator.GenerateAccessToken(user.UserId, user.PublicId, email, userSession.SessionId);
         var expiresAt = _jwtOptions.GetExpirationTime();
 
         var refreshToken = jwtTokenGenerator.GenerateRefreshToken();
@@ -168,8 +164,8 @@ public class AuthService(
             logger.LogInformation("Refresh failed because user {UserId} was not found", credential.UserId);
             return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
         }
-
-        var newAccessToken = jwtTokenGenerator.GenerateAccessToken(user.UserId, user.PublicId, userSession.Email, userSession.SessionId);
+        
+        var newAccessToken = jwtTokenGenerator.GenerateAccessToken(user.UserId, user.PublicId, credential.Email, userSession.SessionId);
         var accessTokenExpiresAt = _jwtOptions.GetExpirationTime();
 
         var newRawRefreshToken = jwtTokenGenerator.GenerateRefreshToken();

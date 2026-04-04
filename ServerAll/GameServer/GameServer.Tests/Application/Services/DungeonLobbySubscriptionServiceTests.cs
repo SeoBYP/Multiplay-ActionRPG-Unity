@@ -11,6 +11,7 @@ public class DungeonLobbySubscriptionServiceTests
 {
     private readonly Mock<IDungeonRoomEventStream> _mockEventStream = new();
     private readonly Mock<IDungeonRoomRepository> _mockRoomRepository = new();
+    private readonly Mock<IDungeonRoomPlayerRepository> _mockRoomPlayerRepository = new();
     private readonly Mock<IUserSessionRepository> _mockSessionRepository = new();
     private readonly DungeonLobbySubscriptionService _service;
 
@@ -22,6 +23,7 @@ public class DungeonLobbySubscriptionServiceTests
         _service = new DungeonLobbySubscriptionService(
             _mockEventStream.Object,
             _mockRoomRepository.Object,
+            _mockRoomPlayerRepository.Object,
             _mockSessionRepository.Object,
             NullLogger<DungeonLobbySubscriptionService>.Instance);
     }
@@ -34,14 +36,17 @@ public class DungeonLobbySubscriptionServiceTests
         var sessionId = "test-session";
         var readCalled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        var session = UserSession.Create(userId, "user1@test.com", "user1", "pub1", sessionId);
+        var session = UserSession.Create(userId, sessionId);
         var room = DungeonRoom.Create("Room1", userId, 4);
         room.SetRoomId(roomId);
+        var roomPlayer = DungeonRoomPlayer.Create(roomId, userId);
 
         _mockSessionRepository.Setup(x => x.GetBySessionIdAsync(sessionId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(session);
         _mockRoomRepository.Setup(x => x.GetByIdAsync(roomId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(room);
+        _mockRoomPlayerRepository.Setup(x => x.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(roomPlayer);
         _mockEventStream.Setup(x => x.ReadAsync(roomId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Callback(() => readCalled.TrySetResult())
             .Returns(AsyncEnumerable.Empty<long>());

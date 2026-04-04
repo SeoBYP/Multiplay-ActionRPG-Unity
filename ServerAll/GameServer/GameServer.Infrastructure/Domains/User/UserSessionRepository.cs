@@ -2,7 +2,6 @@ using System.Globalization;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Application.Security;
 using GameServer.Domain.Entities;
-using GameServer.Infrastructure.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
@@ -31,12 +30,8 @@ public class UserSessionRepository(
     /// 새로운 사용자 세션을 생성하고 Redis에 저장합니다.
     /// </summary>
     /// <param name="userId">사용자 고유 식별자</param>
-    /// <param name="userName">사용자 이름</param>
-    /// <param name="userEmail">사용자 이메일</param>
-    /// <param name="publicId">사용자 공개 ID</param>
     /// <returns>생성된 세션 객체, 실패 시 예외 발생</returns>
-    public async Task<UserSession?> CreateSessionAsync(long userId, string nickName, string userEmail, string publicId,
-        CancellationToken ct = default)
+    public async Task<UserSession?> CreateSessionAsync(long userId, CancellationToken ct = default)
     {
         try
         {
@@ -45,16 +40,12 @@ public class UserSessionRepository(
             var transaction = _database.CreateTransaction();
 
             var sessionId = Guid.CreateVersion7().ToString();
-            var newSession = UserSession.Create(userId, userEmail, nickName, publicId, sessionId);
+            var newSession = UserSession.Create(userId, sessionId);
 
             // Redis Hash에 세션 정보 저장
             _ = transaction.HashSetAsync($"{SessionKey}:{sessionId}",
             [
                 new HashEntry("UserId", userId),
-                new HashEntry("UserName", nickName),
-                new HashEntry("Email", userEmail),
-                new HashEntry("PublicId", publicId),
-                new HashEntry("CurrentRoomId", 0),
                 new HashEntry("LoginAt", newSession.LoginAt.ToString("O")),
                 new HashEntry("LastActiveAt", newSession.LastActiveAt.ToString("O"))
             ]);
@@ -134,24 +125,6 @@ public class UserSessionRepository(
             return null;
 
         return await GetBySessionIdAsync(sessionId.ToString(), ct);
-    }
-
-    public async Task UpdateRoomIdAsync(string sessionId, long roomId, CancellationToken ct = default)
-    {
-        try
-        {
-            var updated = await _database.HashSetAsync($"{SessionKey}:{sessionId}", "CurrentRoomId", roomId);
-            if (!updated)
-            {
-                var exists = await _database.KeyExistsAsync($"{SessionKey}:{sessionId}");
-                if (!exists)
-                    throw new InvalidOperationException("Session not found");
-            }
-        }
-        catch (Exception)
-        {
-            throw new InvalidOperationException("Failed to update room id");
-        }
     }
 
     /// <summary>
@@ -306,10 +279,6 @@ public class UserSessionRepository(
 
         // 필수 필드 검증
         if (!dict.TryGetValue("UserId", out var userIdStr) ||
-            !dict.TryGetValue("UserName", out var userName) ||
-            !dict.TryGetValue("Email", out var email) ||
-            !dict.TryGetValue("PublicId", out var publicId) ||
-            !dict.TryGetValue("CurrentRoomId", out var currentRoomIdStr) ||
             !dict.TryGetValue("LoginAt", out var loginAtStr) ||
             !dict.TryGetValue("LastActiveAt", out var lastActiveAtStr))
         {
@@ -321,12 +290,6 @@ public class UserSessionRepository(
         if (!long.TryParse(userIdStr, out var userId))
         {
             logger.LogWarning("Invalid UserId in session {SessionId}", sessionId);
-            return null;
-        }
-
-        if (!long.TryParse(currentRoomIdStr, out var currentRoomId))
-        {
-            logger.LogWarning("Invalid CurrentRoomId in session {SessionId}", sessionId);
             return null;
         }
         
@@ -343,6 +306,6 @@ public class UserSessionRepository(
             return null;
         }
 
-        return UserSession.FromRedis(sessionId, userId, email, userName, publicId, loginAt, lastActiveAt, currentRoomId);
+        return UserSession.Restore(sessionId, userId, loginAt, lastActiveAt);
     }
 }
