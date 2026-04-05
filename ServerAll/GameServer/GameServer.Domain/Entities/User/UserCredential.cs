@@ -58,7 +58,7 @@ public class UserCredential
         string email,
         string passwordHash,
         string? refreshToken,
-        DateTime refreshTokenExpiresAt)
+        DateTime? refreshTokenExpiresAt)
     {
         if (userId <= 0)
             throw new ArgumentException("userId must be greater than zero", nameof(userId));
@@ -99,6 +99,13 @@ public class UserCredential
         RefreshTokenExpiresAt = refreshTokenExpiresAt;
     }
     
+    public void UpdatePasswordHash(string passwordHash)
+    {
+        if (string.IsNullOrWhiteSpace(passwordHash))
+            throw new ArgumentException("passwordHash cannot be null or whitespace", nameof(passwordHash));
+        PasswordHash = passwordHash;
+    }
+
     public void ClearRefreshToken()
     {
         RefreshToken = null;

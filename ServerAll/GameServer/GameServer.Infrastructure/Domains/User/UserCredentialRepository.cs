@@ -1,5 +1,7 @@
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities.User;
+using GameServer.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
@@ -7,32 +9,27 @@ namespace GameServer.Infrastructure.Domains.User;
 
 public class UserCredentialRepository(
     IConnectionMultiplexer connectionMultiplexer,
+    GameServerDbContext context,
     ILogger<UserCredentialRepository> logger) : IUserCredentialRepository
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
 
-    private const string UserCredentialKey = "game:user:credential:id";
+    private const string UserCredentialKey = "game:user:credential";
     private const string UserCredentialEmailMappingKey = "game:user:credential:email";
+
 
     public async Task<UserCredential> CreateAsync(long userId, string email, string passwordHash,
         CancellationToken ct = default)
     {
         try
         {
-            var credential = UserCredential.Create(userId, email, passwordHash);
-            var transaction = _database.CreateTransaction();
+            var newUserCredential = UserCredential.Create(userId, email, passwordHash);
 
-            _ = transaction.HashSetAsync($"{UserCredentialKey}:{userId}", [
-                new HashEntry("UserId", credential.UserId),
-                new HashEntry("Email", credential.Email),
-                new HashEntry("PasswordHash", credential.PasswordHash)
-            ]);
-            _ = transaction.StringSetAsync($"{UserCredentialEmailMappingKey}:{credential.Email}", credential.UserId,
-                when: When.NotExists);
+            var userCredentialEntry = await context.UserCredentials.AddAsync(newUserCredential, ct);
+            await context.SaveChangesAsync(ct);
 
-            var committed = await transaction.ExecuteAsync();
-            if (!committed)
-                throw new InvalidOperationException("Failed to create user credential: transaction rolled back");
+            var credential = userCredentialEntry.Entity;
+            await SetUserCredentialAsync(credential);
 
             return credential;
         }
@@ -48,10 +45,15 @@ public class UserCredentialRepository(
         try
         {
             var entries = await _database.HashGetAllAsync($"{UserCredentialKey}:{userId}");
-            if (entries.Length == 0)
-                return null;
+            if (entries.Length > 0)
+                return ParseUserCredentialFromRedis(userId, entries);
 
-            return ParseUserCredentialFromRedis(userId, entries);
+            var userCredential = await context.UserCredentials.SingleOrDefaultAsync(uc => uc.UserId == userId, ct);
+            if (userCredential is null)
+                throw new KeyNotFoundException($"User credential not found for user id {userId}");
+
+            await SetUserCredentialAsync(userCredential);
+            return userCredential;
         }
         catch (Exception e)
         {
@@ -65,12 +67,15 @@ public class UserCredentialRepository(
         try
         {
             var userId = await _database.StringGetAsync($"{UserCredentialEmailMappingKey}:{email}");
-            if (!userId.HasValue)
+            if (userId.HasValue && long.TryParse(userId.ToString(), out var id))
+                return await FindByIdAsync(id, ct);
+
+            var userCredential = await context.UserCredentials.SingleOrDefaultAsync(uc => uc.Email == email, ct);
+            if (userCredential is null)
                 return null;
 
-            return long.TryParse(userId.ToString(), out var id)
-                ? await FindByIdAsync(id, ct)
-                : null;
+            await SetUserCredentialAsync(userCredential);
+            return userCredential;
         }
         catch (Exception e)
         {
@@ -79,16 +84,45 @@ public class UserCredentialRepository(
         }
     }
 
+    public async Task<bool> UpdateAsync(UserCredential userCredential, CancellationToken ct = default)
+    {
+        try
+        {
+            if (userCredential.UserId <= 0)
+                throw new InvalidOperationException("Invalid user id");
+
+            var existingCredential = await context.UserCredentials
+                .AsNoTracking()
+                .SingleOrDefaultAsync(uc => uc.UserId == userCredential.UserId, ct);
+            if (existingCredential is null)
+                throw new KeyNotFoundException($"User credential not found for user id {userCredential.UserId}");
+
+            context.UserCredentials.Update(userCredential);
+            await context.SaveChangesAsync(ct);
+
+            // Email이 변경된 경우 이전/신규 매핑 키를 모두 비워 다음 조회에서 DB 기준으로 재구성한다.
+            await DeleteUserCredentialCacheAsync(userCredential.UserId, existingCredential.Email, userCredential.Email);
+            return true;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to update user credential for user {UserId}", userCredential.UserId);
+            throw;
+        }
+    }
+
     public async Task<bool> UpdatePasswordHashAsync(long userId, string passwordHash, CancellationToken ct = default)
     {
         try
         {
-            var key = $"{UserCredentialKey}:{userId}";
-            var transaction = _database.CreateTransaction();
-            transaction.AddCondition(Condition.KeyExists(key));
+            var credential = await context.UserCredentials.SingleOrDefaultAsync(uc => uc.UserId == userId, ct);
+            if (credential is null)
+                throw new KeyNotFoundException($"User credential not found for user id {userId}");
 
-            _ = transaction.HashSetAsync(key, [new HashEntry("PasswordHash", passwordHash)]);
-            return await transaction.ExecuteAsync();
+            credential.UpdatePasswordHash(passwordHash);
+            await context.SaveChangesAsync(ct);
+            await DeleteUserCredentialCacheAsync(userId, credential.Email);
+            return true;
         }
         catch (Exception e)
         {
@@ -97,20 +131,19 @@ public class UserCredentialRepository(
         }
     }
 
-    public async Task<bool> UpdateRefreshTokenAsync(long userId, string hashedToken, DateTime expiry, CancellationToken ct = default)
+    public async Task<bool> UpdateRefreshTokenAsync(long userId, string hashedToken, DateTime expiry,
+        CancellationToken ct = default)
     {
         try
         {
-            var key = $"{UserCredentialKey}:{userId}";
-            var transaction = _database.CreateTransaction();
-            transaction.AddCondition(Condition.KeyExists(key));
+            var credential = await context.UserCredentials.SingleOrDefaultAsync(uc => uc.UserId == userId, ct);
+            if (credential is null)
+                throw new KeyNotFoundException($"User credential not found for user id {userId}");
 
-            _ = transaction.HashSetAsync(key, [
-                new HashEntry("RefreshToken", hashedToken),
-                new HashEntry("RefreshTokenExpiresAt", expiry.ToString("O"))
-            ]);
-
-            return await transaction.ExecuteAsync();
+            credential.SetRefreshToken(hashedToken, expiry);
+            await context.SaveChangesAsync(ct);
+            await DeleteUserCredentialCacheAsync(userId, credential.Email);
+            return true;
         }
         catch (Exception e)
         {
@@ -123,7 +156,15 @@ public class UserCredentialRepository(
     {
         try
         {
-            return await _database.HashDeleteAsync($"{UserCredentialKey}:{userId}", ["RefreshToken", "RefreshTokenExpiresAt"]) > 0;
+            var credential = await context.UserCredentials.SingleOrDefaultAsync(uc => uc.UserId == userId, ct);
+            if (credential is null)
+                throw new KeyNotFoundException($"User credential not found for user id {userId}");
+
+            credential.ClearRefreshToken();
+
+            await context.SaveChangesAsync(ct);
+            await DeleteUserCredentialCacheAsync(userId, credential.Email);
+            return true;
         }
         catch (Exception e)
         {
@@ -132,39 +173,77 @@ public class UserCredentialRepository(
         }
     }
 
-    public async Task<bool> RemoveAsync(UserCredential userCredential)
+    public async Task<bool> RemoveAsync(long userId, CancellationToken ct = default)
     {
         try
         {
-            var transaction = _database.CreateTransaction();
+            var credential = await context.UserCredentials.SingleOrDefaultAsync(uc => uc.UserId == userId, ct);
+            if (credential is not null)
+            {
+                context.UserCredentials.Remove(credential);
+                await context.SaveChangesAsync(ct);
+            }
 
-            _ = transaction.KeyDeleteAsync($"{UserCredentialKey}:{userCredential.UserId}");
-            _ = transaction.KeyDeleteAsync($"{UserCredentialEmailMappingKey}:{userCredential.Email}");
-
-            var committed = await transaction.ExecuteAsync();
-            if (!committed)
-                throw new InvalidOperationException("Failed to remove user credential: transaction rolled back");
+            if (credential is null)
+            {
+                await DeleteUserCredentialCacheAsync(userId);
+            }
+            else
+            {
+                await DeleteUserCredentialCacheAsync(userId, credential.Email);
+            }
 
             return true;
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Failed to remove user credential for user {UserId}", userCredential.UserId);
+            logger.LogError(e, "Failed to remove user credential for user {UserId}", userId);
             throw;
         }
     }
 
     public async Task<bool> IsEmailExistsAsync(string email, CancellationToken ct = default)
     {
-        try
+        var credential = await FindByEmailAsync(email, ct);
+        return credential is not null;
+    }
+
+    private async Task SetUserCredentialAsync(UserCredential credential)
+    {
+        var transaction = _database.CreateTransaction();
+
+        _ = transaction.HashSetAsync($"{UserCredentialKey}:{credential.UserId}", [
+            new HashEntry("UserId", credential.UserId),
+            new HashEntry("Email", credential.Email),
+            new HashEntry("PasswordHash", credential.PasswordHash),
+            new HashEntry("RefreshToken", credential.RefreshToken ?? string.Empty),
+            new HashEntry("RefreshTokenExpiresAt", credential.RefreshTokenExpiresAt?.ToString("O") ?? string.Empty)
+        ]);
+        _ = transaction.KeyExpireAsync($"{UserCredentialKey}:{credential.UserId}", RedisSettings.RedisCacheTtl);
+
+        _ = transaction.StringSetAsync(
+            $"{UserCredentialEmailMappingKey}:{credential.Email}",
+            credential.UserId,
+            RedisSettings.RedisCacheTtl);
+
+        bool committed = await transaction.ExecuteAsync();
+        if (!committed)
+            throw new InvalidOperationException("Failed to set user credential cache");
+    }
+
+    private async Task DeleteUserCredentialCacheAsync(long userId, params string[] emails)
+    {
+        var transaction = _database.CreateTransaction();
+
+        _ = transaction.KeyDeleteAsync($"{UserCredentialKey}:{userId}");
+        foreach (var email in emails.Where(e => !string.IsNullOrWhiteSpace(e)).Distinct())
         {
-            return await _database.KeyExistsAsync($"{UserCredentialEmailMappingKey}:{email}");
+            _ = transaction.KeyDeleteAsync($"{UserCredentialEmailMappingKey}:{email}");
         }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Failed to check email existence for {Email}", email);
-            throw;
-        }
+
+        bool committed = await transaction.ExecuteAsync();
+        if (!committed)
+            throw new InvalidOperationException("Failed to delete user credential cache");
     }
 
     private UserCredential? ParseUserCredentialFromRedis(long userId, HashEntry[] entries)
@@ -185,11 +264,15 @@ public class UserCredentialRepository(
             return null;
 
         dict.TryGetValue("RefreshToken", out var refreshToken);
+        var normalizedToken = string.IsNullOrEmpty(refreshToken) ? null : refreshToken;
 
-        var refreshTokenExpiresAt = default(DateTime);
-        if (dict.TryGetValue("RefreshTokenExpiresAt", out var expiresAtStr))
-            DateTime.TryParse(expiresAtStr, out refreshTokenExpiresAt);
+        DateTime? refreshTokenExpiresAt = null;
+        if (dict.TryGetValue("RefreshTokenExpiresAt", out var expiresAtStr) &&
+            DateTime.TryParse(expiresAtStr, out var parsedExpiry))
+        {
+            refreshTokenExpiresAt = parsedExpiry;
+        }
 
-        return UserCredential.Restore(parsedUserId, email, passwordHash, refreshToken, refreshTokenExpiresAt);
+        return UserCredential.Restore(parsedUserId, email, passwordHash, normalizedToken, refreshTokenExpiresAt);
     }
 }

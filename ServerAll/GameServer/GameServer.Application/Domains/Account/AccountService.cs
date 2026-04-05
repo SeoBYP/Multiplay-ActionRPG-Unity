@@ -118,7 +118,7 @@ public class AccountService(
         var credential = await userCredentialRepository.FindByIdAsync(userId, ct);
         if (credential is not null)
         {
-            await userCredentialRepository.RemoveAsync(credential);
+            await userCredentialRepository.RemoveAsync(credential.UserId, ct);
         }
 
         return await userRepository.RemoveAsync(userId, ct);

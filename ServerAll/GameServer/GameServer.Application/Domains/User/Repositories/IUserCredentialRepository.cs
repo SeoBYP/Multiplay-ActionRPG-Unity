@@ -9,11 +9,12 @@ public interface IUserCredentialRepository
     Task<UserCredential?> FindByIdAsync(long userId, CancellationToken ct = default);
     Task<UserCredential?> FindByEmailAsync(string email, CancellationToken ct = default);
 
+    Task<bool> UpdateAsync(UserCredential userCredential, CancellationToken ct = default);
     Task<bool> UpdatePasswordHashAsync(long userId, string passwordHash, CancellationToken ct = default);
     Task<bool> UpdateRefreshTokenAsync(long userId, string hashedToken, DateTime expiry, CancellationToken ct = default);
     Task<bool> ClearRefreshTokenAsync(long userId, CancellationToken ct = default);
     
-    Task<bool> RemoveAsync(UserCredential userCredential);
+    Task<bool> RemoveAsync(long userId, CancellationToken ct = default);
     
     Task<bool> IsEmailExistsAsync(string email, CancellationToken ct = default);
 }

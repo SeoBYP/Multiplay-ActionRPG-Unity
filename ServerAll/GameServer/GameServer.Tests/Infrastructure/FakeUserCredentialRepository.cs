@@ -41,7 +41,7 @@ public class FakeUserCredentialRepository : IUserCredentialRepository
             credential.Email,
             passwordHash,
             credential.RefreshToken,
-            credential.RefreshTokenExpiresAt ?? default);
+            credential.RefreshTokenExpiresAt);
 
         _credentials[userId] = updated;
         return Task.FromResult(true);
@@ -65,10 +65,24 @@ public class FakeUserCredentialRepository : IUserCredentialRepository
         return Task.FromResult(true);
     }
 
-    public Task<bool> RemoveAsync(UserCredential userCredential)
+    public Task<bool> UpdateAsync(UserCredential userCredential, CancellationToken ct = default)
     {
-        _emailToUserId.TryRemove(userCredential.Email, out _);
-        return Task.FromResult(_credentials.TryRemove(userCredential.UserId, out _));
+        if (!_credentials.ContainsKey(userCredential.UserId))
+            return Task.FromResult(false);
+
+        _credentials[userCredential.UserId] = userCredential;
+        _emailToUserId[userCredential.Email] = userCredential.UserId;
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> RemoveAsync(long userId, CancellationToken ct = default)
+    {
+        if (_credentials.TryRemove(userId, out var credential))
+        {
+            _emailToUserId.TryRemove(credential.Email, out _);
+            return Task.FromResult(true);
+        }
+        return Task.FromResult(false);
     }
 
     public Task<bool> IsEmailExistsAsync(string email, CancellationToken ct = default)

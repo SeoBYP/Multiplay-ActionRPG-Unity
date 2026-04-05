@@ -50,5 +50,5 @@ public interface IUserSessionRepository
     /// 일정 시간이 경과하여 만료된 세션들을 정리합니다.
     /// </summary>
     /// <param name="timeout">만료 기준 시간</param>
-    Task CleanupExpiredSessionsAsync(TimeSpan timeout, CancellationToken ct = default);
+    Task CleanupExpiredSessionsAsync(TimeSpan timeout);
 }

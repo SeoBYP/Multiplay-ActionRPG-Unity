@@ -1,5 +1,7 @@
 ﻿using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities.User;
+using GameServer.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
@@ -7,6 +9,7 @@ namespace GameServer.Infrastructure.Domains.User;
 
 public class UserProfileRepository(
     IConnectionMultiplexer connectionMultiplexer,
+    GameServerDbContext context,
     ILogger<UserProfileRepository> logger) : IUserProfileRepository
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
@@ -17,20 +20,15 @@ public class UserProfileRepository(
     {
         try
         {
-            var profile = UserProfile.Create(userId, nickName);
-
-            var transaction = _database.CreateTransaction();
+            var newUserProfile = UserProfile.Create(userId, nickName);
             
-            _ = transaction.HashSetAsync($"{UserProfileKey}:{profile.UserId}", [
-                new HashEntry("UserId", profile.UserId),
-                new HashEntry("NickName", profile.NickName)
-            ]);
-            
-            bool committed = await transaction.ExecuteAsync();
-            if (!committed)
-                throw new InvalidOperationException("Failed to create user: transaction rolled back");
+            var userProfileEntry = await context.UserProfiles.AddAsync(newUserProfile, ct);
+            await context.SaveChangesAsync(ct);
 
-            return profile;
+            var userProfile = userProfileEntry.Entity;
+            await SetUserProfileAsync(userProfile);
+
+            return userProfile;
         }
         catch (Exception e)
         {
@@ -39,17 +37,22 @@ public class UserProfileRepository(
         }
     }
 
+
+
     public async Task<UserProfile?> GetByIdAsync(long userId, CancellationToken ct = default)
     {
         try
         {
             var entries = await _database.HashGetAllAsync($"{UserProfileKey}:{userId}");
-            if (entries.Length == 0)
-            {
-                return null;
-            }
+            if (entries.Length > 0)
+                return ParseUserProfileFromRedis(userId, entries);
 
-            return ParseUserProfileFromRedis(userId, entries);
+            var userProfile = await context.UserProfiles.SingleOrDefaultAsync(up => up.UserId == userId, ct);
+            if (userProfile == null)
+                throw new KeyNotFoundException($"User profile not found for user id {userId}");
+
+            await SetUserProfileAsync(userProfile);
+            return userProfile;
         }
         catch (Exception e)
         {
@@ -62,17 +65,20 @@ public class UserProfileRepository(
     {
         try
         {
-            var transaction = _database.CreateTransaction();
+            if (profile.UserId <= 0)
+                throw new InvalidOperationException("UpdateAsync requires an existing user profile");
             
-            _ = transaction.HashSetAsync($"{UserProfileKey}:{profile.UserId}", [
-                new HashEntry("UserId", profile.UserId),
-                new HashEntry("NickName", profile.NickName)
-            ]);
+            var existingProfile = await context.UserProfiles
+                .AsNoTracking()
+                .SingleOrDefaultAsync(up => up.UserId == profile.UserId, ct);
+            if (existingProfile is null)
+                throw new KeyNotFoundException($"User profile not found for user id {profile.UserId}");
             
-            bool committed = await transaction.ExecuteAsync();
-            if (!committed)
-                throw new InvalidOperationException("Failed to create user: transaction rolled back");
+            context.UserProfiles.Update(profile);
+            await context.SaveChangesAsync(ct);
             
+            await DeleteUserProfileAsync(profile.UserId);
+
             return true;
         }
         catch (Exception e)
@@ -86,16 +92,14 @@ public class UserProfileRepository(
     {
         try
         {
-            var userProfile = await GetByIdAsync(userId, ct);
-            if (userProfile is null)
-                return false;
+            var profile = await context.UserProfiles.SingleOrDefaultAsync(up => up.UserId == userId, ct);
+            if (profile is not null)
+            {
+                context.UserProfiles.Remove(profile);
+                await context.SaveChangesAsync(ct);
+            }
             
-            var transaction = _database.CreateTransaction();
-
-            await transaction.KeyDeleteAsync($"{UserProfileKey}:{userId}");
-            bool committed = await transaction.ExecuteAsync();
-            if (!committed)
-                return false;
+            await DeleteUserProfileAsync(userId);
             return true;
         }
         catch (Exception e)
@@ -103,6 +107,32 @@ public class UserProfileRepository(
             logger.LogError(e, "Failed to remove user profile");
             throw;
         }
+    }
+    
+    private async Task SetUserProfileAsync(UserProfile profile)
+    {
+        var transaction = _database.CreateTransaction();
+            
+        _ = transaction.HashSetAsync($"{UserProfileKey}:{profile.UserId}", [
+            new HashEntry("UserId", profile.UserId),
+            new HashEntry("NickName", profile.NickName)
+        ]);
+            
+        _ = transaction.KeyExpireAsync($"{UserProfileKey}:{profile.UserId}", RedisSettings.RedisCacheTtl);
+        
+        bool committed = await transaction.ExecuteAsync();
+        if (!committed)
+            throw new InvalidOperationException("Failed to create user: transaction rolled back");
+    }
+
+    private async Task DeleteUserProfileAsync(long userId)
+    {
+        var transaction = _database.CreateTransaction();
+        _ = transaction.KeyDeleteAsync($"{UserProfileKey}:{userId}");
+        bool committed = await transaction.ExecuteAsync();
+        
+        if (!committed)
+            throw new InvalidOperationException("Failed to delete user cache");
     }
     
     private UserProfile? ParseUserProfileFromRedis(long userId, HashEntry[] entries)

@@ -13,10 +13,10 @@ public class FakeUserSessionRepository : IUserSessionRepository
     {
         var sessionId = Guid.NewGuid().ToString();
         var session = UserSession.Create(userId, sessionId);
-        
+
         _sessions[sessionId] = session;
         _userToSession[userId] = sessionId;
-        
+
         return Task.FromResult<UserSession?>(session);
     }
 
@@ -32,6 +32,7 @@ public class FakeUserSessionRepository : IUserSessionRepository
         {
             return GetBySessionIdAsync(sessionId, ct);
         }
+
         return Task.FromResult<UserSession?>(null);
     }
 
@@ -42,6 +43,7 @@ public class FakeUserSessionRepository : IUserSessionRepository
             _sessions.Remove(sessionId);
             _userToSession.Remove(session.UserId);
         }
+
         return Task.CompletedTask;
     }
 
@@ -55,7 +57,7 @@ public class FakeUserSessionRepository : IUserSessionRepository
         return Task.FromResult(_sessions.Values.AsEnumerable());
     }
 
-    public Task CleanupExpiredSessionsAsync(TimeSpan timeout, CancellationToken ct = default)
+    public Task CleanupExpiredSessionsAsync(TimeSpan timeout)
     {
         return Task.CompletedTask;
     }

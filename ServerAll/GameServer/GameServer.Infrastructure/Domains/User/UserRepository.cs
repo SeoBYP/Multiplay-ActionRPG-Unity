@@ -1,4 +1,4 @@
-﻿using GameServer.Application.Domains.User.Interfaces;
+using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -9,7 +9,7 @@ namespace GameServer.Infrastructure.Domains.User;
 using User = Domain.Entities.User.User;
 
 /// <summary>
-/// 데이터베이스 연동 사용자 저장소 구현체 (미구현)
+/// 데이터베이스 연동 사용자 저장소 구현체
 /// </summary>
 public class UserRepository(
     IConnectionMultiplexer connectionMultiplexer,
@@ -19,7 +19,6 @@ public class UserRepository(
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
 
     private const string UserKey = "game:user";
-    private const string UserCounterKey = "game:user:id:counter";
     private const string UserPublicIdMappingKey = "game:user:publicid";
 
     /// <summary>
@@ -30,33 +29,18 @@ public class UserRepository(
         try
         {
             var newUser = User.Create();
-            
-            var userEntity = context.Users.AddAsync(newUser, ct);
+
+            var userEntry = await context.Users.AddAsync(newUser, ct);
             await context.SaveChangesAsync(ct);
 
-            var user = userEntity.Result.Entity;
-            
-            var transaction = _database.CreateTransaction();
-            
-            // 유저 정보 저장(Redis Cache)
-            _ = transaction.HashSetAsync($"{UserKey}:{user.UserId}", [
-                new HashEntry("UserId", user.UserId),
-                new HashEntry("PublicId", user.PublicId),
-                new HashEntry("CreatedAt", user.CreatedAt.ToString("O"))
-            ]);
-            _ = transaction.StringSetAsync($"{UserPublicIdMappingKey}:{user.PublicId}", user.UserId,
-                when: When.NotExists);
-                
-            // 4. 트랜잭션 실행
-            bool committed = await transaction.ExecuteAsync();
-            if (!committed)
-                throw new InvalidOperationException("Failed to create user: transaction rolled back");
+            var user = userEntry.Entity;
+            await SetUserCacheAsync(user);
 
             return user;
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Failed to add user");
+            logger.LogError(e, "Failed to add user profile");
             throw;
         }
     }
@@ -65,20 +49,21 @@ public class UserRepository(
     {
         try
         {
-            var user = await GetByIdAsync(userId, ct);
+            var user = await context.Users.SingleOrDefaultAsync(u => u.UserId == userId, ct);
+            if (user is not null)
+            {
+                context.Users.Remove(user);
+                await context.SaveChangesAsync(ct);
+            }
+
             if (user is null)
-                return true;
-            
-            var transaction = _database.CreateTransaction();
-
-            var tasks = new List<Task>();
-            tasks.Add(transaction.KeyDeleteAsync($"{UserKey}:{userId}"));
-            tasks.Add(transaction.KeyDeleteAsync($"{UserPublicIdMappingKey}:{user.PublicId}"));
-
-
-            bool committed = await transaction.ExecuteAsync();
-            if (!committed)
-                throw new InvalidOperationException("Failed to remove user: transaction rolled back");
+            {
+                await DeleteUserCacheAsync(userId);
+            }
+            else
+            {
+                await DeleteUserCacheAsync(userId, user.PublicId);
+            }
 
             return true;
         }
@@ -96,38 +81,22 @@ public class UserRepository(
             if (user.UserId <= 0)
                 throw new InvalidOperationException("Invalid user id");
 
-            // 기존 User 정보 가져오기
-            var existingUser = await GetByIdAsync(user.UserId, ct);
+            var existingUser = await context.Users
+                .AsNoTracking()
+                .SingleOrDefaultAsync(u => u.UserId == user.UserId, ct);
             if (existingUser is null)
-                return false;
+                throw new KeyNotFoundException($"User not found for user id {user.UserId}");
 
-            var transaction = _database.CreateTransaction();
+            context.Users.Update(user);
+            await context.SaveChangesAsync(ct);
 
-            // 1. 기존 정보 삭제 및 새 정보 업데이트 (트랜잭션에 포함)
-            var tasks = new List<Task>();
-            if (existingUser.PublicId != user.PublicId)
-            {
-                tasks.Add(transaction.KeyDeleteAsync($"{UserPublicIdMappingKey}:{existingUser.PublicId}"));
-                tasks.Add(transaction.StringSetAsync($"{UserPublicIdMappingKey}:{user.PublicId}", user.UserId));
-            }
-
-            // 2. 유저 본체 정보 업데이트
-            tasks.Add(transaction.HashSetAsync($"{UserKey}:{user.UserId}", [
-                new HashEntry("UserId", user.UserId),
-                new HashEntry("PublicId", user.PublicId),
-                new HashEntry("CreatedAt", user.CreatedAt.ToString("O"))
-            ]));
-
-            // 3. 트랜잭션 실행
-            bool committed = await transaction.ExecuteAsync();
-            if (!committed)
-                throw new InvalidOperationException("Failed to update user: transaction rolled back");
-            
+            // PublicId가 변경된 경우 이전/신규 매핑 키를 모두 비워 다음 조회에서 DB 기준으로 재구성한다.
+            await DeleteUserCacheAsync(user.UserId, existingUser.PublicId, user.PublicId);
             return true;
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Failed to update user {UserId}", user.UserId);
+            logger.LogError(e, "Failed to update user profile {UserId}", user.UserId);
             throw;
         }
     }
@@ -136,18 +105,16 @@ public class UserRepository(
     {
         try
         {
-            // DB 데이터 조회
-            var user = await context.Users.
-                SingleAsync(u => u.UserId == userId, ct);
-            return user;
-            
             var entries = await _database.HashGetAllAsync($"{UserKey}:{userId}");
-            if (entries.Length == 0)
-            {
-                return null;
-            }
-            
-            return ParseUserFromRedis(userId, entries);
+            if (entries.Length > 0)
+                return ParseUserFromRedis(userId, entries);
+
+            var user = await context.Users.SingleOrDefaultAsync(u => u.UserId == userId, ct);
+            if (user is null)
+                throw new KeyNotFoundException($"User not found for user id {userId}");
+
+            await SetUserCacheAsync(user);
+            return user;
         }
         catch (Exception e)
         {
@@ -160,28 +127,58 @@ public class UserRepository(
     {
         try
         {
+            if (userIds.Count == 0)
+                return [];
+
             var batch = _database.CreateBatch();
             var userEntries = userIds
                 .Select(userId => batch.HashGetAllAsync($"{UserKey}:{userId}"))
                 .ToList();
-            
+
             batch.Execute();
-            
-            var users = new List<User>();
-            // idList.Count는 O(1) 속성 접근 (List<T>의 경우)
+
+            var usersById = new Dictionary<long, User>();
+            var missedUserIds = new List<long>();
+
             for (int i = 0; i < userIds.Count; i++)
             {
+                var userId = userIds[i];
                 var entries = await userEntries[i];
+
                 if (entries.Length == 0)
+                {
+                    missedUserIds.Add(userId);
                     continue;
-                
-                // idList[i]는 O(1) 인덱서 접근 (List<T>의 경우)
-                var user = ParseUserFromRedis(userIds[i], entries);
-                if (user is not null)
-                    users.Add(user);
+                }
+
+                var user = ParseUserFromRedis(userId, entries);
+                if (user is null)
+                {
+                    missedUserIds.Add(userId);
+                    continue;
+                }
+
+                usersById[userId] = user;
             }
 
-            return users;
+            if (missedUserIds.Count > 0)
+            {
+                var dbUsers = await context.Users
+                    .Where(u => missedUserIds.Contains(u.UserId))
+                    .ToListAsync(ct);
+
+                foreach (var dbUser in dbUsers)
+                {
+                    usersById[dbUser.UserId] = dbUser;
+                }
+
+                await Task.WhenAll(dbUsers.Select(SetUserCacheAsync));
+            }
+
+            return userIds
+                .Where(usersById.ContainsKey)
+                .Select(userId => usersById[userId])
+                .ToList();
         }
         catch (Exception e)
         {
@@ -195,14 +192,15 @@ public class UserRepository(
         try
         {
             var userId = await _database.StringGetAsync($"{UserPublicIdMappingKey}:{publicId}");
-            if (!userId.HasValue)
-                return null;
-            if (long.TryParse(userId.ToString(), out var id))
-            {
+            if (userId.HasValue && long.TryParse(userId.ToString(), out var id))
                 return await GetByIdAsync(id, ct);
-            }
 
-            return null;
+            var user = await context.Users.SingleOrDefaultAsync(u => u.PublicId == publicId, ct);
+            if (user is null)
+                throw new KeyNotFoundException($"User not found for public id {publicId}");
+
+            await SetUserCacheAsync(user);
+            return user;
         }
         catch (Exception e)
         {
@@ -210,7 +208,42 @@ public class UserRepository(
             throw;
         }
     }
-    
+
+    private async Task SetUserCacheAsync(User user)
+    {
+        var transaction = _database.CreateTransaction();
+
+        _ = transaction.HashSetAsync($"{UserKey}:{user.UserId}", [
+            new HashEntry("UserId", user.UserId),
+            new HashEntry("PublicId", user.PublicId),
+            new HashEntry("CreatedAt", user.CreatedAt.ToString("O"))
+        ]);
+        _ = transaction.KeyExpireAsync($"{UserKey}:{user.UserId}", RedisSettings.RedisCacheTtl);
+        _ = transaction.StringSetAsync(
+            $"{UserPublicIdMappingKey}:{user.PublicId}",
+            user.UserId,
+            RedisSettings.RedisCacheTtl);
+
+        bool committed = await transaction.ExecuteAsync();
+        if (!committed)
+            throw new InvalidOperationException("Failed to set user cache");
+    }
+
+    private async Task DeleteUserCacheAsync(long userId, params string[] publicIds)
+    {
+        var transaction = _database.CreateTransaction();
+
+        _ = transaction.KeyDeleteAsync($"{UserKey}:{userId}");
+        foreach (var publicId in publicIds.Where(publicId => !string.IsNullOrWhiteSpace(publicId)).Distinct())
+        {
+            _ = transaction.KeyDeleteAsync($"{UserPublicIdMappingKey}:{publicId}");
+        }
+
+        bool committed = await transaction.ExecuteAsync();
+        if (!committed)
+            throw new InvalidOperationException("Failed to delete user cache");
+    }
+
     private User? ParseUserFromRedis(long userId, HashEntry[] entries)
     {
         var dict = entries.ToDictionary(
@@ -226,25 +259,11 @@ public class UserRepository(
         }
 
         if (!long.TryParse(userIdStr, out var id))
-        {
             return null;
-        }
 
         if (!DateTime.TryParse(createdAtStr, out var createdAt))
-        {
             createdAt = DateTime.UtcNow;
-        }
-
-        // 리프레시 토큰 정보 추출 (선택적)
-        string? refreshToken = dict.GetValueOrDefault("RefreshToken");
-        DateTime refreshTokenExpiresAt = default;
-        if (dict.TryGetValue("RefreshTokenExpiresAt", out var expiresAtStr))
-        {
-            DateTime.TryParse(expiresAtStr, out refreshTokenExpiresAt);
-        }
 
         return User.FromRedis(id, publicId, createdAt);
     }
-    
-    
 }
