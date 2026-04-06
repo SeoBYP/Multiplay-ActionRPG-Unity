@@ -1,8 +1,9 @@
 using System.Globalization;
 using GameSessionEntity = GameServer.Domain.Entities.GameSession.GameSession;
-
 using GameServer.Application.Domains.GameSession.Interfaces;
 using GameServer.Domain.Entities.GameSession;
+using GameServer.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
@@ -10,43 +11,24 @@ namespace GameServer.Infrastructure.Domains.GameSession;
 
 public class GameSessionRepository(
     IConnectionMultiplexer connectionMultiplexer,
+    GameServerDbContext context,
     ILogger<GameSessionRepository> logger) : IGameSessionRepository
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
-    
-    private const string GameSessionKey = "game:gamesession";
-    private const string ActiveSessionsKey = "game:gamesession:active";
-    private const string RoomSessionMappingKey = "game:gamesession:by-room";
-    private const string GameSessionCounterKey = "game:gamesession:id:counter";
-    
-    public async Task<GameSessionEntity> CreateAsync(long roomId, string socketIp, int socketPort, CancellationToken ct = default)
+
+    public async Task<GameSessionEntity> CreateAsync(long roomId, string socketIp, int socketPort,
+        CancellationToken ct = default)
     {
         try
         {
-            var gameSession = GameSessionEntity.Create(roomId, socketIp, socketPort);
-            
-            var gameSessionId = await _database.StringIncrementAsync(GameSessionCounterKey);
-            gameSession.SetId(gameSessionId);
-            
-            var transaction = _database.CreateTransaction();
+            var newGameSession = GameSessionEntity.Create(roomId, socketIp, socketPort);
 
-            _ = transaction.HashSetAsync($"{GameSessionKey}:{gameSessionId}",
-            [
-                new HashEntry("GameSessionId", gameSession.GameSessionId),
-                new HashEntry("RoomId", gameSession.RoomId),
-                new HashEntry("SocketIp", gameSession.SocketIp),
-                new HashEntry("SocketPort", gameSession.SocketPort),
-                new HashEntry("StartedAt", gameSession.StartedAt.ToString("O")),
-                new HashEntry("EndedAt", RedisValue.Null),
-                new HashEntry("Status", gameSession.Status.ToString())
-            ]);
-            _ = transaction.SetAddAsync(ActiveSessionsKey, gameSession.GameSessionId);
-            _ = transaction.StringSetAsync($"{RoomSessionMappingKey}:{gameSession.RoomId}", gameSession.GameSessionId);
-            
-            bool committed = await transaction.ExecuteAsync();
-            if (!committed)
-                throw new InvalidOperationException("Failed to create game session: transaction rolled back");
-            
+            var gameSessionEntry = await context.GameSessions.AddAsync(newGameSession, ct);
+            await context.SaveChangesAsync(ct);
+
+            var gameSession = gameSessionEntry.Entity;
+            await SetGameSessionCacheAsync(gameSession);
+
             return gameSession;
         }
         catch (Exception e)
@@ -60,11 +42,17 @@ public class GameSessionRepository(
     {
         try
         {
-            var entries = await _database.HashGetAllAsync($"{GameSessionKey}:{gameSessionId}");
-            if (entries.Length == 0)
-                return null;
+            var entries = await _database.HashGetAllAsync(RedisKeys.GameSession(gameSessionId));
+            if (entries.Length > 0)
+                return ParseGameSession(gameSessionId, entries);
 
-            return ParseGameSession(gameSessionId, entries);
+            var gameSession =
+                await context.GameSessions.SingleOrDefaultAsync(gs => gs.GameSessionId == gameSessionId, ct);
+            if (gameSession is null)
+                throw new KeyNotFoundException($"Game session not found for game session id {gameSessionId}");
+
+            await SetGameSessionCacheAsync(gameSession);
+            return gameSession;
         }
         catch (Exception e)
         {
@@ -77,17 +65,21 @@ public class GameSessionRepository(
     {
         try
         {
-            var gameSessionIdValue = await _database.StringGetAsync($"{RoomSessionMappingKey}:{roomId}");
-            if (!gameSessionIdValue.HasValue || gameSessionIdValue.IsNullOrEmpty)
-                return null;
-
-            if (!long.TryParse(gameSessionIdValue.ToString(), out var gameSessionId))
+            var gameSessionIdValue = await _database.StringGetAsync(RedisKeys.GameSessionByRoom(roomId));
+            if (gameSessionIdValue.HasValue)
             {
-                logger.LogWarning("Invalid game session mapping for room {RoomId}: {GameSessionIdValue}", roomId, gameSessionIdValue);
-                return null;
+                if (long.TryParse(gameSessionIdValue.ToString(), out var gameSessionId))
+                {
+                    return await GetAsync(gameSessionId, ct);
+                }
             }
 
-            return await GetAsync(gameSessionId, ct);
+            var gameSession = await context.GameSessions.SingleOrDefaultAsync(gs => gs.RoomId == roomId, ct);
+            if (gameSession is null)
+                throw new KeyNotFoundException($"Game session not found for room id {roomId}");
+
+            await SetGameSessionCacheAsync(gameSession);
+            return gameSession;
         }
         catch (Exception e)
         {
@@ -103,37 +95,19 @@ public class GameSessionRepository(
             if (gameSession.GameSessionId <= 0)
                 throw new InvalidOperationException("UpdateAsync requires an existing game session");
 
-            var existingGameSession = await GetAsync(gameSession.GameSessionId, ct);
+            var existingGameSession = await context.GameSessions
+                .AsNoTracking()
+                .SingleOrDefaultAsync(gs => gs.GameSessionId == gameSession.GameSessionId, ct);
             if (existingGameSession is null)
-                return false;
+                throw new KeyNotFoundException(
+                    $"Game session not found for game session id {gameSession.GameSessionId}");
 
-            var transaction = _database.CreateTransaction();
+            context.GameSessions.Update(gameSession);
+            await context.SaveChangesAsync(ct);
 
-            _ = transaction.HashSetAsync($"{GameSessionKey}:{gameSession.GameSessionId}",
-            [
-                new HashEntry("GameSessionId", gameSession.GameSessionId),
-                new HashEntry("RoomId", gameSession.RoomId),
-                new HashEntry("SocketIp", gameSession.SocketIp),
-                new HashEntry("SocketPort", gameSession.SocketPort),
-                new HashEntry("StartedAt", gameSession.StartedAt.ToString("O")),
-                new HashEntry(
-                    "EndedAt",
-                    gameSession.EndedAt.HasValue ? gameSession.EndedAt.Value.ToString("O") : RedisValue.Null),
-                new HashEntry("Status", gameSession.Status.ToString())
-            ]);
 
-            if (gameSession.Status == GameSessionStatus.Ended)
-            {
-                _ = transaction.SetRemoveAsync(ActiveSessionsKey, gameSession.GameSessionId);
-                _ = transaction.KeyDeleteAsync($"{RoomSessionMappingKey}:{gameSession.RoomId}");
-            }
-            else
-            {
-                _ = transaction.SetAddAsync(ActiveSessionsKey, gameSession.GameSessionId);
-                _ = transaction.StringSetAsync($"{RoomSessionMappingKey}:{gameSession.RoomId}", gameSession.GameSessionId);
-            }
-
-            return await transaction.ExecuteAsync();
+            await DeleteGameSessionCacheAsync(gameSession.GameSessionId, gameSession.RoomId);
+            return true;
         }
         catch (Exception e)
         {
@@ -146,17 +120,23 @@ public class GameSessionRepository(
     {
         try
         {
-            var gameSession = await GetAsync(gameSessionId, ct);
+            var gameSession = await context.GameSessions.SingleOrDefaultAsync(gs => gs.GameSessionId == gameSessionId, cancellationToken: ct);
+            if (gameSession is not null)
+            {
+                context.GameSessions.Remove(gameSession);
+                await context.SaveChangesAsync(ct);
+            }
+
             if (gameSession is null)
-                return false;
+            {
+                await DeleteGameSessionCacheAsync(gameSessionId);
+            }
+            else
+            {
+                await DeleteGameSessionCacheAsync(gameSessionId, gameSession.RoomId);
+            }
 
-            var transaction = _database.CreateTransaction();
-
-            _ = transaction.KeyDeleteAsync($"{GameSessionKey}:{gameSessionId}");
-            _ = transaction.SetRemoveAsync(ActiveSessionsKey, gameSessionId);
-            _ = transaction.KeyDeleteAsync($"{RoomSessionMappingKey}:{gameSession.RoomId}");
-
-            return await transaction.ExecuteAsync();
+            return true;
         }
         catch (Exception e)
         {
@@ -164,13 +144,59 @@ public class GameSessionRepository(
             throw;
         }
     }
+    
+    private async Task DeleteGameSessionCacheAsync(long gameSessionId, params long[] roomIds)
+    {
+        try
+        {
+            var transaction = _database.CreateTransaction();
+
+            _ = transaction.KeyDeleteAsync(RedisKeys.GameSession(gameSessionId));
+            foreach (var roomId in roomIds.Distinct())
+            {
+                _ = transaction.KeyDeleteAsync(RedisKeys.GameSessionByRoom(roomId));
+            }
+            var commited = await transaction.ExecuteAsync();
+            if (!commited)
+                throw new InvalidOperationException("Failed to delete game session cache");
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to delete game session cache for game session {0}", gameSessionId);
+            throw;
+        }
+    }
+
+    private async Task SetGameSessionCacheAsync(GameSessionEntity gameSession)
+    {
+        var transaction = _database.CreateTransaction();
+
+        _ = transaction.HashSetAsync(RedisKeys.GameSession(gameSession.GameSessionId),
+        [
+            new HashEntry("GameSessionId", gameSession.GameSessionId),
+            new HashEntry("RoomId", gameSession.RoomId),
+            new HashEntry("SocketIp", gameSession.SocketIp),
+            new HashEntry("SocketPort", gameSession.SocketPort),
+            new HashEntry("StartedAt", gameSession.StartedAt.ToString("O")),
+            new HashEntry("EndedAt", gameSession.EndedAt?.ToString("O") ?? string.Empty),
+            new HashEntry("Status", gameSession.Status.ToString())
+        ]);
+        _ = transaction.KeyExpireAsync(RedisKeys.GameSession(gameSession.GameSessionId), RedisSettings.RedisCacheTtl);
+
+        _ = transaction.StringSetAsync(RedisKeys.GameSessionByRoom(gameSession.RoomId), gameSession.GameSessionId,
+            RedisSettings.RedisCacheTtl);
+
+        bool committed = await transaction.ExecuteAsync();
+        if (!committed)
+            throw new InvalidOperationException("Failed to create game session: transaction rolled back");
+    }
 
     private GameSessionEntity? ParseGameSession(long gameSessionId, HashEntry[] entries)
     {
         var dict = entries.ToDictionary(
             x => x.Name.ToString(),
             x => x.Value.ToString());
-        
+
         if (!dict.TryGetValue("GameSessionId", out var gameSessionIdStr) ||
             !dict.TryGetValue("RoomId", out var roomIdStr) ||
             !dict.TryGetValue("SocketIp", out var socketIpStr) ||
@@ -223,7 +249,7 @@ public class GameSessionRepository(
             logger.LogWarning("Failed to parse game session status: {Status}", statusStr);
             return null;
         }
-        
+
         return GameSessionEntity.FromRedis(
             id,
             roomId,

@@ -14,10 +14,6 @@ public class UserCredentialRepository(
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
 
-    private const string UserCredentialKey = "game:user:credential";
-    private const string UserCredentialEmailMappingKey = "game:user:credential:email";
-
-
     public async Task<UserCredential> CreateAsync(long userId, string email, string passwordHash,
         CancellationToken ct = default)
     {
@@ -44,7 +40,7 @@ public class UserCredentialRepository(
     {
         try
         {
-            var entries = await _database.HashGetAllAsync($"{UserCredentialKey}:{userId}");
+            var entries = await _database.HashGetAllAsync(RedisKeys.UserCredential(userId));
             if (entries.Length > 0)
                 return ParseUserCredentialFromRedis(userId, entries);
 
@@ -66,7 +62,7 @@ public class UserCredentialRepository(
     {
         try
         {
-            var userId = await _database.StringGetAsync($"{UserCredentialEmailMappingKey}:{email}");
+            var userId = await _database.StringGetAsync(RedisKeys.UserCredentialEmailMapping(email));
             if (userId.HasValue && long.TryParse(userId.ToString(), out var id))
                 return await FindByIdAsync(id, ct);
 
@@ -212,17 +208,17 @@ public class UserCredentialRepository(
     {
         var transaction = _database.CreateTransaction();
 
-        _ = transaction.HashSetAsync($"{UserCredentialKey}:{credential.UserId}", [
+        _ = transaction.HashSetAsync(RedisKeys.UserCredential(credential.UserId), [
             new HashEntry("UserId", credential.UserId),
             new HashEntry("Email", credential.Email),
             new HashEntry("PasswordHash", credential.PasswordHash),
             new HashEntry("RefreshToken", credential.RefreshToken ?? string.Empty),
             new HashEntry("RefreshTokenExpiresAt", credential.RefreshTokenExpiresAt?.ToString("O") ?? string.Empty)
         ]);
-        _ = transaction.KeyExpireAsync($"{UserCredentialKey}:{credential.UserId}", RedisSettings.RedisCacheTtl);
+        _ = transaction.KeyExpireAsync(RedisKeys.UserCredential(credential.UserId), RedisSettings.RedisCacheTtl);
 
         _ = transaction.StringSetAsync(
-            $"{UserCredentialEmailMappingKey}:{credential.Email}",
+            RedisKeys.UserCredentialEmailMapping(credential.Email),
             credential.UserId,
             RedisSettings.RedisCacheTtl);
 
@@ -235,10 +231,10 @@ public class UserCredentialRepository(
     {
         var transaction = _database.CreateTransaction();
 
-        _ = transaction.KeyDeleteAsync($"{UserCredentialKey}:{userId}");
+        _ = transaction.KeyDeleteAsync(RedisKeys.UserCredential(userId));
         foreach (var email in emails.Where(e => !string.IsNullOrWhiteSpace(e)).Distinct())
         {
-            _ = transaction.KeyDeleteAsync($"{UserCredentialEmailMappingKey}:{email}");
+            _ = transaction.KeyDeleteAsync(RedisKeys.UserCredentialEmailMapping(email));
         }
 
         bool committed = await transaction.ExecuteAsync();

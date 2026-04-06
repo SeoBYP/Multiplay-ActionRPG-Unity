@@ -2,63 +2,44 @@
 using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Domain.Entities;
+using GameServer.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace GameServer.Infrastructure.Domains.DungeonRoom;
 
 /// <summary>
-/// Redis 기반 던전 방 저장소 구현체
+/// PostgreSQL(DB) + Redis 캐시 기반 던전 방 저장소 구현체
 /// </summary>
 public class DungeonRoomRepository(
     IConnectionMultiplexer connectionMultiplexer,
+    GameServerDbContext context,
     ILogger<DungeonRoomRepository> logger) : IDungeonRoomRepository
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
 
-    private const string RoomKey = "game:room";
-    private const string ActiveRoomsKey = "game:room:active";
-    private const string RoomCounterKey = "game:room:id:counter";
-
     /// <summary>
-    /// 새로운 던전 방을 생성하고 Redis에 저장합니다.
+    /// 새로운 던전 방을 생성하고 DB와 Redis에 저장합니다.
     /// </summary>
-    /// <param name="hostId">방을 생성하는 방장의 사용자 ID</param>
-    /// <param name="roomName">생성할 방의 이름</param>
-    /// <param name="maxPlayers">방의 최대 수용 인원 (기본값: 4)</param>
-    /// <returns>생성된 DungeonRoom 객체</returns>
-    public async Task<Domain.Entities.DungeonRoom?> CreateAsync(long hostId, string roomName,  int maxPlayers = 4, CancellationToken ct = default)
+    public async Task<Domain.Entities.DungeonRoom?> CreateAsync(long hostId, string roomName, int maxPlayers = 4,
+        CancellationToken ct = default)
     {
         try
         {
             // 1. 도메인 모델 생성
-            var room = Domain.Entities.DungeonRoom.Create(roomName, hostId,maxPlayers);
+            var room = Domain.Entities.DungeonRoom.Create(roomName, hostId, maxPlayers);
 
-            // 2. Redis INCR로 RoomId 생성
-            var roomId = await _database.StringIncrementAsync(RoomCounterKey);
-            room.SetRoomId(roomId);
+            // 2. DB 저장
+            var entry = await context.DungeonRooms.AddAsync(room, ct);
+            await context.SaveChangesAsync(ct);
 
-            // 3. Transaction 시작
-            var transaction = _database.CreateTransaction();
+            var createdRoom = entry.Entity;
 
-            // 4. 방 기본 정보 저장 (Hash)
-            _ = transaction.HashSetAsync($"{RoomKey}:{roomId}",
-            [
-                new HashEntry("RoomId", roomId),
-                new HashEntry("RoomName", roomName),
-                new HashEntry("HostUserId", hostId),
-                new HashEntry("MaxPlayers", room.MaxPlayers),
-                new HashEntry("Status", room.Status.ToString()), // Enum → String
-                new HashEntry("CreatedAt", room.CreatedAt.ToString("O")), // ISO 8601
-            ]);
-            
-            // 6. 활성 방 목록에 추가
-            _ = transaction.SetAddAsync(ActiveRoomsKey, roomId);
+            // 3. Redis 캐시 설정
+            await SetDungeonRoomCacheAsync(createdRoom);
 
-            bool committed = await transaction.ExecuteAsync();
-            if (!committed)
-                throw new InvalidOperationException("Failed to create room");
-            return room;
+            return createdRoom;
         }
         catch (Exception e)
         {
@@ -70,18 +51,20 @@ public class DungeonRoomRepository(
     /// <summary>
     /// 방 고유 ID를 사용하여 던전 방 정보를 상세 조회합니다. (플레이어 목록 포함)
     /// </summary>
-    /// <param name="roomId">조회할 방 ID</param>
-    /// <returns>DungeonRoom 객체, 존재하지 않는 경우 null</returns>
     public async Task<Domain.Entities.DungeonRoom?> GetByIdAsync(long roomId, CancellationToken ct = default)
     {
         try
         {
-            var entries = await _database.HashGetAllAsync($"{RoomKey}:{roomId}");
+            var entries = await _database.HashGetAllAsync(RedisKeys.DungeonRoom(roomId));
+            if (entries.Length > 0)
+                return ParseDungeonRoomFromRedis(roomId, entries);
 
-            if (entries.Length == 0)
-                return null;
+            var room = await context.DungeonRooms.SingleOrDefaultAsync(r => r.RoomId == roomId, ct);
+            if (room is null)
+                throw new KeyNotFoundException($"Dungeon room not found for room id {roomId}");
 
-            return ParseDungeonRoomFromRedis(roomId, entries);
+            await SetDungeonRoomCacheAsync(room);
+            return room;
         }
         catch (Exception e)
         {
@@ -93,53 +76,61 @@ public class DungeonRoomRepository(
     /// <summary>
     /// 사용자 ID를 사용하여 해당 사용자가 현재 참여 중인 던전 방 정보를 조회합니다.
     /// </summary>
-    /// <param name="userId">참여 중인 사용자 ID</param>
-    /// <returns>DungeonRoom 객체, 참여 중인 방이 없는 경우 null</returns>
     public async Task<Domain.Entities.DungeonRoom?> GetByUserIdAsync(long userId, CancellationToken ct = default)
     {
-        return null;
+        try
+        {
+            // DungeonRoomPlayer를 통해 참여 중인 방 ID를 먼저 찾고 방 정보를 조회
+            var player = await context.DungeonRoomPlayers
+                .AsNoTracking()
+                .SingleOrDefaultAsync(drp => drp.UserId == userId, ct);
+
+            if (player is null)
+                return null;
+
+            return await GetByIdAsync(player.RoomId, ct);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to get dungeon room by user {UserId}", userId);
+            throw;
+        }
     }
 
     /// <summary>
     /// 현재 서버에 존재하는 모든 활성 던전 방 목록을 조회합니다.
     /// </summary>
-    /// <returns>활성 던전 방 객체 리스트</returns>
     public async Task<IEnumerable<Domain.Entities.DungeonRoom>> GetAllActiveRoomsAsync(CancellationToken ct = default)
     {
         try
         {
-            // 1. 활성 Room에서 모든 RoomId를 조회
-            var roomIds = await _database.SetMembersAsync(ActiveRoomsKey);
-           
-            if (roomIds.Length == 0)
-                return Enumerable.Empty<Domain.Entities.DungeonRoom>();
-            
-            // 2. Batch를 통해서 Redis 요청을 병렬 처리
-            var batch = _database.CreateBatch();
-
-            var roomTasks = roomIds
-                .Select(roomId => batch.HashGetAllAsync($"{RoomKey}:{roomId}"))
-                .ToList();
-            
-            batch.Execute();
-
-            // 3. 결과 파싱
-            var rooms = new List<Domain.Entities.DungeonRoom>();
-            for (int i = 0; i < roomIds.Length; i++)
+            // 1. 활성 RoomId 목록 조회
+            var roomIdsValues = await _database.SetMembersAsync(RedisKeys.DungeonRoomActive());
+            if (roomIdsValues.Length > 0)
             {
-                var entries = await roomTasks[i];
-                if (entries.Length == 0)
-                    continue;
-            
-                var room = ParseDungeonRoomFromRedis(
-                    long.Parse(roomIds[i].ToString()), 
-                    entries);
-            
-                if (room is not null)
-                    rooms.Add(room);
+                var rooms = new List<Domain.Entities.DungeonRoom>(roomIdsValues.Length);
+                foreach (var idValue in roomIdsValues)
+                {
+                    if (long.TryParse(idValue.ToString(), out var roomId))
+                    {
+                        var room = await GetByIdAsync(roomId, ct);
+                        if (room is not null && room.Status != RoomStatus.Closed)
+                            rooms.Add(room);
+                    }
+                }
+
+                if (rooms.Count == roomIdsValues.Length)
+                    return rooms;
             }
 
-            return rooms;
+            // 2. 캐시가 불완전한 경우 DB에서 전체 활성 방 조회
+            var dbActiveRooms = await context.DungeonRooms
+                .Where(r => r.Status != RoomStatus.Closed)
+                .ToListAsync(ct);
+
+            await Task.WhenAll(dbActiveRooms.Select(SetDungeonRoomCacheAsync));
+
+            return dbActiveRooms;
         }
         catch (Exception e)
         {
@@ -153,66 +144,34 @@ public class DungeonRoomRepository(
     /// </summary>
     public async Task<long> GetActiveRoomCountAsync(CancellationToken ct = default)
     {
-        return await _database.SetLengthAsync(ActiveRoomsKey);
+        var count = await _database.SetLengthAsync(RedisKeys.DungeonRoomActive());
+        if (count > 0) return count;
+
+        return await context.DungeonRooms.CountAsync(r => r.Status != RoomStatus.Closed, ct);
     }
 
     /// <summary>
     /// 던전 방의 상태(이름, 방장, 인원, 상태 등) 및 플레이어 목록을 업데이트합니다.
     /// </summary>
-    /// <param name="room">업데이트할 방 객체</param>
-    /// <returns>업데이트 성공 여부</returns>
     public async Task<bool> UpdateAsync(Domain.Entities.DungeonRoom room, CancellationToken ct = default)
     {
         try
         {
-            // 1. RoomId 검증
             if (room.RoomId <= 0)
                 throw new InvalidOperationException("UpdateAsync는 기존 방만 업데이트 가능");
-            
-            // 2. 기존 방 조회 (존재 여부 확인)
-            var existingRoom = await GetByIdAsync(room.RoomId, ct);
+
+            var existingRoom = await context.DungeonRooms
+                .AsNoTracking()
+                .SingleOrDefaultAsync(r => r.RoomId == room.RoomId, ct);
+
             if (existingRoom == null)
                 return false;
-            
-            // 3. Transaction 시작
-            var transaction = _database.CreateTransaction();
-            
-            // 4. 방 기본 정보 업데이트 (Hash)
-            Task hashTask = transaction.HashSetAsync($"{RoomKey}:{room.RoomId}",
-            [
-                new HashEntry("RoomName", room.RoomName),
-                new HashEntry("HostUserId", room.HostUserId),
-                new HashEntry("MaxPlayers", room.MaxPlayers),
-                new HashEntry("Status", room.Status.ToString())
-            ]);
-            
-            Task? activeRoomsTask = null;
-            if (room.Status == RoomStatus.Closed && existingRoom.Status != RoomStatus.Closed)
-            {
-                activeRoomsTask = transaction.SetRemoveAsync(ActiveRoomsKey, room.RoomId);
-            }
-            else if (room.Status != RoomStatus.Closed && existingRoom.Status == RoomStatus.Closed)
-            {
-                activeRoomsTask = transaction.SetAddAsync(ActiveRoomsKey, room.RoomId);
-            }
-            
-            // 8. Transaction 실행
-            bool committed = await transaction.ExecuteAsync();
-            if (!committed)
-                return false;
-        
-            // 9. 모든 Task 완료 대기
-            var tasks = new List<Task> 
-            { 
-                hashTask
-            };
-            if (activeRoomsTask is not null)
-                tasks.Add(activeRoomsTask);
-        
-            await Task.WhenAll(tasks);
 
+            context.DungeonRooms.Update(room);
+            await context.SaveChangesAsync(ct);
+
+            await DeleteDungeonRoomCacheAsync(room.RoomId);
             return true;
-
         }
         catch (Exception e)
         {
@@ -221,36 +180,19 @@ public class DungeonRoomRepository(
         }
     }
 
-    /// <summary>
-    /// 지정된 방 ID에 해당하는 던전 방 정보를 Redis에서 영구 삭제합니다.
-    /// </summary>
-    /// <param name="roomId">삭제할 방 ID</param>
-    /// <returns>삭제 성공 여부</returns>
     public async Task<bool> DeleteAsync(long roomId, CancellationToken ct = default)
     {
         try
         {
-            var room = await GetByIdAsync(roomId, ct);
-            if (room is null)
-                return false;
-        
-            var transaction = _database.CreateTransaction();
-        
-            // 2. 방 데이터 삭제
-            Task delRoomTask = transaction.KeyDeleteAsync($"{RoomKey}:{roomId}");
-        
-            // 3. 활성 목록에서 제거
-            Task removeActiveTask = transaction.SetRemoveAsync(ActiveRoomsKey, roomId);
-        
-            // 6. Transaction 실행
-            bool committed = await transaction.ExecuteAsync();
-            if (!committed)
-                return false;
-        
-            // 7. 모든 Task 완료 대기
-            await Task.WhenAll(
-                new[] { delRoomTask, removeActiveTask });
-            
+            var room = await context.DungeonRooms.SingleOrDefaultAsync(r => r.RoomId == roomId, ct);
+            if (room is not null)
+            {
+                context.DungeonRooms.Remove(room);
+                await context.SaveChangesAsync(ct);
+            }
+
+            await DeleteDungeonRoomCacheAsync(roomId);
+
             return true;
         }
         catch (Exception e)
@@ -262,13 +204,70 @@ public class DungeonRoomRepository(
 
     public async Task<JoinRoomAtomicResult> TryJoinRoomAsync(long userId, long roomId, CancellationToken ct = default)
     {
-        var room = await GetByIdAsync(roomId, ct);
-        if (room is null)
-            return JoinRoomAtomicResult.RoomNotFound;
+        try
+        {
+            var room = await GetByIdAsync(roomId, ct);
+            if (room is null)
+                return JoinRoomAtomicResult.RoomNotFound;
 
-        return room.Status == RoomStatus.Waiting
-            ? JoinRoomAtomicResult.Success
-            : JoinRoomAtomicResult.InvalidStatus;
+            return room.Status == RoomStatus.Waiting
+                ? JoinRoomAtomicResult.Success
+                : JoinRoomAtomicResult.InvalidStatus;
+        }
+        catch (KeyNotFoundException)
+        {
+            return JoinRoomAtomicResult.RoomNotFound;
+        }
+    }
+
+    private async Task SetDungeonRoomCacheAsync(Domain.Entities.DungeonRoom room)
+    {
+        var transaction = _database.CreateTransaction();
+
+        _ = transaction.HashSetAsync(RedisKeys.DungeonRoom(room.RoomId),
+        [
+            new HashEntry("RoomId", room.RoomId),
+            new HashEntry("RoomName", room.RoomName),
+            new HashEntry("HostUserId", room.HostUserId),
+            new HashEntry("MaxPlayers", room.MaxPlayers),
+            new HashEntry("Status", room.Status.ToString()),
+            new HashEntry("CreatedAt", room.CreatedAt.ToString("O")),
+        ]);
+        _ = transaction.KeyExpireAsync(RedisKeys.DungeonRoom(room.RoomId), RedisSettings.RedisCacheTtl);
+
+        if (room.Status != RoomStatus.Closed)
+        {
+            _ = transaction.SetAddAsync(RedisKeys.DungeonRoomActive(), room.RoomId);
+            _ = transaction.KeyExpireAsync(RedisKeys.DungeonRoomActive(), RedisSettings.RedisCacheTtl);
+        }
+        else
+        {
+            _ = transaction.SetRemoveAsync(RedisKeys.DungeonRoomActive(), room.RoomId);
+        }
+
+        bool committed = await transaction.ExecuteAsync();
+        if (!committed)
+            throw new InvalidOperationException("Failed to set dungeon room cache");
+    }
+
+    private async Task DeleteDungeonRoomCacheAsync(long roomId)
+    {
+        try
+        {
+            var transaction = _database.CreateTransaction();
+
+            _ = transaction.KeyDeleteAsync(RedisKeys.DungeonRoom(roomId));
+            _ = transaction.SetRemoveAsync(RedisKeys.DungeonRoomActive(), roomId);
+
+            bool committed = await transaction.ExecuteAsync();
+            if (!committed)
+                throw new InvalidOperationException("Failed to delete dungeon room cache");
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to delete dungeon room cache for {RoomId}", roomId);
+            throw;
+        }
     }
 
     /// <summary>

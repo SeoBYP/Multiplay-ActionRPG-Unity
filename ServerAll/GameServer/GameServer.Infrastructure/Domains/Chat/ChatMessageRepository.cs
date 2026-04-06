@@ -1,6 +1,8 @@
 ﻿using System.Globalization;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Domain.Entities.Chat;
+using GameServer.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
@@ -8,33 +10,48 @@ namespace GameServer.Infrastructure.Domains.Chat;
 
 public class ChatMessageRepository(
     IConnectionMultiplexer connectionMultiplexer,
-    Microsoft.Extensions.Logging.ILogger<ChatMessageRepository> logger) : IChatMessageRepository
+    GameServerDbContext context,
+    ILogger<ChatMessageRepository> logger) : IChatMessageRepository
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
     
-    private const string MessageHashKey = "game:chat:message:{0}";          // 메시지 본문
-    private const string MessageCounterKey = "game:chat:message:id:counter"; // ID 카운터
-    private const string AllMessagesKey = "game:chat:message:all";           // 전체 인덱스
-    private const string UserIndexKey = "game:chat:message:user:{0}";        // 유저별 인덱스 (닉네임 기준)
-    private const string RoomIndexKey = "game:chat:message:room:{0}";        // 방별 인덱스
-    private const string TargetIndexKey = "game:chat:message:target:{0}";    // 귓속말 대상 인덱스 (닉네임 기준)
-
-    public async Task<IEnumerable<ChatMessage>> GetMessagesAfterAsync(long afterMessageId, string userNickname, long? currentRoomId, CancellationToken ct = default)
+    public async Task<IEnumerable<ChatMessage>> GetMessagesAfterAsync(long afterMessageId, CancellationToken ct = default)
     {
-        var messageIds = await _database.SortedSetRangeByScoreAsync(
-            AllMessagesKey,
-            start: afterMessageId + 1,  // afterMessageId 초과
-            stop: double.MaxValue,
-            order: Order.Ascending);    // 오래된 것부터 (순서대로 전달)
+        try
+        {
+            var messageIds = await _database.SortedSetRangeByScoreAsync(
+                RedisKeys.ChatAllMessages(),
+                start: afterMessageId + 1, // afterMessageId 초과
+                stop: double.MaxValue,
+                order: Order.Ascending); // 오래된 것부터 (순서대로 전달)
 
-        var messages = await FetchMessagesByIds(messageIds);
+            IEnumerable<ChatMessage> messages;
+            if (messageIds.Length > 0)
+            {
+                messages = await FetchMessagesByIds(messageIds);
+            }
+            else
+            {
+                // Redis에 없는 경우 DB에서 조회
+                messages = await context.ChatMessages
+                    .Where(m => m.MessageId > afterMessageId)
+                    .OrderBy(m => m.MessageId)
+                    .ToListAsync(ct);
 
-        // 유저가 볼 권한이 있는 메시지만 필터링하여 반환
-        return messages.Where(m =>
-            m.ChatType == ChatType.Global ||
-            (m.ChatType == ChatType.Room && m.RoomId == currentRoomId) ||
-            (m.ChatType == ChatType.Whisper && (m.SenderUserNickName == userNickname || m.TargetUserNickName == userNickname))
-        );
+                // 조회된 메시지들을 Redis에 캐싱 (필요 시)
+                if (messages.Any())
+                {
+                    await Task.WhenAll(messages.Select(m => SetChatMessageCacheAsync(m)));
+                }
+            }
+
+            return messages;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to get messages after {MessageId}", afterMessageId);
+            throw;
+        }
     }
 
     public async Task<ChatMessage> CreateAsync(
@@ -45,262 +62,398 @@ public class ChatMessageRepository(
         string? targetUserNickName,
         CancellationToken ct = default)
     {
-        // 1) ID 먼저 채번
-        var messageId = await _database.StringIncrementAsync(MessageCounterKey);
-        
-        // 1. Domain Entity 생성 (검증 + 욕설 필터링)
-        var chatMessage = ChatMessage.CreateNew(
-            messageId,
-            senderName,
-            chatType,
-            message,
-            roomId,
-            targetUserNickName);
-
-        // 3. Redis 트랜잭션으로 원자적 저장
-        var transaction = _database.CreateTransaction();
-
-        // 3-1. 메시지 본문 저장 (Hash)
-        var hashFields = new List<HashEntry>
+        try
         {
-            new("MessageId", messageId),
-            new("SenderName", senderName),
-            new("ChatType", chatType.ToString()),
-            new("Message", chatMessage.Message), // 욕설 필터링된 메시지 저장
-            new("SentAt", chatMessage.SentAt.ToString("O")),
-        };
+            // 1. 도메인 엔티티 생성 (ID는 DB에서 자동 채번되므로 임시 ID 0 사용)
+            var chatMessage = ChatMessage.CreateNew(
+                0, // Identity column이므로 0으로 설정
+                senderName,
+                chatType,
+                message,
+                roomId,
+                targetUserNickName);
 
-        if (chatType == ChatType.Room)
-        {
-            if (!roomId.HasValue)
-                throw new ArgumentException("RoomId is required for room chat", nameof(roomId));
-            hashFields.Add(new HashEntry("RoomId", roomId.Value));
+            // 2. DB 저장 (PostgreSQL)
+            var entry = await context.ChatMessages.AddAsync(chatMessage, ct);
+            await context.SaveChangesAsync(ct);
+
+            var createdMessage = entry.Entity;
+
+            // 3. Redis 캐시 저장
+            await SetChatMessageCacheAsync(createdMessage);
+
+            return createdMessage;
         }
-
-        if (chatType == ChatType.Whisper)
+        catch (Exception e)
         {
-            if (string.IsNullOrWhiteSpace(targetUserNickName))
-                throw new ArgumentException("TargetUserNickName is required for whisper", nameof(targetUserNickName));
-            hashFields.Add(new HashEntry("TargetUserNickName", targetUserNickName));
+            logger.LogError(e, "Failed to create chat message for sender {SenderName}", senderName);
+            throw;
         }
-
-        _ = transaction.HashSetAsync(
-            string.Format(MessageHashKey, messageId),
-            hashFields.ToArray());
-        
-        // 전체 인덱스 - [수정] CreateAsync에서 빠져있던 전체 인덱스 추가
-        _ = transaction.SortedSetAddAsync(AllMessagesKey, messageId, messageId);
-
-        // 유저 인덱스
-        _ = transaction.SortedSetAddAsync(
-            string.Format(UserIndexKey, senderName), messageId, messageId);
-
-        // 방 인덱스 (Room 채팅일 때만)
-        if (chatType == ChatType.Room && roomId.HasValue)
-        {
-            _ = transaction.SortedSetAddAsync(
-                string.Format(RoomIndexKey, roomId.Value), messageId, messageId);
-        }
-
-        // 귓속말 대상 인덱스 (Whisper일 때만)
-        if (chatType == ChatType.Whisper && !string.IsNullOrWhiteSpace(targetUserNickName))
-        {
-            _ = transaction.SortedSetAddAsync(
-                string.Format(TargetIndexKey, targetUserNickName), messageId, messageId);
-        }
-
-        // 4. 트랜잭션 실행
-        bool committed = await transaction.ExecuteAsync();
-        if (!committed)
-            throw new InvalidOperationException("Failed to create chat message: transaction rolled back");
-
-        return chatMessage;
     }
-    
+
     public async Task<ChatMessage?> GetMessageByIdAsync(long messageId, CancellationToken ct = default)
     {
-        var entries = await _database.HashGetAllAsync(string.Format(MessageHashKey, messageId));
-        if (entries.Length == 0)
-            return null;
+        try
+        {
+            var entries = await _database.HashGetAllAsync(RedisKeys.ChatMessage(messageId));
+            if (entries.Length > 0)
+                return ParseChatMessage(messageId, entries);
 
-        return ParseChatMessage(messageId, entries);
+            var dbMessage = await context.ChatMessages.SingleOrDefaultAsync(m => m.MessageId == messageId, ct);
+            if (dbMessage is not null)
+            {
+                await SetChatMessageCacheAsync(dbMessage);
+            }
+
+            return dbMessage;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to get chat message by id {MessageId}", messageId);
+            throw;
+        }
     }
 
-    
+
     public async Task<IEnumerable<ChatMessage>> GetAllMessagesAsync(CancellationToken ct = default)
     {
-        var messageIds = await _database.SortedSetRangeByRankAsync(
-            AllMessagesKey,
-            order: Order.Descending);
+        try
+        {
+            var messageIds = await _database.SortedSetRangeByRankAsync(
+                RedisKeys.ChatAllMessages(),
+                order: Order.Descending);
 
-        if (messageIds.Length == 0)
-            return Enumerable.Empty<ChatMessage>();
+            if (messageIds.Length > 0)
+            {
+                return await FetchMessagesByIds(messageIds);
+            }
 
-        return await FetchMessagesByIds(messageIds);
+            // Redis 미스 시 DB 조회
+            var dbMessages = await context.ChatMessages
+                .OrderByDescending(m => m.MessageId)
+                .Take(100) // 전체 조회 시 성능을 위해 최근 100개로 제한하는 것이 일반적
+                .ToListAsync(ct);
+
+            if (dbMessages.Count > 0)
+            {
+                await Task.WhenAll(dbMessages.Select(m => SetChatMessageCacheAsync(m)));
+            }
+
+            return dbMessages;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to get all chat messages");
+            throw;
+        }
     }
-    
+
     public async Task<IEnumerable<ChatMessage>> GetMessagesByUserNameAsync(
         string userName, int limit, long? beforeMessageId, CancellationToken ct = default)
     {
-        
-        var maxScore = beforeMessageId.HasValue
-            ? (double)beforeMessageId.Value - 1  // beforeMessageId 미만
-            : double.MaxValue;                    // 처음 조회 시 최신부터
+        try
+        {
+            var maxScore = beforeMessageId.HasValue
+                ? (double)beforeMessageId.Value - 1 // beforeMessageId 미만
+                : double.MaxValue; // 처음 조회 시 최신부터
 
-        var messageIds = await _database.SortedSetRangeByScoreAsync(
-            string.Format(UserIndexKey, userName),
-            stop: maxScore,
-            take: limit,
-            order: Order.Descending); // 최신 메시지부터
+            var messageIds = await _database.SortedSetRangeByScoreAsync(
+                RedisKeys.ChatUserIndex(userName),
+                stop: maxScore,
+                take: limit,
+                order: Order.Descending); // 최신 메시지부터
 
-        if (messageIds.Length == 0)
-            return Enumerable.Empty<ChatMessage>();
+            if (messageIds.Length > 0)
+            {
+                return await FetchMessagesByIds(messageIds);
+            }
 
-        return await FetchMessagesByIds(messageIds);
+            // DB 폴백
+            var query = context.ChatMessages
+                .Where(m => m.SenderUserNickName == userName);
+
+            if (beforeMessageId.HasValue)
+            {
+                query = query.Where(m => m.MessageId < beforeMessageId.Value);
+            }
+
+            var dbMessages = await query
+                .OrderByDescending(m => m.MessageId)
+                .Take(limit)
+                .ToListAsync(ct);
+
+            if (dbMessages.Count > 0)
+            {
+                await Task.WhenAll(dbMessages.Select(m => SetChatMessageCacheAsync(m)));
+            }
+
+            return dbMessages;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to get chat messages by user {UserName}", userName);
+            throw;
+        }
     }
-    
+
     public async Task<IEnumerable<ChatMessage>> GetMessagesByRoomIdAsync(
         long roomId, int limit, long? beforeMessageId, CancellationToken ct = default)
     {
-        // [수정] GetMessagesByUserIdAsync와 동일한 패턴으로 수정
-        var maxScore = beforeMessageId.HasValue
-            ? (double)beforeMessageId.Value - 1
-            : double.MaxValue;
+        try
+        {
+            var maxScore = beforeMessageId.HasValue
+                ? (double)beforeMessageId.Value - 1
+                : double.MaxValue;
 
-        var messageIds = await _database.SortedSetRangeByScoreAsync(
-            string.Format(RoomIndexKey, roomId),
-            stop: maxScore,
-            take: limit,
-            order: Order.Descending);
+            var messageIds = await _database.SortedSetRangeByScoreAsync(
+                RedisKeys.ChatRoomIndex(roomId),
+                stop: maxScore,
+                take: limit,
+                order: Order.Descending);
 
-        if (messageIds.Length == 0)
-            return Enumerable.Empty<ChatMessage>();
+            if (messageIds.Length > 0)
+            {
+                return await FetchMessagesByIds(messageIds);
+            }
 
-        return await FetchMessagesByIds(messageIds);
+            // DB 폴백
+            var query = context.ChatMessages
+                .Where(m => m.RoomId == roomId);
+
+            if (beforeMessageId.HasValue)
+            {
+                query = query.Where(m => m.MessageId < beforeMessageId.Value);
+            }
+
+            var dbMessages = await query
+                .OrderByDescending(m => m.MessageId)
+                .Take(limit)
+                .ToListAsync(ct);
+
+            if (dbMessages.Count > 0)
+            {
+                await Task.WhenAll(dbMessages.Select(SetChatMessageCacheAsync));
+            }
+
+            return dbMessages;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to get chat messages by room {RoomId}", roomId);
+            throw;
+        }
     }
 
     public async Task<bool> DeleteAsync(long messageId, CancellationToken ct = default)
     {
-        var message = await GetMessageByIdAsync(messageId, ct);
-        if (message is null)
-            return false;
+        try
+        {
+            var message = await context.ChatMessages.SingleOrDefaultAsync(m => m.MessageId == messageId, ct);
+            if (message is not null)
+            {
+                context.ChatMessages.Remove(message);
+                await context.SaveChangesAsync(ct);
+            }
 
+            // Redis 캐시 삭제 (DB에 없더라도 일관성을 위해 캐시 삭제 시도)
+            await DeleteChatMessageCacheAsync(messageId, message?.SenderUserNickName, message?.RoomId, message?.TargetUserNickName);
+            return true;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to delete chat message {MessageId}", messageId);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteAllAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            // DB 데이터 전체 삭제
+            await context.ChatMessages.ExecuteDeleteAsync(ct);
+
+            // Redis 데이터 전체 삭제
+            var server = connectionMultiplexer.GetServer(connectionMultiplexer.GetEndPoints().First());
+
+            var keysToDelete = new List<RedisKey>();
+            // 성능을 위해 SCAN 권장하지만 여기선 기존 패턴 유지
+            keysToDelete.AddRange(server.Keys(pattern: "game:chat:message:*").ToArray());
+
+            if (keysToDelete.Count == 0)
+                return true;
+
+            var transaction = _database.CreateTransaction();
+            foreach (var key in keysToDelete.Distinct())
+            {
+                _ = transaction.KeyDeleteAsync(key);
+            }
+
+            return await transaction.ExecuteAsync();
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to delete all chat messages");
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteByUserNameAsync(string userName, CancellationToken ct = default)
+    {
+        try
+        {
+            // DB에서 해당 유저의 메시지 조회
+            var dbMessages = await context.ChatMessages
+                .Where(m => m.SenderUserNickName == userName)
+                .ToListAsync(ct);
+
+            if (dbMessages.Count > 0)
+            {
+                context.ChatMessages.RemoveRange(dbMessages);
+                await context.SaveChangesAsync(ct);
+            }
+
+            // Redis 캐시 삭제
+            var userKey = RedisKeys.ChatUserIndex(userName);
+            var messageIds = await _database.SortedSetRangeByRankAsync(userKey);
+
+            var deleteTasks = new List<Task>();
+            foreach (var idValue in messageIds)
+            {
+                if (long.TryParse(idValue.ToString(), out var messageId))
+                {
+                    var msg = dbMessages.FirstOrDefault(m => m.MessageId == messageId);
+                    deleteTasks.Add(DeleteChatMessageCacheAsync(messageId, userName, msg?.RoomId, msg?.TargetUserNickName));
+                }
+            }
+            deleteTasks.Add(_database.KeyDeleteAsync(userKey));
+
+            await Task.WhenAll(deleteTasks);
+            return true;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to delete chat messages by user {UserName}", userName);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteByRoomIdAsync(long roomId, CancellationToken ct = default)
+    {
+        try
+        {
+            // DB에서 해당 방의 메시지 조회
+            var dbMessages = await context.ChatMessages
+                .Where(m => m.RoomId == roomId)
+                .ToListAsync(ct);
+
+            if (dbMessages.Count > 0)
+            {
+                context.ChatMessages.RemoveRange(dbMessages);
+                await context.SaveChangesAsync(ct);
+            }
+
+            // Redis 캐시 삭제
+            var roomKey = RedisKeys.ChatRoomIndex(roomId);
+            var messageIds = await _database.SortedSetRangeByRankAsync(roomKey);
+
+            var deleteTasks = new List<Task>();
+            foreach (var idValue in messageIds)
+            {
+                if (long.TryParse(idValue.ToString(), out var messageId))
+                {
+                    var msg = dbMessages.FirstOrDefault(m => m.MessageId == messageId);
+                    deleteTasks.Add(DeleteChatMessageCacheAsync(messageId, msg?.SenderUserNickName, roomId, msg?.TargetUserNickName));
+                }
+            }
+            deleteTasks.Add(_database.KeyDeleteAsync(roomKey));
+
+            await Task.WhenAll(deleteTasks);
+            return true;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to delete chat messages by room {RoomId}", roomId);
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// ChatMessage 캐시 설정
+    /// </summary>
+    private async Task SetChatMessageCacheAsync(ChatMessage message)
+    {
         var transaction = _database.CreateTransaction();
-        var tasks = new List<Task>();
 
-        // 본문 삭제
-        tasks.Add(transaction.KeyDeleteAsync(string.Format(MessageHashKey, messageId)));
+        var hashFields = new List<HashEntry>
+        {
+            new("MessageId", message.MessageId),
+            new("SenderName", message.SenderUserNickName),
+            new("ChatType", message.ChatType.ToString()),
+            new("Message", message.Message),
+            new("SentAt", message.SentAt.ToString("O")),
+        };
 
-        // 인덱스 삭제 - [수정] SortedSetRemoveAsync 사용
-        tasks.Add(transaction.SortedSetRemoveAsync(AllMessagesKey, messageId));
-        tasks.Add(transaction.SortedSetRemoveAsync(
-            string.Format(UserIndexKey, message.SenderUserNickName), messageId));
+        if (message.RoomId.HasValue)
+            hashFields.Add(new HashEntry("RoomId", message.RoomId.Value));
+
+        if (!string.IsNullOrWhiteSpace(message.TargetUserNickName))
+            hashFields.Add(new HashEntry("TargetUserNickName", message.TargetUserNickName));
+
+        _ = transaction.HashSetAsync(RedisKeys.ChatMessage(message.MessageId), hashFields.ToArray());
+        _ = transaction.KeyExpireAsync(RedisKeys.ChatMessage(message.MessageId), RedisSettings.RedisCacheTtl);
+
+        _ = transaction.SortedSetAddAsync(RedisKeys.ChatAllMessages(), message.MessageId, message.MessageId);
+        _ = transaction.KeyExpireAsync(RedisKeys.ChatAllMessages(), RedisSettings.RedisCacheTtl);
+
+        _ = transaction.SortedSetAddAsync(RedisKeys.ChatUserIndex(message.SenderUserNickName), message.MessageId, message.MessageId);
+        _ = transaction.KeyExpireAsync(RedisKeys.ChatUserIndex(message.SenderUserNickName), RedisSettings.RedisCacheTtl);
 
         if (message.RoomId.HasValue)
         {
-            tasks.Add(transaction.SortedSetRemoveAsync(
-                string.Format(RoomIndexKey, message.RoomId.Value), messageId));
+            _ = transaction.SortedSetAddAsync(RedisKeys.ChatRoomIndex(message.RoomId.Value), message.MessageId, message.MessageId);
+            _ = transaction.KeyExpireAsync(RedisKeys.ChatRoomIndex(message.RoomId.Value), RedisSettings.RedisCacheTtl);
         }
 
         if (!string.IsNullOrWhiteSpace(message.TargetUserNickName))
         {
-            tasks.Add(transaction.SortedSetRemoveAsync(
-                string.Format(TargetIndexKey, message.TargetUserNickName), messageId));
+            _ = transaction.SortedSetAddAsync(RedisKeys.ChatTargetIndex(message.TargetUserNickName), message.MessageId, message.MessageId);
+            _ = transaction.KeyExpireAsync(RedisKeys.ChatTargetIndex(message.TargetUserNickName), RedisSettings.RedisCacheTtl);
         }
 
-        return await ExecuteTransactionAsync(transaction, tasks);
-    }
-    
-    public async Task<bool> DeleteAllAsync(CancellationToken ct = default)
-    {
-        var server = connectionMultiplexer.GetServer(connectionMultiplexer.GetEndPoints().First());
-
-        var keysToDelete = new List<RedisKey> { (RedisKey)MessageCounterKey };
-        keysToDelete.AddRange(server.Keys(pattern: "game:chat:message:*").ToArray());
-
-        if (keysToDelete.Count == 0)
-            return true;
-
-        var transaction = _database.CreateTransaction();
-        var tasks = keysToDelete.Distinct()
-            .Select(key => transaction.KeyDeleteAsync(key))
-            .Cast<Task>()
-            .ToList();
-
-        return await ExecuteTransactionAsync(transaction, tasks);
-    }
-    
-    public async Task<bool> DeleteByUserNameAsync(string userName, CancellationToken ct = default)
-    {
-        var userKey = string.Format(UserIndexKey, userName);
-
-        // [수정] SortedSetRangeByRankAsync 사용
-        var messageIds = await _database.SortedSetRangeByRankAsync(userKey);
-        if (messageIds.Length == 0)
-            return true;
-
-        var transaction = _database.CreateTransaction();
-        var tasks = new List<Task>();
-
-        foreach (var idValue in messageIds)
+        bool committed = await transaction.ExecuteAsync();
+        if (!committed)
         {
-            if (!long.TryParse(idValue.ToString(), out var messageId))
-                continue;
-
-            var message = await GetMessageByIdAsync(messageId, ct);
-            if (message is null) continue;
-
-            tasks.Add(transaction.KeyDeleteAsync(string.Format(MessageHashKey, messageId)));
-            tasks.Add(transaction.SortedSetRemoveAsync(AllMessagesKey, messageId));
-
-            if (message.RoomId.HasValue)
-                tasks.Add(transaction.SortedSetRemoveAsync(
-                    string.Format(RoomIndexKey, message.RoomId.Value), (RedisValue)messageId));
-
-            if (!string.IsNullOrWhiteSpace(message.TargetUserNickName))
-                tasks.Add(transaction.SortedSetRemoveAsync(
-                    string.Format(TargetIndexKey, message.TargetUserNickName), (RedisValue)messageId));
+            logger.LogWarning("Failed to set chat message cache for {MessageId}", message.MessageId);
         }
-
-        tasks.Add(transaction.KeyDeleteAsync(userKey));
-
-        return await ExecuteTransactionAsync(transaction, tasks);
     }
-    
-    public async Task<bool> DeleteByRoomIdAsync(long roomId, CancellationToken ct = default)
+
+    /// <summary>
+    /// ChatMessage 캐시 삭제
+    /// </summary>
+    private async Task DeleteChatMessageCacheAsync(long messageId, string? senderName, long? roomId, string? targetName)
     {
-        var roomKey = string.Format(RoomIndexKey, roomId);
-
-        var messageIds = await _database.SortedSetRangeByRankAsync(roomKey);
-        if (messageIds.Length == 0)
-            return true;
-
         var transaction = _database.CreateTransaction();
-        var tasks = new List<Task>();
 
-        foreach (var idValue in messageIds)
+        _ = transaction.KeyDeleteAsync(RedisKeys.ChatMessage(messageId));
+        _ = transaction.SortedSetRemoveAsync(RedisKeys.ChatAllMessages(), messageId);
+
+        if (!string.IsNullOrWhiteSpace(senderName))
+            _ = transaction.SortedSetRemoveAsync(RedisKeys.ChatUserIndex(senderName), messageId);
+
+        if (roomId.HasValue)
+            _ = transaction.SortedSetRemoveAsync(RedisKeys.ChatRoomIndex(roomId.Value), messageId);
+
+        if (!string.IsNullOrWhiteSpace(targetName))
+            _ = transaction.SortedSetRemoveAsync(RedisKeys.ChatTargetIndex(targetName), messageId);
+
+        bool committed = await transaction.ExecuteAsync();
+        if (!committed)
         {
-            if (!long.TryParse(idValue.ToString(), out var messageId))
-                continue;
-
-            var message = await GetMessageByIdAsync(messageId, ct);
-            if (message is null) continue;
-
-            tasks.Add(transaction.KeyDeleteAsync(string.Format(MessageHashKey, messageId)));
-            tasks.Add(transaction.SortedSetRemoveAsync(AllMessagesKey, messageId));
-            tasks.Add(transaction.SortedSetRemoveAsync(
-                string.Format(UserIndexKey, message.SenderUserNickName), (RedisValue)messageId));
-
-            if (!string.IsNullOrWhiteSpace(message.TargetUserNickName))
-                tasks.Add(transaction.SortedSetRemoveAsync(
-                    string.Format(TargetIndexKey, message.TargetUserNickName), (RedisValue)messageId));
+            logger.LogWarning("Failed to delete chat message cache for {MessageId}", messageId);
         }
-
-        tasks.Add(transaction.KeyDeleteAsync(roomKey));
-
-        return await ExecuteTransactionAsync(transaction, tasks);
     }
-    
+
     /// <summary>
     /// messageId 배열로 ChatMessage 목록 일괄 조회 (Batch)
     /// </summary>
@@ -314,7 +467,7 @@ public class ChatMessageRepository(
         var fetchTasks = messageIds
             .Select(id => (
                 Id: id,
-                Task: batch.HashGetAllAsync(string.Format(MessageHashKey, id))
+                Task: batch.HashGetAllAsync(RedisKeys.ChatMessage((long)id))
             ))
             .ToList();
 
@@ -384,18 +537,5 @@ public class ChatMessageRepository(
         }
 
         return ChatMessage.FromRedis(messageId, senderName, chatType, message, sentAt, roomId, targetUserNickName);
-    }
-
-    /// <summary>
-    /// 트랜잭션 실행 공통 메서드
-    /// </summary>
-    private static async Task<bool> ExecuteTransactionAsync(ITransaction transaction, List<Task> queuedTasks)
-    {
-        bool committed = await transaction.ExecuteAsync().ConfigureAwait(false);
-        if (!committed)
-            return false;
-
-        await Task.WhenAll(queuedTasks).ConfigureAwait(false);
-        return true;
     }
 }

@@ -91,11 +91,15 @@ public class ChatService(
             ? null
             : await dungeonRoomRepository.GetByIdAsync(roomPlayer.RoomId, ct);
         
-        return await chatMessageRepository.GetMessagesAfterAsync(
+        var messages = await chatMessageRepository.GetMessagesAfterAsync(
             afterMessageId,
-            userProfile.NickName,
-            currentRoom?.RoomId,
             ct);
+
+        return messages.Where(m =>
+            m.ChatType == ChatType.Global ||
+            (m.ChatType == ChatType.Room && m.RoomId == currentRoom?.RoomId) ||
+            (m.ChatType == ChatType.Whisper && (m.SenderUserNickName == userProfile.NickName || m.TargetUserNickName == userProfile.NickName))
+        );
     }
 
     public async Task<Result<ChatMessage>> GetMessageByIdAsync(

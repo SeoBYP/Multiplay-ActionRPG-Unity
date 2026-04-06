@@ -23,10 +23,6 @@ public class UserSessionRepository(
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
 
-    private const string SessionKey = "game:session";
-    private const string ActiveSessionsKey = "game:session:active";
-    private const string UserSessionMappingKey = "game:user:session";
-
     private TimeSpan SessionTtl => _jwtOptions.AccessTokenExpiration;
 
     /// <summary>
@@ -66,7 +62,7 @@ public class UserSessionRepository(
     {
         try
         {
-            var entries = await _database.HashGetAllAsync($"{SessionKey}:{sessionId}");
+            var entries = await _database.HashGetAllAsync(RedisKeys.UserSession(sessionId));
             if (entries.Length > 0)
                 return ParseSessionFromEntries(sessionId, entries);
 
@@ -94,7 +90,7 @@ public class UserSessionRepository(
     {
         try
         {
-            var sessionId = await _database.StringGetAsync($"{UserSessionMappingKey}:{userId}");
+            var sessionId = await _database.StringGetAsync(RedisKeys.UserSessionMapping(userId));
             if (sessionId.HasValue && !string.IsNullOrWhiteSpace(sessionId.ToString()))
                 return await GetBySessionIdAsync(sessionId.ToString(), ct);
 
@@ -132,7 +128,7 @@ public class UserSessionRepository(
             {
                 // DB에 없더라도 캐시 정리를 시도한다 (안전망)
                 // 세션 키에서 UserId를 가져와야 매핑 키를 지울 수 있음
-                var userIdValue = await _database.HashGetAsync($"{SessionKey}:{sessionId}", "UserId");
+                var userIdValue = await _database.HashGetAsync(RedisKeys.UserSession(sessionId), "UserId");
                 if (userIdValue.HasValue && long.TryParse(userIdValue.ToString(), out var userId))
                 {
                     await DeleteSessionCacheAsync(sessionId, userId);
@@ -160,7 +156,7 @@ public class UserSessionRepository(
         var transaction = _database.CreateTransaction();
 
         // Redis Hash에 세션 정보 저장
-        _ = transaction.HashSetAsync($"{SessionKey}:{session.SessionId}",
+        _ = transaction.HashSetAsync(RedisKeys.UserSession(session.SessionId),
         [
             new HashEntry("UserId", session.UserId),
             new HashEntry("LoginAt", session.LoginAt.ToString("O")),
@@ -168,18 +164,18 @@ public class UserSessionRepository(
         ]);
 
         // 세션 TTL(Time To Live) 설정
-        _ = transaction.KeyExpireAsync($"{SessionKey}:{session.SessionId}", ttl);
+        _ = transaction.KeyExpireAsync(RedisKeys.UserSession(session.SessionId), ttl);
 
         // 활성 세션 Set에 sessionId 추가 (현재 접속 세션 추적)
         _ = transaction.SortedSetAddAsync(
-            ActiveSessionsKey,
+            RedisKeys.UserSessionActive(),
             session.SessionId,
             DateTimeOffset.UtcNow.Add(ttl).ToUnixTimeSeconds()  // score = 만료 시각
         );
 
         // UserId → SessionId 매핑 저장 (사용자당 하나의 세션 관리)
         _ = transaction.StringSetAsync(
-            $"{UserSessionMappingKey}:{session.UserId}",
+            RedisKeys.UserSessionMapping(session.UserId),
             session.SessionId,
             ttl
         );
@@ -194,14 +190,14 @@ public class UserSessionRepository(
         var transaction = _database.CreateTransaction();
 
         // 세션 데이터 삭제
-        _ = transaction.KeyDeleteAsync($"{SessionKey}:{sessionId}");
+        _ = transaction.KeyDeleteAsync(RedisKeys.UserSession(sessionId));
 
         // 활성 세션 목록에서 제거
-        _ = transaction.SortedSetRemoveAsync(ActiveSessionsKey, sessionId);
+        _ = transaction.SortedSetRemoveAsync(RedisKeys.UserSessionActive(), sessionId);
         
         // UserId → SessionId 매핑 삭제
         if (userId.HasValue)
-            _ = transaction.KeyDeleteAsync($"{UserSessionMappingKey}:{userId.Value}");
+            _ = transaction.KeyDeleteAsync(RedisKeys.UserSessionMapping(userId.Value));
 
         bool committed = await transaction.ExecuteAsync();
         if (!committed)
@@ -214,7 +210,7 @@ public class UserSessionRepository(
     public async Task<long> GetActiveSessionCountAsync(CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        return await _database.SortedSetLengthAsync(ActiveSessionsKey, now, double.PositiveInfinity);
+        return await _database.SortedSetLengthAsync(RedisKeys.UserSessionActive(), now, double.PositiveInfinity);
 
     }
 
@@ -227,7 +223,7 @@ public class UserSessionRepository(
         {
             var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             var sessionIdValues = await _database.SortedSetRangeByScoreAsync(
-                ActiveSessionsKey, now, double.PositiveInfinity);
+                RedisKeys.UserSessionActive(), now, double.PositiveInfinity);
 
             if (sessionIdValues.Length == 0)
             {
@@ -242,7 +238,7 @@ public class UserSessionRepository(
             var batch = _database.CreateBatch();
             var sessionIds = sessionIdValues.Select(v => v.ToString()).ToList();
             var hashTasks = sessionIds
-                .Select(id => batch.HashGetAllAsync($"{SessionKey}:{id}"))
+                .Select(id => batch.HashGetAllAsync(RedisKeys.UserSession(id)))
                 .ToList();
 
             batch.Execute();
@@ -299,7 +295,7 @@ public class UserSessionRepository(
         try
         {
             var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            var removed = await _database.SortedSetRemoveRangeByScoreAsync(ActiveSessionsKey, 0, now);
+            var removed = await _database.SortedSetRemoveRangeByScoreAsync(RedisKeys.UserSessionActive(), 0, now);
             if (removed > 0)
                 logger.LogInformation("Removed {ExpiredCount} expired sessions from active set", removed);
         }

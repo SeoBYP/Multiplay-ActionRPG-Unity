@@ -1,6 +1,8 @@
 using System.Globalization;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Domain.Entities;
+using GameServer.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
@@ -8,33 +10,22 @@ namespace GameServer.Infrastructure.Domains.DungeonRoom;
 
 public class DungeonRoomPlayerRepository(
     IConnectionMultiplexer connectionMultiplexer,
+    GameServerDbContext context,
     ILogger<DungeonRoomPlayerRepository> logger) : IDungeonRoomPlayerRepository
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
-
-    private const string DungeonRoomPlayerKey = "game:room:player";
-    private const string RoomPlayerMappingKey = "game:room:player:by-room";
-    private const string UserPlayerMappingKey = "game:room:player:by-user";
 
     public async Task<DungeonRoomPlayer> CreateAsync(long roomId, long userId, CancellationToken ct = default)
     {
         try
         {
-            var player = DungeonRoomPlayer.Create(roomId, userId);
-            var transaction = _database.CreateTransaction();
+            var dungeonRoomPlayer = DungeonRoomPlayer.Create(roomId, userId);
 
-            _ = transaction.HashSetAsync(GetPlayerKey(roomId, userId),
-            [
-                new HashEntry("RoomId", player.RoomId),
-                new HashEntry("UserId", player.UserId),
-                new HashEntry("JoinedAt", player.JoinedAt.ToString("O"))
-            ]);
-            _ = transaction.SetAddAsync($"{RoomPlayerMappingKey}:{roomId}", userId);
-            _ = transaction.StringSetAsync($"{UserPlayerMappingKey}:{userId}", roomId);
+            var entry = await context.DungeonRoomPlayers.AddAsync(dungeonRoomPlayer, ct);
+            await context.SaveChangesAsync(ct);
 
-            var committed = await transaction.ExecuteAsync();
-            if (!committed)
-                throw new InvalidOperationException("Failed to create dungeon room player: transaction rolled back");
+            var player = entry.Entity;
+            await SetDungeonRoomPlayerCacheAsync(player);
 
             return player;
         }
@@ -49,25 +40,35 @@ public class DungeonRoomPlayerRepository(
     {
         try
         {
-            var userIdValues = await _database.SetMembersAsync($"{RoomPlayerMappingKey}:{roomId}");
-            if (userIdValues.Length == 0)
-                return [];
-
-            var players = new List<DungeonRoomPlayer>(userIdValues.Length);
-            foreach (var userIdValue in userIdValues)
+            var userIdValues = await _database.SetMembersAsync(RedisKeys.DungeonRoomPlayerByRoom(roomId));
+            if (userIdValues.Length > 0)
             {
-                if (!long.TryParse(userIdValue.ToString(), out var userId))
+                var players = new List<DungeonRoomPlayer>(userIdValues.Length);
+                foreach (var userIdValue in userIdValues)
                 {
-                    logger.LogWarning("Invalid dungeon room player mapping for room {RoomId}: {UserIdValue}", roomId, userIdValue);
-                    continue;
+                    if (!long.TryParse(userIdValue.ToString(), out var userId))
+                    {
+                        logger.LogWarning("Invalid dungeon room player mapping for room {RoomId}: {UserIdValue}", roomId, userIdValue);
+                        continue;
+                    }
+
+                    var player = await GetAsync(roomId, userId, ct);
+                    if (player is not null)
+                        players.Add(player);
                 }
 
-                var player = await GetAsync(roomId, userId);
-                if (player is not null)
-                    players.Add(player);
+                if (players.Count == userIdValues.Length)
+                    return players;
             }
 
-            return players;
+            var dbPlayers = await context.DungeonRoomPlayers
+                .Where(drp => drp.RoomId == roomId)
+                .ToListAsync(ct);
+
+            var tasks = dbPlayers.Select(async player => await SetDungeonRoomPlayerCacheAsync(player));
+            await Task.WhenAll(tasks);
+
+            return dbPlayers;
         }
         catch (Exception e)
         {
@@ -80,17 +81,22 @@ public class DungeonRoomPlayerRepository(
     {
         try
         {
-            var roomIdValue = await _database.StringGetAsync($"{UserPlayerMappingKey}:{userId}");
-            if (!roomIdValue.HasValue || roomIdValue.IsNullOrEmpty)
-                return null;
-
-            if (!long.TryParse(roomIdValue.ToString(), out var roomId))
+            var roomIdValue = await _database.StringGetAsync(RedisKeys.DungeonRoomPlayerByUser(userId));
+            if (roomIdValue.HasValue && !roomIdValue.IsNullOrEmpty)
             {
-                logger.LogWarning("Invalid dungeon room player mapping for user {UserId}: {RoomIdValue}", userId, roomIdValue);
-                return null;
+                if (long.TryParse(roomIdValue.ToString(), out var roomId))
+                {
+                    return await GetAsync(roomId, userId, ct);
+                }
             }
 
-            return await GetAsync(roomId, userId);
+            var dbPlayer = await context.DungeonRoomPlayers.SingleOrDefaultAsync(drp => drp.UserId == userId, ct);
+            if (dbPlayer is not null)
+            {
+                await SetDungeonRoomPlayerCacheAsync(dbPlayer);
+            }
+
+            return dbPlayer;
         }
         catch (Exception e)
         {
@@ -103,17 +109,16 @@ public class DungeonRoomPlayerRepository(
     {
         try
         {
-            var existingPlayer = await GetAsync(roomId, userId);
-            if (existingPlayer is null)
-                return false;
+            var dbPlayer = await context.DungeonRoomPlayers
+                .SingleOrDefaultAsync(drp => drp.RoomId == roomId && drp.UserId == userId, ct);
+            if (dbPlayer is not null)
+            {
+                context.DungeonRoomPlayers.Remove(dbPlayer);
+                await context.SaveChangesAsync(ct);
+            }
 
-            var transaction = _database.CreateTransaction();
-
-            _ = transaction.KeyDeleteAsync(GetPlayerKey(roomId, userId));
-            _ = transaction.SetRemoveAsync($"{RoomPlayerMappingKey}:{roomId}", userId);
-            _ = transaction.KeyDeleteAsync($"{UserPlayerMappingKey}:{userId}");
-
-            return await transaction.ExecuteAsync();
+            await DeleteDungeonRoomPlayerCacheAsync(roomId, userId);
+            return true;
         }
         catch (Exception e)
         {
@@ -126,21 +131,21 @@ public class DungeonRoomPlayerRepository(
     {
         try
         {
-            var players = await GetPlayersByRoomIdAsync(roomId, ct);
-            if (players.Count == 0)
-                return false;
+            var dbPlayers = await context.DungeonRoomPlayers
+                .Where(drp => drp.RoomId == roomId)
+                .ToListAsync(ct);
 
-            var transaction = _database.CreateTransaction();
-
-            foreach (var player in players)
+            if (dbPlayers.Count > 0)
             {
-                _ = transaction.KeyDeleteAsync(GetPlayerKey(roomId, player.UserId));
-                _ = transaction.KeyDeleteAsync($"{UserPlayerMappingKey}:{player.UserId}");
+                context.DungeonRoomPlayers.RemoveRange(dbPlayers);
+                await context.SaveChangesAsync(ct);
             }
 
-            _ = transaction.KeyDeleteAsync($"{RoomPlayerMappingKey}:{roomId}");
+            // dbPlayers 기준으로 직접 캐시 삭제
+            var deleteTasks = dbPlayers.Select(p => DeleteDungeonRoomPlayerCacheAsync(roomId, p.UserId));
+            await Task.WhenAll(deleteTasks);
 
-            return await transaction.ExecuteAsync();
+            return true;
         }
         catch (Exception e)
         {
@@ -149,13 +154,65 @@ public class DungeonRoomPlayerRepository(
         }
     }
 
-    private async Task<DungeonRoomPlayer?> GetAsync(long roomId, long userId)
+    private async Task<DungeonRoomPlayer?> GetAsync(long roomId, long userId, CancellationToken ct = default)
     {
-        var entries = await _database.HashGetAllAsync(GetPlayerKey(roomId, userId));
-        if (entries.Length == 0)
-            return null;
+        var entries = await _database.HashGetAllAsync(RedisKeys.DungeonRoomPlayer(roomId, userId));
+        if (entries.Length > 0)
+            return ParseDungeonRoomPlayer(roomId, userId, entries);
 
-        return ParseDungeonRoomPlayer(roomId, userId, entries);
+        var dbPlayer = await context.DungeonRoomPlayers
+            .SingleOrDefaultAsync(drp => drp.RoomId == roomId && drp.UserId == userId, ct);
+
+        if (dbPlayer is not null)
+        {
+            await SetDungeonRoomPlayerCacheAsync(dbPlayer);
+        }
+
+        return dbPlayer;
+    }
+
+    private async Task SetDungeonRoomPlayerCacheAsync(DungeonRoomPlayer player)
+    {
+        var transaction = _database.CreateTransaction();
+
+        _ = transaction.HashSetAsync(RedisKeys.DungeonRoomPlayer(player.RoomId, player.UserId),
+        [
+            new HashEntry("RoomId", player.RoomId),
+            new HashEntry("UserId", player.UserId),
+            new HashEntry("JoinedAt", player.JoinedAt.ToString("O"))
+        ]);
+        _ = transaction.KeyExpireAsync(RedisKeys.DungeonRoomPlayer(player.RoomId, player.UserId), RedisSettings.RedisCacheTtl);
+
+        _ = transaction.SetAddAsync(RedisKeys.DungeonRoomPlayerByRoom(player.RoomId), player.UserId);
+        _ = transaction.KeyExpireAsync(RedisKeys.DungeonRoomPlayerByRoom(player.RoomId), RedisSettings.RedisCacheTtl);
+
+        _ = transaction.StringSetAsync(RedisKeys.DungeonRoomPlayerByUser(player.UserId), player.RoomId,
+            RedisSettings.RedisCacheTtl);
+
+        bool committed = await transaction.ExecuteAsync();
+        if (!committed)
+            throw new InvalidOperationException("Failed to set dungeon room player cache");
+    }
+
+    private async Task DeleteDungeonRoomPlayerCacheAsync(long roomId, long userId)
+    {
+        try
+        {
+            var transaction = _database.CreateTransaction();
+
+            _ = transaction.KeyDeleteAsync(RedisKeys.DungeonRoomPlayer(roomId, userId));
+            _ = transaction.SetRemoveAsync(RedisKeys.DungeonRoomPlayerByRoom(roomId), userId);
+            _ = transaction.KeyDeleteAsync(RedisKeys.DungeonRoomPlayerByUser(userId));
+
+            var committed = await transaction.ExecuteAsync();
+            if (!committed)
+                throw new InvalidOperationException("Failed to delete dungeon room player cache");
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to delete dungeon room player cache for {RoomId}:{UserId}", roomId, userId);
+            throw;
+        }
     }
 
     private DungeonRoomPlayer? ParseDungeonRoomPlayer(long roomId, long userId, HashEntry[] entries)
@@ -191,10 +248,5 @@ public class DungeonRoomPlayerRepository(
         }
 
         return DungeonRoomPlayer.Restore(parsedRoomId, parsedUserId, joinedAt);
-    }
-
-    private static string GetPlayerKey(long roomId, long userId)
-    {
-        return $"{DungeonRoomPlayerKey}:{roomId}:{userId}";
     }
 }

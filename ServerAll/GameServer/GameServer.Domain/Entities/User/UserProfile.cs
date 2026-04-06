@@ -19,10 +19,12 @@ public class UserProfile
     /// </summary>
     public string NickName { get; private set; } = string.Empty;
 
-    public UserProfile(long userId, string nickname)
+    public UserProfile() { }
+
+    public UserProfile(long userId, string nickName)
     {
         UserId = userId;
-        NickName = nickname;
+        NickName = nickName;
     }
     
     public static UserProfile Create(long userId, string nickname)

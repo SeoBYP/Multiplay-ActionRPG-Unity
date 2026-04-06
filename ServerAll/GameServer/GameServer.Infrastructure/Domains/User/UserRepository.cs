@@ -18,9 +18,6 @@ public class UserRepository(
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
 
-    private const string UserKey = "game:user";
-    private const string UserPublicIdMappingKey = "game:user:publicid";
-
     /// <summary>
     /// 새로운 사용자를 추가합니다. (회원가입)
     /// </summary>
@@ -105,7 +102,7 @@ public class UserRepository(
     {
         try
         {
-            var entries = await _database.HashGetAllAsync($"{UserKey}:{userId}");
+            var entries = await _database.HashGetAllAsync(RedisKeys.User(userId));
             if (entries.Length > 0)
                 return ParseUserFromRedis(userId, entries);
 
@@ -132,7 +129,7 @@ public class UserRepository(
 
             var batch = _database.CreateBatch();
             var userEntries = userIds
-                .Select(userId => batch.HashGetAllAsync($"{UserKey}:{userId}"))
+                .Select(userId => batch.HashGetAllAsync(RedisKeys.User(userId)))
                 .ToList();
 
             batch.Execute();
@@ -191,7 +188,7 @@ public class UserRepository(
     {
         try
         {
-            var userId = await _database.StringGetAsync($"{UserPublicIdMappingKey}:{publicId}");
+            var userId = await _database.StringGetAsync(RedisKeys.UserPublicIdMapping(publicId));
             if (userId.HasValue && long.TryParse(userId.ToString(), out var id))
                 return await GetByIdAsync(id, ct);
 
@@ -213,14 +210,14 @@ public class UserRepository(
     {
         var transaction = _database.CreateTransaction();
 
-        _ = transaction.HashSetAsync($"{UserKey}:{user.UserId}", [
+        _ = transaction.HashSetAsync(RedisKeys.User(user.UserId), [
             new HashEntry("UserId", user.UserId),
             new HashEntry("PublicId", user.PublicId),
             new HashEntry("CreatedAt", user.CreatedAt.ToString("O"))
         ]);
-        _ = transaction.KeyExpireAsync($"{UserKey}:{user.UserId}", RedisSettings.RedisCacheTtl);
+        _ = transaction.KeyExpireAsync(RedisKeys.User(user.UserId), RedisSettings.RedisCacheTtl);
         _ = transaction.StringSetAsync(
-            $"{UserPublicIdMappingKey}:{user.PublicId}",
+            RedisKeys.UserPublicIdMapping(user.PublicId),
             user.UserId,
             RedisSettings.RedisCacheTtl);
 
@@ -233,10 +230,10 @@ public class UserRepository(
     {
         var transaction = _database.CreateTransaction();
 
-        _ = transaction.KeyDeleteAsync($"{UserKey}:{userId}");
+        _ = transaction.KeyDeleteAsync(RedisKeys.User(userId));
         foreach (var publicId in publicIds.Where(publicId => !string.IsNullOrWhiteSpace(publicId)).Distinct())
         {
-            _ = transaction.KeyDeleteAsync($"{UserPublicIdMappingKey}:{publicId}");
+            _ = transaction.KeyDeleteAsync(RedisKeys.UserPublicIdMapping(publicId));
         }
 
         bool committed = await transaction.ExecuteAsync();

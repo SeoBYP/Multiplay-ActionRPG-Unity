@@ -14,8 +14,6 @@ public class UserProfileRepository(
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
 
-    private const string UserProfileKey = "game:user:profile:id";
-
     public async Task<UserProfile> CreateAsync(long userId, string nickName, CancellationToken ct = default)
     {
         try
@@ -43,7 +41,7 @@ public class UserProfileRepository(
     {
         try
         {
-            var entries = await _database.HashGetAllAsync($"{UserProfileKey}:{userId}");
+            var entries = await _database.HashGetAllAsync(RedisKeys.UserProfile(userId));
             if (entries.Length > 0)
                 return ParseUserProfileFromRedis(userId, entries);
 
@@ -113,12 +111,12 @@ public class UserProfileRepository(
     {
         var transaction = _database.CreateTransaction();
             
-        _ = transaction.HashSetAsync($"{UserProfileKey}:{profile.UserId}", [
+        _ = transaction.HashSetAsync(RedisKeys.UserProfile(profile.UserId), [
             new HashEntry("UserId", profile.UserId),
             new HashEntry("NickName", profile.NickName)
         ]);
             
-        _ = transaction.KeyExpireAsync($"{UserProfileKey}:{profile.UserId}", RedisSettings.RedisCacheTtl);
+        _ = transaction.KeyExpireAsync(RedisKeys.UserProfile(profile.UserId), RedisSettings.RedisCacheTtl);
         
         bool committed = await transaction.ExecuteAsync();
         if (!committed)
@@ -128,7 +126,7 @@ public class UserProfileRepository(
     private async Task DeleteUserProfileAsync(long userId)
     {
         var transaction = _database.CreateTransaction();
-        _ = transaction.KeyDeleteAsync($"{UserProfileKey}:{userId}");
+        _ = transaction.KeyDeleteAsync(RedisKeys.UserProfile(userId));
         bool committed = await transaction.ExecuteAsync();
         
         if (!committed)
