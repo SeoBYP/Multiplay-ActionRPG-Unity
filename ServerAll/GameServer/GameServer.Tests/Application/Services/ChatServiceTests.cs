@@ -5,8 +5,7 @@ using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities.Chat;
-using GameServer.Tests.Fakes;
-using GameServer.Tests.Infrastructure;
+using GameServer.Tests.Infrastructure.Fakes.Repositories;
 using Moq;
 
 namespace GameServer.Tests.Application.Services;

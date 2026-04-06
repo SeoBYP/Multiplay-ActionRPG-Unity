@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Domain.Entities;
 
-namespace GameServer.Tests.Infrastructure;
+namespace GameServer.Tests.Infrastructure.Fakes.Repositories;
 
 public class FakeDungeonRoomPlayerRepository : IDungeonRoomPlayerRepository
 {

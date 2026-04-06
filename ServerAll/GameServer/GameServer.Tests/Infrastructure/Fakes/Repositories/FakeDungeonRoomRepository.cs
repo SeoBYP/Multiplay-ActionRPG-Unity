@@ -3,7 +3,7 @@ using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Domain.Entities;
 
-namespace GameServer.Tests.Fakes;
+namespace GameServer.Tests.Infrastructure.Fakes.Repositories;
 
 public class FakeDungeonRoomRepository : IDungeonRoomRepository
 {

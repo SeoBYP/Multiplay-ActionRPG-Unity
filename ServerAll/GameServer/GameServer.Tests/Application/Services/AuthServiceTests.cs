@@ -4,7 +4,7 @@ using GameServer.Application.Domains.Auth;
 using GameServer.Application.Security;
 using GameServer.Application.Security.Interface;
 using GameServer.Infrastructure.Security;
-using GameServer.Tests.Infrastructure;
+using GameServer.Tests.Infrastructure.Fakes.Repositories;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 

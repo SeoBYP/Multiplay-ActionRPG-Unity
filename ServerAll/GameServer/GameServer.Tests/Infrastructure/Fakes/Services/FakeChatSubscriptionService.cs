@@ -1,8 +1,7 @@
 ﻿using GameServer.Application.Domains.Chat;
 using GameServer.Application.Domains.Chat.Interfaces;
-using GameServer.Domain.Entities.Chat;
 
-namespace GameServer.Tests.Infrastructure;
+namespace GameServer.Tests.Infrastructure.Fakes.Services;
 
 public class FakeChatSubscriptionService : IChatSubscriptionService
 {

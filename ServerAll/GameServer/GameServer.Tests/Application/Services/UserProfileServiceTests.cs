@@ -1,7 +1,7 @@
 using GameServer.Application.Common;
 using GameServer.Application.Common.Interfaces;
 using GameServer.Application.Domains.User;
-using GameServer.Tests.Infrastructure;
+using GameServer.Tests.Infrastructure.Fakes.Repositories;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GameServer.Tests.Application.Services;

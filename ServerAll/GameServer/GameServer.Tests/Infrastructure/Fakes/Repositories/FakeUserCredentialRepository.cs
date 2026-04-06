@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities.User;
 
-namespace GameServer.Tests.Infrastructure;
+namespace GameServer.Tests.Infrastructure.Fakes.Repositories;
 
 public class FakeUserCredentialRepository : IUserCredentialRepository
 {

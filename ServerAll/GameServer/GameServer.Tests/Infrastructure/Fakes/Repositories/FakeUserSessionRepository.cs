@@ -1,8 +1,7 @@
 ﻿using GameServer.Application.Domains.User.Interfaces;
-
-namespace GameServer.Tests.Infrastructure;
-
 using GameServer.Domain.Entities;
+
+namespace GameServer.Tests.Infrastructure.Fakes.Repositories;
 
 public class FakeUserSessionRepository : IUserSessionRepository
 {
@@ -38,9 +37,8 @@ public class FakeUserSessionRepository : IUserSessionRepository
 
     public Task RemoveSessionAsync(string sessionId, CancellationToken ct = default)
     {
-        if (_sessions.TryGetValue(sessionId, out var session))
+        if (_sessions.Remove(sessionId, out var session))
         {
-            _sessions.Remove(sessionId);
             _userToSession.Remove(session.UserId);
         }
 

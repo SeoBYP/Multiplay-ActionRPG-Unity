@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using GameServer.Application.Domains.User.Interfaces;
 using User = GameServer.Domain.Entities.User.User;
 
-namespace GameServer.Tests.Infrastructure;
+namespace GameServer.Tests.Infrastructure.Fakes.Repositories;
 
 public class FakeUserRepository : IUserRepository
 {

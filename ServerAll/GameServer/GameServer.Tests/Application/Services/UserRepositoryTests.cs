@@ -1,7 +1,7 @@
 using GameServer.Application.Domains.User.Interfaces;
-using GameServer.Tests.Infrastructure;
+using GameServer.Tests.Infrastructure.Fakes.Repositories;
 
-namespace GameServer.Tests.Infrastructure;
+namespace GameServer.Tests.Application.Services;
 
 public class UserRepositoryTests
 {

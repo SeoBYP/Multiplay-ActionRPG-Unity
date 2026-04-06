@@ -2,7 +2,7 @@ using GameServer.Application.Common;
 using GameServer.Application.Domains.Account;
 using GameServer.Application.Security.Interface;
 using GameServer.Infrastructure.Security;
-using GameServer.Tests.Infrastructure;
+using GameServer.Tests.Infrastructure.Fakes.Repositories;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GameServer.Tests.Application.Services;

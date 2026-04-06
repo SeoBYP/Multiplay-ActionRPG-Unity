@@ -1,7 +1,7 @@
 ﻿using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 
-namespace GameServer.Tests.Infrastructure;
+namespace GameServer.Tests.Infrastructure.Fakes.Services;
 
 public class FakeDungeonLobbySubscriptionService : IDungeonLobbySubscriptionService
 {
