@@ -11,7 +11,7 @@ public sealed class FakeGameSessionRepository : IGameSessionRepository
     public Task<GameServer.Domain.Entities.GameSession.GameSession> CreateAsync(long roomId, string socketIp, int socketPort, CancellationToken ct = default)
     {
         var session = GameServer.Domain.Entities.GameSession.GameSession.Create(roomId, socketIp, socketPort);
-        session.SetId(Interlocked.Increment(ref _nextId));
+        session.GetType().GetProperty("GameSessionId")?.SetValue(session, Interlocked.Increment(ref _nextId));
         _sessions[roomId] = session;
         return Task.FromResult(session);
     }

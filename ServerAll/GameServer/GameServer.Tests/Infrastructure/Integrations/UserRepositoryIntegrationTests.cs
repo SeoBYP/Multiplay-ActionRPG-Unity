@@ -106,22 +106,16 @@ public class UserRepositoryIntegrationTests
 
         var user = await repository.CreateAsync();
         var oldPublicId = user.PublicId;
-        var newPublicId = Guid.NewGuid().ToString()[..10]; // MaxPublicIdLength(10) 준수
+        var newPublicId = Guid.NewGuid().ToString()[..10];
 
-        // User 객체의 PublicId는 private set일 수 있으므로 리플렉션이나 다른 생성 방식 확인 필요
-        // 엔티티 구조상 PublicId 변경이 가능한지 확인 (일반적으로 PublicId는 고정이지만 테스트 시나리오상 시도)
-        // UserRepository.UpdateAsync 내부에서 User.PublicId를 참조함.
-        
-        // 강제로 DB에서 변경
-        var dbUser = await context.Users.FindAsync(user.UserId);
-        dbUser!.GetType().GetProperty("PublicId")?.SetValue(dbUser, newPublicId);
-        
         // Act
-        await repository.UpdateAsync(dbUser);
+        user.GetType().GetProperty("PublicId")?.SetValue(user, newPublicId);
+        await repository.UpdateAsync(user);
 
         // Assert
-        // 1. DB 확인
-        var updatedDbUser = await context.Users.FindAsync(user.UserId);
+        // 1. DB 확인 (새 context 사용으로 Change Tracker 우회)
+        using var assertContext = _fixture.CreateDbContext();
+        var updatedDbUser = await assertContext.Users.FindAsync(user.UserId);
         Assert.Equal(newPublicId, updatedDbUser?.PublicId);
 
         // 2. Redis 캐시 삭제 확인

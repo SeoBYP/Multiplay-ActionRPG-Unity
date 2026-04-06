@@ -1,5 +1,6 @@
 ﻿using GameServer.Infrastructure.Domains;
 using GameServer.Infrastructure.Domains.DungeonRoom;
+using GameServer.Infrastructure.Domains.User;
 using GameServer.Tests.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -16,9 +17,16 @@ public class DungeonRoomPlayerRepositoryIntegrationTests(RepositoryTestFixture f
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var host = await userRepo.CreateAsync();
+        var playerUser = await userRepo.CreateAsync();
+        
+        var roomRepo = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
+        var room = await roomRepo.CreateAsync(host.UserId, "Test Room");
+
         var repository = new DungeonRoomPlayerRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomPlayerRepository>.Instance);
-        long roomId = 2001;
-        long userId = 3001;
+        long roomId = room.RoomId;
+        long userId = playerUser.UserId;
 
         // Act
         var player = await repository.CreateAsync(roomId, userId);
@@ -49,18 +57,25 @@ public class DungeonRoomPlayerRepositoryIntegrationTests(RepositoryTestFixture f
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var host = await userRepo.CreateAsync();
+        var playerUser = await userRepo.CreateAsync();
+
+        var roomRepo = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
+        var room = await roomRepo.CreateAsync(host.UserId, "Hit Room");
+
         var repository = new DungeonRoomPlayerRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomPlayerRepository>.Instance);
-        var player = await repository.CreateAsync(2002, 3002);
+        var player = await repository.CreateAsync(room.RoomId, playerUser.UserId);
 
         // Act
         context.DungeonRoomPlayers.Remove(player);
         await context.SaveChangesAsync();
 
-        var players = await repository.GetPlayersByRoomIdAsync(2002);
+        var players = await repository.GetPlayersByRoomIdAsync(room.RoomId);
 
         // Assert
         Assert.Single(players);
-        Assert.Equal(3002, players[0].UserId);
+        Assert.Equal(playerUser.UserId, players[0].UserId);
     }
 
     [Fact]
@@ -68,21 +83,28 @@ public class DungeonRoomPlayerRepositoryIntegrationTests(RepositoryTestFixture f
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var host = await userRepo.CreateAsync();
+        var playerUser = await userRepo.CreateAsync();
+
+        var roomRepo = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
+        var room = await roomRepo.CreateAsync(host.UserId, "Miss Room");
+
         var repository = new DungeonRoomPlayerRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomPlayerRepository>.Instance);
-        var player = await repository.CreateAsync(2003, 3003);
+        var player = await repository.CreateAsync(room.RoomId, playerUser.UserId);
 
         // Act
-        await _fixture.RedisConnection.GetDatabase().KeyDeleteAsync(RedisKeys.DungeonRoomPlayer(2003, 3003));
-        await _fixture.RedisConnection.GetDatabase().KeyDeleteAsync(RedisKeys.DungeonRoomPlayerByRoom(2003));
+        await _fixture.RedisConnection.GetDatabase().KeyDeleteAsync(RedisKeys.DungeonRoomPlayer(room.RoomId, playerUser.UserId));
+        await _fixture.RedisConnection.GetDatabase().KeyDeleteAsync(RedisKeys.DungeonRoomPlayerByRoom(room.RoomId));
 
-        var players = await repository.GetPlayersByRoomIdAsync(2003);
+        var players = await repository.GetPlayersByRoomIdAsync(room.RoomId);
 
         // Assert
         Assert.Single(players);
-        Assert.Equal(3003, players[0].UserId);
+        Assert.Equal(playerUser.UserId, players[0].UserId);
 
         // Re-cache 확인
-        var exists = await _fixture.RedisConnection.GetDatabase().KeyExistsAsync(RedisKeys.DungeonRoomPlayer(2003, 3003));
+        var exists = await _fixture.RedisConnection.GetDatabase().KeyExistsAsync(RedisKeys.DungeonRoomPlayer(room.RoomId, playerUser.UserId));
         Assert.True(exists);
     }
 
@@ -91,20 +113,27 @@ public class DungeonRoomPlayerRepositoryIntegrationTests(RepositoryTestFixture f
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var host = await userRepo.CreateAsync();
+        var playerUser = await userRepo.CreateAsync();
+
+        var roomRepo = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
+        var room = await roomRepo.CreateAsync(host.UserId, "Remove Room");
+
         var repository = new DungeonRoomPlayerRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomPlayerRepository>.Instance);
-        await repository.CreateAsync(2004, 3004);
+        await repository.CreateAsync(room.RoomId, playerUser.UserId);
 
         // Act
-        await repository.RemoveAsync(2004, 3004);
+        await repository.RemoveAsync(room.RoomId, playerUser.UserId);
 
         // Assert
-        var dbPlayer = await context.DungeonRoomPlayers.FindAsync(2004L, 3004L);
+        var dbPlayer = await context.DungeonRoomPlayers.FindAsync(room.RoomId, playerUser.UserId);
         Assert.Null(dbPlayer);
 
-        var exists = await _fixture.RedisConnection.GetDatabase().KeyExistsAsync(RedisKeys.DungeonRoomPlayer(2004, 3004));
+        var exists = await _fixture.RedisConnection.GetDatabase().KeyExistsAsync(RedisKeys.DungeonRoomPlayer(room.RoomId, playerUser.UserId));
         Assert.False(exists);
         
-        var isMember = await _fixture.RedisConnection.GetDatabase().SetContainsAsync(RedisKeys.DungeonRoomPlayerByRoom(2004), 3004);
+        var isMember = await _fixture.RedisConnection.GetDatabase().SetContainsAsync(RedisKeys.DungeonRoomPlayerByRoom(room.RoomId), playerUser.UserId);
         Assert.False(isMember);
     }
 
@@ -113,19 +142,27 @@ public class DungeonRoomPlayerRepositoryIntegrationTests(RepositoryTestFixture f
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var host = await userRepo.CreateAsync();
+        var player1 = await userRepo.CreateAsync();
+        var player2 = await userRepo.CreateAsync();
+
+        var roomRepo = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
+        var room = await roomRepo.CreateAsync(host.UserId, "RemoveAll Room");
+
         var repository = new DungeonRoomPlayerRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomPlayerRepository>.Instance);
-        await repository.CreateAsync(2005, 3005);
-        await repository.CreateAsync(2005, 3006);
+        await repository.CreateAsync(room.RoomId, player1.UserId);
+        await repository.CreateAsync(room.RoomId, player2.UserId);
 
         // Act
-        await repository.RemoveByRoomIdAsync(2005);
+        await repository.RemoveByRoomIdAsync(room.RoomId);
 
         // Assert
-        var dbPlayers = await context.DungeonRoomPlayers.Where(p => p.RoomId == 2005).ToListAsync();
+        var dbPlayers = await context.DungeonRoomPlayers.Where(p => p.RoomId == room.RoomId).ToListAsync();
         Assert.Empty(dbPlayers);
 
-        var exists1 = await _fixture.RedisConnection.GetDatabase().KeyExistsAsync(RedisKeys.DungeonRoomPlayer(2005, 3005));
-        var exists2 = await _fixture.RedisConnection.GetDatabase().KeyExistsAsync(RedisKeys.DungeonRoomPlayer(2005, 3006));
+        var exists1 = await _fixture.RedisConnection.GetDatabase().KeyExistsAsync(RedisKeys.DungeonRoomPlayer(room.RoomId, player1.UserId));
+        var exists2 = await _fixture.RedisConnection.GetDatabase().KeyExistsAsync(RedisKeys.DungeonRoomPlayer(room.RoomId, player2.UserId));
         Assert.False(exists1);
         Assert.False(exists2);
     }
@@ -135,11 +172,18 @@ public class DungeonRoomPlayerRepositoryIntegrationTests(RepositoryTestFixture f
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var host = await userRepo.CreateAsync();
+        var playerUser = await userRepo.CreateAsync();
+
+        var roomRepo = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
+        var room = await roomRepo.CreateAsync(host.UserId, "TTL Room");
+
         var repository = new DungeonRoomPlayerRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomPlayerRepository>.Instance);
-        var player = await repository.CreateAsync(2006, 3007);
+        var player = await repository.CreateAsync(room.RoomId, playerUser.UserId);
 
         // Act
-        var ttl = await _fixture.RedisConnection.GetDatabase().KeyTimeToLiveAsync(RedisKeys.DungeonRoomPlayer(2006, 3007));
+        var ttl = await _fixture.RedisConnection.GetDatabase().KeyTimeToLiveAsync(RedisKeys.DungeonRoomPlayer(room.RoomId, playerUser.UserId));
 
         // Assert
         Assert.NotNull(ttl);

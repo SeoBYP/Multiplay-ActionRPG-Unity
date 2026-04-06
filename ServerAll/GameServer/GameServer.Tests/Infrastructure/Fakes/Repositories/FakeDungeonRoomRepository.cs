@@ -14,7 +14,7 @@ public class FakeDungeonRoomRepository : IDungeonRoomRepository
     {
         var room = DungeonRoom.Create(roomName, hostId, maxPlayers);
         var roomId = Interlocked.Increment(ref _nextRoomId);
-        room.SetRoomId(roomId);
+        room.GetType().GetProperty("RoomId")?.SetValue(room, roomId);
         _rooms[roomId] = room;
         return Task.FromResult<DungeonRoom?>(room);
     }

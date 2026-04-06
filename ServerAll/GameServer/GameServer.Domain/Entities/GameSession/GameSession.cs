@@ -42,12 +42,6 @@ public class GameSession
         EndedAt = DateTime.UtcNow;
     }
     
-    public void SetId(long id) // Repository에서 채번 후 주입
-    {
-        if (GameSessionId != 0) throw new InvalidOperationException("Id already set");
-        GameSessionId = id;
-    }
-
     public static GameSession FromRedis(long gameSessionId, long roomId, string socketIp, int socketPort,
         DateTime startedAt, DateTime? endedAt, GameSessionStatus status)
     {

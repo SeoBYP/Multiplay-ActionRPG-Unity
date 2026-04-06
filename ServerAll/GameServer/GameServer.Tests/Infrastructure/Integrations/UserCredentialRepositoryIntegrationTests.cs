@@ -19,10 +19,13 @@ public class UserCredentialRepositoryIntegrationTests
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var user = await userRepo.CreateAsync();
+        
         var repository = new UserCredentialRepository(_fixture.RedisConnection, context, NullLogger<UserCredentialRepository>.Instance);
         var db = _fixture.RedisConnection.GetDatabase();
 
-        long userId = 1001;
+        long userId = user.UserId;
         string email = "test1@example.com";
         string passwordHash = "hash123";
 
@@ -54,16 +57,19 @@ public class UserCredentialRepositoryIntegrationTests
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var user = await userRepo.CreateAsync();
+
         var repository = new UserCredentialRepository(_fixture.RedisConnection, context, NullLogger<UserCredentialRepository>.Instance);
         
-        var credential = await repository.CreateAsync(1002, "test2@example.com", "hash");
+        var credential = await repository.CreateAsync(user.UserId, "test2@example.com", "hash");
         
         // DB 데이터를 지워서 캐시에서 가져오는지 확인
         context.UserCredentials.Remove(credential);
         await context.SaveChangesAsync();
 
         // Act
-        var found = await repository.FindByIdAsync(1002);
+        var found = await repository.FindByIdAsync(user.UserId);
 
         // Assert
         Assert.NotNull(found);
@@ -75,11 +81,14 @@ public class UserCredentialRepositoryIntegrationTests
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var user = await userRepo.CreateAsync();
+
         var repository = new UserCredentialRepository(_fixture.RedisConnection, context, NullLogger<UserCredentialRepository>.Instance);
         var db = _fixture.RedisConnection.GetDatabase();
 
-        var credential = await repository.CreateAsync(1003, "test3@example.com", "hash");
-        var cacheKey = RedisKeys.UserCredential(1003);
+        var credential = await repository.CreateAsync(user.UserId, "test3@example.com", "hash");
+        var cacheKey = RedisKeys.UserCredential(user.UserId);
         var mappingKey = RedisKeys.UserCredentialEmailMapping("test3@example.com");
 
         // Redis 캐시 삭제
@@ -87,7 +96,7 @@ public class UserCredentialRepositoryIntegrationTests
         await db.KeyDeleteAsync(mappingKey);
 
         // Act
-        var found = await repository.FindByIdAsync(1003);
+        var found = await repository.FindByIdAsync(user.UserId);
 
         // Assert
         Assert.NotNull(found);
@@ -103,22 +112,26 @@ public class UserCredentialRepositoryIntegrationTests
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var user = await userRepo.CreateAsync();
+
         var repository = new UserCredentialRepository(_fixture.RedisConnection, context, NullLogger<UserCredentialRepository>.Instance);
         var db = _fixture.RedisConnection.GetDatabase();
 
-        var credential = await repository.CreateAsync(1004, "old@example.com", "oldHash");
+        var credential = await repository.CreateAsync(user.UserId, "old@example.com", "oldHash");
         credential.UpdatePasswordHash("newHash");
 
         // Act
         await repository.UpdateAsync(credential);
 
         // Assert
-        // 1. DB 확인
-        var dbCredential = await context.UserCredentials.FindAsync((long)1004);
+        // 1. DB 확인 (새 context 사용)
+        using var assertContext = _fixture.CreateDbContext();
+        var dbCredential = await assertContext.UserCredentials.FindAsync(user.UserId);
         Assert.Equal("newHash", dbCredential?.PasswordHash);
 
         // 2. Redis 캐시 삭제 확인
-        Assert.False(await db.KeyExistsAsync(RedisKeys.UserCredential(1004)));
+        Assert.False(await db.KeyExistsAsync(RedisKeys.UserCredential(user.UserId)));
         Assert.False(await db.KeyExistsAsync(RedisKeys.UserCredentialEmailMapping("old@example.com")));
     }
 
@@ -127,19 +140,22 @@ public class UserCredentialRepositoryIntegrationTests
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var user = await userRepo.CreateAsync();
+
         var repository = new UserCredentialRepository(_fixture.RedisConnection, context, NullLogger<UserCredentialRepository>.Instance);
         var db = _fixture.RedisConnection.GetDatabase();
 
-        await repository.CreateAsync(1005, "delete@example.com", "hash");
+        await repository.CreateAsync(user.UserId, "delete@example.com", "hash");
 
         // Act
-        await repository.RemoveAsync(1005);
+        await repository.RemoveAsync(user.UserId);
 
         // Assert
-        var dbCredential = await context.UserCredentials.FindAsync((long)1005);
+        var dbCredential = await context.UserCredentials.FindAsync(user.UserId);
         Assert.Null(dbCredential);
 
-        Assert.False(await db.KeyExistsAsync(RedisKeys.UserCredential(1005)));
+        Assert.False(await db.KeyExistsAsync(RedisKeys.UserCredential(user.UserId)));
         Assert.False(await db.KeyExistsAsync(RedisKeys.UserCredentialEmailMapping("delete@example.com")));
     }
 
@@ -148,11 +164,14 @@ public class UserCredentialRepositoryIntegrationTests
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var user = await userRepo.CreateAsync();
+
         var repository = new UserCredentialRepository(_fixture.RedisConnection, context, NullLogger<UserCredentialRepository>.Instance);
         var db = _fixture.RedisConnection.GetDatabase();
 
-        await repository.CreateAsync(1006, "ttl@example.com", "hash");
-        var cacheKey = RedisKeys.UserCredential(1006);
+        await repository.CreateAsync(user.UserId, "ttl@example.com", "hash");
+        var cacheKey = RedisKeys.UserCredential(user.UserId);
         var mappingKey = RedisKeys.UserCredentialEmailMapping("ttl@example.com");
 
         // Assert

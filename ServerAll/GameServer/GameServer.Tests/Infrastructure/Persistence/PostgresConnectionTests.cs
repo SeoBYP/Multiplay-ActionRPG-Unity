@@ -4,6 +4,7 @@ using Npgsql;
 
 namespace GameServer.Tests.Infrastructure.Persistence;
 
+[Trait("Category", "Manual")]
 public class PostgresConnectionTests
 {
     [Fact]

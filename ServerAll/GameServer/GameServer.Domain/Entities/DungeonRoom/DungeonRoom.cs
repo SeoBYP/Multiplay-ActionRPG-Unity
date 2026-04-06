@@ -32,8 +32,8 @@ public class DungeonRoom
         if (hostUserId <= 0)
             throw new ArgumentException("Host ID cannot be less than or equal to zero", nameof(hostUserId));
 
-        if (maxPlayers < 2)
-            throw new ArgumentException("Max players cannot be less than 2", nameof(maxPlayers));
+        if (maxPlayers < 1)
+            throw new ArgumentException("Max players cannot be less than 1", nameof(maxPlayers));
 
         return new DungeonRoom
         {
@@ -78,12 +78,7 @@ public class DungeonRoom
             MaxPlayers = maxPlayers,
             Status = status
         };
-
-    public void SetRoomId(long roomId)
-    {
-        RoomId = roomId;
-    }
-
+    
     public bool IsHost(long userId) => HostUserId == userId;
 
     public void UpdateRoomSettings(
@@ -108,8 +103,8 @@ public class DungeonRoom
 
         if (maxPlayers.HasValue)
         {
-            if (maxPlayers.Value < 2)
-                throw new ArgumentException("Max players cannot be less than 2", nameof(maxPlayers));
+            if (maxPlayers.Value < 1)
+                throw new ArgumentException("Max players cannot be less than 1", nameof(maxPlayers));
 
             if (maxPlayers.Value < currentPlayerCount)
                 throw new InvalidOperationException(
@@ -124,8 +119,8 @@ public class DungeonRoom
         if (!IsHost(userId))
             throw new UnauthorizedAccessException("User is not host");
 
-        if (playerCount < 2)
-            throw new InvalidOperationException("need at least 2 players to start the game");
+        if (playerCount < 1)
+            throw new InvalidOperationException("need at least 1 players to start the game");
 
         if (Status == RoomStatus.Closed)
             throw new InvalidOperationException("Room is already closed");

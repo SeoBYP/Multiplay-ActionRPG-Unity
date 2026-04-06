@@ -1,5 +1,6 @@
 ﻿using GameServer.Infrastructure.Domains;
 using GameServer.Infrastructure.Domains.DungeonRoom;
+using GameServer.Infrastructure.Domains.User;
 using GameServer.Tests.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -16,8 +17,11 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var host = await userRepo.CreateAsync();
+
         var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
-        long hostId = 1001;
+        long hostId = host.UserId;
         string roomName = "Test Room";
 
         // Act
@@ -47,8 +51,11 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var host = await userRepo.CreateAsync();
+
         var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
-        var room = await repository.CreateAsync(1002, "Hit Room");
+        var room = await repository.CreateAsync(host.UserId, "Hit Room");
 
         // Act
         // DB에서 직접 삭제하여 캐시 히트를 증명 (DB에 없는데 반환되면 캐시에서 가져온 것)
@@ -67,8 +74,11 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var host = await userRepo.CreateAsync();
+
         var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
-        var room = await repository.CreateAsync(1003, "Miss Room");
+        var room = await repository.CreateAsync(host.UserId, "Miss Room");
 
         // Act
         // Redis 캐시 강제 삭제
@@ -90,21 +100,43 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
     public async Task Update_ShouldUpdateDbAndInvalidateCache()
     {
         // Arrange
-        using var context = _fixture.CreateDbContext();
-        var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
-        var room = await repository.CreateAsync(1004, "Original Room");
+        long roomId;
+        long hostId;
+        const int initialMaxPlayers = 4;
+        const int updatedMaxPlayers = 1;
+
+        using (var arrangeContext = _fixture.CreateDbContext())
+        {
+            var userRepo = new UserRepository(_fixture.RedisConnection, arrangeContext, NullLogger<UserRepository>.Instance);
+            var host = await userRepo.CreateAsync();
+            hostId = host.UserId;
+
+            var repository = new DungeonRoomRepository(_fixture.RedisConnection, arrangeContext, NullLogger<DungeonRoomRepository>.Instance);
+            var room = await repository.CreateAsync(hostId, "Original Room", initialMaxPlayers);
+            roomId = room!.RoomId;
+        }
 
         // Act
-        room!.UpdateRoomSettings(1004, 1, "Updated Room");
-        await repository.UpdateAsync(room);
+        using (var actContext = _fixture.CreateDbContext())
+        {
+            var dbRoomToUpdate = await actContext.DungeonRooms.FindAsync(roomId);
+            dbRoomToUpdate!.UpdateRoomSettings(hostId, 0, "Updated Room", updatedMaxPlayers);
+            actContext.DungeonRooms.Update(dbRoomToUpdate);
+            await actContext.SaveChangesAsync();
+
+            var repository = new DungeonRoomRepository(_fixture.RedisConnection, actContext, NullLogger<DungeonRoomRepository>.Instance);
+            await repository.UpdateAsync(dbRoomToUpdate); // 캐시 무효화
+        }
 
         // Assert
-        // DB 확인
-        var dbRoom = await context.DungeonRooms.AsNoTracking().FirstOrDefaultAsync(r => r.RoomId == room.RoomId);
+        // DB 확인 (새 context 사용)
+        using var assertContext = _fixture.CreateDbContext();
+        var dbRoom = await assertContext.DungeonRooms.AsNoTracking().FirstOrDefaultAsync(r => r.RoomId == roomId);
         Assert.Equal("Updated Room", dbRoom!.RoomName);
+        Assert.Equal(updatedMaxPlayers, dbRoom.MaxPlayers);
 
         // Cache 무효화 확인
-        var exists = await _fixture.RedisConnection.GetDatabase().KeyExistsAsync(RedisKeys.DungeonRoom(room.RoomId));
+        var exists = await _fixture.RedisConnection.GetDatabase().KeyExistsAsync(RedisKeys.DungeonRoom(roomId));
         Assert.False(exists);
     }
 
@@ -113,14 +145,16 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var host = await userRepo.CreateAsync();
+
         var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
-        var room = await repository.CreateAsync(1005, "Delete Room");
+        var room = await repository.CreateAsync(host.UserId, "Delete Room");
 
         // Act
         await repository.DeleteAsync(room!.RoomId);
 
         // Assert
-        // DB 확인
         var dbRoom = await context.DungeonRooms.FindAsync(room.RoomId);
         Assert.Null(dbRoom);
 
@@ -137,8 +171,11 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var host = await userRepo.CreateAsync();
+
         var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
-        var room = await repository.CreateAsync(1006, "TTL Room");
+        var room = await repository.CreateAsync(host.UserId, "TTL Room");
 
         // Act
         var ttl = await _fixture.RedisConnection.GetDatabase().KeyTimeToLiveAsync(RedisKeys.DungeonRoom(room!.RoomId));

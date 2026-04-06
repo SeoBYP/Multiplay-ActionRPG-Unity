@@ -38,7 +38,7 @@ public class DungeonLobbySubscriptionServiceTests
 
         var session = UserSession.Create(userId, sessionId);
         var room = DungeonRoom.Create("Room1", userId, 4);
-        room.SetRoomId(roomId);
+        room.GetType().GetProperty("RoomId")?.SetValue(room, roomId);
         var roomPlayer = DungeonRoomPlayer.Create(roomId, userId);
 
         _mockSessionRepository.Setup(x => x.GetBySessionIdAsync(sessionId, It.IsAny<CancellationToken>()))

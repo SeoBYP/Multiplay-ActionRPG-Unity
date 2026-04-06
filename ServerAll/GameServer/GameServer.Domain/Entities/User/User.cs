@@ -55,16 +55,4 @@ public class User
             CreatedAt = DateTime.UtcNow
         };
     }
-
-    /// <summary>
-    /// 사용자 ID를 설정합니다. (생성 시 1회만 가능)
-    /// </summary>
-    /// <param name="userId">설정할 사용자 ID</param>
-    /// <exception cref="InvalidOperationException">ID가 이미 설정되어 있을 때 발생</exception>
-    public void SetUserId(long userId)
-    {
-        if (UserId != 0)
-            throw new InvalidOperationException("UserId already set");
-        UserId = userId;
-    }
 }

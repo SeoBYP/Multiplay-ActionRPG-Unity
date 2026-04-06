@@ -24,10 +24,13 @@ public class UserSessionRepositoryIntegrationTests
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var user = await userRepo.CreateAsync();
+
         var repository = new UserSessionRepository(_fixture.RedisConnection, context, _jwtOptions, NullLogger<UserSessionRepository>.Instance);
         var db = _fixture.RedisConnection.GetDatabase();
 
-        long userId = 3001;
+        long userId = user.UserId;
 
         // Act
         var session = await repository.CreateSessionAsync(userId);
@@ -58,9 +61,12 @@ public class UserSessionRepositoryIntegrationTests
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var user = await userRepo.CreateAsync();
+
         var repository = new UserSessionRepository(_fixture.RedisConnection, context, _jwtOptions, NullLogger<UserSessionRepository>.Instance);
         
-        var session = await repository.CreateSessionAsync(3002);
+        var session = await repository.CreateSessionAsync(user.UserId);
         
         // DB 데이터를 지워서 캐시에서 가져오는지 확인
         context.UserSessions.Remove(session!);
@@ -71,7 +77,7 @@ public class UserSessionRepositoryIntegrationTests
 
         // Assert
         Assert.NotNull(found);
-        Assert.Equal(3002, found.UserId);
+        Assert.Equal(user.UserId, found.UserId);
     }
 
     [Fact]
@@ -79,12 +85,15 @@ public class UserSessionRepositoryIntegrationTests
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var user = await userRepo.CreateAsync();
+
         var repository = new UserSessionRepository(_fixture.RedisConnection, context, _jwtOptions, NullLogger<UserSessionRepository>.Instance);
         var db = _fixture.RedisConnection.GetDatabase();
 
-        var session = await repository.CreateSessionAsync(3003);
+        var session = await repository.CreateSessionAsync(user.UserId);
         var cacheKey = RedisKeys.UserSession(session!.SessionId);
-        var mappingKey = RedisKeys.UserSessionMapping(3003);
+        var mappingKey = RedisKeys.UserSessionMapping(user.UserId);
 
         // Redis 캐시 삭제
         await db.KeyDeleteAsync(cacheKey);
@@ -95,7 +104,7 @@ public class UserSessionRepositoryIntegrationTests
 
         // Assert
         Assert.NotNull(found);
-        Assert.Equal(3003, found.UserId);
+        Assert.Equal(user.UserId, found.UserId);
 
         // 캐시 재설정 확인
         Assert.True(await db.KeyExistsAsync(cacheKey));
@@ -107,10 +116,13 @@ public class UserSessionRepositoryIntegrationTests
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var user = await userRepo.CreateAsync();
+
         var repository = new UserSessionRepository(_fixture.RedisConnection, context, _jwtOptions, NullLogger<UserSessionRepository>.Instance);
         var db = _fixture.RedisConnection.GetDatabase();
 
-        var session = await repository.CreateSessionAsync(3004);
+        var session = await repository.CreateSessionAsync(user.UserId);
 
         // Act
         await repository.RemoveSessionAsync(session!.SessionId);
@@ -120,7 +132,7 @@ public class UserSessionRepositoryIntegrationTests
         Assert.Null(dbSession);
 
         Assert.False(await db.KeyExistsAsync(RedisKeys.UserSession(session.SessionId)));
-        Assert.False(await db.KeyExistsAsync(RedisKeys.UserSessionMapping(3004)));
+        Assert.False(await db.KeyExistsAsync(RedisKeys.UserSessionMapping(user.UserId)));
     }
 
     [Fact]
@@ -128,10 +140,13 @@ public class UserSessionRepositoryIntegrationTests
     {
         // Arrange
         using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var user = await userRepo.CreateAsync();
+
         var repository = new UserSessionRepository(_fixture.RedisConnection, context, _jwtOptions, NullLogger<UserSessionRepository>.Instance);
         var db = _fixture.RedisConnection.GetDatabase();
 
-        var session = await repository.CreateSessionAsync(3005);
+        var session = await repository.CreateSessionAsync(user.UserId);
         var cacheKey = RedisKeys.UserSession(session!.SessionId);
 
         // Assert

@@ -12,7 +12,7 @@ public class FakeUserRepository : IUserRepository
     public Task<User> CreateAsync(CancellationToken ct = default)
     {
         var user = User.Create();
-        user.SetUserId(Interlocked.Increment(ref _idCounter));
+        user.GetType().GetProperty("UserId")?.SetValue(user, Interlocked.Increment(ref _idCounter));
         _users[user.UserId] = user;
         return Task.FromResult(user);
     }

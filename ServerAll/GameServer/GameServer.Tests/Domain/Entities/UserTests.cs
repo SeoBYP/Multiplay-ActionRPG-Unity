@@ -35,11 +35,11 @@ public class UserTests
     }
 
     [Fact]
-    public void SetUserId는_한번만_설정할_수_있다()
+    public void UserId_Property_Can_Be_Set_Via_Reflection_For_Testing()
     {
         var user = User.Create();
-        user.SetUserId(1);
+        user.GetType().GetProperty("UserId")?.SetValue(user, 1L);
 
-        Assert.Throws<InvalidOperationException>(() => user.SetUserId(2));
+        Assert.Equal(1L, user.UserId);
     }
 }
