@@ -100,20 +100,20 @@ public class DungeonLobbyService(
             }
             catch (UnauthorizedAccessException)
             {
-                return Result<DungeonRoom>.Failure(ErrorCodes.NotRoomHost, ErrorMessages.InternalServerError);
+                return Result<DungeonRoom>.Failure(ErrorCodes.NotRoomHost, ErrorMessages.NotRoomHost);
             }
             catch (ArgumentException)
             {
-                return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InternalServerError);
+                return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
             }
             catch (InvalidOperationException)
             {
-                return Result<DungeonRoom>.Failure(ErrorCodes.UpdateRoomFailed, ErrorMessages.InternalServerError);
+                return Result<DungeonRoom>.Failure(ErrorCodes.UpdateRoomFailed, ErrorMessages.UpdateRoomFailed);
             }
 
             var updated = await dungeonRoomRepository.UpdateAsync(room, ct);
             if (!updated)
-                return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "諛??낅뜲?댄듃 ?ㅽ뙣");
+                return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.UpdateRoomFailed);
 
             await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
             return Result<DungeonRoom>.Success(room);
@@ -138,7 +138,7 @@ public class DungeonLobbyService(
                 return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
 
             if (room.Status != RoomStatus.Waiting)
-                return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, "?낆옣 媛?ν븳 諛??곹깭媛 ?꾨떃?덈떎.");
+                return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, ErrorMessages.RoomNotWaiting);
 
             var existingRoomPlayer = await dungeonRoomPlayerRepository.GetByUserIdAsync(userSession.UserId, ct);
             if (existingRoomPlayer is not null)
@@ -146,10 +146,10 @@ public class DungeonLobbyService(
 
             var currentPlayers = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(roomId, ct);
             if (currentPlayers.Count >= room.MaxPlayers)
-                return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, "諛⑹씠 媛??李쇱뒿?덈떎.");
+                return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, ErrorMessages.RoomFull);
 
             await dungeonRoomPlayerRepository.CreateAsync(roomId, userSession.UserId, ct);
-            await chatSubscriptionService.SwitchRoomAsync(sessionId, roomId, ct);
+            await chatSubscriptionService.UpdateRoomSubscriptionAsync(sessionId, roomId, ct);
 
             await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
             return Result<DungeonRoom>.Success(room);
@@ -184,7 +184,7 @@ public class DungeonLobbyService(
                 .ToList();
 
             await dungeonRoomPlayerRepository.RemoveAsync(roomId, userSession.UserId, ct);
-            await chatSubscriptionService.SwitchRoomAsync(sessionId, 0, ct);
+            await chatSubscriptionService.UpdateRoomSubscriptionAsync(sessionId, 0, ct);
 
             if (remainingPlayers.Count == 0)
             {
@@ -193,7 +193,7 @@ public class DungeonLobbyService(
 
                 var deleted = await dungeonRoomRepository.DeleteAsync(roomId, ct);
                 if (!deleted)
-                    return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "諛???젣 ?ㅽ뙣");
+                    return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.DeleteRoomFailed);
             }
             else
             {
@@ -202,7 +202,7 @@ public class DungeonLobbyService(
 
                 var updated = await dungeonRoomRepository.UpdateAsync(room, ct);
                 if (!updated)
-                    return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "諛??낅뜲?댄듃 ?ㅽ뙣");
+                    return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.UpdateRoomFailed);
 
                 await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
             }
@@ -236,7 +236,7 @@ public class DungeonLobbyService(
 
             var updated = await dungeonRoomRepository.UpdateAsync(room, ct);
             if (!updated)
-                return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, "諛??낅뜲?댄듃 ?ㅽ뙣");
+                return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.UpdateRoomFailed);
 
             await gameStartRequestedMessageQueue.EnqueueAsync(new GameStartRequestedMessage
             {

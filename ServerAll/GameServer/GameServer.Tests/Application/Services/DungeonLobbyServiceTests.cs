@@ -34,7 +34,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task CreateRoom_SucceedsAndAutoJoinsHost()
+    public async Task CreateRoom_방_생성_성공_및_방장_자동_입장()
     {
         var session = await _sessionRepository.CreateSessionAsync(1);
 
@@ -49,7 +49,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task CreateRoom_InvalidSession_Fails()
+    public async Task CreateRoom_유효하지_않은_세션_실패()
     {
         var result = await _service.CreateDungeonRoomAsync("invalid-session", "Test Room", 4);
 
@@ -58,7 +58,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task JoinRoom_Succeeds()
+    public async Task JoinRoom_입장_성공()
     {
         var hostSession = await _sessionRepository.CreateSessionAsync(1);
         var joinSession = await _sessionRepository.CreateSessionAsync(2);
@@ -69,11 +69,11 @@ public class DungeonLobbyServiceTests
         Assert.True(result.IsSuccess);
         var players = await _roomPlayerRepository.GetPlayersByRoomIdAsync(created.Value.RoomId);
         Assert.Contains(players, player => player.UserId == 2);
-        _mockChatSubscriptionService.Verify(s => s.SwitchRoomAsync(joinSession.SessionId, created.Value.RoomId, It.IsAny<CancellationToken>()), Times.Once);
+        _mockChatSubscriptionService.Verify(s => s.UpdateRoomSubscriptionAsync(joinSession.SessionId, created.Value.RoomId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task LeaveRoom_LastPlayer_DeletesRoom()
+    public async Task LeaveRoom_마지막_플레이어_퇴장_시_방_삭제()
     {
         var session = await _sessionRepository.CreateSessionAsync(1);
         var created = await _service.CreateDungeonRoomAsync(session!.SessionId, "Room", 4);
@@ -86,7 +86,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task UpdateRoomSettings_HostCanUpdate()
+    public async Task UpdateRoomSettings_방장이_설정_변경_가능()
     {
         var session = await _sessionRepository.CreateSessionAsync(1);
         var created = await _service.CreateDungeonRoomAsync(session!.SessionId, "Old Name", 4);
@@ -99,7 +99,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task StartGame_HostStartsAndEnqueuesStartRequest()
+    public async Task StartGame_방장이_게임_시작_및_메시지_큐_등록()
     {
         var hostSession = await _sessionRepository.CreateSessionAsync(1);
         var user2Session = await _sessionRepository.CreateSessionAsync(2);
@@ -119,7 +119,7 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
-    public async Task StartGame_NotHost_Fails()
+    public async Task StartGame_방장이_아닌_경우_실패()
     {
         var hostSession = await _sessionRepository.CreateSessionAsync(1);
         var otherSession = await _sessionRepository.CreateSessionAsync(2);

@@ -29,7 +29,7 @@ public class DungeonLobbySubscriptionServiceTests
     }
 
     [Fact]
-    public async Task Subscribe_SucceedsForRoomMember()
+    public async Task Subscribe_방_멤버인_경우_구독_성공()
     {
         var userId = 1L;
         var roomId = 100L;
@@ -60,7 +60,7 @@ public class DungeonLobbySubscriptionServiceTests
     }
 
     [Fact]
-    public async Task Subscribe_InvalidSession_ReturnsNull()
+    public async Task Subscribe_유효하지_않은_세션_시_Null_반환()
     {
         _mockSessionRepository.Setup(x => x.GetBySessionIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((UserSession?)null);
@@ -71,7 +71,7 @@ public class DungeonLobbySubscriptionServiceTests
     }
 
     [Fact]
-    public async Task Publish_CallsEventStream()
+    public async Task Publish_이벤트_스트림에_게시_호출_확인()
     {
         await _service.PublishAsync(100L, CancellationToken.None);
 
@@ -79,7 +79,7 @@ public class DungeonLobbySubscriptionServiceTests
     }
 
     [Fact]
-    public async Task Unsubscribe_CancelsContext()
+    public async Task Unsubscribe_컨텍스트_취소_확인()
     {
         var ctx = new UserRoomContext(1L, 100L);
 

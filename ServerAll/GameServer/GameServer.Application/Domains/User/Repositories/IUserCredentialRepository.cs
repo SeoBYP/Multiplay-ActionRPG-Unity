@@ -11,7 +11,7 @@ public interface IUserCredentialRepository
 
     Task<bool> UpdateAsync(UserCredential userCredential, CancellationToken ct = default);
     Task<bool> UpdatePasswordHashAsync(long userId, string passwordHash, CancellationToken ct = default);
-    Task<bool> UpdateRefreshTokenAsync(long userId, string hashedToken, DateTime expiry, CancellationToken ct = default);
+
     Task<bool> ClearRefreshTokenAsync(long userId, CancellationToken ct = default);
     
     Task<bool> RemoveAsync(long userId, CancellationToken ct = default);

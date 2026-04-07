@@ -10,6 +10,7 @@ public class ErrorMessages
     public const string Unauthorized = "UNAUTHORIZED";
     public const string InvalidToken = "INVALID_TOKEN";
     public const string SessionExpired = "SESSION_EXPIRED";
+    public const string TokenReuseDetected = "TOKEN_REUSE_DETECTED";
 
     // User
     public const string UserAlreadyExists = "USER_ALREADY_EXISTS";
@@ -31,6 +32,8 @@ public class ErrorMessages
     public const string JoinRoomFailed = "JOIN_ROOM_FAILED";
     public const string LeaveRoomFailed = "LEAVE_ROOM_FAILED";
     public const string StartGameFailed = "START_GAME_FAILED";
+    public const string UpdateRoomFailed = "UPDATE_ROOM_FAILED";
+    public const string DeleteRoomFailed = "DELETE_ROOM_FAILED";
     
     // Session
     public const string SessionNotFound = "SESSION_NOT_FOUND";

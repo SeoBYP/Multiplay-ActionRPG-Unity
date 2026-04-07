@@ -47,24 +47,14 @@ public sealed class ChatSubscriptionService(
         return ctx;
     }
 
-    public async Task SwitchRoomAsync(string sessionId, long roomId, CancellationToken ct)
+    public async Task UpdateRoomSubscriptionAsync(string sessionId, long roomId, CancellationToken ct)
     {
         var session = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
         if (session is null) return;
 
         if (!_contexts.TryGetValue(session.UserId, out var ctx))
             return;
-
-        // TODO : 구독 
-        if (roomId != 0)
-        {
-            var room = await dungeonRoomRepository.GetByIdAsync(roomId, ct);
-            if (room is null) return;
-
-            var roomPlayer = await dungeonRoomPlayerRepository.GetByUserIdAsync(ctx.UserId, ct);
-            if (roomPlayer is null || roomPlayer.RoomId != roomId) return;
-        }
-
+        
         await ctx.ReadLoopCts.CancelAsync();
         ctx.ReadLoopCts = new CancellationTokenSource();
         ctx.CurrentRoomId = roomId;

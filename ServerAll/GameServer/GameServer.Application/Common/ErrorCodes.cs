@@ -29,6 +29,7 @@ public enum ErrorCodes : ushort
     LeaveRoomFailed = 2011,  
     StartGameFailed = 2012,
     UpdateRoomFailed = 2013,
+    TokenReuseDetected = 2014,
     
     MessageNotFound = 3000,
     

@@ -126,28 +126,7 @@ public class UserCredentialRepository(
             throw;
         }
     }
-
-    public async Task<bool> UpdateRefreshTokenAsync(long userId, string hashedToken, DateTime expiry,
-        CancellationToken ct = default)
-    {
-        try
-        {
-            var credential = await context.UserCredentials.SingleOrDefaultAsync(uc => uc.UserId == userId, ct);
-            if (credential is null)
-                throw new KeyNotFoundException($"User credential not found for user id {userId}");
-
-            credential.SetRefreshToken(hashedToken, expiry);
-            await context.SaveChangesAsync(ct);
-            await DeleteUserCredentialCacheAsync(userId, credential.Email);
-            return true;
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Failed to update refresh token for user {UserId}", userId);
-            throw;
-        }
-    }
-
+    
     public async Task<bool> ClearRefreshTokenAsync(long userId, CancellationToken ct = default)
     {
         try
@@ -213,6 +192,7 @@ public class UserCredentialRepository(
             new HashEntry("Email", credential.Email),
             new HashEntry("PasswordHash", credential.PasswordHash),
             new HashEntry("RefreshToken", credential.RefreshToken ?? string.Empty),
+            new HashEntry("RefreshTokenVersion", credential.RefreshTokenVersion),
             new HashEntry("RefreshTokenExpiresAt", credential.RefreshTokenExpiresAt?.ToString("O") ?? string.Empty)
         ]);
         _ = transaction.KeyExpireAsync(RedisKeys.UserCredential(credential.UserId), RedisSettings.RedisCacheTtl);
@@ -262,6 +242,13 @@ public class UserCredentialRepository(
         dict.TryGetValue("RefreshToken", out var refreshToken);
         var normalizedToken = string.IsNullOrEmpty(refreshToken) ? null : refreshToken;
 
+        int refreshTokenVersion = 0;
+        if (dict.TryGetValue("RefreshTokenVersion", out var versionStr) &&
+            int.TryParse(versionStr, out var parsedVersion))
+        {
+            refreshTokenVersion = parsedVersion;
+        }
+
         DateTime? refreshTokenExpiresAt = null;
         if (dict.TryGetValue("RefreshTokenExpiresAt", out var expiresAtStr) &&
             DateTime.TryParse(expiresAtStr, out var parsedExpiry))
@@ -269,6 +256,6 @@ public class UserCredentialRepository(
             refreshTokenExpiresAt = parsedExpiry;
         }
 
-        return UserCredential.Restore(parsedUserId, email, passwordHash, normalizedToken, refreshTokenExpiresAt);
+        return UserCredential.Restore(parsedUserId, email, passwordHash, normalizedToken, refreshTokenVersion, refreshTokenExpiresAt);
     }
 }

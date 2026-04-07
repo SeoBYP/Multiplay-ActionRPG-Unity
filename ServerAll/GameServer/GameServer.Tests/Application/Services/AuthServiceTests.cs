@@ -52,7 +52,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task CorrectEmailAndPassword_ReturnsTokensAndSession()
+    public async Task CorrectEmailAndPassword_로그인_성공_토큰과_세션_반환()
     {
         await RegisterWithProfileAsync("test@example.com", "Password123!", "tester");
 
@@ -67,7 +67,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task MissingUser_FailsLogin()
+    public async Task MissingUser_사용자_없음_로그인_실패()
     {
         var result = await _authService.LoginAsync("missing@example.com", "Password123!", "device-1");
 
@@ -76,7 +76,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task WrongPassword_FailsLogin()
+    public async Task WrongPassword_비밀번호_불일치_로그인_실패()
     {
         await RegisterWithProfileAsync("test@example.com", "Password123!", "tester");
 
@@ -87,7 +87,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task SuccessfulLogin_PersistsRefreshToken()
+    public async Task SuccessfulLogin_리프레시_토큰_저장_확인()
     {
         var register = await RegisterWithProfileAsync("refresh@example.com", "Password123!", "refresh_user");
 
@@ -101,7 +101,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task Logout_ClearsSessionAndRefreshToken()
+    public async Task Logout_세션_및_리프레시_토큰_삭제()
     {
         var register = await RegisterWithProfileAsync("logout@example.com", "Password123!", "logout_user");
         var login = await _authService.LoginAsync("logout@example.com", "Password123!", "device-1");
@@ -115,7 +115,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task ValidToken_ReturnsTrue()
+    public async Task ValidToken_유효한_토큰_검증_성공()
     {
         await RegisterWithProfileAsync("validate@example.com", "Password123!", "validate_user");
         var login = await _authService.LoginAsync("validate@example.com", "Password123!", "device-1");
@@ -126,7 +126,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoggedOutToken_ReturnsFalse()
+    public async Task LoggedOutToken_로그아웃된_토큰_검증_실패()
     {
         await RegisterWithProfileAsync("validate-logout@example.com", "Password123!", "validate_logout_user");
         var login = await _authService.LoginAsync("validate-logout@example.com", "Password123!", "device-1");
@@ -138,7 +138,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RefreshToken_RotatesTokens()
+    public async Task RefreshToken_토큰_갱신_성공()
     {
         var register = await RegisterWithProfileAsync("rotate@example.com", "Password123!", "rotate_user");
         var login = await _authService.LoginAsync("rotate@example.com", "Password123!", "device-1");
@@ -154,7 +154,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RefreshToken_WithDifferentDevice_ExpiresSession()
+    public async Task RefreshToken_다른_기기_접속_시_세션_만료()
     {
         await RegisterWithProfileAsync("binding@example.com", "Password123!", "binding_user");
         var login = await _authService.LoginAsync("binding@example.com", "Password123!", "device-A");
@@ -167,7 +167,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task ExpiredAccessToken_StillAllowsRefresh()
+    public async Task ExpiredAccessToken_만료된_액세스_토큰으로도_갱신_허용()
     {
         await RegisterWithProfileAsync("expired-access@example.com", "Password123!", "expired_user");
         var login = await _authService.LoginAsync("expired-access@example.com", "Password123!", "device-1");
@@ -191,6 +191,35 @@ public class AuthServiceTests
 
         Assert.True(result.IsSuccess);
         Assert.NotEmpty(result.Value!.AccessToken);
+    }
+
+    [Fact]
+    public async Task ReuseRefreshToken_이미_사용한_토큰으로_갱신_시도_시_세션_종료()
+    {
+        // 1. 로그인 -> refreshToken_v1 발급
+        var register = await RegisterWithProfileAsync("reuse@example.com", "Password123!", "reuse_user");
+        var login = await _authService.LoginAsync("reuse@example.com", "Password123!", "device-1");
+        var refreshTokenV1 = login.Value!.RefreshToken;
+        var sessionId = login.Value.Session.SessionId;
+
+        // 2. RefreshToken(refreshToken_v1) -> 성공, refreshToken_v2 발급
+        var refreshResult = await _authService.RefreshTokenAsync(login.Value.AccessToken, refreshTokenV1, "device-1");
+        Assert.True(refreshResult.IsSuccess);
+        var refreshTokenV2 = refreshResult.Value!.RefreshToken;
+        Assert.NotEqual(refreshTokenV1, refreshTokenV2);
+
+        // 3. RefreshToken(refreshToken_v1) 재시도 -> TokenReuseDetected 반환 및 세션 제거
+        var reuseResult = await _authService.RefreshTokenAsync(refreshResult.Value.AccessToken, refreshTokenV1, "device-1");
+
+        Assert.False(reuseResult.IsSuccess);
+        Assert.Equal(ErrorCodes.TokenReuseDetected, reuseResult.InternalErrorCode);
+
+        // 세션이 제거되었는지 확인
+        Assert.Null(await _sessionRepository.GetBySessionIdAsync(sessionId));
+        
+        // 리프레시 토큰이 무효화되었는지 확인
+        var credential = await _credentialRepository.FindByIdAsync(register.UserId);
+        Assert.Null(credential!.RefreshToken);
     }
 
     private async Task<GameServer.Domain.Entities.User.User> RegisterWithProfileAsync(string email, string password, string nickName)

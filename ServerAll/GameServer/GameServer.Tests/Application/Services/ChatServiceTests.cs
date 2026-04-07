@@ -52,7 +52,7 @@ public class ChatServiceTests
     }
 
     [Fact]
-    public async Task SendGlobalMessage_PublishesGlobalChannel()
+    public async Task SendGlobalMessage_전체_채팅_게시_확인()
     {
         var sessionId = await CreateSessionAsync(1, "Alice");
 
@@ -67,7 +67,7 @@ public class ChatServiceTests
     }
 
     [Fact]
-    public async Task SendRoomMessage_PublishesRoomChannel()
+    public async Task SendRoomMessage_방_채팅_게시_확인()
     {
         var sessionId = await CreateSessionAsync(2, "Bob");
         var room = await _roomRepo.CreateAsync(2, "room", 4);
@@ -85,7 +85,7 @@ public class ChatServiceTests
     }
 
     [Fact]
-    public async Task SendWhisper_PublishesWhisperChannel()
+    public async Task SendWhisper_귓속말_게시_확인()
     {
         var sessionId = await CreateSessionAsync(3, "Carol");
 
@@ -101,7 +101,7 @@ public class ChatServiceTests
     }
 
     [Fact]
-    public async Task InvalidSession_FailsSend()
+    public async Task InvalidSession_메시지_전송_실패_확인()
     {
         var result = await _service.SendMessageAsync("invalid-session", "hi", null);
 
@@ -114,7 +114,7 @@ public class ChatServiceTests
     }
 
     [Fact]
-    public async Task SendMessage_MessageTooLong_FailsWithoutPublishing()
+    public async Task SendMessage_메시지가_너무_길면_게시_없이_실패()
     {
         var sessionId = await CreateSessionAsync(4, "LongUser");
         var message = new string('a', ChatMessage.MaxMessageLength + 1);
@@ -130,7 +130,7 @@ public class ChatServiceTests
     }
 
     [Fact]
-    public async Task GetMessageById_ReturnsStoredMessage()
+    public async Task GetMessageById_저장된_메시지_반환_확인()
     {
         var sessionId = await CreateSessionAsync(10, "Dave");
         var send = await _service.SendMessageAsync(sessionId, "hello id", null);
@@ -142,7 +142,7 @@ public class ChatServiceTests
     }
 
     [Fact]
-    public async Task MissingMessage_ReturnsNotFound()
+    public async Task MissingMessage_메시지_없음_반환_확인()
     {
         var sessionId = await CreateSessionAsync(11, "Eve");
 
@@ -153,7 +153,7 @@ public class ChatServiceTests
     }
 
     [Fact]
-    public async Task GetMessagesByRoom_ReturnsLatestMessages()
+    public async Task GetMessagesByRoom_최신_방_메시지_반환_확인()
     {
         var sessionId = await CreateSessionAsync(20, "RoomUser");
         var room = await _roomRepo.CreateAsync(20, "room", 4);
@@ -169,7 +169,7 @@ public class ChatServiceTests
     }
 
     [Fact]
-    public async Task GetMessagesByUser_ReturnsLatestMessages()
+    public async Task GetMessagesByUser_최신_사용자_메시지_반환_확인()
     {
         var sessionId = await CreateSessionAsync(30, "UserA");
 
@@ -185,7 +185,7 @@ public class ChatServiceTests
     }
 
     [Fact]
-    public async Task GetMessagesAfter_FiltersByVisibility()
+    public async Task GetMessagesAfter_가시성에_따른_필터링_확인()
     {
         var aliceSessionId = await CreateSessionAsync(100, "Alice");
         var room = await _roomRepo.CreateAsync(100, "room-101", 4);
@@ -210,14 +210,14 @@ public class ChatServiceTests
     }
 
     [Fact]
-    public async Task InvalidSession_GetMessagesAfter_ReturnsEmpty()
+    public async Task InvalidSession_GetMessagesAfter_빈_목록_반환()
     {
         var results = await _service.GetMessagesAfterAsync("invalid-session", 0);
         Assert.Empty(results);
     }
 
     [Fact]
-    public async Task NoRoom_ExcludesRoomMessages()
+    public async Task NoRoom_방_메시지_제외_확인()
     {
         var sessionId = await CreateSessionAsync(300, "NoRoomUser");
 

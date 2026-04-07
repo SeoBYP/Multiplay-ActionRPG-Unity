@@ -41,18 +41,10 @@ public class FakeUserCredentialRepository : IUserCredentialRepository
             credential.Email,
             passwordHash,
             credential.RefreshToken,
+            credential.RefreshTokenVersion,
             credential.RefreshTokenExpiresAt);
 
         _credentials[userId] = updated;
-        return Task.FromResult(true);
-    }
-
-    public Task<bool> UpdateRefreshTokenAsync(long userId, string hashedToken, DateTime expiry, CancellationToken ct = default)
-    {
-        if (!_credentials.TryGetValue(userId, out var credential))
-            return Task.FromResult(false);
-
-        credential.SetRefreshToken(hashedToken, expiry);
         return Task.FromResult(true);
     }
 

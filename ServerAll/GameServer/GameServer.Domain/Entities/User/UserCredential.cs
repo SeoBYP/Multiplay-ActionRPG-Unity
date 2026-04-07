@@ -27,6 +27,8 @@ public class UserCredential
     /// </summary>
     public string? RefreshToken { get; private set; }
 
+    public int RefreshTokenVersion { get; private set; } = 0;
+    
     /// <summary>
     /// 리프레시 토큰의 만료 시간을 나타냅니다.
     /// </summary>
@@ -58,6 +60,7 @@ public class UserCredential
         string email,
         string passwordHash,
         string? refreshToken,
+        int refreshTokenVersion,
         DateTime? refreshTokenExpiresAt)
     {
         if (userId <= 0)
@@ -73,6 +76,7 @@ public class UserCredential
             Email = email,
             PasswordHash = passwordHash,
             RefreshToken = string.IsNullOrWhiteSpace(refreshToken) ? null : refreshToken,
+            RefreshTokenVersion = refreshTokenVersion,
             RefreshTokenExpiresAt = refreshTokenExpiresAt
         };
     }
@@ -97,6 +101,7 @@ public class UserCredential
         
         RefreshToken = refreshToken;
         RefreshTokenExpiresAt = refreshTokenExpiresAt;
+        RefreshTokenVersion++;
     }
     
     public void UpdatePasswordHash(string passwordHash)

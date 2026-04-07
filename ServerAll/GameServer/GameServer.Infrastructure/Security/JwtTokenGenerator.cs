@@ -71,11 +71,11 @@ public class JwtTokenGenerator(IOptions<JwtOptions> jwtOptions) : IJwtTokenGener
         return new ClaimsPrincipal(result.ClaimsIdentity);
     }
 
-    public string GenerateRefreshToken()
+    public string GenerateRefreshToken(int version)
     {
         var randomBytes = new byte[32];
         using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
         rng.GetBytes(randomBytes);
-        return Convert.ToBase64String(randomBytes);
+        return $"{Convert.ToBase64String(randomBytes)}.{version}";
     }
 }

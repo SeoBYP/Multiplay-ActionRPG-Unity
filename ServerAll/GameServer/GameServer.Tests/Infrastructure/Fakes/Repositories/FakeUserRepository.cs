@@ -48,13 +48,4 @@ public class FakeUserRepository : IUserRepository
         return Task.FromResult(user);
     }
 
-    public Task<bool> UpdateRefreshTokenAsync(long userId, string hashedToken, DateTime expiry, CancellationToken ct = default)
-    {
-        return Task.FromResult(_users.ContainsKey(userId));
-    }
-
-    public Task<bool> ClearRefreshTokenAsync(long userId, CancellationToken ct = default)
-    {
-        return Task.FromResult(_users.ContainsKey(userId));
-    }
 }

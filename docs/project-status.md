@@ -1,6 +1,6 @@
 # 프로젝트 현황 & 다음 작업 목록
 
-> 마지막 업데이트: 2026-04-07
+> 마지막 업데이트: 2026-04-07 (1-2, 2-2 완료)
 > 기준: 실제 코드 파일 직접 확인
 
 ---
@@ -172,7 +172,7 @@ DungeonLobbyService (GameSessionReady 소비):
 
 ---
 
-#### 1-2. 에러 메시지 인코딩 수정
+#### ~~1-2. 에러 메시지 인코딩 수정~~ ✅ 완료
 
 **파일:** `DungeonLobbyService.cs`
 
@@ -209,7 +209,7 @@ return Result.Failure(ErrorCodes.InternalServerError, "諛???젣 ?ㅽ뙣");
 
 ---
 
-#### 2-2. `ChatSubscriptionService.SwitchRoomAsync` 정리
+#### ~~2-2. `ChatSubscriptionService.SwitchRoomAsync` 정리~~ ✅ 완료
 
 **파일:** `GameServer.Application/Domains/Chat/ChatSubscriptionService.cs`
 

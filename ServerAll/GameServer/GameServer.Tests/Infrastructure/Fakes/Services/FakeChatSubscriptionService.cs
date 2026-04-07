@@ -10,7 +10,7 @@ public class FakeChatSubscriptionService : IChatSubscriptionService
         return Task.FromResult<UserChatContext?>(null);
     }
 
-    public Task SwitchRoomAsync(string sessionId, long roomId, CancellationToken ct)
+    public Task UpdateRoomSubscriptionAsync(string sessionId, long roomId, CancellationToken ct)
     {
         return Task.CompletedTask;
     }

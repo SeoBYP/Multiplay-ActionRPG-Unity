@@ -63,11 +63,20 @@ public class AuthService(
         var accessToken = jwtTokenGenerator.GenerateAccessToken(user.UserId, user.PublicId, email, userSession.SessionId);
         var expiresAt = _jwtOptions.GetExpirationTime();
 
-        var refreshToken = jwtTokenGenerator.GenerateRefreshToken();
+        var credential = await userCredentialRepository.FindByIdAsync(user.UserId, ct);
+        if (credential is null)
+        {
+            logger.LogError("Login failed because credential for user {UserId} was not found", user.UserId);
+            return Result<LoginResult>.Failure(ErrorCodes.UserNotFound, ErrorMessages.UserNotFound);
+        }
+
+        var refreshToken = jwtTokenGenerator.GenerateRefreshToken(credential.RefreshTokenVersion + 1);
         var refreshTokenExpiry = DateTime.UtcNow.AddHours(_jwtOptions.RefreshTokenExpirationHours);
         var hashedRefreshToken = HashRefreshToken(refreshToken, deviceId);
 
-        await userCredentialRepository.UpdateRefreshTokenAsync(user.UserId, hashedRefreshToken, refreshTokenExpiry, ct);
+        credential.SetRefreshToken(hashedRefreshToken, refreshTokenExpiry);
+        await userCredentialRepository.UpdateAsync(credential, ct);
+
         logger.LogInformation("Login succeeded for user {UserId} with session {SessionId}", user.UserId, userSession.SessionId);
 
         return Result<LoginResult>.Success(new LoginResult(
@@ -141,6 +150,24 @@ public class AuthService(
             return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
         }
 
+        // Reuse Detection: Extract version from token
+        var tokenParts = refreshToken.Split('.');
+        if (tokenParts.Length != 2 || !int.TryParse(tokenParts[1], out var submittedVersion))
+        {
+            logger.LogWarning("Refresh failed because refresh token format is invalid for user {UserId}", credential.UserId);
+            return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+        }
+
+        if (submittedVersion < credential.RefreshTokenVersion)
+        {
+            // Already rotated token -> Theft detected
+            await userCredentialRepository.ClearRefreshTokenAsync(credential.UserId, ct);
+            await userSessionRepository.RemoveSessionAsync(userSession.SessionId, ct);
+            logger.LogWarning("Refresh token reuse detected for user {UserId}. Submitted version: {Submitted}, Current: {Current}",
+                credential.UserId, submittedVersion, credential.RefreshTokenVersion);
+            return Result<LoginResult>.Failure(ErrorCodes.TokenReuseDetected, ErrorMessages.TokenReuseDetected);
+        }
+
         var hashedInputToken = HashRefreshToken(refreshToken, deviceId);
         if (!CryptographicOperations.FixedTimeEquals(
                 Convert.FromHexString(credential.RefreshToken),
@@ -148,7 +175,7 @@ public class AuthService(
         {
             await userCredentialRepository.ClearRefreshTokenAsync(credential.UserId, ct);
             await userSessionRepository.RemoveSessionAsync(userSession.SessionId, ct);
-            logger.LogWarning("Refresh failed because refresh token validation failed for user {UserId}", credential.UserId);
+            logger.LogWarning("Refresh failed because refresh token validation failed (hash mismatch) for user {UserId}", credential.UserId);
             return Result<LoginResult>.Failure(ErrorCodes.SessionExpired, ErrorMessages.SessionExpired);
         }
 
@@ -168,11 +195,12 @@ public class AuthService(
         var newAccessToken = jwtTokenGenerator.GenerateAccessToken(user.UserId, user.PublicId, credential.Email, userSession.SessionId);
         var accessTokenExpiresAt = _jwtOptions.GetExpirationTime();
 
-        var newRawRefreshToken = jwtTokenGenerator.GenerateRefreshToken();
+        var newRawRefreshToken = jwtTokenGenerator.GenerateRefreshToken(credential.RefreshTokenVersion + 1);
         var refreshTokenExpiry = DateTime.UtcNow.AddHours(_jwtOptions.RefreshTokenExpirationHours);
         var hashedNewRefreshToken = HashRefreshToken(newRawRefreshToken, deviceId);
 
-        await userCredentialRepository.UpdateRefreshTokenAsync(user.UserId, hashedNewRefreshToken, refreshTokenExpiry, ct);
+        credential.SetRefreshToken(hashedNewRefreshToken, refreshTokenExpiry);
+        await userCredentialRepository.UpdateAsync(credential, ct);
         logger.LogInformation("Refresh succeeded for user {UserId} with session {SessionId}", user.UserId, userSession.SessionId);
 
         return Result<LoginResult>.Success(new LoginResult(
