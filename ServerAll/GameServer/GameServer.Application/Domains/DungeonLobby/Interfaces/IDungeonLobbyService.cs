@@ -60,4 +60,10 @@ public interface IDungeonLobbyService
     /// <param name="roomId">게임을 시작할 방 ID</param>
     /// <returns>게임 시작 결과</returns>
     Task<Result<DungeonRoom>> StartGameAsync(string sessionId, long roomId, string traceId, CancellationToken ct = default);
+
+    /// <summary>
+    /// SubscribeRoom 진입 전 세션·방·멤버십 검증
+    /// </summary>
+    /// <returns>성공 시 userId</returns>
+    Task<Result<long>> ValidateSubscriptionAsync(string sessionId, long roomId, CancellationToken ct = default);
 }

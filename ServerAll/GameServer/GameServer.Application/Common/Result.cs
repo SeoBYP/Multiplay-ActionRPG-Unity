@@ -4,7 +4,7 @@ using MemoryPack;
 namespace GameServer.Application.Common;
 
 [MemoryPackable]
-public partial class Result<T> where T : class
+public partial class Result<T>
 {
     public bool IsSuccess { get; private set; }
     public T? Value { get; private set; }

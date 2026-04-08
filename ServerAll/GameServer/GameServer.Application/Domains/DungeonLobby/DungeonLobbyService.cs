@@ -255,4 +255,29 @@ public class DungeonLobbyService(
             return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
+
+    public async Task<Result<long>> ValidateSubscriptionAsync(string sessionId, long roomId, CancellationToken ct = default)
+    {
+        try
+        {
+            var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
+            if (userSession is null)
+                return Result<long>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+
+            var room = await dungeonRoomRepository.GetByIdAsync(roomId, ct);
+            if (room is null)
+                return Result<long>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
+
+            var roomPlayer = await dungeonRoomPlayerRepository.GetByUserIdAsync(userSession.UserId, ct);
+            if (roomPlayer is null || roomPlayer.RoomId != roomId)
+                return Result<long>.Failure(ErrorCodes.NotInRoom, ErrorMessages.NotInRoom);
+
+            return Result<long>.Success(userSession.UserId);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to validate subscription for session {SessionId} and room {RoomId}", sessionId, roomId);
+            return Result<long>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
+        }
+    }
 }

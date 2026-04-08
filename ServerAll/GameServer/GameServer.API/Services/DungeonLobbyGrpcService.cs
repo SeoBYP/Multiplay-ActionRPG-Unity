@@ -220,13 +220,14 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
             throw new InvalidOperationException("Session ID cannot be null");
         logger.LogInformation("SubscribeRoom started for session {SessionId} and room {RoomId}", sessionId, request.RoomId);
         
-        // ConnectAsync 내부: 세션 조회 + ctx 생성 + Redis 구독
-        var ctx = await subscriptionService.SubscribeAsync(sessionId, request.RoomId, ct);
-        if (ctx is null)
+        var validation = await dungeonLobbyService.ValidateSubscriptionAsync(sessionId, request.RoomId, ct);
+        if (!validation.IsSuccess)
         {
-            logger.LogWarning("SubscribeRoom rejected for session {SessionId} and room {RoomId}", sessionId, request.RoomId);
+            logger.LogWarning("SubscribeRoom rejected for session {SessionId}: {ErrorCode}", sessionId, validation.InternalErrorCode);
             return;
         }
+
+        var ctx = await subscriptionService.SubscribeAsync(validation.Value, request.RoomId, ct);
 
         try
         {

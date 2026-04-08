@@ -5,9 +5,9 @@ namespace GameServer.Tests.Infrastructure.Fakes.Services;
 
 public class FakeDungeonLobbySubscriptionService : IDungeonLobbySubscriptionService
 {
-    public Task<UserRoomContext?> SubscribeAsync(string sessionId, long roomId, CancellationToken ct)
+    public Task<UserRoomContext> SubscribeAsync(long userId, long roomId, CancellationToken ct)
     {
-        return Task.FromResult<UserRoomContext?>(null);
+        return Task.FromResult(new UserRoomContext(userId, roomId));
     }
 
     public Task PublishAsync(long roomId, CancellationToken ct)

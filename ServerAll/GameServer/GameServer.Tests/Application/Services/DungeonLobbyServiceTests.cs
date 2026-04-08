@@ -2,7 +2,9 @@ using GameServer.Application.Common;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
+using GameServer.Application.Domains.Outbox;
 using GameServer.Domain.Entities;
+using GameServer.Domain.Entities.Outbox;
 using GameServer.Tests.Infrastructure.Fakes.Repositories;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -18,7 +20,7 @@ public class DungeonLobbyServiceTests
     private readonly FakeDungeonRoomPlayerRepository _roomPlayerRepository = new();
     private readonly Mock<IChatSubscriptionService> _mockChatSubscriptionService = new();
     private readonly Mock<IDungeonLobbySubscriptionService> _mockDungeonLobbySubscriptionService = new();
-    private readonly Mock<IMessageQueue<GameStartRequestedMessage>> _mockGameStartRequestedQueue = new();
+    private readonly Mock<IOutboxRepository> _mockOutboxRepository = new();
     private readonly DungeonLobbyService _service;
 
     public DungeonLobbyServiceTests()
@@ -27,7 +29,7 @@ public class DungeonLobbyServiceTests
             _roomRepository,
             _mockDungeonLobbySubscriptionService.Object,
             _roomPlayerRepository,
-            _mockGameStartRequestedQueue.Object,
+            _mockOutboxRepository.Object,
             _sessionRepository,
             _mockChatSubscriptionService.Object,
             NullLogger<DungeonLobbyService>.Instance);
@@ -110,11 +112,11 @@ public class DungeonLobbyServiceTests
 
         Assert.True(result.IsSuccess);
         Assert.Equal(RoomStatus.Starting, result.Value!.Status);
-        _mockGameStartRequestedQueue.Verify(
-            q => q.EnqueueAsync(It.Is<GameStartRequestedMessage>(m =>
-                m.RoomId == created.Value.RoomId &&
-                m.TraceId == "trace-test" &&
-                m.PlayerIds.Count == 2)),
+        _mockOutboxRepository.Verify(
+            r => r.AddWithRoomUpdateAsync(
+                It.Is<DungeonRoom>(rm => rm.RoomId == created.Value.RoomId && rm.Status == RoomStatus.Starting),
+                It.Is<OutboxMessage>(m => m.Topic == OutboxTopics.GameStartRequested),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -130,5 +132,30 @@ public class DungeonLobbyServiceTests
 
         Assert.False(result.IsSuccess);
         Assert.Equal(ErrorCodes.NotRoomHost, result.InternalErrorCode);
+    }
+
+    [Fact]
+    public async Task ValidateSubscription_성공()
+    {
+        var session = await _sessionRepository.CreateSessionAsync(1);
+        var created = await _service.CreateDungeonRoomAsync(session!.SessionId, "Room", 4);
+
+        var result = await _service.ValidateSubscriptionAsync(session.SessionId, created.Value!.RoomId);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value);
+    }
+
+    [Fact]
+    public async Task ValidateSubscription_방에_없을_시_실패()
+    {
+        var hostSession = await _sessionRepository.CreateSessionAsync(1);
+        var otherSession = await _sessionRepository.CreateSessionAsync(2);
+        var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4);
+
+        var result = await _service.ValidateSubscriptionAsync(otherSession!.SessionId, created.Value!.RoomId);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.NotInRoom, result.InternalErrorCode);
     }
 }
