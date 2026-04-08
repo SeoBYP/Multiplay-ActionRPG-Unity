@@ -13,6 +13,9 @@ public class DataBaseInstaller : IInstaller
             throw new InvalidOperationException("ConnectionStrings:GameDb is missing.");
         
         app.Services.AddDbContext<GameServerDbContext>(options => 
+            options.UseNpgsql(connectionString),
+            contextLifetime: ServiceLifetime.Singleton);
+        app.Services.AddDbContextFactory<GameServerDbContext>(options =>
             options.UseNpgsql(connectionString));
     }
 }

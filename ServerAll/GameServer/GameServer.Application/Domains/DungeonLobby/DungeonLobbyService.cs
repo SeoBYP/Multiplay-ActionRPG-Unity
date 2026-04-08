@@ -1,10 +1,11 @@
 using GameServer.Application.Common;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
+using GameServer.Application.Domains.Outbox;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
+using GameServer.Domain.Entities.Outbox;
 using Microsoft.Extensions.Logging;
-using Shared.Infrastructure.MessageQueue;
 using Shared.Infrastructure.Messages;
 
 namespace GameServer.Application.Domains.DungeonLobby;
@@ -13,7 +14,7 @@ public class DungeonLobbyService(
     IDungeonRoomRepository dungeonRoomRepository,
     IDungeonLobbySubscriptionService dungeonLobbySubscriptionService,
     IDungeonRoomPlayerRepository dungeonRoomPlayerRepository,
-    IMessageQueue<GameStartRequestedMessage> gameStartRequestedMessageQueue,
+    IOutboxRepository outboxRepository,
     IUserSessionRepository userSessionRepository,
     IChatSubscriptionService chatSubscriptionService,
     ILogger<DungeonLobbyService> logger) : IDungeonLobbyService
@@ -234,16 +235,16 @@ public class DungeonLobbyService(
             var players = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(roomId, ct);
             room.StartGame(userSession.UserId, players.Count);
 
-            var updated = await dungeonRoomRepository.UpdateAsync(room, ct);
-            if (!updated)
-                return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.UpdateRoomFailed);
+            var outboxMessage = OutboxMessage.Create(
+                OutboxTopics.GameStartRequested,
+                System.Text.Json.JsonSerializer.Serialize(new GameStartRequestedMessage
+                {
+                    RoomId = room.RoomId,
+                    PlayerIds = players.Select(player => player.UserId).ToList(),
+                    TraceId = traceId
+                }));
 
-            await gameStartRequestedMessageQueue.EnqueueAsync(new GameStartRequestedMessage
-            {
-                RoomId = room.RoomId,
-                PlayerIds = players.Select(player => player.UserId).ToList(),
-                TraceId = traceId
-            });
+            await outboxRepository.AddWithRoomUpdateAsync(room, outboxMessage, ct);
 
             await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
             return Result<DungeonRoom>.Success(room);
