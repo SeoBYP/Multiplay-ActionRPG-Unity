@@ -52,7 +52,7 @@ async Task RunAsync()
             () => lastPongAtUtc,
             cts);
 
-        Console.WriteLine("Type 'ping' to send ping now, '/quit' to exit.");
+        Console.WriteLine("Type 'auth {userId}', 'join {roomId}', 'move {x} {y} {z}', 'leave', 'ping' to send packets, '/quit' to exit.");
 
         while (!cts.IsCancellationRequested && socket.Connected)
         {
@@ -65,17 +65,47 @@ async Task RunAsync()
             if (string.IsNullOrWhiteSpace(input))
                 continue;
 
-            if (input.Equals("ping", StringComparison.OrdinalIgnoreCase))
+            var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var cmd = parts[0].ToLower();
+
+            try
             {
-                await SendPacketAsync(socket, new C_Ping
+                if (cmd == "ping")
                 {
-                    IsHealthy = true
-                });
-
-                continue;
+                    await SendPacketAsync(socket, new C_Ping { IsHealthy = true });
+                }
+                else if (cmd == "auth" && parts.Length > 1)
+                {
+                    await SendPacketAsync(socket, new C_Auth { UserId = long.Parse(parts[1]) });
+                }
+                else if (cmd == "join" && parts.Length > 1)
+                {
+                    await SendPacketAsync(socket, new C_PlayerJoin { RoomId = long.Parse(parts[1]) });
+                }
+                else if (cmd == "move" && parts.Length > 3)
+                {
+                    await SendPacketAsync(socket, new C_Move
+                    {
+                        PosX = float.Parse(parts[1]),
+                        PosY = float.Parse(parts[2]),
+                        PosZ = float.Parse(parts[3]),
+                        RotY = 0,
+                        TimeStamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                    });
+                }
+                else if (cmd == "leave")
+                {
+                    await SendPacketAsync(socket, new C_PlayerLeave());
+                }
+                else
+                {
+                    Console.WriteLine("Unknown command or missing arguments.");
+                }
             }
-
-            Console.WriteLine("Unknown command. Supported: ping, /quit");
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Command Error: {ex.Message}");
+            }
         }
 
         cts.Cancel();
@@ -243,6 +273,26 @@ async Task HandlePacketAsync(
         case S_Pong pong:
             onPongReceived();
             Console.WriteLine($"[S_Pong] IsHealthy={pong.IsHealthy}");
+            break;
+
+        case S_Auth auth:
+            Console.WriteLine($"[S_Auth] Success={auth.Success} {auth.Message}");
+            break;
+
+        case S_PlayerJoined joined:
+            Console.WriteLine($"[S_PlayerJoined] Success={joined.Success} UserId={joined.UserId} ({joined.PosX},{joined.PosY},{joined.PosZ}) Message={joined.Message}");
+            break;
+
+        case S_PlayerLeft left:
+            Console.WriteLine($"[S_PlayerLeft] UserId={left.UserId}");
+            break;
+
+        case S_GameStatus status:
+            Console.WriteLine($"[S_GameStatus] RoomId={status.RoomId} Status={status.GameStatus}");
+            break;
+
+        case S_Move move:
+            Console.WriteLine($"[S_Move] UserId={move.UserId} ({move.PosX},{move.PosY},{move.PosZ}) RotY={move.RotY}");
             break;
 
         default:
