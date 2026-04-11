@@ -7,7 +7,6 @@ namespace Shared.Packet.Packets;
 public partial class C_Auth : Packet
 {
     public long UserId { get; set; }
-    public long RoomId { get; set; }
 }
 
 [MemoryPackable]

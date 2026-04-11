@@ -14,6 +14,7 @@ using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.GameSession;
 using GameServer.Application.Domains.GameSession.Interfaces;
+using GameServer.Application.Domains.Outbox;
 using GameServer.Infrastructure.Domains.GameSession;
 using GameServer.Application.Domains.User;
 using GameServer.Application.Domains.User.Interfaces;
@@ -101,7 +102,7 @@ public class GameStartE2ETest
         Assert.Equal("127.0.0.1", guestEvent.Ip);
         Assert.Equal(12345, guestEvent.Port);
         Assert.Equal(roomId, fixture.GameStartRequestedQueue.LastEnqueuedMessage!.RoomId);
-        Assert.Equal(new long[] { 1L, 2L }, fixture.GameStartRequestedQueue.LastEnqueuedMessage.PlayerIds.OrderBy(x => x).ToArray());
+        Assert.Equal(new long[] { 1L, 2L }, fixture.GameStartRequestedQueue.LastEnqueuedMessage.PlayerInfos.Select(p => p.UserId).OrderBy(x => x).ToArray());
     }
 
     private static async Task<LoginResponse> 회원가입후_로그인한다(
@@ -237,6 +238,7 @@ public class GameStartE2ETest
             builder.Services.AddSingleton<IProfanityFilter, AllowAllProfanityFilter>();
             builder.Services.AddSingleton<IDungeonRoomRepository, FakeDungeonRoomRepository>();
             builder.Services.AddSingleton<IDungeonRoomPlayerRepository, FakeDungeonRoomPlayerRepository>();
+            builder.Services.AddSingleton<IOutboxRepository, FakeOutboxRepository>();
             builder.Services.AddSingleton<IDungeonRoomEventStream>(eventStream);
             builder.Services.AddSingleton<IMessageQueue<GameStartRequestedMessage>>(gameStartRequestedQueue);
             builder.Services.AddSingleton<IMessageQueue<GameSessionReadyMessage>>(gameSessionReadyQueue);

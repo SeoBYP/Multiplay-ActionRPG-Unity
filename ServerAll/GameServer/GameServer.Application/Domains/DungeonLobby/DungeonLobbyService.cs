@@ -17,6 +17,7 @@ public class DungeonLobbyService(
     IOutboxRepository outboxRepository,
     IUserSessionRepository userSessionRepository,
     IChatSubscriptionService chatSubscriptionService,
+    IUserProfileRepository userProfileRepository,
     ILogger<DungeonLobbyService> logger) : IDungeonLobbyService
 {
     public async Task<Result<DungeonRoom>> CreateDungeonRoomAsync(string sessionId, string roomName, int maxPlayers, CancellationToken ct = default)
@@ -235,14 +236,29 @@ public class DungeonLobbyService(
             var players = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(roomId, ct);
             room.StartGame(userSession.UserId, players.Count);
 
+            var playerInfos = new List<PlayerInfo>();
+            for (int i = 0; i < players.Count; i++)
+            {
+                var player = players[i];
+                var profile = await userProfileRepository.GetByIdAsync(player.UserId, ct);
+                playerInfos.Add(new PlayerInfo
+                {
+                    UserId = player.UserId,
+                    Nickname = profile?.NickName ?? $"Player_{player.UserId}",
+                    SpawnIndex = i
+                });
+            }
+
+            var message = new GameStartRequestedMessage
+            {
+                RoomId = room.RoomId,
+                PlayerInfos = playerInfos,
+                TraceId = traceId
+            };
+            
             var outboxMessage = OutboxMessage.Create(
                 OutboxTopics.GameStartRequested,
-                System.Text.Json.JsonSerializer.Serialize(new GameStartRequestedMessage
-                {
-                    RoomId = room.RoomId,
-                    PlayerIds = players.Select(player => player.UserId).ToList(),
-                    TraceId = traceId
-                }));
+                System.Text.Json.JsonSerializer.Serialize(message));
 
             await outboxRepository.AddWithRoomUpdateAsync(room, outboxMessage, ct);
 

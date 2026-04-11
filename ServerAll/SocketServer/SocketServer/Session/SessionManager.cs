@@ -90,6 +90,11 @@ public sealed class SessionManager
         }
     }
 
+    public IReadOnlyList<Session> GetSessionsSnapshot()
+    {
+        return _sessions.Values.ToList();
+    }
+
     public void Clear()
     {
         foreach (var s in _sessions.Values)

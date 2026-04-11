@@ -18,6 +18,7 @@ public class DungeonLobbyServiceTests
     private readonly FakeUserSessionRepository _sessionRepository = new();
     private readonly FakeDungeonRoomRepository _roomRepository = new();
     private readonly FakeDungeonRoomPlayerRepository _roomPlayerRepository = new();
+    private readonly FakeUserProfileRepository _userProfileRepository = new();
     private readonly Mock<IChatSubscriptionService> _mockChatSubscriptionService = new();
     private readonly Mock<IDungeonLobbySubscriptionService> _mockDungeonLobbySubscriptionService = new();
     private readonly Mock<IOutboxRepository> _mockOutboxRepository = new();
@@ -32,6 +33,7 @@ public class DungeonLobbyServiceTests
             _mockOutboxRepository.Object,
             _sessionRepository,
             _mockChatSubscriptionService.Object,
+            _userProfileRepository,
             NullLogger<DungeonLobbyService>.Instance);
     }
 

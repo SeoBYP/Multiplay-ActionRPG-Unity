@@ -14,6 +14,7 @@ public sealed class Session
     public DateTime ConnectedAt { get; }
     public string Nickname { get; set; }
 
+    public Room? Room { get; set; }
     public RoomManager RoomManager { get; }
 
     private Socket Socket;
@@ -75,6 +76,7 @@ public sealed class Session
         }
         finally
         {
+            RoomManager.LeaveRoom(this);
             Disconnect();
             _onDisconnected?.Invoke(SessionId);
         }
@@ -149,7 +151,6 @@ public sealed class Session
         catch (Exception e)
         {
             _logger.LogError(e, "Socket close failed for session {SessionId}", SessionId);
-            throw;
         }
 
         _logger.LogInformation("Session {SessionId} disconnected", SessionId);

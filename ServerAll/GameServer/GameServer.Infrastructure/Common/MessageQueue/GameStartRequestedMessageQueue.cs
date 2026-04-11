@@ -24,7 +24,7 @@ public class GameStartRequestedMessageQueue(
         logger.LogInformation(
             "Enqueued game start requested message for room {RoomId} with {PlayerCount} players",
             message.RoomId,
-            message.PlayerIds.Count);
+            message.PlayerInfos.Count);
     }
 
     public override async IAsyncEnumerable<GameStartRequestedMessage> DequeueAllAsync(
