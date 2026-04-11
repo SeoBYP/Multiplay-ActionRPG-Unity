@@ -1,13 +1,15 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Serilog;
-using Serilog.Context;
-using Serilog.Extensions.Logging;
 using Serilog.Sinks.Graylog;
 using Serilog.Sinks.Graylog.Core.Transport;
+using Server.Consumer;
+using Server.Infrastructure;
 using Server.PacketHandler;
 using Server.Room;
-using Shared.Infrastructure.Messages;
 using StackExchange.Redis;
 
 namespace Server
@@ -16,113 +18,68 @@ namespace Server
     {
         static async Task Main(string[] args)
         {
+            var host = Host.CreateDefaultBuilder(args)
+                .UseSerilog((ctx, loggerConfig) =>
+                {
+                    loggerConfig
+                        .ReadFrom.Configuration(ctx.Configuration)
+                        .Enrich.FromLogContext()
+                        .WriteTo.Console(outputTemplate:
+                            "[{Timestamp:HH:mm:ss} {Level:u3}] TraceId={TraceId} SessionId={SessionId} {Message:lj}{NewLine}{Exception}")
+                        .WriteTo.File("logs/socketserver-.log", rollingInterval: RollingInterval.Day)
+                        .WriteTo.Graylog(new GraylogSinkOptions
+                        {
+                            HostnameOrAddress = "127.0.0.1",
+                            Port = 12201,
+                            TransportType = TransportType.Udp
+                        });
+                })
+                .ConfigureServices((ctx, services) =>
+                {
+                    // 1. 설정
+                    services.Configure<ServerOptions>(ctx.Configuration.GetSection("Server"));
 
-            
-            // 1. 설정 로드
-            var config = new ConfigurationBuilder()
-                .SetBasePath(AppContext.BaseDirectory)
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                    // 2. 인프라 (Redis)
+                    var redisConnStr = ctx.Configuration.GetConnectionString("Redis") ?? "localhost:6379,abortConnect=false";
+                    services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnStr));
+
+                    // 3. 메시지 큐
+                    services.AddSingleton<GameStartRequestedMessageQueue>();
+                    services.AddSingleton<GameSessionReadyMessageQueue>();
+
+                    // 4. 패킷 핸들러 및 디스패처
+                    services.AddSingleton<PacketHandlerRegistry>(sp =>
+                    {
+                        var logger = sp.GetRequiredService<ILogger<PacketHandlerRegistry>>();
+                        return PacketHandlerRegistry.Build(logger);
+                    });
+                    services.AddSingleton<PacketDispatcher>(sp =>
+                    {
+                        var registry = sp.GetRequiredService<PacketHandlerRegistry>();
+                        var logger = sp.GetRequiredService<ILogger<PacketDispatcher>>();
+                        return registry.CreateDispatcher(logger);
+                    });
+
+                    // 5. 게임 로직 및 네트워크
+                    services.AddSingleton<RoomManager>();
+                    services.AddSingleton<SessionManager>();
+                    services.AddSingleton<TcpNetworkListener>(sp =>
+                    {
+                        var options = sp.GetRequiredService<IOptions<ServerOptions>>().Value;
+                        var sessionManager = sp.GetRequiredService<SessionManager>();
+                        var logger = sp.GetRequiredService<ILogger<TcpNetworkListener>>();
+                        return new TcpNetworkListener(options.Ip, options.Port, sessionManager, logger);
+                    });
+
+                    // 6. 백그라운드 서비스 (호스팅 서비스)
+                    services.AddHostedService<TcpListenerService>();
+                    services.AddHostedService<GameStartRequestedConsumer>();
+                    services.AddHostedService<HeartBeatService>();
+                    services.AddHostedService<TestRoomService>();
+                })
                 .Build();
 
-            var redisConnStr = config.GetConnectionString("Redis") ?? "localhost:6379,abortConnect=false";
-            var ipAddress = config["Server:Ip"] ?? "127.0.0.1";
-            var port = int.Parse(config["Server:Port"] ?? "7777");
-
-            // 2. 로깅 설정
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Information()
-                .Enrich.FromLogContext()
-                .WriteTo.Console(outputTemplate:
-                    "[{Timestamp:HH:mm:ss} {Level:u3}] TraceId={TraceId} SessionId={SessionId} {Message:lj}{NewLine}{Exception}")
-                .WriteTo.File("logs/socketserver-.log", rollingInterval: RollingInterval.Day)
-                .WriteTo.Graylog(new GraylogSinkOptions
-                {
-                    HostnameOrAddress = "127.0.0.1",
-                    Port = 12201,
-                    TransportType = TransportType.Udp
-                })
-                .CreateLogger();
-            
-            using var loggerFactory = new SerilogLoggerFactory(Log.Logger);
-            var logger = loggerFactory.CreateLogger<Program>();
-
-            logger.LogInformation("Starting SocketServer at {Ip}:{Port}...", ipAddress, port);
-
-            // 3. 인프라 초기화
-            var registry = PacketHandlerRegistry.Build(loggerFactory.CreateLogger<PacketHandlerRegistry>());
-            var dispatcher = registry.CreateDispatcher(loggerFactory.CreateLogger<PacketDispatcher>());
-            var redis = ConnectionMultiplexer.Connect(redisConnStr);
-            var gameStartQueue = new GameStartRequestedMessageQueue(redis, loggerFactory.CreateLogger<GameStartRequestedMessageQueue>());
-            var gameSessionReadyQueue = new GameSessionReadyMessageQueue(redis, loggerFactory.CreateLogger<GameSessionReadyMessageQueue>());
-            var roomManager = new RoomManager(loggerFactory.CreateLogger<RoomManager>(), loggerFactory.CreateLogger<Server.Room.Room>());
-            var sessionManager = new SessionManager(
-                dispatcher,
-                roomManager,
-                loggerFactory.CreateLogger<SessionManager>(),
-                loggerFactory.CreateLogger<Session>());
-            
-            var listener = new TcpNetworkListener(ipAddress, port, sessionManager, loggerFactory.CreateLogger<TcpNetworkListener>());
-            listener.Start();
-            
-            var cts = new CancellationTokenSource();
-            Console.CancelKeyPress += (sender, e) =>
-            {
-                e.Cancel = true;
-                logger.LogInformation("Stopping server...");
-                cts.Cancel();
-            };
-
-            // 4. 게임 시작 메시지 큐 소비 루프
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await foreach (var msg in gameStartQueue.DequeueAllAsync(cts.Token))
-                    {
-                        using (LogContext.PushProperty("TraceId", msg.TraceId))
-                        using (LogContext.PushProperty("RoomId", msg.RoomId))
-                        {
-                            roomManager.CreateRoom(msg.RoomId, msg.PlayerIds.ToList());
-                            logger.LogInformation("[GameStart] RoomId={RoomId}, Players={PlayerCount}명", msg.RoomId, msg.PlayerIds.Count);
-            
-                            await gameSessionReadyQueue.EnqueueAsync(new GameSessionReadyMessage
-                            {
-                                RoomId = msg.RoomId,
-                                GameSessionId = 0,
-                                Host = ipAddress,
-                                Port = port,
-                                TraceId = msg.TraceId
-                            });
-                        }
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    // 정상 종료
-                }
-                catch (Exception e)
-                {
-                    logger.LogError(e, "Error in GameStartQueue loop");
-                }
-
-            }, cts.Token);
-            
-            try
-            {
-                // 메인 스레드 대기
-                await Task.Delay(Timeout.Infinite, cts.Token);
-            }
-            catch (OperationCanceledException)
-            {
-                // 정상 종료
-            }
-            finally
-            {
-                // 정리
-                listener.Stop();
-                sessionManager.Clear();
-                logger.LogInformation("✅ SocketServer stopped");
-            }
+            await host.RunAsync();
         }
     }
 }
