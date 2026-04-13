@@ -1,0 +1,25 @@
+{
+    "name": "Game.Network",
+    "rootNamespace": "Game.Network",
+    "references": [
+        "VContainer",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Grpc.Net.Client.dll",
+        "Google.Protobuf.dll",
+        "Grpc.Core.Api.dll",
+        "Grpc.Net.Common.dll",
+        "Microsoft.Extensions.Logging.Abstractions.dll",
+        "System.Diagnostics.DiagnosticSource.dll",
+        "System.Collections.Immutable.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

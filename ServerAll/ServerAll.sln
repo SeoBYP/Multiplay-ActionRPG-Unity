@@ -25,11 +25,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Temp", "Temp\Temp.csproj", 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Protos", "Protos", "{160F86D5-5448-41E9-8E48-F71134A2832D}"
 	ProjectSection(SolutionItems) = preProject
-		GameServer\Protos\auth.proto = GameServer\Protos\auth.proto
-		GameServer\Protos\chat.proto = GameServer\Protos\chat.proto
-		GameServer\Protos\common.proto = GameServer\Protos\common.proto
-		GameServer\Protos\lobby.proto = GameServer\Protos\lobby.proto
-		GameServer\Protos\user.proto = GameServer\Protos\user.proto
+		Shared\Shared.Contracts\Protos\auth.proto = Shared\Shared.Contracts\Protos\auth.proto
+		Shared\Shared.Contracts\Protos\chat.proto = Shared\Shared.Contracts\Protos\chat.proto
+		Shared\Shared.Contracts\Protos\common.proto = Shared\Shared.Contracts\Protos\common.proto
+		Shared\Shared.Contracts\Protos\lobby.proto = Shared\Shared.Contracts\Protos\lobby.proto
+		Shared\Shared.Contracts\Protos\user.proto = Shared\Shared.Contracts\Protos\user.proto
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{5AD722B9-0BAC-4BDB-B577-E7B3B5239D40}"
@@ -41,6 +41,12 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DummyClient", "DummyClient", "{AEFA7355-5BDF-4E39-8865-E42DEB4AA125}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DummyClient", "DummyClient\DummyClient\DummyClient.csproj", "{4488DFE4-5728-43FF-9F2F-1FEAD73C34E3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Contracts", "Shared\Shared.Contracts\Shared.Contracts.csproj", "{31C6C984-88C5-4867-AF1A-CDD80E9DCD97}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{5C9EEC8C-D754-4FB8-8CA1-24078088DAFE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientCodegen", "Tools\ClientCodegen\ClientCodegen.csproj", "{5959AF00-37C5-4A23-9D08-CF574A98843C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -88,6 +94,14 @@ Global
 		{4488DFE4-5728-43FF-9F2F-1FEAD73C34E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4488DFE4-5728-43FF-9F2F-1FEAD73C34E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4488DFE4-5728-43FF-9F2F-1FEAD73C34E3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{31C6C984-88C5-4867-AF1A-CDD80E9DCD97}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31C6C984-88C5-4867-AF1A-CDD80E9DCD97}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31C6C984-88C5-4867-AF1A-CDD80E9DCD97}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31C6C984-88C5-4867-AF1A-CDD80E9DCD97}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5959AF00-37C5-4A23-9D08-CF574A98843C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5959AF00-37C5-4A23-9D08-CF574A98843C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5959AF00-37C5-4A23-9D08-CF574A98843C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5959AF00-37C5-4A23-9D08-CF574A98843C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{B8CD4A32-56CC-482E-A754-50E1E3735E39} = {D5C1EB16-259C-47A3-ACE7-7E21B631C75F}
@@ -98,7 +112,9 @@ Global
 		{00347F7D-10D6-4E37-B21C-9F2895A555E5} = {5EB48421-481B-42F9-8FC7-93D06F0EF9A2}
 		{160F86D5-5448-41E9-8E48-F71134A2832D} = {5EB48421-481B-42F9-8FC7-93D06F0EF9A2}
 		{6887AE17-C87C-451D-B0BA-1A7C5746F991} = {5AD722B9-0BAC-4BDB-B577-E7B3B5239D40}
-		{92C00A7F-1F2A-4FE2-853C-92D4110B97F4} = {5AD722B9-0BAC-4BDB-B577-E7B3B5239D40}
 		{4488DFE4-5728-43FF-9F2F-1FEAD73C34E3} = {AEFA7355-5BDF-4E39-8865-E42DEB4AA125}
+		{92C00A7F-1F2A-4FE2-853C-92D4110B97F4} = {5AD722B9-0BAC-4BDB-B577-E7B3B5239D40}
+		{31C6C984-88C5-4867-AF1A-CDD80E9DCD97} = {5AD722B9-0BAC-4BDB-B577-E7B3B5239D40}
+		{5959AF00-37C5-4A23-9D08-CF574A98843C} = {5C9EEC8C-D754-4FB8-8CA1-24078088DAFE}
 	EndGlobalSection
 EndGlobal

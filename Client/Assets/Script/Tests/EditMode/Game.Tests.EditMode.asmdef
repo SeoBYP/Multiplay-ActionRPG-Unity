@@ -1,0 +1,33 @@
+{
+    "name": "Game.Tests.EditMode",
+    "rootNamespace": "Game.Tests.EditMode",
+    "references": [
+        "Game.Network",
+        "VContainer",
+        "UniTask",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "Grpc.Core.Api.dll",
+        "Grpc.Net.Client.dll",
+        "Grpc.Net.Common.dll",
+        "Google.Protobuf.dll",
+        "Microsoft.Extensions.Logging.Abstractions.dll",
+        "System.Diagnostics.DiagnosticSource.dll",
+        "System.Collections.Immutable.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

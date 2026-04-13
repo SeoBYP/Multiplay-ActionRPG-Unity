@@ -23,16 +23,17 @@
       <Folder Include="wwwroot\" />
     </ItemGroup>
 
-    <ItemGroup>
+  <ItemGroup>
       <ProjectReference Include="..\GameServer.Application\GameServer.Application.csproj" />
       <ProjectReference Include="..\GameServer.Infrastructure\GameServer.Infrastructure.csproj" />
-    </ItemGroup>
+      <ProjectReference Include="..\..\Shared\Shared.Contracts\Shared.Contracts.csproj" />
+  </ItemGroup>
 
-    <ItemGroup>
-        <Protobuf Include="..\Protos\**\*.proto"
-                  GrpcServices="Both"
-                  Link="Protos\%(RecursiveDir)%(Filename)%(Extension)" />
-        
-    </ItemGroup>
+  <Target Name="GenerateUnityClient" AfterTargets="Build">
+      <Message Text="[ClientCodegen] Generating Unity client..." Importance="high" />
+      <Exec Command="dotnet run --project &quot;$(ProjectDir)..\..\Tools\ClientCodegen\ClientCodegen.csproj&quot; -- &quot;$(ProjectDir)..\..\..&quot;"
+            WorkingDirectory="$(ProjectDir)..\..\.." />
+  </Target>
+
 </Project>
 

@@ -8,7 +8,7 @@ namespace Game.Core
         public static T GetOrAddComponent<T>(this MonoBehaviour behaviour) where T : Component
         {
             T component = behaviour.GetComponent<T>();
-            if (component.IsUnityNull())
+            if (component == null)
             {
                 component = behaviour.gameObject.AddComponent<T>();
             }
