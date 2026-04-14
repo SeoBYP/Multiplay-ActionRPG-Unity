@@ -49,6 +49,10 @@ public class UserProfileService(
             if (user is null)
                 return Result<UserProfile>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
 
+            var duplicateProfile = await userProfileRepository.GetByNicknameAsync(nickname, ct);
+            if (duplicateProfile is not null && duplicateProfile.UserId != user.UserId)
+                return Result<UserProfile>.Failure(ErrorCodes.NickNameAlreadyTaken, ErrorMessages.NickNameAlreadyTaken);
+
             user.SetNickName(nickname);
             if (await userProfileRepository.UpdateAsync(user, ct))
             {

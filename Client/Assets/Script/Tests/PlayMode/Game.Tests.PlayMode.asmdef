@@ -3,9 +3,7 @@
     "rootNamespace": "Game.Tests.PlayMode",
     "references": [
         "Game.Network",
-        "Game.Network.Packets",
-        "Game.Session",
-        "Game",
+        "UniTask",
         "UnityEngine.TestRunner"
     ],
     "includePlatforms": [],
@@ -13,7 +11,10 @@
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": [
-        "nunit.framework.dll"
+        "nunit.framework.dll",
+        "Grpc.Core.Api.dll",
+        "Grpc.Net.Client.dll",
+        "Google.Protobuf.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

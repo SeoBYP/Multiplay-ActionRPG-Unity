@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using GameServer.Application.Domains.Outbox;
 using GameServer.Domain.Entities.Outbox;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Shared.Infrastructure.MessageQueue;
@@ -8,7 +9,7 @@ using Shared.Infrastructure.Messages;
 
 namespace GameServer.Infrastructure.Domains.Outbox;
 
-public class OutboxPublisherService(IOutboxRepository outboxRepository,
+public class OutboxPublisherService(IServiceScopeFactory scopeFactory,
     IMessageQueue<GameStartRequestedMessage> gameStartMessageQueue,
     ILogger<OutboxPublisherService> logger) : BackgroundService
 {
@@ -23,7 +24,9 @@ public class OutboxPublisherService(IOutboxRepository outboxRepository,
         {
             try
             {
-                await ProcessBatchAsync(stoppingToken);
+                using var scope = scopeFactory.CreateScope();
+                var outboxRepository = scope.ServiceProvider.GetRequiredService<IOutboxRepository>();
+                await ProcessBatchAsync(outboxRepository, stoppingToken);
                 await Task.Delay(PollingInterval, stoppingToken);
             }
             catch (OperationCanceledException)
@@ -47,7 +50,7 @@ public class OutboxPublisherService(IOutboxRepository outboxRepository,
         logger.LogInformation("OutboxPublisherService is stopping.");
     }
 
-    private async Task ProcessBatchAsync(CancellationToken ct)
+    private async Task ProcessBatchAsync(IOutboxRepository outboxRepository, CancellationToken ct)
     {
         var messages = await outboxRepository.GetUnprocessedAsync(BatchSize, ct);
         if (messages.Count == 0) return;

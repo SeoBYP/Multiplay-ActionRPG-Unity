@@ -1,6 +1,6 @@
 # 프로젝트 현황 & 다음 작업 목록
 
-> 마지막 업데이트: 2026-04-07 (1-2, 2-2 완료)
+> 마지막 업데이트: 2026-04-12 (SocketServer 이동 동기화 구현 완료)
 > 기준: 실제 코드 파일 직접 확인
 
 ---
@@ -23,9 +23,12 @@ GameServer (.NET 8 / ASP.NET Core)
     │ Redis Streams (GameStartRequestedMessage)
     ▼
 SocketServer (.NET / TCP)
-├── Session    : TCP 세션 관리
-├── Room       : 인게임 방 관리
-└── PacketHandler: Auth, PingPong
+├── Session    : TCP 세션 관리 (Room 직접 참조)
+├── Room       : 인게임 방 관리 + PlayerState
+├── Player     : PlayerState (위치, 회전)
+├── Consumer   : GameStartRequestedConsumer (BackgroundService)
+├── Infrastructure: TcpListenerService, HeartBeatService, ServerOptions
+└── PacketHandler: Auth, PlayerJoin/Leave, Move, PingPong
 
 인프라 (Docker Compose)
 ├── PostgreSQL 16
@@ -65,17 +68,18 @@ SocketServer (.NET / TCP)
 | GameSession | ✅ | Status(Active/Ended) |
 | GameSessionPlayer | ✅ | |
 | ChatMessage | ✅ | ChatType(Global/Room/Direct), SenderName |
+| OutboxMessage | ✅ | Topic, Payload(JSON), ProcessedAt |
 
 ### GameServer.Application (서비스)
 
 | 서비스 | 상태 | 미완성 항목 |
 |--------|------|------------|
-| AuthService | ✅ | RefreshToken reuse detection 미완 |
+| AuthService | ✅ | RefreshTokenVersion 기반 Reuse Detection 완료 |
 | AccountService | ✅ | |
-| DungeonLobbyService | ⚠️ 동작함 | StartGameAsync — MQ 직접 발행 (Outbox 미적용), 인코딩 깨진 에러 메시지 |
+| DungeonLobbyService | ✅ | Outbox 패턴 적용 완료 |
 | ChatService | ✅ | |
-| ChatSubscriptionService | ⚠️ 동작함 | SwitchRoomAsync TODO 주석 잔존, 방 전환 재구독 정책 불명확 |
-| DungeonLobbySubscriptionService | ⚠️ 동작함 | Room repository 직접 조회 (책임 분리 필요) |
+| ChatSubscriptionService | ✅ | UpdateRoomSubscriptionAsync로 정리 완료 |
+| DungeonLobbySubscriptionService | ✅ | 검증 로직 DungeonLobbyService.ValidateSubscriptionAsync로 분리 완료 |
 | GameSessionService | ✅ | |
 | UserProfileService | ✅ | |
 
@@ -92,19 +96,30 @@ SocketServer (.NET / TCP)
 | GameSessionRepository | ✅ | ✅ | ✅ | RoomId 역방향 매핑 |
 | GameSessionPlayerRepository | ✅ | ✅ | ✅ | |
 | ChatMessageRepository | ✅ | ✅ | ✅ | Sorted Set 다중 인덱스 |
+| OutboxRepository | ✅ | — | ❌ | IDbContextFactory 기반, AddWithRoomUpdateAsync 원자적 처리 |
 
 ### SocketServer
 
 | 기능 | 상태 | 비고 |
 |------|------|------|
-| TCP 리스너 | ✅ | |
-| 세션 관리 | ✅ | |
+| TCP 리스너 | ✅ | TcpListenerService (BackgroundService) |
+| 세션 관리 | ✅ | Session.Room 직접 참조 |
 | 방 관리 | ✅ | lock 기반 thread-safe |
-| 패킷 핸들러 (Auth, PingPong) | ✅ | |
+| PlayerState 관리 | ✅ | Room 생성 시점에 SpawnIndex 기반 초기화 |
+| IHost / BackgroundService 전환 | ✅ | Program.cs DI 기반으로 리팩토링 |
+| 서비스 분리 | ✅ | Consumer, TcpListenerService, HeartBeatService, TestRoomService |
+| 패킷 핸들러 (Auth) | ✅ | 인증 전용 분리 (RoomId 제거) |
+| 패킷 핸들러 (PlayerJoin/Leave) | ✅ | RoomJoinLeaveHandler |
+| 패킷 핸들러 (Move) | ✅ | MovementHandler, session.Room 직접 참조 O(1) |
+| 패킷 핸들러 (PingPong) | ✅ | |
+| HeartBeat | ✅ | 30초 타임아웃, 15초 주기 체크 |
 | Redis MQ 소비 (GameStartRequested) | ✅ | NOGROUP 복구 포함 |
 | SocketReady 발행 (GameSessionReady) | ✅ | |
-| ILogger 적용 | ✅ | |
-| 인게임 게임 로직 (실제 전투 등) | ❌ 미구현 | |
+| S_PlayerLeft 브로드캐스트 | ✅ | 명시적 퇴장 + 연결 끊김 모두 처리 |
+| S_GameStatus(InProgress) 브로드캐스트 | ✅ | 전원 입장 시 자동 발생 |
+| GameStartRequestedMessage PlayerInfo | ✅ | Nickname, SpawnIndex 포함 |
+| DummyClient 테스트 | ✅ | auth/join/move/leave 모두 검증 완료 |
+| 인게임 전투 로직 | ❌ 미구현 | |
 
 ### 테스트
 
@@ -122,7 +137,7 @@ SocketServer (.NET / TCP)
 
 ### 🔴 Priority 1 — 안정성 (지금 동작하지만 버그 가능성)
 
-#### 1-1. `StartGameAsync` Outbox 패턴 적용
+#### ~~1-1. `StartGameAsync` Outbox 패턴 적용~~ ✅ 완료
 
 **파일:** `GameServer.Application/Domains/DungeonLobby/DungeonLobbyService.cs`
 
@@ -185,7 +200,7 @@ return Result.Failure(ErrorCodes.InternalServerError, "諛???젣 ?ㅽ뙣");
 
 ---
 
-#### 1-3. RefreshToken Reuse Detection 완성
+#### ~~1-3. RefreshToken Reuse Detection 완성~~ ✅ 완료
 
 **파일:** `GameServer.Application/Domains/Auth/AuthService.cs`
 
@@ -199,7 +214,7 @@ return Result.Failure(ErrorCodes.InternalServerError, "諛???젣 ?ㅽ뙣");
 
 ### 🟡 Priority 2 — 설계 개선
 
-#### 2-1. `DungeonLobbySubscriptionService` 책임 분리
+#### ~~2-1. `DungeonLobbySubscriptionService` 책임 분리~~ ✅ 완료
 
 **파일:** `GameServer.Application/Domains/DungeonLobby/DungeonLobbySubscriptionService.cs`
 
@@ -300,12 +315,17 @@ SocketServer IP:Port 하드코딩 잔존 여부 확인 및 `appsettings.json` �
 
 #### 4-1. Unity 클라이언트 ↔ SocketServer 인게임 로직
 
-현재 SocketServer는 Auth + PingPong 패킷만 처리.
+이동 동기화 완료. 다음 단계:
 
-**결정 필요:**
-- 게임 타입 (PVP? Co-op? 어떤 장르?)
-- 동기화 방식 (서버 권위형 vs 클라이언트 예측)
-- 필요 패킷 정의 (이동, 공격, 피격, 아이템 등)
+**완료:**
+- 패킷 정의 (C_Auth, C_PlayerJoin/Leave, C_Move, S_Move, S_PlayerJoined/Left, S_GameStatus)
+- 이동 동기화 (C_Move → UpdatePlayerState → S_Move 브로드캐스트)
+- HeartBeat (30초 타임아웃)
+
+**미구현:**
+- GameLoop (60Hz tick 기반 위치 브로드캐스트)
+- 전투 시스템 (C_Attack → S_Attack)
+- Unity 클라이언트 연동
 
 ---
 
@@ -318,17 +338,17 @@ TCP 소켓 연결, MemoryPack 직렬화 구조는 있음. 실제 게임 UI/UX �
 ## 작업 권장 순서
 
 ```
-1. 에러 메시지 인코딩 수정 (1-2)                ← 30분, 즉시 가능
-2. ChatSubscriptionService TODO 정리 (2-2)      ← 빠른 정리
-3. RefreshToken Reuse Detection 완성 (1-3)      ← 인증 보안 완결
-4. Outbox 패턴 설계 + 구현 (1-1)               ← 핵심 안정성 작업
-5. DungeonLobbySubscriptionService 분리 (2-1)
-6. ISocketEndpointParser 추상화 (2-5)
+✅ 1. 에러 메시지 인코딩 수정 (1-2)
+✅ 2. ChatSubscriptionService TODO 정리 (2-2)
+✅ 3. RefreshToken Reuse Detection 완성 (1-3)
+✅ 4. Outbox 패턴 설계 + 구현 (1-1)
+✅ 5. DungeonLobbySubscriptionService 분리 (2-1)
+6. ISocketEndpointParser 추상화 (2-5)          ← 다음 작업
 7. RedisUserLock 설정화 + GetRooms 정책 (2-3, 2-4)
 8. 통합 테스트 정리 (2-6)
 9. Redis Stream 운영 정책 (3-1)
 10. TCP TraceId 전파 (3-2)
-11. 인게임 로직 설계 (4-1)                      ← 가장 큰 작업
+11. 인게임 로직 설계 (4-1)                     ← 가장 큰 작업
 ```
 
 ---
@@ -345,8 +365,9 @@ TCP 소켓 연결, MemoryPack 직렬화 구조는 있음. 실제 게임 UI/UX �
 | 분산 로깅 (TraceId 전파, Graylog) | ✅ |
 | DB + Redis 캐시 레이어 | ✅ |
 | 통합 테스트 (Testcontainers) | ✅ |
-| Outbox 패턴 (메시지 신뢰성) | ❌ |
-| 인게임 실제 게임플레이 | ❌ |
+| Outbox 패턴 (메시지 신뢰성) | ✅ |
+| 인게임 이동 동기화 (SocketServer TCP) | ✅ |
+| 인게임 전투 / 게임플레이 완성 | ❌ |
 
 ---
 

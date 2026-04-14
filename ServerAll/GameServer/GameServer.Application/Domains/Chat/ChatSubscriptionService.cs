@@ -2,22 +2,26 @@ using System.Collections.Concurrent;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace GameServer.Application.Domains.Chat;
 
 public sealed class ChatSubscriptionService(
     IChatEventStream chatEventStream,
-    IUserSessionRepository userSessionRepository,
-    IUserProfileRepository userProfileRepository,
-    IDungeonRoomRepository dungeonRoomRepository,
-    IDungeonRoomPlayerRepository dungeonRoomPlayerRepository,
+    IServiceScopeFactory scopeFactory,
     ILogger<ChatSubscriptionService> logger) : IChatSubscriptionService
 {
     private readonly ConcurrentDictionary<long, UserChatContext> _contexts = new();
 
     public async Task<UserChatContext?> ConnectAsync(string sessionId, CancellationToken ct)
     {
+        using var scope = scopeFactory.CreateScope();
+        var userSessionRepository = scope.ServiceProvider.GetRequiredService<IUserSessionRepository>();
+        var userProfileRepository = scope.ServiceProvider.GetRequiredService<IUserProfileRepository>();
+        var dungeonRoomRepository = scope.ServiceProvider.GetRequiredService<IDungeonRoomRepository>();
+        var dungeonRoomPlayerRepository = scope.ServiceProvider.GetRequiredService<IDungeonRoomPlayerRepository>();
+
         var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
         if (userSession is null) return null;
 
@@ -49,6 +53,9 @@ public sealed class ChatSubscriptionService(
 
     public async Task UpdateRoomSubscriptionAsync(string sessionId, long roomId, CancellationToken ct)
     {
+        using var scope = scopeFactory.CreateScope();
+        var userSessionRepository = scope.ServiceProvider.GetRequiredService<IUserSessionRepository>();
+
         var session = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
         if (session is null) return;
 

@@ -8,6 +8,7 @@ namespace GameServer.Application.Domains.Account;
 
 public class AccountService(
     IUserRepository userRepository,
+    IUserProfileRepository userProfileRepository,
     IUserCredentialRepository userCredentialRepository,
     IPasswordHasher passwordHasher,
     ILogger<AccountService> logger) : IAccountService
@@ -32,6 +33,7 @@ public class AccountService(
         try
         {
             user = await userRepository.CreateAsync(ct);
+            await userProfileRepository.CreateAsync(user.UserId, user.PublicId, ct);
             await userCredentialRepository.CreateAsync(user.UserId, email, passwordHash, ct);
 
             logger.LogInformation("Registered user {UserId} with email {Email}", user.UserId, email);
@@ -41,6 +43,7 @@ public class AccountService(
         {
             if (user is not null)
             {
+                await userProfileRepository.RemoveAsync(user.UserId, ct);
                 await userRepository.RemoveAsync(user.UserId, ct);
             }
 

@@ -3,32 +3,39 @@
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
+  <component name="CMakeProjectFlavorService">
+    <option name="flavorId" value="CMakePlainProjectFlavor" />
+  </component>
+  <component name="CMakeSettings">
+    <configurations />
+  </component>
   <component name="ChangeListManager">
     <list default="true" id="bb01d1c1-9c2f-400e-8c4a-6f6ed31aab58" name="변경" comment="">
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Reflex.meta" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Reflex/Loader.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Reflex/Loader.cs.meta" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/Fonts/NotoSansKR-Black SDF.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/Fonts/NotoSansKR-Black SDF.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Plugins.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scenes/SampleScene.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/SampleScene.unity" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.Client/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Client/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Game.Network.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Game.Network.asmdef" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Https/Core/GrpcChannelProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Https/Core/GrpcChannelProvider.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Https/Services/ChatGrpcService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Https/Services/ChatGrpcService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/Game.Tests.PlayMode.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/Game.Tests.PlayMode.asmdef" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/packages.config" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/packages.config" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Packages/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/manifest.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Packages/packages-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/packages-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/GameServer.API.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/GameServer.API.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/Installers/DataBaseInstaller.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/Installers/DataBaseInstaller.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/Installers/Domain/ChatInstaller.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/Installers/Domain/ChatInstaller.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/Installers/Domain/CommonInstaller.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/Installers/Domain/CommonInstaller.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/Installers/Domain/DungeonInstaller.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/Installers/Domain/DungeonInstaller.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/Installers/Domain/UserInstaller.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/Installers/Domain/UserInstaller.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/Program.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/obj/Debug/net10.0/GameServer.API.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/obj/Debug/net10.0/GameServer.API.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/obj/rider.project.model.nuget.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Application/obj/Debug/net10.0/GameServer.Application.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Application/obj/Debug/net10.0/GameServer.Application.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Application/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Application/obj/rider.project.model.nuget.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Domain/obj/Debug/net10.0/GameServer.Domain.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Domain/obj/Debug/net10.0/GameServer.Domain.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Infrastructure/obj/Debug/net10.0/GameServer.Infrastructure.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Infrastructure/obj/Debug/net10.0/GameServer.Infrastructure.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Infrastructure/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Infrastructure/obj/rider.project.model.nuget.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/obj/Debug/net10.0/GameServer.Tests.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/obj/Debug/net10.0/GameServer.Tests.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/obj/rider.project.model.nuget.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ServerAll/SocketServer/DummyClient/obj/Debug/net10.0/DummyClient.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/SocketServer/DummyClient/obj/Debug/net10.0/DummyClient.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ServerAll/SocketServer/ServerCore/obj/Debug/net10.0/ServerCore.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/SocketServer/ServerCore/obj/Debug/net10.0/ServerCore.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ServerAll/SocketServer/SocketServer/obj/Debug/net10.0/SocketServer.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/SocketServer/SocketServer/obj/Debug/net10.0/SocketServer.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ServerAll/SocketServer/Tools/PacketHandlerGenerator/obj/Debug/net10.0/PacketHandlerGenerator.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/SocketServer/Tools/PacketHandlerGenerator/obj/Debug/net10.0/PacketHandlerGenerator.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ServerAll/Temp/obj/Debug/net10.0/Temp.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/Temp/obj/Debug/net10.0/Temp.AssemblyInfo.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Application/Domains/Chat/ChatSubscriptionService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Application/Domains/Chat/ChatSubscriptionService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Domain/Entities/DungeonRoom/DungeonRoom.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Domain/Entities/DungeonRoom/DungeonRoom.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Infrastructure/Common/Consumer/GameSessionReadyConsumer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Infrastructure/Common/Consumer/GameSessionReadyConsumer.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Infrastructure/Common/ProfanityFilter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Infrastructure/Common/ProfanityFilter.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Infrastructure/Domains/Outbox/OutboxPublisherService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Infrastructure/Domains/Outbox/OutboxPublisherService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Infrastructure/GameServer.Infrastructure.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Infrastructure/GameServer.Infrastructure.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/Infra/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/Infra/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/SocketServer/SocketServer/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/SocketServer/SocketServer/Program.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/SocketServer/SocketServer/appsettings.json" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/SocketServer/SocketServer/appsettings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../docs/project-status.md" beforeDir="false" afterPath="$PROJECT_DIR$/../docs/project-status.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -36,34 +43,34 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="31" />
+    <option name="cachedIndexableFilesCount" value="1" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "SeoBYP"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;SeoBYP&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/SeoBYP/Multiplay-ActionRPG-Unity.git",
-    "accountId": "b9a8a78c-7512-40a7-a593-5f73f7c4245f"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/SeoBYP/Multiplay-ActionRPG-Unity.git&quot;,
+    &quot;accountId&quot;: &quot;b9a8a78c-7512-40a7-a593-5f73f7c4245f&quot;
   }
-}]]></component>
+}</component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Reflex/Loader.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/UserE2ETests.cs" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="McpProjectServerCommands">
     <commands />
     <urls />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 4
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
   <component name="ProjectId" id="38i2hpMOD9oxUiZeQYZfcUsvI6R" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -74,20 +81,28 @@
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.MCP Project settings loaded": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
     "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "cidr.known.project.marker": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
     "git-widget-placeholder": "main",
+    "junie.onboarding.icon.badge.shown": "true",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
+    "to.speed.mode.migration.done": "true",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
   <component name="RunManager" selected="Unity 에디터에 연결.Unity 에디터에 연결">
     <configuration name="유닛 테스트(배치 모드)" type="RunUnityExe" factoryName="Unity Executable">
-      <option name="EXE_PATH" value="C:\Program Files\Unity\Hub\Editor\6000.3.2f1\Editor\Unity.exe" />
+      <option name="EXE_PATH" value="C:\Program Files\Unity\Hub\Editor\6000.4.2f1\Editor\Unity.exe" />
       <option name="PROGRAM_PARAMETERS" value="-runTests -batchmode -projectPath C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client -testResults Logs/results.xml -logFile Logs/Editor.log -testPlatform EditMode -debugCodeOptimization" />
       <option name="WORKING_DIRECTORY" value="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client" />
       <option name="PASS_PARENT_ENVS" value="1" />
@@ -97,7 +112,7 @@
       <method v="2" />
     </configuration>
     <configuration name="Unity 시작" type="RunUnityExe" factoryName="Unity Executable">
-      <option name="EXE_PATH" value="C:\Program Files\Unity\Hub\Editor\6000.3.2f1\Editor\Unity.exe" />
+      <option name="EXE_PATH" value="C:\Program Files\Unity\Hub\Editor\6000.4.2f1\Editor\Unity.exe" />
       <option name="PROGRAM_PARAMETERS" value="-projectPath C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client -debugCodeOptimization" />
       <option name="WORKING_DIRECTORY" value="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client" />
       <option name="PASS_PARENT_ENVS" value="1" />
@@ -131,6 +146,7 @@
       <option name="presentableId" value="Default" />
       <updated>1769268193076</updated>
       <workItem from="1769268195443" duration="1329000" />
+      <workItem from="1776169615038" duration="5638000" />
     </task>
     <servers />
   </component>
@@ -164,5 +180,13 @@
         </breakpoint>
       </breakpoints>
     </breakpoint-manager>
+  </component>
+  <component name="github-copilot-workspace">
+    <instructionFileLocations>
+      <option value=".github/instructions" />
+    </instructionFileLocations>
+    <promptFileLocations>
+      <option value=".github/prompts" />
+    </promptFileLocations>
   </component>
 </project>

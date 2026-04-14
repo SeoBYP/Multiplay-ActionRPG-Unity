@@ -1,6 +1,59 @@
 version: '3.8'
 
 services:
+  gameserver:
+    build:
+      context: ..                        # ServerAll/ 기준
+      dockerfile: GameServer/Dockerfile
+    ports:
+      - "5131:5131"
+      - "5132:5132"
+    environment:
+      ConnectionStrings__GameDb: "Host=gameserver-postgres;Port=5432;Database=gamedb;Username=gameuser;Password=gamepass123;"
+      ConnectionStrings__Redis: "gameserver-redis:6379,abortConnect=false"
+      GRAYLOG_HOST: gameserver-graylog
+    env_file:
+      - .env                             # Jwt__Secret
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - gameserver-network
+    develop:
+      watch:
+        - action: rebuild
+          path: ../GameServer
+          ignore: [ "**/obj/**", "**/bin/**" ]
+        - action: rebuild
+          path: ../Shared
+          ignore: [ "**/obj/**", "**/bin/**" ]
+
+  socketserver:
+    build:
+      context: ..
+      dockerfile: SocketServer/Dockerfile
+    ports:
+      - "7777:7777"
+    environment:
+      Server__Ip: "0.0.0.0"             # appsettings.json의 Server.Ip 오버라이드
+      ConnectionStrings__Redis: "gameserver-redis:6379,abortConnect=false"
+      GRAYLOG_HOST: gameserver-graylog
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - gameserver-network
+    develop:
+      watch:
+        - action: rebuild
+          path: ../SocketServer
+          ignore: [ "**/obj/**", "**/bin/**" ]
+        - action: rebuild
+          path: ../Shared
+          ignore: [ "**/obj/**", "**/bin/**" ]
+
   mongodb:
     image: mongo:7.0
     container_name: gameserver-mongodb

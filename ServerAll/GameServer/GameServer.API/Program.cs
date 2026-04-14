@@ -1,13 +1,18 @@
 using DotNetEnv;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.EntityFrameworkCore;
 using GameServer.API.Installers;
 using GameServer.API.Installers.Domain;
+using GameServer.Infrastructure.Persistence;
 using Serilog;
 using Serilog.Sinks.Graylog;
 using Serilog.Sinks.Graylog.Core.Transport;
 
 try
 {
+    
+    var graylogHost = Environment.GetEnvironmentVariable("GRAYLOG_HOST") ?? "127.0.0.1";
+
     Log.Logger = new LoggerConfiguration()
         .MinimumLevel.Information()
         .Enrich.FromLogContext()
@@ -20,7 +25,7 @@ try
             "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] TraceId={TraceId} {Message:lj}{NewLine}{Exception}")
         .WriteTo.Graylog(new GraylogSinkOptions
         {
-            HostnameOrAddress = "127.0.0.1",
+            HostnameOrAddress = graylogHost,
             Port = 12201,
             TransportType = TransportType.Udp
         })
@@ -51,10 +56,10 @@ try
     builder.WebHost.ConfigureKestrel(options =>
     {
         // REST/Swagger/SignalR: HTTP/1.1
-        options.ListenLocalhost(5131, listen => listen.Protocols = HttpProtocols.Http1);
+        options.ListenAnyIP(5131, listen => listen.Protocols = HttpProtocols.Http1);
 
         // gRPC: HTTP/2 (plaintext)
-        options.ListenLocalhost(5132, listen => listen.Protocols = HttpProtocols.Http2);
+        options.ListenAnyIP(5132, listen => listen.Protocols = HttpProtocols.Http2);
     });
 
     // 3) Services
@@ -74,6 +79,12 @@ try
     builder.Host.UseSerilog();
 
     var app = builder.Build();
+
+    await using (var scope = app.Services.CreateAsyncScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<GameServerDbContext>();
+        await dbContext.Database.MigrateAsync();
+    }
 
     // 4) Middleware pipeline
     var middlewareInstaller = new MiddlewareInstaller();

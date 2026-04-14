@@ -1,6 +1,7 @@
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.GameSession;
 using GameServer.Domain.Entities;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Shared.Infrastructure.MessageQueue;
@@ -10,9 +11,7 @@ namespace GameServer.Infrastructure.Domains.GameSession;
 
 public sealed class GameSessionReadyConsumer(
     IMessageQueue<GameSessionReadyMessage> gameSessionReadyMessageQueue,
-    IGameSessionService gameSessionService,
-    IDungeonRoomRepository roomRepository,
-    IDungeonRoomPlayerRepository roomPlayerRepository,
+    IServiceScopeFactory scopeFactory,
     IDungeonLobbySubscriptionService subscriptionService,
     ILogger<GameSessionReadyConsumer> logger) : BackgroundService
 {
@@ -22,6 +21,11 @@ public sealed class GameSessionReadyConsumer(
         {
             try
             {
+                using var scope = scopeFactory.CreateScope();
+                var gameSessionService = scope.ServiceProvider.GetRequiredService<IGameSessionService>();
+                var roomRepository = scope.ServiceProvider.GetRequiredService<IDungeonRoomRepository>();
+                var roomPlayerRepository = scope.ServiceProvider.GetRequiredService<IDungeonRoomPlayerRepository>();
+
                 var room = await roomRepository.GetByIdAsync(message.RoomId, stoppingToken);
                 if (room is null)
                 {

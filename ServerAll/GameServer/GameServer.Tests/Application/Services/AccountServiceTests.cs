@@ -10,6 +10,7 @@ namespace GameServer.Tests.Application.Services;
 public class AccountServiceTests
 {
     private readonly FakeUserRepository _userRepository = new();
+    private readonly FakeUserProfileRepository _profileRepository = new();
     private readonly FakeUserCredentialRepository _credentialRepository = new();
     private readonly IPasswordHasher _passwordHasher = new PasswordHasher();
 
@@ -17,6 +18,7 @@ public class AccountServiceTests
     {
         return new AccountService(
             _userRepository,
+            _profileRepository,
             _credentialRepository,
             _passwordHasher,
             NullLogger<AccountService>.Instance);

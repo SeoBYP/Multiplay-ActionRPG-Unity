@@ -18,6 +18,8 @@ namespace Server
     {
         static async Task Main(string[] args)
         {
+            var graylogHost = Environment.GetEnvironmentVariable("GRAYLOG_HOST") ?? "127.0.0.1";
+
             var host = Host.CreateDefaultBuilder(args)
                 .UseSerilog((ctx, loggerConfig) =>
                 {
@@ -29,7 +31,7 @@ namespace Server
                         .WriteTo.File("logs/socketserver-.log", rollingInterval: RollingInterval.Day)
                         .WriteTo.Graylog(new GraylogSinkOptions
                         {
-                            HostnameOrAddress = "127.0.0.1",
+                            HostnameOrAddress = graylogHost,
                             Port = 12201,
                             TransportType = TransportType.Udp
                         });

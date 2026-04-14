@@ -11,7 +11,7 @@ public class ChatInstaller : IServiceInstaller
     public void Install(IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IChatService, ChatService>();
-        services.AddSingleton<IChatSubscriptionService, ChatSubscriptionService>();
+        services.AddScoped<IChatSubscriptionService, ChatSubscriptionService>();
         services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
         services.AddSingleton<IChatEventStream, ChatEventStream>();
         services.AddSingleton<IBroadcastChannel<ChatMessage>, ChatBroadcastChannel>();

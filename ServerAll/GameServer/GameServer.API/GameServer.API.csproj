@@ -11,6 +11,18 @@
         <PackageReference Include="Grpc.AspNetCore.Server.Reflection" Version="2.76.0" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1"/>
         <PackageReference Include="DotNetEnv" Version="2.5.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
         <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
         <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
@@ -29,7 +41,8 @@
       <ProjectReference Include="..\..\Shared\Shared.Contracts\Shared.Contracts.csproj" />
   </ItemGroup>
 
-  <Target Name="GenerateUnityClient" AfterTargets="Build">
+  <Target Name="GenerateUnityClient" AfterTargets="Build"
+          Condition="'$(SKIP_CODEGEN)'!='true'">
       <Message Text="[ClientCodegen] Generating Unity client..." Importance="high" />
       <Exec Command="dotnet run --project &quot;$(ProjectDir)..\..\Tools\ClientCodegen\ClientCodegen.csproj&quot; -- &quot;$(ProjectDir)..\..\..&quot;"
             WorkingDirectory="$(ProjectDir)..\..\.." />

@@ -8,9 +8,10 @@ public class UserInstaller : IServiceInstaller
 {
     public void Install(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddSingleton<IUserRepository, UserRepository>();
-        services.AddSingleton<IUserCredentialRepository, UserCredentialRepository>();
-        services.AddSingleton<IUserSessionRepository, UserSessionRepository>();
-        services.AddSingleton<IUserProfileService, UserProfileService>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IUserCredentialRepository, UserCredentialRepository>();
+        services.AddScoped<IUserSessionRepository, UserSessionRepository>();
+        services.AddScoped<IUserProfileRepository, UserProfileRepository>();  // 추가
+        services.AddScoped<IUserProfileService, UserProfileService>();
     }
 }

@@ -37,6 +37,7 @@ public class AuthServiceTests
         _jwtTokenGenerator = new JwtTokenGenerator(jwtOptionsWrapper);
         _accountService = new AccountService(
             _userRepository,
+            _profileRepository,
             _credentialRepository,
             _passwordHasher,
             NullLogger<AccountService>.Instance);
@@ -227,7 +228,12 @@ public class AuthServiceTests
         var register = await _accountService.RegisterAsync(email, password);
         Assert.True(register.IsSuccess);
         var user = register.Value!;
-        await _profileRepository.CreateAsync(user.UserId, nickName);
+        var profile = await _profileRepository.GetByIdAsync(user.UserId);
+        if (profile is not null && profile.NickName != nickName)
+        {
+            profile.SetNickName(nickName);
+            await _profileRepository.UpdateAsync(profile);
+        }
         return user;
     }
 }

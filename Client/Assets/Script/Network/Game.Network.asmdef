@@ -3,7 +3,8 @@
     "rootNamespace": "Game.Network",
     "references": [
         "VContainer",
-        "UniTask"
+        "UniTask",
+        "Cysharp.Net.Http.YetAnotherHttpHandler"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

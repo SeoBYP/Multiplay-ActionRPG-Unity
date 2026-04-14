@@ -1,0 +1,7 @@
+**/obj/
+**/bin/
+**/.vs/
+Tools/
+DummyClient/
+Temp/
+GameServer/GameServer.Tests/

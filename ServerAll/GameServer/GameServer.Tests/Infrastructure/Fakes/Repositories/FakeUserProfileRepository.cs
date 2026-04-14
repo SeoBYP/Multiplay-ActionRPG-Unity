@@ -21,6 +21,12 @@ public class FakeUserProfileRepository : IUserProfileRepository
         return Task.FromResult(profile);
     }
 
+    public Task<UserProfile?> GetByNicknameAsync(string nickName, CancellationToken ct = default)
+    {
+        var profile = _profiles.Values.SingleOrDefault(x => x.NickName == nickName);
+        return Task.FromResult(profile);
+    }
+
     public Task<bool> UpdateAsync(UserProfile profile, CancellationToken ct = default)
     {
         _profiles[profile.UserId] = profile;

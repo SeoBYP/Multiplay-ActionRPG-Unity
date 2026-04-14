@@ -18,20 +18,20 @@ public class DungeonInstaller : IServiceInstaller
     public void Install(IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IDungeonLobbyService, DungeonLobbyService>();
-        services.AddSingleton<IGameSessionService, GameSessionService>();
+        services.AddScoped<IGameSessionService, GameSessionService>();
 
-        services.AddSingleton<IDungeonRoomRepository, DungeonRoomRepository>();
-        services.AddSingleton<IDungeonRoomPlayerRepository, DungeonRoomPlayerRepository>();
+        services.AddScoped<IDungeonRoomRepository, DungeonRoomRepository>();
+        services.AddScoped<IDungeonRoomPlayerRepository, DungeonRoomPlayerRepository>();
         services.AddSingleton<IDungeonLobbySubscriptionService, DungeonLobbySubscriptionService>();
         services.AddSingleton<IDungeonRoomEventStream, DungeonRoomEventStream>();
-        services.AddSingleton<IGameSessionRepository, GameSessionRepository>();
-        services.AddSingleton<IGameSessionPlayerRepository, GameSessionPlayerRepository>();
+        services.AddScoped<IGameSessionRepository, GameSessionRepository>();
+        services.AddScoped<IGameSessionPlayerRepository, GameSessionPlayerRepository>();
 
         services.AddSingleton<DungeonRoomBroadcastChannel>();
         services.AddSingleton<IMessageQueue<GameStartRequestedMessage>, GameStartRequestedMessageQueue>();
         services.AddSingleton<IMessageQueue<GameSessionReadyMessage>, GameSessionReadyMessageQueue>();
 
-        services.AddSingleton<IOutboxRepository, OutboxRepository>();
+        services.AddScoped<IOutboxRepository, OutboxRepository>();
         services.AddHostedService<OutboxPublisherService>();
         services.AddHostedService<GameSessionReadyConsumer>();
     }

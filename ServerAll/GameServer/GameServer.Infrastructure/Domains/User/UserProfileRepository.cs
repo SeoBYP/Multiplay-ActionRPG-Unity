@@ -59,6 +59,21 @@ public class UserProfileRepository(
         }
     }
 
+    public async Task<UserProfile?> GetByNicknameAsync(string nickName, CancellationToken ct = default)
+    {
+        try
+        {
+            return await context.UserProfiles
+                .AsNoTracking()
+                .SingleOrDefaultAsync(up => up.NickName == nickName, ct);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to get user profile by nickname");
+            throw;
+        }
+    }
+
     public async Task<bool> UpdateAsync(UserProfile profile, CancellationToken ct = default)
     {
         try

@@ -93,7 +93,18 @@ public class UserCredentialRepository(
             if (existingCredential is null)
                 throw new KeyNotFoundException($"User credential not found for user id {userCredential.UserId}");
 
-            context.UserCredentials.Update(userCredential);
+            var trackedCredential = context.ChangeTracker.Entries<UserCredential>()
+                .FirstOrDefault(entry => entry.Entity.UserId == userCredential.UserId);
+
+            if (trackedCredential is not null)
+            {
+                trackedCredential.CurrentValues.SetValues(userCredential);
+            }
+            else
+            {
+                context.UserCredentials.Update(userCredential);
+            }
+
             await context.SaveChangesAsync(ct);
 
             // Email이 변경된 경우 이전/신규 매핑 키를 모두 비워 다음 조회에서 DB 기준으로 재구성한다.
