@@ -7,6 +7,8 @@ namespace Game.Tests.PlayMode.E2E
     public static class ServerConfig
     {
         public const string GameServerGrpcAddress = "http://localhost:5132";
+        public const string SocketServerHost = "127.0.0.1";
+        public const int SocketServerPort = 7777;
         public const int TimeoutSeconds = 10;
     }
 }

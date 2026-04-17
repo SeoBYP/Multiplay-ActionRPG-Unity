@@ -45,7 +45,22 @@ namespace Game.Tests.PlayMode.E2E
             => $"e2e_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}@test.com";
 
         protected static string UniqueNickname(string prefix = "Hero")
-            => $"{prefix}_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+        {
+            const int maxNicknameLength = 20;
+            const int suffixLength = 6;
+
+            var normalizedPrefix = string.IsNullOrWhiteSpace(prefix) ? "Hero" : prefix;
+            var suffix = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
+            suffix = suffix.Substring(Math.Max(0, suffix.Length - suffixLength));
+
+            var maxPrefixLength = maxNicknameLength - suffixLength;
+            if (normalizedPrefix.Length > maxPrefixLength)
+            {
+                normalizedPrefix = normalizedPrefix.Substring(0, maxPrefixLength);
+            }
+
+            return $"{normalizedPrefix}{suffix}";
+        }
 
         protected static CancellationToken Timeout()
             => new CancellationTokenSource(TimeSpan.FromSeconds(ServerConfig.TimeoutSeconds)).Token;

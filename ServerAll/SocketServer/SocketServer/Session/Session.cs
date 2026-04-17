@@ -70,6 +70,14 @@ public sealed class Session
                 await _dispatcher.Dispatch(this, packet, ct);
             }
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            _logger.LogInformation("Session loop canceled for session {SessionId}", SessionId);
+        }
+        catch (SocketException e) when (IsExpectedDisconnect(e.SocketErrorCode))
+        {
+            _logger.LogInformation("Session {SessionId} disconnected by peer: {SocketErrorCode}", SessionId, e.SocketErrorCode);
+        }
         catch (Exception e)
         {
             _logger.LogError(e, "Session loop failed for session {SessionId}", SessionId);
@@ -133,6 +141,13 @@ public sealed class Session
         }
         catch (Exception e)
         {
+            if (e is SocketException socketException && IsExpectedDisconnect(socketException.SocketErrorCode))
+            {
+                _logger.LogInformation("SendPacketAsync canceled by disconnect for session {SessionId}: {SocketErrorCode}", SessionId, socketException.SocketErrorCode);
+                Disconnect();
+                return;
+            }
+
             _logger.LogError(e, "SendPacketAsync failed for session {SessionId}", SessionId);
             Disconnect();
         }
@@ -154,5 +169,15 @@ public sealed class Session
         }
 
         _logger.LogInformation("Session {SessionId} disconnected", SessionId);
+    }
+
+    private static bool IsExpectedDisconnect(SocketError socketError)
+    {
+        return socketError == SocketError.ConnectionReset
+               || socketError == SocketError.ConnectionAborted
+               || socketError == SocketError.OperationAborted
+               || socketError == SocketError.Shutdown
+               || socketError == SocketError.NotConnected
+               || socketError == SocketError.Interrupted;
     }
 }

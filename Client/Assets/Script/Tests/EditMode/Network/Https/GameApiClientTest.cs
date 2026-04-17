@@ -6,7 +6,7 @@ using Game.Network.Https.Services;
 using NUnit.Framework;
 using VContainer;
 
-namespace Game.Tests.EditMode.Network
+namespace Game.Tests.EditMode.Https
 {
     [TestFixture]
     public class GameApiClientTest
@@ -30,8 +30,6 @@ namespace Game.Tests.EditMode.Network
             (_container as IDisposable)?.Dispose();
             _channelProvider?.Dispose();
         }
-
-        // ─── Registration ───────────────────────────────────────────
 
         [Test]
         public void GrpcChannelProvider_등록됨()
@@ -63,8 +61,6 @@ namespace Game.Tests.EditMode.Network
             Assert.IsNotNull(_container.Resolve<IDungeonLobbyGrpcService>());
         }
 
-        // ─── Concrete Type ──────────────────────────────────────────
-
         [Test]
         public void IAuthGrpcService_실제_타입은_AuthGrpcService()
         {
@@ -88,8 +84,6 @@ namespace Game.Tests.EditMode.Network
         {
             Assert.IsInstanceOf<DungeonLobbyGrpcService>(_container.Resolve<IDungeonLobbyGrpcService>());
         }
-
-        // ─── Singleton Scope ────────────────────────────────────────
 
         [Test]
         public void IAuthGrpcService_Singleton_동일_인스턴스_반환()
@@ -122,8 +116,6 @@ namespace Game.Tests.EditMode.Network
             var s2 = _container.Resolve<IDungeonLobbyGrpcService>();
             Assert.AreSame(s1, s2);
         }
-
-        // ─── GrpcChannelProvider Sharing ────────────────────────────
 
         [Test]
         public void GrpcChannelProvider_RegisterInstance_항상_동일_인스턴스()

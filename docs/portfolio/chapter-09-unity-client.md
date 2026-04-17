@@ -286,6 +286,44 @@ Bad gRPC response. Response protocol downgraded to HTTP/1.1.
 
 ---
 
+## Socket E2E
+
+이번 보강에서 Unity 클라이언트의 마지막 네트워크 구간이었던 `SocketServer` 대상 PlayMode E2E도 추가했다.
+
+이 테스트는 단순히 TCP 연결 성공 여부를 확인하는 수준이 아니라,
+**로비(gRPC)에서 인게임(Socket)으로 넘어가는 실제 상태 전이**를 검증하는 데 목적이 있다.
+
+### 포함한 시나리오
+
+- host / guest 두 계정 생성
+- host가 방 생성
+- guest가 방 입장
+- host가 `StartRoom`
+- 두 클라이언트가 socket으로 `C_Auth -> C_PlayerJoin`
+- host가 `C_Move` 전송
+- guest가 `S_Move` 수신
+
+### 여기서 실제로 잡힌 문제
+
+- 처음에는 `MaxPlayers = 1`인 단일 플레이어 방으로 테스트를 만들었지만, 서버 도메인 규칙상 방 생성 최소 인원은 2명이고 게임 시작도 최소 2명이 필요했다.
+- Unity gRPC 모델에는 guest의 숫자 `UserId`가 직접 노출되지 않아, access token의 `sub` claim에서 실제 `UserId`를 읽어 socket 인증에 사용하도록 정리했다.
+- 테스트 종료 시 클라이언트가 소켓을 닫으면서 `OperationCanceled`, `ConnectionReset(10054)`가 정상 종료인데도 클라이언트/서버 양쪽 로그에 에러처럼 찍히는 문제가 있었다.
+- 그래서 클라이언트 `SocketConnector`, `SocketSession`과 서버 `Session` 모두에서 의도된 disconnect를 정상 종료로 처리하도록 예외 정책을 보강했다.
+
+이 테스트가 의미 있는 이유는,
+이제 Unity 클라이언트 쪽에서도
+
+- `gRPC 로비 흐름`
+- `Socket 인증/입장`
+- `실시간 이동 브로드캐스트`
+
+까지를 하나의 PlayMode 시나리오로 검증할 수 있게 되었기 때문이다.
+
+즉 이 시점부터는 “Socket 계층이 붙었다” 수준이 아니라,
+**인게임 진입 직전까지의 실제 네트워크 경로가 검증되었다**고 볼 수 있다.
+
+---
+
 ## 이번 챕터에서 정리된 클라이언트 구조
 
 ```text
@@ -307,7 +345,8 @@ PlayMode E2E
  ├─ AuthE2ETests
  ├─ UserE2ETests
  ├─ DungeonLobbyE2ETests
- └─ ChatE2ETests
+ ├─ ChatE2ETests
+ └─ SocketE2ETests
 
 Docker
  ├─ GameServer
@@ -348,7 +387,20 @@ Unity에서 보이는 `RpcException`만 보면 원인을 잘못 짚기 쉽다.
 즉 E2E는 클라이언트 코드만 보는 작업이 아니라,
 **클라이언트 예외 + 서버 로그를 한 세트로 해석하는 작업**이었다.
 
-### 4. 테스트 코드도 프로덕션 코드처럼 관리해야 한다
+### 4. Socket E2E는 “연결 확인”이 아니라 상태 전이 검증이어야 한다
+
+처음에는 “소켓이 붙는가”만 확인하면 될 것처럼 보였지만, 실제로는 그것만으로는 부족했다.
+
+- 로비에서 방이 제대로 준비되었는가
+- socket auth에 필요한 사용자/방 정보가 일치하는가
+- join 이후 상대 클라이언트에게 브로드캐스트가 실제로 가는가
+
+이런 상태 전이를 통과해야만 인게임 네트워크가 살아 있다고 말할 수 있었다.
+
+결국 Socket E2E의 핵심은 TCP 연결 자체가 아니라,
+**gRPC 준비 단계 + socket 인증 + room join + broadcast 수신을 하나의 흐름으로 묶는 것**이었다.
+
+### 5. 테스트 코드도 프로덕션 코드처럼 관리해야 한다
 
 특히 스트리밍 테스트는 취약하게 작성하면 쉽게 오탐이 난다.
 
@@ -361,7 +413,8 @@ Unity에서 보이는 `RpcException`만 보면 원인을 잘못 짚기 쉽다.
 
 - [ ] UI 계층과 gRPC 서비스 연결
 - [ ] 로그인/로비/채팅 화면 Presenter 정리
-- [ ] SocketServer 연결과 인게임 진입 흐름 연결
+- [x] SocketServer 대상 PlayMode E2E 추가
+- [ ] SocketSession을 실제 인게임 진입 흐름과 연결
 - [ ] PlayMode E2E를 CI에서 자동 실행할 수 있는 형태로 정리
 - [ ] 테스트용 Docker seed / reset 전략 정리
 
@@ -381,4 +434,7 @@ Unity에서 보이는 `RpcException`만 보면 원인을 잘못 짚기 쉽다.
 | User E2E | `Client/Assets/Script/Tests/PlayMode/E2E/UserE2ETests.cs` |
 | Lobby E2E | `Client/Assets/Script/Tests/PlayMode/E2E/DungeonLobbyE2ETests.cs` |
 | Chat E2E | `Client/Assets/Script/Tests/PlayMode/E2E/ChatE2ETests.cs` |
+| Socket E2E | `Client/Assets/Script/Tests/PlayMode/E2E/Network/Socket/SocketE2ETests.cs` |
+| Socket Connector | `Client/Assets/Script/Network/Socket/Connector/SocketConnector.cs` |
+| Socket Session | `Client/Assets/Script/Network/Socket/Session/SocketSession.cs` |
 | Docker Compose | `ServerAll/Infra/docker-compose.yml` |

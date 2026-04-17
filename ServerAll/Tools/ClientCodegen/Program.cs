@@ -61,7 +61,7 @@ internal static class Program
         ServiceWrapperGenerator.Generate(services, config.UnityServiceDir);
 
         Console.WriteLine();
-        Console.WriteLine("[Program] ===== Generate Packet Handlers =====");
-        PacketHandlerGenerator.Generate(config.PacketFile, config.UnityHandlerDir);
+        Console.WriteLine("[Program] ===== Generate Socket Packets =====");
+        PacketHandlerGenerator.Generate(config.PacketFile, config.PacketSerializerFile, config.UnityPacketDir);
     }
 }
