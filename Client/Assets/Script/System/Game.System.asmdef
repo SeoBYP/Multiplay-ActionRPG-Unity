@@ -1,0 +1,4 @@
+{
+	"name": "Game.System",
+	"references":[ "GUID:f51ebe6a0ceec4240a699833d6309b23", "GUID:b0214a6008ed146ff8f122a6a9c2f6cc", "GUID:b15f0d85503884943ac44c9fe6a5e9fc" ]
+}

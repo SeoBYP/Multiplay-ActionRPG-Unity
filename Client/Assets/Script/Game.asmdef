@@ -5,7 +5,8 @@
         "Game.Core",
         "Game.Network",
         "UniTask",
-        "VContainer"
+        "VContainer",
+        "Game.System"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
