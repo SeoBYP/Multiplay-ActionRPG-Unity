@@ -552,3 +552,11 @@ ServerAll/SocketServer/DummyClient/obj
 ServerAll/SocketServer/ServerCore/obj
 ServerAll/SocketServer/SocketServer/obj
 ServerAll/Temp/obj
+
+# Exclude oversized UI source assets from GitHub pushes.
+/Client/Assets/GameResources/MedievalKingdomUI/Artworks/Map_elements/World_map_16k.png
+/Client/Assets/GameResources/MedievalKingdomUI/Artworks/Map_elements/World_map_8k.psb
+/Client/Assets/GameResources/MedievalKingdomUI/Artworks/PSD_source/Colbs.psd
+/Client/Assets/GameResources/MedievalKingdomUI/Artworks/PSD_source/Options_slider.psd
+/Client/Assets/GameResources/MedievalKingdomUI/Artworks/PSD_source/RTS_Bar.psd
+/Client/Assets/GameResources/MedievalKingdomUI/Artworks/PSD_source/Skill_scroll.psd

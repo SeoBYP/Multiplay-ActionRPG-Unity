@@ -88,7 +88,8 @@ namespace Script.System.Auth
             // 잘못된 비밀번호 등 다른 실패는 회원가입 fallback 대상이 아니다.
             if (loginResult.Result.ErrorCode != UserNotFoundErrorCode)
             {
-                Debug.LogError(loginResult.Result.Message);
+                // INVALID_CREDENTIALS 같은 사용자 입력 오류는 예상 가능한 실패이므로 error 로그로 올리지 않는다.
+                Debug.Log(loginResult.Result.Message);
                 return AuthResult.Failed;
             }
 
@@ -102,7 +103,7 @@ namespace Script.System.Auth
             Debug.Log(register.Result.Message);
             if (!register.Result.Success)
             {
-                Debug.LogError(register.Result.Message);
+                Debug.Log(register.Result.Message);
                 return AuthResult.Failed;
             }
 
@@ -110,7 +111,7 @@ namespace Script.System.Auth
             loginResult = await TryLoginAsync(email, password, ct);
             if (!loginResult.Result.Success)
             {
-                Debug.LogError(loginResult.Result.Message);
+                Debug.Log(loginResult.Result.Message);
                 return AuthResult.Failed;
             }
 
@@ -147,9 +148,14 @@ namespace Script.System.Auth
         /// </summary>
         public void Logout()
         {
+            // 로그아웃 RPC가 Authorization 헤더를 만들 수 있도록 현재 토큰을 먼저 유지한 채 요청을 보낸다.
+            if (_authSession.IsAuthenticated)
+            {
+                FireAndForgetLogoutAsync().Forget();
+            }
+
             _authSession.Clear();
             Debug.Log("Logout");
-            _authGrpcClient.LogoutAsync(new LogoutRequest()).Forget();
         }
 
         /// <summary>
@@ -190,6 +196,21 @@ namespace Script.System.Auth
             return string.IsNullOrWhiteSpace(SystemInfo.deviceUniqueIdentifier)
                 ? Application.platform.ToString()
                 : SystemInfo.deviceUniqueIdentifier;
+        }
+
+        /// <summary>
+        /// 서버 로그아웃 호출에서 발생하는 예외를 내부에서 흡수한다.
+        /// 로컬 세션은 이미 종료됐으므로 네트워크 실패를 사용자 흐름에 다시 전파하지 않는다.
+        /// </summary>
+        private async UniTask FireAndForgetLogoutAsync()
+        {
+            try
+            {
+                await _authGrpcClient.LogoutAsync(new LogoutRequest());
+            }
+            catch
+            {
+            }
         }
     }
 }

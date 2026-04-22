@@ -17,7 +17,7 @@ namespace Game.Tests.PlayMode.E2E
         private IAuthService _clientAuthService;
 
         [UnitySetUp]
-        public System.Collections.IEnumerator AuthFlowSetUp() => UniTask.ToCoroutine(async () =>
+        public System.Collections.IEnumerator 인증흐름_테스트_준비() => UniTask.ToCoroutine(async () =>
         {
             TokenStorage.Clear();
 
@@ -30,14 +30,14 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTearDown]
-        public System.Collections.IEnumerator AuthFlowTearDown() => UniTask.ToCoroutine(async () =>
+        public System.Collections.IEnumerator 인증흐름_테스트_정리() => UniTask.ToCoroutine(async () =>
         {
             TokenStorage.Clear();
             _authFlowChannelProvider?.Dispose();
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator LoginOrRegister_FirstLogin_PersistsTokens() => UniTask.ToCoroutine(async () =>
+        public System.Collections.IEnumerator 로그인또는회원가입_최초로그인시_토큰을저장한다() => UniTask.ToCoroutine(async () =>
         {
             var email = UniqueEmail();
 
@@ -52,7 +52,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator TryAutoLogin_ValidStoredToken_SucceedsWithoutLoginUI() => UniTask.ToCoroutine(async () =>
+        public System.Collections.IEnumerator 자동로그인_유효한저장토큰이있으면_성공한다() => UniTask.ToCoroutine(async () =>
         {
             var email = UniqueEmail();
             var loginResult = await _clientAuthService.LoginOrRegisterAsync(email, "Test1234!", CancellationToken.None);
@@ -70,7 +70,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator TryAutoLogin_ExpiredStoredToken_RefreshesTokens() => UniTask.ToCoroutine(async () =>
+        public System.Collections.IEnumerator 자동로그인_만료된토큰이면_리프레시한다() => UniTask.ToCoroutine(async () =>
         {
             var email = UniqueEmail();
             var loginResult = await _clientAuthService.LoginOrRegisterAsync(email, "Test1234!", CancellationToken.None);
@@ -96,7 +96,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator TryAutoLogin_InvalidRefreshToken_ClearsStoredTokens() => UniTask.ToCoroutine(async () =>
+        public System.Collections.IEnumerator 자동로그인_잘못된리프레시토큰이면_저장토큰을삭제한다() => UniTask.ToCoroutine(async () =>
         {
             var email = UniqueEmail();
             var loginResult = await _clientAuthService.LoginOrRegisterAsync(email, "Test1234!", CancellationToken.None);
@@ -118,7 +118,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator LoginOrRegister_ExistingUserWrongPassword_FailsWithoutRegisterFallback() => UniTask.ToCoroutine(async () =>
+        public System.Collections.IEnumerator 로그인또는회원가입_기존유저가비밀번호를틀리면_회원가입없이실패한다() => UniTask.ToCoroutine(async () =>
         {
             var email = UniqueEmail();
             await RegisterAndLoginAsync(email, "Test1234!");
