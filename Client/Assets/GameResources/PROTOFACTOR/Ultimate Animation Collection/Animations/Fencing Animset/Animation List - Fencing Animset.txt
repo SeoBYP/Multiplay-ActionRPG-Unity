@@ -1,0 +1,126 @@
+This list is in case you purchased this animation set to use in another engine or application. It is for Protof-Actor@FencingAnimset.fbx
+
+
+Animation List:
+
+DrawSwordFencing: 10-100
+PutBackSwordFencing: 110-210
+
+Idle1Fencing: 220-440
+IdleBreatheFencing: 450-505
+IdleLookAroundFencing: 515-615
+IdleCombatFencing: 625-655
+
+WalkForwardFencing: 665-705
+WalkBackwardsFencing: 715-755
+WalkRightFencing: 765-805
+WalkLeftFencing: 815-855
+WalkForwardRightFencing: 865-905
+WalkBackwardsLeftFencing: 915-955
+WalkForwardLeftFencing: 965-1005
+WalkBackwardsRightFencing: 1015-1055
+WalkForwardFencing_RM: 1065-1105
+WalkBackwardsFencing_RM: 1115-1155
+WalkRightFencing_RM: 1165-1205
+WalkLeftFencing_RM: 1215-1255
+WalkForwardRightFencing_RM: 1265-1305
+WalkBackwardsLeftFencing_RM: 1315-1355
+WalkForwardLeftFencing_RM: 1365-1405
+WalkBackwardsRightFencing_RM: 1415-1455
+
+RunForwardFencing: 1465-1480
+RunBackwardsFencing: 1490-1505
+RunRightFencing: 1515-1530
+RunLeftFencing: 1540-1555
+RunForwardRightFencing: 1565-1580
+RunBackwardsLeftFencing: 1590-1605
+RunFrowardLEftFencing: 1615-1630
+RunBackwardsRightFencing: 1640-1655
+RunForwardFencing_RM: 1665-1680
+RunBackwardsFencing_RM: 1690-1705
+RunRightFencing_RM: 1715-1730
+RunLeftFencing_RM: 1740-1755
+RunForwardRightFencing_RM: 1765-1780
+RunBackwardsLeftFencing_RM: 1790-1805
+RunFrowardLEftFencing_RM: 1815-1830
+RunBackwardsRightFencing_RM: 1840-1855
+
+IdleCrouch: 1865-1920
+
+CrouchForward: 1930-1980
+CrouchBackwards: 1990-2040
+CrouchRight: 2050-2100
+CrouchLeft: 2110-2160
+CrouchForwardRight: 2170-2220
+CrouchBackwardsLeft: 2230-2280
+CrouchForwardLeft: 2290-2340
+CrouchBackwardsRight: 2350-2400
+CrouchForward_RM: 2410-2460
+CrouchBackwards_RM: 2470-2520
+CrouchRight_RM: 2530-2580
+CrouchLeft_RM: 2590-2640
+CrouchForwardRight_RM: 2650-2700
+CrouchBackwardsLeft_RM: 2710-2760
+CrouchForwardLeft_RM: 2770-2820
+CrouchBackwardsRight_RM: 2830-2880
+
+Attack1AForwardFencing: 2890-2915
+Attack1AForwardFencing_RM: 2925-2950
+Attack1ALeapforwardFencing: 2960-2995
+Attack1ALeapForwardFencing_RM: 3005-3040
+Attack1BLeapForwardFencing: 3050-3085
+Attack1BLeapForardFencing_RM: 3095-3130
+Attack1CLeapForwardFencing: 3140-3175
+Attack1CLeapForardFencing_RM: 3185-3220
+Attack1DLeapForwardFencing: 3230-3270
+Attack1DLeapForardFencing_RM: 3280-3320
+Attack2LeapForwadFencing: 3330-3385
+Attack2LeapForwardFencing_RM: 3395-3450
+Attack3ForwardFencing: 3460-3490
+Attack3ForwardFencing_RM: 3500-3530
+Attack3Fencing: 3540-3570
+Attack4Fencing: 3580-3615
+Attack4Fencing_RM: 3625-3660
+Attack5Fencing: 3670-3705
+Attack5Fencing_RM: 3715-3750
+Attack5LeapForwardFencing: 3760-3805
+Attack5LeapForwardFencing_RM: 3815-3860
+Attack5ForwardFencing: 3870-3905
+Attack5ForwardFencing_RM: 3915-3950
+Attack6LeapForwardFencing: 3960-4005
+Attack6LeapForwardFencing_RM: 4015-4060
+Attack7ForwardFencing: 4070-4120
+Attack7ForwardFencing_RM: 4130-4180
+Attack4LeapForwardFencing: 4190-4240
+Attack4LeapForwardFencing_RM: 4250-4300
+Attack4LowForwardFencing: 4310-4350
+Attack4LowForwardFencing_RM: 4360-4400
+Attack1ELeapForwadFencing: 4410-4455
+Attack1ELeapForwardFencing_RM: 4465-4510
+2HitComboFencing: 4520-4580
+2HitComboFencing_RM: 4590-4670
+3HitComboFencing: 4680-4740
+3HitComboFencing_RM: 4750-4830
+
+ParryHighFencing: 4840-4860
+ParryLowFencing: 4870-4890
+ParryLeftFencing: 4900-4920
+ParryRightFencing: 4930-4950
+
+GetHitLightFrontFencing: 4960-4985
+GetHitLightBackFencing: 4995-5025
+GetHitLightRightFencing: 5035-5060
+GetHitLightLEftFencing: 5070-5100
+GetHitHeavyFrontFencing: 5110-5135
+GEtHitHeavyBackFencing: 5145-5180
+GetHitHeavyRightFencing: 5190-5220
+GetHitHeavyLeftFencing: 5230-5260
+GetHitHeavyFrontFencing_RM: 5270-5295
+GEtHitHeavyBackFencing_RM: 5305-5340
+GetHitHeavyRightFencing_RM: 5350-5380
+GetHitHeavyLeftFencing_RM: 5390-5420
+
+DeathFrontFencing: 5430-5517
+DeathBackFencing: 5530-5625
+DeathRightFencing: 5635-5710
+DeathLeftFencing: 5720-5817

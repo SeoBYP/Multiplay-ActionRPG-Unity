@@ -1,0 +1,204 @@
+This list is in case you purchased this animation set to use in another engine or application. It is for Protof-Actor@BazookaAnimset.fbx
+
+
+Animation List:
+
+IdleBreathe: 10-130
+DrawBazooka: 140-187
+PutBackBazooka: 200-257
+IdleBazooka: 270-355
+IdleLookAroundBazooka: 360-605
+
+WalkForwardBazooka: 615-655
+WalkBackwardsBazooka: 665-705
+WalkForwardBazooka_RM: 715-755
+WalkBackwardsBazooka_RM: 765-805
+RunBazooka: 815-833
+RunBazooka_RM: 845-863
+SprintBazooka: 877-887
+SprintBazooka_RM: 900-912
+
+JumpToApexBazooka: 925-937
+FallingBazooka: 955-995
+LandingLightBazooka: 1005-1015
+LandingMediumBazooka: 1025-1059
+LandingHeavyBazooka: 1070-1114
+
+IdleAimingBazooka: 1125-1185
+ShootBazooka: 1195-1220
+
+MeleeAttackBazooka: 1230-1254
+
+ThrowGrenade1Bazooka: 1265-1345
+ThrowGrenade2Bazooka: 1360-1446
+GoToAimGrenadeIdleBazooka: 1455-1520
+IdleAimGrenadeBazooka: 1530-1590
+ThrowAimedGrenadeBazooka: 1600-1645
+
+WalkForwardAimingBazooka: 1655-1695
+WalkBackwardsAimingBazooka: 1705-1745
+WalkForwardLeftAimingBazooka: 1755-1795
+WalkBackwardsAimingBazooka: 1805-1845
+WalkForwardRightAimingBazooka: 1855-1895
+WalkBackwardsLeftAimingBazooka: 1905-1945
+WalkRightAimingBazooka: 1955-1995
+WalkLeftAimingBazooka: 2005-2045
+WalkForwardAimingBazooka_RM: 2055-2095
+WalkBackwardsAimingBazooka_RM: 2105-2145
+WalkForwardLeftAimingBazooka_RM: 2155-2195
+WalkBackwardsAimingBazooka_RM: 2205-2245
+WalkForwardRightAimingBazooka_RM: 2255-2295
+WalkBackwardsLeftAimingBazooka_RM: 2305-2345
+WalkRightAimingBazooka_RM: 2355-2395
+WalkLeftAimingBazooka_RM: 2405-2445
+
+RunForwardAimingBazooka: 2455-2473
+RunBackwardsAimingBazooka: 2485-2503
+RunBackwardsRightAimingBazooka: 2515-2533
+RunForwardLeftAimingBazooka: 2545-2563
+RunForwardRightAimingBazooka: 2575-2593
+RunBackwardsLeftAimingBazooka: 2605-2623
+RunRightAimingBazooka: 2635-2653
+RunLeftAimingBazooka: 2665-2683
+RunForwardAimingBazooka_RM: 2695-2713
+RunBackwardsAimingBazooka_RM: 2725-2743
+RunBackwardsRightAimingBazooka_RM: 2755-2773
+RunForwardLeftAimingBazooka_RM: 2785-2803
+RunForwardRightAimingBazooka_RM: 2815-2833
+RunBackwardsLeftAimingBazooka_RM: 2845-2863
+RunRightAimingBazooka_RM: 2875-2893
+RunLeftAimingBazooka_RM: 2905-2923
+
+CrouchidleLookAroundBazooka: 2935-2995
+CrouchIdleBazooka: 3005-3155
+
+CrouchAimingBazooka: 3165-3235
+CrouchShootPrimaryBazooka: 3245-3270
+
+CrouchForwardBazooka: 3280-3330
+CrouchBackwardsBazooka: 3340-3390
+CrouchForwardBazooka_RM: 3400-3450
+CrouchBackwardsBazooka_RM: 3460-3510
+
+ThrowGrenade1CrouchingBazooka: 3520-3600
+ThrowGrenade2CrouchingBazooka: 3610-3700
+
+CrouchForwardAimingBazooka: 3710-3760
+CrouchBackwardsAimingBazooka: 3770-3820
+CrouchLeftAimingBazooka: 3830-3880
+CrouchRightAimingBazooka: 3890-3940
+CrouchForwardLeftAimingBazooka: 3950-4000
+CrouchBackwardsRightAimingBazooka: 4010-4060
+CrouchForwardRightAimingBazooka: 4070-4120
+CrouchBackwardsLeftAimingBazooka: 4130-4180
+CrouchForwardAimingBazooka_RM: 4190-4240
+CrouchBackwardsAimingBazooka_RM: 4250-4300
+CrouchLeftAimingBazooka_RM: 4310-4360
+CrouchRightAimingBazooka_RM: 4370-4420
+CrouchForwardLeftAimingBazooka_RM: 4430-4480
+CrouchBackwardsRightAimingBazooka_RM: 4490-4540
+CrouchForwardRightAimingBazooka_RM: 4550-4600
+CrouchBackwardsLeftAimingBazooka_RM: 4610-4660
+
+IdleToIdleTakeCoverStandingBazooka: 4670-4700
+IdleToIdleTakeCoverStandingBazooka_RM: 4710-4740
+IdleTakeCoverStandingBazooka: 4750-4810
+StrafeRightTakeCoverStandingBazooka: 4820-4845
+StrafeLeftTakeCoverStandingBazooka: 4855-4880
+StrafeRightTakeCoverStandingBazooka_RM: 4890-4915
+StrafeLeftTakeCoverStandingBazooka_RM: 4925-4950
+GoToPeekLeftStandingBazooka: 4960-4986
+PeekLeftIdleStandingBazooka: 4995-5055
+PeekLeftToIdleStandingBazooka: 5065-5091
+GoToPeekRightStandingBazooka: 5100-5126
+PeekRightIdleStandingBazooka: 5135-5195
+PeekRightToIdleStandingBazooka: 5205-5231
+GoOutOfCoverLeftStandingBazooka: 5245-5266
+GoBackToCoverLeftStandingBazooka: 5275-5296
+GoOutOfCoverRightStandingBazooka: 5305-5326
+GoBackToCoverRightStandingBazooka: 5335-5356
+GoOutOfCoverLeftStandingBazooka_RM: 5365-5386
+GoBackToCoverLeftStandingBazooka_RM: 5395-5416
+GoOutOfCoverRightStandingBazooka_RM: 5425-5446
+GoBackToCoverRightStandingBazooka_RM: 5455-5476
+TakeCoverThrowGrenadeRightStandingBazooka: 5485-5595
+TakeCoverThrowGrenadeLeftStandingBazooka: 5605-5705
+
+IdleToIdleTakeCoverCrouchingBazooka: 5715-5745
+IdleToIdleTakeCoverCrouchingBazooka_RM: 5755-5785
+IdleTakeCoverCrouchingBazooka: 5795-5855
+GoToPeekLeftCrouchingBazooka: 5865-5883
+PeekLeftIdleCrouchingBazooka: 5890-5950
+PeekLeftToIdleCrouchingBazooka: 5960-5978
+GoToPeekRightCrouchingBazooka:  5990-6008
+PeekRightIdleCrouchingBazooka: 6020-6080
+PeekRightToIdleCrouchingBazooka: 6090-6108
+StrafeLeftTakeCoverCrouchingBazooka: 6120-6145
+StrafeRightTakeCoverCrouchingBazooka: 6155-6180
+StrafeLeftTakeCoverCrouchingBazooka_RM: 6190-6215
+StrafeRightTakeCoverCrouchingBazooka_RM: 6225-6250
+GoOutOfCoverLeftCrouchingBazooka: 6260-6281
+GoBackToCoverLeftCrouchingBazooka: 6295-6216
+GoOutOfCoverRightCrouchingBazooka: 6230-6351
+GoBackToCoverRightCrouchingBazooka: 6365-6386
+GoOutOfCoverLeftCrouchingBazooka_RM: 6400-6421
+GoBackToCoverLeftCrouchingBazooka_RM: 6435-6456
+GoOutOfCoverRightCrouchingBazooka_RM: 6470-6491
+GoBackToCoverRightCrouchingBazooka_RM: 6505-6526
+TakeCoverThrowGrenadeRightCrouchingBazooka: 6540-6635
+TakeCoverThrowGrenadeLeftCrouchingBazooka: 6645-6730
+IdlkeTakeCoverCrouchingToIdleBazooka: 6740-6767
+IdleToIdleTakeCoverCrouchingBazooka: 6780-6807
+IdlkeTakeCoverCrouchingToIdleBazooka_RM: 6820-6847
+IdleToIdleTakeCoverCrouchingBazooka_RM: 6860-6887
+
+ClimbHalfMeterObstacleLeftBazooka: 6900-6933
+ClimbHalfMeterObstacleRightBazooka: 6945-6975
+ClimbHalfMeterObstacleLeftBazooka_RM: 6990-7023
+ClimbHalfMeterObstacleRightBazooka_RM: 7035-7065
+Climb1MeterObstacleBazooka: 7075-7117
+Climb1MeterObstacleBazooka_RM: 7130-7172
+Climb2MetersObstacleBazooka: 7185-7287
+Climb2MetersObstacleBazooka_RM: 7300-7402
+
+Pass1MeterObstacleLeftBazooka: 7415-7461
+Pass1MeterObstacleRightBazooka: 7475-7520
+Pass1MeterObstacleLeftBazooka_RM: 7530-7576
+Pass1MeterObstacleRightBazooka_RM: 7590-7635
+
+DodgeForwardBazooka: 7645-7695
+DodgeBackwardsBazooka: 7705-7742
+DodgeLeftBazooka: 7750-7797
+DodgeRightBazooka: 7810-7857
+DodgeForwardBazooka_RM: 7870-7920
+DodgeBackwardsBazooka_RM: 7930-7967
+DodgeLeftBazooka_RM: 7975-8022
+DodgeRightBazooka_RM: 8035-8082
+
+GetHitLightFrontBazooka: 8095-8118
+GetHitLightBackBazooka: 8130-8160
+GetHitLightLeftBazooka: 8170-8203
+GetHitLightRightBazooka: 8215-8249
+GetHitHeavyFrontBazooka: 8260-8294
+GetHitHeavyBackBazooka: 8305-8359
+GetHitHeavyLeftBazooka: 8370-8410
+GetHitHeavyRightBazooka: 8420-8462
+GetHitHeavyFrontBazooka_RM: 8475-8509
+GetHitHeavyBackBazooka_RM: 8520-8574
+GetHitHeavyLeftBazooka_RM: 8585-8625
+GetHitHeavyRightBazooka_RM: 8635-8677
+
+DeathFrontBazooka: 8685-8772
+DeadFront: 8785-8800
+GetBackUpFront: 8810-8890
+DeathBackBazooka: 8900-8995
+DeadBack: 9005-9020
+GetBackUpBack: 9030-9126
+DeathRightBazooka: 9135-9210
+DeadRight: 9220-6235
+GetBackUpRight: 9245-9335
+DeathLeftBazooka: 9345-9441
+DeadLeft: 9450-9465
+GetBackUpLeft: 9475-9580
+ReloadSciFiBazooka: 9590-9775
+ReloadBazooka: 9785-9945

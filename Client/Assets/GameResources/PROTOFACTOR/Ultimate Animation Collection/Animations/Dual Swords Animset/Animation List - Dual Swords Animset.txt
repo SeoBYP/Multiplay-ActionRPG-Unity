@@ -1,0 +1,206 @@
+This list is in case you purchased this animation set to use in another engine or application. It is for Protof-Actor@DualSwordsAnimset.fbx
+
+
+Animation List:
+
+DrawDualSwords: 10-130
+IdleBreathe1DualSwords: 140-205
+IdleBreathe2DualSwords: 215-280
+IdleLookAroundDualSwords: 295-415
+WarmUp1DualSwords: 425-505
+Taunt1DualSwords: 515-605
+Taunt2DualSwords: 615-705
+Taunt3DualSwords: 715-790
+Taunt4DualSwords: 800-850
+Taunt5DualSwords: 860-930
+WarmUp2DualSwords: 940-1035
+IdleCombatDualSwords: 1045-1075
+PutBackDualSwords: 1085-1205
+IdleCrouchDualSwords: 1215-1275
+
+
+Walk1DualSwords: 1285-1325
+WalkForwardDualSwords: 1335-1375
+WalkBackwardsDualSwords: 1385-1425
+WalkForwardLeftDualSwords: 1435-1475
+WalkBackwardsRightDualSwords: 1485-1525
+WalkForwardRightDualSwords: 1535-1575
+WalkBackwardsLeftDualSwords: 1585-1625
+WalkRightDualSwords: 1635-1675
+WalkLeftDualSwords: 1685-1725
+Walk2DualSwords: 1735-1775
+
+JogDualSwords: 1785-1810
+JogFastDualSwords: 1820-1845
+RunFastDualSwords: 1855-1872
+
+RunForwardDualSwords: 1885-1903
+RunBackwardsDualSwords: 1915-1933
+RunLeft1DualSwords: 1945-1963
+RunRight1DualSwords: 1975-1993
+RunStrafeRight1DualSwords: 2005-2029
+RunStrafeLeft1DualSwords: 2040-2064
+RunStrafeRight2DualSwords: 2075-2099
+RunStrafeLeft2DualSwords: 2110-2134
+RunLeft2DualSwords: 2145-2163
+RunRight2DualSwords: 2175-2193
+RunForwardLeftDualSwords: 2205-2223
+RunBackwardsRightDualSwords: 2235-2253
+RunForwardRightDualSwords: 2265-2283
+RunBackwardsLeftDualSwords: 2295-2313
+
+CrouchForwardDualSwords: 2325-2375
+CrouchBackwardsDualSwords: 2385-1435
+CrouchLeftDualSwords: 2445-2495
+CrouchRightDualSwords: 2505-2555
+CrouchForwardLeftDualSwords: 2565-2615
+CrouchBackwardsRightDualSwords: 2625-2675
+CrouchForwardRightDualSwords: 2685-2735
+CrouchBackwardsLeftDualSwords: 2745-2795
+
+Walk1DualSwords_RM: 2805-2845
+WalkForwardDualSwords_RM: 2855-2895
+WalkBackwardsDualSwords_RM: 2905-2945
+WalkForwardLeftDualSwords_RM: 2955-2995
+WalkBackwardsRightDualSwords_RM: 3005-3045
+WalkForwardRightDualSwords_RM: 3055-3095
+WalkBackwardsLeftDualSwords_RM: 3105-3145
+WalkRightDualSwords_RM: 3155-3195
+WalkLeftDualSwords_RM: 3205-3245
+Walk2DualSwords_RM: 3255-3295
+
+JogDualSwords_RM: 3305-3330
+JogFastDualSwords_RM: 3340-3365
+RunFastDualSwords_RM: 3375-3392
+
+RunForwardDualSwords_RM: 3405-3423
+RunBackwardsDualSwords_RM: 3435-3453
+RunLeft1DualSwords_RM: 3465-3483
+RunRight1DualSwords_RM: 3495-3513
+RunStrafeRight1DualSwords_RM: 3525-3549
+RunStrafeLeft1DualSwords_RM: 3560-3584
+RunStrafeRight2DualSwords_RM: 3595-3619
+RunStrafeLeft2DualSwords_RM: 3630-3654
+RunLeft2DualSwords_RM: 3665-3683
+RunRight2DualSwords_RM: 3695-3713
+RunForwardLeftDualSwords_RM: 3725-3743
+RunBackwardsRightDualSwords_RM: 3755-3773
+RunForwardRightDualSwords_RM: 3785-3803
+RunBackwardsLeftDualSwords_RM: 3815-3833
+
+CrouchForwardDualSwords_RM: 3845-3895
+CrouchBackwardsDualSwords_RM: 3905-3955
+CrouchLeftDualSwords_RM: 3965-4015
+CrouchRightDualSwords_RM: 4025-4075
+CrouchForwardLeftDualSwords_RM: 4085-4135
+CrouchBackwardsRightDualSwords_RM: 4145-4195
+CrouchForwardRightDualSwords_RM: 4205-4255
+CrouchBackwardsLeftDualSwords_RM: 4265-4315
+
+Attack1DualSwords: 4325-4355
+Attack2DualSwords: 4365-4395
+Attack3DualSwords: 4405-4435
+Attack4DualSwords: 4445-4480
+Attack5DualSwords: 4490-4530
+2HitCombo1DualSwords: 4540-4595
+3HitCombo1DualSwords: 4610-4680
+3HitCombo2DualSwords: 4690-4750
+3HitCombo3DualSwords: 4760-4820
+3HitCombo4DualSwords: 4830-4900
+Attack6DualSwords: 4910-4955
+Attack7DualSwords: 4965-5010
+Attack8DualSwords: 5020-5055
+Attack9DualSwords: 5065-5105
+GotToSpinAttackA1DualSwords: 5115-5130
+SinAttackADualSwords: 5140-5155
+GoToSpinAttackA2DualSwords: 5165-5185
+2HitCombo2DualSwords: 5195-5250
+3HitCombo5DualSwords: 5260-5330
+4HitCombo1DualSwords: 5340-5410
+5HitCombo1DualSwords: 5420-5485
+5HitCombo2DualSwords: 5495-5570
+2HitCombo3DualSwords: 5580-5635
+4HitCombo2DualSwords: 5645-5705
+2HitCombo4DualSwords: 5715-5750
+2HitCombo5DualSwords: 5760-5800
+Attack10DualSwords: 5810-5865
+GoToSpinAttackBDualSwords: 5875-5890
+SpinAttackBDualSwords: 5905-5920
+2HitCombo6DualSwords: 5930-5980
+2HitCombo7DualSwords: 5990-6045
+2HitCombo8DualSwords: 6055-6105
+2HitCombo9DualSwords: 6115-6160
+2HitCombo10_DualSwords: 6170-6220
+Attack11DualSwords: 6230-6280
+
+Attack1DualSwords_RM: 6290-6320
+Attack2DualSwords_RM: 6330-6360
+Attack3DualSwords_RM: 6370-6400
+Attack4DualSwords_RM: 6410-6445
+Attack5DualSwords_RM: 6455-6495
+2HitCombo1DualSwords_RM: 6505-6560
+3HitCombo1DualSwords_RM: 6575-6645
+3HitCombo2DualSwords_RM: 6655-6715
+3HitCombo3DualSwords_RM: 6725-6785
+3HitCombo4DualSwords_RM: 6795-6865
+Attack6DualSwords_RM: 6875-6920
+Attack7DualSwords_RM: 6930-6975
+Attack8DualSwords_RM: 6985-7020
+Attack9DualSwords_RM: 7030-7070
+GotToSpinAttackA1DualSwords_RM: 7080-7095
+SinAttackADualSwords_RM: 7105-7120
+GoToSpinAttackA2DualSwords_RM: 7130-7150
+2HitCombo2DualSwords_RM: 7160-7215
+3HitCombo5DualSwords_RM: 7225-7295
+4HitCombo1DualSwords_RM: 7305-7375
+5HitCombo1DualSwords_RM: 7385-7450
+5HitCombo2DualSwords_RM: 7460-7535
+2HitCombo3DualSwords_RM: 7545-7600
+4HitCombo2DualSwords_RM: 7610-7670
+2HitCombo4DualSwords_RM: 7680-7715
+2HitCombo5DualSwords_RM: 7725-7765
+Attack10DualSwords_RM: 7775-7830
+GoToSpinAttackBDualSwords_RM: 7840-7855
+SpinAttackBDualSwords_RM: 7870-7885
+2HitCombo6DualSwords_RM: 7895-7945
+2HitCombo7DualSwords_RM: 7955-8010
+2HitCombo8DualSwords_RM: 8020-8070
+2HitCombo9DualSwords_RM: 8080-8125
+2HitCombo10DualSwords_RM: 8135-8185
+Attack11DualSwords_RM: 8195-8245
+
+IdleBlockDualSwords: 8255-8315
+BlockLightDualSwords: 8325-8345
+BlockMediumDualSwords: 8355-8380
+BlockHeavyDualSwords: 8390-8425
+
+ParryRightDualSwords: 8435-8460
+ParryLeftDualSwords: 8470-8495
+ParryUpDualSwords: 8505-8530
+ParryLowDualSwords: 8540-8565
+
+GetHitFrontLightDualSwords: 8575-8605
+GetHitBackLightDualSwords: 8615-8645
+GetHitLeftLightDualSwords: 8655-8685
+GetHitRightLightDualSwords: 8595-8725
+GetHitFrontHeavyDualSwords: 8735-8775
+GetHitBackHeavyDualSwords: 8785-8830
+GetHitLeftHeavyDualSwords: 8840-8880
+GetHitRightHeavyDualSwords: 8890-8925
+GetHitFrontHeavyDualSwords_RM: 8935-8975
+GetHitBackHeavyDualSwords_RM: 8985-9030
+GetHitLeftHeavyDualSwords_RM: 9040-9080
+GetHitRightHeavyDualSwords_RM: 9090-9125
+
+DeathFrontDualSwords: 9135-9222
+DeadFront: 9235-9250
+GetBackUpFront: 9260-9341
+DeathBackDualSwords: 9350-9445
+DeadBack: 9455-9470
+GetBackUpBack: 9480-9576
+DeathRightDualSwords: 9585-9660
+DeadRight: 9670-9685
+GetBackUpRight: 9695-9785
+DeathLeftDualSwords: 9795-9891
+DeadLeft: 9900-9915
+GetBackUpLeft: 9925-10030

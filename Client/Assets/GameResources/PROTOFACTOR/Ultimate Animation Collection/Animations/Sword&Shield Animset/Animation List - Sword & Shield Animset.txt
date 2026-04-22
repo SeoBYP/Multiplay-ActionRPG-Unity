@@ -1,0 +1,152 @@
+This list is in case you purchased this animation set to use in another engine or application. It is for Protof-Actor@Sword&ShieldAnimset.fbx
+
+
+Animation List:
+
+DrawSword&Shield1: 10-155
+PutBackSword&Shield1: 165-275
+DrawSword&Shield2: 285-395
+PutBackSword&Shield2: 405-510
+CrouchIdleBreathe: 520-580
+CrouchIdleLookAround: 590-800
+IdleBreathe: 810-870
+IdleLookAround: 880-1000
+IdleGetReady: 1010-1140
+IdleTaunt1: 1150-1230
+IdleTaunt2: 1240-1335
+IdleTaunt3: 1345-1455
+IdleCombat: 1465-1495
+
+WalkNormal1: 1510-1550
+WalkNormal2: 1560-1600
+Run: 1610-1630
+Sprint: 1640-1655
+
+WalkForward: 1665-1705
+WalkBackwards: 1715-1755
+WalkRight: 1765-1805
+WalkLeft: 1815-1855
+WalkForwardLeft: 1865-1905
+WalkBackwardsRight: 1915-1955
+WalkForwardRight: 1965-2005
+WalkBackwardsLeft: 2015-2055
+
+RunForward: 2065-2083
+RunBackwards: 2095-2113
+RunLeft: 2125-2143
+RunRight: 2155-2173
+RunForwardLeft: 2185-2203
+RunBackwardsRight: 2215-2233
+RunFrowardRight: 2245-2263
+RunBackwardsLeft: 2275-2293
+
+CrouchForward: 2305-2355
+CrouchBackwards: 2365-2415
+CrouchRight: 2425-2475
+CrouchLeft: 2485-2535
+CrouchForwardLeft: 2545-2595
+CrouchBackwardsRight: 2605-2655
+CrouchForwardRight: 2665-2715
+CrouchBackwardsLeft: 2725-2775
+
+WalkNormal1_RM: 2785-2825
+WalkNormal2_RM: 2835-2875
+Run_RM: 2885-2905
+Sprint_RM: 2915-2930
+
+WalkForward_RM: 2940-2980
+WalkBackwards_RM: 2990-3030
+WalkRight_RM: 3040-3080
+WalkLeft_RM: 3090-3130
+WalkForwardLeft_RM: 3140-3180
+WalkBackwardsRight_RM: 3190-3230
+WalkForwardRight_RM: 3240-3280
+WalkBackwardsLeft_RM: 3290-3330
+
+RunForward_RM: 3340-3358
+RunBackwards_RM: 3370-3388
+RunLeft_RM: 3400-3418
+RunRight_RM: 3430-3448
+RunForwardLeft_RM: 3460-3478
+RunBackwardsRight_RM: 3490-3508
+RunFrowardRight_RM: 3520-3538
+RunBackwardsLeft_RM: 3550-3568
+
+CrouchForward_RM: 3580-3630
+CrouchBackwards_RM: 3640-3690
+CrouchRight_RM: 3700-3750
+CrouchLeft_RM: 3760-3810
+CrouchForwardLeft_RM: 3820-3870
+CrouchBackwardsRight_RM: 3880-3930
+CrouchForwardRight_RM: 3940-3990
+CrouchBackwardsLeft_RM: 4000-4050
+
+ParryHigh1: 4060-4075
+BlockMedium1:4085-4105
+BlockHeavy1: 4115-4135
+
+SwordAttack1: 4145-4175
+swordAttack2: 4185-4220
+SwordAttack3: 4230-4280
+3hitCombo1: 4290-4375
+3HitCombo2: 4385-4465
+4HitCombo: 4475-4590
+FrontKick1: 4600-4635
+FrontKick2: 4645-4685
+ShieldAttack1: 4695-4730
+Sword&Shield2HitCombo1A: 4740-4790
+Sword&Shield2HitCombo1B: 4800-4845
+ShieldAttack2: 4855-4895
+ShieldAttack3: 4905-4945
+Shield&Kick2HitCombo: 4955-5015
+Sword&Shield2HitCombo2: 5025-5080
+Sword&Shield2HitCombo3: 5090-5150
+
+3hitCombo1_RM: 5160-5245
+3HitCombo2_RM: 5255-5335
+4HitCombo_RM: 5345-5460
+FrontKick1_RM: 5470-5505
+FrontKick2_RM: 5515-5555
+ShieldAttack1_RM: 5565-5600
+Sword&Shield2HitCombo1A_RM: 5610-5660
+Sword&Shield2HitCombo1B_RM: 5670-5715
+ShieldAttack2_RM: 5725-5765
+ShieldAttack3_RM: 5775-5815
+Shield&Kick2HitCombo_RM: 5825-5885
+Sword&Shield2HitCombo2_RM: 5895-5950
+Sword&Shield2HitCombo3_RM: 5960-6020
+
+ParryHight2: 6030-6055
+ParryLeft: 6065-6090
+ParryRight: 6100-6125
+ParryLow: 6135-6160
+
+BlockLight: 6170-6190
+BlockMedium2: 6200-6230
+BlockHeavy2: 6240-6270
+
+GetHitLightFront: 6280-6310
+GetHitLightBack: 6320-6350
+GetHitLightRight: 6360-6390
+GetHitLightLeft: 6400-6430
+GetHitHeavyFront: 6440-6480
+GetHitHeavyBack: 6490-6530
+GetHitHeavyLeft: 6540-6580
+GetHitHeavyRight: 6590-6640
+GetHitHeavyFront_RM: 6650-6690
+GetHitHeavyBack_RM: 6700-6740
+GetHitHeavyLeft_RM: 6750-6790
+GetHitHeavyRight_RM: 6800-6850
+
+DeathFront: 6860-6947
+DeadFront: 6960-6975
+GetBackUpFront: 6985-7066
+DeathBack: 7075-7170
+DeadBack: 7180-7195
+GetBackUpBack: 7205-7301
+DeathRight: 7310-7385
+DeadRight: 7395-7410
+GetBackUpRight: 7420-7510
+DeathLeft: 7520-7616
+DeadLeft: 7625-7640
+GetBackUpLeft: 7650-7755
