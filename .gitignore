@@ -554,11 +554,11 @@ ServerAll/SocketServer/SocketServer/obj
 ServerAll/Temp/obj
 
 # Exclude oversized UI source assets from GitHub pushes.
-/Client/Assets/GameResources/MedievalKingdomUI/Artworks/Map_elements/World_map_16k.png
-/Client/Assets/GameResources/MedievalKingdomUI/Artworks/Map_elements/World_map_8k.psb
-/Client/Assets/GameResources/MedievalKingdomUI/Artworks/PSD_source/Colbs.psd
-/Client/Assets/GameResources/MedievalKingdomUI/Artworks/PSD_source/Options_slider.psd
-/Client/Assets/GameResources/MedievalKingdomUI/Artworks/PSD_source/RTS_Bar.psd
-/Client/Assets/GameResources/MedievalKingdomUI/Artworks/PSD_source/Skill_scroll.psd
-/Client/Assets/GameResources/Artsystack - Fantasy RPG GUI/PSD File/tap_to_start.psd
-/Client/Assets/GameResources/Artsystack - Fantasy RPG GUI/PSD File/title.psd
+/Client/Assets/Art/MedievalKingdomUI/Artworks/Map_elements/World_map_16k.png
+/Client/Assets/Art/MedievalKingdomUI/Artworks/Map_elements/World_map_8k.psb
+/Client/Assets/Art/MedievalKingdomUI/Artworks/PSD_source/Colbs.psd
+/Client/Assets/Art/MedievalKingdomUI/Artworks/PSD_source/Options_slider.psd
+/Client/Assets/Art/MedievalKingdomUI/Artworks/PSD_source/RTS_Bar.psd
+/Client/Assets/Art/MedievalKingdomUI/Artworks/PSD_source/Skill_scroll.psd
+/Client/Assets/Art/Artsystack - Fantasy RPG GUI/PSD File/tap_to_start.psd
+/Client/Assets/Art/Artsystack - Fantasy RPG GUI/PSD File/title.psd
