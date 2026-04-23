@@ -1,6 +1,5 @@
 using Game.Network.Https;
 using Script.System.Auth;
-using UnityEngine;
 using VContainer;
 using VContainer.Unity;
 

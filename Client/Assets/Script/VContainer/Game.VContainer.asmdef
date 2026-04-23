@@ -1,0 +1,4 @@
+{
+	"name": "Game.VContainer",
+	"references":[ "GUID:b0214a6008ed146ff8f122a6a9c2f6cc", "GUID:b25f5ef11ad5ac74faa603bbafead339", "GUID:f51ebe6a0ceec4240a699833d6309b23", "GUID:b15f0d85503884943ac44c9fe6a5e9fc", "GUID:0f28c48a1de876f4d93d285de7d17cb9" ]
+}
