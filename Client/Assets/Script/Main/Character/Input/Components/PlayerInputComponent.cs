@@ -12,11 +12,15 @@ namespace Game.Main.Character.Input
 
         private bool _subscribed;
 
+        private void Awake()
+        {
+            _inputWriter = GetComponent<ICharacterInputWriter>();
+        }
+        
         [Inject]
-        private void Construct(PlayerInputActions inputActions, ICharacterInputWriter inputWriter)
+        private void Construct(PlayerInputActions inputActions)
         {
             _inputActions = inputActions;
-            _inputWriter = inputWriter;
         }
 
         private void Start()

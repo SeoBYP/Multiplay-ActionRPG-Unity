@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Game.Main.Character.Input
 {
-    public class CharacterInputBuffer : ICharacterInputSource, ICharacterInputWriter
+    public class CharacterInputBuffer :MonoBehaviour, ICharacterInputSource, ICharacterInputWriter
     {
         public CharacterInputFrame Current { get; private set; } = CharacterInputFrame.Empty;
         

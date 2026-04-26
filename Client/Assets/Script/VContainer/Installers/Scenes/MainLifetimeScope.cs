@@ -1,3 +1,4 @@
+using Game.Main.Character;
 using Game.Main.Character.Input;
 using Game.Main.Input;
 using VContainer;
@@ -13,11 +14,9 @@ namespace Game.Installers.Scenes
 
             builder.Register<PlayerInputActions>(Lifetime.Scoped)
                 .AsSelf();
-            
-            builder.Register<CharacterInputBuffer>(Lifetime.Scoped)
-                .AsSelf()
-                .As<ICharacterInputSource>()
-                .As<ICharacterInputWriter>();
+                
+            builder.RegisterInstance(new LocomotionSettings());
+            builder.Register<ILocomotionStateFactory, LocomotionStateFactory>(Lifetime.Scoped);
             
             builder.RegisterEntryPoint<MainSceneInitializer>();
         }

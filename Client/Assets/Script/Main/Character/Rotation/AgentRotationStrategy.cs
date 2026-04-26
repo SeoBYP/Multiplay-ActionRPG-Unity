@@ -1,0 +1,26 @@
+using UnityEngine;
+
+namespace Game.Main.Character
+{
+    public abstract class AgentRotationStrategy : MonoBehaviour
+    {
+        public float RotationCalculation(Vector2 movementInput, Transform agentTransform, ref float rotationVelocity,
+            float RotationSmoothTime, float targetRotation)
+        {
+            Vector3 inputDirection = new Vector3(movementInput.x, 0.0f, movementInput.y).normalized;
+            if (movementInput != Vector2.zero)
+            {
+                targetRotation = RotationStrategy(inputDirection);
+                float rotation = Mathf.SmoothDampAngle(agentTransform.eulerAngles.y, targetRotation, ref rotationVelocity,
+                    RotationSmoothTime);
+
+
+                agentTransform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
+            }
+
+            return targetRotation;
+        }
+
+        protected abstract float RotationStrategy(Vector3 inputDirection);
+    }
+}
