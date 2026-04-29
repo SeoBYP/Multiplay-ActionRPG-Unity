@@ -33,6 +33,13 @@ Key decisions:
 - `StateMachineBuilder` should read config data and assemble states/transitions.
 - Character-specific state availability should live in `CharacterStateConfig` assets.
 
+## Coding Conventions
+
+- Test method names should be written in Korean when the test describes gameplay or domain behavior.
+- Prefer readable scenario-style Korean names for tests, such as `일반공격_어빌리티는_대상_체력을_감소시킨다`.
+- Keep production code identifiers in the existing project style unless the surrounding code already uses Korean.
+- Avoid creating test namespaces that include `System` as a namespace segment because it can shadow the global `System` namespace in Unity/C# tests.
+
 ## Important Files
 
 State config and state construction:

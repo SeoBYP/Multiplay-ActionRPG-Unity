@@ -11,65 +11,20 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="bb01d1c1-9c2f-400e-8c4a-6f6ed31aab58" name="변경" comment="">
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/CharacterAgent.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/NPCCharacterAgent.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/PlayerCharacterAgent.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/CharacterHitEventReceiver.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Movement/IAgentMotor.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Movement/NavMeshMotor.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/State/AttackState.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Configs/CharacterStateConfig.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Configs/CharacterStateId.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Configs/StateDefinition.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Configs/StateKind.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Factory/IStateFactory.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Factory/StateFactory.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/AttackToGroundTransition.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Weapon/HitDetector.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/Ability.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/AbilitySystemComponent.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/AbilitySystemUtils.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/GameplayAttribute/EGameplayAttribute.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/GameplayAttribute/GameplayAttribute.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/GameplayEffects/GameplayEffect.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/GameplayModifier/EModifierType.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/GameplayModifier/GameplayAttributeModifier.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/GameplayAbilitySystem/Ability/Ability.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.claude/worktrees/awesome-archimedes" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../AGENT.MD" beforeDir="false" afterPath="$PROJECT_DIR$/../AGENT.MD" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Client/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Client/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Art/PROTOFACTOR/Ultimate Animation Collection/Animations/Crowd Animset/Prop/Materials/M_ParkBenchProp.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Art/PROTOFACTOR/Ultimate Animation Collection/Animations/Crowd Animset/Prop/Materials/M_ParkBenchProp.mat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/Animations/Player/PlayerController.controller" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/Animations/Player/PlayerController.controller" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scenes/Main.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Main.unity" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/CharacterAgent.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/CharacterAgentAnimations.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/CharacterAgentAnimations.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/CharacterLocomotionContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Factory/CharacterStateContext.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/CharacterMotor.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Movement/CharacterMotor.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/ILocomotionStateFactory.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/CharacterInputBuffer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/CharacterInputBuffer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/CharacterInputFrame.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/CharacterInputFrame.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/Components/PlayerInputComponent.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/Components/PlayerInputComponent.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/InputSource/ICharacterInputSource.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/InputSource/ICharacterInputSource.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/InputWriter/ICharacterInputWriter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/InputWriter/ICharacterInputWriter.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/LocomotionStateFactory.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/State.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/State/State.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/FallToLandTransition.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/FallToLandTransition.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/GroundToInteractTransition.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/GroundToInteractTransition.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/GroundedToFallTransition.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/GroundedToFallTransition.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/GroundedToJumpTransition.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/GroundedToJumpTransition.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/ITransitionRule.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/ITransitionRule.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/InteractToGroundTransition.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/InteractToGroundTransition.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/JumpToFallTransition.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/JumpToFallTransition.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/LandToMovementTransition.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/LandToGroundTransition.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Game.Main.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Game.Main.asmdef" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/Auth/AuthResult.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/AuthResult.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/Auth/AuthService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/AuthService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/Auth/AuthSession.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/AuthSession.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/Auth/IAuthService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/IAuthService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/Auth/TokenStorage.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/TokenStorage.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/Installers/Scenes/MainLifetimeScope.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/Installers/Scenes/MainLifetimeScope.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Settings/DefaultVolumeProfile.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Settings/DefaultVolumeProfile.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Packages/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/manifest.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Packages/packages-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/packages-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ProjectSettings/TagManager.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/TagManager.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ProjectSettings/VFXManager.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/VFXManager.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/CharacterHitEventReceiver.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/CharacterHitEventReceiver.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/Ability.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/AbilitySystemComponent.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/GameplayAbilitySystem/AbilitySystemComponent.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/AbilitySystemUtils.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/GameplayAbilitySystem/AbilitySystemUtils.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/GameplayAttribute/EGameplayAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/GameplayAbilitySystem/Attribute/EGameplayAttribute.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/GameplayAttribute/GameplayAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/GameplayAbilitySystem/Attribute/GameplayAttribute.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/GameplayEffects/GameplayEffect.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/GameplayAbilitySystem/Effects/GameplayEffect.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/GameplayModifier/EModifierType.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/GameplayAbilitySystem/Modifier/EModifierType.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/GameplayModifier/GameplayAttributeModifier.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/GameplayAbilitySystem/Modifier/GameplayAttributeModifier.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Game.Tests.EditMode.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Game.Tests.EditMode.asmdef" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -99,6 +54,7 @@
   }
 }</component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/92141d699ce3473fb519a33c5075e6ce9400/1c/4deb0715/AccessibilityManager.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/3ea01e77be99618395f448b16bd7cc2bd4248bd9e5d8474964b2d97f39c5d74/System.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Editor/SceneToolbarButton.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Script/GUI/Common/FaderCanvas.cs" root0="FORCE_HIGHLIGHTING" />
@@ -238,7 +194,7 @@
       <workItem from="1777288562831" duration="9963000" />
       <workItem from="1777374543592" duration="1080000" />
       <workItem from="1777389764068" duration="2239000" />
-      <workItem from="1777458093991" duration="9291000" />
+      <workItem from="1777458093991" duration="11073000" />
     </task>
     <servers />
   </component>
@@ -270,19 +226,6 @@
           <properties exception="System.Threading.ThreadAbortException" breakIfHandledByOtherCode="false" displayValue="System.Threading.ThreadAbortException" />
           <option name="timeStamp" value="3" />
         </breakpoint>
-        <line-breakpoint enabled="true" type="DotNet Breakpoints">
-          <url>file://$PROJECT_DIR$/Assets/Script/Main/Character/CharacterHitEventReceiver.cs</url>
-          <line>46</line>
-          <properties documentPath="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client\Assets\Script\Main\Character\CharacterHitEventReceiver.cs" containingFunctionPresentation="메서드 'PerformHit'">
-            <startOffsets>
-              <option value="1191" />
-            </startOffsets>
-            <endOffsets>
-              <option value="1271" />
-            </endOffsets>
-          </properties>
-          <option name="timeStamp" value="5" />
-        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>

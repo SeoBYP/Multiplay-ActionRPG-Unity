@@ -3,6 +3,10 @@ using System;
 namespace Script.System.GamePlayAbilitySystem
 {
     [Serializable]
+    /// <summary>
+    /// GameplayEffect가 Attribute 하나에 적용할 실제 연산 정보다.
+    /// 예: Health에 -10 Additive를 적용하면 체력이 10 감소한다.
+    /// </summary>
     public struct GameplayAttributeModifier
     {
         // 연산할 스텟 대상

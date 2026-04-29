@@ -4,6 +4,10 @@ using UnityEngine;
 namespace Script.System.GamePlayAbilitySystem
 {
     [Serializable]
+    /// <summary>
+    /// Health, Mana 같은 단일 스탯 값이다.
+    /// Unity 직렬화를 위해 field는 SerializeField로 보관하고 외부에는 읽기 전용으로 노출한다.
+    /// </summary>
     public class GameplayAttribute
     {
         [SerializeField] private EGameplayAttribute _attributeType;
@@ -26,6 +30,7 @@ namespace Script.System.GamePlayAbilitySystem
 
         public void ApplyModifier(GameplayAttributeModifier modifier)
         {
+            // 현재 값은 항상 0~MaxValue 범위 안에 머물도록 clamp한다.
             switch (modifier.ModifierType)
             {
                 case EModifierType.Additive:
@@ -39,6 +44,7 @@ namespace Script.System.GamePlayAbilitySystem
 
         public void Validate()
         {
+            // Inspector에서 잘못된 값이 들어와도 런타임 Attribute 범위가 깨지지 않게 보정한다.
             _maxValue = Mathf.Max(0, _maxValue);
             _baseValue = Mathf.Clamp(_baseValue, 0, _maxValue);
             _currentValue = Mathf.Clamp(_currentValue, 0, _maxValue);
