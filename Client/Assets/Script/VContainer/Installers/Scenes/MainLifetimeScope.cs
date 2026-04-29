@@ -1,5 +1,4 @@
 using Game.Main.Character;
-using Game.Main.Character.Input;
 using Game.Main.Input;
 using VContainer;
 using VContainer.Unity;
@@ -14,10 +13,11 @@ namespace Game.Installers.Scenes
 
             builder.Register<PlayerInputActions>(Lifetime.Scoped)
                 .AsSelf();
-                
+
             builder.RegisterInstance(new LocomotionSettings());
-            builder.Register<ILocomotionStateFactory, LocomotionStateFactory>(Lifetime.Scoped);
-            
+            builder.Register<IStateFactory, StateFactory>(Lifetime.Scoped);
+            builder.Register<IStateMachineBuilder, StateMachineBuilder>(Lifetime.Scoped);
+
             builder.RegisterEntryPoint<MainSceneInitializer>();
         }
     }

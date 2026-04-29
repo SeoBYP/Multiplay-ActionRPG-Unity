@@ -8,7 +8,7 @@ namespace Game.Main.Character
         private readonly ICharacterInputSource _inputSource;
         private float _jumpTimeout;
 
-        public Type NextState => typeof(JumpState);
+        public StateKind NextState => StateKind.Jump;
 
         public GroundedToJumpTransition(ICharacterInputSource inputSource, float jumpTimeout)
         {

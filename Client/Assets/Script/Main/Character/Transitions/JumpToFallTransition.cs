@@ -4,7 +4,7 @@ namespace Game.Main.Character
 {
     public class JumpToFallTransition : ITransitionRule
     {
-        public Type NextState => typeof(FallState);
+        public StateKind NextState => StateKind.Fall;
 
         private CharacterMotor m_motor;
         //Delay to let the JumpSate call Move() on the m_mover so that we don't immediately

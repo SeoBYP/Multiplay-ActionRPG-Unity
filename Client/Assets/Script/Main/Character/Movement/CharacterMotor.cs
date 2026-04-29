@@ -3,7 +3,7 @@ using VContainer;
 
 namespace Game.Main.Character
 {
-    public class CharacterMotor : MonoBehaviour
+    public class CharacterMotor : MonoBehaviour , IAgentMotor
     {
         private LocomotionSettings _settings;
         

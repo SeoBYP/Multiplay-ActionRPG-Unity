@@ -5,7 +5,7 @@ namespace Game.Main.Character
 {
     public class FallToLandTransition : ITransitionRule
     {
-        public Type NextState => typeof(LandState);
+        public StateKind NextState => StateKind.Land;
         
         private GroundedDetector m_groundedDetector;
 

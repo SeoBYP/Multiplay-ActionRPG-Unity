@@ -9,7 +9,8 @@ namespace Game.Main.Character
         Jump,
         Fall,
         Land,
-        Interact
+        Interact,
+        Attack,
     }
 
     public enum AnimationFloatType
@@ -36,6 +37,7 @@ namespace Game.Main.Character
         [SerializeField] private string m_animationJumpTrigger;
         [SerializeField] private string m_animationLandTrigger;
         [SerializeField] private string m_animationInteractTrigger;
+        [SerializeField] private string m_animationAttackTrigger;
 
         // Mapping enums to animator parameter names
         private Dictionary<AnimationFloatType, string> floatParameters;
@@ -65,7 +67,8 @@ namespace Game.Main.Character
                 { AnimationTriggerType.Jump, m_animationJumpTrigger },
                 { AnimationTriggerType.Fall, m_animationFallTrigger },
                 { AnimationTriggerType.Land, m_animationLandTrigger },
-                { AnimationTriggerType.Interact, m_animationInteractTrigger }
+                { AnimationTriggerType.Interact, m_animationInteractTrigger },
+                { AnimationTriggerType.Attack , m_animationAttackTrigger}
                 // Add more mappings here
             };
         }

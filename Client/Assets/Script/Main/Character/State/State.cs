@@ -7,7 +7,7 @@ namespace Game.Main.Character
     {
         protected List<ITransitionRule> _transitionRules = new();
         
-        public event Action<Type> OnTransition;
+        public event Action<StateKind> OnTransition;
         
         public abstract void Enter();
 

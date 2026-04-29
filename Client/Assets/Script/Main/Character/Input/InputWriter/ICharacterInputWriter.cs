@@ -10,5 +10,6 @@ namespace Game.Main.Character.Input
         void PressJump();
         void PressDodge();
         void PressInteract();
+        void PressAttack();
     }
 }

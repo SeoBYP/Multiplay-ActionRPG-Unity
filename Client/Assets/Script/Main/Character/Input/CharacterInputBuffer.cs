@@ -33,6 +33,15 @@ namespace Game.Main.Character.Input
             return true;
         }
 
+        public bool ConsumeAttackPressed()
+        {
+            if (!Current.AttackPressed)
+                return false;
+
+            Current = Current.WithAttack(false);
+            return true;
+        }
+
         public void SetMove(Vector2 move)
         {
             Current = Current.WithMove(move);
@@ -61,6 +70,11 @@ namespace Game.Main.Character.Input
         public void PressInteract()
         {
             Current = Current.WithInteract(true);
+        }
+
+        public void PressAttack()
+        {
+            Current = Current.WithAttack(true);
         }
     }
 }

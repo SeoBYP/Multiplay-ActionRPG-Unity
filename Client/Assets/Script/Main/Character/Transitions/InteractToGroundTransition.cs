@@ -6,7 +6,7 @@ namespace Game.Main.Character
     {
         private float _remainingTime;
 
-        public Type NextState => typeof(GroundState);
+        public StateKind NextState => StateKind.Ground;
 
         public InteractToGroundTransition(float duration)
         {

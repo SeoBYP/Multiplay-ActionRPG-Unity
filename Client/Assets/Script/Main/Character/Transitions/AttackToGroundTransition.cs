@@ -1,18 +1,16 @@
-using System;
-
 namespace Game.Main.Character
 {
-    public class LandToMovementTransition : ITransitionRule
+    public class AttackToGroundTransition : ITransitionRule
     {
         private float _remainingTime;
-
-        public Type NextState => typeof(GroundState);
-
-        public LandToMovementTransition(float duration)
+        
+        public StateKind NextState => StateKind.Ground;
+        
+        public AttackToGroundTransition(float duration)
         {
             _remainingTime = duration;
         }
-
+        
         public bool ShouldTransition(float deltaTime)
         {
             if (_remainingTime <= 0f)

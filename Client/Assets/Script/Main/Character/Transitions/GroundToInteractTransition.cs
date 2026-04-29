@@ -8,7 +8,7 @@ namespace Game.Main.Character
         private readonly ICharacterInputSource _inputSource;
         private readonly InteractionDetector _interactionDetector;
 
-        public Type NextState => typeof(InteractState);
+        public StateKind NextState => StateKind.Interact;
 
         public GroundToInteractTransition(
             ICharacterInputSource inputSource,

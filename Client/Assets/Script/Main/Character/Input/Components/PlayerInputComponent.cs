@@ -46,6 +46,8 @@ namespace Game.Main.Character.Input
             _inputActions.Player.Sprint.canceled += OnSprint;
             _inputActions.Player.Jump.performed += OnJump;
             _inputActions.Player.Jump.canceled += OnJump;
+            _inputActions.Player.Attack.performed += OnAttack;
+            _inputActions.Player.Attack.canceled += OnAttack;
             _inputActions.Player.Interact.performed += OnInteract;
             _inputActions.Player.Interact.canceled += OnInteract;
             _inputActions.Player.Dodge.performed += OnDodge;
@@ -75,6 +77,8 @@ namespace Game.Main.Character.Input
             _inputActions.Player.Sprint.canceled -= OnSprint;
             _inputActions.Player.Jump.performed -= OnJump;
             _inputActions.Player.Jump.canceled -= OnJump;
+            _inputActions.Player.Attack.performed -= OnAttack;
+            _inputActions.Player.Attack.canceled -= OnAttack;
             _inputActions.Player.Interact.performed -= OnInteract;
             _inputActions.Player.Interact.canceled -= OnInteract;
             _inputActions.Player.Dodge.performed -= OnDodge;
@@ -102,6 +106,12 @@ namespace Game.Main.Character.Input
         {
             if (context.performed)
                 _inputWriter.PressInteract();
+        }
+
+        private void OnAttack(InputAction.CallbackContext context)
+        {
+            if (context.performed)
+                _inputWriter.PressAttack();
         }
 
         private void OnJump(InputAction.CallbackContext context)
