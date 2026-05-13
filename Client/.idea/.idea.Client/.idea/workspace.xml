@@ -11,25 +11,114 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="bb01d1c1-9c2f-400e-8c4a-6f6ed31aab58" name="변경" comment="">
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/GameplayAbilitySystem/Ability/Ability.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/FuturePrediction.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Inertialization.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PastTrajectory.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/BlendingMethods.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/Models/BlendBoundaries.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/Models/BlendingResults.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/PoseBlender.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Implementations/ActionPoseFinder.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Implementations/IdlePoseFinder.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Implementations/LoopActionPoseFinder.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Implementations/MotionPoseFinder.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Models/DistanceResult.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Models/FeatureDataNative.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Models/PoseFinderGenericVariables.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/PoseFinder.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseSetters/Implementations/MotionPoseSetter.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseSetters/PoseSetter.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Implementations/ActionQueryComputed.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Implementations/IdleQueryComputed.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Implementations/LoopActionQueryComputed.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Implementations/MotionQueryComputed.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Models/FeaturesComputedNative.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Models/QueryRange.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/QueryComputed.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Implementations/ActionQueryComputedFlow.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Implementations/IdleQueryComputedFlow.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Implementations/LoopActionQueryComputedFlow.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Implementations/MotionQueryComputedFlow.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Models/BonesWeights.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/QueryComputedFlow.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/TrajectoryEstimation.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ActionTagsData.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/AvatarBone.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/CustomAvatar.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/GenericAvatar.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/HumanoidAvatar.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/BoneCharacteristic.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Characteristics.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/CharacteristicsByTag.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ExclusionMasks/ExclusionMaskBase.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ExclusionMasks/GenericExclusionMask.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ExclusionMasks/HumanoidExclusionMask.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/QueriesComputed.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Tags.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Controller/CharacterControllerBase.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/CurrentBoneTransformsValues.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/DataEntities.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/Dataset.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/FeatureData.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/FeatureDataAnim.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/GlobalWeights.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/EnumerableExtensions.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/Float3Extensions.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/GizmosExtensions.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/ListExtensions.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/ObjectExtensions.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/QuaternionExtensions.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/TransformExtensions.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/GetCurrentTransformValues.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Helper/BaseTargetHelper.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Input/InputCustomizable.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/MotionData/MotionData.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/MotionMatching.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/ActionTag.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/ActionTagState.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/IdleTag.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/LoopActionTag.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/Tag.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/TagBase.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/TagRange.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/WarpingMode.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/WarpingType.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Utils/MathUtils.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Utils/SpringUtils.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../.claude/worktrees/awesome-archimedes" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../AGENT.MD" beforeDir="false" afterPath="$PROJECT_DIR$/../AGENT.MD" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Client/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Client/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/CharacterHitEventReceiver.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/CharacterHitEventReceiver.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/Ability.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/AbilitySystemComponent.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/GameplayAbilitySystem/AbilitySystemComponent.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/AbilitySystemUtils.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/GameplayAbilitySystem/AbilitySystemUtils.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/GameplayAttribute/EGameplayAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/GameplayAbilitySystem/Attribute/EGameplayAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/GameplayAttribute/GameplayAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/GameplayAbilitySystem/Attribute/GameplayAttribute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/GameplayEffects/GameplayEffect.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/GameplayAbilitySystem/Effects/GameplayEffect.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/GameplayModifier/EModifierType.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/GameplayAbilitySystem/Modifier/EModifierType.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/GameplayModifier/GameplayAttributeModifier.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/GameplayAbilitySystem/Modifier/GameplayAttributeModifier.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Game.Tests.EditMode.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Game.Tests.EditMode.asmdef" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/Animations/Player/PlayerController.controller" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/Animations/Player/PlayerController.controller" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scenes/Main.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Main.unity" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/CharacterAgent.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/CharacterAgent.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/NPCCharacterAgent.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/NPCCharacterAgent.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/PlayerCharacterAgent.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/PlayerCharacterAgent.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Movement/CharacterMotor.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Movement/CharacterMotor.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Rotation/AgentRotationStrategy.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Rotation/AgentRotationStrategy.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Rotation/NpcRotationStrategy.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Rotation/NpcRotationStrategy.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Rotation/PlayerRotationStrategy.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Rotation/PlayerRotationStrategy.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Factory/StateFactory.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Factory/StateFactory.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/GroundState.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/State/GroundState.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/Game.System.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/Game.System.asmdef" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/AuthGrpcServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/AuthGrpcServiceTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/DungeonLobbyGrpcServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/DungeonLobbyGrpcServiceTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/UserGrpcServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/UserGrpcServiceTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/AuthE2ETests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/AuthE2ETests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/AuthFlowE2ETests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/AuthFlowE2ETests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/ChatE2ETests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/ChatE2ETests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/DungeonLobbyE2ETests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/DungeonLobbyE2ETests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/E2ETestBase.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/E2ETestBase.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/UserE2ETests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/UserE2ETests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Socket/SocketE2ETests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Socket/SocketE2ETests.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CopilotPersistence">
+    <persistenceIdMap>
+      <entry key="_C:/Users/user/Github/Multiplay-ActionRPG-Unity/Client" value="38i2hpMOD9oxUiZeQYZfcUsvI6R" />
+    </persistenceIdMap>
   </component>
   <component name="DpaMonitoringSettings">
     <option name="firstShow" value="false" />
@@ -54,8 +143,12 @@
   }
 }</component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/811b8c12648e4057a967ae53c620383f77110/97/10b9e2af/Characteristics.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/92141d699ce3473fb519a33c5075e6ce9400/1c/4deb0715/AccessibilityManager.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/98c92c324c534d4db338e4efad34964535800/5b/a89f0f39/HumanBodyBones.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/3ea01e77be99618395f448b16bd7cc2bd4248bd9e5d8474964b2d97f39c5d74/System.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/../../MotionMatching/Assets/QuanticBrains/MotionMatching/Scripts/Input/CharacterController/CharacterControllerBase.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/../../MotionMatching/Assets/QuanticBrains/MotionMatching/Scripts/Input/CharacterController/CharacterControllerBasicMotion.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Editor/SceneToolbarButton.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Script/GUI/Common/FaderCanvas.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Agent/CharacterAgent.cs" root0="FORCE_HIGHLIGHTING" />
@@ -86,10 +179,57 @@
     <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/ITransitionRule.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Weapon/HitDetector.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Weapon/WeaponHelper.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/Ability.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/GamePlayAbilitySystem/GameplayEffects/GameplayEffect.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/FuturePrediction.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Inertialization.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PastTrajectory.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/BlendingMethods.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/Models/BlendBoundaries.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/Models/BlendingResults.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Models/DistanceResult.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Models/PoseFinderGenericVariables.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/PoseFinder.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseSetters/Implementations/MotionPoseSetter.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Models/FeaturesComputedNative.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Models/QueryRange.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/QueryComputed.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/QueryComputedFlow.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/TrajectoryEstimation.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/GenericAvatar.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/HumanoidAvatar.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/BoneCharacteristic.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Characteristics.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/CharacteristicsByTag.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ExclusionMasks/GenericExclusionMask.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ExclusionMasks/HumanoidExclusionMask.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/QueriesComputed.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/CurrentBoneTransformsValues.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/DataEntities.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/Dataset.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/FeatureData.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/FeatureDataAnim.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/GlobalWeights.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/Float3Extensions.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/GizmosExtensions.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/ListExtensions.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/QuaternionExtensions.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/GetCurrentTransformValues.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Helper/BaseTargetHelper.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/MotionData/MotionData.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/MotionMatching.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/ActionTag.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/ActionTagState.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/IdleTag.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/LoopActionTag.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/Tag.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/TagBase.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/TagRange.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/WarpingMode.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/WarpingType.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Utils/MathUtils.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Utils/SpringUtils.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Script/VContainer/Initializer/MainSceneInitializer.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Script/VContainer/Installers/Scenes/MainLifetimeScope.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Library/PackageCache/com.unity.render-pipelines.universal@1ad96352dab8/Shaders/Lit.shader" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../../Tips-for-writing-cleaner-code-in-Unity/Project/Assets/_Scripts/Article 2/Result/Agent.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../../Tips-for-writing-cleaner-code-in-Unity/Project/Assets/_Scripts/Article 3/Result/InteractionDetector.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../../Tips-for-writing-cleaner-code-in-Unity/Project/Assets/_Scripts/Article 3/Start/IAgentInteractInput.cs" root0="FORCE_HIGHLIGHTING" />
@@ -121,6 +261,7 @@
     &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
     &quot;Unity 에디터에 연결.Unity 에디터에 연결.executor&quot;: &quot;Debug&quot;,
+    &quot;XThreadsFramesViewSplitterKey&quot;: &quot;0.49833518&quot;,
     &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
     &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
     &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
@@ -157,10 +298,10 @@
       <option name="MIXED_MODE_DEBUG" value="0" />
       <method v="2" />
     </configuration>
-    <configuration name="Unity 에디터에 연결" type="UNITY_DEBUG_RUN_CONFIGURATION" factoryName="Unity Debug" show_console_on_std_err="false" show_console_on_std_out="false" port="50000" address="localhost" useMixedMode="false" ignored-value-for-modified-check="36240">
+    <configuration name="Unity 에디터에 연결" type="UNITY_DEBUG_RUN_CONFIGURATION" factoryName="Unity Debug" show_console_on_std_err="false" show_console_on_std_out="false" port="50000" address="localhost" useMixedMode="false" ignored-value-for-modified-check="45816">
       <option name="allowRunningInParallel" value="false" />
       <option name="listenPortForConnections" value="false" />
-      <option name="pid" value="36240" />
+      <option name="pid" value="45816" />
       <option name="projectPathOnTarget" />
       <option name="runtimes">
         <list>
@@ -195,6 +336,17 @@
       <workItem from="1777374543592" duration="1080000" />
       <workItem from="1777389764068" duration="2239000" />
       <workItem from="1777458093991" duration="11073000" />
+      <workItem from="1777550870274" duration="1429000" />
+      <workItem from="1777704675322" duration="2948000" />
+      <workItem from="1777891176216" duration="12292000" />
+      <workItem from="1777905194664" duration="488000" />
+      <workItem from="1778066896313" duration="14461000" />
+      <workItem from="1778158312431" duration="1211000" />
+      <workItem from="1778240826657" duration="51000" />
+      <workItem from="1778241190844" duration="3916000" />
+      <workItem from="1778421192220" duration="256000" />
+      <workItem from="1778421544153" duration="940000" />
+      <workItem from="1778663746827" duration="6972000" />
     </task>
     <servers />
   </component>
@@ -226,8 +378,35 @@
           <properties exception="System.Threading.ThreadAbortException" breakIfHandledByOtherCode="false" displayValue="System.Threading.ThreadAbortException" />
           <option name="timeStamp" value="3" />
         </breakpoint>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/QueryComputedFlow.cs</url>
+          <line>412</line>
+          <properties documentPath="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client\Assets\Script\System\MotionSystem\Components\QueryFlows\QueryComputedFlow.cs" containingFunctionPresentation="메서드 'Execute'">
+            <startOffsets>
+              <option value="17507" />
+            </startOffsets>
+            <endOffsets>
+              <option value="17639" />
+            </endOffsets>
+          </properties>
+          <option name="timeStamp" value="18" />
+        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
+    <pin-to-top-manager>
+      <pinned-members>
+        <PinnedItemInfo parentTag="Frame#Game.System.MotionSystem.MotionMatching.ManageMotionMatching" memberName="this" />
+      </pinned-members>
+    </pin-to-top-manager>
+    <watches-manager>
+      <configuration name="UNITY_DEBUG_RUN_CONFIGURATION">
+        <watch expression="rootNode" />
+        <watch expression="wantApplyPositions" />
+        <watch expression="wantApplyRootBonePosition" />
+        <watch expression="blendBoundaries" />
+        <watch expression="lerpDuration" />
+      </configuration>
+    </watches-manager>
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

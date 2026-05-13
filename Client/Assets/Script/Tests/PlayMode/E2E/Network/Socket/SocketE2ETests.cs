@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
@@ -22,7 +23,7 @@ namespace Game.Tests.PlayMode.E2E
     public class SocketE2ETests : E2ETestBase
     {
         [UnityTest]
-        public System.Collections.IEnumerator SocketSession_두_클라이언트_인증후_입장_성공() => UniTask.ToCoroutine(async () =>
+        public IEnumerator SocketSession_두_클라이언트_인증후_입장_성공() => UniTask.ToCoroutine(async () =>
         {
             var room = await CreateStartedTwoPlayerRoomAsync();
             var hostClient = await ConnectJoinedSessionAsync(room.RoomId, room.HostUserId, Timeout());
@@ -50,7 +51,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator RawSocket_호스트가_Move_전송하면_게스트가_S_Move_수신() => UniTask.ToCoroutine(async () =>
+        public IEnumerator RawSocket_호스트가_Move_전송하면_게스트가_S_Move_수신() => UniTask.ToCoroutine(async () =>
         {
             var room = await CreateStartedTwoPlayerRoomAsync();
             var hostCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());

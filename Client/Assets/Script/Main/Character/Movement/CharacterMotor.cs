@@ -9,12 +9,13 @@ namespace Game.Main.Character
         
         private CharacterController m_controller;
         private float m_speed;
-        private float m_targetRotation = 0.0f;
         private float m_rotationVelocity;
 
         [SerializeField] private AgentRotationStrategy m_rotationStrategy;
 
         public Vector3 CurrentVelocity { get; private set; }
+        public Vector3 DesiredMoveDirection { get; private set; }
+        public Vector3 DesiredFacingDirection { get; private set; }
 
         [Inject]
         public void Construct(LocomotionSettings settings)
@@ -38,12 +39,16 @@ namespace Game.Main.Character
             Vector2 horizontalInput = new Vector2(input.x, input.z);
             CharacterMovementCalculation(horizontalInput, speed);
 
-            m_targetRotation = m_rotationStrategy.RotationCalculation(new Vector2(input.x, input.z), transform,
-                ref m_rotationVelocity, _settings.RotationSmoothTime, m_targetRotation);
+            Vector3 targetDirection = m_rotationStrategy != null
+                ? m_rotationStrategy.MovementDirectionCalculation(horizontalInput, transform)
+                : transform.TransformDirection(new Vector3(input.x, 0.0f, input.z)).normalized;
+            DesiredMoveDirection = targetDirection;
+            DesiredFacingDirection = m_rotationStrategy != null
+                ? m_rotationStrategy.FacingDirectionCalculation(horizontalInput, transform)
+                : transform.forward;
+            ApplyFacingDirection();
 
-            Vector3 targetDirection = Quaternion.Euler(0.0f, m_targetRotation, 0.0f) * Vector3.forward;
-
-            CurrentVelocity = targetDirection.normalized * input.normalized.magnitude * (m_speed * Time.deltaTime) +
+            CurrentVelocity = targetDirection * horizontalInput.normalized.magnitude * (m_speed * Time.deltaTime) +
                               new Vector3(0.0f, input.y, 0.0f) * Time.deltaTime;
             //move the character controller
             m_controller.Move(CurrentVelocity);
@@ -77,6 +82,21 @@ namespace Game.Main.Character
             {
                 m_speed = targetSpeed;
             }
+        }
+
+        private void ApplyFacingDirection()
+        {
+            if (DesiredFacingDirection.sqrMagnitude < 0.0001f)
+                return;
+
+            float targetRotation = Mathf.Atan2(DesiredFacingDirection.x, DesiredFacingDirection.z) * Mathf.Rad2Deg;
+            float rotation = Mathf.SmoothDampAngle(
+                transform.eulerAngles.y,
+                targetRotation,
+                ref m_rotationVelocity,
+                _settings.RotationSmoothTime);
+
+            transform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
         }
     }
 }

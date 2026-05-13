@@ -4,23 +4,24 @@ namespace Game.Main.Character
 {
     public abstract class AgentRotationStrategy : MonoBehaviour
     {
-        public float RotationCalculation(Vector2 movementInput, Transform agentTransform, ref float rotationVelocity,
-            float RotationSmoothTime, float targetRotation)
+        public Vector3 MovementDirectionCalculation(Vector2 movementInput, Transform agentTransform)
         {
             Vector3 inputDirection = new Vector3(movementInput.x, 0.0f, movementInput.y).normalized;
-            if (movementInput != Vector2.zero)
-            {
-                targetRotation = RotationStrategy(inputDirection);
-                float rotation = Mathf.SmoothDampAngle(agentTransform.eulerAngles.y, targetRotation, ref rotationVelocity,
-                    RotationSmoothTime);
-
-
-                agentTransform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
-            }
-
-            return targetRotation;
+            return movementInput == Vector2.zero
+                ? Vector3.zero
+                : MovementDirectionStrategy(inputDirection, agentTransform);
         }
 
-        protected abstract float RotationStrategy(Vector3 inputDirection);
+        public Vector3 FacingDirectionCalculation(Vector2 movementInput, Transform agentTransform)
+        {
+            Vector3 inputDirection = new Vector3(movementInput.x, 0.0f, movementInput.y).normalized;
+            Vector3 facingDirection = FacingDirectionStrategy(inputDirection, agentTransform);
+            return facingDirection.sqrMagnitude < 0.0001f
+                ? agentTransform.forward
+                : facingDirection.normalized;
+        }
+
+        protected abstract Vector3 MovementDirectionStrategy(Vector3 inputDirection, Transform agentTransform);
+        protected abstract Vector3 FacingDirectionStrategy(Vector3 inputDirection, Transform agentTransform);
     }
 }

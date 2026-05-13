@@ -24,7 +24,7 @@ namespace Game.Main.Character
                 AbilitySystem = AbilitySystem,
                 InteractionDetector = _interactionDetector,
                 HitEventReceiver = _hitEventReceiver,
-                LocomotionSettings = settings
+                LocomotionSettings = settings,
             };
         }
         

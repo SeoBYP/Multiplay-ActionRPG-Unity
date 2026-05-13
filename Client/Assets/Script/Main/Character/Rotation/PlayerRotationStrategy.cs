@@ -15,7 +15,33 @@ namespace Game.Main.Character.Rotation
             }
         }
 
-        protected override float RotationStrategy(Vector3 inputDirection)
-            => Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg + m_mainCamera.transform.eulerAngles.y;
+        protected override Vector3 MovementDirectionStrategy(Vector3 inputDirection, Transform agentTransform)
+        {
+            if (m_mainCamera == null)
+                return agentTransform.TransformDirection(inputDirection).normalized;
+
+            Vector3 cameraForward = m_mainCamera.transform.forward;
+            cameraForward.y = 0f;
+            cameraForward.Normalize();
+
+            Vector3 cameraRight = m_mainCamera.transform.right;
+            cameraRight.y = 0f;
+            cameraRight.Normalize();
+
+            return (cameraRight * inputDirection.x + cameraForward * inputDirection.z).normalized;
+        }
+
+        protected override Vector3 FacingDirectionStrategy(Vector3 inputDirection, Transform agentTransform)
+        {
+            if (m_mainCamera == null)
+                return agentTransform.forward;
+
+            Vector3 cameraForward = m_mainCamera.transform.forward;
+            cameraForward.y = 0f;
+
+            return cameraForward.sqrMagnitude < 0.0001f
+                ? agentTransform.forward
+                : cameraForward.normalized;
+        }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -16,7 +17,7 @@ namespace Game.Tests.PlayMode.E2E
     public class ChatE2ETests : E2ETestBase
     {
         [UnityTest]
-        public System.Collections.IEnumerator ChatStream_글로벌_메시지_수신() => UniTask.ToCoroutine(async () =>
+        public IEnumerator ChatStream_글로벌_메시지_수신() => UniTask.ToCoroutine(async () =>
         {
             await RegisterLoginAndSetNicknameAsync(UniqueEmail(), "Test1234!", UniqueNickname("Global"));
 
@@ -56,7 +57,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator ChatStream_방_채팅_수신() => UniTask.ToCoroutine(async () =>
+        public IEnumerator ChatStream_방_채팅_수신() => UniTask.ToCoroutine(async () =>
         {
             await RegisterLoginAndSetNicknameAsync(UniqueEmail(), "Test1234!", UniqueNickname("Room"));
 
@@ -104,7 +105,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator ChatStream_귓속말_대상자_수신() => UniTask.ToCoroutine(async () =>
+        public IEnumerator ChatStream_귓속말_대상자_수신() => UniTask.ToCoroutine(async () =>
         {
             var targetProvider = new GrpcChannelProvider(ServerConfig.GameServerGrpcAddress);
             var senderProvider = new GrpcChannelProvider(ServerConfig.GameServerGrpcAddress);

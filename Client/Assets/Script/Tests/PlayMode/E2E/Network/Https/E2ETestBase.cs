@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Network.Https.Core;
@@ -24,7 +25,7 @@ namespace Game.Tests.PlayMode.E2E
         protected string SessionId;
 
         [UnitySetUp]
-        public System.Collections.IEnumerator SetUp() => UniTask.ToCoroutine(async () =>
+        public IEnumerator SetUp() => UniTask.ToCoroutine(async () =>
         {
             ChannelProvider = new GrpcChannelProvider(ServerConfig.GameServerGrpcAddress);
             ChannelProvider.AccessTokenProvider = () => AccessToken;
@@ -36,7 +37,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTearDown]
-        public System.Collections.IEnumerator TearDown() => UniTask.ToCoroutine(async () =>
+        public IEnumerator TearDown() => UniTask.ToCoroutine(async () =>
         {
             ChannelProvider?.Dispose();
         });

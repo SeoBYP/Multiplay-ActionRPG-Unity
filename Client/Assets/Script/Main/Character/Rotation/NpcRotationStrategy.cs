@@ -5,7 +5,12 @@ namespace Script.Main.Character
 {
     public class NpcRotationStrategy : AgentRotationStrategy
     {
-        protected override float RotationStrategy(Vector3 inputDirection)
-            => Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg;
+        protected override Vector3 MovementDirectionStrategy(Vector3 inputDirection, Transform agentTransform)
+            => inputDirection.normalized;
+
+        protected override Vector3 FacingDirectionStrategy(Vector3 inputDirection, Transform agentTransform)
+            => inputDirection.sqrMagnitude > 0.0001f
+                ? inputDirection.normalized
+                : agentTransform.forward;
     }
 }

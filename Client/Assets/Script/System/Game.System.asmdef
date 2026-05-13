@@ -1,4 +1,20 @@
 {
-	"name": "Game.System",
-	"references":[ "GUID:f51ebe6a0ceec4240a699833d6309b23", "GUID:b0214a6008ed146ff8f122a6a9c2f6cc", "GUID:b15f0d85503884943ac44c9fe6a5e9fc" ]
+    "name": "Game.System",
+    "rootNamespace": "",
+    "references": [
+        "GUID:f51ebe6a0ceec4240a699833d6309b23",
+        "GUID:b0214a6008ed146ff8f122a6a9c2f6cc",
+        "GUID:b15f0d85503884943ac44c9fe6a5e9fc",
+        "GUID:d8b63aba1907145bea998dd612889d6b",
+        "GUID:2665a8d13d1b3f18800f46e256720795"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

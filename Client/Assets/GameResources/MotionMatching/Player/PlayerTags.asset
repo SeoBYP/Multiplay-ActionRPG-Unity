@@ -1,0 +1,174 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: acb29939255e4ac7891cecccc34da448, type: 3}
+  m_Name: PlayerTags
+  m_EditorClassIdentifier: Game.System::Game.System.MotionSystem.Tags
+  tags:
+  - name: Walk
+    ranges:
+    - animName: Walk_Loop_B
+      poseStart: 505
+      poseStop: 544
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Loop_BL
+      poseStart: 546
+      poseStop: 585
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Loop_BR
+      poseStart: 587
+      poseStop: 626
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Loop_F
+      poseStart: 628
+      poseStop: 667
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Loop_F_L_20
+      poseStart: 669
+      poseStop: 708
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Loop_F_R_20
+      poseStart: 710
+      poseStop: 749
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Loop_FL
+      poseStart: 751
+      poseStop: 790
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Loop_FR
+      poseStart: 792
+      poseStop: 831
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Loop_LL
+      poseStart: 833
+      poseStop: 869
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Loop_LR
+      poseStart: 871
+      poseStop: 909
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Loop_RL
+      poseStart: 911
+      poseStop: 949
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Loop_RR
+      poseStart: 951
+      poseStop: 987
+      frameStart: 0
+      frameStop: 2147483647
+  - name: Run
+    ranges:
+    - animName: Run_Loop_B
+      poseStart: 100
+      poseStop: 124
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Loop_BL
+      poseStart: 126
+      poseStop: 150
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Loop_BR
+      poseStart: 152
+      poseStop: 176
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Loop_F
+      poseStart: 178
+      poseStop: 202
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Loop_F_L_20
+      poseStart: 204
+      poseStop: 228
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Loop_F_R_20
+      poseStart: 230
+      poseStop: 254
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Loop_FL
+      poseStart: 256
+      poseStop: 280
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Loop_FR
+      poseStart: 282
+      poseStop: 306
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Loop_LL
+      poseStart: 308
+      poseStop: 330
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Loop_LR
+      poseStart: 332
+      poseStop: 354
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Loop_LR_offset
+      poseStart: 356
+      poseStop: 378
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Loop_RL
+      poseStart: 380
+      poseStop: 403
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Loop_RR
+      poseStart: 405
+      poseStop: 427
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Loop_RR_offset
+      poseStart: 429
+      poseStop: 451
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Loop_Strafe_BR
+      poseStart: 453
+      poseStop: 477
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Loop_Strafe_FL
+      poseStart: 479
+      poseStop: 503
+      frameStart: 0
+      frameStop: 2147483647
+  actionTags: []
+  idleTags:
+  - name: Idle
+    ranges: []
+    hasRecoveryState: 0
+    hasInitState: 0
+    initRanges: []
+    loopRanges:
+    - animName: Idle_Loop
+      poseStart: 0
+      poseStop: 99
+      frameStart: 0
+      frameStop: 2147483647
+    transitionIDSerialized: 
+    loopIDSerialized: 

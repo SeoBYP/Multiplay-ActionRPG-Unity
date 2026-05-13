@@ -11,9 +11,19 @@ namespace Game.Main.Character
         private readonly CharacterAgentAnimations _animations;
         private readonly ICharacterInputSource _inputSource;
         private readonly LocomotionSettings _settings;
+        // private readonly MotionMatchingSystem _motionMatchingSystem;
 
         private float _verticalVelocity;
         private float _animationMovementSpeed;
+        private float _uTurnIntentTime;
+        private float _lastMoveDirectionTime;
+        private Vector3 _lastMoveDirection;
+        // private CharacterMotionAction _pendingUTurnAction;
+
+        private const float UTurnHoldTime = 0.45f;
+        private const float UTurnInputGraceTime = 0.25f;
+        private const float UTurnAxisThreshold = 0.55f;
+        private const float UTurnDotThreshold = -0.65f;
 
         public GroundState(
             CharacterMotor motor,
@@ -56,7 +66,7 @@ namespace Game.Main.Character
 
             if (_animationMovementSpeed < 0.01f)
                 _animationMovementSpeed = 0f;
-
+            
             _animations.SetFloat(AnimationFloatType.Speed, _animationMovementSpeed);
         }
 

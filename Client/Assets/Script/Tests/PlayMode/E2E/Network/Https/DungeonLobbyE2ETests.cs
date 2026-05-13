@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -13,7 +14,7 @@ namespace Game.Tests.PlayMode.E2E
     public class DungeonLobbyE2ETests : E2ETestBase
     {
         [UnityTest]
-        public System.Collections.IEnumerator CreateRoom_방_생성_성공() => UniTask.ToCoroutine(async () =>
+        public IEnumerator CreateRoom_방_생성_성공() => UniTask.ToCoroutine(async () =>
         {
             await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
 
@@ -30,7 +31,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator GetRoom_생성한_방_조회_성공() => UniTask.ToCoroutine(async () =>
+        public IEnumerator GetRoom_생성한_방_조회_성공() => UniTask.ToCoroutine(async () =>
         {
             await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
 
@@ -51,7 +52,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator GetRoom_존재하지_않는_방_실패() => UniTask.ToCoroutine(async () =>
+        public IEnumerator GetRoom_존재하지_않는_방_실패() => UniTask.ToCoroutine(async () =>
         {
             await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
 
@@ -64,7 +65,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator GetRooms_방_목록_조회_성공() => UniTask.ToCoroutine(async () =>
+        public IEnumerator GetRooms_방_목록_조회_성공() => UniTask.ToCoroutine(async () =>
         {
             await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
 
@@ -84,7 +85,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator JoinRoom_다른_유저_입장_성공() => UniTask.ToCoroutine(async () =>
+        public IEnumerator JoinRoom_다른_유저_입장_성공() => UniTask.ToCoroutine(async () =>
         {
             await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
             var created = await LobbyService.CreateRoomAsync(new CreateRoomRequest
@@ -104,7 +105,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator JoinRoom_정원초과_실패() => UniTask.ToCoroutine(async () =>
+        public IEnumerator JoinRoom_정원초과_실패() => UniTask.ToCoroutine(async () =>
         {
             await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
             var created = await LobbyService.CreateRoomAsync(new CreateRoomRequest
@@ -131,7 +132,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator LeaveRoom_입장_후_퇴장_성공() => UniTask.ToCoroutine(async () =>
+        public IEnumerator LeaveRoom_입장_후_퇴장_성공() => UniTask.ToCoroutine(async () =>
         {
             await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
             var created = await LobbyService.CreateRoomAsync(new CreateRoomRequest
@@ -155,7 +156,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator UpdateRoom_방장만_설정_변경_성공() => UniTask.ToCoroutine(async () =>
+        public IEnumerator UpdateRoom_방장만_설정_변경_성공() => UniTask.ToCoroutine(async () =>
         {
             await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
             var created = await LobbyService.CreateRoomAsync(new CreateRoomRequest
@@ -177,7 +178,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator UpdateRoom_비방장_실패() => UniTask.ToCoroutine(async () =>
+        public IEnumerator UpdateRoom_비방장_실패() => UniTask.ToCoroutine(async () =>
         {
             await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
             var created = await LobbyService.CreateRoomAsync(new CreateRoomRequest
@@ -203,7 +204,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator SubscribeRoom_이벤트_수신() => UniTask.ToCoroutine(async () =>
+        public IEnumerator SubscribeRoom_이벤트_수신() => UniTask.ToCoroutine(async () =>
         {
             await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
             var created = await LobbyService.CreateRoomAsync(new CreateRoomRequest
@@ -214,7 +215,7 @@ namespace Game.Tests.PlayMode.E2E
             var roomId = created.RoomInfo.RoomId;
 
             var received = new List<SubscribeRoomResponse>();
-            using var cts = new CancellationTokenSource(System.TimeSpan.FromSeconds(5));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
             var subscribeTask = LobbyService.SubscribeRoomAsync(
                 new SubscribeRoomRequest { RoomId = roomId },
@@ -242,7 +243,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator StartRoom_비방장_실패() => UniTask.ToCoroutine(async () =>
+        public IEnumerator StartRoom_비방장_실패() => UniTask.ToCoroutine(async () =>
         {
             var hostEmail = UniqueEmail();
 
@@ -269,7 +270,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator 전체흐름_방생성_입장_시작() => UniTask.ToCoroutine(async () =>
+        public IEnumerator 전체흐름_방생성_입장_시작() => UniTask.ToCoroutine(async () =>
         {
             var hostEmail = UniqueEmail();
 

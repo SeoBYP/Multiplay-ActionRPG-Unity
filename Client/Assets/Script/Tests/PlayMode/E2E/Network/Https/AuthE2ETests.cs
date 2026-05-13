@@ -1,3 +1,4 @@
+using System.Collections;
 using Cysharp.Threading.Tasks;
 using GameServer.Grpc.Auth;
 using NUnit.Framework;
@@ -9,7 +10,7 @@ namespace Game.Tests.PlayMode.E2E
     public class AuthE2ETests : E2ETestBase
     {
         [UnityTest]
-        public System.Collections.IEnumerator Register_새_계정_생성_성공() => UniTask.ToCoroutine(async () =>
+        public IEnumerator Register_새_계정_생성_성공() => UniTask.ToCoroutine(async () =>
         {
             var response = await AuthService.RegisterAsync(new RegisterRequest
             {
@@ -22,7 +23,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator Register_중복_이메일_실패() => UniTask.ToCoroutine(async () =>
+        public IEnumerator Register_중복_이메일_실패() => UniTask.ToCoroutine(async () =>
         {
             var email = UniqueEmail();
 
@@ -42,7 +43,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator Register_빈_이메일_실패() => UniTask.ToCoroutine(async () =>
+        public IEnumerator Register_빈_이메일_실패() => UniTask.ToCoroutine(async () =>
         {
             var response = await AuthService.RegisterAsync(new RegisterRequest
             {
@@ -54,7 +55,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator Login_정상_토큰_반환() => UniTask.ToCoroutine(async () =>
+        public IEnumerator Login_정상_토큰_반환() => UniTask.ToCoroutine(async () =>
         {
             var email = UniqueEmail();
             await RegisterAndLoginAsync(email, "Test1234!");
@@ -65,7 +66,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator Login_잘못된_비밀번호_실패() => UniTask.ToCoroutine(async () =>
+        public IEnumerator Login_잘못된_비밀번호_실패() => UniTask.ToCoroutine(async () =>
         {
             var email = UniqueEmail();
             await AuthService.RegisterAsync(new RegisterRequest
@@ -85,7 +86,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator Login_없는_계정_실패() => UniTask.ToCoroutine(async () =>
+        public IEnumerator Login_없는_계정_실패() => UniTask.ToCoroutine(async () =>
         {
             var response = await AuthService.LoginAsync(new LoginRequest
             {
@@ -98,7 +99,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator Login_빈_DeviceId_실패() => UniTask.ToCoroutine(async () =>
+        public IEnumerator Login_빈_DeviceId_실패() => UniTask.ToCoroutine(async () =>
         {
             var email = UniqueEmail();
             await AuthService.RegisterAsync(new RegisterRequest
@@ -118,7 +119,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator Refresh_새_AccessToken_발급() => UniTask.ToCoroutine(async () =>
+        public IEnumerator Refresh_새_AccessToken_발급() => UniTask.ToCoroutine(async () =>
         {
             var email = UniqueEmail();
             await RegisterAndLoginAsync(email, "Test1234!");
@@ -136,7 +137,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator Refresh_잘못된_DeviceId_실패() => UniTask.ToCoroutine(async () =>
+        public IEnumerator Refresh_잘못된_DeviceId_실패() => UniTask.ToCoroutine(async () =>
         {
             var email = UniqueEmail();
             await RegisterAndLoginAsync(email, "Test1234!");
@@ -151,7 +152,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator Logout_정상_처리() => UniTask.ToCoroutine(async () =>
+        public IEnumerator Logout_정상_처리() => UniTask.ToCoroutine(async () =>
         {
             var email = UniqueEmail();
             await RegisterAndLoginAsync(email, "Test1234!");
@@ -162,7 +163,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator Logout_이후_Refresh_실패() => UniTask.ToCoroutine(async () =>
+        public IEnumerator Logout_이후_Refresh_실패() => UniTask.ToCoroutine(async () =>
         {
             var email = UniqueEmail();
             await RegisterAndLoginAsync(email, "Test1234!");
@@ -180,7 +181,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public System.Collections.IEnumerator 전체흐름_Register_Login_Refresh_Logout() => UniTask.ToCoroutine(async () =>
+        public IEnumerator 전체흐름_Register_Login_Refresh_Logout() => UniTask.ToCoroutine(async () =>
         {
             var email = UniqueEmail();
 

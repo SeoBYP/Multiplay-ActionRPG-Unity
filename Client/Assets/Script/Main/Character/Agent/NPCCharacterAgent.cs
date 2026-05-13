@@ -14,7 +14,7 @@ namespace Game.Main.Character
                 InputSource = InputSource,
                 AbilitySystem = AbilitySystem,
                 HitEventReceiver = GetComponent<CharacterHitEventReceiver>(),
-                LocomotionSettings = settings
+                LocomotionSettings = settings,
             };
         }
     }

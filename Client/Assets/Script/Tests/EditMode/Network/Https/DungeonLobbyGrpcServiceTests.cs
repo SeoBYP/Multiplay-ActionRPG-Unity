@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -320,7 +321,7 @@ namespace Game.Tests.EditMode.Network
 
         // ─── 헬퍼 ───────────────────────────────────────────────────
 
-        private static async Task<T> Throws<T>(System.Func<Task> action) where T : System.Exception
+        private static async Task<T> Throws<T>(Func<Task> action) where T : Exception
         {
             try
             {
