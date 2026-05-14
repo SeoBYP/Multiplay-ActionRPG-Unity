@@ -4,13 +4,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Game.System.MotionSystem;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public static class MotionMatchingSampleAnimationSetup
 {
@@ -26,6 +26,9 @@ public static class MotionMatchingSampleAnimationSetup
     private const string CharacteristicsPath = OutputFolder + "/PlayerCharacteristics.asset";
     private const string QueriesPath = OutputFolder + "/PlayerQueriesComputed.asset";
     private const string TagsPath = OutputFolder + "/PlayerTags.asset";
+    private const string DatabasesFolder = OutputFolder + "/Databases";
+    private const string DenseDatabasesFolder = DatabasesFolder + "/Dense";
+    private const string SparseDatabasesFolder = DatabasesFolder + "/Sparse";
     private const string MainScenePath = "Assets/Scenes/Main.unity";
     private const string PlayerName = "PlayerCharacter";
 
@@ -96,15 +99,13 @@ public static class MotionMatchingSampleAnimationSetup
     {
         ApplyImportSettings();
         EnsureOutputFolder();
-        DeleteIfExists(DatasetPath);
-        DeleteIfExists(AvatarPath);
-        DeleteIfExists(CharacteristicsPath);
-        DeleteIfExists(QueriesPath);
-        DeleteIfExists(TagsPath);
+        PrepareWritableOutputAssets();
 
         Avatar sampleAvatar = LoadMannequinAvatar();
         var avatar = CreateTransientHumanoidAvatar(sampleAvatar);
-        var clips = CollectLocomotionClips(out var clipPaths);
+        var clips = CollectLocomotionClips(
+            out var motionSearchDatabaseAssets,
+            out var motionSearchDatabases);
         if (clips.Count == 0)
             throw new InvalidOperationException("No SampleAnimation locomotion clips were found.");
 
@@ -132,7 +133,6 @@ public static class MotionMatchingSampleAnimationSetup
 
             recorder.ProcessData(
                 ref clips,
-                clipPaths,
                 avatar,
                 poseStep: 0.1f,
                 futureEstimates: 3,
@@ -142,16 +142,14 @@ public static class MotionMatchingSampleAnimationSetup
                 databaseName: "PlayerMotionDataset",
                 root: bakeRoot.transform,
                 recordVelocity: 1,
-                combinations: new List<List<TagBase>>
-                {
-                    new() { tags.walk },
-                    new() { tags.run }
-                },
-                tags: new List<TagBase> { tags.walk, tags.run },
-                actionTags: new List<ActionTag>(),
-                idleTags: new List<IdleTag> { tags.idle },
+                combinations: tags.combinations,
+                tags: tags.motionTags,
+                actionTags: tags.actionTags,
+                idleTags: tags.idleTags,
                 characteristics: characteristics,
-                rac: animator.runtimeAnimatorController);
+                rac: animator.runtimeAnimatorController,
+                motionSearchDatabaseAssets: motionSearchDatabaseAssets,
+                motionSearchDatabases: motionSearchDatabases);
 
             RunRecorderToCompletion(recorder);
         }
@@ -237,13 +235,12 @@ public static class MotionMatchingSampleAnimationSetup
                 }
             }
 
-            string clipName = dataset.animationPaths != null && animID < dataset.animationPaths.Count
-                ? GetClipName(dataset.animationPaths[animID])
-                : $"Animation {animID}";
+            string clipName = dataset.GetAnimationName(animID);
+            string databaseName = dataset.GetDatabaseNameForAnimation(animID);
 
             Debug.Log(
                 "[MotionMatching Dataset Diagnostics]\n" +
-                $"Clip: {clipName} | Frames: {frames.Count} | Bones: {frameBonesCount}\n" +
+                $"Clip: {clipName} | Database: {databaseName} | Frames: {frames.Count} | Bones: {frameBonesCount}\n" +
                 $"Root Position Delta: {maxRootPositionDelta:F5} | Root Rotation Delta: {maxRootRotationAngle:F2} deg\n" +
                 $"Top LocalPosition Delta: {FormatTopValues(maxLocalPositionDelta, boneLabels, 8, "m")}\n" +
                 $"Top RootRelative Position Delta: {FormatTopValues(maxRootRelativePositionDelta, boneLabels, 8, "m")}\n" +
@@ -300,48 +297,127 @@ public static class MotionMatchingSampleAnimationSetup
         return math.degrees(2f * math.acos(dot));
     }
 
-    private static (TagBase walk, TagBase run, IdleTag idle) BuildTags(IReadOnlyList<AnimationClip> clips)
+    private static BuiltTags BuildTags(IReadOnlyList<AnimationClip> clips)
     {
         var walk = new TagBase("Walk");
         var run = new TagBase("Run");
+        var walkArc = new TagBase("WalkArc");
+        var runArc = new TagBase("RunArc");
+        var walkCircle = new TagBase("WalkCircle");
+        var runCircle = new TagBase("RunCircle");
+        var directionalMotionTags = new Dictionary<string, TagBase>(StringComparer.Ordinal);
         var idle = new IdleTag("Idle", false)
         {
             initRanges = new List<TagRange>(),
             loopRanges = new List<TagRange>()
         };
+        var actions = new Dictionary<string, ActionTag>(StringComparer.Ordinal)
+        {
+            ["WalkToRun"] = CreateInterruptibleAction("WalkToRun"),
+            ["RunToWalk"] = CreateInterruptibleAction("RunToWalk"),
+            ["IdleTurn"] = CreateInterruptibleAction("IdleTurn")
+        };
 
         foreach (var clip in clips)
         {
             var range = new TagRange(clip.name, 0, int.MaxValue);
-            if (clip.name.Contains("Idle", StringComparison.OrdinalIgnoreCase))
+            if (clip.name.Contains("Idle_Loop", StringComparison.OrdinalIgnoreCase))
                 idle.loopRanges.Add(range);
+            else if (clip.name.Contains("Walk_Arc", StringComparison.OrdinalIgnoreCase))
+            {
+                walkArc.ranges.Add(range);
+                AddSideMotionTag(directionalMotionTags, "WalkArc", clip.name, range);
+            }
+            else if (clip.name.Contains("Run_Arc", StringComparison.OrdinalIgnoreCase))
+            {
+                runArc.ranges.Add(range);
+                AddSideMotionTag(directionalMotionTags, "RunArc", clip.name, range);
+            }
+            else if (clip.name.Contains("Walk_Circle", StringComparison.OrdinalIgnoreCase))
+            {
+                walkCircle.ranges.Add(range);
+                AddSideMotionTag(directionalMotionTags, "WalkCircle", clip.name, range);
+            }
+            else if (clip.name.Contains("Run_Circle", StringComparison.OrdinalIgnoreCase))
+            {
+                runCircle.ranges.Add(range);
+                AddSideMotionTag(directionalMotionTags, "RunCircle", clip.name, range);
+            }
+            else if (clip.name.Contains("Walk_Start", StringComparison.OrdinalIgnoreCase))
+                AddDirectionalAction(actions, "IdleToWalk", clip.name, range);
+            else if (clip.name.Contains("Run_Start", StringComparison.OrdinalIgnoreCase))
+                AddDirectionalAction(actions, "IdleToRun", clip.name, range);
+            else if (clip.name.Contains("Transition_Walk_to_Run", StringComparison.OrdinalIgnoreCase))
+                actions["WalkToRun"].ranges.Add(range);
+            else if (clip.name.Contains("Transition_Run_to_Walk", StringComparison.OrdinalIgnoreCase))
+                actions["RunToWalk"].ranges.Add(range);
+            else if (clip.name.Contains("Walk_Stop", StringComparison.OrdinalIgnoreCase))
+                AddDirectionalAction(actions, "WalkToStop", clip.name, range);
+            else if (clip.name.Contains("Run_Stop", StringComparison.OrdinalIgnoreCase))
+                AddDirectionalAction(actions, "RunToStop", clip.name, range);
+            else if (clip.name.Contains("Walk_Reface_Start", StringComparison.OrdinalIgnoreCase))
+                AddTurnAction(actions, "WalkReface", clip.name, range);
+            else if (clip.name.Contains("Run_Reface_Start", StringComparison.OrdinalIgnoreCase))
+                AddTurnAction(actions, "RunReface", clip.name, range);
+            else if (clip.name.Contains("Run_Turn", StringComparison.OrdinalIgnoreCase))
+                AddTurnAction(actions, "RunTurn", clip.name, range);
+            else if (clip.name.Contains("Walk_Pivot", StringComparison.OrdinalIgnoreCase))
+                AddDirectionalAction(actions, "WalkPivot", clip.name, range);
+            else if (clip.name.Contains("Run_Pivot", StringComparison.OrdinalIgnoreCase))
+                AddDirectionalAction(actions, "RunPivot", clip.name, range);
+            else if (clip.name.Contains("Stand_Turn", StringComparison.OrdinalIgnoreCase) ||
+                     clip.name.StartsWith("Turn_", StringComparison.OrdinalIgnoreCase) ||
+                     clip.name.Contains("Idle_turn", StringComparison.OrdinalIgnoreCase))
+                actions["IdleTurn"].ranges.Add(range);
             else if (clip.name.Contains("Walk", StringComparison.OrdinalIgnoreCase))
+            {
                 walk.ranges.Add(range);
+                AddDirectionalMotionTag(directionalMotionTags, "Walk", clip.name, range);
+            }
             else if (clip.name.Contains("Run", StringComparison.OrdinalIgnoreCase))
+            {
                 run.ranges.Add(range);
+                AddDirectionalMotionTag(directionalMotionTags, "Run", clip.name, range);
+            }
         }
 
-        return (walk, run, idle);
+        var motionTags = new[] { walk, run, walkArc, runArc, walkCircle, runCircle }
+            .Where(tag => tag.ranges.Count > 0)
+            .Concat(directionalMotionTags.Values.Where(tag => tag.ranges.Count > 0))
+            .ToList();
+        var combinations = motionTags
+            .Select(tag => new List<TagBase> { tag })
+            .ToList();
+        var actionTags = actions.Values
+            .Where(tag => tag.ranges.Count > 0)
+            .ToList();
+
+        Debug.Log(
+            "[MotionMatching] Built sample tags: " +
+            $"motions={string.Join(", ", motionTags.Select(tag => $"{tag.name}:{tag.ranges.Count}"))}, " +
+            $"actions={string.Join(", ", actionTags.Select(tag => $"{tag.name}:{tag.ranges.Count}"))}, " +
+            $"idle={idle.loopRanges.Count}");
+
+        return new BuiltTags(motionTags, combinations, actionTags, new List<IdleTag> { idle });
     }
 
-    private static List<AnimationClip> CollectLocomotionClips(out List<string> clipPaths)
+    private static List<AnimationClip> CollectLocomotionClips(
+        out List<MotionSearchDatabaseAsset> motionSearchDatabaseAssets,
+        out List<MotionSearchDatabaseBakeRecord> motionSearchDatabases)
     {
-        var selectedPaths = new[]
-            {
-                SampleRoot + "/Idle/M_Neutral_Stand_Idle_Loop.FBX"
-            }
-            .Concat(Directory.GetFiles(Path.Combine(Application.dataPath, "Art/SampleAnimation/Walk"), "*.FBX")
-                .Select(ToAssetPath)
-                .Where(path => Path.GetFileNameWithoutExtension(path).Contains("_Walk_Loop_")))
-            .Concat(Directory.GetFiles(Path.Combine(Application.dataPath, "Art/SampleAnimation/Run"), "*.FBX")
-                .Select(ToAssetPath)
-                .Where(path => Path.GetFileNameWithoutExtension(path).Contains("_Run_Loop_")))
+        var includedDatabases = LoadIncludedMotionSearchDatabases();
+        motionSearchDatabaseAssets = includedDatabases.ToList();
+        var selectedPaths = includedDatabases
+            .SelectMany(database => database.animations.Where(clip => clip != null))
+            .Select(AssetDatabase.GetAssetPath)
+            .Where(path => !string.IsNullOrEmpty(path))
             .Distinct()
             .OrderBy(path => path)
             .ToList();
+        if (selectedPaths.Count == 0)
+            throw new InvalidOperationException("No MotionSearchDatabase assets with included animations were found.");
 
         var clips = new List<AnimationClip>();
-        clipPaths = new List<string>();
         foreach (string path in selectedPaths)
         {
             var clip = AssetDatabase.LoadAllAssetsAtPath(path)
@@ -353,10 +429,326 @@ public static class MotionMatchingSampleAnimationSetup
             var bakeClip = UnityEngine.Object.Instantiate(clip);
             bakeClip.name = ToClipName(path);
             clips.Add(bakeClip);
-            clipPaths.Add(path + "//" + bakeClip.name);
         }
 
+        motionSearchDatabases = BuildDatabaseBakeRecords(includedDatabases, selectedPaths);
+
         return clips;
+    }
+
+    private static List<MotionSearchDatabaseAsset> LoadIncludedMotionSearchDatabases()
+    {
+        EnsurePoseSearchDatabaseAssets();
+        return AssetDatabase.FindAssets("t:MotionSearchDatabaseAsset", new[] { DatabasesFolder })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<MotionSearchDatabaseAsset>)
+            .Where(database => database != null && database.includeInBake)
+            .OrderBy(database => database.group)
+            .ThenBy(database => database.role)
+            .ThenBy(database => database.name)
+            .ToList();
+    }
+
+    private static List<MotionSearchDatabaseBakeRecord> BuildDatabaseBakeRecords(
+        IReadOnlyList<MotionSearchDatabaseAsset> databases,
+        IReadOnlyList<string> selectedPaths)
+    {
+        var animationIDByPath = selectedPaths
+            .Select((path, index) => new { path, index })
+            .ToDictionary(item => item.path, item => item.index);
+
+        return databases.Select(database =>
+        {
+            var record = new MotionSearchDatabaseBakeRecord
+            {
+                name = database.name,
+                group = database.group,
+                role = database.role,
+                animationIDs = new List<int>(),
+                animationPaths = new List<string>()
+            };
+
+            foreach (var path in database.animations
+                         .Where(clip => clip != null)
+                         .Select(AssetDatabase.GetAssetPath)
+                         .Where(path => !string.IsNullOrEmpty(path))
+                         .Distinct()
+                         .OrderBy(path => path))
+            {
+                if (!animationIDByPath.TryGetValue(path, out int animationID))
+                    continue;
+
+                record.animationIDs.Add(animationID);
+                record.animationPaths.Add(path);
+            }
+
+            return record;
+        }).ToList();
+    }
+
+    private static void EnsurePoseSearchDatabaseAssets()
+    {
+        EnsureDatabaseFolders();
+
+        var definitions = new[]
+        {
+            new DatabaseDefinition("PSD_Dense_Stand_Idles", DenseDatabasesFolder, MotionSearchDatabaseGroup.Dense, MotionSearchDatabaseRole.Idle, true,
+                path => FileName(path).Contains("Stand_Idle_Loop", StringComparison.OrdinalIgnoreCase) ||
+                        FileName(path).Contains("Idle_turn", StringComparison.OrdinalIgnoreCase) ||
+                        FileName(path).Contains("Stand_Turn", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Dense_Stand_Walk_Loops", DenseDatabasesFolder, MotionSearchDatabaseGroup.Dense, MotionSearchDatabaseRole.Loop, true,
+                path => FileName(path).Contains("_Walk_Loop_", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Dense_Stand_Run_Loops", DenseDatabasesFolder, MotionSearchDatabaseGroup.Dense, MotionSearchDatabaseRole.Loop, true,
+                path => FileName(path).Contains("_Run_Loop_", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Dense_Stand_Walk_Starts", DenseDatabasesFolder, MotionSearchDatabaseGroup.Dense, MotionSearchDatabaseRole.Start, true,
+                path => FileName(path).Contains("_Walk_Start_", StringComparison.OrdinalIgnoreCase) ||
+                        FileName(path).Contains("_Walk_Reface_Start_", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Dense_Stand_Run_Starts", DenseDatabasesFolder, MotionSearchDatabaseGroup.Dense, MotionSearchDatabaseRole.Start, true,
+                path => FileName(path).Contains("_Run_Start_", StringComparison.OrdinalIgnoreCase) ||
+                        FileName(path).Contains("_Run_Reface_Start_", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Dense_Stand_Walk_Stops", DenseDatabasesFolder, MotionSearchDatabaseGroup.Dense, MotionSearchDatabaseRole.Stop, true,
+                path => FileName(path).Contains("_Walk_Stop_", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Dense_Stand_Run_Stops", DenseDatabasesFolder, MotionSearchDatabaseGroup.Dense, MotionSearchDatabaseRole.Stop, true,
+                path => FileName(path).Contains("_Run_Stop_", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Dense_Stand_Walk_Pivots", DenseDatabasesFolder, MotionSearchDatabaseGroup.Dense, MotionSearchDatabaseRole.Pivot, true,
+                path => FileName(path).Contains("_Walk_Pivot_", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Dense_Stand_Run_Pivots", DenseDatabasesFolder, MotionSearchDatabaseGroup.Dense, MotionSearchDatabaseRole.Pivot, true,
+                path => FileName(path).Contains("_Run_Pivot_", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Dense_Stand_Run_SpinTransition", DenseDatabasesFolder, MotionSearchDatabaseGroup.Dense, MotionSearchDatabaseRole.Transition, true,
+                path => FileName(path).Contains("_Run_Turn_", StringComparison.OrdinalIgnoreCase) ||
+                        FileName(path).Contains("_Run_Spin_", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Dense_Stand_Arcs", DenseDatabasesFolder, MotionSearchDatabaseGroup.Dense, MotionSearchDatabaseRole.Arc, true,
+                path => FileName(path).Contains("_Walk_Arc_", StringComparison.OrdinalIgnoreCase) ||
+                        FileName(path).Contains("_Run_Arc_", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Dense_Stand_Circles", DenseDatabasesFolder, MotionSearchDatabaseGroup.Dense, MotionSearchDatabaseRole.Circle, true,
+                path => FileName(path).Contains("_Walk_Circle_Strafe_", StringComparison.OrdinalIgnoreCase) ||
+                        FileName(path).Contains("_Run_Circle_Strafe_", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Dense_Stand_WalkToRun", DenseDatabasesFolder, MotionSearchDatabaseGroup.Dense, MotionSearchDatabaseRole.Transition, true,
+                path => FileName(path).Contains("Transition_Walk_to_Run", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Dense_Stand_RunToWalk", DenseDatabasesFolder, MotionSearchDatabaseGroup.Dense, MotionSearchDatabaseRole.Transition, true,
+                path => FileName(path).Contains("Transition_Run_to_Walk", StringComparison.OrdinalIgnoreCase)),
+
+            new DatabaseDefinition("PSD_Sparse_Stand_Walk_Loops", SparseDatabasesFolder, MotionSearchDatabaseGroup.Sparse, MotionSearchDatabaseRole.Loop, false,
+                path => FileName(path).Contains("_Walk_Loop_F", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Sparse_Stand_Run_Loops", SparseDatabasesFolder, MotionSearchDatabaseGroup.Sparse, MotionSearchDatabaseRole.Loop, false,
+                path => FileName(path).Contains("_Run_Loop_F", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Sparse_Stand_Walk_Starts", SparseDatabasesFolder, MotionSearchDatabaseGroup.Sparse, MotionSearchDatabaseRole.Start, false,
+                path => FileName(path).Contains("_Walk_Start_F", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Sparse_Stand_Run_Starts", SparseDatabasesFolder, MotionSearchDatabaseGroup.Sparse, MotionSearchDatabaseRole.Start, false,
+                path => FileName(path).Contains("_Run_Start_F", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Sparse_Stand_Walk_Stops", SparseDatabasesFolder, MotionSearchDatabaseGroup.Sparse, MotionSearchDatabaseRole.Stop, false,
+                path => FileName(path).Contains("_Walk_Stop_F", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Sparse_Stand_Run_Stops", SparseDatabasesFolder, MotionSearchDatabaseGroup.Sparse, MotionSearchDatabaseRole.Stop, false,
+                path => FileName(path).Contains("_Run_Stop_F", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Sparse_Stand_Walk_Pivots", SparseDatabasesFolder, MotionSearchDatabaseGroup.Sparse, MotionSearchDatabaseRole.Pivot, false,
+                path => FileName(path).Contains("_Walk_Pivot_F", StringComparison.OrdinalIgnoreCase)),
+            new DatabaseDefinition("PSD_Sparse_Stand_Run_Pivots", SparseDatabasesFolder, MotionSearchDatabaseGroup.Sparse, MotionSearchDatabaseRole.Pivot, false,
+                path => FileName(path).Contains("_Run_Pivot_F", StringComparison.OrdinalIgnoreCase))
+        };
+
+        var allAnimationPaths = Directory.GetFiles(SampleRoot, "*.FBX", SearchOption.AllDirectories)
+            .Select(ToAssetPath)
+            .Where(path => path != MannequinPath)
+            .ToList();
+
+        foreach (var definition in definitions)
+        {
+            string assetPath = $"{definition.folder}/{definition.name}.asset";
+            var database = AssetDatabase.LoadAssetAtPath<MotionSearchDatabaseAsset>(assetPath);
+            if (database == null)
+            {
+                database = ScriptableObject.CreateInstance<MotionSearchDatabaseAsset>();
+                AssetDatabase.CreateAsset(database, assetPath);
+            }
+
+            database.group = definition.group;
+            database.role = definition.role;
+            database.includeInBake = definition.includeInBake;
+            database.animations = allAnimationPaths
+                .Where(definition.predicate)
+                .Select(path => AssetDatabase.LoadAllAssetsAtPath(path)
+                    .OfType<AnimationClip>()
+                    .FirstOrDefault(c => !c.name.StartsWith("__preview__", StringComparison.Ordinal)))
+                .Where(clip => clip != null)
+                .Distinct()
+                .OrderBy(clip => AssetDatabase.GetAssetPath(clip))
+                .ToList();
+            EditorUtility.SetDirty(database);
+        }
+
+        AssetDatabase.SaveAssets();
+    }
+
+    private static void EnsureDatabaseFolders()
+    {
+        EnsureOutputFolder();
+        if (!AssetDatabase.IsValidFolder(DatabasesFolder))
+            AssetDatabase.CreateFolder(OutputFolder, "Databases");
+        if (!AssetDatabase.IsValidFolder(DenseDatabasesFolder))
+            AssetDatabase.CreateFolder(DatabasesFolder, "Dense");
+        if (!AssetDatabase.IsValidFolder(SparseDatabasesFolder))
+            AssetDatabase.CreateFolder(DatabasesFolder, "Sparse");
+    }
+
+    private static string FileName(string path)
+    {
+        return Path.GetFileNameWithoutExtension(path);
+    }
+
+    private static ActionTag CreateInterruptibleAction(string name)
+    {
+        return new ActionTag(name)
+        {
+            isInterruptibleByState = new[] { true, true, true },
+            interruptibleType = InterruptibleBy.All
+        };
+    }
+
+    private static void AddDirectionalAction(
+        Dictionary<string, ActionTag> actions,
+        string baseName,
+        string clipName,
+        TagRange range)
+    {
+        string direction = ExtractDirectionalActionSuffix(baseName, clipName);
+        string actionName = string.IsNullOrEmpty(direction) ? baseName : baseName + direction;
+
+        if (!actions.TryGetValue(actionName, out var action))
+        {
+            action = CreateInterruptibleAction(actionName);
+            actions[actionName] = action;
+        }
+
+        action.ranges.Add(range);
+    }
+
+    private static void AddTurnAction(
+        Dictionary<string, ActionTag> actions,
+        string baseName,
+        string clipName,
+        TagRange range)
+    {
+        string suffix = ExtractTurnSuffix(clipName);
+        string actionName = string.IsNullOrEmpty(suffix) ? baseName : baseName + suffix;
+
+        if (!actions.TryGetValue(actionName, out var action))
+        {
+            action = CreateInterruptibleAction(actionName);
+            actions[actionName] = action;
+        }
+
+        action.ranges.Add(range);
+    }
+
+    private static void AddDirectionalMotionTag(
+        Dictionary<string, TagBase> tags,
+        string baseName,
+        string clipName,
+        TagRange range)
+    {
+        string direction = ExtractLoopDirection(clipName);
+        if (string.IsNullOrEmpty(direction))
+            return;
+
+        string tagName = baseName + direction;
+        if (!tags.TryGetValue(tagName, out var tag))
+        {
+            tag = new TagBase(tagName);
+            tags[tagName] = tag;
+        }
+
+        tag.ranges.Add(range);
+    }
+
+    private static void AddSideMotionTag(
+        Dictionary<string, TagBase> tags,
+        string baseName,
+        string clipName,
+        TagRange range)
+    {
+        string side = ExtractSideSuffix(clipName);
+        if (string.IsNullOrEmpty(side))
+            return;
+
+        string tagName = baseName + side;
+        if (!tags.TryGetValue(tagName, out var tag))
+        {
+            tag = new TagBase(tagName);
+            tags[tagName] = tag;
+        }
+
+        tag.ranges.Add(range);
+    }
+
+    private static string ExtractLoopDirection(string clipName)
+    {
+        int tokenIndex = clipName.IndexOf("Loop_", StringComparison.OrdinalIgnoreCase);
+        if (tokenIndex < 0)
+            return string.Empty;
+
+        int start = tokenIndex + "Loop_".Length;
+        int end = clipName.IndexOf('_', start);
+        string direction = end < 0
+            ? clipName.Substring(start)
+            : clipName.Substring(start, end - start);
+
+        return direction switch
+        {
+            "F" or "FR" or "RR" or "BR" or "B" or "BL" or "LL" or "FL" or "LR" or "RL" => direction,
+            _ => string.Empty
+        };
+    }
+
+    private static string ExtractDirectionalActionSuffix(string baseName, string clipName)
+    {
+        if (baseName.EndsWith("Pivot", StringComparison.OrdinalIgnoreCase))
+            return ExtractBetweenMotionTokenAndFoot(clipName, "Pivot_");
+
+        if (baseName.EndsWith("Stop", StringComparison.OrdinalIgnoreCase))
+            return ExtractBetweenMotionTokenAndFoot(clipName, "Stop_");
+
+        if (baseName.StartsWith("IdleTo", StringComparison.OrdinalIgnoreCase))
+            return ExtractBetweenMotionTokenAndFoot(clipName, "Start_");
+
+        return string.Empty;
+    }
+
+    private static string ExtractTurnSuffix(string clipName)
+    {
+        Match match = Regex.Match(
+            clipName,
+            @"_(?:Run_Turn|(?:Walk|Run)_Reface_Start)_(?:F_|B_)?(?<side>L|R)_(?<angle>045|090|135|180)",
+            RegexOptions.IgnoreCase);
+
+        if (!match.Success)
+            return string.Empty;
+
+        return match.Groups["side"].Value.ToUpperInvariant() + match.Groups["angle"].Value;
+    }
+
+    private static string ExtractSideSuffix(string clipName)
+    {
+        Match match = Regex.Match(clipName, @"_(?<side>L|R)(?:foot)?$", RegexOptions.IgnoreCase);
+        if (!match.Success)
+            return string.Empty;
+
+        return match.Groups["side"].Value.ToUpperInvariant();
+    }
+
+    private static string ExtractBetweenMotionTokenAndFoot(string clipName, string token)
+    {
+        int tokenIndex = clipName.IndexOf(token, StringComparison.OrdinalIgnoreCase);
+        if (tokenIndex < 0)
+            return string.Empty;
+
+        int start = tokenIndex + token.Length;
+        int end = clipName.IndexOf("_Lfoot", start, StringComparison.OrdinalIgnoreCase);
+        if (end < 0)
+            end = clipName.IndexOf("_Rfoot", start, StringComparison.OrdinalIgnoreCase);
+        if (end < 0)
+            end = clipName.Length;
+
+        return clipName.Substring(start, end - start).Replace("_", string.Empty);
     }
 
     private static void RunRecorderToCompletion(RecordPositions recorder)
@@ -439,44 +831,50 @@ public static class MotionMatchingSampleAnimationSetup
             .FirstOrDefault(animator => animator.avatar != null && animator.gameObject != player);
     }
 
-    private static RuntimeRig GetRuntimeRig()
+    private readonly struct BuiltTags
     {
-        var scene = EditorSceneManager.OpenScene(MainScenePath, OpenSceneMode.Single);
-        var player = scene.GetRootGameObjects()
-            .SelectMany(root => root.GetComponentsInChildren<Transform>(true))
-            .FirstOrDefault(t => t.name == PlayerName)?.gameObject;
-
-        if (player == null)
-            throw new InvalidOperationException($"GameObject '{PlayerName}' was not found in {MainScenePath}.");
-
-        var animator = FindRuntimeAnimator(player);
-        if (animator == null || animator.avatar == null)
+        public BuiltTags(
+            List<TagBase> motionTags,
+            List<List<TagBase>> combinations,
+            List<ActionTag> actionTags,
+            List<IdleTag> idleTags)
         {
-            Debug.LogWarning("[MotionMatching] PlayerCharacter runtime Animator avatar was not found. Baking with sample mannequin.");
-            return new RuntimeRig(LoadMannequinAvatar(), AssetDatabase.LoadAssetAtPath<GameObject>(MannequinPath));
+            this.motionTags = motionTags;
+            this.combinations = combinations;
+            this.actionTags = actionTags;
+            this.idleTags = idleTags;
         }
 
-        string prefabPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(animator.gameObject);
-        var model = !string.IsNullOrEmpty(prefabPath)
-            ? AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath)
-            : null;
-
-        if (model == null)
-            Debug.LogWarning("[MotionMatching] PlayerCharacter runtime model prefab was not found. Baking with sample mannequin model.");
-
-        return new RuntimeRig(animator.avatar, model);
+        public readonly List<TagBase> motionTags;
+        public readonly List<List<TagBase>> combinations;
+        public readonly List<ActionTag> actionTags;
+        public readonly List<IdleTag> idleTags;
     }
 
-    private readonly struct RuntimeRig
+    private readonly struct DatabaseDefinition
     {
-        public RuntimeRig(Avatar avatar, GameObject model)
+        public DatabaseDefinition(
+            string name,
+            string folder,
+            MotionSearchDatabaseGroup group,
+            MotionSearchDatabaseRole role,
+            bool includeInBake,
+            Func<string, bool> predicate)
         {
-            this.avatar = avatar;
-            this.model = model;
+            this.name = name;
+            this.folder = folder;
+            this.group = group;
+            this.role = role;
+            this.includeInBake = includeInBake;
+            this.predicate = predicate;
         }
 
-        public readonly Avatar avatar;
-        public readonly GameObject model;
+        public readonly string name;
+        public readonly string folder;
+        public readonly MotionSearchDatabaseGroup group;
+        public readonly MotionSearchDatabaseRole role;
+        public readonly bool includeInBake;
+        public readonly Func<string, bool> predicate;
     }
 
     private static void DisableRuntimeAnimator(GameObject player)
@@ -546,10 +944,20 @@ public static class MotionMatchingSampleAnimationSetup
             AssetDatabase.CreateFolder("Assets/GameResources/MotionMatching", "Player");
     }
 
-    private static void DeleteIfExists(string path)
+    private static void PrepareWritableOutputAssets()
     {
-        if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path) != null)
-            AssetDatabase.DeleteAsset(path);
+        foreach (string path in new[] { DatasetPath, AvatarPath, CharacteristicsPath, QueriesPath, TagsPath })
+        {
+            string fullPath = Path.GetFullPath(path);
+            if (!File.Exists(fullPath))
+                continue;
+
+            var attributes = File.GetAttributes(fullPath);
+            if ((attributes & FileAttributes.ReadOnly) == 0)
+                continue;
+
+            File.SetAttributes(fullPath, attributes & ~FileAttributes.ReadOnly);
+        }
     }
 
     private static void SetObjectReference(UnityEngine.Object target, string field, UnityEngine.Object value)
@@ -606,12 +1014,6 @@ public static class MotionMatchingSampleAnimationSetup
         return fileName
             .Replace("M_Neutral_", string.Empty)
             .Replace("Stand_", string.Empty);
-    }
-
-    private static string GetClipName(string path)
-    {
-        int separatorIndex = path.LastIndexOf("//", StringComparison.Ordinal);
-        return separatorIndex >= 0 ? path.Substring(separatorIndex + 2) : ToClipName(path);
     }
 }
 #endif

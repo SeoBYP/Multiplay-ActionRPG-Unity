@@ -627,6 +627,21 @@ namespace Game.System.MotionSystem
         public ActionAnimationTimes GetAnimationTimes()
         {
             var ranges = GetActionQueryComputed().ranges;
+            if (!ActionQueryComputed.actionTag.HasInitState() && !ActionQueryComputed.actionTag.HasRecoveryState())
+            {
+                var actionRange = currentRange.featureIDStop > currentRange.featureIDStart
+                    ? currentRange
+                    : ranges[0];
+                var actionTime = (actionRange.featureIDStop - actionRange.featureIDStart) * dataset.poseStep;
+                return new ActionAnimationTimes
+                {
+                    Init = 0f,
+                    Action = actionTime,
+                    Recovery = 0f,
+                    Total = actionTime
+                };
+            }
+
             var init = (ranges[0].featureIDStop - ranges[0].featureIDStart) * dataset.poseStep;
             var action = (ranges[1].featureIDStop - ranges[1].featureIDStart) * dataset.poseStep;
             var recovery = (ranges[2].featureIDStop - ranges[2].featureIDStart) * dataset.poseStep;

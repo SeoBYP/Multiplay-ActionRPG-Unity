@@ -92,7 +92,7 @@ namespace Game.System.MotionSystem
             }
         }
 
-        public void ProcessData(ref List<AnimationClip> animClips, List<string> animPaths,
+        public void ProcessData(ref List<AnimationClip> animClips,
             CustomAvatar customAvatar,
             float poseStep,
             int futureEstimates,
@@ -107,7 +107,9 @@ namespace Game.System.MotionSystem
             List<ActionTag> actionTags,
             List<IdleTag> idleTags,
             List<BoneCharacteristic> characteristics,
-            RuntimeAnimatorController rac
+            RuntimeAnimatorController rac,
+            List<MotionSearchDatabaseAsset> motionSearchDatabaseAssets = null,
+            List<MotionSearchDatabaseBakeRecord> motionSearchDatabases = null
         )
         {
             _futureEstimates = futureEstimates;
@@ -177,7 +179,8 @@ namespace Game.System.MotionSystem
             _combinations = combinations;
             CreateTags(tags, actionTags, idleTags);
 
-            _dataset.animationPaths = animPaths;
+            _dataset.motionSearchDatabases = motionSearchDatabases ?? new List<MotionSearchDatabaseBakeRecord>();
+            _dataset.motionSearchDatabaseAssets = motionSearchDatabaseAssets ?? new List<MotionSearchDatabaseAsset>();
             _startRecord = true;
         }
         
@@ -325,6 +328,7 @@ namespace Game.System.MotionSystem
 
         private static T SaveOrOverwriteAsset<T>(T source, string assetPath) where T : UnityEngine.Object
         {
+            EnsureAssetPathWritable(assetPath);
             T existing = AssetDatabase.LoadAssetAtPath<T>(assetPath);
             if (existing != null)
             {
@@ -340,6 +344,17 @@ namespace Game.System.MotionSystem
 
             AssetDatabase.CreateAsset(source, assetPath);
             return AssetDatabase.LoadAssetAtPath<T>(assetPath);
+        }
+
+        private static void EnsureAssetPathWritable(string assetPath)
+        {
+            string fullPath = Path.GetFullPath(assetPath);
+            if (!File.Exists(fullPath))
+                return;
+
+            var attributes = File.GetAttributes(fullPath);
+            if ((attributes & FileAttributes.ReadOnly) != 0)
+                File.SetAttributes(fullPath, attributes & ~FileAttributes.ReadOnly);
         }
 
         private void FixedUpdate()
@@ -788,11 +803,133 @@ namespace Game.System.MotionSystem
             //Bones length
             int lengthBones = _tempFeaturesData[0].positionsAndVelocities.Length / 2;
             ComputeQueriesStdAndMean(lengthBones, _dataset.queriesComputed.queries.Cast<QueryComputed>().ToList());
-            ComputeQueriesStdAndMean(lengthBones,
+            ComputeSharedQueriesStdAndMean(lengthBones,
                 _dataset.queriesComputed.actionQueries.Cast<QueryComputed>().ToList());
             ComputeQueriesStdAndMean(lengthBones,
                 _dataset.queriesComputed.loopActionQueries.Cast<QueryComputed>().ToList());
             ComputeQueriesStdAndMean(lengthBones, _dataset.queriesComputed.idleQueries.Cast<QueryComputed>().ToList());
+        }
+
+        private void ComputeSharedQueriesStdAndMean(int lengthBones, List<QueryComputed> queries)
+        {
+            var validQueries = queries
+                .Where(query => query.featuresData != null && query.featuresData.Count > 0)
+                .ToList();
+            if (validQueries.Count == 0)
+                return;
+
+            int futureLength = validQueries[0].featuresData[0].futureOffsets.Length;
+            int pastLength = validQueries[0].featuresData[0].pastOffsets.Length;
+            int totalFeatures = validQueries.Sum(query => query.featuresData.Count);
+            if (totalFeatures <= 0)
+                return;
+
+            var meanFeaturePosition = new float3[lengthBones];
+            var meanFeatureVelocity = new float3[lengthBones];
+            var meanFutureOffset = new float3[futureLength];
+            var meanFutureDirection = new float3[futureLength];
+            var meanPastOffset = new float3[pastLength];
+            var meanPastDirection = new float3[pastLength];
+
+            foreach (var feature in validQueries.SelectMany(query => query.featuresData))
+            {
+                for (int i = 0; i < feature.positionsAndVelocities.Length; i++)
+                {
+                    if (i % 2 == 0)
+                        meanFeaturePosition[i / 2] += feature.positionsAndVelocities[i] / totalFeatures;
+                    else
+                        meanFeatureVelocity[(i - 1) / 2] += feature.positionsAndVelocities[i] / totalFeatures;
+                }
+
+                for (int i = 0; i < futureLength; i++)
+                {
+                    meanFutureOffset[i] += feature.futureOffsets[i] / totalFeatures;
+                    meanFutureDirection[i] += feature.futureDirections[i] / totalFeatures;
+                }
+
+                for (int i = 0; i < pastLength; i++)
+                {
+                    meanPastOffset[i] += feature.pastOffsets[i] / totalFeatures;
+                    meanPastDirection[i] += feature.pastDirections[i] / totalFeatures;
+                }
+            }
+
+            var stdFeaturePosition = new float3[lengthBones];
+            var stdFeatureVelocity = new float3[lengthBones];
+            var stdFutureOffset = new float3[futureLength];
+            var stdFutureDirection = new float3[futureLength];
+            var stdPastOffset = new float3[pastLength];
+            var stdPastDirection = new float3[pastLength];
+
+            foreach (var feature in validQueries.SelectMany(query => query.featuresData))
+            {
+                for (int i = 0; i < feature.positionsAndVelocities.Length; i++)
+                {
+                    float3 squaredDist;
+                    if (i % 2 == 0)
+                    {
+                        int boneId = i / 2;
+                        squaredDist = feature.positionsAndVelocities[i] - meanFeaturePosition[boneId];
+                        stdFeaturePosition[boneId] += squaredDist * squaredDist / totalFeatures;
+                    }
+                    else
+                    {
+                        int boneId = (i - 1) / 2;
+                        squaredDist = feature.positionsAndVelocities[i] - meanFeatureVelocity[boneId];
+                        stdFeatureVelocity[boneId] += squaredDist * squaredDist / totalFeatures;
+                    }
+                }
+
+                for (int i = 0; i < futureLength; i++)
+                {
+                    float3 squaredDist = feature.futureOffsets[i] - meanFutureOffset[i];
+                    stdFutureOffset[i] += squaredDist * squaredDist / totalFeatures;
+                    squaredDist = feature.futureDirections[i] - meanFutureDirection[i];
+                    stdFutureDirection[i] += squaredDist * squaredDist / totalFeatures;
+                }
+
+                for (int i = 0; i < pastLength; i++)
+                {
+                    float3 squaredDist = feature.pastOffsets[i] - meanPastOffset[i];
+                    stdPastOffset[i] += squaredDist * squaredDist / totalFeatures;
+                    squaredDist = feature.pastDirections[i] - meanPastDirection[i];
+                    stdPastDirection[i] += squaredDist * squaredDist / totalFeatures;
+                }
+            }
+
+            for (int i = 0; i < lengthBones; i++)
+            {
+                stdFeaturePosition[i] = StabilizeStd(math.sqrt(stdFeaturePosition[i]));
+                stdFeatureVelocity[i] = StabilizeStd(math.sqrt(stdFeatureVelocity[i]));
+            }
+
+            for (int i = 0; i < futureLength; i++)
+            {
+                stdFutureOffset[i] = StabilizeStd(math.sqrt(stdFutureOffset[i]));
+                stdFutureDirection[i] = StabilizeStd(math.sqrt(stdFutureDirection[i]));
+            }
+
+            for (int i = 0; i < pastLength; i++)
+            {
+                stdPastOffset[i] = StabilizeStd(math.sqrt(stdPastOffset[i]));
+                stdPastDirection[i] = StabilizeStd(math.sqrt(stdPastDirection[i]));
+            }
+
+            foreach (var query in validQueries)
+            {
+                Array.Copy(meanFeaturePosition, query.meanFeaturePosition, lengthBones);
+                Array.Copy(meanFeatureVelocity, query.meanFeatureVelocity, lengthBones);
+                Array.Copy(stdFeaturePosition, query.stdFeaturePosition, lengthBones);
+                Array.Copy(stdFeatureVelocity, query.stdFeatureVelocity, lengthBones);
+                Array.Copy(meanFutureOffset, query.meanFutureOffset, futureLength);
+                Array.Copy(meanFutureDirection, query.meanFutureDirection, futureLength);
+                Array.Copy(stdFutureOffset, query.stdFutureOffset, futureLength);
+                Array.Copy(stdFutureDirection, query.stdFutureDirection, futureLength);
+                Array.Copy(meanPastOffset, query.meanPastOffset, pastLength);
+                Array.Copy(meanPastDirection, query.meanPastDirection, pastLength);
+                Array.Copy(stdPastOffset, query.stdPastOffset, pastLength);
+                Array.Copy(stdPastDirection, query.stdPastDirection, pastLength);
+            }
         }
 
         private void ComputeQueriesStdAndMean(int lengthBones, List<QueryComputed> queries)
@@ -904,24 +1041,33 @@ namespace Game.System.MotionSystem
                 
                 for (int i = 0; i < lengthBones; i++)
                 {
-                    query.stdFeaturePosition[i] = math.sqrt(query.stdFeaturePosition[i]);
-                    query.stdFeatureVelocity[i] = math.sqrt(query.stdFeatureVelocity[i]);
+                    query.stdFeaturePosition[i] = StabilizeStd(math.sqrt(query.stdFeaturePosition[i]));
+                    query.stdFeatureVelocity[i] = StabilizeStd(math.sqrt(query.stdFeatureVelocity[i]));
                 }
                 
                 //Futures
                 for (int i = 0; i < query.featuresData[0].futureOffsets.Length; i++)
                 {
-                    query.stdFutureOffset[i] = math.sqrt(query.stdFutureOffset[i]);
-                    query.stdFutureDirection[i] = math.sqrt(query.stdFutureDirection[i]);
+                    query.stdFutureOffset[i] = StabilizeStd(math.sqrt(query.stdFutureOffset[i]));
+                    query.stdFutureDirection[i] = StabilizeStd(math.sqrt(query.stdFutureDirection[i]));
                 }
                 
                 //Pasts
                 for (int i = 0; i < query.featuresData[0].pastOffsets.Length; i++)
                 {
-                    query.stdPastOffset[i] = math.sqrt(query.stdPastOffset[i]);
-                    query.stdPastDirection[i] = math.sqrt(query.stdPastDirection[i]);
+                    query.stdPastOffset[i] = StabilizeStd(math.sqrt(query.stdPastOffset[i]));
+                    query.stdPastDirection[i] = StabilizeStd(math.sqrt(query.stdPastDirection[i]));
                 }
             }
+        }
+
+        private static float3 StabilizeStd(float3 value)
+        {
+            const float epsilon = 0.0001f;
+            return new float3(
+                math.abs(value.x) < epsilon || math.isnan(value.x) || math.isinf(value.x) ? 1f : value.x,
+                math.abs(value.y) < epsilon || math.isnan(value.y) || math.isinf(value.y) ? 1f : value.y,
+                math.abs(value.z) < epsilon || math.isnan(value.z) || math.isinf(value.z) ? 1f : value.z);
         }
 
         void RemapZNormDataset()

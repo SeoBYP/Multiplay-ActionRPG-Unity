@@ -39,6 +39,7 @@ namespace Game.System.MotionSystem
         public int animationID;
         public int animationFrame;
         public string clipName;
+        public string databaseName;
         public int rangeStart;
         public int rangeStop;
         public float distance;
@@ -173,8 +174,8 @@ namespace Game.System.MotionSystem
         [HideInInspector] [Tooltip("It's only informative")]
         public string[] currentPlayedQuery;
 
-        public string[] _currentQuery;
-        public string[] startingQuery = { "Idle" };
+        [HideInInspector] public string[] _currentQuery;
+        [HideInInspector] public string[] startingQuery = { "Idle" };
 
         [Header("Blending Configuration")] public BlendingTypes blendType = BlendingTypes.Slerp;
         [HideInInspector] public bool isBlendActivated = true;
@@ -193,9 +194,9 @@ namespace Game.System.MotionSystem
         [Header("Runtime Pose Debug")]
         public bool captureRuntimePoseDebug = true;
         public int debugBoneIndex = (int)HumanBodyBones.Hips;
-        public MotionMatchingDebugSnapshot debugSnapshot = new();
+        [HideInInspector] public MotionMatchingDebugSnapshot debugSnapshot = new();
         [Range(1, 55)] public int debugMaxBoneRows = 16;
-        public MotionMatchingBoneDebugRow[] debugBoneRows = Array.Empty<MotionMatchingBoneDebugRow>();
+        [HideInInspector] public MotionMatchingBoneDebugRow[] debugBoneRows = Array.Empty<MotionMatchingBoneDebugRow>();
 
         private FuturePrediction _nextPrediction;
 
@@ -591,6 +592,7 @@ namespace Game.System.MotionSystem
                 : float3.zero;
 
             var selectedAnimationPath = GetCurrentAnimationPath();
+            var selectedDatabaseName = GetCurrentDatabaseName();
             var currentRange = currentQueryFlow != null
                 ? $"{currentQueryFlow.currentRange.featureIDStart}-{currentQueryFlow.currentRange.featureIDStop}"
                 : "None";
@@ -605,6 +607,7 @@ namespace Game.System.MotionSystem
                 $"Flow: {currentQueryFlow?.GetType().Name}\n" +
                 $"Animation: {currentAnimationID} / Frame: {currentAnimationFrame}\n" +
                 $"Clip: {selectedAnimationPath}\n" +
+                $"Database: {selectedDatabaseName}\n" +
                 $"Range: {currentRange} / Distance: {currentQueryFlow?.currentMinDistance:0.000}\n" +
                 $"Velocity: {currentVelocity} ({math.length(currentVelocity):0.00})\n" +
                 $"Input: {moveInput}\n" +
@@ -616,6 +619,13 @@ namespace Game.System.MotionSystem
         {
             if (string.IsNullOrEmpty(expectedQuery) || expectedQuery == "None")
                 return false;
+
+            if (currentQueryFlow is ActionQueryComputedFlow)
+            {
+                return _currentQuery == null ||
+                       _currentQuery.Length != 1 ||
+                       _currentQuery[0] != expectedQuery;
+            }
 
             if (currentPlayedQuery == null || currentPlayedQuery.Length == 0)
                 return true;
@@ -632,17 +642,14 @@ namespace Game.System.MotionSystem
 
         private string GetCurrentAnimationPath()
         {
-            if (dataset == null ||
-                dataset.animationPaths == null ||
-                currentAnimationID < 0 ||
-                currentAnimationID >= dataset.animationPaths.Count)
-            {
-                return "None";
-            }
+            return dataset != null ? dataset.GetAnimationName(currentAnimationID) : "None";
+        }
 
-            string path = dataset.animationPaths[currentAnimationID];
-            int separatorIndex = path.LastIndexOf("//", StringComparison.Ordinal);
-            return separatorIndex >= 0 ? path.Substring(separatorIndex + 2) : path;
+        private string GetCurrentDatabaseName()
+        {
+            return dataset != null
+                ? dataset.GetDatabaseNameForAnimation(currentAnimationID)
+                : "None";
         }
 
         private void ResetQueryAfterAction()
@@ -675,9 +682,7 @@ namespace Game.System.MotionSystem
 
             int animationID = feature.animationID;
             int animationFrame = feature.animFrame;
-            string clipName = animationID >= 0 && dataset.animationPaths != null && animationID < dataset.animationPaths.Count
-                ? GetClipName(dataset.animationPaths[animationID])
-                : "None";
+            string clipName = dataset.GetAnimationName(animationID);
 
             int boneIndex = Mathf.Clamp(debugBoneIndex, 0, Math.Max(0, _bonesLength - 1));
             Transform boneTransform = _characterTransforms != null && boneIndex < _characterTransforms.Length
@@ -705,6 +710,7 @@ namespace Game.System.MotionSystem
             debugSnapshot.animationID = animationID;
             debugSnapshot.animationFrame = animationFrame;
             debugSnapshot.clipName = clipName;
+            debugSnapshot.databaseName = dataset.GetDatabaseNameForAnimation(animationID);
             debugSnapshot.rangeStart = currentQueryFlow.currentRange.featureIDStart;
             debugSnapshot.rangeStop = currentQueryFlow.currentRange.featureIDStop;
             debugSnapshot.distance = currentQueryFlow.currentMinDistance;
@@ -851,12 +857,6 @@ namespace Game.System.MotionSystem
             return new Vector4(value.value.x, value.value.y, value.value.z, value.value.w);
         }
 
-        private static string GetClipName(string path)
-        {
-            int separatorIndex = path.LastIndexOf("//", StringComparison.Ordinal);
-            return separatorIndex >= 0 ? path.Substring(separatorIndex + 2) : path;
-        }
-        
         /// <summary>
         /// pose transition과 inertialization에 필요한 이전 bone 상태 버퍼를 생성합니다.
         /// </summary>
@@ -1149,6 +1149,31 @@ namespace Game.System.MotionSystem
             SetQuery(finalQuery);
         }
 
+        public bool SendActionQuery(string actionQuery, string followUpQuery)
+        {
+            var action = new[] { actionQuery };
+            _currentQuery = new[] { followUpQuery };
+
+            if (currentQueryFlow is ActionQueryComputedFlow actionQueryFlow &&
+                !actionQueryFlow.TryInterrupt(action, false))
+                return false;
+
+            ChangeQueryComputedFlow(action);
+            return true;
+        }
+
+        public bool HasQuery(string query)
+        {
+            return _flows != null && _flows.Any(flow =>
+                flow.GetQueryComputed().query.Length == 1 &&
+                flow.GetQueryComputed().query[0] == query);
+        }
+
+        public bool IsActionQueryPlaying()
+        {
+            return currentQueryFlow is ActionQueryComputedFlow { isQueryDone: false };
+        }
+
         private void SetIdleQuery()
         {
             if (currentQueryFlow is IdleQueryComputedFlow) return;  //As we only have idle queries as loop, add this check
@@ -1162,6 +1187,17 @@ namespace Game.System.MotionSystem
             currentQueryFlow = GetCurrentQueryComputedFlow(query);
             ResetRootEndBoundaries(transform.position, transform.rotation);
             currentQueryFlow.Reset();
+            if (currentQueryFlow is ActionQueryComputedFlow actionQueryFlow)
+            {
+                actionQueryFlow.Initialize(
+                    null,
+                    actionQueryFlow.GetFeatures(),
+                    dataset.animationsData,
+                    CharacterControllerBaseInstantiated,
+                    CollisionsPhysicsSetup.BothEnabled,
+                    CollisionsPhysicsSetup.BothEnabled,
+                    CollisionsPhysicsSetup.BothEnabled);
+            }
             _delta = dataset.poseStep;
         }
         

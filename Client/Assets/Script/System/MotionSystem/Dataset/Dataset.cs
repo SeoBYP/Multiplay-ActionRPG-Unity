@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Reflection.PortableExecutable;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
@@ -86,7 +85,63 @@ namespace Game.System.MotionSystem
         public QueriesComputed queriesComputed;
         public Characteristics characteristics;
         public Tags tagsList;
-        public List<string> animationPaths;
+        public List<MotionSearchDatabaseAsset> motionSearchDatabaseAssets;
+        public List<MotionSearchDatabaseBakeRecord> motionSearchDatabases;
+
+        public string GetDatabaseNameForAnimation(int animationID)
+        {
+            if (motionSearchDatabases == null || animationID < 0)
+            {
+                return "None";
+            }
+
+            var names = new List<string>();
+            foreach (var database in motionSearchDatabases)
+            {
+                if (database?.animationIDs == null || !database.animationIDs.Contains(animationID))
+                    continue;
+
+                names.Add(database.name);
+            }
+
+            return names.Count == 0 ? "None" : string.Join(", ", names);
+        }
+
+        public string GetAnimationName(int animationID)
+        {
+            string path = GetAnimationPath(animationID);
+            if (string.IsNullOrEmpty(path))
+                return "None";
+
+            int separatorIndex = path.LastIndexOf("//", global::System.StringComparison.Ordinal);
+            string fileName = separatorIndex >= 0 ? path.Substring(separatorIndex + 2) : path;
+
+            int slashIndex = fileName.LastIndexOf('/');
+            if (slashIndex >= 0)
+                fileName = fileName.Substring(slashIndex + 1);
+
+            int dotIndex = fileName.LastIndexOf('.');
+            return dotIndex > 0 ? fileName.Substring(0, dotIndex) : fileName;
+        }
+
+        private string GetAnimationPath(int animationID)
+        {
+            if (motionSearchDatabases == null || animationID < 0)
+                return string.Empty;
+
+            foreach (var database in motionSearchDatabases)
+            {
+                if (database?.animationIDs == null || database.animationPaths == null)
+                    continue;
+
+                int index = database.animationIDs.IndexOf(animationID);
+                if (index >= 0 && index < database.animationPaths.Count)
+                    return database.animationPaths[index];
+            }
+
+            return string.Empty;
+        }
+
         /// <summary>
         /// Dataset의 trajectory sampling 설정과 내부 List를 초기화합니다.
         /// Bake 시작 전에 호출되어 animation frame 데이터가 쌓일 공간을 준비합니다.

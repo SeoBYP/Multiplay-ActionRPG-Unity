@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07c70432c7efd9b4a80bc25897d03d95, type: 3}
+  m_Name: PSD_Sparse_Stand_Run_Starts
+  m_EditorClassIdentifier: Game.System::Game.System.MotionSystem.MotionSearchDatabaseAsset
+  group: 1
+  role: 2
+  includeInBake: 0
+  animations:
+  - {fileID: 8993902097722301239, guid: 53302f99800f604498be988cae7bb976, type: 3}
+  - {fileID: 8993902097722301239, guid: 0284b2a941797d54497d166e1010b6c5, type: 3}
+  - {fileID: 8993902097722301239, guid: d0541dd7a57291941ac0ba7b1fa2ceea, type: 3}
+  - {fileID: 8993902097722301239, guid: 6aaf8a8c9aa33934b86afff21ad3d4ab, type: 3}
+  - {fileID: 8993902097722301239, guid: 1f7ee7ed3371c38449b843f9d4604752, type: 3}
+  - {fileID: 8993902097722301239, guid: 86302ae53d767c24b9ed9ff89834119e, type: 3}

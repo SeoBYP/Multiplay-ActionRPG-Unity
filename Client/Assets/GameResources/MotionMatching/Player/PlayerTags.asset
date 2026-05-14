@@ -16,148 +16,2886 @@ MonoBehaviour:
   - name: Walk
     ranges:
     - animName: Walk_Loop_B
-      poseStart: 505
-      poseStop: 544
+      poseStart: 4109
+      poseStop: 4148
       frameStart: 0
       frameStop: 2147483647
     - animName: Walk_Loop_BL
-      poseStart: 546
-      poseStop: 585
+      poseStart: 4150
+      poseStop: 4189
       frameStart: 0
       frameStop: 2147483647
     - animName: Walk_Loop_BR
-      poseStart: 587
-      poseStop: 626
+      poseStart: 4191
+      poseStop: 4230
       frameStart: 0
       frameStop: 2147483647
     - animName: Walk_Loop_F
-      poseStart: 628
-      poseStop: 667
+      poseStart: 4232
+      poseStop: 4271
       frameStart: 0
       frameStop: 2147483647
     - animName: Walk_Loop_F_L_20
-      poseStart: 669
-      poseStop: 708
+      poseStart: 4273
+      poseStop: 4312
       frameStart: 0
       frameStop: 2147483647
     - animName: Walk_Loop_F_R_20
-      poseStart: 710
-      poseStop: 749
+      poseStart: 4314
+      poseStop: 4353
       frameStart: 0
       frameStop: 2147483647
     - animName: Walk_Loop_FL
-      poseStart: 751
-      poseStop: 790
+      poseStart: 4355
+      poseStop: 4394
       frameStart: 0
       frameStop: 2147483647
     - animName: Walk_Loop_FR
-      poseStart: 792
-      poseStop: 831
+      poseStart: 4396
+      poseStop: 4435
       frameStart: 0
       frameStop: 2147483647
     - animName: Walk_Loop_LL
-      poseStart: 833
-      poseStop: 869
+      poseStart: 4437
+      poseStop: 4473
       frameStart: 0
       frameStop: 2147483647
     - animName: Walk_Loop_LR
-      poseStart: 871
-      poseStop: 909
+      poseStart: 4475
+      poseStop: 4513
       frameStart: 0
       frameStop: 2147483647
     - animName: Walk_Loop_RL
-      poseStart: 911
-      poseStop: 949
+      poseStart: 4515
+      poseStop: 4553
       frameStart: 0
       frameStop: 2147483647
     - animName: Walk_Loop_RR
-      poseStart: 951
-      poseStop: 987
+      poseStart: 4555
+      poseStop: 4591
       frameStart: 0
       frameStop: 2147483647
   - name: Run
     ranges:
     - animName: Run_Loop_B
-      poseStart: 100
-      poseStop: 124
+      poseStart: 678
+      poseStop: 702
       frameStart: 0
       frameStop: 2147483647
     - animName: Run_Loop_BL
-      poseStart: 126
-      poseStop: 150
+      poseStart: 704
+      poseStop: 728
       frameStart: 0
       frameStop: 2147483647
     - animName: Run_Loop_BR
-      poseStart: 152
-      poseStop: 176
+      poseStart: 730
+      poseStop: 754
       frameStart: 0
       frameStop: 2147483647
     - animName: Run_Loop_F
-      poseStart: 178
-      poseStop: 202
+      poseStart: 756
+      poseStop: 780
       frameStart: 0
       frameStop: 2147483647
     - animName: Run_Loop_F_L_20
-      poseStart: 204
-      poseStop: 228
+      poseStart: 782
+      poseStop: 806
       frameStart: 0
       frameStop: 2147483647
     - animName: Run_Loop_F_R_20
-      poseStart: 230
-      poseStop: 254
+      poseStart: 808
+      poseStop: 832
       frameStart: 0
       frameStop: 2147483647
     - animName: Run_Loop_FL
-      poseStart: 256
-      poseStop: 280
+      poseStart: 834
+      poseStop: 858
       frameStart: 0
       frameStop: 2147483647
     - animName: Run_Loop_FR
-      poseStart: 282
-      poseStop: 306
+      poseStart: 860
+      poseStop: 884
       frameStart: 0
       frameStop: 2147483647
     - animName: Run_Loop_LL
-      poseStart: 308
-      poseStop: 330
+      poseStart: 886
+      poseStop: 908
       frameStart: 0
       frameStop: 2147483647
     - animName: Run_Loop_LR
-      poseStart: 332
-      poseStop: 354
+      poseStart: 910
+      poseStop: 932
       frameStart: 0
       frameStop: 2147483647
     - animName: Run_Loop_LR_offset
-      poseStart: 356
-      poseStop: 378
+      poseStart: 934
+      poseStop: 956
       frameStart: 0
       frameStop: 2147483647
     - animName: Run_Loop_RL
-      poseStart: 380
-      poseStop: 403
+      poseStart: 958
+      poseStop: 981
       frameStart: 0
       frameStop: 2147483647
     - animName: Run_Loop_RR
-      poseStart: 405
-      poseStop: 427
+      poseStart: 983
+      poseStop: 1005
       frameStart: 0
       frameStop: 2147483647
     - animName: Run_Loop_RR_offset
-      poseStart: 429
-      poseStop: 451
+      poseStart: 1007
+      poseStop: 1029
       frameStart: 0
       frameStop: 2147483647
     - animName: Run_Loop_Strafe_BR
-      poseStart: 453
-      poseStop: 477
+      poseStart: 1031
+      poseStop: 1055
       frameStart: 0
       frameStop: 2147483647
     - animName: Run_Loop_Strafe_FL
-      poseStart: 479
-      poseStop: 503
+      poseStart: 1057
+      poseStop: 1081
       frameStart: 0
       frameStop: 2147483647
-  actionTags: []
+  - name: WalkArc
+    ranges:
+    - animName: Walk_Arc_F_Small_L
+      poseStart: 3828
+      poseStop: 3864
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Arc_F_Small_R
+      poseStart: 3865
+      poseStop: 3901
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Arc_F_Tight_L
+      poseStart: 3902
+      poseStop: 3938
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Arc_F_Tight_R
+      poseStart: 3939
+      poseStop: 3975
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Arc_F_Wide_L
+      poseStart: 3976
+      poseStop: 4013
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Arc_F_Wide_R
+      poseStart: 4014
+      poseStop: 4051
+      frameStart: 0
+      frameStop: 2147483647
+  - name: RunArc
+    ranges:
+    - animName: Run_Arc_Small_L
+      poseStart: 298
+      poseStop: 321
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Arc_Small_R
+      poseStart: 322
+      poseStop: 345
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Arc_Tight_L
+      poseStart: 346
+      poseStop: 370
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Arc_Tight_R
+      poseStart: 371
+      poseStop: 395
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Arc_Wide_L
+      poseStart: 396
+      poseStop: 422
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Arc_Wide_R
+      poseStart: 423
+      poseStop: 449
+      frameStart: 0
+      frameStop: 2147483647
+  - name: WalkCircle
+    ranges:
+    - animName: Walk_Circle_Strafe_L
+      poseStart: 4052
+      poseStop: 4080
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Circle_Strafe_R
+      poseStart: 4082
+      poseStop: 4107
+      frameStart: 0
+      frameStop: 2147483647
+  - name: RunCircle
+    ranges:
+    - animName: Run_Circle_Strafe_L
+      poseStart: 450
+      poseStop: 592
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Circle_Strafe_R
+      poseStart: 594
+      poseStop: 676
+      frameStart: 0
+      frameStop: 2147483647
+  actionTags:
+  - name: WalkToRun
+    ranges:
+    - animName: Transition_Walk_to_Run_Lfoot
+      poseStart: 3665
+      poseStop: 3703
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Transition_Walk_to_Run_Rfoot
+      poseStart: 3704
+      poseStop: 3737
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunToWalk
+    ranges:
+    - animName: Transition_Run_to_Walk_Lfoot
+      poseStart: 3738
+      poseStop: 3782
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Transition_Run_to_Walk_Rfoot
+      poseStart: 3783
+      poseStop: 3827
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleTurn
+    ranges:
+    - animName: Idle_turn_left
+      poseStart: 0
+      poseStop: 19
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Idle_turn_right
+      poseStart: 20
+      poseStop: 39
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Turn_045_L
+      poseStart: 140
+      poseStop: 156
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Turn_045_R
+      poseStart: 157
+      poseStop: 173
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Turn_090_L
+      poseStart: 174
+      poseStop: 193
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Turn_090_R
+      poseStart: 194
+      poseStop: 213
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Turn_135_L
+      poseStart: 214
+      poseStop: 233
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Turn_135_R
+      poseStart: 234
+      poseStop: 253
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Turn_180_L
+      poseStart: 254
+      poseStop: 275
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Turn_180_R
+      poseStart: 276
+      poseStop: 297
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunPivotBF
+    ranges:
+    - animName: Run_Pivot_B_F_Lfoot
+      poseStart: 1083
+      poseStop: 1127
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Pivot_B_F_Rfoot
+      poseStart: 1128
+      poseStop: 1171
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunPivotBLFR
+    ranges:
+    - animName: Run_Pivot_BL_FR_Lfoot
+      poseStart: 1172
+      poseStop: 1212
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Pivot_BL_FR_Rfoot
+      poseStart: 1213
+      poseStop: 1240
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunPivotBRFL
+    ranges:
+    - animName: Run_Pivot_BR_FL_Lfoot
+      poseStart: 1241
+      poseStop: 1286
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Pivot_BR_FL_Rfoot
+      poseStart: 1287
+      poseStop: 1319
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunPivotFB
+    ranges:
+    - animName: Run_Pivot_F_B_Lfoot
+      poseStart: 1320
+      poseStop: 1352
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Pivot_F_B_Rfoot
+      poseStart: 1353
+      poseStop: 1384
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunPivotFLBR
+    ranges:
+    - animName: Run_Pivot_FL_BR_Lfoot
+      poseStart: 1385
+      poseStop: 1418
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Pivot_FL_BR_Rfoot
+      poseStart: 1419
+      poseStop: 1452
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunPivotFRBL
+    ranges:
+    - animName: Run_Pivot_FR_BL_Lfoot
+      poseStart: 1453
+      poseStop: 1486
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Pivot_FR_BL_Rfoot
+      poseStart: 1487
+      poseStop: 1519
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunPivotLLRL
+    ranges:
+    - animName: Run_Pivot_LL_RL_Lfoot
+      poseStart: 1520
+      poseStop: 1551
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Pivot_LL_RL_Rfoot
+      poseStart: 1552
+      poseStop: 1583
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunPivotLRRR
+    ranges:
+    - animName: Run_Pivot_LR_RR_Lfoot
+      poseStart: 1584
+      poseStop: 1617
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Pivot_LR_RR_Rfoot
+      poseStart: 1618
+      poseStop: 1655
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunPivotRLLL
+    ranges:
+    - animName: Run_Pivot_RL_LL_Lfoot
+      poseStart: 1656
+      poseStop: 1685
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Pivot_RL_LL_Rfoot
+      poseStart: 1686
+      poseStop: 1717
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunPivotRRLR
+    ranges:
+    - animName: Run_Pivot_RR_LR_Lfoot
+      poseStart: 1718
+      poseStop: 1749
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Pivot_RR_LR_Rfoot
+      poseStart: 1750
+      poseStop: 1783
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunPivot
+    ranges:
+    - animName: Run_Reface_Start_B_L_090
+      poseStart: 1784
+      poseStop: 1808
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Reface_Start_B_L_180
+      poseStart: 1809
+      poseStop: 1833
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Reface_Start_B_R_090
+      poseStart: 1834
+      poseStop: 1858
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Reface_Start_B_R_180
+      poseStart: 1859
+      poseStop: 1883
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Reface_Start_F_L_090
+      poseStart: 1884
+      poseStop: 1904
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Reface_Start_F_L_180
+      poseStart: 1905
+      poseStop: 1925
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Reface_Start_F_R_090
+      poseStart: 1926
+      poseStop: 1946
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Reface_Start_F_R_180
+      poseStart: 1947
+      poseStop: 1967
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Turn_L_045_Lfoot
+      poseStart: 3249
+      poseStop: 3265
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Turn_L_045_Rfoot
+      poseStart: 3266
+      poseStop: 3282
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Turn_L_090_Lfoot
+      poseStart: 3283
+      poseStop: 3311
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Turn_L_090_Rfoot
+      poseStart: 3312
+      poseStop: 3340
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Turn_L_135_Lfoot
+      poseStart: 3341
+      poseStop: 3369
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Turn_L_135_Rfoot
+      poseStart: 3370
+      poseStop: 3399
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Turn_L_180_Lfoot
+      poseStart: 3400
+      poseStop: 3428
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Turn_L_180_Rfoot
+      poseStart: 3429
+      poseStop: 3459
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Turn_R_045_Lfoot
+      poseStart: 3460
+      poseStop: 3476
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Turn_R_045_Rfoot
+      poseStart: 3477
+      poseStop: 3492
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Turn_R_090_Lfoot
+      poseStart: 3493
+      poseStop: 3520
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Turn_R_090_Rfoot
+      poseStart: 3521
+      poseStop: 3549
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Turn_R_135_Lfoot
+      poseStart: 3550
+      poseStop: 3578
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Turn_R_135_Rfoot
+      poseStart: 3579
+      poseStop: 3606
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Turn_R_180_Lfoot
+      poseStart: 3607
+      poseStop: 3636
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Turn_R_180_Rfoot
+      poseStart: 3637
+      poseStop: 3664
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToRunB
+    ranges:
+    - animName: Run_Start_B_Lfoot
+      poseStart: 1968
+      poseStop: 1996
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Start_B_Rfoot
+      poseStart: 1997
+      poseStop: 2024
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToRunBL
+    ranges:
+    - animName: Run_Start_BL_Lfoot
+      poseStart: 2025
+      poseStop: 2052
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Start_BL_Rfoot
+      poseStart: 2053
+      poseStop: 2081
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToRunBR
+    ranges:
+    - animName: Run_Start_BR_Lfoot
+      poseStart: 2082
+      poseStop: 2109
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Start_BR_Rfoot
+      poseStart: 2110
+      poseStop: 2138
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToRunF
+    ranges:
+    - animName: Run_Start_F_Lfoot
+      poseStart: 2139
+      poseStop: 2165
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Start_F_Rfoot
+      poseStart: 2166
+      poseStop: 2194
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToRunFL
+    ranges:
+    - animName: Run_Start_FL_Lfoot
+      poseStart: 2195
+      poseStop: 2220
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Start_FL_Rfoot
+      poseStart: 2221
+      poseStop: 2250
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToRunFR
+    ranges:
+    - animName: Run_Start_FR_Lfoot
+      poseStart: 2251
+      poseStop: 2278
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Start_FR_Rfoot
+      poseStart: 2279
+      poseStop: 2305
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToRunLL
+    ranges:
+    - animName: Run_Start_LL_Lfoot
+      poseStart: 2306
+      poseStop: 2331
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Start_LL_Rfoot
+      poseStart: 2332
+      poseStop: 2359
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToRunLR
+    ranges:
+    - animName: Run_Start_LR_Lfoot
+      poseStart: 2360
+      poseStop: 2387
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Start_LR_Rfoot
+      poseStart: 2388
+      poseStop: 2417
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToRunRL
+    ranges:
+    - animName: Run_Start_RL_Lfoot
+      poseStart: 2418
+      poseStop: 2447
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Start_RL_Rfoot
+      poseStart: 2448
+      poseStop: 2476
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToRunRR
+    ranges:
+    - animName: Run_Start_RR_Lfoot
+      poseStart: 2477
+      poseStop: 2503
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Start_RR_Rfoot
+      poseStart: 2504
+      poseStop: 2528
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunToStopB
+    ranges:
+    - animName: Run_Stop_B_Lfoot
+      poseStart: 2529
+      poseStop: 2562
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Stop_B_Rfoot
+      poseStart: 2563
+      poseStop: 2602
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunToStopBL
+    ranges:
+    - animName: Run_Stop_BL_Lfoot
+      poseStart: 2603
+      poseStop: 2641
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Stop_BL_Rfoot
+      poseStart: 2642
+      poseStop: 2681
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunToStopBR
+    ranges:
+    - animName: Run_Stop_BR_Lfoot
+      poseStart: 2682
+      poseStop: 2714
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Stop_BR_Rfoot
+      poseStart: 2715
+      poseStop: 2750
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunToStopF
+    ranges:
+    - animName: Run_Stop_F_Lfoot
+      poseStart: 2751
+      poseStop: 2782
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Stop_F_Rfoot
+      poseStart: 2783
+      poseStop: 2814
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunToStopFL
+    ranges:
+    - animName: Run_Stop_FL_Lfoot
+      poseStart: 2815
+      poseStop: 2849
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Stop_FL_Rfoot
+      poseStart: 2850
+      poseStop: 2889
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunToStopFR
+    ranges:
+    - animName: Run_Stop_FR_Lfoot
+      poseStart: 2890
+      poseStop: 2925
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Stop_FR_Rfoot
+      poseStart: 2926
+      poseStop: 2962
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunToStopLL
+    ranges:
+    - animName: Run_Stop_LL_Lfoot
+      poseStart: 2963
+      poseStop: 3000
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Stop_LL_Rfoot
+      poseStart: 3001
+      poseStop: 3038
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunToStopLR
+    ranges:
+    - animName: Run_Stop_LR_Lfoot
+      poseStart: 3039
+      poseStop: 3076
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Stop_LR_Rfoot
+      poseStart: 3077
+      poseStop: 3107
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunToStopRL
+    ranges:
+    - animName: Run_Stop_RL_Lfoot
+      poseStart: 3108
+      poseStop: 3147
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Stop_RL_Rfoot
+      poseStart: 3148
+      poseStop: 3174
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: RunToStopRR
+    ranges:
+    - animName: Run_Stop_RR_Lfoot
+      poseStart: 3175
+      poseStop: 3206
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Run_Stop_RR_Rfoot
+      poseStart: 3207
+      poseStop: 3248
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkPivotBF
+    ranges:
+    - animName: Walk_Pivot_B_F_Lfoot
+      poseStart: 4593
+      poseStop: 4649
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Pivot_B_F_Rfoot
+      poseStart: 4650
+      poseStop: 4705
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkPivotBLFR
+    ranges:
+    - animName: Walk_Pivot_BL_FR_Lfoot
+      poseStart: 4706
+      poseStop: 4752
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Pivot_BL_FR_Rfoot
+      poseStart: 4753
+      poseStop: 4812
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkPivotBRFL
+    ranges:
+    - animName: Walk_Pivot_BR_FL_Lfoot
+      poseStart: 4813
+      poseStop: 4865
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Pivot_BR_FL_Rfoot
+      poseStart: 4866
+      poseStop: 4919
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkPivotFB
+    ranges:
+    - animName: Walk_Pivot_F_B_Lfoot
+      poseStart: 4920
+      poseStop: 4977
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Pivot_F_B_Rfoot
+      poseStart: 4978
+      poseStop: 5035
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkPivotFLBR
+    ranges:
+    - animName: Walk_Pivot_FL_BR_Lfoot
+      poseStart: 5036
+      poseStop: 5090
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Pivot_FL_BR_Rfoot
+      poseStart: 5091
+      poseStop: 5146
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkPivotFRBL
+    ranges:
+    - animName: Walk_Pivot_FR_BL_Lfoot
+      poseStart: 5147
+      poseStop: 5202
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Pivot_FR_BL_Rfoot
+      poseStart: 5203
+      poseStop: 5258
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkPivotLLRL
+    ranges:
+    - animName: Walk_Pivot_LL_RL_Lfoot
+      poseStart: 5259
+      poseStop: 5312
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Pivot_LL_RL_Rfoot
+      poseStart: 5313
+      poseStop: 5364
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkPivotLRRR
+    ranges:
+    - animName: Walk_Pivot_LR_RR_Lfoot
+      poseStart: 5365
+      poseStop: 5418
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Pivot_LR_RR_Rfoot
+      poseStart: 5419
+      poseStop: 5472
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkPivotRLLL
+    ranges:
+    - animName: Walk_Pivot_RL_LL_Lfoot
+      poseStart: 5473
+      poseStop: 5527
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Pivot_RL_LL_Rfoot
+      poseStart: 5528
+      poseStop: 5581
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkPivotRRLR
+    ranges:
+    - animName: Walk_Pivot_RR_LR_Lfoot
+      poseStart: 5582
+      poseStop: 5624
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Pivot_RR_LR_Rfoot
+      poseStart: 5625
+      poseStop: 5679
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkPivot
+    ranges:
+    - animName: Walk_Reface_Start_B_L_090
+      poseStart: 5680
+      poseStop: 5714
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Reface_Start_B_L_180
+      poseStart: 5715
+      poseStop: 5747
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Reface_Start_B_R_090
+      poseStart: 5748
+      poseStop: 5782
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Reface_Start_B_R_180
+      poseStart: 5783
+      poseStop: 5815
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Reface_Start_F_L_090
+      poseStart: 5816
+      poseStop: 5848
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Reface_Start_F_L_180
+      poseStart: 5849
+      poseStop: 5881
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Reface_Start_F_R_090
+      poseStart: 5882
+      poseStop: 5914
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Reface_Start_F_R_180
+      poseStart: 5915
+      poseStop: 5947
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToWalkB
+    ranges:
+    - animName: Walk_Start_B_Lfoot
+      poseStart: 5948
+      poseStop: 5976
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Start_B_Rfoot
+      poseStart: 5977
+      poseStop: 6019
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToWalkBL
+    ranges:
+    - animName: Walk_Start_BL_Lfoot
+      poseStart: 6020
+      poseStop: 6051
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Start_BL_Rfoot
+      poseStart: 6052
+      poseStop: 6079
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToWalkBR
+    ranges:
+    - animName: Walk_Start_BR_Lfoot
+      poseStart: 6080
+      poseStop: 6113
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Start_BR_Rfoot
+      poseStart: 6114
+      poseStop: 6139
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToWalkF
+    ranges:
+    - animName: Walk_Start_F_Lfoot
+      poseStart: 6140
+      poseStop: 6174
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Start_F_Rfoot
+      poseStart: 6175
+      poseStop: 6207
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToWalkFL
+    ranges:
+    - animName: Walk_Start_FL_Lfoot
+      poseStart: 6208
+      poseStop: 6239
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Start_FL_Rfoot
+      poseStart: 6240
+      poseStop: 6268
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToWalkFR
+    ranges:
+    - animName: Walk_Start_FR_Lfoot
+      poseStart: 6269
+      poseStop: 6301
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Start_FR_Rfoot
+      poseStart: 6302
+      poseStop: 6329
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToWalkLL
+    ranges:
+    - animName: Walk_Start_LL_Lfoot
+      poseStart: 6330
+      poseStop: 6357
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Start_LL_Rfoot
+      poseStart: 6358
+      poseStop: 6383
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToWalkLR
+    ranges:
+    - animName: Walk_Start_LR_Lfoot
+      poseStart: 6384
+      poseStop: 6409
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Start_LR_Rfoot
+      poseStart: 6410
+      poseStop: 6432
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToWalkRL
+    ranges:
+    - animName: Walk_Start_RL_Lfoot
+      poseStart: 6433
+      poseStop: 6465
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Start_RL_Rfoot
+      poseStart: 6466
+      poseStop: 6492
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: IdleToWalkRR
+    ranges:
+    - animName: Walk_Start_RR_Lfoot
+      poseStart: 6493
+      poseStop: 6518
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Start_RR_Rfoot
+      poseStart: 6519
+      poseStop: 6547
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkToStopB
+    ranges:
+    - animName: Walk_Stop_B_Lfoot
+      poseStart: 6548
+      poseStop: 6584
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Stop_B_Rfoot
+      poseStart: 6585
+      poseStop: 6628
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkToStopBL
+    ranges:
+    - animName: Walk_Stop_BL_Lfoot
+      poseStart: 6629
+      poseStop: 6693
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Stop_BL_Rfoot
+      poseStart: 6694
+      poseStop: 6767
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkToStopBR
+    ranges:
+    - animName: Walk_Stop_BR_Lfoot
+      poseStart: 6768
+      poseStop: 6837
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Stop_BR_Rfoot
+      poseStart: 6838
+      poseStop: 6896
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkToStopF
+    ranges:
+    - animName: Walk_Stop_F_Lfoot
+      poseStart: 6897
+      poseStop: 6934
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Stop_F_Rfoot
+      poseStart: 6935
+      poseStop: 6981
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkToStopFL
+    ranges:
+    - animName: Walk_Stop_FL_Lfoot
+      poseStart: 6982
+      poseStop: 7047
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Stop_FL_Rfoot
+      poseStart: 7048
+      poseStop: 7113
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkToStopFR
+    ranges:
+    - animName: Walk_Stop_FR_Lfoot
+      poseStart: 7114
+      poseStop: 7179
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Stop_FR_Rfoot
+      poseStart: 7180
+      poseStop: 7244
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkToStopLL
+    ranges:
+    - animName: Walk_Stop_LL_Lfoot
+      poseStart: 7245
+      poseStop: 7305
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Stop_LL_Rfoot
+      poseStart: 7306
+      poseStop: 7375
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkToStopLR
+    ranges:
+    - animName: Walk_Stop_LR_Lfoot
+      poseStart: 7376
+      poseStop: 7437
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Stop_LR_Rfoot
+      poseStart: 7438
+      poseStop: 7503
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkToStopRL
+    ranges:
+    - animName: Walk_Stop_RL_Lfoot
+      poseStart: 7504
+      poseStop: 7548
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Stop_RL_Rfoot
+      poseStart: 7549
+      poseStop: 7623
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
+  - name: WalkToStopRR
+    ranges:
+    - animName: Walk_Stop_RR_Lfoot
+      poseStart: 7624
+      poseStop: 7687
+      frameStart: 0
+      frameStop: 2147483647
+    - animName: Walk_Stop_RR_Rfoot
+      poseStart: 7688
+      poseStop: 7732
+      frameStart: 0
+      frameStop: 2147483647
+    hasRecoveryState: 0
+    hasInitState: 0
+    animationIDSerialized: 000000000000000000000000
+    isInterruptibleByState: 010101
+    interruptibleType: 1
+    allowedInterruptionNames: []
+    warpingType: 0
+    posWarpingMode: 0
+    rotWarpingMode: 0
+    positionWarpWeight: 0
+    rotationWarpWeight: 0
+    customWarpPositionCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    customWarpRotationCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    contactWarping: 0
+    warpContactBones: []
+    simulateRootMotion: 0
   idleTags:
   - name: Idle
     ranges: []
@@ -166,8 +2904,8 @@ MonoBehaviour:
     initRanges: []
     loopRanges:
     - animName: Idle_Loop
-      poseStart: 0
-      poseStop: 99
+      poseStart: 40
+      poseStop: 139
       frameStart: 0
       frameStop: 2147483647
     transitionIDSerialized: 

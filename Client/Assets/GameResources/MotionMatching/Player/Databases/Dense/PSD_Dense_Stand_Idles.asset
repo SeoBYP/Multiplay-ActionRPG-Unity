@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07c70432c7efd9b4a80bc25897d03d95, type: 3}
+  m_Name: PSD_Dense_Stand_Idles
+  m_EditorClassIdentifier: Game.System::Game.System.MotionSystem.MotionSearchDatabaseAsset
+  group: 0
+  role: 0
+  includeInBake: 1
+  animations:
+  - {fileID: 8993902097722301239, guid: 6d00b4a1b17de934e948296854b47b5d, type: 3}
+  - {fileID: 8993902097722301239, guid: 7dbf1b9a2159bea4a949458795e994d9, type: 3}
+  - {fileID: 8993902097722301239, guid: a1af1d8d887fcbf45bff6c9c06cc5d5a, type: 3}
+  - {fileID: 8993902097722301239, guid: e0c1b41fddeab4b47b34da51bdc5b02d, type: 3}
+  - {fileID: 8993902097722301239, guid: c417f30807970d24387f0a280ced2688, type: 3}
+  - {fileID: 8993902097722301239, guid: dcd2a5ba973fef040b6029f77fccd9e4, type: 3}
+  - {fileID: 8993902097722301239, guid: 78d5a2abf1a929a48b3cbad5cbedca41, type: 3}
+  - {fileID: 8993902097722301239, guid: 1f56011151c4cf343976a9630d6bee15, type: 3}
+  - {fileID: 8993902097722301239, guid: b284c97c8dffc734a8f57ff1adb6cd20, type: 3}
+  - {fileID: 8993902097722301239, guid: d61af06582f38204aba5cf2954ce94a2, type: 3}
+  - {fileID: 8993902097722301239, guid: 2d05d9c3e1f0a9a4093d999790406f4c, type: 3}

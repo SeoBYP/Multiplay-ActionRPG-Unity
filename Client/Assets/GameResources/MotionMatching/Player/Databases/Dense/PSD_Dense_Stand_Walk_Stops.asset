@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07c70432c7efd9b4a80bc25897d03d95, type: 3}
+  m_Name: PSD_Dense_Stand_Walk_Stops
+  m_EditorClassIdentifier: Game.System::Game.System.MotionSystem.MotionSearchDatabaseAsset
+  group: 0
+  role: 3
+  includeInBake: 1
+  animations:
+  - {fileID: 8993902097722301239, guid: 519d3dea07c051d40b27eda31072b6da, type: 3}
+  - {fileID: 8993902097722301239, guid: c15b1735fb1d5654282e57195225f75a, type: 3}
+  - {fileID: 8993902097722301239, guid: 9404170415fefb04193f628612e7e425, type: 3}
+  - {fileID: 8993902097722301239, guid: 0e6757837279bff4a9c01ff9fd4f2b1c, type: 3}
+  - {fileID: 8993902097722301239, guid: e6b35875d8718984cae8f178f9cabf3f, type: 3}
+  - {fileID: 8993902097722301239, guid: 3d21d7688453cc04b8625fa1940e2a6b, type: 3}
+  - {fileID: 8993902097722301239, guid: fab1660b5a8bb554380f4d7d5e3457f6, type: 3}
+  - {fileID: 8993902097722301239, guid: 6bd513dde043f5049a7f9f5e0fc22453, type: 3}
+  - {fileID: 8993902097722301239, guid: c7732d38c15c2354fa437a8dbf4a3313, type: 3}
+  - {fileID: 8993902097722301239, guid: bf448bc1129dc884aa725ca6f21d8c46, type: 3}
+  - {fileID: 8993902097722301239, guid: fbd771f0b13349343b6093d2b8d141f3, type: 3}
+  - {fileID: 8993902097722301239, guid: 007a622968d17994fa0bf5a9bd0020b9, type: 3}
+  - {fileID: 8993902097722301239, guid: 22014166a5fe1c74c87d3bb672829730, type: 3}
+  - {fileID: 8993902097722301239, guid: 73bda1100f80ab24ea3a8735fc2a6b09, type: 3}
+  - {fileID: 8993902097722301239, guid: 57a518c599b16314da3be1f871a461b8, type: 3}
+  - {fileID: 8993902097722301239, guid: a3aa072e4abacbc48911872a704bf23b, type: 3}
+  - {fileID: 8993902097722301239, guid: 039ceca8c77f4574084c6d72d83b9257, type: 3}
+  - {fileID: 8993902097722301239, guid: aa9a805c3e324f64aa9ebf75aef287b7, type: 3}
+  - {fileID: 8993902097722301239, guid: 2abd88d17d71d4740a4ab83958a5cf6a, type: 3}
+  - {fileID: 8993902097722301239, guid: a49eb1ddfd068454e9482816eece0a86, type: 3}

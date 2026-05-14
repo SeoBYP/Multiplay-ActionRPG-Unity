@@ -3,7 +3,7 @@ using Unity.Mathematics;
 
 namespace Game.System.MotionSystem
 {
-    public class ActionPoseFinder : PoseFinder
+    public class ActionPoseFinder : MotionPoseFinder
     {
         public override int Find(
             ref NativeArray<float3> previousPositions, 
@@ -21,8 +21,28 @@ namespace Game.System.MotionSystem
             bool wantDebugDistance, 
             bool forceContinuousPose)
         {
-            currentMinDistance = 0;
             ActionQueryComputedFlow aqcf = (ActionQueryComputedFlow)queryComputedFlow;
+
+            if (!aqcf.GetActionQueryComputed().actionTag.HasInitState() &&
+                !aqcf.GetActionQueryComputed().actionTag.HasRecoveryState())
+            {
+                return FindSingleStateAction(
+                    ref previousPositions,
+                    ref timeOnLastPositions,
+                    out currentMinDistance,
+                    rtsModelInverse,
+                    poseFinderGenericVariables,
+                    currentBonesPosition,
+                    bonesCount,
+                    queryComputedFlow,
+                    futureOffsets,
+                    futureDirections,
+                    pastTrajectory,
+                    poseResult,
+                    wantDebugDistance);
+            }
+
+            currentMinDistance = 0;
             var currentFeatures = aqcf.GetQueryComputed().featuresData[queryComputedFlow.currentFeatureID];
             aqcf.CurrentAnimationPoseID = currentFeatures.animFrame + 1;
             if (!aqcf.FirstFrame)
@@ -56,6 +76,97 @@ namespace Game.System.MotionSystem
             
             UpdateAnimationIndexes(aqcf);
             return aqcf.currentFeatureID;
+        }
+
+        private int FindSingleStateAction(
+            ref NativeArray<float3> previousPositions,
+            ref float timeOnLastPositions,
+            out float currentMinDistance,
+            float4x4 rtsModelInverse,
+            PoseFinderGenericVariables poseFinderGenericVariables,
+            NativeArray<float3> currentBonesPosition,
+            int bonesCount,
+            QueryComputedFlow queryComputedFlow,
+            NativeArray<float3> futureOffsets,
+            NativeArray<float3> futureDirections,
+            PastTrajectory pastTrajectory,
+            NativeArray<DistanceResult> poseResult,
+            bool wantDebugDistances)
+        {
+            ActionQueryComputedFlow aqcf = (ActionQueryComputedFlow)queryComputedFlow;
+            if (!aqcf.FirstFrame)
+            {
+                aqcf.FirstFrame = true;
+                int selectedPose = GetNewPose(
+                    ref previousPositions,
+                    out currentMinDistance,
+                    rtsModelInverse,
+                    poseFinderGenericVariables,
+                    currentBonesPosition,
+                    bonesCount,
+                    timeOnLastPositions,
+                    queryComputedFlow,
+                    futureOffsets,
+                    futureDirections,
+                    pastTrajectory,
+                    poseResult,
+                    wantDebugDistances,
+                    true);
+
+                return TryGetActionEntrySkipRatio(aqcf, out float skipRatio)
+                    ? SkipActionEntry(aqcf, selectedPose, skipRatio)
+                    : selectedPose;
+            }
+
+            int nextFeatureID = queryComputedFlow.currentFeatureID + 1;
+            if (queryComputedFlow.currentRange.featureIDStart <= nextFeatureID &&
+                nextFeatureID <= queryComputedFlow.currentRange.featureIDStop)
+            {
+                currentMinDistance = 0f;
+                aqcf.isSearch = false;
+                return nextFeatureID;
+            }
+
+            currentMinDistance = 0f;
+            aqcf.isQueryDone = true;
+            aqcf.FirstFrame = false;
+            return queryComputedFlow.currentFeatureID;
+        }
+
+        private static bool TryGetActionEntrySkipRatio(ActionQueryComputedFlow aqcf, out float skipRatio)
+        {
+            skipRatio = 0f;
+            string[] query = aqcf.GetQueryComputed().query;
+            if (query == null || query.Length == 0)
+                return false;
+
+            if (query[0].Contains("ToStop"))
+            {
+                skipRatio = 0.45f;
+                return true;
+            }
+
+            if (query[0] == "WalkToRun")
+            {
+                skipRatio = 0.50f;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static int SkipActionEntry(ActionQueryComputedFlow aqcf, int selectedPose, float skipRatio)
+        {
+            // TODO(MotionMatching Editor): move this temporary stop-entry rule to editable
+            // MotionSearchDatabase/action settings. Transition clips should expose per-query
+            // entry mode, normalized time, and frame clamp instead of a hard-coded ratio.
+            QueryRange range = aqcf.currentRange;
+            if (range.featureIDStop <= range.featureIDStart)
+                return selectedPose;
+
+            int skippedFrames = math.max(2, (int)math.round((range.featureIDStop - range.featureIDStart) * skipRatio));
+            int firstAllowedPose = range.featureIDStart + skippedFrames;
+            return math.clamp(math.max(selectedPose, firstAllowedPose), range.featureIDStart, range.featureIDStop);
         }
         
         public void HandleNextState(ActionQueryComputedFlow aqcf)

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07c70432c7efd9b4a80bc25897d03d95, type: 3}
+  m_Name: PSD_Sparse_Stand_Run_Stops
+  m_EditorClassIdentifier: Game.System::Game.System.MotionSystem.MotionSearchDatabaseAsset
+  group: 1
+  role: 3
+  includeInBake: 0
+  animations:
+  - {fileID: 8993902097722301239, guid: 2109cd337bc61a943b917a4fbbf14cf6, type: 3}
+  - {fileID: 8993902097722301239, guid: ec97b249258ad3a4e87a3c07970303b1, type: 3}
+  - {fileID: 8993902097722301239, guid: 011a333a7924d8b4e9faa478dfea0f53, type: 3}
+  - {fileID: 8993902097722301239, guid: 588247b4f2910ae4cad46e632cf62040, type: 3}
+  - {fileID: 8993902097722301239, guid: d1443507b66bd8d46af98be0d06c5c4e, type: 3}
+  - {fileID: 8993902097722301239, guid: a705b79663efcb54fa82bef781141a28, type: 3}

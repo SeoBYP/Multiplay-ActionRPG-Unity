@@ -1665,6 +1665,7 @@ MonoBehaviour:
     animationID: 0
     animationFrame: 0
     clipName: 
+    databaseName: 
     rangeStart: 0
     rangeStop: 0
     distance: 0
@@ -1925,7 +1926,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: daf239f600209674b9f5184fe02348c9, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.50121
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: daf239f600209674b9f5184fe02348c9, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1933,7 +1934,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: daf239f600209674b9f5184fe02348c9, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.25176
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: daf239f600209674b9f5184fe02348c9, type: 3}
       propertyPath: m_LocalRotation.w
