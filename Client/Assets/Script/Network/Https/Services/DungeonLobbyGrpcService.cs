@@ -78,9 +78,9 @@ namespace Game.Network.Https.Services
             var client = CreateClient();
             using var call = client.SubscribeRoom(request, cancellationToken: ct);
 
-            await foreach (var message in call.ResponseStream.ReadAllAsync(ct))
+            while (await call.ResponseStream.MoveNext(ct))
             {
-                onMessage(message);
+                onMessage(call.ResponseStream.Current);
             }
         }
     }

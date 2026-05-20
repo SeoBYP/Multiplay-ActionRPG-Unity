@@ -11,7 +11,7 @@ public static class SceneToolbarButton
     private const string ToolbarRootName = "ToolbarZoneRightAlign";
     private const string ButtonNamePrefix = "scene-toolbar-button-";
 
-    private static readonly Type ToolbarType = typeof(Editor).Assembly.GetType("UnityEditor.Toolbar");
+    private static readonly Type ToolbarType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.Toolbar");
     private static readonly SceneShortcut[] SceneShortcuts =
     {
         new("Title", "Assets/Scenes/Title.unity"),

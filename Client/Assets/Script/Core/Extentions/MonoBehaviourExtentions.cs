@@ -1,5 +1,4 @@
-﻿using Unity.VisualScripting;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Game.Core
 {
@@ -12,6 +11,26 @@ namespace Game.Core
             {
                 component = behaviour.gameObject.AddComponent<T>();
             }
+            return component;
+        }
+        
+        public static T GetAroundComponent<T>(this MonoBehaviour behaviour)
+        {
+            return GetAroundComponent<T>(behaviour.gameObject);
+        }
+        
+        public static T GetAroundComponent<T>(this Transform behaviour)
+        {
+            return GetAroundComponent<T>(behaviour.gameObject);
+        }
+        
+        public static T GetAroundComponent<T>(this GameObject behaviour) 
+        {
+            T component = behaviour.GetComponentInParent<T>();
+            if (component == null)
+                component = behaviour.GetComponentInChildren<T>();
+            if (component == null)
+                component = behaviour.gameObject.GetComponent<T>();
             return component;
         }
     }

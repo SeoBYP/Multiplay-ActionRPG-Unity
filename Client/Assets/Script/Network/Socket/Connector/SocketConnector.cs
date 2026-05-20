@@ -165,13 +165,17 @@ namespace Game.Network.Socket
 
             while (offset < size)
             {
-                var read = await _stream.ReadAsync(buffer, offset, size - offset, ct);
+                ct.ThrowIfCancellationRequested();
+
+                var stream = _stream;
+                if (stream == null)
+                    throw new ObjectDisposedException(nameof(SocketConnector));
+
+                var read = await stream.ReadAsync(buffer, offset, size - offset, ct);
                 if (read == 0)
                 {
                     if (offset == 0)
-                    {
                         return 0;
-                    }
 
                     throw new InvalidOperationException("Socket closed during packet read.");
                 }

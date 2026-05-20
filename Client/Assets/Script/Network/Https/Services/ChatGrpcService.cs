@@ -34,9 +34,9 @@ namespace Game.Network.Https.Services
                 call.RequestStream.WriteAsync(message).GetAwaiter().GetResult();
             }));
 
-            await foreach (var message in call.ResponseStream.ReadAllAsync(ct))
+            while (await call.ResponseStream.MoveNext(ct))
             {
-                onMessage(message);
+                onMessage(call.ResponseStream.Current);
             }
 
             await call.RequestStream.CompleteAsync();

@@ -1,5 +1,5 @@
 using System;
-using Game.Main.Input;
+using Game.Input;
 using VContainer;
 using VContainer.Unity;
 

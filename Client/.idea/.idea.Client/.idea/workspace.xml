@@ -11,104 +11,155 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="bb01d1c1-9c2f-400e-8c4a-6f6ed31aab58" name="변경" comment="">
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/FuturePrediction.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Inertialization.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PastTrajectory.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/BlendingMethods.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/Models/BlendBoundaries.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/Models/BlendingResults.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/PoseBlender.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Implementations/ActionPoseFinder.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Implementations/IdlePoseFinder.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Implementations/LoopActionPoseFinder.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Implementations/MotionPoseFinder.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Models/DistanceResult.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Models/FeatureDataNative.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Models/PoseFinderGenericVariables.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/PoseFinder.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseSetters/Implementations/MotionPoseSetter.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseSetters/PoseSetter.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Implementations/ActionQueryComputed.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Implementations/IdleQueryComputed.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Implementations/LoopActionQueryComputed.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Implementations/MotionQueryComputed.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Models/FeaturesComputedNative.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Models/QueryRange.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/QueryComputed.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Implementations/ActionQueryComputedFlow.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Implementations/IdleQueryComputedFlow.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Implementations/LoopActionQueryComputedFlow.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Implementations/MotionQueryComputedFlow.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Models/BonesWeights.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/QueryComputedFlow.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/TrajectoryEstimation.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ActionTagsData.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/AvatarBone.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/CustomAvatar.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/GenericAvatar.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/HumanoidAvatar.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/BoneCharacteristic.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Characteristics.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/CharacteristicsByTag.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ExclusionMasks/ExclusionMaskBase.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ExclusionMasks/GenericExclusionMask.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ExclusionMasks/HumanoidExclusionMask.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/QueriesComputed.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Tags.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Controller/CharacterControllerBase.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/CurrentBoneTransformsValues.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/DataEntities.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/Dataset.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/FeatureData.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/FeatureDataAnim.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/GlobalWeights.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/EnumerableExtensions.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/Float3Extensions.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/GizmosExtensions.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/ListExtensions.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/ObjectExtensions.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/QuaternionExtensions.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/TransformExtensions.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/GetCurrentTransformValues.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Helper/BaseTargetHelper.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Input/InputCustomizable.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/MotionData/MotionData.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/MotionMatching.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/ActionTag.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/ActionTagState.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/IdleTag.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/LoopActionTag.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/Tag.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/TagBase.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/TagRange.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/WarpingMode.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/WarpingType.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Utils/MathUtils.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Utils/SpringUtils.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../.claude/worktrees/awesome-archimedes" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Client/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Client/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/Animations/Player/PlayerController.controller" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/Animations/Player/PlayerController.controller" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Art/Fonts/ChironSungHK-SemiBold SDF.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Art/Fonts/ChironSungHK-SemiBold SDF.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Art/MedievalKingdomUI/Prefabs/buttons/Button.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Art/MedievalKingdomUI/Prefabs/buttons/Button.prefab" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Art/MedievalKingdomUI/Prefabs/buttons/IconButtonCross.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Art/MedievalKingdomUI/Prefabs/buttons/IconButtonCross.prefab" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Editor/MotionMatchingSampleAnimationSetup.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Editor/SceneToolbarButton.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Editor/SceneToolbarButton.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Arcs.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Arcs.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Circles.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Circles.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Idles.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Idles.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_RunToWalk.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_RunToWalk.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_Loops.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_Loops.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_Pivots.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_Pivots.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_SpinTransition.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_SpinTransition.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_Starts.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_Starts.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_Stops.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_Stops.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_WalkToRun.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_WalkToRun.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Walk_Loops.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Walk_Loops.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Walk_Pivots.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Walk_Pivots.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Walk_Starts.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Walk_Starts.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Walk_Stops.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Walk_Stops.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Run_Loops.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Run_Loops.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Run_Pivots.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Run_Pivots.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Run_Starts.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Run_Starts.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Run_Stops.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Run_Stops.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Walk_Loops.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Walk_Loops.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Walk_Pivots.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Walk_Pivots.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Walk_Starts.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Walk_Starts.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Walk_Stops.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Walk_Stops.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/PlayerMotionDataset.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/PlayerMotionDataset.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/InputSystem_Actions.inputactions" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/InputSystem_Actions.inputactions" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/InputSystem_Actions.inputactions.meta" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/InputSystem_Actions.inputactions.meta" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scenes/Main.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Main.unity" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/CharacterAgent.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/CharacterAgent.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/NPCCharacterAgent.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/NPCCharacterAgent.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Core/Extentions/MonoBehaviourExtentions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Core/Extentions/MonoBehaviourExtentions.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/GUI/Game.GUI.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/GUI/Game.GUI.asmdef" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/PlayerCharacterAgent.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/PlayerCharacterAgent.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Movement/CharacterMotor.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Movement/CharacterMotor.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Rotation/AgentRotationStrategy.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Rotation/AgentRotationStrategy.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Rotation/NpcRotationStrategy.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Rotation/NpcRotationStrategy.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Rotation/PlayerRotationStrategy.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Rotation/PlayerRotationStrategy.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/Components/PlayerInputComponent.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/Components/PlayerInputComponent.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Factory/CharacterStateContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Factory/CharacterStateContext.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Factory/StateFactory.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Factory/StateFactory.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/GroundState.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/State/GroundState.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Game.Main.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Game.Main.asmdef" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Inputs/PlayerInputActions.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Game.Network.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Game.Network.asmdef" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Https/Core/GrpcChannelProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Https/Core/GrpcChannelProvider.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Https/Services/ChatGrpcService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Https/Services/ChatGrpcService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Https/Services/DungeonLobbyGrpcService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Https/Services/DungeonLobbyGrpcService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Socket/Connector/SocketConnector.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Socket/Connector/SocketConnector.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/AuthService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/AuthService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/AuthSession.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/AuthSession.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/IAuthService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/IAuthService.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Script/System/Game.System.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/Game.System.asmdef" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/AuthGrpcServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/AuthGrpcServiceTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/FuturePrediction.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Inertialization.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PastTrajectory.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/BlendingMethods.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/Models/BlendBoundaries.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/Models/BlendingResults.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/PoseBlender.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Implementations/ActionPoseFinder.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Implementations/IdlePoseFinder.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Implementations/LoopActionPoseFinder.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Implementations/MotionPoseFinder.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Models/DistanceResult.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Models/FeatureDataNative.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Models/PoseFinderGenericVariables.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/PoseFinder.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseSetters/Implementations/MotionPoseSetter.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseSetters/PoseSetter.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Implementations/ActionQueryComputed.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Implementations/IdleQueryComputed.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Implementations/LoopActionQueryComputed.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Implementations/MotionQueryComputed.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Models/FeaturesComputedNative.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Models/QueryRange.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/QueryComputed.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Implementations/ActionQueryComputedFlow.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Implementations/IdleQueryComputedFlow.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Implementations/LoopActionQueryComputedFlow.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Implementations/MotionQueryComputedFlow.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Models/BonesWeights.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/QueryComputedFlow.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/TrajectoryEstimation.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ActionTagsData.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/AvatarBone.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/CustomAvatar.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/GenericAvatar.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/HumanoidAvatar.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/BoneCharacteristic.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Characteristics.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/CharacteristicsByTag.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ExclusionMasks/ExclusionMaskBase.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ExclusionMasks/GenericExclusionMask.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ExclusionMasks/HumanoidExclusionMask.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/QueriesComputed.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Tags.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Controller/CharacterControllerBase.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Controller/PlayerCharacterMotionController.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/CurrentBoneTransformsValues.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/DataEntities.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/Dataset.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/FeatureData.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/FeatureDataAnim.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/GlobalWeights.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/MotionSearchDatabaseAsset.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/EditorDebug/MotionMatchingPreviewInputReceiver.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/EnumerableExtensions.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/Float3Extensions.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/GizmosExtensions.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/ListExtensions.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/ObjectExtensions.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/QuaternionExtensions.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/TransformExtensions.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/GetCurrentTransformValues.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Helper/BaseTargetHelper.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Importer/RecordPositions.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Input/CameraBasedMotionInput.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Input/InputCustomizable.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/MotionData/MotionData.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/MotionMatching.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/ActionTag.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/ActionTagState.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/IdleTag.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/LoopActionTag.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/Tag.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/TagBase.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/TagRange.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/WarpingMode.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/WarpingType.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Utils/MathUtils.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Utils/SpringUtils.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Game.Tests.EditMode.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Game.Tests.EditMode.asmdef" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/DungeonLobbyGrpcServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/DungeonLobbyGrpcServiceTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/UserGrpcServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/UserGrpcServiceTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/AuthE2ETests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/AuthE2ETests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/AuthFlowE2ETests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/AuthFlowE2ETests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/ChatE2ETests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/ChatE2ETests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/DungeonLobbyE2ETests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/DungeonLobbyE2ETests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/E2ETestBase.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/E2ETestBase.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/UserE2ETests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/UserE2ETests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Socket/SocketE2ETests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Socket/SocketE2ETests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/GrpcChannelProviderTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/GrpcChannelProviderTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/Game.Tests.PlayMode.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/Game.Tests.PlayMode.asmdef" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/Game.VContainer.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/Game.VContainer.asmdef" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/Initializer/MainSceneInitializer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/Initializer/MainSceneInitializer.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/Installers/ProjectLifetimeScope.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/Installers/ProjectLifetimeScope.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/Installers/Scenes/MainLifetimeScope.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/Installers/Scenes/MainLifetimeScope.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/packages.config" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/packages.config" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Packages/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/manifest.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Packages/packages-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/packages-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ProjectSettings/EditorBuildSettings.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/EditorBuildSettings.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ProjectSettings/PresetManager.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/PresetManager.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ProjectSettings/ProjectSettings.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/ProjectSettings.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ProjectSettings/ProjectVersion.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/ProjectVersion.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ProjectSettings/VirtualProjectsConfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/VirtualProjectsConfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/Application/Services/DungeonLobbyServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/Application/Services/DungeonLobbyServiceTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/Domain/Entities/DungeonRoomTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/Domain/Entities/DungeonRoomTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/Infrastructure/Integrations/DungeonRoomPlayerRepositoryIntegrationTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/Infrastructure/Integrations/DungeonRoomPlayerRepositoryIntegrationTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/Infrastructure/Integrations/DungeonRoomRepositoryIntegrationTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/Infrastructure/Integrations/DungeonRoomRepositoryIntegrationTests.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -279,7 +330,7 @@
 }</component>
   <component name="RunManager" selected="Unity 에디터에 연결.Unity 에디터에 연결">
     <configuration name="유닛 테스트(배치 모드)" type="RunUnityExe" factoryName="Unity Executable">
-      <option name="EXE_PATH" value="C:\Program Files\Unity\Hub\Editor\6000.4.2f1\Editor\Unity.exe" />
+      <option name="EXE_PATH" value="C:\Program Files\Unity\Hub\Editor\6000.4.7f1\Editor\Unity.exe" />
       <option name="PROGRAM_PARAMETERS" value="-runTests -batchmode -projectPath C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client -testResults Logs/results.xml -logFile Logs/Editor.log -testPlatform EditMode -debugCodeOptimization" />
       <option name="WORKING_DIRECTORY" value="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client" />
       <option name="PASS_PARENT_ENVS" value="1" />
@@ -289,7 +340,7 @@
       <method v="2" />
     </configuration>
     <configuration name="Unity 시작" type="RunUnityExe" factoryName="Unity Executable">
-      <option name="EXE_PATH" value="C:\Program Files\Unity\Hub\Editor\6000.4.2f1\Editor\Unity.exe" />
+      <option name="EXE_PATH" value="C:\Program Files\Unity\Hub\Editor\6000.4.7f1\Editor\Unity.exe" />
       <option name="PROGRAM_PARAMETERS" value="-projectPath C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client -debugCodeOptimization" />
       <option name="WORKING_DIRECTORY" value="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client" />
       <option name="PASS_PARENT_ENVS" value="1" />
@@ -298,15 +349,13 @@
       <option name="MIXED_MODE_DEBUG" value="0" />
       <method v="2" />
     </configuration>
-    <configuration name="Unity 에디터에 연결" type="UNITY_DEBUG_RUN_CONFIGURATION" factoryName="Unity Debug" show_console_on_std_err="false" show_console_on_std_out="false" port="50000" address="localhost" useMixedMode="false" ignored-value-for-modified-check="45816">
+    <configuration name="Unity 에디터에 연결" type="UNITY_DEBUG_RUN_CONFIGURATION" factoryName="Unity Debug" show_console_on_std_err="false" show_console_on_std_out="false" port="50000" address="localhost" useMixedMode="false">
       <option name="allowRunningInParallel" value="false" />
       <option name="listenPortForConnections" value="false" />
-      <option name="pid" value="45816" />
+      <option name="pid" />
       <option name="projectPathOnTarget" />
       <option name="runtimes">
-        <list>
-          <MonoRuntime />
-        </list>
+        <list />
       </option>
       <option name="selectedOptions">
         <list />
@@ -347,6 +396,7 @@
       <workItem from="1778421192220" duration="256000" />
       <workItem from="1778421544153" duration="940000" />
       <workItem from="1778663746827" duration="6972000" />
+      <workItem from="1779275753669" duration="2806000" />
     </task>
     <servers />
   </component>
