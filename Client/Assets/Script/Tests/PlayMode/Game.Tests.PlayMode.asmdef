@@ -4,7 +4,11 @@
     "references": [
         "Game.Network",
         "Game.System",
+        "Game.Input",
         "UniTask",
+        "VContainer",
+        "Unity.InputSystem",
+        "Unity.InputSystem.TestFramework",
         "UnityEngine.TestRunner"
     ],
     "includePlatforms": [],
@@ -13,8 +17,8 @@
     "overrideReferences": true,
     "precompiledReferences": [
         "nunit.framework.dll",
+        "Grpc.Core.dll",
         "Grpc.Core.Api.dll",
-        "Grpc.Net.Client.dll",
         "Google.Protobuf.dll"
     ],
     "autoReferenced": false,

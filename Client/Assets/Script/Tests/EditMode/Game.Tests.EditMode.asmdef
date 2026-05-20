@@ -4,10 +4,14 @@
     "references": [
         "Game.Network",
         "Game.System",
+        "Game.Input",
         "VContainer",
         "UniTask",
+        "Unity.InputSystem",
+        "Unity.InputSystem.TestFramework",
         "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "UnityEditor.TestRunner",
+        "Unity.Mathematics"
     ],
     "includePlatforms": [
         "Editor"
@@ -17,12 +21,9 @@
     "overrideReferences": true,
     "precompiledReferences": [
         "nunit.framework.dll",
+        "Grpc.Core.dll",
         "Grpc.Core.Api.dll",
-        "Grpc.Net.Client.dll",
-        "Grpc.Net.Common.dll",
         "Google.Protobuf.dll",
-        "Microsoft.Extensions.Logging.Abstractions.dll",
-        "System.Diagnostics.DiagnosticSource.dll",
         "System.Collections.Immutable.dll"
     ],
     "autoReferenced": false,
