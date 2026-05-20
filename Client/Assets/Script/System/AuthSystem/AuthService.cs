@@ -35,6 +35,8 @@ namespace Script.System.Auth
 
         public bool IsAuthenticated => _authSession is { IsAuthenticated: true };
 
+        public UniTask AuthenticatedAsync() => _authSession.AuthenticatedAsync();
+
         /// <summary>
         /// 저장된 토큰으로 자동 로그인을 시도한다.
         /// access token이 아직 유효하면 바로 성공시키고, 만료되었으면 refresh를 수행한다.

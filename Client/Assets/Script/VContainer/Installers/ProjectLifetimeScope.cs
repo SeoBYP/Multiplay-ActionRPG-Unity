@@ -1,5 +1,9 @@
 using Game.Network.Https;
 using Script.System.Auth;
+using Game.System.DungeonLobby;
+#if UNITY_EDITOR
+using Game.System.AuthSystem;
+#endif
 using VContainer;
 using VContainer.Unity;
 
@@ -22,6 +26,16 @@ namespace Game.Installers
             // 런타임 인증 상태와 인증 오케스트레이션 서비스 등록.
             builder.Register<AuthSession>(Lifetime.Singleton);
             builder.Register<IAuthService, AuthService>(Lifetime.Singleton);
+
+            // 던전 로비 런타임 상태와 로비 오케스트레이션 서비스 등록.
+            builder.Register<DungeonLobbySession>(Lifetime.Singleton);
+            builder.Register<IDungeonLobbyService, DungeonLobbyService>(Lifetime.Singleton);
+
+#if UNITY_EDITOR
+            // 에디터에서 Title 씬 없이 직접 실행 시 게스트 자동 로그인.
+            // 전역(ProjectLifetimeScope)에 1회만 등록 — 실패 시 Play 모드 즉시 종료.
+            builder.RegisterEntryPoint<EditorAutoLoginInitializer>(Lifetime.Singleton);
+#endif
         }
     }
 }

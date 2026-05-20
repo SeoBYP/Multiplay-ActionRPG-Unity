@@ -1,3 +1,5 @@
+using Cysharp.Threading.Tasks;
+
 namespace Script.System.Auth
 {
     /// <summary>
@@ -6,11 +8,19 @@ namespace Script.System.Auth
     /// </summary>
     public class AuthSession
     {
+        private readonly UniTaskCompletionSource _authenticatedTcs = new();
+
         public string AccessToken { get; private set; }
         public string RefreshToken { get; private set; }
         public long ExpiresAt { get; private set; }
 
         public bool IsAuthenticated => !string.IsNullOrEmpty(AccessToken);
+
+        /// <summary>
+        /// 최초 인증 완료 시까지 대기한다.
+        /// 이미 인증된 상태라면 즉시 반환된다.
+        /// </summary>
+        public UniTask AuthenticatedAsync() => _authenticatedTcs.Task;
 
         /// <summary>
         /// 서버에서 받은 최신 토큰 세트를 메모리와 영속 저장소에 반영한다.
@@ -21,6 +31,7 @@ namespace Script.System.Auth
             RefreshToken = refreshToken;
             ExpiresAt = expiresAt;
             TokenStorage.Save(accessToken, refreshToken, expiresAt);
+            _authenticatedTcs.TrySetResult(); // 최초 인증 시 1회 신호 — 이후 호출은 무시됨
         }
 
         /// <summary>

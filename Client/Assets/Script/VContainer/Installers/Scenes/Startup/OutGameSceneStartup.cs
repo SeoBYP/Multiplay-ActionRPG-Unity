@@ -1,0 +1,33 @@
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using Script.System.Auth;
+using UnityEngine;
+using VContainer.Unity;
+
+namespace Game.Installers.Scenes.Startup
+{
+    /// <summary>
+    /// OutGame 씬 진입 시 인증 완료를 보장한다.
+    ///
+    /// IAsyncStartable.StartAsync()는 IInitializable.Initialize()가 모두 끝난 뒤
+    /// VContainer가 호출하므로, 여기서 await하면 이후 씬 로직이 인증 완료 후 실행된다.
+    ///
+    /// - 빌드: TitleScene에서 로그인 후 씬 전환 → AuthSession.Update()가 이미 호출됨 → 즉시 통과
+    /// - 에디터: EditorAutoLoginInitializer(ProjectLifetimeScope)가 완료될 때까지 대기
+    /// </summary>
+    public class OutGameSceneStartup : IAsyncStartable
+    {
+        private readonly IAuthService _authService;
+
+        public OutGameSceneStartup(IAuthService authService)
+        {
+            _authService = authService;
+        }
+
+        public async UniTask StartAsync(CancellationToken ct)
+        {
+            await _authService.AuthenticatedAsync().AttachExternalCancellation(ct);
+            Debug.Log("[OutGameSceneStartup] 인증 확인 완료 — 씬 초기화 진행");
+        }
+    }
+}
