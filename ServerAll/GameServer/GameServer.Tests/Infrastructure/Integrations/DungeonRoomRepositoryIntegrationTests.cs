@@ -185,4 +185,28 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
         Assert.True(ttl.Value.TotalMinutes > 0);
         Assert.True(ttl.Value.TotalMinutes <= 30);
     }
+
+    [Fact]
+    public async Task GetAllActiveRooms_활성화된_방만_반환한다()
+    {
+        // Arrange
+        using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var host1 = await userRepo.CreateAsync();
+        var host2 = await userRepo.CreateAsync();
+
+        var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
+        var activeRoom = await repository.CreateAsync(host1.UserId, "Active Room");
+        var closedRoom = await repository.CreateAsync(host2.UserId, "Closed Room");
+
+        // Closed 방은 ActiveSet 에서 제거
+        await repository.DeleteAsync(closedRoom!.RoomId);
+
+        // Act
+        var activeRooms = await repository.GetAllActiveRoomsAsync();
+
+        // Assert
+        Assert.Contains(activeRooms, r => r.RoomId == activeRoom!.RoomId);
+        Assert.DoesNotContain(activeRooms, r => r.RoomId == closedRoom.RoomId);
+    }
 }

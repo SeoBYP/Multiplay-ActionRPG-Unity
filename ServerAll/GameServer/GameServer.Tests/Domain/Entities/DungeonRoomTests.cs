@@ -126,4 +126,67 @@ public class DungeonRoomTests
 
         Assert.Equal(RoomStatus.Playing, room.Status);
     }
+
+    [Fact]
+    public void MarkGameSessionReady_는_Starting이_아니면_예외를_던진다()
+    {
+        var room = DungeonRoom.Create("testRoom", 1, 4); // Waiting 상태
+
+        Assert.Throws<InvalidOperationException>(() => room.MarkGameSessionReady());
+    }
+
+    [Fact]
+    public void StartGame_은_이미_Starting_상태면_예외를_던진다()
+    {
+        var room = DungeonRoom.Create("testRoom", 1, 4);
+        room.StartGame(1, playerCount: 2);
+
+        Assert.Throws<InvalidOperationException>(() => room.StartGame(1, playerCount: 2));
+    }
+
+    [Fact]
+    public void StartGame_은_Closed_상태면_예외를_던진다()
+    {
+        var room = DungeonRoom.Create("testRoom", 1, 4);
+        room.Close();
+
+        Assert.Throws<InvalidOperationException>(() => room.StartGame(1, playerCount: 2));
+    }
+
+    [Fact]
+    public void UpdateRoomSettings_는_Playing_상태에서_변경하면_예외를_던진다()
+    {
+        var room = DungeonRoom.Create("testRoom", 1, 4);
+        room.StartGame(1, playerCount: 2);
+        room.MarkGameSessionReady(); // Playing
+
+        Assert.Throws<InvalidOperationException>(() =>
+            room.UpdateRoomSettings(1, currentPlayerCount: 2, roomName: "newRoom"));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void ChangeHost_는_유효하지_않은_ID면_예외를_던진다(long newHostId)
+    {
+        var room = DungeonRoom.Create("testRoom", 1, 4);
+
+        Assert.Throws<ArgumentException>(() => room.ChangeHost(newHostId));
+    }
+
+    [Fact]
+    public void IsHost_는_방장이면_true를_반환한다()
+    {
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1, 4);
+
+        Assert.True(room.IsHost(1));
+    }
+
+    [Fact]
+    public void IsHost_는_방장이_아니면_false를_반환한다()
+    {
+        var room = DungeonRoom.Create("testRoom", hostUserId: 1, 4);
+
+        Assert.False(room.IsHost(2));
+    }
 }

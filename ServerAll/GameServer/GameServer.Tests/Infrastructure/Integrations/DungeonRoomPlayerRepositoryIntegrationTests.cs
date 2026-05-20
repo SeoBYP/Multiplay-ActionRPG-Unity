@@ -168,6 +168,47 @@ public class DungeonRoomPlayerRepositoryIntegrationTests(RepositoryTestFixture f
     }
 
     [Fact]
+    public async Task GetByUserId_사용자의_현재_방을_반환한다()
+    {
+        // Arrange
+        using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var host = await userRepo.CreateAsync();
+        var playerUser = await userRepo.CreateAsync();
+
+        var roomRepo = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
+        var room = await roomRepo.CreateAsync(host.UserId, "GetByUser Room");
+
+        var repository = new DungeonRoomPlayerRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomPlayerRepository>.Instance);
+        await repository.CreateAsync(room.RoomId, playerUser.UserId);
+
+        // Act
+        var player = await repository.GetByUserIdAsync(playerUser.UserId);
+
+        // Assert
+        Assert.NotNull(player);
+        Assert.Equal(room.RoomId, player!.RoomId);
+        Assert.Equal(playerUser.UserId, player.UserId);
+    }
+
+    [Fact]
+    public async Task GetByUserId_방에_없는_사용자는_null_반환한다()
+    {
+        // Arrange
+        using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var user = await userRepo.CreateAsync();
+
+        var repository = new DungeonRoomPlayerRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomPlayerRepository>.Instance);
+
+        // Act
+        var player = await repository.GetByUserIdAsync(user.UserId);
+
+        // Assert
+        Assert.Null(player);
+    }
+
+    [Fact]
     public async Task TTL_ShouldBeSetOnCacheKeys()
     {
         // Arrange

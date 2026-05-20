@@ -127,6 +127,17 @@ namespace Game.Tests.EditMode.Network
             Assert.AreEqual(0, result.RoomInfos.Count);
         }
 
+        [Test]
+        public async Task GetRoomsAsync_서버_오류_RpcException_발생()
+        {
+            _invoker.SetError("GetRooms", StatusCode.Internal, "Server error.");
+
+            var ex = await Throws<RpcException>(() =>
+                _service.GetRoomsAsync(new GetRoomsRequest { RoomCount = 10 }).AsTask());
+
+            Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
+        }
+
         // ─── JoinRoomAsync ───────────────────────────────────────────
 
         [Test]
@@ -170,6 +181,17 @@ namespace Game.Tests.EditMode.Network
 
             Assert.IsNotNull(response);
             Assert.IsTrue(response.Result.Success);
+        }
+
+        [Test]
+        public async Task LeaveRoomAsync_없는_방_RpcException_발생()
+        {
+            _invoker.SetError("LeaveRoom", StatusCode.NotFound, "Room not found.");
+
+            var ex = await Throws<RpcException>(() =>
+                _service.LeaveRoomAsync(new LeaveRoomRequest { RoomId = 9999 }).AsTask());
+
+            Assert.AreEqual(StatusCode.NotFound, ex.StatusCode);
         }
 
         // ─── UpdateRoomAsync ─────────────────────────────────────────

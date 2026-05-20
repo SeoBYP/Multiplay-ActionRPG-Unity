@@ -57,7 +57,7 @@ namespace Game.Tests.EditMode.Network
             using var provider = new GrpcChannelProvider("http://localhost:5132");
             var invoker1 = provider.CallInvoker;
             var invoker2 = provider.CallInvoker;
-            // GrpcChannel.CreateCallInvoker() 는 매번 새 인스턴스를 반환한다
+            // Intercept() 가 매번 새 InterceptingCallInvoker 래퍼를 반환한다
             Assert.AreNotSame(invoker1, invoker2);
         }
 
