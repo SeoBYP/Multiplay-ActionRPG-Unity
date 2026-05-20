@@ -22,3 +22,10 @@ MonoBehaviour:
   - {fileID: 8993902097722301239, guid: 588247b4f2910ae4cad46e632cf62040, type: 3}
   - {fileID: 8993902097722301239, guid: d1443507b66bd8d46af98be0d06c5c4e, type: 3}
   - {fileID: 8993902097722301239, guid: a705b79663efcb54fa82bef781141a28, type: 3}
+  searchMode: 0
+  normalizationGroup: Sparse
+  baseCostBias: 0
+  continuingPoseCostBias: 0
+  loopingCostBias: 0
+  sequenceStartExclusionTime: 0
+  sequenceEndExclusionTime: 0

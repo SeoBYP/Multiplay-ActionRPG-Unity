@@ -13,7 +13,8 @@ namespace Game.Main.Character
                     context.GroundDetector,
                     context.Animations,
                     context.InputSource,
-                    context.LocomotionSettings),
+                    context.LocomotionSettings,
+                    context.MotionMatching),
 
                 StateKind.Jump => new JumpState(
                     context.Motor,

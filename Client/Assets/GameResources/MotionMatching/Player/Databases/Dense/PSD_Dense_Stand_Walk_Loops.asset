@@ -28,3 +28,10 @@ MonoBehaviour:
   - {fileID: 8993902097722301239, guid: c922318d466c3ac41a84ef11b489968d, type: 3}
   - {fileID: 8993902097722301239, guid: 7680b8ab6e57b094aadea6eb39e259eb, type: 3}
   - {fileID: 8993902097722301239, guid: c08305f384513374cb9ca0b736828ba7, type: 3}
+  searchMode: 0
+  normalizationGroup: Dense
+  baseCostBias: 0
+  continuingPoseCostBias: 0
+  loopingCostBias: 0
+  sequenceStartExclusionTime: 0
+  sequenceEndExclusionTime: 0

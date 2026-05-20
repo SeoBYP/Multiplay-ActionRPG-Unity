@@ -44,3 +44,10 @@ MonoBehaviour:
   - {fileID: 8993902097722301239, guid: 4b30e25d9d5478041a16c34dd4326f36, type: 3}
   - {fileID: 8993902097722301239, guid: 7d2c65b406d41b14ab981433e31e36b7, type: 3}
   - {fileID: 8993902097722301239, guid: f409641bc0a7ed34ca5c54f0872a2a62, type: 3}
+  searchMode: 0
+  normalizationGroup: Dense
+  baseCostBias: 0
+  continuingPoseCostBias: 0
+  loopingCostBias: 0
+  sequenceStartExclusionTime: 0
+  sequenceEndExclusionTime: 0

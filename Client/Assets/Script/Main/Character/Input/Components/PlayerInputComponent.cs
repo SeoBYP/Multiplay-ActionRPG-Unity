@@ -1,4 +1,4 @@
-using Game.Main.Input;
+using Game.Input;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer;

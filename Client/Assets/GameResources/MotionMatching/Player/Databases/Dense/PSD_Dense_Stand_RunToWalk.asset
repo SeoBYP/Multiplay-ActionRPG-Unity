@@ -18,3 +18,10 @@ MonoBehaviour:
   animations:
   - {fileID: 8993902097722301239, guid: 700084283ba1b18458c88724a843383e, type: 3}
   - {fileID: 8993902097722301239, guid: eb12a10c35b31014d8ffd087b5629235, type: 3}
+  searchMode: 0
+  normalizationGroup: Dense
+  baseCostBias: 0
+  continuingPoseCostBias: 0
+  loopingCostBias: 0
+  sequenceStartExclusionTime: 0
+  sequenceEndExclusionTime: 0
