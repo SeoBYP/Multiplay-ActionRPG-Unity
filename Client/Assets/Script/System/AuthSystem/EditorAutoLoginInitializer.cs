@@ -3,6 +3,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Script.System.Auth;
+using Unity.Multiplayer.PlayMode;
 using UnityEngine;
 using VContainer.Unity;
 using SystemInfo = UnityEngine.SystemInfo;
@@ -16,8 +17,8 @@ namespace Game.System.AuthSystem
     /// ProjectLifetimeScope에 등록되어 전역에서 1회만 실행된다.
     /// 로그인 실패 시 LogError 후 Play 모드를 즉시 종료한다.
     ///
-    /// 기기별 고유 해시(deviceUniqueIdentifier)로 계정을 분리하므로
-    /// 여러 개발자가 같은 서버를 공유해도 계정이 충돌하지 않는다.
+    /// MultiplayerPlayMode 가상 플레이어는 PlayerTag(Player_1, Player_2 등)로
+    /// 계정을 분리한다. 같은 머신에서 여러 인스턴스를 실행해도 계정이 충돌하지 않는다.
     ///
     /// 빌드에는 포함되지 않는다(#if UNITY_EDITOR).
     /// </summary>
@@ -34,8 +35,7 @@ namespace Game.System.AuthSystem
         {
             if (_authService.IsAuthenticated) return;
 
-            var hash     = Mathf.Abs(SystemInfo.deviceUniqueIdentifier.GetHashCode()).ToString("x8");
-            var email    = $"guest_{hash}@editor.test";
+            var email    = BuildGuestEmail();
             const string password = "EditorGuest2024!";
 
             Debug.Log($"[EditorAutoLogin] 게스트 로그인 시도: {email}");
@@ -58,6 +58,22 @@ namespace Game.System.AuthSystem
             }
 
             UnityEditor.EditorApplication.isPlaying = false;
+        }
+
+        private static string BuildGuestEmail()
+        {
+            var hash = Mathf.Abs(SystemInfo.deviceUniqueIdentifier.GetHashCode()).ToString("x8");
+
+            var tags = CurrentPlayer.Tags;
+            if (tags is { Count: > 0 })
+            {
+                // MultiplayerPlayMode 가상 플레이어: PlayerTag로 계정 구분
+                var tag = tags[0].ToLower().Replace(" ", "_");
+                return $"guest_{hash}_{tag}@editor.test";
+            }
+
+            // 메인 에디터: 기기 해시만 사용
+            return $"guest_{hash}@editor.test";
         }
     }
 }

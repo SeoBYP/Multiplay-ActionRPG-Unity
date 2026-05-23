@@ -24,6 +24,8 @@ RUN dotnet publish GameServer/GameServer.API/GameServer.API.csproj \
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
+# curl: Docker healthcheck용 (wget 미포함 이미지)
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app/publish .
 EXPOSE 5131 5132
 ENTRYPOINT ["dotnet", "GameServer.API.dll"]

@@ -14,38 +14,49 @@ namespace Game.OutGame.DungeonLobby
         public readonly bool IsLoading;
         public readonly string ErrorMessage;       // null = 에러 없음
         public readonly DungeonRoomModel SelectedRoom; // null = 선택 없음
+        public readonly bool IsInRoom;             // 방 생성/입장 완료 상태
 
         public static readonly LobbyState Initial =
-            new LobbyState(new DungeonRoomModel[0], false, null, null);
+            new LobbyState(new DungeonRoomModel[0], false, null, null, false);
 
         public LobbyState(
             IReadOnlyList<DungeonRoomModel> rooms,
             bool isLoading,
             string errorMessage,
-            DungeonRoomModel selectedRoom)
+            DungeonRoomModel selectedRoom,
+            bool isInRoom)
         {
             Rooms        = rooms;
             IsLoading    = isLoading;
             ErrorMessage = errorMessage;
             SelectedRoom = selectedRoom;
+            IsInRoom     = isInRoom;
         }
 
         public LobbyState WithLoading() =>
-            new LobbyState(Rooms, true, null, SelectedRoom);
+            new LobbyState(Rooms, true, null, SelectedRoom, IsInRoom);
 
         public LobbyState WithError(string message) =>
-            new LobbyState(Rooms, false, message, SelectedRoom);
+            new LobbyState(Rooms, false, message, SelectedRoom, IsInRoom);
 
         public LobbyState WithRoomsLoaded(IReadOnlyList<RoomInfo> rooms) =>
             new LobbyState(
                 rooms.Select(r => new DungeonRoomModel(r)).ToArray(),
-                false, null, null); // 목록 새로 로드 시 선택 초기화
+                false, null, null, IsInRoom);
 
-        public LobbyState WithRoomAdded(RoomInfo room)
+        /// <summary>방 생성 또는 입장 성공 — IsInRoom = true, SelectedRoom 세팅.</summary>
+        public LobbyState WithRoomJoined(RoomInfo room)
         {
-            var next = new List<DungeonRoomModel>(Rooms) { new DungeonRoomModel(room) };
-            return new LobbyState(next, false, null, SelectedRoom);
+            var next = new List<DungeonRoomModel>(Rooms);
+            var idx  = next.FindIndex(m => m.Info.RoomId == room.RoomId);
+            if (idx >= 0) next[idx] = new DungeonRoomModel(room);
+            else          next.Add(new DungeonRoomModel(room));
+            return new LobbyState(next, false, null, new DungeonRoomModel(room), true);
         }
+
+        /// <summary>방 나가기 성공 — IsInRoom = false, SelectedRoom 해제.</summary>
+        public LobbyState WithRoomLeft() =>
+            new LobbyState(Rooms, false, null, null, false);
 
         public LobbyState WithRoomUpdated(RoomInfo room)
         {
@@ -54,14 +65,13 @@ namespace Game.OutGame.DungeonLobby
             if (idx >= 0) next[idx] = new DungeonRoomModel(room);
             else          next.Add(new DungeonRoomModel(room));
 
-            // 선택된 방이 업데이트됐으면 SelectedRoom도 같이 갱신
             var nextSelected = SelectedRoom?.Info.RoomId == room.RoomId
                 ? new DungeonRoomModel(room)
                 : SelectedRoom;
-            return new LobbyState(next, false, null, nextSelected);
+            return new LobbyState(next, false, null, nextSelected, IsInRoom);
         }
 
         public LobbyState WithRoomSelected(DungeonRoomModel room) =>
-            new LobbyState(Rooms, IsLoading, ErrorMessage, room);
+            new LobbyState(Rooms, IsLoading, ErrorMessage, room, IsInRoom);
     }
 }

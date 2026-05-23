@@ -2,6 +2,7 @@ using GameServer.API.Extension;
 using GameServer.API.Extensions;
 using GameServer.Application.Domains.Account;
 using GameServer.Application.Domains.Auth.Interfaces;
+using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Grpc.Auth;
 using GameServer.Grpc.User;
 using Grpc.Core;
@@ -14,6 +15,7 @@ namespace GameServer.API.Services;
 public class AuthGrpcService(
     IAccountService accountService,
     IAuthService authService,
+    IDungeonRoomRepository roomRepository,
     ILogger<AuthGrpcService> logger) : AuthService.AuthServiceBase
 {
     [AllowAnonymous]
@@ -45,6 +47,8 @@ public class AuthGrpcService(
         if (result.IsSuccess)
         {
             logger.LogInformation("Login request succeeded for email {Email} with session {SessionId}", request.Email, result.Value?.Session.SessionId);
+            var room   = await roomRepository.GetByUserIdAsync(result.Value!.User.UserId, context.CancellationToken);
+            var roomId = room?.RoomId ?? 0L;
             return new LoginResponse
             {
                 Result = result.ToGrpcResult(),
@@ -52,7 +56,7 @@ public class AuthGrpcService(
                 RefreshToken = result.Value?.RefreshToken,
                 SessionId = result.Value?.Session.SessionId,
                 ExpiresAt = result.Value is not null ? new DateTimeOffset(result.Value.ExpiresAt).ToUnixTimeSeconds() : 0,
-                User = result.Value?.User.ToUserInfo()
+                User = result.Value?.User.ToUserInfo(roomId)
             };
         }
 

@@ -8,8 +8,9 @@ namespace Game.GUI
     {
         public static class UI
         {
-            public const string LobbyView       = "Assets/Prefabs/GUI/DungeonLobby/DungeonRoomLobbyView.prefab";
-            public const string CreateRoomPopup = "Assets/Prefabs/GUI/DungeonLobby/CreateDungeonRoomPopup.prefab";
+            public const string LobbyView        = "Assets/Prefabs/GUI/DungeonLobby/DungeonRoomLobbyView.prefab";
+            public const string CreateRoomPopup  = "Assets/Prefabs/GUI/DungeonLobby/CreateDungeonRoomPopup.prefab";
+            public const string RoomDetailView   = "Assets/Prefabs/GUI/DungeonLobby/DungeonRoomDetail.prefab";
         }
     }
 }

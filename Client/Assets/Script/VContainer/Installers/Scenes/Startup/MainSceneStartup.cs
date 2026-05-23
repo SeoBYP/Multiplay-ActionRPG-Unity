@@ -1,6 +1,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Script.System.Auth;
+using Script.System.Startup;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -17,17 +18,27 @@ namespace Game.Installers.Scenes.Startup
     /// </summary>
     public class MainSceneStartup : IAsyncStartable
     {
-        private readonly IAuthService _authService;
+        private readonly IAuthService       _authService;
+        private readonly UserProfile        _userProfile;
+        private readonly StartupIntentQueue _startupQueue;
 
-        public MainSceneStartup(IAuthService authService)
+        public MainSceneStartup(
+            IAuthService       authService,
+            UserProfile        userProfile,
+            StartupIntentQueue startupQueue)
         {
-            _authService = authService;
+            _authService  = authService;
+            _userProfile  = userProfile;
+            _startupQueue = startupQueue;
         }
 
         public async UniTask StartAsync(CancellationToken ct)
         {
             await _authService.AuthenticatedAsync().AttachExternalCancellation(ct);
+
             Debug.Log("[MainSceneStartup] 인증 확인 완료 — 씬 초기화 진행");
+            Debug.Log($"[MainSceneStartup] UserProfile — PublicId={_userProfile.PublicId} NickName={_userProfile.NickName} HasProfile={_userProfile.HasProfile}");
+            Debug.Log($"[MainSceneStartup] StartupIntentQueue — HasPending={_startupQueue.HasPending}");
         }
     }
 }

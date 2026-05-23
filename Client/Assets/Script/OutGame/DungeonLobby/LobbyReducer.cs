@@ -15,10 +15,16 @@ namespace Game.OutGame.DungeonLobby
                 return state.WithRoomsLoaded(loaded.Rooms);
 
             if (result is LobbyResult.RoomCreated created)
-                return state.WithRoomAdded(created.Room);
+                return state.WithRoomJoined(created.Room);
 
             if (result is LobbyResult.RoomJoined joined)
-                return state.WithRoomUpdated(joined.Room);
+                return state.WithRoomJoined(joined.Room);
+
+            if (result is LobbyResult.RoomUpdated updated)
+                return state.WithRoomUpdated(updated.Room);
+
+            if (result is LobbyResult.RoomLeft)
+                return state.WithRoomLeft();
 
             if (result is LobbyResult.Failed failed)
                 return state.WithError(failed.Message);

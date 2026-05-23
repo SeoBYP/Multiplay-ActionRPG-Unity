@@ -28,5 +28,11 @@ namespace Game.System.DungeonLobby
         UniTask<DungeonLobbyResult> JoinRoomAsync(long roomId, CancellationToken ct = default);
         UniTask<DungeonLobbyResult> LeaveRoomAsync(CancellationToken ct = default);
         UniTask<DungeonLobbyResult> StartGameAsync(CancellationToken ct = default);
+
+        /// <summary>
+        /// 이미 서버에 입장된 방을 세션/구독만 복원한다 (JoinRoom API 호출 없음).
+        /// 재로그인 시 AlreadyInRoom 오류 없이 방 상태를 되돌린다.
+        /// </summary>
+        UniTask<DungeonLobbyResult> RestoreRoomAsync(long roomId, CancellationToken ct = default);
     }
 }

@@ -52,6 +52,10 @@ namespace Game.System.DungeonLobby
             if (!res.Result.Success)
                 return (MapError(res.Result.ErrorCode), Array.Empty<RoomInfo>());
 
+            Debug.Log($"[DungeonLobby] 방 목록 수신: {res.RoomInfos.Count}개");
+            foreach (var room in res.RoomInfos)
+                Debug.Log($"  └ [{room.RoomId}] {room.RoomName} ({room.CurrentPlayers.Count}/{room.MaxPlayers}) {room.Status}");
+
             return (DungeonLobbyResult.Success, res.RoomInfos);
         }
 
@@ -96,6 +100,29 @@ namespace Game.System.DungeonLobby
             _session.ClearRoom();
 
             return res.Result.Success ? DungeonLobbyResult.Success : MapError(res.Result.ErrorCode);
+        }
+
+        public async UniTask<DungeonLobbyResult> RestoreRoomAsync(long roomId, CancellationToken ct = default)
+        {
+            // 이미 세션에 같은 방이 있으면 중복 복원 방지
+            if (_session.IsInRoom && _session.CurrentRoom?.RoomId == roomId)
+                return DungeonLobbyResult.Success;
+
+            // GetRooms(전체 목록) 대신 GetRoom(단일 조회)로 최소 요청
+            var res = await _grpc.GetRoomAsync(new GetRoomRequest { RoomId = roomId }, ct);
+            if (!res.Result.Success)
+                return MapError(res.Result.ErrorCode);
+
+            if (res.RoomInfo == null)
+            {
+                Debug.LogWarning($"[DungeonLobbyService] RestoreRoom: roomId={roomId} RoomInfo가 null");
+                return DungeonLobbyResult.RoomNotFound;
+            }
+
+            _session.SetRoom(res.RoomInfo);
+            StartSubscription(roomId);
+            Debug.Log($"[DungeonLobbyService] RestoreRoom 완료: roomId={roomId} name={res.RoomInfo.RoomName}");
+            return DungeonLobbyResult.Success;
         }
 
         public async UniTask<DungeonLobbyResult> StartGameAsync(CancellationToken ct = default)

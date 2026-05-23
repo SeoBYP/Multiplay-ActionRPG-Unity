@@ -103,7 +103,7 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
         long roomId;
         long hostId;
         const int initialMaxPlayers = 4;
-        const int updatedMaxPlayers = 1;
+        const int updatedMaxPlayers = 2;
 
         using (var arrangeContext = _fixture.CreateDbContext())
         {

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using VContainer.Unity;
 
 namespace Game.Input
@@ -39,11 +41,11 @@ namespace Game.Input
 
         public void Initialize()
         {
-            _actions.Player.Interact.performed    += _ => Route(GameInputAction.Interact);
-            _actions.Player.Attack.performed      += _ => Route(GameInputAction.Attack);
-            _actions.Player.Dodge.performed       += _ => Route(GameInputAction.Dodge);
-            _actions.Player.ToggleLobby.performed += _ => Route(GameInputAction.ToggleLobby);
-            _actions.Player.Pause.performed       += _ => Route(GameInputAction.Pause);
+            _actions.Player.Interact.performed    += ctx => Route(GameInputAction.Interact,    ctx);
+            _actions.Player.Attack.performed      += ctx => Route(GameInputAction.Attack,      ctx);
+            _actions.Player.Dodge.performed       += ctx => Route(GameInputAction.Dodge,       ctx);
+            _actions.Player.ToggleLobby.performed += ctx => Route(GameInputAction.ToggleLobby, ctx);
+            _actions.Player.Pause.performed       += ctx => Route(GameInputAction.Pause,       ctx);
 
             _actions.Player.Enable();
         }
@@ -75,8 +77,14 @@ namespace Game.Input
 
         // ── 라우팅 ───────────────────────────────
 
-        private void Route(GameInputAction action)
+        private void Route(GameInputAction action, InputAction.CallbackContext ctx)
         {
+            // 마우스 입력이 UI 위에서 발생한 경우 게임 핸들러에 전달하지 않는다.
+            // IsPointerOverGameObject()는 InputAction 콜백 내에서 직전 프레임 결과를 반환하므로
+            // RaycastAll로 직접 히트 테스트한다.
+            if (ctx.control.device is Mouse mouse && IsPointerOverUI(mouse.position.ReadValue()))
+                return;
+
             if (_dirty)
             {
                 _handlers.Sort((a, b) => b.Priority.CompareTo(a.Priority));
@@ -87,6 +95,15 @@ namespace Game.Input
             {
                 if (handler.TryHandle(action)) return; // consumed
             }
+        }
+
+        private static bool IsPointerOverUI(Vector2 screenPos)
+        {
+            if (EventSystem.current == null) return false;
+            var pointerData = new PointerEventData(EventSystem.current) { position = screenPos };
+            var results     = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(pointerData, results);
+            return results.Count > 0;
         }
     }
 }

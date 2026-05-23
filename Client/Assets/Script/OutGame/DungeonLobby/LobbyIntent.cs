@@ -46,5 +46,31 @@ namespace Game.OutGame.DungeonLobby
                 RoomId = roomId;
             }
         }
+
+        public sealed class StartGame : LobbyIntent
+        {
+            public static readonly StartGame Instance = new StartGame();
+            private StartGame() { }
+        }
+
+        public sealed class LeaveRoom : LobbyIntent
+        {
+            public static readonly LeaveRoom Instance = new LeaveRoom();
+            private LeaveRoom() { }
+        }
+
+        /// <summary>
+        /// 재로그인 시 서버가 알려준 방 ID로 세션/구독을 복원한다.
+        /// JoinRoom API를 다시 호출하지 않으므로 AlreadyInRoom 오류가 발생하지 않는다.
+        /// </summary>
+        public sealed class RestoreRoom : LobbyIntent
+        {
+            public readonly long RoomId;
+
+            public RestoreRoom(long roomId)
+            {
+                RoomId = roomId;
+            }
+        }
     }
 }

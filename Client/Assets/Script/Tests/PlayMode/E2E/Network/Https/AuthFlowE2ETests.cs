@@ -6,6 +6,7 @@ using Game.Network.Https.Interfaces;
 using Game.Network.Https.Services;
 using NUnit.Framework;
 using Script.System.Auth;
+using Script.System.Startup;
 using UnityEngine.TestTools;
 
 namespace Game.Tests.PlayMode.E2E
@@ -27,7 +28,7 @@ namespace Game.Tests.PlayMode.E2E
             _authFlowChannelProvider.AccessTokenProvider = () => _authSession.AccessToken;
 
             IAuthGrpcService authGrpcService = new AuthGrpcService(_authFlowChannelProvider);
-            _clientAuthService = new AuthService(authGrpcService, _authFlowChannelProvider, _authSession);
+            _clientAuthService = new AuthService(authGrpcService, _authFlowChannelProvider, _authSession, new UserProfile(), new StartupIntentQueue());
         });
 
         [UnityTearDown]
@@ -62,7 +63,7 @@ namespace Game.Tests.PlayMode.E2E
             var coldStartSession = new AuthSession();
             using var coldStartProvider = new GrpcChannelProvider(ServerConfig.GameServerGrpcAddress);
             coldStartProvider.AccessTokenProvider = () => coldStartSession.AccessToken;
-            var coldStartService = new AuthService(new AuthGrpcService(coldStartProvider), coldStartProvider, coldStartSession);
+            var coldStartService = new AuthService(new AuthGrpcService(coldStartProvider), coldStartProvider, coldStartSession, new UserProfile(), new StartupIntentQueue());
 
             var autoLoginResult = await coldStartService.TryAutoLoginAsync(CancellationToken.None);
 
@@ -83,7 +84,7 @@ namespace Game.Tests.PlayMode.E2E
             var coldStartSession = new AuthSession();
             using var coldStartProvider = new GrpcChannelProvider(ServerConfig.GameServerGrpcAddress);
             coldStartProvider.AccessTokenProvider = () => coldStartSession.AccessToken;
-            var coldStartService = new AuthService(new AuthGrpcService(coldStartProvider), coldStartProvider, coldStartSession);
+            var coldStartService = new AuthService(new AuthGrpcService(coldStartProvider), coldStartProvider, coldStartSession, new UserProfile(), new StartupIntentQueue());
 
             var autoLoginResult = await coldStartService.TryAutoLoginAsync(CancellationToken.None);
 
@@ -109,7 +110,7 @@ namespace Game.Tests.PlayMode.E2E
             var coldStartSession = new AuthSession();
             using var coldStartProvider = new GrpcChannelProvider(ServerConfig.GameServerGrpcAddress);
             coldStartProvider.AccessTokenProvider = () => coldStartSession.AccessToken;
-            var coldStartService = new AuthService(new AuthGrpcService(coldStartProvider), coldStartProvider, coldStartSession);
+            var coldStartService = new AuthService(new AuthGrpcService(coldStartProvider), coldStartProvider, coldStartSession, new UserProfile(), new StartupIntentQueue());
 
             var autoLoginResult = await coldStartService.TryAutoLoginAsync(CancellationToken.None);
 

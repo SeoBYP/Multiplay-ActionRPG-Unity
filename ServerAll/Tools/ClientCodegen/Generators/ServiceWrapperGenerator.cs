@@ -101,9 +101,9 @@ public static class ServiceWrapperGenerator
             sb.AppendLine("            var client = CreateClient();");
             sb.AppendLine($"            using var call = client.{method.Name}(request, cancellationToken: ct);");
             sb.AppendLine();
-            sb.AppendLine("            await foreach (var message in call.ResponseStream.ReadAllAsync(ct))");
+            sb.AppendLine("            while (await call.ResponseStream.MoveNext(ct))");
             sb.AppendLine("            {");
-            sb.AppendLine("                onMessage(message);");
+            sb.AppendLine("                onMessage(call.ResponseStream.Current);");
             sb.AppendLine("            }");
             sb.AppendLine("        }");
             return;
@@ -137,9 +137,9 @@ public static class ServiceWrapperGenerator
         sb.AppendLine("                call.RequestStream.WriteAsync(message).GetAwaiter().GetResult();");
         sb.AppendLine("            }));");
         sb.AppendLine();
-        sb.AppendLine("            await foreach (var message in call.ResponseStream.ReadAllAsync(ct))");
+        sb.AppendLine("            while (await call.ResponseStream.MoveNext(ct))");
         sb.AppendLine("            {");
-        sb.AppendLine("                onMessage(message);");
+        sb.AppendLine("                onMessage(call.ResponseStream.Current);");
         sb.AppendLine("            }");
         sb.AppendLine();
         sb.AppendLine("            await call.RequestStream.CompleteAsync();");

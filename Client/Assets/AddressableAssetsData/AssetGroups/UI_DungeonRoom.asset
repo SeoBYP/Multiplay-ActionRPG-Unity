@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: UI_DungeonRoom
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: UI_DungeonRoom
+  m_GUID: f815fe90fb1edb84793362ebeb4cc661
+  m_SerializeEntries:
+  - m_GUID: 03b236de75192f342aec00d298508780
+    m_Address: Assets/Prefabs/GUI/DungeonLobby/DungeonRoomDetail.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 33269d398b911904c9d766ad6caf0e6a
+    m_Address: Assets/Prefabs/GUI/DungeonLobby/DungeonRoomPlayerCharacterSlot.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4477f9b317da6a74da526b89c5a36d49
+    m_Address: Assets/Prefabs/GUI/DungeonLobby/CreateDungeonRoomPopup.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5cc27f6cb34d3d848aa78b12423666c8
+    m_Address: Assets/Prefabs/GUI/DungeonLobby/DungeonRoomLobbyView.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cf6b15ea0a3b631438247aed2b5dd00f
+    m_Address: Assets/Prefabs/GUI/DungeonLobby/DungeonRoomItemView.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 51d9e49bdd45274408d6c2ea116e5c84, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 327f42d0b477b84448a060654dfdd7e2, type: 2}
+    - {fileID: 11400000, guid: 0f45c121940f8a3409a8aed32014b575, type: 2}

@@ -5,6 +5,7 @@ services:
     build:
       context: ..                        # ServerAll/ 기준
       dockerfile: GameServer/Dockerfile
+    restart: unless-stopped
     ports:
       - "5131:5131"
       - "5132:5132"
@@ -19,6 +20,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      # HTTP 5131 포트의 /healthz 엔드포인트 확인 (curl은 Dockerfile에서 설치)
+      test: ["CMD-SHELL", "curl -f -s http://localhost:5131/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s                  # DB migration 포함 초기 기동 여유
     networks:
       - gameserver-network
     develop:
@@ -34,6 +42,7 @@ services:
     build:
       context: ..
       dockerfile: SocketServer/Dockerfile
+    restart: unless-stopped
     ports:
       - "7777:7777"
     environment:
@@ -43,6 +52,15 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      gameserver:
+        condition: service_healthy       # GameServer 준비 후 Redis Stream 소비 시작
+    healthcheck:
+      # TCP 7777 포트 연결 가능 여부 확인 (bash /dev/tcp)
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/7777' 2>/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - gameserver-network
     develop:

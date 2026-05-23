@@ -14,17 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
   m_GroupName: Default Local Group
   m_GUID: 1d64e1a92c448a944827d509ab85d6e9
-  m_SerializeEntries:
-  - m_GUID: 4477f9b317da6a74da526b89c5a36d49
-    m_Address: Assets/Prefabs/GUI/DungeonLobby/CreateDungeonRoomPopup.prefab
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 5cc27f6cb34d3d848aa78b12423666c8
-    m_Address: Assets/Prefabs/GUI/DungeonLobby/DungeonRoomLobbyView.prefab
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
+  m_SerializeEntries: []
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 51d9e49bdd45274408d6c2ea116e5c84, type: 2}
   m_SchemaSet:

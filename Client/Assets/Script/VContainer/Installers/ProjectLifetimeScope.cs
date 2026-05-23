@@ -1,5 +1,6 @@
 using Game.Network.Https;
 using Script.System.Auth;
+using Script.System.Startup;
 using Game.System.DungeonLobby;
 #if UNITY_EDITOR
 using Game.System.AuthSystem;
@@ -22,6 +23,10 @@ namespace Game.Installers
         {
             // gRPC 채널과 각 API 서비스 등록.
             new GameApiClient().Install(builder);
+
+            // 로그인 후 처리할 시작 인텐트 큐 및 유저 프로필 (AuthService보다 먼저 등록).
+            builder.Register<UserProfile>(Lifetime.Singleton);
+            builder.Register<StartupIntentQueue>(Lifetime.Singleton);
 
             // 런타임 인증 상태와 인증 오케스트레이션 서비스 등록.
             builder.Register<AuthSession>(Lifetime.Singleton);

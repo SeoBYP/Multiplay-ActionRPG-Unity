@@ -1,7 +1,10 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Game.System.DungeonLobby;
+using GameServer.Grpc.DungeonLobby;
 using R3;
+using UnityEngine;
 using VContainer.Unity;
 
 namespace Game.OutGame.DungeonLobby
@@ -18,26 +21,41 @@ namespace Game.OutGame.DungeonLobby
     /// </summary>
     public sealed class LobbyModel : IInitializable, IDisposable
     {
-        private readonly LobbyRepository _repository;
+        private readonly LobbyRepository       _repository;
+        private readonly IDungeonLobbyService  _lobbyService;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
         private readonly ReactiveProperty<LobbyState> _state
             = new ReactiveProperty<LobbyState>(LobbyState.Initial);
 
-        private readonly Subject<long> _navigateToRoom = new Subject<long>();
+        private readonly Subject<long>           _navigateToRoom  = new Subject<long>();
+        private readonly Subject<(string, int)>  _navigateToGame  = new Subject<(string, int)>();
 
         private bool _isProcessing;
 
         public ReadOnlyReactiveProperty<LobbyState> State =>
             _state.ToReadOnlyReactiveProperty();
 
-        /// <summary>입장 성공 시 발행 — Router가 구독해서 화면 전환.</summary>
+        /// <summary>방 생성/입장 성공 시 발행.</summary>
         public Observable<long> NavigateToRoom => _navigateToRoom;
 
-        public LobbyModel(LobbyRepository repository)
+        /// <summary>SocketServer 준비 완료 시 발행 — (ip, port).</summary>
+        public Observable<(string Ip, int Port)> NavigateToGame => _navigateToGame;
+
+        public LobbyModel(LobbyRepository repository, IDungeonLobbyService lobbyService)
         {
-            _repository = repository;
+            _repository   = repository;
+            _lobbyService = lobbyService;
+
+            _lobbyService.OnRoomUpdated      += HandleRoomUpdated;
+            _lobbyService.OnGameSessionReady += HandleGameSessionReady;
         }
+
+        private void HandleRoomUpdated(RoomInfo room) =>
+            Dispatch(new LobbyResult.RoomUpdated(room));
+
+        private void HandleGameSessionReady(string ip, int port) =>
+            _navigateToGame.OnNext((ip, port));
 
         public void Initialize()
         {
@@ -49,6 +67,8 @@ namespace Game.OutGame.DungeonLobby
 
         public void Accept(LobbyIntent intent)
         {
+            Debug.Log($"[LobbyModel] Accept: {intent.GetType().Name} (isProcessing={_isProcessing})");
+
             // SelectRoom은 동기 처리 — _isProcessing 무관하게 항상 반응
             if (intent is LobbyIntent.SelectRoom selectRoom)
             {
@@ -56,7 +76,11 @@ namespace Game.OutGame.DungeonLobby
                 return;
             }
 
-            if (_isProcessing) return;
+            if (_isProcessing)
+            {
+                Debug.LogWarning($"[LobbyModel] {intent.GetType().Name} 무시됨 — 처리 중");
+                return;
+            }
 
             switch (intent)
             {
@@ -70,6 +94,18 @@ namespace Game.OutGame.DungeonLobby
 
                 case LobbyIntent.JoinRoom joinRoom:
                     JoinRoomAsync(joinRoom).Forget();
+                    break;
+
+                case LobbyIntent.StartGame _:
+                    StartGameAsync().Forget();
+                    break;
+
+                case LobbyIntent.LeaveRoom _:
+                    LeaveRoomAsync().Forget();
+                    break;
+
+                case LobbyIntent.RestoreRoom restoreRoom:
+                    RestoreRoomAsync(restoreRoom).Forget();
                     break;
             }
         }
@@ -105,12 +141,19 @@ namespace Game.OutGame.DungeonLobby
         {
             _isProcessing = true;
             Dispatch(LobbyResult.Loading.Instance);
+            Debug.Log($"[LobbyModel] 방 생성 요청 name={intent.Name} maxPlayers={intent.MaxPlayers}");
             try
             {
                 var res = await _repository.CreateRoomAsync(intent.Name, intent.MaxPlayers, _cts.Token);
-                if (!res.IsSuccess) { Dispatch(new LobbyResult.Failed(res.Error)); return; }
+                if (!res.IsSuccess)
+                {
+                    Debug.LogWarning($"[LobbyModel] 방 생성 실패: {res.Error}");
+                    Dispatch(new LobbyResult.Failed(res.Error));
+                    return;
+                }
 
                 Dispatch(new LobbyResult.RoomCreated(res.Room));
+                Debug.Log($"[LobbyModel] 방 생성 완료 — NavigateToRoom 발행 roomId={res.Room.RoomId}");
                 _navigateToRoom.OnNext(res.Room.RoomId);
             }
             finally { _isProcessing = false; }
@@ -120,13 +163,69 @@ namespace Game.OutGame.DungeonLobby
         {
             _isProcessing = true;
             Dispatch(LobbyResult.Loading.Instance);
+            Debug.Log($"[LobbyModel] 방 입장 요청 roomId={intent.RoomId}");
             try
             {
                 var res = await _repository.JoinRoomAsync(intent.RoomId, _cts.Token);
-                if (!res.IsSuccess) { Dispatch(new LobbyResult.Failed(res.Error)); return; }
+                if (!res.IsSuccess)
+                {
+                    Debug.LogWarning($"[LobbyModel] 방 입장 실패: {res.Error}");
+                    Dispatch(new LobbyResult.Failed(res.Error));
+                    return;
+                }
 
                 Dispatch(new LobbyResult.RoomJoined(res.Room));
+                Debug.Log($"[LobbyModel] 방 입장 완료 — NavigateToRoom 발행 roomId={intent.RoomId}");
                 _navigateToRoom.OnNext(intent.RoomId);
+            }
+            finally { _isProcessing = false; }
+        }
+
+        private async UniTaskVoid StartGameAsync()
+        {
+            _isProcessing = true;
+            Dispatch(LobbyResult.Loading.Instance);
+            try
+            {
+                var res = await _repository.StartGameAsync(_cts.Token);
+                if (!res.IsSuccess) Dispatch(new LobbyResult.Failed(res.Error));
+                // 성공 시 OnGameSessionReady 이벤트를 기다림 (NavigateToGame 발행)
+            }
+            finally { _isProcessing = false; }
+        }
+
+        private async UniTaskVoid RestoreRoomAsync(LobbyIntent.RestoreRoom intent)
+        {
+            _isProcessing = true;
+            Dispatch(LobbyResult.Loading.Instance);
+            Debug.Log($"[LobbyModel] 방 복원 요청 roomId={intent.RoomId}");
+            try
+            {
+                var res = await _repository.RestoreRoomAsync(intent.RoomId, _cts.Token);
+                if (!res.IsSuccess)
+                {
+                    Debug.LogWarning($"[LobbyModel] 방 복원 실패: {res.Error}");
+                    Dispatch(new LobbyResult.Failed(res.Error));
+                    return;
+                }
+
+                Dispatch(new LobbyResult.RoomJoined(res.Room));
+                Debug.Log($"[LobbyModel] 방 복원 완료 — NavigateToRoom 발행 roomId={intent.RoomId}");
+                _navigateToRoom.OnNext(intent.RoomId);
+            }
+            finally { _isProcessing = false; }
+        }
+
+        private async UniTaskVoid LeaveRoomAsync()
+        {
+            _isProcessing = true;
+            Dispatch(LobbyResult.Loading.Instance);
+            try
+            {
+                var res = await _repository.LeaveRoomAsync(_cts.Token);
+                Dispatch(res.IsSuccess
+                    ? (LobbyResult)LobbyResult.RoomLeft.Instance
+                    : new LobbyResult.Failed(res.Error));
             }
             finally { _isProcessing = false; }
         }
@@ -140,10 +239,13 @@ namespace Game.OutGame.DungeonLobby
 
         public void Dispose()
         {
+            _lobbyService.OnRoomUpdated      -= HandleRoomUpdated;
+            _lobbyService.OnGameSessionReady -= HandleGameSessionReady;
             _cts.Cancel();
             _cts.Dispose();
             _state.Dispose();
             _navigateToRoom.Dispose();
+            _navigateToGame.Dispose();
         }
     }
 }

@@ -27,6 +27,9 @@ public class MiddlewareInstaller : IMiddlewareInstaller
         app.UseAuthentication();
         app.UseAuthorization();
 
+        // health check — Docker healthcheck 및 의존 서비스 대기용
+        app.MapHealthChecks("/healthz");
+
         // endpoints
         app.MapControllers();
         

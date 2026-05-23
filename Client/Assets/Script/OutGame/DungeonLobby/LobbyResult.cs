@@ -46,5 +46,18 @@ namespace Game.OutGame.DungeonLobby
             public readonly DungeonRoomModel Room;
             public RoomSelected(DungeonRoomModel room) => Room = room;
         }
+
+        /// <summary>SubscribeRoom 스트림으로 방 정보가 갱신됐을 때.</summary>
+        public sealed class RoomUpdated : LobbyResult
+        {
+            public readonly RoomInfo Room;
+            public RoomUpdated(RoomInfo room) => Room = room;
+        }
+
+        public sealed class RoomLeft : LobbyResult
+        {
+            public static readonly RoomLeft Instance = new RoomLeft();
+            private RoomLeft() { }
+        }
     }
 }

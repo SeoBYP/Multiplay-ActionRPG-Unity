@@ -28,17 +28,18 @@ namespace GameServer.Grpc.User {
             "byImChJTZXROaWNrbmFtZVJlcXVlc3QSEAoIbmlja25hbWUYASABKAkibAoT",
             "U2V0Tmlja25hbWVSZXNwb25zZRIpCgZyZXN1bHQYASABKAsyGS5nYW1lc2Vy",
             "dmVyLmNvbW1vbi5SZXN1bHQSKgoEdXNlchgCIAEoCzIcLmdhbWVzZXJ2ZXIu",
-            "dXNlci52MS5Vc2VySW5mbyIwCghVc2VySW5mbxIRCgluaWNrX25hbWUYASAB",
-            "KAkSEQoJcHVibGljX2lkGAIgASgJMm0KC1VzZXJTZXJ2aWNlEl4KC1NldE5p",
-            "Y2tOYW1lEiYuZ2FtZXNlcnZlci51c2VyLnYxLlNldE5pY2tuYW1lUmVxdWVz",
-            "dBonLmdhbWVzZXJ2ZXIudXNlci52MS5TZXROaWNrbmFtZVJlc3BvbnNlQheq",
-            "AhRHYW1lU2VydmVyLkdycGMuVXNlcmIGcHJvdG8z"));
+            "dXNlci52MS5Vc2VySW5mbyJJCghVc2VySW5mbxIRCgluaWNrX25hbWUYASAB",
+            "KAkSEQoJcHVibGljX2lkGAIgASgJEhcKD2N1cnJlbnRfcm9vbV9pZBgDIAEo",
+            "AzJtCgtVc2VyU2VydmljZRJeCgtTZXROaWNrTmFtZRImLmdhbWVzZXJ2ZXIu",
+            "dXNlci52MS5TZXROaWNrbmFtZVJlcXVlc3QaJy5nYW1lc2VydmVyLnVzZXIu",
+            "djEuU2V0Tmlja25hbWVSZXNwb25zZUIXqgIUR2FtZVNlcnZlci5HcnBjLlVz",
+            "ZXJiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::GameServer.Grpc.Common.CommonReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.User.SetNicknameRequest), global::GameServer.Grpc.User.SetNicknameRequest.Parser, new[]{ "Nickname" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.User.SetNicknameResponse), global::GameServer.Grpc.User.SetNicknameResponse.Parser, new[]{ "Result", "User" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.User.UserInfo), global::GameServer.Grpc.User.UserInfo.Parser, new[]{ "NickName", "PublicId" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.User.UserInfo), global::GameServer.Grpc.User.UserInfo.Parser, new[]{ "NickName", "PublicId", "CurrentRoomId" }, null, null, null, null)
           }));
     }
     #endregion
@@ -533,6 +534,7 @@ namespace GameServer.Grpc.User {
     public UserInfo(UserInfo other) : this() {
       nickName_ = other.nickName_;
       publicId_ = other.publicId_;
+      currentRoomId_ = other.currentRoomId_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -566,6 +568,18 @@ namespace GameServer.Grpc.User {
       }
     }
 
+    /// <summary>Field number for the "current_room_id" field.</summary>
+    public const int CurrentRoomIdFieldNumber = 3;
+    private long currentRoomId_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public long CurrentRoomId {
+      get { return currentRoomId_; }
+      set {
+        currentRoomId_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -583,6 +597,7 @@ namespace GameServer.Grpc.User {
       }
       if (NickName != other.NickName) return false;
       if (PublicId != other.PublicId) return false;
+      if (CurrentRoomId != other.CurrentRoomId) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -592,6 +607,7 @@ namespace GameServer.Grpc.User {
       int hash = 1;
       if (NickName.Length != 0) hash ^= NickName.GetHashCode();
       if (PublicId.Length != 0) hash ^= PublicId.GetHashCode();
+      if (CurrentRoomId != 0L) hash ^= CurrentRoomId.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -618,6 +634,10 @@ namespace GameServer.Grpc.User {
         output.WriteRawTag(18);
         output.WriteString(PublicId);
       }
+      if (CurrentRoomId != 0L) {
+        output.WriteRawTag(24);
+        output.WriteInt64(CurrentRoomId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -636,6 +656,10 @@ namespace GameServer.Grpc.User {
         output.WriteRawTag(18);
         output.WriteString(PublicId);
       }
+      if (CurrentRoomId != 0L) {
+        output.WriteRawTag(24);
+        output.WriteInt64(CurrentRoomId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -651,6 +675,9 @@ namespace GameServer.Grpc.User {
       }
       if (PublicId.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(PublicId);
+      }
+      if (CurrentRoomId != 0L) {
+        size += 1 + pb::CodedOutputStream.ComputeInt64Size(CurrentRoomId);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -669,6 +696,9 @@ namespace GameServer.Grpc.User {
       }
       if (other.PublicId.Length != 0) {
         PublicId = other.PublicId;
+      }
+      if (other.CurrentRoomId != 0L) {
+        CurrentRoomId = other.CurrentRoomId;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -697,6 +727,10 @@ namespace GameServer.Grpc.User {
             PublicId = input.ReadString();
             break;
           }
+          case 24: {
+            CurrentRoomId = input.ReadInt64();
+            break;
+          }
         }
       }
     #endif
@@ -722,6 +756,10 @@ namespace GameServer.Grpc.User {
           }
           case 18: {
             PublicId = input.ReadString();
+            break;
+          }
+          case 24: {
+            CurrentRoomId = input.ReadInt64();
             break;
           }
         }

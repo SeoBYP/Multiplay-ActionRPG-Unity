@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using Game.Network.Https.Core;
 using Game.Network.Https.Interfaces;
 using GameServer.Grpc.Auth;
+using Script.System.Startup;
 using UnityEngine;
 using Application = UnityEngine.Application;
 using SystemInfo = UnityEngine.SystemInfo;
@@ -21,15 +22,21 @@ namespace Script.System.Auth
         private readonly IAuthGrpcService _authGrpcClient;
         private readonly GrpcChannelProvider _channelProvider;
         private readonly AuthSession _authSession;
+        private readonly UserProfile _userProfile;
+        private readonly StartupIntentQueue _startupQueue;
 
         public AuthService(
             IAuthGrpcService authGrpcClient,
             GrpcChannelProvider channelProvider,
-            AuthSession authSession)
+            AuthSession authSession,
+            UserProfile userProfile,
+            StartupIntentQueue startupQueue)
         {
             _authGrpcClient = authGrpcClient;
             _channelProvider = channelProvider;
             _authSession = authSession;
+            _userProfile = userProfile;
+            _startupQueue = startupQueue;
             _channelProvider.AccessTokenProvider = () => _authSession.AccessToken;
         }
 
@@ -138,10 +145,21 @@ namespace Script.System.Auth
         }
 
         /// <summary>
-        /// 성공한 로그인/리프레시 응답을 현재 세션에 반영한다.
+        /// 성공한 로그인 응답을 현재 세션에 반영하고, 서버가 내려준 UserInfo를 처리한다.
+        /// current_room_id != 0 이면 방 복원 인텐트를 큐에 넣어 씬 준비 후 처리되게 한다.
         /// </summary>
         private void ApplyLogin(LoginResponse loginRes)
         {
+            // UserProfile과 큐를 먼저 채운다.
+            // _authSession.Update() → TrySetResult() 순서로 auth 신호가 발생하므로
+            // 신호 발생 전에 준비가 완료되어야 await 해제 시점에 데이터가 보장된다.
+            if (loginRes.User != null)
+            {
+                _userProfile.Set(loginRes.User);
+                if (loginRes.User.CurrentRoomId != 0)
+                    _startupQueue.Enqueue(new RestoreRoomStartupIntent(loginRes.User.CurrentRoomId));
+                Debug.Log($"[AuthService] ApplyLogin — PublicId={_userProfile.PublicId} CurrentRoomId={loginRes.User.CurrentRoomId} HasPending={_startupQueue.HasPending}");
+            }
             _authSession.Update(loginRes.AccessToken, loginRes.RefreshToken, loginRes.ExpiresAt);
         }
 

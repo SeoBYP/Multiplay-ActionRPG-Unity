@@ -91,6 +91,9 @@ public class ServiceInstaller : IServiceInstaller
                 new[] { "application/octet-stream" });
         });
 
+        // Health check
+        services.AddHealthChecks();
+
         // CORS
         services.AddCors(o =>
         {
