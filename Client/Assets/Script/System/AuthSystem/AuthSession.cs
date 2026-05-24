@@ -1,3 +1,6 @@
+using System;
+using System.Text;
+using System.Text.RegularExpressions;
 using Cysharp.Threading.Tasks;
 
 namespace Script.System.Auth
@@ -13,6 +16,8 @@ namespace Script.System.Auth
         public string AccessToken { get; private set; }
         public string RefreshToken { get; private set; }
         public long ExpiresAt { get; private set; }
+        /// <summary>JWT "sub" 클레임에서 파싱한 서버 내부 유저 ID.</summary>
+        public long UserId { get; private set; }
 
         public bool IsAuthenticated => !string.IsNullOrEmpty(AccessToken);
 
@@ -30,8 +35,29 @@ namespace Script.System.Auth
             AccessToken = accessToken;
             RefreshToken = refreshToken;
             ExpiresAt = expiresAt;
+            UserId = ParseUserIdFromToken(accessToken);
             TokenStorage.Save(accessToken, refreshToken, expiresAt);
             _authenticatedTcs.TrySetResult(); // 최초 인증 시 1회 신호 — 이후 호출은 무시됨
+        }
+
+        private static long ParseUserIdFromToken(string accessToken)
+        {
+            if (string.IsNullOrWhiteSpace(accessToken)) return 0;
+            var parts = accessToken.Split('.');
+            if (parts.Length < 2) return 0;
+            var payload = parts[1].Replace('-', '+').Replace('_', '/');
+            switch (payload.Length % 4)
+            {
+                case 2: payload += "=="; break;
+                case 3: payload += "=";  break;
+            }
+            try
+            {
+                var json  = Encoding.UTF8.GetString(Convert.FromBase64String(payload));
+                var match = Regex.Match(json, "\"sub\"\\s*:\\s*\"(?<id>\\d+)\"");
+                return match.Success ? long.Parse(match.Groups["id"].Value) : 0;
+            }
+            catch { return 0; }
         }
 
         /// <summary>

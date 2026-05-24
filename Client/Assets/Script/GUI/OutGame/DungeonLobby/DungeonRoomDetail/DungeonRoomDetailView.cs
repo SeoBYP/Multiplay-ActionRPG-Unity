@@ -20,7 +20,7 @@ namespace Game.GUI.OutGame.Lobby
     /// </summary>
     public class DungeonRoomDetailView : MonoBehaviour
     {
-        private const int MinPlayersToStart = 2;
+        private const int MinPlayersToStart = 1;
 
         [Inject] private LobbyModel _model;
 
@@ -81,7 +81,6 @@ namespace Game.GUI.OutGame.Lobby
 
             // 대기 중 + 최소 인원 이상일 때만 시작 버튼 활성화
             m_playButton.interactable =
-                room.Info.Status == RoomStatusType.Waiting &&
                 room.Info.CurrentPlayers.Count >= MinPlayersToStart;
         }
 

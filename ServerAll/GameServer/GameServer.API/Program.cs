@@ -68,6 +68,10 @@ try
     var dataBaseInstaller = new DataBaseInstaller();
     dataBaseInstaller.Install(builder);
     
+    // BackgroundService 예외가 호스트 전체를 종료하지 않도록 설정
+    builder.Services.Configure<HostOptions>(o =>
+        o.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
+
     // Domain DI registrations
     new CommonInstaller().Install(builder.Services, builder.Configuration);
     new UserInstaller().Install(builder.Services, builder.Configuration);

@@ -1,0 +1,20 @@
+{
+    "name": "Game.System.InGame",
+    "rootNamespace": "Game.System.InGame",
+    "references": [
+        "Game.System",
+        "Game.System.DungeonLobby",
+        "Game.Network",
+        "UniTask",
+        "VContainer"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

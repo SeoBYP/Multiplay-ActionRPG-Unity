@@ -119,8 +119,8 @@ public class DungeonRoom
         if (!IsHost(userId))
             throw new UnauthorizedAccessException("User is not host");
 
-        if (playerCount < 2)
-            throw new InvalidOperationException("need at least 2 players to start the game");
+        if (playerCount < 1)
+            throw new InvalidOperationException("need at least 1 player to start the game");
 
         if (Status == RoomStatus.Closed)
             throw new InvalidOperationException("Room is already closed");

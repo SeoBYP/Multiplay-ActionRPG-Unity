@@ -229,6 +229,17 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
 
         var ctx = await subscriptionService.SubscribeAsync(validation.Value, request.RoomId, ct);
 
+        // 방이 Waiting이 아닌 상태(Starting/Playing)로 구독을 시작하는 경우
+        // Redis stream에 이벤트가 없어도 현재 상태를 즉시 클라이언트에 전달한다.
+        // (서버 재시작 후 재접속, gRPC 끊김 후 복구 등 edge case 처리)
+        var currentRoom = await dungeonLobbyService.GetDungeonRoomAsync(request.RoomId, ct);
+        if (currentRoom.IsSuccess && currentRoom.Value?.Status != RoomStatus.Waiting)
+        {
+            ctx.Outbound.Writer.TryWrite(request.RoomId);
+            logger.LogInformation("SubscribeRoom initial kick for room {RoomId} status {Status}",
+                request.RoomId, currentRoom.Value?.Status);
+        }
+
         try
         {
             await SendLoopAsync(responseStream, ctx, ct);

@@ -6,6 +6,8 @@
 		"GUID:f51ebe6a0ceec4240a699833d6309b23",
 		"GUID:b15f0d85503884943ac44c9fe6a5e9fc",
 		"GUID:0f28c48a1de876f4d93d285de7d17cb9",
+		"Game.System.DungeonLobby",
+		"Game.System.InGame",
 		"Game.OutGame",
 		"Game.GUI",
 		"Game.Input"

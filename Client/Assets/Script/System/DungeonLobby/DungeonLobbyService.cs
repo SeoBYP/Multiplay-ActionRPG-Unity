@@ -36,7 +36,7 @@ namespace Game.System.DungeonLobby
 
         public event Action<RoomInfo>?  OnRoomUpdated;
         public event Action<RoomInfo>?  OnGameStarting;
-        public event Action<string, int>? OnGameSessionReady;
+        public event Action<string, int, long>? OnGameSessionReady;
 
         public DungeonLobbyService(IDungeonLobbyGrpcService grpc, DungeonLobbySession session)
         {
@@ -143,6 +143,7 @@ namespace Game.System.DungeonLobby
         /// <summary>새 스트림 구독을 시작한다. 이전 구독이 있으면 먼저 취소한다.</summary>
         private void StartSubscription(long roomId)
         {
+            Debug.Log($"[DungeonLobbyService] StartSubscription roomId={roomId}");
             StopSubscription();
             _subscriptionCts = new CancellationTokenSource();
             SubscribeLoopAsync(roomId, _subscriptionCts.Token).Forget();
@@ -151,8 +152,11 @@ namespace Game.System.DungeonLobby
         /// <summary>현재 스트림 구독을 취소한다.</summary>
         private void StopSubscription()
         {
-            _subscriptionCts?.Cancel();
-            _subscriptionCts?.Dispose();
+            if (_subscriptionCts == null) return;
+
+            Debug.Log($"[DungeonLobbyService] StopSubscription 호출됨\n{Environment.StackTrace}");
+            _subscriptionCts.Cancel();
+            _subscriptionCts.Dispose();
             _subscriptionCts = null;
         }
 
@@ -181,6 +185,7 @@ namespace Game.System.DungeonLobby
 
         private void HandleSubscribeResponse(SubscribeRoomResponse response)
         {
+            Debug.Log($"[DungeonLobbyService] SubscribeRoom 이벤트 수신: {response.PayloadCase}");
             switch (response.PayloadCase)
             {
                 case SubscribeRoomResponse.PayloadOneofCase.UpdateEvent:
@@ -194,12 +199,13 @@ namespace Game.System.DungeonLobby
                     break;
 
                 case SubscribeRoomResponse.PayloadOneofCase.GameSessionEvent:
-                    // SocketServer 준비 완료 — 세션을 비우고 스트림을 끊은 뒤 이벤트 발행
-                    var ip   = response.GameSessionEvent.Ip;
-                    var port = response.GameSessionEvent.Port;
+                    // SocketServer 준비 완료 — roomId를 먼저 캡처한 뒤 세션을 비우고 스트림을 끊는다.
+                    var ip     = response.GameSessionEvent.Ip;
+                    var port   = response.GameSessionEvent.Port;
+                    var roomId = _session.CurrentRoom!.RoomId;
                     StopSubscription();
                     _session.ClearRoom();
-                    OnGameSessionReady?.Invoke(ip, port);
+                    OnGameSessionReady?.Invoke(ip, port, roomId);
                     break;
             }
         }
@@ -222,6 +228,7 @@ namespace Game.System.DungeonLobby
 
         public void Dispose()
         {
+            Debug.Log("[DungeonLobbyService] Dispose 호출됨");
             StopSubscription();
         }
     }

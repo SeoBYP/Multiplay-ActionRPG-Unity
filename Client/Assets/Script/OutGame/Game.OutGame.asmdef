@@ -3,6 +3,7 @@
     "rootNamespace": "Game.OutGame",
     "references": [
         "Game.System",
+        "Game.System.DungeonLobby",
         "Game.Network",
         "UniTask",
         "VContainer",

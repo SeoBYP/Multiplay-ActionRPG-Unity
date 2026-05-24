@@ -1,0 +1,17 @@
+{
+    "name": "Game.System.DungeonLobby",
+    "rootNamespace": "Game.System.DungeonLobby",
+    "references": [
+        "Game.Network",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

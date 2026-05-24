@@ -19,9 +19,9 @@ namespace Game.System.DungeonLobby
 
         /// <summary>
         /// SocketServer가 준비 완료됐을 때 발생.
-        /// (ip, port) — TCP 접속에 바로 사용한다.
+        /// (ip, port, roomId) — TCP 접속 + 방 입장에 바로 사용한다.
         /// </summary>
-        event Action<string, int> OnGameSessionReady;
+        event Action<string, int, long> OnGameSessionReady;
 
         UniTask<(DungeonLobbyResult, IReadOnlyList<RoomInfo>)> GetRoomsAsync(CancellationToken ct = default);
         UniTask<DungeonLobbyResult> CreateRoomAsync(string roomName, int maxPlayers, CancellationToken ct = default);

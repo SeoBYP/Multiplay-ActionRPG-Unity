@@ -1,0 +1,54 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "Write-Output '{\"hookSpecificOutput\": {\"hookEventName\": \"Stop\", \"additionalContext\": \"[필수 체크] 이번 턴에서 코드 작업을 했다면: (1) plan.md 체크박스 갱신했는가? (2) 무엇을 했는지/왜 이렇게 설계했는지/파일 위치/연결 지점을 설명했는가? 완료됐다고만 하고 설명 없이 끝내지 않는다.\"}}'",
+            "shell": "powershell"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git stash list)",
+      "Bash(dotnet test*)",
+      "Bash(dotnet build*)",
+      "Bash(dotnet restore*)"
+    ],
+    "ask": [
+      "Bash(docker*)",
+      "Bash(dotnet run*)",
+      "Bash(git commit*)",
+      "Bash(git checkout*)",
+      "Bash(git branch*)",
+      "Bash(git merge*)",
+      "Bash(dotnet add package*)",
+      "Bash(npm install*)",
+      "Bash(pnpm add*)"
+    ],
+    "deny": [
+      "Bash(git push*)",
+      "Bash(rm -rf*)",
+      "Bash(sudo*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Edit(**/.env)",
+      "Edit(**/.env.*)",
+      "Write(**/.env)",
+      "Write(**/.env.*)",
+      "Edit(**/Library/**)",
+      "Edit(**/Temp/**)",
+      "Edit(**/Obj/**)",
+      "Edit(**/obj/**)",
+      "Edit(**/bin/**)",
+      "Edit(**/Generated/**)"
+    ]
+  }
+}

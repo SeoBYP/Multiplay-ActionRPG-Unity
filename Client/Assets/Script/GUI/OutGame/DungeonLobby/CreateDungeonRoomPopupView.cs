@@ -22,12 +22,12 @@ namespace Game.GUI.OutGame.Lobby
         [SerializeField] private Button confirmButton;
         [SerializeField] private Button cancelButton;
 
-        private const int MinPlayers = 2;
+        private const int MinPlayers = 1;
         private const int MaxPlayers = 8;
 
         private LobbyModel _model;
         private Action     _onClose;
-        private int        _maxPlayers = 4;
+        private int        _maxPlayers = 1;
 
         /// <summary>LobbyView가 Addressable 인스턴스 생성 직후 호출.</summary>
         public void Setup(LobbyModel model, Action onClose)

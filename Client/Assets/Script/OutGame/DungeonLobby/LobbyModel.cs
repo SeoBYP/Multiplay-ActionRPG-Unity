@@ -54,7 +54,7 @@ namespace Game.OutGame.DungeonLobby
         private void HandleRoomUpdated(RoomInfo room) =>
             Dispatch(new LobbyResult.RoomUpdated(room));
 
-        private void HandleGameSessionReady(string ip, int port) =>
+        private void HandleGameSessionReady(string ip, int port, long roomId) =>
             _navigateToGame.OnNext((ip, port));
 
         public void Initialize()

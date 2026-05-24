@@ -4,6 +4,8 @@
     "references": [
         "Game.Network",
         "Game.System",
+        "Game.System.DungeonLobby",
+        "Game.System.InGame",
         "Game.Input",
         "UniTask",
         "VContainer",

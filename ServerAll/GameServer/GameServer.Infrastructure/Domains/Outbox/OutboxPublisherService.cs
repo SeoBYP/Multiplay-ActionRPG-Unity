@@ -14,7 +14,7 @@ public class OutboxPublisherService(IServiceScopeFactory scopeFactory,
     ILogger<OutboxPublisherService> logger) : BackgroundService
 {
     private const int BatchSize = 20;
-    private static readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(1);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -29,7 +29,7 @@ public class OutboxPublisherService(IServiceScopeFactory scopeFactory,
                 await ProcessBatchAsync(outboxRepository, stoppingToken);
                 await Task.Delay(PollingInterval, stoppingToken);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
                 break;
             }

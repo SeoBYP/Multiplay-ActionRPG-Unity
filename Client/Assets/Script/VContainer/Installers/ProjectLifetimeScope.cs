@@ -1,4 +1,6 @@
 using Game.Network.Https;
+using Game.Network.Socket;
+using Game.System.InGame;
 using Script.System.Auth;
 using Script.System.Startup;
 using Game.System.DungeonLobby;
@@ -24,6 +26,9 @@ namespace Game.Installers
             // gRPC 채널과 각 API 서비스 등록.
             new GameApiClient().Install(builder);
 
+            // TCP 소켓 클라이언트 등록 (씬 전환을 넘어 연결 유지).
+            new SocketApiClient().Install(builder);
+
             // 로그인 후 처리할 시작 인텐트 큐 및 유저 프로필 (AuthService보다 먼저 등록).
             builder.Register<UserProfile>(Lifetime.Singleton);
             builder.Register<StartupIntentQueue>(Lifetime.Singleton);
@@ -35,6 +40,9 @@ namespace Game.Installers
             // 던전 로비 런타임 상태와 로비 오케스트레이션 서비스 등록.
             builder.Register<DungeonLobbySession>(Lifetime.Singleton);
             builder.Register<IDungeonLobbyService, DungeonLobbyService>(Lifetime.Singleton);
+
+            // OnGameSessionReady 이벤트를 구독해 TCP 연결 → Dungeon 씬 로드를 주관한다.
+            builder.RegisterEntryPoint<GameSessionConnector>(Lifetime.Singleton);
 
 #if UNITY_EDITOR
             // 에디터에서 Title 씬 없이 직접 실행 시 게스트 자동 로그인.
