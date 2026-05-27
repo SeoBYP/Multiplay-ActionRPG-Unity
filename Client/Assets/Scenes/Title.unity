@@ -124,6 +124,63 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 8143205635661402795, guid: 72dc9ecc252656343a18e14ca95fff1d, type: 3}
   m_PrefabInstance: {fileID: 4959654319929196015}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &146729991
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1959994766464974951, guid: f95fee3279679b14c9c57eed4bb65ab5, type: 3}
+      propertyPath: m_Name
+      value: ProjectLifetimeScope
+      objectReference: {fileID: 0}
+    - target: {fileID: 4281379680975953891, guid: f95fee3279679b14c9c57eed4bb65ab5, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4281379680975953891, guid: f95fee3279679b14c9c57eed4bb65ab5, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4281379680975953891, guid: f95fee3279679b14c9c57eed4bb65ab5, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4281379680975953891, guid: f95fee3279679b14c9c57eed4bb65ab5, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4281379680975953891, guid: f95fee3279679b14c9c57eed4bb65ab5, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4281379680975953891, guid: f95fee3279679b14c9c57eed4bb65ab5, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4281379680975953891, guid: f95fee3279679b14c9c57eed4bb65ab5, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4281379680975953891, guid: f95fee3279679b14c9c57eed4bb65ab5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4281379680975953891, guid: f95fee3279679b14c9c57eed4bb65ab5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4281379680975953891, guid: f95fee3279679b14c9c57eed4bb65ab5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: f95fee3279679b14c9c57eed4bb65ab5, type: 3}
 --- !u!1 &167654811
 GameObject:
   m_ObjectHideFlags: 0
@@ -743,7 +800,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1714267498}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c20291f6ceac408baa3f8c77917c3467, type: 3}
+  m_Script: {fileID: 11500000, guid: ed3a773fa3c0d5848af90c02a8f2e2af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game::Game.Installers.Scenes.TitleLifetimeScope
   parentReference:
@@ -1035,7 +1092,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1312253856263245685}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 16e7fcb71e925fd4c85ad65230ae2527, type: 3}
+  m_Script: {fileID: 11500000, guid: 740774535bdf2f442bd0089133a6b1e5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.GUI::LoginWindow
   emailField: {fileID: 1312253856263245689}
@@ -1300,7 +1357,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 4959654319929196016}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5888249a8e27642458f02f465662e706, type: 3}
+  m_Script: {fileID: 11500000, guid: 8e14a182b9eaebd4ab2a12c607a75663, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.GUI::Game.Title.MainMenuWindow
   gameStartButton: {fileID: 2058147756}
@@ -1318,3 +1375,4 @@ SceneRoots:
   - {fileID: 1335198567}
   - {fileID: 1742828959}
   - {fileID: 1714267499}
+  - {fileID: 146729991}

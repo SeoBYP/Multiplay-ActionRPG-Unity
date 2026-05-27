@@ -995,7 +995,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 5876328308135968134}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 05430446ac5d1aa4ab30f462ea7de298, type: 3}
+  m_Script: {fileID: 11500000, guid: 4849d274eecc06d4dbb83a7dfabfc4ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.GUI::Game.GUI.OutGame.Lobby.RoomItemView
   roomNameText: {fileID: 4329556485359476260}

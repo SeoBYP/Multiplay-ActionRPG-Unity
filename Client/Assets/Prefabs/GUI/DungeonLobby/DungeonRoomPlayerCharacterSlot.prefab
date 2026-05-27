@@ -921,7 +921,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 7953751837199864505}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 80f3a11ecf7d4b168e92a8018d4b4600, type: 3}
+  m_Script: {fileID: 11500000, guid: 7b81b27bac4aef64d8f819f5ac8cace2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.GUI::Game.GUI.OutGame.DungeonRoomPlayerCharacterSlot
   m_characterIcon: {fileID: 208447718217707128}

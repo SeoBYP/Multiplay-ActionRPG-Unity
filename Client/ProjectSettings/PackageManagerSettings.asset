@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 13964, guid: 0000000000000000e000000000000000, type: 0}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_EnablePreReleasePackages: 1
+  m_EnablePreReleasePackages: 0
   m_AdvancedSettingsExpanded: 1
   m_ScopedRegistriesSettingsExpanded: 1
   m_SeeAllPackageVersions: 0
@@ -36,6 +36,7 @@ MonoBehaviour:
     m_Scopes:
     - com.cysharp.unitask
     - com.github-glitchenzo.nugetforunity
+    - jp.hadashikick.vcontainer
     m_IsDefault: 0
     m_Capabilities: 0
     m_ConfigSource: 4
@@ -48,7 +49,7 @@ MonoBehaviour:
     m_Modified: 0
     m_ErrorMessage: 
     m_UserModificationsEntityId:
-      m_Data: -922
+      m_Data: -918
     m_OriginalEntityId:
-      m_Data: -926
+      m_Data: -922
   m_LoadAssets: -1

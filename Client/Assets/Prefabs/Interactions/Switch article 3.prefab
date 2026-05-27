@@ -312,7 +312,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 8234632482789463854}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2beb64a611794ffa951efde28735fa49, type: 3}
+  m_Script: {fileID: 11500000, guid: c636e7a9b0303984fb08bd567478f0b4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Main::Game.Main.Character.SwitchInteractable
   m_animator: {fileID: 835422950536402053}

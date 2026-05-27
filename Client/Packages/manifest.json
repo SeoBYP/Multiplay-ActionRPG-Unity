@@ -19,7 +19,7 @@
     "com.unity.timeline": "1.8.12",
     "com.unity.ugui": "2.0.0",
     "com.unity.visualeffectgraph": "17.4.0",
-    "jp.hadashikick.vcontainer": "1.17.0",
+    "jp.hadashikick.vcontainer": "1.18.0",
     "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.adaptiveperformance": "1.0.0",
     "com.unity.modules.ai": "1.0.0",
@@ -61,7 +61,8 @@
       "url": "https://package.openupm.com",
       "scopes": [
         "com.cysharp.unitask",
-        "com.github-glitchenzo.nugetforunity"
+        "com.github-glitchenzo.nugetforunity",
+        "jp.hadashikick.vcontainer"
       ]
     }
   ]

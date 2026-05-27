@@ -16,6 +16,7 @@ public static class SceneToolbarButton
     {
         new("Title", "Assets/Scenes/Title.unity"),
         new("Main", "Assets/Scenes/Main.unity"),
+        new("Dungeon", "Assets/Scenes/Dungeon.unity"),
     };
 
     private static ScriptableObject currentToolbar;

@@ -13,11 +13,36 @@ MonoBehaviour:
   m_Name: Default Local Group
   m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
   m_GroupName: Default Local Group
-  m_GUID: 1d64e1a92c448a944827d509ab85d6e9
-  m_SerializeEntries: []
+  m_GUID: 2efb398868f068141bdc3ad3f516ee73
+  m_SerializeEntries:
+  - m_GUID: 14a1fcda5ebca2d49bfbb4fa5f0f1cf0
+    m_Address: Assets/Prefabs/GUI/DungeonLobby/CreateDungeonRoomPopup.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 46eb0e4b7d0f16c44bc0e5ee9e2e91b8
+    m_Address: Assets/Prefabs/GUI/DungeonLobby/DungeonRoomPlayerCharacterSlot.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 696fa236f77e8464d88b9a91d1c9867a
+    m_Address: Assets/Prefabs/GUI/DungeonLobby/DungeonRoomItemView.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8f39067531c9b9a41a60b6923865fa45
+    m_Address: Assets/Prefabs/GUI/DungeonLobby/DungeonRoomLobbyView.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9c075f46e536f5841b64d78a6f012af2
+    m_Address: Assets/Prefabs/GUI/DungeonLobby/DungeonRoomDetail.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
-  m_Settings: {fileID: 11400000, guid: 51d9e49bdd45274408d6c2ea116e5c84, type: 2}
+  m_Settings: {fileID: 11400000, guid: 9cc3160cdc041234caad31f304512f27, type: 2}
   m_SchemaSet:
     m_Schemas:
-    - {fileID: 11400000, guid: 07feed505f7e4a1439ade5dfa476c582, type: 2}
-    - {fileID: 11400000, guid: 5051aee7c4f4a944895d5ab80a8d3293, type: 2}
+    - {fileID: 11400000, guid: c7902630cdcc9fe42acfe5572d1042b0, type: 2}
+    - {fileID: 11400000, guid: ceb426b251cecca43b18ce9e2421bf75, type: 2}
