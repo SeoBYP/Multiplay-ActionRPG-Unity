@@ -46,7 +46,8 @@ services:
     ports:
       - "7777:7777"
     environment:
-      Server__Ip: "0.0.0.0"             # appsettings.json의 Server.Ip 오버라이드
+      Server__Ip: "0.0.0.0"             # TCP 바인드 주소 (모든 인터페이스)
+      Server__AdvertiseIp: "127.0.0.1"  # 클라이언트에 알려줄 접속 주소 (호스트 머신 기준)
       ConnectionStrings__Redis: "gameserver-redis:6379,abortConnect=false"
       GRAYLOG_HOST: gameserver-graylog
     depends_on:

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Server.PacketHandler;
 using Server.Room;
 using Shared.Packet.Packets;
+using StackExchange.Redis;
 
 public sealed class SessionManager
 {
@@ -14,18 +15,21 @@ public sealed class SessionManager
     private readonly ConcurrentDictionary<ulong, Session> _sessions = new();
     private readonly PacketDispatcher _dispatcher;
     private readonly RoomManager _roomManager;
+    private readonly IDatabase _redis;
     private readonly ILogger<SessionManager> _logger;
     private readonly ILogger<Session> _sessionLogger;
 
     public SessionManager(
         PacketDispatcher dispatcher,
         RoomManager roomManager,
+        IDatabase redis,
         ILogger<SessionManager> logger,
         ILogger<Session> sessionLogger)
     {
         Instance = this;
         _dispatcher = dispatcher;
         _roomManager = roomManager;
+        _redis = redis;
         _logger = logger;
         _sessionLogger = sessionLogger;
     }
@@ -38,6 +42,7 @@ public sealed class SessionManager
             socket: clientSocket,
             dispatcher: _dispatcher,
             roomManager: _roomManager,
+            redis: _redis,
             logger: _sessionLogger,
             onDisconnected: OnSessionDisconnected);
 

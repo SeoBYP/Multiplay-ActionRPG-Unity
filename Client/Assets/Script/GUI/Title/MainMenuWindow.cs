@@ -1,4 +1,4 @@
-using Script.System.Auth;
+using Game.OutGame.Title;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -8,8 +8,8 @@ namespace Game.Title
 {
     public class MainMenuWindow : MonoBehaviour
     {
-        [Inject] private readonly IAuthService _authService;
-        
+        [Inject] private TitleModel _model;
+
         [SerializeField] private Button gameStartButton;
         [SerializeField] private Button settingsButton;
         [SerializeField] private Button historyButton;
@@ -17,8 +17,7 @@ namespace Game.Title
         [SerializeField] private Button exitButton;
 
         [SerializeField] private GameObject LoginWindow;
-        
-        // Start is called once before the first execution of Update after the MonoBehaviour is created
+
         void Start()
         {
             gameStartButton.onClick.AddListener(OnGameStart);
@@ -30,7 +29,7 @@ namespace Game.Title
 
         private void OnGameStart()
         {
-            if (!_authService.IsAuthenticated)
+            if (!_model.State.CurrentValue.IsAuthenticated)
             {
                 LoginWindow.SetActive(true);
                 return;
@@ -38,24 +37,9 @@ namespace Game.Title
             SceneManager.LoadScene("Main");
         }
 
-        private void OnSettings()
-        {
-            Debug.Log("Settings");
-        }
-
-        private void OnHistory()
-        {
-            Debug.Log("History");
-        }
-
-        private void OnCreators()
-        {
-            Debug.Log("Creators");
-        }
-
-        private void OnExit()
-        {
-            Application.Quit();
-        }
+        private void OnSettings()  => Debug.Log("Settings");
+        private void OnHistory()   => Debug.Log("History");
+        private void OnCreators()  => Debug.Log("Creators");
+        private void OnExit()      => Application.Quit();
     }
 }

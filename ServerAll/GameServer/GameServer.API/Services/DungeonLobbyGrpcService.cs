@@ -8,6 +8,7 @@ using GameServer.Domain.Entities;
 using GameServer.Grpc.DungeonLobby;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 using DungeonLobbyService = GameServer.Grpc.DungeonLobby.DungeonLobbyService;
 
 namespace GameServer.API.Services;
@@ -17,8 +18,12 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
     IGameSessionRepository gameSessionRepository,
     IUserRepository userRepository,
     IDungeonRoomPlayerRepository dungeonRoomPlayerRepository,
+    IUserProfileRepository userProfileRepository,
+    IConnectionMultiplexer connectionMultiplexer,
     ILogger<DungeonLobbyGrpcService> logger) : DungeonLobbyService.DungeonLobbyServiceBase
 {
+    private static readonly TimeSpan PlayerDataTtl = TimeSpan.FromHours(2);
+
     public override async Task<CreateRoomResponse> CreateRoom(CreateRoomRequest request, ServerCallContext context)
     {
         var sessionId = context.GetSessionId();
@@ -238,6 +243,24 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
             ctx.Outbound.Writer.TryWrite(request.RoomId);
             logger.LogInformation("SubscribeRoom initial kick for room {RoomId} status {Status}",
                 request.RoomId, currentRoom.Value?.Status);
+
+            // Starting 또는 Playing 상태로 재접속한 경우 호스트가 게임 시작 흐름을 자동으로 재트리거한다.
+            // - Starting: 이전 GameStartRequestedMessage가 유실됐을 수 있음
+            // - Playing: 서버 재시작으로 Redis player key가 소실됐을 수 있음 (StartGameAsync가 idempotent)
+            if ((currentRoom.Value?.Status == RoomStatus.Starting ||
+                 currentRoom.Value?.Status == RoomStatus.Playing) &&
+                currentRoom.Value.HostUserId == validation.Value)
+            {
+                logger.LogInformation(
+                    "SubscribeRoom: host {UserId} reconnected to {Status} room {RoomId}, auto-retriggering StartGame",
+                    validation.Value, currentRoom.Value.Status, request.RoomId);
+                var retriggerResult = await dungeonLobbyService.StartGameAsync(
+                    sessionId, request.RoomId, Guid.NewGuid().ToString(), ct);
+                if (!retriggerResult.IsSuccess)
+                    logger.LogWarning(
+                        "SubscribeRoom auto-retrigger failed for room {RoomId}: {ErrorCode}",
+                        request.RoomId, retriggerResult.InternalErrorCode);
+            }
         }
 
         try
@@ -273,6 +296,9 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
                         continue;
                     }
 
+                    // Redis player key가 서버 재시작으로 소실됐을 수 있으므로 이벤트 전송 전에 복구한다.
+                    await EnsurePlayerDataInRedisAsync(room.Value.RoomId, gameSession.GameSessionId, ct);
+
                     serverMsg.GameSessionEvent = new GameSessionReadyEvent
                     {
                         Ip = gameSession.SocketIp,
@@ -289,6 +315,43 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
             }
 
             await responseStream.WriteAsync(serverMsg, ct);
+        }
+    }
+
+    /// <summary>
+    /// Redis player key가 존재하지 않으면 DB에서 조회해 복구한다.
+    /// 서버 재시작 후 Playing 방에 재접속할 때 SocketServer 검증에 필요한 키를 보장한다.
+    /// </summary>
+    private async Task EnsurePlayerDataInRedisAsync(long roomId, long gameSessionId, CancellationToken ct)
+    {
+        var redis = connectionMultiplexer.GetDatabase();
+        var players = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(roomId, ct);
+
+        for (var i = 0; i < players.Count; i++)
+        {
+            var player = players[i];
+            var key = $"gamesession:player:{player.UserId}";
+
+            if (await redis.KeyExistsAsync(key))
+                continue;
+
+            var profile = await userProfileRepository.GetByIdAsync(player.UserId, ct);
+            var nickname = profile?.NickName ?? $"Player_{player.UserId}";
+
+            var entries = new HashEntry[]
+            {
+                new("roomId", roomId),
+                new("gameSessionId", gameSessionId),
+                new("nickname", nickname),
+                new("spawnIndex", i)
+            };
+
+            await redis.HashSetAsync(key, entries);
+            await redis.KeyExpireAsync(key, PlayerDataTtl);
+
+            logger.LogInformation(
+                "EnsurePlayerData: restored Redis key for user {UserId} in room {RoomId}",
+                player.UserId, roomId);
         }
     }
 }

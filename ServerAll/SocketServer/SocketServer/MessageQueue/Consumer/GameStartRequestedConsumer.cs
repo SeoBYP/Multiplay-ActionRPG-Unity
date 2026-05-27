@@ -30,17 +30,24 @@ public class GameStartRequestedConsumer(
                         var room = roomManager.CreateRoom(msg.RoomId, msg.PlayerInfos, msg);
                         if (room is null)
                         {
-                            logger.LogWarning("[GameStart] Room creation skipped for RoomId={RoomId}", msg.RoomId);
-                            continue;
+                            // Room already exists — idempotent retry; still notify GameServer
+                            logger.LogWarning("[GameStart] Room already exists for RoomId={RoomId}, re-publishing GameSessionReady", msg.RoomId);
+                        }
+                        else
+                        {
+                            logger.LogInformation("[GameStart] RoomId={RoomId}, Players={PlayerCount}명", msg.RoomId, msg.PlayerInfos.Count);
                         }
 
-                        logger.LogInformation("[GameStart] RoomId={RoomId}, Players={PlayerCount}명", msg.RoomId, msg.PlayerInfos.Count);
+                        var advertiseIp = options.ResolvedAdvertiseIp;
+                        logger.LogInformation(
+                            "[GameStart] GameSessionReady 발행: RoomId={RoomId} Host={Host} Port={Port}",
+                            msg.RoomId, advertiseIp, options.Port);
 
                         await gameSessionReadyQueue.EnqueueAsync(new GameSessionReadyMessage
                         {
                             RoomId = msg.RoomId,
                             GameSessionId = 0,
-                            Host = options.Ip,
+                            Host = advertiseIp,
                             Port = options.Port,
                             TraceId = msg.TraceId
                         });

@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
-using Script.System.Auth;
+using Game.OutGame.Title;
+using R3;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -7,40 +8,30 @@ using VContainer;
 
 public class LoginWindow : MonoBehaviour
 {
-    [Inject] private readonly IAuthService _authService;
-    
+    [Inject] private TitleModel _model;
+
     [SerializeField] private InputField emailField;
     [SerializeField] private InputField passwordField;
-    [SerializeField] private Button loginButton;
+    [SerializeField] private Button     loginButton;
 
     private void Start()
     {
         loginButton.onClick.AddListener(OnLogin);
+
+        // 자동 로그인 성공 시 State가 IsAuthenticated = true로 변경 → 씬 전환
+        _model.State
+            .Subscribe(OnStateChanged)
+            .AddTo(destroyCancellationToken);
+    }
+
+    private void OnStateChanged(TitleState state)
+    {
+        if (state.IsAuthenticated)
+            SceneManager.LoadScene("Main");
     }
 
     private void OnLogin()
     {
-        _authService.LoginOrRegisterAsync(emailField.text, passwordField.text, this.destroyCancellationToken)
-            .ContinueWith(result =>
-            {
-                switch (result)
-                {
-                    case AuthResult.Success:
-                        SceneManager.LoadScene("Main");
-                        break;
-                    case AuthResult.NeedLogin:
-                        Debug.Log("Need Login");
-                        break;
-                    case AuthResult.Failed:
-                        Debug.Log("Failed");
-                        break;
-                    case AuthResult.TokenExpired:
-                        Debug.Log("Token Expired");
-                        break;
-                    default:
-                        Debug.Log("Unknown result");
-                        break;
-                }
-            }).Forget(Debug.LogException);
+        _model.Accept(new TitleIntent.Login(emailField.text, passwordField.text));
     }
 }

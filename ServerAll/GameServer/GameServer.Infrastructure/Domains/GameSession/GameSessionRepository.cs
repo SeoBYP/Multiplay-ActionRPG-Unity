@@ -76,7 +76,7 @@ public class GameSessionRepository(
 
             var gameSession = await context.GameSessions.SingleOrDefaultAsync(gs => gs.RoomId == roomId, ct);
             if (gameSession is null)
-                throw new KeyNotFoundException($"Game session not found for room id {roomId}");
+                return null;
 
             await SetGameSessionCacheAsync(gameSession);
             return gameSession;

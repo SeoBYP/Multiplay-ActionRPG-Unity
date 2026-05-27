@@ -4,6 +4,8 @@ using Cysharp.Threading.Tasks;
 using Game.System.DungeonLobby;
 using GameServer.Grpc.DungeonLobby;
 using R3;
+using Script.System.Auth;
+using Script.System.Startup;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -19,10 +21,12 @@ namespace Game.OutGame.DungeonLobby
     ///   Model은 State만 발행한다. View를 직접 조작하지 않는다.
     ///   Reducer는 순수 함수다. 비동기 처리는 Effect 메서드에서만 한다.
     /// </summary>
-    public sealed class LobbyModel : IInitializable, IDisposable
+    public sealed class LobbyModel : IInitializable, IAsyncStartable, IDisposable
     {
         private readonly LobbyRepository       _repository;
         private readonly IDungeonLobbyService  _lobbyService;
+        private readonly IAuthService          _authService;
+        private readonly StartupIntentQueue    _startupQueue;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
         private readonly ReactiveProperty<LobbyState> _state
@@ -42,10 +46,16 @@ namespace Game.OutGame.DungeonLobby
         /// <summary>SocketServer 준비 완료 시 발행 — (ip, port).</summary>
         public Observable<(string Ip, int Port)> NavigateToGame => _navigateToGame;
 
-        public LobbyModel(LobbyRepository repository, IDungeonLobbyService lobbyService)
+        public LobbyModel(
+            LobbyRepository    repository,
+            IDungeonLobbyService lobbyService,
+            IAuthService         authService,
+            StartupIntentQueue   startupQueue)
         {
             _repository   = repository;
             _lobbyService = lobbyService;
+            _authService  = authService;
+            _startupQueue = startupQueue;
 
             _lobbyService.OnRoomUpdated      += HandleRoomUpdated;
             _lobbyService.OnGameSessionReady += HandleGameSessionReady;
@@ -54,13 +64,36 @@ namespace Game.OutGame.DungeonLobby
         private void HandleRoomUpdated(RoomInfo room) =>
             Dispatch(new LobbyResult.RoomUpdated(room));
 
-        private void HandleGameSessionReady(string ip, int port, long roomId) =>
+        private void HandleGameSessionReady(string ip, int port, long roomId)
+        {
+            _isProcessing = false;
             _navigateToGame.OnNext((ip, port));
+        }
 
         public void Initialize()
         {
             // 방 목록 로드는 로비 뷰가 실제로 열릴 때 트리거된다.
             // (LobbyViewController.OpenLobbyAsync 에서 Accept(LoadRooms) 호출)
+        }
+
+        /// <summary>
+        /// 인증 완료 후 StartupIntentQueue를 소진한다.
+        /// Initialize()는 인증 전에 실행될 수 있으므로, 큐 소진은 여기서 처리한다.
+        /// </summary>
+        public async UniTask StartAsync(CancellationToken ct)
+        {
+            await _authService.AuthenticatedAsync().AttachExternalCancellation(ct);
+
+            Debug.Log($"[LobbyModel] StartAsync — auth 완료, StartupIntentQueue HasPending={_startupQueue.HasPending}");
+
+            while (_startupQueue.TryDequeue(out var startupIntent))
+            {
+                if (startupIntent is RestoreRoomStartupIntent restoreIntent)
+                {
+                    Debug.Log($"[LobbyModel] StartupIntentQueue: RestoreRoom roomId={restoreIntent.RoomId}");
+                    Accept(new LobbyIntent.RestoreRoom(restoreIntent.RoomId));
+                }
+            }
         }
 
         // ── View의 단일 진입점 ────────────────────────
@@ -185,13 +218,13 @@ namespace Game.OutGame.DungeonLobby
         {
             _isProcessing = true;
             Dispatch(LobbyResult.Loading.Instance);
-            try
+            var res = await _repository.StartGameAsync(_cts.Token);
+            if (!res.IsSuccess)
             {
-                var res = await _repository.StartGameAsync(_cts.Token);
-                if (!res.IsSuccess) Dispatch(new LobbyResult.Failed(res.Error));
-                // 성공 시 OnGameSessionReady 이벤트를 기다림 (NavigateToGame 발행)
+                _isProcessing = false;
+                Dispatch(new LobbyResult.Failed(res.Error));
             }
-            finally { _isProcessing = false; }
+            // 성공: _isProcessing은 HandleGameSessionReady 또는 LeaveRoom에서 해제
         }
 
         private async UniTaskVoid RestoreRoomAsync(LobbyIntent.RestoreRoom intent)
@@ -210,7 +243,8 @@ namespace Game.OutGame.DungeonLobby
                 }
 
                 Dispatch(new LobbyResult.RoomJoined(res.Room));
-                Debug.Log($"[LobbyModel] 방 복원 완료 — NavigateToRoom 발행 roomId={intent.RoomId}");
+                Debug.Log($"[LobbyModel] 방 복원 완료 — NavigateToRoom 발행 " +
+                          $"roomId={intent.RoomId}, roomName={res.Room.RoomName}, roomMaxPlayers={res.Room.MaxPlayers}, roomStatus={res.Room.Status}");
                 _navigateToRoom.OnNext(intent.RoomId);
             }
             finally { _isProcessing = false; }

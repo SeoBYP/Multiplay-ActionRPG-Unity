@@ -42,6 +42,17 @@ namespace Game.System.InGame
 
         private void HandleGameSessionReady(string ip, int port, long roomId)
         {
+            Debug.Log($"[GameSessionConnector] GameSessionReady 수신 — ip={ip} port={port} roomId={roomId}");
+
+            var state = _socketSession.State;
+            if (state != SocketSessionState.Idle &&
+                state != SocketSessionState.Disconnected &&
+                state != SocketSessionState.Failed)
+            {
+                Debug.Log($"[GameSessionConnector] 이미 연결 중 (state={state}) — 중복 이벤트 무시");
+                return;
+            }
+
             ConnectAndLoadDungeonAsync(ip, port, roomId).Forget();
         }
 
@@ -49,22 +60,11 @@ namespace Game.System.InGame
         {
             try
             {
+                Debug.Log($"[GameSessionConnector] TCP 연결 시도 — ip={ip} port={port} userId={_authSession.UserId}");
                 var info = new SocketConnectionInfo(ip, port, roomId, _authSession.UserId);
 
                 await _socketSession.ConnectAsync(info, CancellationToken.None);
                 Debug.Log($"[GameSessionConnector] TCP 연결 완료 — {ip}:{port}");
-
-                await _socketSession.AuthenticateAsync(CancellationToken.None);
-                await UniTask.WaitUntil(
-                    () => _socketSession.State == SocketSessionState.Authenticated
-                       || _socketSession.State == SocketSessionState.Failed);
-
-                if (_socketSession.State == SocketSessionState.Failed)
-                {
-                    Debug.LogError("[GameSessionConnector] 소켓 인증 실패");
-                    return;
-                }
-                Debug.Log("[GameSessionConnector] 소켓 인증 완료");
 
                 await _socketSession.JoinRoomAsync(CancellationToken.None);
                 await UniTask.WaitUntil(

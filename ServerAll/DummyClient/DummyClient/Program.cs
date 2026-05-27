@@ -74,13 +74,9 @@ async Task RunAsync()
                 {
                     await SendPacketAsync(socket, new C_Ping { IsHealthy = true });
                 }
-                else if (cmd == "auth" && parts.Length > 1)
+                else if (cmd == "join" && parts.Length > 2)
                 {
-                    await SendPacketAsync(socket, new C_Auth { UserId = long.Parse(parts[1]) });
-                }
-                else if (cmd == "join" && parts.Length > 1)
-                {
-                    await SendPacketAsync(socket, new C_PlayerJoin { RoomId = long.Parse(parts[1]) });
+                    await SendPacketAsync(socket, new C_PlayerJoin { RoomId = long.Parse(parts[1]), UserId = long.Parse(parts[2]) });
                 }
                 else if (cmd == "move" && parts.Length > 3)
                 {
@@ -273,10 +269,6 @@ async Task HandlePacketAsync(
         case S_Pong pong:
             onPongReceived();
             Console.WriteLine($"[S_Pong] IsHealthy={pong.IsHealthy}");
-            break;
-
-        case S_Auth auth:
-            Console.WriteLine($"[S_Auth] Success={auth.Success} {auth.Message}");
             break;
 
         case S_PlayerJoined joined:

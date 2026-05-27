@@ -35,7 +35,8 @@ namespace Game.Network.Socket
         public async UniTask ConnectAsync(SocketConnectionInfo connectionInfo, CancellationToken ct)
         {
             if (State != SocketSessionState.Idle &&
-                State != SocketSessionState.Disconnected)
+                State != SocketSessionState.Disconnected &&
+                State != SocketSessionState.Failed)
             {
                 throw new InvalidOperationException("SocketSession is already active.");
             }
@@ -129,34 +130,11 @@ namespace Game.Network.Socket
         /// </summary>
         private void UpdateStateFromPacket(Packet packet)
         {
-            if (packet is S_Auth auth)
-            {
-                // 인증 성공 여부에 따라 다음 단계 가능 상태를 결정한다.
-                if (auth.Success)
-                {
-                    State = SocketSessionState.Authenticated;
-                }
-                else
-                {
-                    State = SocketSessionState.Failed;
-                }
-
-                return;
-            }
-
             if (packet is S_PlayerJoined joined)
             {
-                // 방 참가 성공 시 Joined, 실패 시 다시 Authenticated 상태로 되돌린다.
-                if (joined.Success)
-                {
-                    State = SocketSessionState.Joined;
-                }
-                else
-                {
-                    State = SocketSessionState.Authenticated;
-                }
-
-                return;
+                State = joined.Success
+                    ? SocketSessionState.Joined
+                    : SocketSessionState.Failed;
             }
         }
 
@@ -174,41 +152,21 @@ namespace Game.Network.Socket
         }
 
         /// <summary>
-        /// 연결 직후 인증 패킷을 전송한다.
-        /// </summary>
-        public async UniTask AuthenticateAsync(CancellationToken ct)
-        {
-            if (State != SocketSessionState.Connected)
-            {
-                throw new InvalidOperationException("SocketSession is not ready to authenticate.");
-            }
-
-            State = SocketSessionState.Authenticating;
-
-            var packet = new C_Auth
-            {
-                UserId = _connectionInfo.UserId
-            };
-
-            using var linkedCts = CreateLinkedToken(ct);
-            await _connector.SendAsync(packet, linkedCts.Token);
-        }
-
-        /// <summary>
-        /// 인증 완료 후 현재 룸에 참가 요청을 보낸다.
+        /// 연결 직후 방 참가 요청을 보낸다. UserId와 RoomId를 함께 전송해 서버에서 Redis로 검증한다.
         /// </summary>
         public async UniTask JoinRoomAsync(CancellationToken ct)
         {
-            if (State != SocketSessionState.Authenticated)
+            if (State != SocketSessionState.Connected)
             {
-                throw new InvalidOperationException("SocketSession is not authenticated.");
+                throw new InvalidOperationException("SocketSession is not connected.");
             }
 
             State = SocketSessionState.Joining;
 
             var packet = new C_PlayerJoin
             {
-                RoomId = _connectionInfo.RoomId
+                RoomId = _connectionInfo.RoomId,
+                UserId = _connectionInfo.UserId
             };
 
             using var linkedCts = CreateLinkedToken(ct);

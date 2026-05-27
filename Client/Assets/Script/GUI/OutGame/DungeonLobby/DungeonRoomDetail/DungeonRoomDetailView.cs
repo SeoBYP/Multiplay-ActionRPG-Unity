@@ -1,8 +1,6 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.OutGame.DungeonLobby;
-using GameServer.Grpc.DungeonLobby;
-using GameServer.Grpc.User;
 using R3;
 using TMPro;
 using UnityEngine;
@@ -73,18 +71,19 @@ namespace Game.GUI.OutGame.Lobby
             var room = state.SelectedRoom;
             if (room == null) return;
 
-            m_roomName.text               = room.Info.RoomName;
-            m_roomPlayerCurrentCount.text = room.Info.CurrentPlayers.Count.ToString();
-            m_roomPlayerMaxCount.text     = room.Info.MaxPlayers.ToString();
+            m_roomName.text               = room.RoomName;
+            m_roomPlayerCurrentCount.text = room.PlayerCount.ToString();
+            m_roomPlayerMaxCount.text     = room.MaxPlayers.ToString();
 
-            SyncSlots(room.Info.CurrentPlayers);
+            SyncSlots(room.Players);
 
-            // 대기 중 + 최소 인원 이상일 때만 시작 버튼 활성화
+            // 방이 대기 중이고 최소 인원 이상일 때만 시작 버튼 활성화
             m_playButton.interactable =
-                room.Info.CurrentPlayers.Count >= MinPlayersToStart;
+                // room.Status == RoomStatus.Waiting &&
+                room.PlayerCount >= MinPlayersToStart;
         }
 
-        private void SyncSlots(IList<UserInfo> players)
+        private void SyncSlots(IReadOnlyList<RoomPlayerInfo> players)
         {
             // 떠난 플레이어 슬롯 → 풀로 반환
             var nextIds = new HashSet<string>();

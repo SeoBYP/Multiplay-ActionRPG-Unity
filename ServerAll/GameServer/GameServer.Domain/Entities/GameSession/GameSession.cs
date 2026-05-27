@@ -34,6 +34,14 @@ public class GameSession
         };
     }
 
+    public void UpdateSocketInfo(string socketIp, int socketPort)
+    {
+        if (string.IsNullOrWhiteSpace(socketIp)) throw new ArgumentException("SocketIp invalid");
+        if (socketPort <= 0) throw new ArgumentException("SocketPort invalid");
+        SocketIp = socketIp;
+        SocketPort = socketPort;
+    }
+
     public void End()
     {
         if (Status == GameSessionStatus.Ended)

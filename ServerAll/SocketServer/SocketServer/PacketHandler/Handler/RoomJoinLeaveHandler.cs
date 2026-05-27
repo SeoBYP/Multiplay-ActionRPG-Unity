@@ -7,22 +7,29 @@ public static class RoomJoinLeaveHandler
     [PacketHandler(typeof(C_PlayerJoin))]
     public static async ValueTask HandlePlayerJoin(Session session, C_PlayerJoin packet, CancellationToken ct)
     {
-        if (session.UserId <= 0)
+        // Redis에서 플레이어 배정 정보 조회
+        var key = $"gamesession:player:{packet.UserId}";
+        var entries = await session.Redis.HashGetAllAsync(key);
+        if (entries.Length == 0)
         {
-            await session.SendPacketAsync(new S_PlayerJoined { Success = false, Message = "Authenticate first" }, ct);
+            await session.SendPacketAsync(new S_PlayerJoined { Success = false, Message = "Player not assigned to any session" }, ct);
             return;
         }
+
+        var dict = entries.ToDictionary(e => e.Name.ToString(), e => e.Value.ToString());
+        if (!long.TryParse(dict.GetValueOrDefault("roomId"), out var redisRoomId) || redisRoomId != packet.RoomId)
+        {
+            await session.SendPacketAsync(new S_PlayerJoined { Success = false, Message = "Room assignment mismatch" }, ct);
+            return;
+        }
+
+        session.UserId = packet.UserId;
+        session.Nickname = dict.GetValueOrDefault("nickname") ?? $"Player_{packet.UserId}";
 
         var room = session.RoomManager.GetRoom(packet.RoomId);
         if (room is null)
         {
             await session.SendPacketAsync(new S_PlayerJoined { Success = false, Message = "Room not found" }, ct);
-            return;
-        }
-
-        if (!room.IsExpectedPlayer(session.UserId))
-        {
-            await session.SendPacketAsync(new S_PlayerJoined { Success = false, Message = "Not assigned to this room" }, ct);
             return;
         }
 

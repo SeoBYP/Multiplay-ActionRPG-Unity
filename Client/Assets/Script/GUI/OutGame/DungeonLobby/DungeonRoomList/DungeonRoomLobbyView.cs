@@ -2,8 +2,6 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using R3;
 using Game.OutGame.DungeonLobby;
-using GameServer.Grpc.DungeonLobby;
-using Script.System.Auth;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -23,8 +21,7 @@ namespace Game.GUI.OutGame.Lobby
     /// </summary>
     public sealed class DungeonRoomLobbyView : MonoBehaviour
     {
-        [Inject] private LobbyModel  _model;
-        [Inject] private UserProfile _userProfile;
+        [Inject] private LobbyModel _model;
 
         [Header("방 목록")]
         [SerializeField] private Transform          roomListParent;
@@ -62,7 +59,7 @@ namespace Game.GUI.OutGame.Lobby
                     _freePool.Enqueue(existing);
                 }
             }
-            Debug.Log($"[DungeonRoomLobbyView] Start — 유저: PublicId={_userProfile.PublicId} NickName={_userProfile.NickName} | 풀에 수거된 아이템: {_freePool.Count}개");
+            Debug.Log($"[DungeonRoomLobbyView] Start — 풀에 수거된 아이템: {_freePool.Count}개");
 
             _model.State
                 .Subscribe(Render)
@@ -83,12 +80,12 @@ namespace Game.GUI.OutGame.Lobby
 
         private void Render(LobbyState state)
         {
-            Debug.Log($"[DungeonRoomLobbyView] Render — IsLoading={state.IsLoading} IsInRoom={state.IsInRoom} Rooms={state.Rooms?.Count ?? 0}개 Error={state.ErrorMessage ?? "없음"} | 유저={_userProfile.PublicId}");
+            Debug.Log($"[DungeonRoomLobbyView] Render — IsLoading={state.IsLoading} IsInRoom={state.IsInRoom} Rooms={state.Rooms?.Count ?? 0}개 Error={state.ErrorMessage ?? "없음"}");
 
             if (!state.IsLoading)
             {
                 SyncRoomList(state.Rooms);
-                RefreshSelectedHighlight(state.SelectedRoom?.Info.RoomId);
+                RefreshSelectedHighlight(state.SelectedRoom?.RoomId);
             }
 
             RenderSelectedRoom(state.SelectedRoom);
@@ -99,12 +96,12 @@ namespace Game.GUI.OutGame.Lobby
             detailPanel.SetActive(room != null);
             if (room == null) return;
 
-            selectedRoomName.text    = room.Info.RoomName;
-            selectedRoomPlayers.text = $"{room.Info.CurrentPlayers.Count} / {room.Info.MaxPlayers}";
-            selectedRoomStatus.text  = ToStatusText(room.Info.Status);
+            selectedRoomName.text    = room.RoomName;
+            selectedRoomPlayers.text = $"{room.PlayerCount} / {room.MaxPlayers}";
+            selectedRoomStatus.text  = ToStatusText(room.Status);
 
-            var canJoin = room.Info.Status == RoomStatusType.Waiting
-                       && room.Info.CurrentPlayers.Count < room.Info.MaxPlayers;
+            var canJoin = room.Status == RoomStatus.Waiting
+                       && room.PlayerCount < room.MaxPlayers;
             joinRoomButton.interactable = canJoin;
         }
 
@@ -120,11 +117,11 @@ namespace Game.GUI.OutGame.Lobby
             var selected = _model.State.CurrentValue.SelectedRoom;
             if (selected == null)
             {
-                Debug.LogWarning($"[DungeonRoomLobbyView] JoinRoom 클릭 — 선택된 방 없음 | 유저={_userProfile.PublicId}");
+                Debug.LogWarning("[DungeonRoomLobbyView] JoinRoom 클릭 — 선택된 방 없음");
                 return;
             }
-            Debug.Log($"[DungeonRoomLobbyView] JoinRoom 클릭 — roomId={selected.Info.RoomId} roomName={selected.Info.RoomName} | 유저={_userProfile.PublicId}");
-            _model.Accept(new LobbyIntent.JoinRoom(selected.Info.RoomId));
+            Debug.Log($"[DungeonRoomLobbyView] JoinRoom 클릭 — roomId={selected.RoomId} roomName={selected.RoomName}");
+            _model.Accept(new LobbyIntent.JoinRoom(selected.RoomId));
         }
 
         // ── CreateRoomPopup ─────────────────────────
@@ -154,10 +151,10 @@ namespace Game.GUI.OutGame.Lobby
 
         private void SyncRoomList(IReadOnlyList<DungeonRoomModel> rooms)
         {
-            Debug.Log($"[DungeonRoomLobbyView] SyncRoomList — 방 {rooms?.Count ?? 0}개 | 유저={_userProfile.PublicId}");
+            Debug.Log($"[DungeonRoomLobbyView] SyncRoomList — 방 {rooms?.Count ?? 0}개");
 
             var nextIds = new HashSet<long>();
-            foreach (var room in rooms) nextIds.Add(room.Info.RoomId);
+            foreach (var room in rooms) nextIds.Add(room.RoomId);
 
             // 사라진 방 → 풀로 반환 (Destroy 대신 재사용)
             var toRemove = new List<long>();
@@ -175,37 +172,37 @@ namespace Game.GUI.OutGame.Lobby
             // 새 방 → 풀 우선 사용, 없으면 Instantiate
             foreach (var room in rooms)
             {
-                if (!_itemMap.TryGetValue(room.Info.RoomId, out var item))
+                if (!_itemMap.TryGetValue(room.RoomId, out var item))
                 {
                     if (_freePool.Count > 0)
                     {
                         item = _freePool.Dequeue();
-                        Debug.Log($"[DungeonRoomLobbyView] 풀에서 아이템 재사용 roomId={room.Info.RoomId}");
+                        Debug.Log($"[DungeonRoomLobbyView] 풀에서 아이템 재사용 roomId={room.RoomId}");
                     }
                     else
                     {
                         item = Instantiate(dungeonRoomItemPrefab, roomListParent);
-                        Debug.Log($"[DungeonRoomLobbyView] 새 아이템 Instantiate roomId={room.Info.RoomId}");
+                        Debug.Log($"[DungeonRoomLobbyView] 새 아이템 Instantiate roomId={room.RoomId}");
                     }
                     item.gameObject.SetActive(true);
-                    _itemMap[room.Info.RoomId] = item;
+                    _itemMap[room.RoomId] = item;
                 }
                 item.Setup(room, _model);
-                Debug.Log($"[DungeonRoomLobbyView]   └ roomId={room.Info.RoomId} name={room.Info.RoomName} ({room.Info.CurrentPlayers.Count}/{room.Info.MaxPlayers}) {room.Info.Status}");
+                Debug.Log($"[DungeonRoomLobbyView]   └ roomId={room.RoomId} name={room.RoomName} ({room.PlayerCount}/{room.MaxPlayers}) {room.Status}");
             }
         }
 
         // ── 파생값 계산 (View 책임) ───────────────────
 
-        private static string ToStatusText(RoomStatusType status)
+        private static string ToStatusText(RoomStatus status)
         {
             switch (status)
             {
-                case RoomStatusType.Waiting:  return "대기 중";
-                case RoomStatusType.Starting: return "시작 중";
-                case RoomStatusType.Playing:  return "게임 중";
-                case RoomStatusType.Closed:   return "닫힘";
-                default:                      return "-";
+                case RoomStatus.Waiting:  return "대기 중";
+                case RoomStatus.Starting: return "시작 중";
+                case RoomStatus.Playing:  return "게임 중";
+                case RoomStatus.Closed:   return "닫힘";
+                default:                  return "-";
             }
         }
 

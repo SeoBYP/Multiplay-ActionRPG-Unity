@@ -37,22 +37,6 @@ namespace Game.Tests.EditMode.Socket
         }
 
         [Test]
-        public async Task AuthPacket_Dispatch_상태_갱신()
-        {
-            var dispatcher = _container.Resolve<ISocketPacketDispatcher>();
-            var state = _container.Resolve<ISocketPacketState>();
-
-            await dispatcher.DispatchAsync(new S_Auth
-            {
-                Success = true,
-                Message = "authenticated"
-            });
-
-            Assert.IsTrue(state.IsAuthenticated);
-            Assert.AreEqual("authenticated", state.AuthMessage);
-        }
-
-        [Test]
         public async Task PlayerJoined_후_Move_Dispatch_플레이어_상태_갱신()
         {
             var dispatcher = _container.Resolve<ISocketPacketDispatcher>();

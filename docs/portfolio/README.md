@@ -15,6 +15,9 @@ Claude와의 대화를 통해 배운 내용, 틀렸던 부분, 수정 이력을 
 | [챕터 5](./chapter-05-game-start-e2e.md) | 게임 시작 E2E 흐름 (GameServer → SocketServer → Client) | ✅ 기록 완료 |
 | [챕터 6](./chapter-06-logging.md) | 분산 로그 시스템 (Serilog + Graylog + TraceId 전파) | ✅ 기록 완료 |
 | [챕터 7](./chapter-07-db-cache.md) | DB + Redis 캐시 레이어 (Cache Aside + 통합 테스트) | ✅ 기록 완료 |
+| [챕터 8](./chapter-08-socket-movement.md) | SocketServer 이동 동기화 (Session Composition / IHost / HeartBeat) | ✅ 기록 완료 |
+| [챕터 9](./chapter-09-unity-client.md) | Unity 클라이언트 (gRPC + VContainer + Docker E2E) | ✅ 기록 완료 |
+| [챕터 11](./chapter-11-socket-session-entry.md) | 소켓 세션 진입 흐름 (C_Auth 제거 · Redis 기반 검증 · 버그 수정) | ✅ 기록 완료 |
 
 ---
 

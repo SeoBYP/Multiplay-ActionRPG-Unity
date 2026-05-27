@@ -234,7 +234,6 @@ public class DungeonLobbyService(
                 return Result<DungeonRoom>.Failure(ErrorCodes.NotRoomHost, ErrorMessages.NotRoomHost);
 
             var players = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(roomId, ct);
-            room.StartGame(userSession.UserId, players.Count);
 
             var playerInfos = new List<PlayerInfo>();
             for (int i = 0; i < players.Count; i++)
@@ -249,13 +248,62 @@ public class DungeonLobbyService(
                 });
             }
 
+            try
+            {
+                room.StartGame(userSession.UserId, players.Count);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Result<DungeonRoom>.Failure(ErrorCodes.NotRoomHost, ErrorMessages.NotRoomHost);
+            }
+            catch (InvalidOperationException)
+            {
+                // Room is already Starting or Playing — handle idempotently
+                if (room.Status == RoomStatus.Starting)
+                {
+                    // Previous GameStartRequested was lost; re-trigger without changing room state
+                    var retryMessage = new GameStartRequestedMessage
+                    {
+                        RoomId = room.RoomId,
+                        PlayerInfos = playerInfos,
+                        TraceId = traceId
+                    };
+                    var retryOutbox = OutboxMessage.Create(
+                        OutboxTopics.GameStartRequested,
+                        System.Text.Json.JsonSerializer.Serialize(retryMessage));
+                    await outboxRepository.AddWithRoomUpdateAsync(room, retryOutbox, ct);
+                    await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
+                    return Result<DungeonRoom>.Success(room);
+                }
+
+                if (room.Status == RoomStatus.Playing)
+                {
+                    // SocketServer memory is empty after restart — re-send GameStartRequestedMessage
+                    // so SocketServer re-initializes _userRoomIndex. CreateRoom() is idempotent (null if already exists).
+                    var retryMessage = new GameStartRequestedMessage
+                    {
+                        RoomId = room.RoomId,
+                        PlayerInfos = playerInfos,
+                        TraceId = traceId
+                    };
+                    var retryOutbox = OutboxMessage.Create(
+                        OutboxTopics.GameStartRequested,
+                        System.Text.Json.JsonSerializer.Serialize(retryMessage));
+                    await outboxRepository.AddWithRoomUpdateAsync(room, retryOutbox, ct);
+                    await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
+                    return Result<DungeonRoom>.Success(room);
+                }
+
+                return Result<DungeonRoom>.Failure(ErrorCodes.RoomAlreadyPlaying, ErrorMessages.RoomAlreadyPlaying);
+            }
+
             var message = new GameStartRequestedMessage
             {
                 RoomId = room.RoomId,
                 PlayerInfos = playerInfos,
                 TraceId = traceId
             };
-            
+
             var outboxMessage = OutboxMessage.Create(
                 OutboxTopics.GameStartRequested,
                 System.Text.Json.JsonSerializer.Serialize(message));

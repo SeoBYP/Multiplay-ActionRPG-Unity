@@ -75,46 +75,42 @@ namespace Game.Main.Character
 
         public void SetFloat(AnimationFloatType floatType, float value)
         {
+            if(!m_animator) return;
             if (floatParameters.TryGetValue(floatType, out string paramName))
             {
                 m_animator.SetFloat(paramName, value);
                 return;
             }
-
-            Debug.LogError($"Float parameter {floatType} not configured.");
         }
 
         public void SetBool(AnimationBoolType boolType, bool value)
         {
+            if(!m_animator) return;
             if (boolParameters.TryGetValue(boolType, out string paramName))
             {
                 m_animator.SetBool(paramName, value);
                 return;
             }
-
-            Debug.LogError($"Bool parameter {boolType} not configured.");
         }
 
         public void SetTrigger(AnimationTriggerType triggerType)
         {
+            if(!m_animator) return;
             if (triggerParameters.TryGetValue(triggerType, out string paramName))
             {
                 m_animator.SetTrigger(paramName);
                 return;
             }
-
-            Debug.LogError($"Trigger parameter {triggerType} not configured.");
         }
 
         public void ResetTrigger(AnimationTriggerType triggerType)
         {
+            if(!m_animator) return;
             if (triggerParameters.TryGetValue(triggerType, out string paramName))
             {
                 m_animator.ResetTrigger(paramName);
                 return;
             }
-
-            Debug.LogError($"Trigger parameter {triggerType} not configured.");
         }
     }
 }

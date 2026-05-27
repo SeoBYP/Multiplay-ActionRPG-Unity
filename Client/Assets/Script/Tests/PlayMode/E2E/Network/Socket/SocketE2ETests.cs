@@ -31,12 +31,10 @@ namespace Game.Tests.PlayMode.E2E
 
             try
             {
-                Assert.IsTrue(hostClient.State.IsAuthenticated);
                 Assert.AreEqual(SocketSessionState.Joined, hostClient.Session.State);
                 Assert.IsTrue(hostClient.State.TryGetPlayer(room.HostUserId, out var hostPlayer));
                 Assert.AreEqual(room.HostNickname, hostPlayer.Nickname);
-
-                Assert.IsTrue(guestClient.State.IsAuthenticated);
+                
                 Assert.AreEqual(SocketSessionState.Joined, guestClient.Session.State);
                 Assert.IsTrue(guestClient.State.TryGetPlayer(room.GuestUserId, out var guestPlayer));
                 Assert.AreEqual(room.GuestNickname, guestPlayer.Nickname);
@@ -204,7 +202,6 @@ namespace Game.Tests.PlayMode.E2E
                 var connector = new SocketConnector();
                 var dispatcher = new SocketPacketDispatcher(new IPacketHandler[]
                 {
-                    new AuthPacketHandler(state),
                     new PlayerJoinedPacketHandler(state),
                     new MovePacketHandler(state)
                 });
@@ -215,16 +212,6 @@ namespace Game.Tests.PlayMode.E2E
                     await session.ConnectAsync(
                         new SocketConnectionInfo(ServerConfig.SocketServerHost, ServerConfig.SocketServerPort, roomId, userId),
                         ct);
-
-                    await session.AuthenticateAsync(ct);
-                    await UniTask.WaitUntil(
-                        () => state.IsAuthenticated || session.State == SocketSessionState.Failed,
-                        cancellationToken: ct);
-
-                    if (!state.IsAuthenticated)
-                    {
-                        throw new InvalidOperationException("Authentication did not complete successfully.");
-                    }
 
                     await session.JoinRoomAsync(ct);
                     await UniTask.WaitUntil(
@@ -270,15 +257,7 @@ namespace Game.Tests.PlayMode.E2E
                 try
                 {
                     await collector.ConnectAsync(ServerConfig.SocketServerHost, ServerConfig.SocketServerPort, ct);
-                    await collector.SendAsync(new C_Auth { UserId = userId }, ct);
-
-                    var auth = await collector.WaitForPacketAsync<S_Auth>(_ => true, ct);
-                    if (!auth.Success)
-                    {
-                        throw new InvalidOperationException($"Authentication failed: {auth.Message}");
-                    }
-
-                    await collector.SendAsync(new C_PlayerJoin { RoomId = roomId }, ct);
+                    await collector.SendAsync(new C_PlayerJoin { RoomId = roomId, UserId = userId }, ct);
 
                     var joined = await collector.WaitForPacketAsync<S_PlayerJoined>(
                         packet => packet.UserId == userId,

@@ -5,7 +5,6 @@ namespace Shared.Packet.Packets;
 [MemoryPackable]
 public partial class C_Ping : Packet
 {
-    public long UserId { get; set; }
     public bool IsHealthy { get; set; } = false;
 }
 

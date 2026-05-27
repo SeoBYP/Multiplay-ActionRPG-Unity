@@ -30,10 +30,20 @@ public class GameSessionService(
             var existingSession = await gameSessionRepository.GetByRoomIdAsync(roomId, ct);
             if (existingSession is not null)
             {
-                logger.LogInformation(
-                    "Game session already exists for room {RoomId}. Reusing session {GameSessionId}",
-                    roomId,
-                    existingSession.GameSessionId);
+                if (existingSession.SocketIp != host || existingSession.SocketPort != port)
+                {
+                    logger.LogInformation(
+                        "Updating game session {GameSessionId} socket info from {OldIp}:{OldPort} to {NewIp}:{NewPort}",
+                        existingSession.GameSessionId, existingSession.SocketIp, existingSession.SocketPort, host, port);
+                    existingSession.UpdateSocketInfo(host, port);
+                    await gameSessionRepository.UpdateAsync(existingSession, ct);
+                }
+                else
+                {
+                    logger.LogInformation(
+                        "Game session already exists for room {RoomId}. Reusing session {GameSessionId}",
+                        roomId, existingSession.GameSessionId);
+                }
                 return existingSession;
             }
 

@@ -5,7 +5,8 @@ namespace Shared.Packet.Packets;
 [MemoryPackable]
 public partial class C_PlayerJoin : Packet
 {
-    public long RoomId { get; set; }
+    public long RoomId  { get; set; }
+    public long UserId  { get; set; }
 }
 
 [MemoryPackable]

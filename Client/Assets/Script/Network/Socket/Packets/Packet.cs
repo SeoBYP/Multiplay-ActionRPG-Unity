@@ -5,8 +5,6 @@ using MemoryPack;
 namespace Game.Network.Socket.Packets
 {
     [MemoryPackable]
-    [MemoryPackUnion(1300, typeof(C_Auth))]
-    [MemoryPackUnion(1301, typeof(S_Auth))]
     // 입장/퇴장
     [MemoryPackUnion(1310, typeof(C_PlayerJoin))]
     [MemoryPackUnion(1311, typeof(S_PlayerJoined))]

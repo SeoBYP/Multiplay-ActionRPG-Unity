@@ -5,8 +5,6 @@ using Game.GUI;
 using Game.Input;
 using Game.OutGame.DungeonLobby;
 using R3;
-using Script.System.Auth;
-using Script.System.Startup;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -22,16 +20,15 @@ namespace Game.GUI.OutGame
     ///   L키 입력 → LobbyView Addressable 로드 / 토글
     ///   NavigateToRoom 수신 → LobbyView 닫기
     ///
+    /// auth 대기 및 StartupIntentQueue 소진은 LobbyModel.StartAsync 책임.
     /// IInputHandler.Priority = 100 (UI는 월드 인터랙션보다 우선)
     /// L키를 이 핸들러가 소비하면 하위 핸들러는 해당 프레임 L키를 받지 못한다.
     /// </summary>
-    public sealed class LobbyViewController : IInputHandler, IInitializable, IAsyncStartable, IDisposable
+    public sealed class LobbyViewController : IInputHandler, IInitializable, IDisposable
     {
         private readonly LobbyModel         _model;
         private readonly IObjectResolver    _resolver;
         private readonly InputRouter        _router;
-        private readonly IAuthService       _authService;
-        private readonly StartupIntentQueue _startupQueue;
 
 
         public int Priority => 100;
@@ -46,17 +43,13 @@ namespace Game.GUI.OutGame
         private CancellationTokenSource          _cts;
 
         public LobbyViewController(
-            LobbyModel         model,
-            IObjectResolver    resolver,
-            InputRouter        router,
-            IAuthService       authService,
-            StartupIntentQueue startupQueue)
+            LobbyModel      model,
+            IObjectResolver resolver,
+            InputRouter     router)
         {
-            _model        = model;
-            _resolver     = resolver;
-            _router       = router;
-            _authService  = authService;
-            _startupQueue = startupQueue;
+            _model    = model;
+            _resolver = resolver;
+            _router   = router;
         }
 
         public void Initialize()
@@ -86,35 +79,16 @@ namespace Game.GUI.OutGame
                 })
                 .AddTo(_cts.Token);
 
-            // SocketServer 준비 완료 시 대기실 닫기 (씬 전환은 별도 처리)
+            // SocketServer 준비 완료 — RoomDetail은 그대로 유지한다.
+            // 던전 씬이 로드되면 씬 전환이 자연스럽게 정리하므로 여기서 닫지 않는다.
+            // (NavigateToGame 시점에 CloseRoomDetail 하면 Addressable 로드 중일 때 handle이 무효화됨)
             _model.NavigateToGame
                 .Subscribe(args =>
                 {
-                    CloseRoomDetail();
                     Debug.Log($"[LobbyViewController] 게임 세션 준비 완료 — {args.Ip}:{args.Port}");
                 })
                 .AddTo(_cts.Token);
 
-        }
-
-        /// <summary>
-        /// auth 완료 후 StartupIntentQueue를 소진한다.
-        /// Initialize()는 auth 전에 실행되므로 큐가 비어있을 수 있다 — StartAsync()에서 처리해야 한다.
-        /// </summary>
-        public async UniTask StartAsync(CancellationToken ct)
-        {
-            await _authService.AuthenticatedAsync().AttachExternalCancellation(ct);
-
-            Debug.Log($"[LobbyViewController] StartAsync — auth 완료, StartupIntentQueue HasPending={_startupQueue.HasPending}");
-
-            while (_startupQueue.TryDequeue(out var startupIntent))
-            {
-                if (startupIntent is RestoreRoomStartupIntent restoreIntent)
-                {
-                    Debug.Log($"[LobbyViewController] StartupIntentQueue: RestoreRoom roomId={restoreIntent.RoomId}");
-                    _model.Accept(new LobbyIntent.RestoreRoom(restoreIntent.RoomId));
-                }
-            }
         }
 
         public void Dispose()

@@ -6,8 +6,7 @@
         "Game.System.DungeonLobby",
         "Game.Network",
         "UniTask",
-        "VContainer",
-        "R3"
+        "VContainer"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

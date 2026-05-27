@@ -14,11 +14,10 @@ namespace Game.Network.Socket
         /// </summary>
         public void Install(IContainerBuilder builder)
         {
-            // 소켓에서 받은 인증/플레이어 상태를 메모리에 유지한다.
+            // 소켓에서 받은 플레이어 상태를 메모리에 유지한다.
             builder.Register<ISocketPacketState, SocketPacketState>(Lifetime.Singleton);
 
             // 패킷 타입별 후처리 로직 등록.
-            builder.Register<IPacketHandler, AuthPacketHandler>(Lifetime.Singleton);
             builder.Register<IPacketHandler, PlayerJoinedPacketHandler>(Lifetime.Singleton);
             builder.Register<IPacketHandler, MovePacketHandler>(Lifetime.Singleton);
 
@@ -34,10 +33,6 @@ namespace Game.Network.Socket
     /// </summary>
     public interface ISocketPacketState
     {
-        bool IsAuthenticated { get; }
-        string AuthMessage { get; }
-
-        void SetAuthResult(bool success, string message);
         void UpsertPlayer(long userId, string nickname, float posX, float posY, float posZ, float rotY, long timeStamp = 0);
         void UpdatePlayerTransform(long userId, float posX, float posY, float posZ, float rotY, long timeStamp);
         bool TryGetPlayer(long userId, out SocketPlayerSnapshot snapshot);
@@ -50,43 +45,6 @@ namespace Game.Network.Socket
     {
         private readonly object _sync = new object();
         private readonly Dictionary<long, SocketPlayerSnapshot> _players = new Dictionary<long, SocketPlayerSnapshot>();
-
-        private bool _isAuthenticated;
-        private string _authMessage = string.Empty;
-
-        public bool IsAuthenticated
-        {
-            get
-            {
-                lock (_sync)
-                {
-                    return _isAuthenticated;
-                }
-            }
-        }
-
-        public string AuthMessage
-        {
-            get
-            {
-                lock (_sync)
-                {
-                    return _authMessage;
-                }
-            }
-        }
-
-        /// <summary>
-        /// 인증 응답 패킷 결과를 저장한다.
-        /// </summary>
-        public void SetAuthResult(bool success, string message)
-        {
-            lock (_sync)
-            {
-                _isAuthenticated = success;
-                _authMessage = message ?? string.Empty;
-            }
-        }
 
         /// <summary>
         /// 새로 합류한 플레이어를 추가하거나 기존 스냅샷을 갱신한다.

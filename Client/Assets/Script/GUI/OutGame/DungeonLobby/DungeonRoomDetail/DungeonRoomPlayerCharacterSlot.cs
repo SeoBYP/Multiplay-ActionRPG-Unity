@@ -1,4 +1,4 @@
-using GameServer.Grpc.User;
+using Game.OutGame.DungeonLobby;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,10 +10,10 @@ namespace Game.GUI.OutGame
         [SerializeField] private Image           m_characterIcon;
         [SerializeField] private TextMeshProUGUI m_characterName;
 
-        public void Setup(UserInfo user)
+        public void Setup(RoomPlayerInfo player)
         {
-            // NickName이 없으면 PublicId로 대체
-            m_characterName.text = string.IsNullOrEmpty(user.NickName) ? user.PublicId : user.NickName;
+            // NickName이 없으면 PublicId로 대체하는 정책은 RoomPlayerInfo 생성자에서 처리됨
+            m_characterName.text = player.NickName;
         }
     }
 }

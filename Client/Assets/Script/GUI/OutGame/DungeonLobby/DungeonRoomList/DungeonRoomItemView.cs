@@ -1,4 +1,3 @@
-using GameServer.Grpc.DungeonLobby;
 using Game.OutGame.DungeonLobby;
 using TMPro;
 using UnityEngine;
@@ -25,11 +24,11 @@ namespace Game.GUI.OutGame.Lobby
         public void Setup(DungeonRoomModel room, LobbyModel model)
         {
             _model  = model;
-            _roomId = room.Info.RoomId;
+            _roomId = room.RoomId;
 
-            roomNameText.text    = room.Info.RoomName;
-            playerCountText.text = $"{room.Info.CurrentPlayers.Count}/{room.Info.MaxPlayers}";
-            statusText.text      = ToStatusText(room.Info.Status);
+            roomNameText.text    = room.RoomName;
+            playerCountText.text = $"{room.PlayerCount}/{room.MaxPlayers}";
+            statusText.text      = ToStatusText(room.Status);
 
             selectButton.onClick.RemoveAllListeners();
             selectButton.onClick.AddListener(OnSelectClicked);
@@ -54,15 +53,15 @@ namespace Game.GUI.OutGame.Lobby
 
         // ── 파생값 계산 (View 책임) ───────────────────
 
-        private static string ToStatusText(RoomStatusType status)
+        private static string ToStatusText(RoomStatus status)
         {
             switch (status)
             {
-                case RoomStatusType.Waiting:  return "대기 중";
-                case RoomStatusType.Starting: return "시작 중";
-                case RoomStatusType.Playing:  return "게임 중";
-                case RoomStatusType.Closed:   return "닫힘";
-                default:                      return "-";
+                case RoomStatus.Waiting:  return "대기 중";
+                case RoomStatus.Starting: return "시작 중";
+                case RoomStatus.Playing:  return "게임 중";
+                case RoomStatus.Closed:   return "닫힘";
+                default:                  return "-";
             }
         }
     }

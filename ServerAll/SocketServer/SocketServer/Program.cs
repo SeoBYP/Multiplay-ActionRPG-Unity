@@ -44,6 +44,8 @@ namespace Server
                     // 2. 인프라 (Redis)
                     var redisConnStr = ctx.Configuration.GetConnectionString("Redis") ?? "localhost:6379,abortConnect=false";
                     services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnStr));
+                    services.AddSingleton<IDatabase>(sp =>
+                        sp.GetRequiredService<IConnectionMultiplexer>().GetDatabase());
 
                     // 3. 메시지 큐
                     services.AddSingleton<GameStartRequestedMessageQueue>();

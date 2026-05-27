@@ -4,6 +4,7 @@ using Server.PacketHandler;
 using Server.Room;
 using Shared.Packet;
 using Shared.Packet.Packets;
+using StackExchange.Redis;
 
 public sealed class Session
 {
@@ -16,6 +17,7 @@ public sealed class Session
 
     public Room? Room { get; set; }
     public RoomManager RoomManager { get; }
+    public IDatabase Redis { get; }
 
     private Socket Socket;
     private Action<ulong>? _onDisconnected;
@@ -27,6 +29,7 @@ public sealed class Session
         Socket socket,
         PacketDispatcher dispatcher,
         RoomManager roomManager,
+        IDatabase redis,
         ILogger<Session> logger,
         Action<ulong>? onDisconnected = null)
     {
@@ -41,6 +44,7 @@ public sealed class Session
         LastRecvAt = ConnectedAt;
         Nickname = string.Empty;
         RoomManager = roomManager;
+        Redis = redis;
     }
 
     public async Task RunAsync(CancellationToken ct)

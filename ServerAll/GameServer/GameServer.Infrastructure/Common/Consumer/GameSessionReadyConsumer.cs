@@ -1,20 +1,26 @@
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.GameSession;
+using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Shared.Infrastructure.MessageQueue;
 using Shared.Infrastructure.Messages;
+using StackExchange.Redis;
 
 namespace GameServer.Infrastructure.Domains.GameSession;
 
 public sealed class GameSessionReadyConsumer(
     IMessageQueue<GameSessionReadyMessage> gameSessionReadyMessageQueue,
+    IConnectionMultiplexer connectionMultiplexer,
     IServiceScopeFactory scopeFactory,
     IDungeonLobbySubscriptionService subscriptionService,
     ILogger<GameSessionReadyConsumer> logger) : BackgroundService
 {
+    private readonly IDatabase _redis = connectionMultiplexer.GetDatabase();
+    private static readonly TimeSpan PlayerDataTtl = TimeSpan.FromHours(2);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
@@ -29,6 +35,7 @@ public sealed class GameSessionReadyConsumer(
                     var gameSessionService = scope.ServiceProvider.GetRequiredService<IGameSessionService>();
                     var roomRepository = scope.ServiceProvider.GetRequiredService<IDungeonRoomRepository>();
                     var roomPlayerRepository = scope.ServiceProvider.GetRequiredService<IDungeonRoomPlayerRepository>();
+                    var userProfileRepository = scope.ServiceProvider.GetRequiredService<IUserProfileRepository>();
 
                     var room = await roomRepository.GetByIdAsync(message.RoomId, stoppingToken);
                     if (room is null)
@@ -39,7 +46,7 @@ public sealed class GameSessionReadyConsumer(
 
                     var players = await roomPlayerRepository.GetPlayersByRoomIdAsync(message.RoomId, stoppingToken);
 
-                    await gameSessionService.CreateGameSessionAsync(
+                    var gameSession = await gameSessionService.CreateGameSessionAsync(
                         message.RoomId,
                         players.Select(player => player.UserId).ToList(),
                         message.Host,
@@ -56,6 +63,28 @@ public sealed class GameSessionReadyConsumer(
                             logger.LogWarning("Failed to update room {RoomId} to playing status", message.RoomId);
                             continue;
                         }
+                    }
+
+                    for (int i = 0; i < players.Count; i++)
+                    {
+                        var player = players[i];
+                        var profile = await userProfileRepository.GetByIdAsync(player.UserId, stoppingToken);
+                        var nickname = profile?.NickName ?? $"Player_{player.UserId}";
+
+                        var key = $"gamesession:player:{player.UserId}";
+                        var entries = new HashEntry[]
+                        {
+                            new("roomId", message.RoomId),
+                            new("gameSessionId", gameSession.GameSessionId),
+                            new("nickname", nickname),
+                            new("spawnIndex", i)
+                        };
+                        await _redis.HashSetAsync(key, entries);
+                        await _redis.KeyExpireAsync(key, PlayerDataTtl);
+
+                        logger.LogInformation(
+                            "[GameSessionReady] Saved player data to Redis: UserId={UserId} RoomId={RoomId} SpawnIndex={SpawnIndex}",
+                            player.UserId, message.RoomId, i);
                     }
 
                     await subscriptionService.PublishAsync(message.RoomId, stoppingToken);

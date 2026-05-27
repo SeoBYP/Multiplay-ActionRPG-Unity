@@ -1,15 +1,26 @@
 {
-	"name": "Game.VContainer",
-	"references": [
-		"GUID:b0214a6008ed146ff8f122a6a9c2f6cc",
-		"GUID:b25f5ef11ad5ac74faa603bbafead339",
-		"GUID:f51ebe6a0ceec4240a699833d6309b23",
-		"GUID:b15f0d85503884943ac44c9fe6a5e9fc",
-		"GUID:0f28c48a1de876f4d93d285de7d17cb9",
-		"Game.System.DungeonLobby",
-		"Game.System.InGame",
-		"Game.OutGame",
-		"Game.GUI",
-		"Game.Input"
-	]
+    "name": "Game.VContainer",
+    "rootNamespace": "",
+    "references": [
+        "GUID:b0214a6008ed146ff8f122a6a9c2f6cc",
+        "GUID:f51ebe6a0ceec4240a699833d6309b23",
+        "GUID:b0a670da81a604549a98aaa2d612f12d",
+        "GUID:4e982e8a3619deb479798baf56d10fed",
+        "GUID:4cbd48a58d6983b47a06e89d9db50e79",
+        "GUID:84686cc2d8d361946a25ae1d64be5809",
+        "GUID:bacb4b85bcbc8ac4f9a7f7c224150f55",
+        "GUID:246359402064e9a4bb1933af9f1d25ac",
+        "GUID:08f7fc7754d7e34469650b7980588dc4",
+        "GUID:5c0f80427683f854fb7ba83886beecd8",
+        "GUID:b9f55ce3aa30e014f82228c82cb225dc"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

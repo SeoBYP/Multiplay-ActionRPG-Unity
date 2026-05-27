@@ -2,7 +2,7 @@
 
 > **새 채팅 시작 시 이 파일을 먼저 읽어라.**  
 > Phase가 완료될 때마다 즉시 갱신한다.  
-> 마지막 갱신: 2026-05-24 (A-1, A-2 완료)
+> 마지막 갱신: 2026-05-28 (A-1, A-2 완료 + C_Auth 제거, Redis 기반 검증, 버그 수정 4건)
 
 ---
 
@@ -15,11 +15,17 @@
 ### 태스크 목록
 
 - [x] **A-1**: `ProjectLifetimeScope`에 `SocketApiClient.Install()` + `DungeonLifetimeScope` 신규 생성
-- [x] **A-2**: `GameSessionConnector` 구현
+- [x] **A-2**: `GameSessionConnector` 구현 + 소켓 진입 흐름 완성
   - `IDungeonLobbyService.OnGameSessionReady(ip, port, roomId)` 이벤트 구독
-  - `SocketSession.ConnectAsync → AuthenticateAsync → JoinRoomAsync` 순차 실행
-  - `S_Auth` / `S_PlayerJoined` 응답 후 `SceneManager.LoadSceneAsync("Dungeon")`
-  - `AuthSession.UserId` (JWT sub 파싱) → `SocketConnectionInfo`에 전달
+  - `C_Auth` 제거 → `C_PlayerJoin { RoomId, UserId }` 단일 패킷으로 입장
+  - `GameSessionReadyConsumer`에서 `gamesession:player:{userId}` Redis 선 기입
+  - SocketServer `RoomJoinLeaveHandler` Redis 기반 검증으로 전면 재작성
+  - `S_PlayerJoined { Success = false }` → `SocketSessionState.Failed` 전환 수정
+  - `LobbyViewController` Addressable 경쟁 조건 수정 (NavigateToGame에서 CloseRoomDetail 제거)
+  - `DungeonLobbyGrpcService.SendLoopAsync` Playing 방 Redis key 복구 (EnsurePlayerDataInRedisAsync)
+  - `GameSessionConnector` 중복 이벤트 가드 추가
+  - Docker 재시작 후 Playing 방 재접속 성공 확인
+  - 포트폴리오 챕터 11 작성
 - [ ] **A-3**: 인게임 초기화
   - `S_PlayerJoined` 수신 → PlayerCharacter 스폰 (`InGameEntryPoint` 확장)
   - `S_GameStatus(InProgress)` 수신 → 인게임 UI 전환
