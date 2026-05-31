@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Game.Input;
+using Game.Gameplay.Input;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.InputSystem;

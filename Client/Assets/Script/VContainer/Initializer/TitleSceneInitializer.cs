@@ -1,5 +1,5 @@
 using System.Threading;
-using Script.System.Auth;
+using Game.System.Auth;
 using VContainer;
 using VContainer.Unity;
 

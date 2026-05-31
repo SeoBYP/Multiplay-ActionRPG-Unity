@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Game.Input;
+using Game.Gameplay.Input;
 
 namespace Game.Tests.EditMode.Input.Fakes
 {

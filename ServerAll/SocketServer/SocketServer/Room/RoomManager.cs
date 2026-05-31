@@ -12,11 +12,16 @@ public class RoomManager
     private readonly ConcurrentDictionary<long, long> _userRoomIndex = new();
     private readonly ILogger<RoomManager> _logger;
     private readonly ILogger<Room> _roomLogger;
+    private readonly IRoomLifecyclePublisher _lifecycleQueue;
 
-    public RoomManager(ILogger<RoomManager> logger, ILogger<Room> roomLogger)
+    public RoomManager(
+        ILogger<RoomManager> logger,
+        ILogger<Room> roomLogger,
+        IRoomLifecyclePublisher lifecycleQueue)
     {
         _logger = logger;
         _roomLogger = roomLogger;
+        _lifecycleQueue = lifecycleQueue;
     }
 
     private readonly ConcurrentDictionary<long, GameStartRequestedMessage> _roomMessages = new();
@@ -86,23 +91,18 @@ public class RoomManager
         if (room == null)
             return false;
 
+        var userId = session.UserId;
         room.Leave(session.SessionId);
         session.Room = null;
-        if (session.UserId > 0)
+        if (userId > 0)
         {
             room.Broadcast(new S_PlayerLeft
             {
-                UserId = session.UserId
+                UserId = userId
             });
         }
 
-        if (room.MemberCount == 0 && _rooms.TryRemove(roomId, out _))
-        {
-            RemoveUserRoomIndexes(roomId);
-            _roomMessages.TryRemove(roomId, out _);
-            _logger.LogInformation("Room {RoomId} removed because it is empty", roomId);
-        }
-
+        PublishPlayerLeft(room, roomId, userId);
         return true;
     }
 
@@ -116,23 +116,44 @@ public class RoomManager
             return false;
 
         var session = room.GetSession(sessionId);
+        var userId = session?.UserId ?? 0;
         room.Leave(sessionId);
-        if (session is { UserId: > 0 })
+        if (userId > 0)
         {
             room.Broadcast(new S_PlayerLeft
             {
-                UserId = session.UserId
+                UserId = userId
             });
         }
 
-        if (room.MemberCount == 0 && _rooms.TryRemove(roomId, out _))
+        PublishPlayerLeft(room, roomId, userId);
+        return true;
+    }
+
+    /// <summary>
+    /// 퇴장 후처리: 빈 방이면 메모리에서 제거하고, 인증된 유저(UserId>0)면
+    /// GameServer에 PlayerLeftRoomMessage를 발행한다(RoomEmptied 포함).
+    /// 빈 방 여부와 무관하게 항상 발행해야 GameServer가 해당 유저 association을 정리한다.
+    /// </summary>
+    private void PublishPlayerLeft(Room room, long roomId, long userId)
+    {
+        var emptied = room.MemberCount == 0;
+        if (emptied && _rooms.TryRemove(roomId, out _))
         {
             RemoveUserRoomIndexes(roomId);
             _roomMessages.TryRemove(roomId, out _);
             _logger.LogInformation("Room {RoomId} removed because it is empty", roomId);
         }
 
-        return true;
+        if (userId > 0)
+        {
+            _ = _lifecycleQueue.EnqueueAsync(new PlayerLeftRoomMessage
+            {
+                RoomId = roomId,
+                UserId = userId,
+                RoomEmptied = emptied
+            });
+        }
     }
 
     public Room? GetPlayerRoom(ulong sessionId)

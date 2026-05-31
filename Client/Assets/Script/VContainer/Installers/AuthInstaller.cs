@@ -1,9 +1,9 @@
-using Script.System.Auth;
+using Game.System.Auth;
 using Script.System.Startup;
 using VContainer;
 using VContainer.Unity;
 #if UNITY_EDITOR
-using Game.System.AuthSystem;
+using Game.System.Auth;
 #endif
 
 namespace Game.Installers

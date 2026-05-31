@@ -11,6 +11,11 @@ namespace Game.GUI
             public const string LobbyView        = "Assets/Prefabs/GUI/DungeonLobby/DungeonRoomLobbyView.prefab";
             public const string CreateRoomPopup  = "Assets/Prefabs/GUI/DungeonLobby/CreateDungeonRoomPopup.prefab";
             public const string RoomDetailView   = "Assets/Prefabs/GUI/DungeonLobby/DungeonRoomDetail.prefab";
+            public const string GameHud          = "Assets/Prefabs/GUI/HUD/GameHud.prefab";
+
+            public const string AlertPopup       = "Assets/Prefabs/GUI/Common/AlertPopup.prefab";
+            public const string ConfirmPopup     = "Assets/Prefabs/GUI/Common/ConfirmPopup.prefab";
+            public const string WarningPopup     = "Assets/Prefabs/GUI/Common/WarningPopup.prefab";
         }
     }
 }

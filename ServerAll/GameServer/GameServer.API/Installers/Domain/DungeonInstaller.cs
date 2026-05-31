@@ -4,6 +4,7 @@ using GameServer.Application.Domains.GameSession;
 using GameServer.Application.Domains.GameSession.Interfaces;
 using GameServer.Application.Domains.Outbox;
 using GameServer.Infrastructure.Common;
+using GameServer.Infrastructure.Common.Consumer;
 using GameServer.Infrastructure.Common.MessageQueue;
 using GameServer.Infrastructure.Domains.DungeonRoom;
 using GameServer.Infrastructure.Domains.GameSession;
@@ -30,9 +31,11 @@ public class DungeonInstaller : IServiceInstaller
         services.AddSingleton<DungeonRoomBroadcastChannel>();
         services.AddSingleton<IMessageQueue<GameStartRequestedMessage>, GameStartRequestedMessageQueue>();
         services.AddSingleton<IMessageQueue<GameSessionReadyMessage>, GameSessionReadyMessageQueue>();
+        services.AddSingleton<IMessageQueue<PlayerLeftRoomMessage>, PlayerLeftRoomMessageQueue>();
 
         services.AddScoped<IOutboxRepository, OutboxRepository>();
         services.AddHostedService<OutboxPublisherService>();
         services.AddHostedService<GameSessionReadyConsumer>();
+        services.AddHostedService<RoomLifecycleConsumer>();
     }
 }

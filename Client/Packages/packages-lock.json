@@ -25,6 +25,13 @@
       "source": "embedded",
       "dependencies": {}
     },
+    "com.cysharp.yetanotherhttphandler": {
+      "version": "https://github.com/Cysharp/YetAnotherHttpHandler.git?path=src/YetAnotherHttpHandler#main",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "d8e0d78543a6243b846ef9d9bfe7ae2b1ec3061c"
+    },
     "com.github-glitchenzo.nugetforunity": {
       "version": "file:com.github-glitchenzo.nugetforunity",
       "depth": 0,

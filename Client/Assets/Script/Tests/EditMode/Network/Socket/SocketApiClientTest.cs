@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Game.Network.Socket;
 using Game.Network.Socket.Packets;
@@ -91,6 +92,51 @@ namespace Game.Tests.EditMode.Socket
             });
 
             Assert.IsFalse(state.TryGetPlayer(404, out _));
+        }
+
+        [Test]
+        public async Task PlayerLeft_Dispatch시_플레이어가_상태에서_제거된다()
+        {
+            var dispatcher = _container.Resolve<ISocketPacketDispatcher>();
+            var state = _container.Resolve<ISocketPacketState>();
+
+            await dispatcher.DispatchAsync(new S_PlayerJoined
+            {
+                Success = true,
+                UserId = 202,
+                Nickname = "leaver"
+            });
+            Assert.IsTrue(state.TryGetPlayer(202, out _));
+
+            await dispatcher.DispatchAsync(new S_PlayerLeft { UserId = 202 });
+
+            Assert.IsFalse(state.TryGetPlayer(202, out _));
+        }
+
+        [Test]
+        public void RemovePlayer_없는_유저여도_예외없이_무시된다()
+        {
+            var state = _container.Resolve<ISocketPacketState>();
+
+            Assert.DoesNotThrow(() => state.RemovePlayer(999999));
+            Assert.IsFalse(state.TryGetPlayer(999999, out _));
+        }
+
+        [Test]
+        public void GetAllPlayers_업서트한_전원을_반환하고_제거되면_빠진다()
+        {
+            var state = _container.Resolve<ISocketPacketState>();
+
+            state.UpsertPlayer(1, "a", 0, 0, 0, 0);
+            state.UpsertPlayer(2, "b", 0, 0, 0, 0);
+            CollectionAssert.AreEquivalent(
+                new[] { 1L, 2L },
+                state.GetAllPlayers().Select(p => p.UserId).ToArray());
+
+            state.RemovePlayer(1);
+            CollectionAssert.AreEquivalent(
+                new[] { 2L },
+                state.GetAllPlayers().Select(p => p.UserId).ToArray());
         }
     }
 }

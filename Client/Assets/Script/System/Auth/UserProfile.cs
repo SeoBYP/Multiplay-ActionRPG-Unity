@@ -1,4 +1,4 @@
-namespace Script.System.Auth
+namespace Game.System.Auth
 {
     /// <summary>
     /// 서버 로그인 응답에서 받은 유저 프로필 정보를 보관하는 싱글톤.

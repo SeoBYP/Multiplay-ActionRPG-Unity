@@ -1,0 +1,24 @@
+using System;
+using Game.Gameplay;
+
+namespace Game.Gameplay.Character
+{
+    public class FallToLandTransition : ITransitionRule
+    {
+        public StateKind NextState => StateKind.Land;
+        
+        private GroundedDetector m_groundedDetector;
+
+        public FallToLandTransition(GroundedDetector mGroundedDetector)
+        {
+            m_groundedDetector = mGroundedDetector;
+        }
+
+        public bool ShouldTransition(float deltaTime)
+        {
+            return m_groundedDetector.Grounded;
+        }
+
+
+    }
+}

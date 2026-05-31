@@ -1,6 +1,6 @@
 using Game.GUI.OutGame;
-using Game.Input;
-using Game.OutGame.DungeonLobby;
+using Game.Gameplay.Input;
+using Game.Presentation.DungeonLobby;
 using VContainer;
 using VContainer.Unity;
 

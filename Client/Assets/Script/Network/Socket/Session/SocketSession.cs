@@ -174,6 +174,22 @@ namespace Game.Network.Socket
         }
 
         /// <summary>
+        /// 방 퇴장 패킷을 전송한다. Joined 상태에서만 유효하며, DisconnectAsync 전에 호출한다.
+        /// </summary>
+        public async UniTask LeaveRoomAsync(CancellationToken ct)
+        {
+            if (State != SocketSessionState.Joined)
+            {
+                Debug.Log($"[SocketSession] LeaveRoomAsync 스킵 — 현재 상태: {State}");
+                return;
+            }
+
+            using var linkedCts = CreateLinkedToken(ct);
+            await _connector.SendAsync(new C_PlayerLeave(), linkedCts.Token);
+            Debug.Log("[SocketSession] C_PlayerLeave 전송 완료");
+        }
+
+        /// <summary>
         /// Joined 상태에서만 이동 패킷을 전송한다.
         /// </summary>
         public async UniTask SendMoveAsync(C_Move packet, CancellationToken ct)

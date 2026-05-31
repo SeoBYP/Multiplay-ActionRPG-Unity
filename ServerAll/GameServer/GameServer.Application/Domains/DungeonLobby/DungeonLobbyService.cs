@@ -344,4 +344,80 @@ public class DungeonLobbyService(
             return Result<long>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
+
+    public async Task<Result<DungeonRoom>> RemovePlayerFromRoomAsync(long roomId, long userId, CancellationToken ct = default)
+    {
+        try
+        {
+            // 실제 DungeonRoomRepository.GetByIdAsync는 없는 방에 null이 아니라 KeyNotFoundException을
+            // 던진다. PlayerLeft는 at-least-once 스트림이라 이미 삭제된 방으로 중복 전달될 수 있으므로,
+            // not-found는 멱등 no-op으로 처리해 generic catch(→INTERNAL_SERVER_ERROR)로 빠지지 않게 한다.
+            DungeonRoom? room;
+            try
+            {
+                room = await dungeonRoomRepository.GetByIdAsync(roomId, ct);
+            }
+            catch (KeyNotFoundException)
+            {
+                room = null;
+            }
+
+            if (room is null)
+            {
+                logger.LogInformation("RemovePlayerFromRoom: Room {RoomId} already gone — idempotent no-op", roomId);
+                return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
+            }
+
+            // 이미 이 방 소속이 아니면 멱등 성공 (at-least-once 중복 소비 안전).
+            var roomPlayer = await dungeonRoomPlayerRepository.GetByUserIdAsync(userId, ct);
+            if (roomPlayer is null || roomPlayer.RoomId != roomId)
+                return Result<DungeonRoom>.Success(room);
+
+            var players = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(roomId, ct);
+            var remainingPlayers = players
+                .Where(player => player.UserId != userId)
+                .OrderBy(player => player.JoinedAt)
+                .ToList();
+
+            // 1. association 제거 — 재로그인 시 CurrentRoomId로 복원되지 않게 한다.
+            await dungeonRoomPlayerRepository.RemoveAsync(roomId, userId, ct);
+
+            // 2. 채팅 방 구독 해제 — userId로 세션을 찾아 처리.
+            var userSession = await userSessionRepository.GetSessionByUserIdAsync(userId, ct);
+            if (userSession is not null)
+                await chatSubscriptionService.UpdateRoomSubscriptionAsync(userSession.SessionId, 0, ct);
+
+            if (remainingPlayers.Count == 0)
+            {
+                // 3a. 빈 방 → 삭제 (gRPC LeaveRoom 빈방 경로와 통일).
+                await dungeonRoomPlayerRepository.RemoveByRoomIdAsync(roomId, ct);
+                var deleted = await dungeonRoomRepository.DeleteAsync(roomId, ct);
+                if (!deleted)
+                    return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.DeleteRoomFailed);
+
+                room.Close(); // 반환 객체 상태만 일관화 (DB row는 삭제됨)
+                logger.LogInformation("RemovePlayerFromRoom: Room {RoomId} emptied and deleted (last user {UserId})", roomId, userId);
+            }
+            else
+            {
+                // 3b. 호스트가 떠났으면 다음 플레이어로 이양.
+                if (room.IsHost(userId))
+                    room.ChangeHost(remainingPlayers[0].UserId);
+
+                var updated = await dungeonRoomRepository.UpdateAsync(room, ct);
+                if (!updated)
+                    return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.UpdateRoomFailed);
+
+                await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
+                logger.LogInformation("RemovePlayerFromRoom: User {UserId} left room {RoomId}, {Remaining} remain", userId, roomId, remainingPlayers.Count);
+            }
+
+            return Result<DungeonRoom>.Success(room);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "RemovePlayerFromRoomAsync failed for room {RoomId} user {UserId}", roomId, userId);
+            return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
+        }
+    }
 }

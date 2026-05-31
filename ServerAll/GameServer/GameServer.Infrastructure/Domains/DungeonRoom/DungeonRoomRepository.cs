@@ -61,7 +61,7 @@ public class DungeonRoomRepository(
 
             var room = await context.DungeonRooms.SingleOrDefaultAsync(r => r.RoomId == roomId, ct);
             if (room is null)
-                throw new KeyNotFoundException($"Dungeon room not found for room id {roomId}");
+                return null; // 없는 방은 null 반환(선언이 Task<DungeonRoom?>). 모든 호출자가 if(room is null)로 처리한다.
 
             await SetDungeonRoomCacheAsync(room);
             return room;

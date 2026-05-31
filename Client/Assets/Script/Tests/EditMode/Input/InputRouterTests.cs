@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Game.Input;
+using Game.Gameplay.Input;
 using Game.Tests.EditMode.Input.Fakes;
 using NUnit.Framework;
 using UnityEngine;

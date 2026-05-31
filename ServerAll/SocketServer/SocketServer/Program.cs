@@ -65,6 +65,8 @@ namespace Server
                     });
 
                     // 5. 게임 로직 및 네트워크
+                    services.AddSingleton<RoomLifecycleMessageQueue>();
+                    services.AddSingleton<IRoomLifecyclePublisher>(sp => sp.GetRequiredService<RoomLifecycleMessageQueue>());
                     services.AddSingleton<RoomManager>();
                     services.AddSingleton<SessionManager>();
                     services.AddSingleton<TcpNetworkListener>(sp =>
@@ -79,7 +81,6 @@ namespace Server
                     services.AddHostedService<TcpListenerService>();
                     services.AddHostedService<GameStartRequestedConsumer>();
                     services.AddHostedService<HeartBeatService>();
-                    services.AddHostedService<TestRoomService>();
                 })
                 .Build();
 

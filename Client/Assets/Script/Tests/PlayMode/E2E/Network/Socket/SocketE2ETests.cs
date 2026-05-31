@@ -91,6 +91,93 @@ namespace Game.Tests.PlayMode.E2E
             }
         });
 
+        [UnityTest]
+        public IEnumerator RawSocket_호스트가_퇴장하면_게스트가_S_PlayerLeft_수신() => UniTask.ToCoroutine(async () =>
+        {
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var hostCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+            var guestCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
+
+            try
+            {
+                // 호스트가 C_PlayerLeave 전송 → 서버 RoomManager.LeaveRoom →
+                // 남은 게스트에게 S_PlayerLeft{UserId=hostUserId} 브로드캐스트.
+                await hostCollector.SendAsync(new C_PlayerLeave(), Timeout());
+
+                var left = await guestCollector.WaitForPacketAsync<S_PlayerLeft>(
+                    packet => packet.UserId == room.HostUserId,
+                    Timeout());
+
+                Assert.AreEqual(room.HostUserId, left.UserId);
+            }
+            finally
+            {
+                await hostCollector.DisposeAsync();
+                await guestCollector.DisposeAsync();
+            }
+        });
+
+        [UnityTest]
+        public IEnumerator 게스트_부분퇴장후_재로그인시_방복원_안되고_호스트는_유지() => UniTask.ToCoroutine(async () =>
+        {
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var hostCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+            var guestCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
+
+            try
+            {
+                // 게스트만 명시적 퇴장 (방엔 호스트가 남음 = 부분 퇴장)
+                await guestCollector.SendAsync(new C_PlayerLeave(), Timeout());
+
+                // 호스트가 S_PlayerLeft(게스트) 수신 — 퇴장 전파 확인
+                await hostCollector.WaitForPacketAsync<S_PlayerLeft>(
+                    packet => packet.UserId == room.GuestUserId, Timeout());
+
+                // GameServer가 PlayerLeft를 소비해 게스트 association을 제거할 때까지 폴링
+                // (재로그인 응답의 CurrentRoomId==0 이면 복원 안 됨).
+                long guestRoomId = -1;
+                var deadline = DateTime.UtcNow.AddSeconds(ServerConfig.TimeoutSeconds);
+                while (DateTime.UtcNow < deadline)
+                {
+                    guestRoomId = await ReloginCurrentRoomIdAsync(room.GuestEmail, "socket-e2e-guest-device", Timeout());
+                    if (guestRoomId == 0) break;
+                    await UniTask.Delay(TimeSpan.FromMilliseconds(200));
+                }
+
+                Assert.AreEqual(0, guestRoomId, "퇴장한 게스트는 재로그인 시 방으로 복원되면 안 된다");
+
+                // 남은 호스트는 여전히 그 방으로 복원 가능해야 한다 (방 유지).
+                var hostRoomId = await ReloginCurrentRoomIdAsync(room.HostEmail, "socket-e2e-host-device", Timeout());
+                Assert.AreEqual(room.RoomId, hostRoomId, "남은 호스트는 방 복원 가능해야 한다");
+            }
+            finally
+            {
+                await hostCollector.DisposeAsync();
+                await guestCollector.DisposeAsync();
+            }
+        });
+
+        private static async UniTask<long> ReloginCurrentRoomIdAsync(string email, string deviceId, CancellationToken ct)
+        {
+            var provider = new GrpcChannelProvider(ServerConfig.GameServerGrpcAddress);
+            try
+            {
+                var authService = new AuthGrpcService(provider);
+                var login = await authService.LoginAsync(new LoginRequest
+                {
+                    Email = email,
+                    Password = "Test1234!",
+                    DeviceId = deviceId
+                }, ct);
+                Assert.IsTrue(login.Result.Success, login.Result.Message);
+                return login.User.CurrentRoomId;
+            }
+            finally
+            {
+                provider.Dispose();
+            }
+        }
+
         private static async UniTask<StartedRoomContext> CreateStartedTwoPlayerRoomAsync()
         {
             var provider = new GrpcChannelProvider(ServerConfig.GameServerGrpcAddress);
@@ -183,7 +270,9 @@ namespace Game.Tests.PlayMode.E2E
                     hostUserId,
                     guestUserId,
                     hostNickname,
-                    guestNickname);
+                    guestNickname,
+                    hostEmail,
+                    guestEmail);
             }
             finally
             {
@@ -259,8 +348,11 @@ namespace Game.Tests.PlayMode.E2E
                     await collector.ConnectAsync(ServerConfig.SocketServerHost, ServerConfig.SocketServerPort, ct);
                     await collector.SendAsync(new C_PlayerJoin { RoomId = roomId, UserId = userId }, ct);
 
+                    // 실패 응답(Success=false)은 UserId=0으로 오므로 UserId 매칭만으로는
+                    // 관측되지 않는다. 방 생성(스트림 소비)과 클라 접속 사이 레이스로
+                    // "Room not found"가 올 수 있어, 실패 패킷도 관측해 재시도 경로를 태운다.
                     var joined = await collector.WaitForPacketAsync<S_PlayerJoined>(
-                        packet => packet.UserId == userId,
+                        packet => packet.UserId == userId || !packet.Success,
                         ct);
 
                     if (!joined.Success)
@@ -417,19 +509,25 @@ namespace Game.Tests.PlayMode.E2E
             public long GuestUserId { get; }
             public string HostNickname { get; }
             public string GuestNickname { get; }
+            public string HostEmail { get; }
+            public string GuestEmail { get; }
 
             public StartedRoomContext(
                 long roomId,
                 long hostUserId,
                 long guestUserId,
                 string hostNickname,
-                string guestNickname)
+                string guestNickname,
+                string hostEmail,
+                string guestEmail)
             {
                 RoomId = roomId;
                 HostUserId = hostUserId;
                 GuestUserId = guestUserId;
                 HostNickname = hostNickname;
                 GuestNickname = guestNickname;
+                HostEmail = hostEmail;
+                GuestEmail = guestEmail;
             }
         }
 

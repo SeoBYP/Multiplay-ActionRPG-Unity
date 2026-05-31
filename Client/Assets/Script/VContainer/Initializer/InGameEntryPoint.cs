@@ -1,7 +1,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Network.Socket;
-using Script.System.Auth;
+using Game.System.Auth;
 using UnityEngine;
 using VContainer.Unity;
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using VContainer;
 using VContainer.Unity;
 
@@ -19,6 +20,7 @@ namespace Game.Network.Socket
 
             // 패킷 타입별 후처리 로직 등록.
             builder.Register<IPacketHandler, PlayerJoinedPacketHandler>(Lifetime.Singleton);
+            builder.Register<IPacketHandler, PlayerLeftPacketHandler>(Lifetime.Singleton);
             builder.Register<IPacketHandler, MovePacketHandler>(Lifetime.Singleton);
 
             // 송수신 파이프라인 등록.
@@ -36,6 +38,10 @@ namespace Game.Network.Socket
         void UpsertPlayer(long userId, string nickname, float posX, float posY, float posZ, float rotY, long timeStamp = 0);
         void UpdatePlayerTransform(long userId, float posX, float posY, float posZ, float rotY, long timeStamp);
         bool TryGetPlayer(long userId, out SocketPlayerSnapshot snapshot);
+        /// <summary>방에서 나간 플레이어를 상태에서 제거한다.</summary>
+        void RemovePlayer(long userId);
+        /// <summary>현재 보관 중인 모든 플레이어 스냅샷의 복사본을 반환한다. (원격 캐릭터 동기화용)</summary>
+        IReadOnlyList<SocketPlayerSnapshot> GetAllPlayers();
     }
 
     /// <summary>
@@ -92,6 +98,29 @@ namespace Game.Network.Socket
 
                 snapshot = null;
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// 방에서 나간 플레이어를 상태에서 제거한다.
+        /// </summary>
+        public void RemovePlayer(long userId)
+        {
+            lock (_sync)
+            {
+                _players.Remove(userId);
+            }
+        }
+
+        /// <summary>
+        /// 현재 보관 중인 모든 플레이어 스냅샷의 복사본을 반환한다.
+        /// 원격 캐릭터 프리젠터가 "지금 방에 누가 있는가"를 매 틱 조회하는 데 쓴다.
+        /// </summary>
+        public IReadOnlyList<SocketPlayerSnapshot> GetAllPlayers()
+        {
+            lock (_sync)
+            {
+                return _players.Values.Select(p => p.Clone()).ToList();
             }
         }
     }

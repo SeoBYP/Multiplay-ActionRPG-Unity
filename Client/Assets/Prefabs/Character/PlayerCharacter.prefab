@@ -164,6 +164,7 @@ GameObject:
   - component: {fileID: 2017590699258750573}
   - component: {fileID: 1654161916142727158}
   - component: {fileID: 4634662420481816259}
+  - component: {fileID: 8907706458393213720}
   m_Layer: 0
   m_Name: PlayerCharacter
   m_TagString: Untagged
@@ -349,6 +350,32 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.System::Script.System.GamePlayAbilitySystem.AbilitySystemComponent
   Attributes: []
+--- !u!114 &8907706458393213720
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8898314510884851665}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: acc030f8b6b9c0e40a1769d66485cd9c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Main::Game.Main.Character.PlayerCharacterAgent
+  stateConfig: {fileID: 11400000, guid: 5a847d47cb94a8846b5fabf90996e7f2, type: 2}
+  settings:
+    MoveSpeed: 2
+    SprintSpeed: 5.335
+    Gravity: -15
+    JumpHeight: 1.2
+    FallTimeout: 0.15
+    LandDuration: 0.533
+    RotationSmoothTime: 0.12
+    JumpToFallDelay: 0.2
+    SpeedChangeRate: 10
+    InteractInvokeDelay: 0.3
+    InteractReturnDelay: 0.3
+  <CurrentStateKind>k__BackingField: 0
 --- !u!1 &9027258987866454565
 GameObject:
   m_ObjectHideFlags: 0

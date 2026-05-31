@@ -1,0 +1,20 @@
+{
+    "name": "Game.Presentation",
+    "rootNamespace": "Game.Presentation",
+    "references": [
+        "Game.System",
+        "Game.System.DungeonLobby",
+        "Game.Network",
+        "UniTask",
+        "VContainer"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

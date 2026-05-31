@@ -3,7 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Network.Socket;
 using Game.System.DungeonLobby;
-using Script.System.Auth;
+using Game.System.Auth;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using VContainer.Unity;
@@ -56,29 +56,45 @@ namespace Game.System.InGame
             ConnectAndLoadDungeonAsync(ip, port, roomId).Forget();
         }
 
+        // SocketServer가 GameStartRequested를 소비해 방을 생성하는 시점과
+        // 클라가 GameSessionReady를 받아 접속하는 시점 사이에 레이스가 있다.
+        // 방이 아직 없으면 서버가 S_PlayerJoined{Success=false}("Room not found")를 보내므로,
+        // 단발 시도로 끝내지 않고 방 생성이 끝날 때까지 짧게 재접속·재입장한다.
+        private const int MaxJoinAttempts = 10;
+        private static readonly TimeSpan JoinRetryDelay = TimeSpan.FromMilliseconds(300);
+
         private async UniTaskVoid ConnectAndLoadDungeonAsync(string ip, int port, long roomId)
         {
             try
             {
-                Debug.Log($"[GameSessionConnector] TCP 연결 시도 — ip={ip} port={port} userId={_authSession.UserId}");
                 var info = new SocketConnectionInfo(ip, port, roomId, _authSession.UserId);
 
-                await _socketSession.ConnectAsync(info, CancellationToken.None);
-                Debug.Log($"[GameSessionConnector] TCP 연결 완료 — {ip}:{port}");
-
-                await _socketSession.JoinRoomAsync(CancellationToken.None);
-                await UniTask.WaitUntil(
-                    () => _socketSession.State == SocketSessionState.Joined
-                       || _socketSession.State == SocketSessionState.Failed);
-
-                if (_socketSession.State == SocketSessionState.Failed)
+                for (var attempt = 1; attempt <= MaxJoinAttempts; attempt++)
                 {
-                    Debug.LogError("[GameSessionConnector] 방 입장 실패");
-                    return;
-                }
-                Debug.Log("[GameSessionConnector] 방 입장 완료 — Dungeon 씬 로드");
+                    Debug.Log($"[GameSessionConnector] TCP 연결 시도 {attempt}/{MaxJoinAttempts} — ip={ip} port={port} userId={_authSession.UserId}");
 
-                await SceneManager.LoadSceneAsync("Dungeon");
+                    await _socketSession.ConnectAsync(info, CancellationToken.None);
+                    await _socketSession.JoinRoomAsync(CancellationToken.None);
+                    await UniTask.WaitUntil(
+                        () => _socketSession.State == SocketSessionState.Joined
+                           || _socketSession.State == SocketSessionState.Failed);
+
+                    if (_socketSession.State == SocketSessionState.Joined)
+                    {
+                        Debug.Log("[GameSessionConnector] 방 입장 완료 — Dungeon 씬 로드");
+                        await SceneManager.LoadSceneAsync("Dungeon");
+                        return;
+                    }
+
+                    // 방 생성 전 접속 레이스로 추정 — 연결을 닫고 잠시 후 재시도한다.
+                    Debug.LogWarning($"[GameSessionConnector] 방 입장 실패 (시도 {attempt}/{MaxJoinAttempts}) — 재시도");
+                    await _socketSession.DisconnectAsync(CancellationToken.None);
+
+                    if (attempt < MaxJoinAttempts)
+                        await UniTask.Delay(JoinRetryDelay);
+                }
+
+                Debug.LogError("[GameSessionConnector] 방 입장 실패 — 재시도 횟수 초과");
             }
             catch (OperationCanceledException)
             {

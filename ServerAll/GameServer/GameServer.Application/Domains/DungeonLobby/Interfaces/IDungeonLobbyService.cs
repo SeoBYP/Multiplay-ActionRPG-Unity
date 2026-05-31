@@ -66,4 +66,15 @@ public interface IDungeonLobbyService
     /// </summary>
     /// <returns>성공 시 userId</returns>
     Task<Result<long>> ValidateSubscriptionAsync(string sessionId, long roomId, CancellationToken ct = default);
+
+    /// <summary>
+    /// 인게임에서 플레이어가 명시적으로 퇴장했을 때 그 플레이어의 방 association을 정리한다.
+    /// SocketServer가 PlayerLeft 이벤트를 발행하면 RoomLifecycleConsumer가 호출한다.
+    ///
+    /// 동작: association 제거(재로그인 복원 차단) + 채팅 방 구독 해제.
+    ///   - 남은 인원 0명  → 방 삭제(빈 방)
+    ///   - 남은 인원 ≥1명 → 떠난 사람이 호스트면 다음 사람으로 이양 후 갱신/브로드캐스트
+    /// 이미 그 방 소속이 아니면 멱등 성공(중복 소비 안전).
+    /// </summary>
+    Task<Result<DungeonRoom>> RemovePlayerFromRoomAsync(long roomId, long userId, CancellationToken ct = default);
 }

@@ -80,11 +80,22 @@ public class DungeonRoomTests
     }
 
     [Fact]
-    public void StartGame_은_플레이어가_2명_미만이면_예외를_던진다()
+    public void StartGame_은_플레이어가_1명_미만이면_예외를_던진다()
     {
         var room = DungeonRoom.Create("testRoom", 1, 4);
 
-        Assert.Throws<InvalidOperationException>(() => room.StartGame(1, playerCount: 1));
+        // 현재 정책: 최소 1명이면 시작 가능 → 0명일 때만 예외.
+        Assert.Throws<InvalidOperationException>(() => room.StartGame(1, playerCount: 0));
+    }
+
+    [Fact]
+    public void StartGame_은_플레이어가_1명이면_시작할_수_있다()
+    {
+        var room = DungeonRoom.Create("testRoom", 1, 4);
+
+        room.StartGame(1, playerCount: 1);
+
+        Assert.Equal(RoomStatus.Starting, room.Status);
     }
 
     [Fact]

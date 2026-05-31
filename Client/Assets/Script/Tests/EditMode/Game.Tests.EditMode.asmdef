@@ -6,7 +6,8 @@
         "Game.System",
         "Game.System.DungeonLobby",
         "Game.System.InGame",
-        "Game.Input",
+        "Game.Presentation",
+        "Game.Gameplay",
         "VContainer",
         "UniTask",
         "Unity.InputSystem",
@@ -23,10 +24,16 @@
     "overrideReferences": true,
     "precompiledReferences": [
         "nunit.framework.dll",
-        "Grpc.Core.dll",
         "Grpc.Core.Api.dll",
+        "Grpc.Net.Client.dll",
+        "Grpc.Net.Common.dll",
+        "System.IO.Pipelines.dll",
+        "Microsoft.Extensions.Logging.dll",
+        "Microsoft.Extensions.Logging.Abstractions.dll",
+        "Microsoft.Extensions.Options.dll",
         "Google.Protobuf.dll",
-        "System.Collections.Immutable.dll"
+        "System.Collections.Immutable.dll",
+        "R3.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

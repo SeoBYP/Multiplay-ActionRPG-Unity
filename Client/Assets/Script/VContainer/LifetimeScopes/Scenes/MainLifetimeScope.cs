@@ -1,5 +1,5 @@
-using Game.Main.Character;
-using Game.Input;
+using Game.Gameplay.Character;
+using Game.Gameplay.Input;
 using Game.Installers.Scenes.Startup;
 using UnityEngine;
 using VContainer;

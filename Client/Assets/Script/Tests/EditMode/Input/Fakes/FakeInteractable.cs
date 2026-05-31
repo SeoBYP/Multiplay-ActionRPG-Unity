@@ -1,4 +1,4 @@
-using Game.Input;
+using Game.Gameplay.Input;
 using UnityEngine;
 
 namespace Game.Tests.EditMode.Input.Fakes

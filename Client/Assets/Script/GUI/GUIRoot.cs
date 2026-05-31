@@ -11,6 +11,12 @@ namespace Game.GUI
 
         private void Awake()
         {
+            if (Instance != null)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            
             _instance = this;
             DontDestroyOnLoad(gameObject);
         }

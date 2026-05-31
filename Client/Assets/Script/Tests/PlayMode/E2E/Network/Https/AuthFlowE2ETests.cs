@@ -5,7 +5,7 @@ using Game.Network.Https.Core;
 using Game.Network.Https.Interfaces;
 using Game.Network.Https.Services;
 using NUnit.Framework;
-using Script.System.Auth;
+using Game.System.Auth;
 using Script.System.Startup;
 using UnityEngine.TestTools;
 

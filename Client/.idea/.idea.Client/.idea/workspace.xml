@@ -11,155 +11,180 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="bb01d1c1-9c2f-400e-8c4a-6f6ed31aab58" name="변경" comment="">
+      <change afterPath="$PROJECT_DIR$/Assets/Script/GUI/Common/Popups/AlertPopup.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/GUI/Common/Popups/BasePopup.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/GUI/Common/Popups/ConfirmPopup.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/Script/GUI/Hud/GameHud.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.claude/rules/unity-client.md" beforeDir="false" afterPath="$PROJECT_DIR$/../.claude/rules/unity-client.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.claude/settings.json" beforeDir="false" afterPath="$PROJECT_DIR$/../.claude/settings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/../.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.mcp.json" beforeDir="false" afterPath="$PROJECT_DIR$/../.mcp.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../CLAUDE.md" beforeDir="false" afterPath="$PROJECT_DIR$/../CLAUDE.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Client/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Client/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/AddressableAssetsData/AssetGroups/Default Local Group.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/AddressableAssetsData/AssetGroups/Default Local Group.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Art/Artsystack - Fantasy RPG GUI/Scenes/DemoScene.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Art/Artsystack - Fantasy RPG GUI/Scenes/DemoScene.unity" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Art/Fonts/ChironSungHK-SemiBold SDF.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Art/Fonts/ChironSungHK-SemiBold SDF.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Art/MedievalKingdomUI/Prefabs/buttons/Button.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Art/MedievalKingdomUI/Prefabs/buttons/Button.prefab" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Art/MedievalKingdomUI/Prefabs/buttons/IconButtonCross.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Art/MedievalKingdomUI/Prefabs/buttons/IconButtonCross.prefab" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Editor/MotionMatchingSampleAnimationSetup.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Editor/SceneToolbarButton.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Editor/SceneToolbarButton.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Arcs.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Arcs.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Circles.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Circles.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Idles.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Idles.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_RunToWalk.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_RunToWalk.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_Loops.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_Loops.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_Pivots.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_Pivots.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_SpinTransition.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_SpinTransition.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_Starts.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_Starts.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_Stops.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Run_Stops.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_WalkToRun.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_WalkToRun.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Walk_Loops.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Walk_Loops.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Walk_Pivots.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Walk_Pivots.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Walk_Starts.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Walk_Starts.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Walk_Stops.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Dense/PSD_Dense_Stand_Walk_Stops.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Run_Loops.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Run_Loops.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Run_Pivots.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Run_Pivots.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Run_Starts.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Run_Starts.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Run_Stops.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Run_Stops.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Walk_Loops.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Walk_Loops.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Walk_Pivots.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Walk_Pivots.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Walk_Starts.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Walk_Starts.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Walk_Stops.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/Databases/Sparse/PSD_Sparse_Stand_Walk_Stops.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/PlayerMotionDataset.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/GameResources/MotionMatching/Player/PlayerMotionDataset.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/InputSystem_Actions.inputactions" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/InputSystem_Actions.inputactions" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/InputSystem_Actions.inputactions.meta" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/InputSystem_Actions.inputactions.meta" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Art/HONETi/fantasy_gui_4/scenes/fg4_demo.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Art/HONETi/fantasy_gui_4/scenes/fg4_demo.unity" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Plugins/GrpcNative/grpc_csharp_ext.dll" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/Character/PlayerCharacter.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Prefabs/Character/PlayerCharacter.prefab" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/GUI/Common/WarningPopup.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Prefabs/GUI/Common/WarningPopup.prefab" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/GUI/HUD.prefab" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/GUI/HUD.prefab.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Presets/TextMeshProUGUI.preset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Presets/TextMeshProUGUI.preset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scenes/Dungeon.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Dungeon.unity" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scenes/Main.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Main.unity" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Core/Extentions/MonoBehaviourExtentions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Core/Extentions/MonoBehaviourExtentions.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/GUI/AddressKeys.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/GUI/AddressKeys.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/GUI/Common/WarningPopup.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/GUI/Common/Popups/WarningPopup.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/GUI/GUIRoot.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/GUI/GUIRoot.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Script/GUI/Game.GUI.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/GUI/Game.GUI.asmdef" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/PlayerCharacterAgent.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/PlayerCharacterAgent.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/Components/PlayerInputComponent.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/Components/PlayerInputComponent.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Factory/CharacterStateContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Factory/CharacterStateContext.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Factory/StateFactory.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Factory/StateFactory.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/GroundState.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Character/State/GroundState.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Game.Main.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Main/Game.Main.asmdef" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Inputs/PlayerInputActions.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/GUI/InGame/ChatBoxView.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/GUI/InGame/ChatBubble.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/GUI/InGame/HUD.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/GUI/OutGame/DungeonLobby/CreateDungeonRoomPopupView.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/GUI/DungeonLobby/CreateDungeonRoomPopupView.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/GUI/OutGame/DungeonLobby/DungeonRoomDetail/DungeonRoomDetailView.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/GUI/DungeonLobby/DungeonRoomDetail/DungeonRoomDetailView.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/GUI/OutGame/DungeonLobby/DungeonRoomDetail/DungeonRoomPlayerCharacterSlot.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/GUI/DungeonLobby/DungeonRoomDetail/DungeonRoomPlayerCharacterSlot.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/GUI/OutGame/DungeonLobby/DungeonRoomList/DungeonRoomItemView.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/GUI/DungeonLobby/DungeonRoomList/DungeonRoomItemView.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/GUI/OutGame/DungeonLobby/DungeonRoomList/DungeonRoomLobbyView.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/GUI/DungeonLobby/DungeonRoomList/DungeonRoomLobbyView.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/GUI/OutGame/LobbyViewController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/GUI/LobbyViewController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/GUI/Title/LoginWindow.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/GUI/Title/LoginWindow.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/GUI/Title/MainMenuWindow.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/GUI/Title/MainMenuWindow.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Game.asmdef" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Input/Game.Input.asmdef" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Input/GameInputAction.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Input/IInputHandler.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Input/IInputRouter.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Input/IInteractable.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Input/InputRouter.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Input/InteractionDetector.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Input/InteractionSystem.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Input/PlayerInputActions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Input/PlayerInputActions.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Camera/CharacterCameraFollow.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/CharacterAgent.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/NPCCharacterAgent.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Agent/PlayerCharacterAgent.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/CharacterAgentAnimations.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/CharacterHitEventReceiver.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Highlight.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/CharacterInputBuffer.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/CharacterInputFrame.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/Components/NPCAIInputComponent.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/Components/PlayerInputComponent.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/InputSource/ICharacterInputSource.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Input/InputWriter/ICharacterInputWriter.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/InteractionDetector.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Interactions/IActiveInteractable.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Interactions/IInteractable.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Interactions/NPCInteractable.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Interactions/SwitchInteractable.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Interactions/WeaponPickUpInteraction.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/LocomotionSettings.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Motion/IMotionMatchingDriver.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Motion/MotionMatchingDriver.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Movement/CharacterMotor.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Movement/IAgentMotor.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Movement/NavMeshMotor.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Rotation/AgentRotationStrategy.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Rotation/NpcRotationStrategy.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Rotation/PlayerRotationStrategy.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/AttackState.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Builder/IStateMachineBuilder.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Builder/StateMachineBuilder.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Configs/CharacterStateConfig.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Configs/CharacterStateId.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Configs/StateDefinition.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Configs/StateKind.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Factory/CharacterStateContext.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Factory/IStateFactory.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/Factory/StateFactory.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/FallState.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/GroundState.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/InteractState.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/JumpState.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/LandState.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/State/State.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/AttackToGroundTransition.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/FallToLandTransition.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/GroundToAttackTransition.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/GroundToInteractTransition.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/GroundedToFallTransition.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/GroundedToJumpTransition.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/ITransitionRule.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/InteractToGroundTransition.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/JumpToFallTransition.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/LandToGroundTransition.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Weapon/HitDetector.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Character/Weapon/WeaponHelper.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/Game.Main.asmdef" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Main/GroundedDetector.cs" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Game.Network.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Game.Network.asmdef" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Https/Core/GrpcChannelProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Https/Core/GrpcChannelProvider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Https/Services/ChatGrpcService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Https/Services/ChatGrpcService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Https/Services/DungeonLobbyGrpcService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Https/Services/DungeonLobbyGrpcService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Socket/Connector/SocketConnector.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Socket/Connector/SocketConnector.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/AuthService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/AuthService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/AuthSession.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/AuthSession.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/IAuthService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/IAuthService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/Game.System.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/Game.System.asmdef" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/FuturePrediction.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Inertialization.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PastTrajectory.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/BlendingMethods.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/Models/BlendBoundaries.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/Models/BlendingResults.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/PoseBlender.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Implementations/ActionPoseFinder.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Implementations/IdlePoseFinder.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Implementations/LoopActionPoseFinder.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Implementations/MotionPoseFinder.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Models/DistanceResult.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Models/FeatureDataNative.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Models/PoseFinderGenericVariables.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/PoseFinder.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseSetters/Implementations/MotionPoseSetter.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseSetters/PoseSetter.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Implementations/ActionQueryComputed.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Implementations/IdleQueryComputed.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Implementations/LoopActionQueryComputed.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Implementations/MotionQueryComputed.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Models/FeaturesComputedNative.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Models/QueryRange.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/QueryComputed.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Implementations/ActionQueryComputedFlow.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Implementations/IdleQueryComputedFlow.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Implementations/LoopActionQueryComputedFlow.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Implementations/MotionQueryComputedFlow.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/Models/BonesWeights.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/QueryComputedFlow.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/TrajectoryEstimation.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ActionTagsData.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/AvatarBone.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/CustomAvatar.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/GenericAvatar.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/HumanoidAvatar.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/BoneCharacteristic.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Characteristics.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/CharacteristicsByTag.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ExclusionMasks/ExclusionMaskBase.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ExclusionMasks/GenericExclusionMask.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ExclusionMasks/HumanoidExclusionMask.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/QueriesComputed.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Tags.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Controller/CharacterControllerBase.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Controller/PlayerCharacterMotionController.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/CurrentBoneTransformsValues.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/DataEntities.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/Dataset.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/FeatureData.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/FeatureDataAnim.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/GlobalWeights.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/MotionSearchDatabaseAsset.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/EditorDebug/MotionMatchingPreviewInputReceiver.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/EnumerableExtensions.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/Float3Extensions.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/GizmosExtensions.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/ListExtensions.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/ObjectExtensions.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/QuaternionExtensions.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/TransformExtensions.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/GetCurrentTransformValues.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Helper/BaseTargetHelper.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Importer/RecordPositions.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Input/CameraBasedMotionInput.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Input/InputCustomizable.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/MotionData/MotionData.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/MotionMatching.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/ActionTag.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/ActionTagState.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/IdleTag.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/LoopActionTag.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/Tag.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/TagBase.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/TagRange.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/WarpingMode.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/WarpingType.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Utils/MathUtils.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/System/MotionSystem/Utils/SpringUtils.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Socket/Packets/Packet.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Socket/Packets/Packet.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Socket/Packets/PingPongPackets.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Socket/Packets/PingPongPackets.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Socket/Packets/RoomPackets.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Socket/Packets/RoomPackets.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Socket/Session/ISocketSession.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Socket/Session/ISocketSession.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Socket/Session/SocketSession.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Socket/Session/SocketSession.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Network/Socket/SocketApiClient.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Network/Socket/SocketApiClient.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/OutGame/DungeonLobby/DungeonRoomModel.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/OutGame/DungeonLobby/LobbyIntent.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/OutGame/DungeonLobby/LobbyModel.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/OutGame/DungeonLobby/LobbyReducer.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/OutGame/DungeonLobby/LobbyRepository.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/OutGame/DungeonLobby/LobbyResult.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/OutGame/DungeonLobby/LobbyState.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/OutGame/DungeonLobby/RoomPlayerInfo.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/OutGame/DungeonLobby/RoomStatus.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/OutGame/Game.OutGame.asmdef" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/OutGame/Title/TitleIntent.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/OutGame/Title/TitleModel.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/OutGame/Title/TitleState.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/Auth/UserProfile.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/Auth/UserProfile.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/AuthResult.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/Auth/AuthResult.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/AuthService.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/AuthSession.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/EditorAutoLoginInitializer.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/IAuthService.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/AuthSystem/TokenStorage.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/System/InGame/GameSessionConnector.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/System/InGame/GameSessionConnector.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Game.Tests.EditMode.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Game.Tests.EditMode.asmdef" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/DungeonLobbyGrpcServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/DungeonLobbyGrpcServiceTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/GrpcChannelProviderTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Https/GrpcChannelProviderTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Input/Fakes/FakeInputRouter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Input/Fakes/FakeInputRouter.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Input/Fakes/FakeInteractable.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Input/Fakes/FakeInteractable.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Input/Fakes/TrackingHandler.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Input/Fakes/TrackingHandler.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Input/InputRouterTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Input/InputRouterTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Input/InteractionSystemTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Input/InteractionSystemTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Socket/SocketApiClientTest.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/EditMode/Network/Socket/SocketApiClientTest.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/AuthFlowE2ETests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Https/AuthFlowE2ETests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Socket/SocketE2ETests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/E2E/Network/Socket/SocketE2ETests.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/Game.Tests.PlayMode.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/Game.Tests.PlayMode.asmdef" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/Input/InputSystemIntegrationTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/Tests/PlayMode/Input/InputSystemIntegrationTests.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/Game.VContainer.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/Game.VContainer.asmdef" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/Initializer/InGameEntryPoint.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/Initializer/InGameEntryPoint.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/Initializer/MainSceneInitializer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/Initializer/MainSceneInitializer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/Installers/ProjectLifetimeScope.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/Installers/ProjectLifetimeScope.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/Installers/Scenes/MainLifetimeScope.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/Installers/Scenes/MainLifetimeScope.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/Initializer/TitleSceneInitializer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/Initializer/TitleSceneInitializer.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/Installers/AuthInstaller.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/Installers/AuthInstaller.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/Installers/OutgameInstaller.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/Installers/OutgameInstaller.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/LifetimeScopes/ProjectLifetimeScope.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/LifetimeScopes/ProjectLifetimeScope.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/LifetimeScopes/Scenes/DungeonLifetimeScope.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/LifetimeScopes/Scenes/DungeonLifetimeScope.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/LifetimeScopes/Scenes/MainLifetimeScope.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/LifetimeScopes/Scenes/MainLifetimeScope.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/LifetimeScopes/Scenes/TitleLifetimeScope.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/LifetimeScopes/Scenes/TitleLifetimeScope.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Script/VContainer/LifetimeScopes/Startup/MainSceneStartup.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Script/VContainer/LifetimeScopes/Startup/MainSceneStartup.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/packages.config" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/packages.config" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Packages/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/manifest.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Packages/packages-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/packages-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ProjectSettings/EditorBuildSettings.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/EditorBuildSettings.asset" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ProjectSettings/PresetManager.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/PresetManager.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ProjectSettings/ProjectSettings.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/ProjectSettings.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ProjectSettings/ProjectVersion.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/ProjectVersion.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ProjectSettings/VirtualProjectsConfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/VirtualProjectsConfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/Installers/Domain/DungeonInstaller.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.API/Installers/Domain/DungeonInstaller.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Application/Domains/DungeonLobby/DungeonLobbyService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Application/Domains/DungeonLobby/DungeonLobbyService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Application/Domains/DungeonLobby/Interfaces/IDungeonLobbyService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Application/Domains/DungeonLobby/Interfaces/IDungeonLobbyService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Infrastructure/Domains/DungeonRoom/DungeonRoomRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Infrastructure/Domains/DungeonRoom/DungeonRoomRepository.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/Application/Services/DungeonLobbyServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/Application/Services/DungeonLobbyServiceTests.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/Domain/Entities/DungeonRoomTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/Domain/Entities/DungeonRoomTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/Infrastructure/Integrations/DungeonRoomPlayerRepositoryIntegrationTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/Infrastructure/Integrations/DungeonRoomPlayerRepositoryIntegrationTests.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/Infrastructure/Integrations/DungeonRoomRepositoryIntegrationTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/Infrastructure/Integrations/DungeonRoomRepositoryIntegrationTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/E2E/GameStartE2ETest.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/GameServer/GameServer.Tests/E2E/GameStartE2ETest.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/ServerAll.sln" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/ServerAll.sln" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/SocketServer/SocketServer/Infrastructure/HeartbeatService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/SocketServer/SocketServer/Infrastructure/HeartbeatService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/SocketServer/SocketServer/Infrastructure/TestRoomService.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/SocketServer/SocketServer/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/SocketServer/SocketServer/Program.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ServerAll/SocketServer/SocketServer/Room/RoomManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ServerAll/SocketServer/SocketServer/Room/RoomManager.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../docs/wiki/plan.md" beforeDir="false" afterPath="$PROJECT_DIR$/../docs/wiki/plan.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -175,7 +200,7 @@
     <option name="firstShow" value="false" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="1" />
+    <option name="cachedIndexableFilesCount" value="2" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="Git.Settings">
@@ -197,90 +222,19 @@
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/811b8c12648e4057a967ae53c620383f77110/97/10b9e2af/Characteristics.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/92141d699ce3473fb519a33c5075e6ce9400/1c/4deb0715/AccessibilityManager.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/98c92c324c534d4db338e4efad34964535800/5b/a89f0f39/HumanBodyBones.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/c49537a98ac54652840af968be1a11db92e00/66/7f0e3e6f/Subject`1.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/3ea01e77be99618395f448b16bd7cc2bd4248bd9e5d8474964b2d97f39c5d74/System.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../../MotionMatching/Assets/QuanticBrains/MotionMatching/Scripts/Input/CharacterController/CharacterControllerBase.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../../MotionMatching/Assets/QuanticBrains/MotionMatching/Scripts/Input/CharacterController/CharacterControllerBasicMotion.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Editor/SceneToolbarButton.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Script/GUI/Common/FaderCanvas.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Agent/CharacterAgent.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Agent/NPCCharacterAgent.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Agent/PlayerCharacterAgent.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/CharacterHitEventReceiver.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Highlight.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/InteractionDetector.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Interactions/IActiveInteractable.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Interactions/IInteractable.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Interactions/NPCInteractable.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Interactions/SwitchInteractable.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Interactions/WeaponPickUpInteraction.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/LocomotionSettings.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Movement/IAgentMotor.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Movement/NavMeshMotor.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/State/AttackState.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/State/Configs/CharacterStateConfig.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/State/Configs/StateDefinition.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/State/Configs/StateKind.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/State/Factory/StateFactory.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/State/FallState.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/State/InteractState.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/State/JumpState.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/State/LandState.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/State/State.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/AttackToGroundTransition.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Transitions/ITransitionRule.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Weapon/HitDetector.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/Main/Character/Weapon/WeaponHelper.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/FuturePrediction.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Inertialization.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PastTrajectory.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/BlendingMethods.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/Models/BlendBoundaries.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseBlenders/Models/BlendingResults.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Models/DistanceResult.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/Models/PoseFinderGenericVariables.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseFinders/PoseFinder.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/PoseSetters/Implementations/MotionPoseSetter.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Models/FeaturesComputedNative.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/Models/QueryRange.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/Queries/QueryComputed.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/QueryComputedFlow.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/TrajectoryEstimation.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/GenericAvatar.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Avatar/HumanoidAvatar.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/BoneCharacteristic.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/Characteristics.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/CharacteristicsByTag.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ExclusionMasks/GenericExclusionMask.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/ExclusionMasks/HumanoidExclusionMask.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Container/QueriesComputed.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/CurrentBoneTransformsValues.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/DataEntities.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/Dataset.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/FeatureData.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/FeatureDataAnim.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Dataset/GlobalWeights.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/Float3Extensions.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/GizmosExtensions.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/ListExtensions.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Extensions/QuaternionExtensions.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/GetCurrentTransformValues.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Helper/BaseTargetHelper.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/MotionData/MotionData.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/MotionMatching.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/ActionTag.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/ActionTagState.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/IdleTag.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/LoopActionTag.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/Tag.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/TagBase.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/TagRange.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/WarpingMode.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Tags/WarpingType.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Utils/MathUtils.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Utils/SpringUtils.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/GUI/Common/Popups/AlertPopup.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/GUI/Common/Popups/BasePopup.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/GUI/Common/Popups/ConfirmPopup.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/GUI/Hud/GameHud.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Script/VContainer/Initializer/MainSceneInitializer.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Script/VContainer/Installers/Scenes/MainLifetimeScope.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Library/PackageCache/com.unity.render-pipelines.universal@1ad96352dab8/Shaders/Lit.shader" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/VContainer/Installers/DungeonLobbyInstaller.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/VContainer/Installers/OutgameInstaller.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../../Tips-for-writing-cleaner-code-in-Unity/Project/Assets/_Scripts/Article 2/Result/Agent.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../../Tips-for-writing-cleaner-code-in-Unity/Project/Assets/_Scripts/Article 3/Result/InteractionDetector.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../../Tips-for-writing-cleaner-code-in-Unity/Project/Assets/_Scripts/Article 3/Start/IAgentInteractInput.cs" root0="FORCE_HIGHLIGHTING" />
@@ -293,6 +247,65 @@
     <commands />
     <urls />
   </component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.924227618273973E-163" />
+      <entry key="MS500" value="2.8891818731796865E-33" />
+      <entry key="S2" value="1.684123194599887E-8" />
+      <entry key="S5" value="0.00254471429957276" />
+      <entry key="S10" value="0.14491512104596924" />
+      <entry key="S30" value="2.584312722836083" />
+      <entry key="S60" value="5.9196058006295" />
+      <entry key="M2" value="9.281817329706941" />
+      <entry key="M5" value="12.386679949737541" />
+      <entry key="M10" value="13.8323883994182" />
+      <entry key="M15" value="14.502155029777308" />
+      <entry key="M30" value="16.836721510191214" />
+      <entry key="H1" value="24.27222470762132" />
+      <entry key="H2" value="36.19735654571776" />
+      <entry key="H4" value="47.61122485965971" />
+      <entry key="D1" value="62.274595713220435" />
+      <entry key="W1" value="65.4485704951852" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0" />
+      <entry key="S2" value="1.0000000000131515" />
+      <entry key="S5" value="1.0000450959583727" />
+      <entry key="S10" value="1.0082734165880531" />
+      <entry key="S30" value="1.5133206889347428" />
+      <entry key="S60" value="2.732305862103443" />
+      <entry key="M2" value="4.359372688719997" />
+      <entry key="M5" value="6.158055892592735" />
+      <entry key="M10" value="6.999644678215632" />
+      <entry key="M15" value="7.357817326208005" />
+      <entry key="M30" value="8.39567397973093" />
+      <entry key="H1" value="11.420096956368251" />
+      <entry key="H2" value="16.330394181136825" />
+      <entry key="H4" value="21.12661559941685" />
+      <entry key="D1" value="27.39283887736351" />
+      <entry key="W1" value="28.761765317185244" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="0.010525262319263207" />
+      <entry key="MS500" value="0.4022041854709579" />
+      <entry key="S2" value="0.7963640642080058" />
+      <entry key="S5" value="0.9154410375516342" />
+      <entry key="S10" value="1.1056544457517803" />
+      <entry key="S30" value="4.050255607389423" />
+      <entry key="S60" value="8.595896519810582" />
+      <entry key="M2" value="13.592797418658721" />
+      <entry key="M5" value="18.51664874496808" />
+      <entry key="M10" value="20.81594114295324" />
+      <entry key="M15" value="21.848652934637183" />
+      <entry key="M30" value="25.225961431524986" />
+      <entry key="H1" value="35.68805224903257" />
+      <entry key="H2" value="52.52472817934272" />
+      <entry key="H4" value="68.73587324615815" />
+      <entry key="D1" value="89.66700292770024" />
+      <entry key="W1" value="94.21027082397485" />
+    </decayedShown>
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 4
 }</component>
@@ -303,6 +316,8 @@
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
+    &quot;Device#class com.jetbrains.rider.plugins.unity.run.devices.UnityEditorDeviceKind#com.jetbrains.rider.plugins.unity.run.devices.UnityDevicesProvider#Unity 연결 대상: 연결 대상&quot;: &quot;Unity 에디터&quot;,
+    &quot;DeviceKind#com.jetbrains.rider.plugins.unity.run.devices.UnityDevicesProvider&quot;: &quot;Unity 에디터&quot;,
     &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
@@ -312,6 +327,7 @@
     &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
     &quot;Unity 에디터에 연결.Unity 에디터에 연결.executor&quot;: &quot;Debug&quot;,
+    &quot;Unity 연결 대상.연결 대상.executor&quot;: &quot;Debug&quot;,
     &quot;XThreadsFramesViewSplitterKey&quot;: &quot;0.49833518&quot;,
     &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
     &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
@@ -325,12 +341,13 @@
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
     &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
     &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;,
+    &quot;독립실행형 플레이어.Unity 시작.executor&quot;: &quot;Debug&quot;
   }
 }</component>
-  <component name="RunManager" selected="Unity 에디터에 연결.Unity 에디터에 연결">
+  <component name="RunManager" selected="Unity 연결 대상.연결 대상">
     <configuration name="유닛 테스트(배치 모드)" type="RunUnityExe" factoryName="Unity Executable">
-      <option name="EXE_PATH" value="C:\Program Files\Unity\Hub\Editor\6000.4.7f1\Editor\Unity.exe" />
+      <option name="EXE_PATH" value="C:\Program Files\Unity\Hub\Editor\6000.4.8f1\Editor\Unity.exe" />
       <option name="PROGRAM_PARAMETERS" value="-runTests -batchmode -projectPath C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client -testResults Logs/results.xml -logFile Logs/Editor.log -testPlatform EditMode -debugCodeOptimization" />
       <option name="WORKING_DIRECTORY" value="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client" />
       <option name="PASS_PARENT_ENVS" value="1" />
@@ -340,7 +357,7 @@
       <method v="2" />
     </configuration>
     <configuration name="Unity 시작" type="RunUnityExe" factoryName="Unity Executable">
-      <option name="EXE_PATH" value="C:\Program Files\Unity\Hub\Editor\6000.4.7f1\Editor\Unity.exe" />
+      <option name="EXE_PATH" value="C:\Program Files\Unity\Hub\Editor\6000.4.8f1\Editor\Unity.exe" />
       <option name="PROGRAM_PARAMETERS" value="-projectPath C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client -debugCodeOptimization" />
       <option name="WORKING_DIRECTORY" value="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client" />
       <option name="PASS_PARENT_ENVS" value="1" />
@@ -397,6 +414,13 @@
       <workItem from="1778421544153" duration="940000" />
       <workItem from="1778663746827" duration="6972000" />
       <workItem from="1779275753669" duration="2806000" />
+      <workItem from="1779710196446" duration="7176000" />
+      <workItem from="1779800105492" duration="5383000" />
+      <workItem from="1779894902174" duration="1397000" />
+      <workItem from="1779980033325" duration="4631000" />
+      <workItem from="1780057146226" duration="3200000" />
+      <workItem from="1780112867573" duration="5045000" />
+      <workItem from="1780231470614" duration="2352000" />
     </task>
     <servers />
   </component>
@@ -431,15 +455,91 @@
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Assets/Script/System/MotionSystem/Components/QueryFlows/QueryComputedFlow.cs</url>
           <line>412</line>
-          <properties documentPath="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client\Assets\Script\System\MotionSystem\Components\QueryFlows\QueryComputedFlow.cs" containingFunctionPresentation="메서드 'Execute'">
+          <properties documentPath="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client\Assets\Script\System\MotionSystem\Components\QueryFlows\QueryComputedFlow.cs" containingFunctionPresentation="메서드 'Execute'" />
+          <option name="timeStamp" value="18" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/Assets/Script/OutGame/DungeonLobby/LobbyModel.cs</url>
+          <line>209</line>
+          <properties documentPath="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client\Assets\Script\OutGame\DungeonLobby\LobbyModel.cs" containingFunctionPresentation="메서드 'JoinRoomAsync'" />
+          <option name="timeStamp" value="31" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/Assets/Script/System/DungeonLobby/DungeonLobbyService.cs</url>
+          <line>107</line>
+          <properties documentPath="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client\Assets\Script\System\DungeonLobby\DungeonLobbyService.cs" containingFunctionPresentation="메서드 'RestoreRoomAsync'">
             <startOffsets>
-              <option value="17507" />
+              <option value="4220" />
             </startOffsets>
             <endOffsets>
-              <option value="17639" />
+              <option value="4284" />
             </endOffsets>
           </properties>
-          <option name="timeStamp" value="18" />
+          <option name="timeStamp" value="33" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/Assets/Script/System/DungeonLobby/DungeonLobbyService.cs</url>
+          <line>121</line>
+          <properties documentPath="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client\Assets\Script\System\DungeonLobby\DungeonLobbyService.cs" containingFunctionPresentation="메서드 'RestoreRoomAsync'">
+            <startOffsets>
+              <option value="4817" />
+            </startOffsets>
+            <endOffsets>
+              <option value="4848" />
+            </endOffsets>
+          </properties>
+          <option name="timeStamp" value="34" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/Assets/Script/OutGame/DungeonLobby/LobbyModel.cs</url>
+          <line>244</line>
+          <properties documentPath="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client\Assets\Script\OutGame\DungeonLobby\LobbyModel.cs" containingFunctionPresentation="메서드 'RestoreRoomAsync'" />
+          <option name="timeStamp" value="35" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/Assets/Script/Main/Character/State/GroundState.cs</url>
+          <line>43</line>
+          <properties documentPath="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client\Assets\Script\Main\Character\State\GroundState.cs" containingFunctionPresentation="메서드 'StateUpdate'" />
+          <option name="timeStamp" value="38" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/Assets/Script/Gameplay/Character/State/GroundState.cs</url>
+          <line>55</line>
+          <properties documentPath="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client\Assets\Script\Gameplay\Character\State\GroundState.cs" containingFunctionPresentation="메서드 'StateUpdate'">
+            <startOffsets>
+              <option value="2041" />
+            </startOffsets>
+            <endOffsets>
+              <option value="2083" />
+            </endOffsets>
+          </properties>
+          <option name="timeStamp" value="44" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/Assets/Script/Gameplay/Character/Agent/CharacterAgent.cs</url>
+          <line>50</line>
+          <properties documentPath="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client\Assets\Script\Gameplay\Character\Agent\CharacterAgent.cs" containingFunctionPresentation="메서드 'Start'">
+            <startOffsets>
+              <option value="1759" />
+            </startOffsets>
+            <endOffsets>
+              <option value="1827" />
+            </endOffsets>
+          </properties>
+          <option name="timeStamp" value="47" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/Assets/Script/Gameplay/Character/Agent/CharacterAgent.cs</url>
+          <line>55</line>
+          <properties documentPath="C:\Users\user\Github\Multiplay-ActionRPG-Unity\Client\Assets\Script\Gameplay\Character\Agent\CharacterAgent.cs" containingFunctionPresentation="메서드 'TransitionToState'">
+            <startOffsets>
+              <option value="1931" />
+            </startOffsets>
+            <endOffsets>
+              <option value="2024" />
+            </endOffsets>
+          </properties>
+          <option name="timeStamp" value="48" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

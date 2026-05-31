@@ -1,6 +1,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using Script.System.Auth;
+using Game.System.Auth;
 using Script.System.Startup;
 using UnityEngine;
 using VContainer.Unity;

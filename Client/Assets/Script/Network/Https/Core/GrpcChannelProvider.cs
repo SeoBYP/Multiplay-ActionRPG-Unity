@@ -2,12 +2,14 @@ using System;
 using System.Linq;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
+using Grpc.Net.Client;
+using Cysharp.Net.Http;
 
 namespace Game.Network.Https.Core
 {
     public class GrpcChannelProvider : IDisposable
     {
-        private readonly Channel _channel;
+        private readonly GrpcChannel _channel;
         private readonly CallInvoker _overrideInvoker;
         private bool _disposed;
 
@@ -17,8 +19,13 @@ namespace Game.Network.Https.Core
                 throw new ArgumentException("gRPC address is required.", nameof(address));
 
             Address = address;
-            var uri = new Uri(address);
-            _channel = new Channel(uri.Host, uri.Port, ChannelCredentials.Insecure);
+
+            var handler = new YetAnotherHttpHandler { Http2Only = true };
+            _channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions
+            {
+                HttpHandler = handler,
+                DisposeHttpClient = true,
+            });
         }
 
         protected GrpcChannelProvider(CallInvoker overrideInvoker)
@@ -28,7 +35,7 @@ namespace Game.Network.Https.Core
         }
 
         public string Address { get; }
-        public Channel Channel => _channel;
+        public GrpcChannel Channel => _channel;
         public Func<string> AccessTokenProvider { get; set; }
 
         public virtual CallInvoker CallInvoker
@@ -39,7 +46,7 @@ namespace Game.Network.Https.Core
         {
             if (_disposed) return;
             _disposed = true;
-            _channel?.ShutdownAsync().GetAwaiter().GetResult();
+            _channel?.Dispose();
         }
 
         private sealed class AuthorizationInterceptor : Interceptor

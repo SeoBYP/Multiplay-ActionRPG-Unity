@@ -1,0 +1,30 @@
+using System;
+using Game.Gameplay.Character.Input;
+
+namespace Game.Gameplay.Character
+{
+    public class GroundedToJumpTransition : ITransitionRule
+    {
+        private readonly ICharacterInputSource _inputSource;
+        private float _jumpTimeout;
+
+        public StateKind NextState => StateKind.Jump;
+
+        public GroundedToJumpTransition(ICharacterInputSource inputSource, float jumpTimeout)
+        {
+            _inputSource = inputSource;
+            _jumpTimeout = jumpTimeout;
+        }
+
+        public bool ShouldTransition(float deltaTime)
+        {
+            if (_jumpTimeout > 0f)
+            {
+                _jumpTimeout -= deltaTime;
+                return false;
+            }
+
+            return _inputSource.ConsumeJumpPressed();
+        }
+    }
+}

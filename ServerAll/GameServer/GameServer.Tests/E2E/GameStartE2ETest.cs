@@ -37,8 +37,10 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Moq;
 using Shared.Infrastructure.MessageQueue;
 using Shared.Infrastructure.Messages;
+using StackExchange.Redis;
 using AuthProto = GameServer.Grpc.Auth.AuthService.AuthServiceClient;
 using LobbyProto = GameServer.Grpc.DungeonLobby.DungeonLobbyService.DungeonLobbyServiceClient;
 
@@ -247,6 +249,13 @@ public class GameStartE2ETest
             builder.Services.AddSingleton<IGameSessionService, GameSessionService>();
             builder.Services.AddSingleton<IChatSubscriptionService, FakeChatSubscriptionService>();
             builder.Services.AddSingleton<IDungeonLobbySubscriptionService, DungeonLobbySubscriptionService>();
+
+            // GameSessionReadyConsumer가 IConnectionMultiplexer.GetDatabase()를 요구한다.
+            // 이 테스트는 Redis를 쓰지 않으므로 Mock으로 충족(GetDatabase→Mock IDatabase, 모든 Redis 호출 no-op).
+            var mockRedis = new Mock<IConnectionMultiplexer>();
+            mockRedis.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(Mock.Of<IDatabase>());
+            builder.Services.AddSingleton<IConnectionMultiplexer>(mockRedis.Object);
+
             builder.Services.AddHostedService<GameSessionReadyConsumer>();
 
             builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
