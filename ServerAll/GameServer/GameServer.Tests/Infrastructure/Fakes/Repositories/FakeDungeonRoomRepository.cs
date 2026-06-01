@@ -55,4 +55,13 @@ public class FakeDungeonRoomRepository : IDungeonRoomRepository
             ? JoinRoomAtomicResult.Success
             : JoinRoomAtomicResult.InvalidStatus);
     }
+
+    /// <summary>테스트에서 InvalidateCacheAsync 호출 횟수를 검증할 때 사용한다.</summary>
+    public int InvalidateCacheCallCount { get; private set; }
+
+    public Task InvalidateCacheAsync(long roomId, CancellationToken ct = default)
+    {
+        InvalidateCacheCallCount++;
+        return Task.CompletedTask;
+    }
 }

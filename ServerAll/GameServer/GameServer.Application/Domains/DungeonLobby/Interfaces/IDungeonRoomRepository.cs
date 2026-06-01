@@ -42,4 +42,10 @@ public interface IDungeonRoomRepository
     
     
     Task<JoinRoomAtomicResult> TryJoinRoomAsync(long userId, long roomId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Redis 캐시만 무효화한다. DB는 건드리지 않는다.
+    /// OutboxRepository처럼 DB만 업데이트하고 캐시를 갱신하지 않은 경우 호출한다.
+    /// </summary>
+    Task InvalidateCacheAsync(long roomId, CancellationToken ct = default);
 }

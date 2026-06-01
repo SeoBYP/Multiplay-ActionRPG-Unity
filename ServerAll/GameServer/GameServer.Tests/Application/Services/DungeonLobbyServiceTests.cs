@@ -443,4 +443,44 @@ public class DungeonLobbyServiceTests
         Assert.False(result.IsSuccess);
         Assert.Equal(ErrorCodes.RoomNotFound, result.InternalErrorCode); // INTERNAL_SERVER_ERROR 아님
     }
+
+    // ── StartGame 캐시 무효화 회귀 테스트 ─────────────────────────────
+    // 버그: AddWithRoomUpdateAsync가 DB는 Starting으로 업데이트하지만 Redis 캐시를 무효화하지 않아
+    // GameSessionReadyConsumer가 stale Waiting 상태를 읽고 MarkGameSessionReady()를 스킵,
+    // 결과적으로 GameSessionEvent가 전송되지 않아 씬 전환이 안 됨.
+    // 수정: StartGameAsync 이후 InvalidateCacheAsync를 반드시 호출해야 한다.
+
+    [Fact]
+    public async Task StartGame_성공_시_캐시_무효화가_반드시_호출된다()
+    {
+        // Arrange
+        var hostSession = await _sessionRepository.CreateSessionAsync(1);
+        var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4);
+        var roomId = created.Value!.RoomId;
+
+        // Act
+        var result = await _service.StartGameAsync(hostSession.SessionId, roomId, "trace");
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, _roomRepository.InvalidateCacheCallCount); // 캐시 무효화 1회 호출 필수
+    }
+
+    [Fact]
+    public async Task StartGame_이미_Starting_상태에서_재시도_시_캐시_무효화가_호출된다()
+    {
+        // Arrange: 방을 Starting 상태로 만들기
+        var hostSession = await _sessionRepository.CreateSessionAsync(1);
+        var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4);
+        var roomId = created.Value!.RoomId;
+        await _service.StartGameAsync(hostSession.SessionId, roomId, "trace-first");
+        var callCountAfterFirst = _roomRepository.InvalidateCacheCallCount;
+
+        // Act: 이미 Starting인 방에 StartGame 재호출 (OutboxMessage 재발행 경로)
+        var result = await _service.StartGameAsync(hostSession.SessionId, roomId, "trace-retry");
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.True(_roomRepository.InvalidateCacheCallCount > callCountAfterFirst); // 재시도에서도 캐시 무효화
+    }
 }

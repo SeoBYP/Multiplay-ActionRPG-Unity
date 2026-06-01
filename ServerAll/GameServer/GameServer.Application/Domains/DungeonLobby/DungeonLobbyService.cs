@@ -272,6 +272,7 @@ public class DungeonLobbyService(
                         OutboxTopics.GameStartRequested,
                         System.Text.Json.JsonSerializer.Serialize(retryMessage));
                     await outboxRepository.AddWithRoomUpdateAsync(room, retryOutbox, ct);
+                    await dungeonRoomRepository.InvalidateCacheAsync(roomId, ct);
                     await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
                     return Result<DungeonRoom>.Success(room);
                 }
@@ -290,6 +291,7 @@ public class DungeonLobbyService(
                         OutboxTopics.GameStartRequested,
                         System.Text.Json.JsonSerializer.Serialize(retryMessage));
                     await outboxRepository.AddWithRoomUpdateAsync(room, retryOutbox, ct);
+                    await dungeonRoomRepository.InvalidateCacheAsync(roomId, ct);
                     await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
                     return Result<DungeonRoom>.Success(room);
                 }
@@ -309,6 +311,7 @@ public class DungeonLobbyService(
                 System.Text.Json.JsonSerializer.Serialize(message));
 
             await outboxRepository.AddWithRoomUpdateAsync(room, outboxMessage, ct);
+            await dungeonRoomRepository.InvalidateCacheAsync(roomId, ct);
 
             await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
             return Result<DungeonRoom>.Success(room);
