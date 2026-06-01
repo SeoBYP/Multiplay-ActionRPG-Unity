@@ -298,5 +298,67 @@ namespace Game.Tests.PlayMode.E2E
 
             Assert.IsTrue(started.Result.Success, started.Result.Message);
         });
+
+        /// <summary>
+        /// 로그 재현 시나리오:
+        ///   방 생성 → SubscribeRoom 구독 시작 → StartGame 요청
+        ///   → UpdateEvent(Starting) 수신 → GameSessionEvent(SocketIp/Port) 수신
+        ///
+        /// OutboxPublisher 1초 폴링 + SocketServer 처리 + GameSessionReadyConsumer 포함.
+        /// 전체 체인이 끊기면 타임아웃으로 실패한다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator StartRoom_구독중_GameSessionEvent_수신() => UniTask.ToCoroutine(async () =>
+        {
+            // Arrange: 방 생성 (호스트 단독 — 로그 시나리오 그대로)
+            await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
+            var created = await LobbyService.CreateRoomAsync(new CreateRoomRequest
+            {
+                RoomName = "E2E StartGame Flow",
+                MaxPlayers = 4
+            }, Timeout());
+            Assert.IsTrue(created.Result.Success, created.Result.Message);
+            var roomId = created.RoomInfo.RoomId;
+
+            // SubscribeRoom 구독 시작 (StartGame 전에 — 앱과 동일한 순서)
+            var received = new List<SubscribeRoomResponse>();
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+
+            var subscribeTask = LobbyService.SubscribeRoomAsync(
+                new SubscribeRoomRequest { RoomId = roomId },
+                msg =>
+                {
+                    received.Add(msg);
+                    if (msg.PayloadCase == SubscribeRoomResponse.PayloadOneofCase.GameSessionEvent)
+                        cts.Cancel(); // GameSessionEvent 수신 시 구독 종료
+                },
+                cts.Token).AsTask();
+
+            // Act: StartGame 요청
+            var started = await LobbyService.StartRoomAsync(
+                new StartRoomRequest { RoomId = roomId }, Timeout());
+            Assert.IsTrue(started.Result.Success, started.Result.Message);
+
+            // GameSessionEvent 대기
+            try { await subscribeTask; }
+            catch (OperationCanceledException) { }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled) { }
+
+            // Assert: UpdateEvent(Starting) 수신 확인
+            Assert.IsTrue(
+                received.Exists(r => r.PayloadCase == SubscribeRoomResponse.PayloadOneofCase.UpdateEvent),
+                "StartGame 후 UpdateEvent(Starting)를 수신해야 한다");
+
+            // Assert: GameSessionEvent 수신 확인
+            var gameSessionEvent = received.Find(
+                r => r.PayloadCase == SubscribeRoomResponse.PayloadOneofCase.GameSessionEvent);
+            Assert.IsNotNull(gameSessionEvent,
+                $"GameSessionEvent 미수신 — 받은 이벤트: [{string.Join(", ", received.ConvertAll(r => r.PayloadCase.ToString()))}]");
+
+            Assert.IsFalse(string.IsNullOrEmpty(gameSessionEvent.GameSessionEvent.Ip),
+                "GameSessionEvent.Ip가 있어야 한다");
+            Assert.Greater(gameSessionEvent.GameSessionEvent.Port, 0,
+                "GameSessionEvent.Port가 0보다 커야 한다");
+        });
     }
 }

@@ -282,8 +282,20 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         await foreach (var roomId in ctx.Outbound.Reader.ReadAllAsync(ct))
         {
             var room = await dungeonLobbyService.GetDungeonRoomAsync(roomId, ct);
-            if (room.IsSuccess == false) continue;
-            if (room.Value is null) continue;
+            if (room.IsSuccess == false)
+            {
+                logger.LogWarning("[SendLoop] user={UserId} room={RoomId} — GetDungeonRoom 실패: {Error}",
+                    ctx.UserId, roomId, room.InternalErrorCode);
+                continue;
+            }
+            if (room.Value is null)
+            {
+                logger.LogWarning("[SendLoop] user={UserId} room={RoomId} — room.Value null", ctx.UserId, roomId);
+                continue;
+            }
+
+            logger.LogInformation("[SendLoop] user={UserId} room={RoomId} status={Status} — 이벤트 처리 시작",
+                ctx.UserId, roomId, room.Value.Status);
 
             var serverMsg = new SubscribeRoomResponse();
             switch (room.Value.Status)
@@ -292,11 +304,14 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
                     var gameSession = await gameSessionRepository.GetByRoomIdAsync(room.Value.RoomId, ct);
                     if (gameSession is null)
                     {
-                        logger.LogWarning("Game session not found for playing room {RoomId}", room.Value.RoomId);
+                        logger.LogWarning("[SendLoop] user={UserId} room={RoomId} — Playing 상태인데 GameSession null, 이벤트 드롭",
+                            ctx.UserId, roomId);
                         continue;
                     }
 
-                    // Redis player key가 서버 재시작으로 소실됐을 수 있으므로 이벤트 전송 전에 복구한다.
+                    logger.LogInformation("[SendLoop] user={UserId} room={RoomId} — GameSessionEvent 전송 (ip={Ip} port={Port})",
+                        ctx.UserId, roomId, gameSession.SocketIp, gameSession.SocketPort);
+
                     await EnsurePlayerDataInRedisAsync(room.Value.RoomId, gameSession.GameSessionId, ct);
 
                     serverMsg.GameSessionEvent = new GameSessionReadyEvent
@@ -307,6 +322,8 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
                     break;
 
                 default:
+                    logger.LogInformation("[SendLoop] user={UserId} room={RoomId} status={Status} — UpdateEvent 전송",
+                        ctx.UserId, roomId, room.Value.Status);
                     serverMsg.UpdateEvent = new RoomUpdatedEvent
                     {
                         RoomInfo = await room.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository),
@@ -316,6 +333,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
 
             await responseStream.WriteAsync(serverMsg, ct);
         }
+        logger.LogInformation("[SendLoop] user={UserId} room={RoomId} — 루프 종료", ctx.UserId, ctx.RoomId);
     }
 
     /// <summary>

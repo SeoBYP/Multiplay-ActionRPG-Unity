@@ -44,7 +44,7 @@ public class UserCredentialRepository(
             if (entries.Length > 0)
                 return ParseUserCredentialFromRedis(userId, entries);
 
-            var userCredential = await context.UserCredentials.SingleOrDefaultAsync(uc => uc.UserId == userId, ct);
+            var userCredential = await context.UserCredentials.AsNoTracking().SingleOrDefaultAsync(uc => uc.UserId == userId, ct);
             if (userCredential is null)
                 throw new KeyNotFoundException($"User credential not found for user id {userId}");
 
@@ -66,7 +66,7 @@ public class UserCredentialRepository(
             if (userId.HasValue && long.TryParse(userId.ToString(), out var id))
                 return await FindByIdAsync(id, ct);
 
-            var userCredential = await context.UserCredentials.SingleOrDefaultAsync(uc => uc.Email == email, ct);
+            var userCredential = await context.UserCredentials.AsNoTracking().SingleOrDefaultAsync(uc => uc.Email == email, ct);
             if (userCredential is null)
                 return null;
 

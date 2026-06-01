@@ -58,7 +58,7 @@ public class UserSessionRepository(
             if (entries.Length > 0)
                 return ParseSessionFromEntries(sessionId, entries);
 
-            var session = await context.UserSessions.SingleOrDefaultAsync(us => us.SessionId == sessionId, ct);
+            var session = await context.UserSessions.AsNoTracking().SingleOrDefaultAsync(us => us.SessionId == sessionId, ct);
             if (session is null)
                 return null;
 
@@ -80,7 +80,7 @@ public class UserSessionRepository(
             if (sessionId.HasValue && !string.IsNullOrWhiteSpace(sessionId.ToString()))
                 return await GetBySessionIdAsync(sessionId.ToString(), ct);
 
-            var session = await context.UserSessions.SingleOrDefaultAsync(us => us.UserId == userId, ct);
+            var session = await context.UserSessions.AsNoTracking().SingleOrDefaultAsync(us => us.UserId == userId, ct);
             if (session is null)
                 return null;
 
@@ -188,7 +188,7 @@ public class UserSessionRepository(
                 RedisKeys.UserSessionActive(), now, double.PositiveInfinity);
 
             if (sessionIdValues.Length == 0)
-                return await context.UserSessions.ToListAsync(ct);
+                return await context.UserSessions.AsNoTracking().ToListAsync(ct);
 
             var sessions = new List<UserSession>();
             var missedSessionIds = new List<string>();
@@ -226,6 +226,7 @@ public class UserSessionRepository(
             if (missedSessionIds.Count > 0)
             {
                 var dbSessions = await context.UserSessions
+                    .AsNoTracking()
                     .Where(us => missedSessionIds.Contains(us.SessionId))
                     .ToListAsync(ct);
 

@@ -31,6 +31,9 @@ public sealed class GameSessionReadyConsumer(
 
                 try
                 {
+                    logger.LogInformation("[GameSessionReadyConsumer] 처리 시작 — RoomId={RoomId} Host={Host} Port={Port} TraceId={TraceId}",
+                        message.RoomId, message.Host, message.Port, message.TraceId);
+
                     using var scope = scopeFactory.CreateScope();
                     var gameSessionService = scope.ServiceProvider.GetRequiredService<IGameSessionService>();
                     var roomRepository = scope.ServiceProvider.GetRequiredService<IDungeonRoomRepository>();
@@ -40,11 +43,16 @@ public sealed class GameSessionReadyConsumer(
                     var room = await roomRepository.GetByIdAsync(message.RoomId, stoppingToken);
                     if (room is null)
                     {
-                        logger.LogWarning("Room {RoomId} was not found while handling game session ready", message.RoomId);
+                        logger.LogWarning("[GameSessionReadyConsumer] RoomId={RoomId} — 방 없음, 스킵", message.RoomId);
                         continue;
                     }
 
+                    logger.LogInformation("[GameSessionReadyConsumer] RoomId={RoomId} 현재 상태={Status}",
+                        message.RoomId, room.Status);
+
                     var players = await roomPlayerRepository.GetPlayersByRoomIdAsync(message.RoomId, stoppingToken);
+                    logger.LogInformation("[GameSessionReadyConsumer] RoomId={RoomId} 플레이어 수={Count}",
+                        message.RoomId, players.Count);
 
                     var gameSession = await gameSessionService.CreateGameSessionAsync(
                         message.RoomId,
@@ -54,15 +62,24 @@ public sealed class GameSessionReadyConsumer(
                         message.TraceId,
                         stoppingToken);
 
+                    logger.LogInformation("[GameSessionReadyConsumer] RoomId={RoomId} GameSession={GameSessionId}",
+                        message.RoomId, gameSession.GameSessionId);
+
                     if (room.Status == RoomStatus.Starting)
                     {
                         room.MarkGameSessionReady();
                         var updated = await roomRepository.UpdateAsync(room, stoppingToken);
                         if (!updated)
                         {
-                            logger.LogWarning("Failed to update room {RoomId} to playing status", message.RoomId);
+                            logger.LogWarning("[GameSessionReadyConsumer] RoomId={RoomId} — UpdateAsync 실패, 스킵", message.RoomId);
                             continue;
                         }
+                        logger.LogInformation("[GameSessionReadyConsumer] RoomId={RoomId} — Playing으로 업데이트 완료", message.RoomId);
+                    }
+                    else
+                    {
+                        logger.LogInformation("[GameSessionReadyConsumer] RoomId={RoomId} — 상태={Status}, MarkGameSessionReady 스킵",
+                            message.RoomId, room.Status);
                     }
 
                     for (int i = 0; i < players.Count; i++)
@@ -87,7 +104,9 @@ public sealed class GameSessionReadyConsumer(
                             player.UserId, message.RoomId, i);
                     }
 
+                    logger.LogInformation("[GameSessionReadyConsumer] RoomId={RoomId} — PublishAsync 호출", message.RoomId);
                     await subscriptionService.PublishAsync(message.RoomId, stoppingToken);
+                    logger.LogInformation("[GameSessionReadyConsumer] RoomId={RoomId} — 처리 완료", message.RoomId);
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {

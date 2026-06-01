@@ -62,13 +62,39 @@ stream:chat:user:{nickname}      → Stream
 
 `stream:` 접두사 필수. 데이터 키와 스트림 키에 같은 이름 사용 시 `WRONGTYPE` 에러 발생.
 
-## Redis 캐시 패턴
+## Redis 캐시 패턴 (Repository 읽기/쓰기 규칙 — 필수)
 
-Cache-Aside + Delete 패턴 사용. Update(덮어쓰기) 금지.
+Cache-Aside + Delete 패턴. 모든 도메인 Repository는 이 3원칙을 동일하게 따른다.
+
 ```
-읽기: Redis 먼저 → MISS → PostgreSQL → Redis SET(TTL)
-쓰기: PostgreSQL SaveChanges → Redis DEL (다음 읽기 때 재캐싱)
+Get    : Redis 먼저 → HIT 즉시 반환 / MISS → PostgreSQL 읽기 → Redis SET(TTL) → 반환
+Update : PostgreSQL SaveChanges → Redis DEL  (다음 Get이 DB에서 재캐싱)
+Delete : PostgreSQL 삭제 → Redis DEL
 ```
+
+**1. Get은 항상 캐시 우선.** Redis HIT이면 DB를 보지 않는다 (성능).
+**2. Update는 절대 캐시를 덮어쓰지 않는다.** DB 갱신 후 캐시 DEL만 한다. (`HashSet`으로 캐시 직접 갱신 금지 — stale·부분갱신 위험)
+**3. 캐시 MISS 시 DB 읽기는 반드시 `AsNoTracking()`.**
+
+### `AsNoTracking()`이 필수인 이유 (실제 버그 사례)
+
+DB 폴백 읽기를 추적 쿼리로 하면 **오래 유지되는(long-lived) DbContext에서 stale 엔티티를 반환**한다.
+
+- `GameServerDbContext`는 Scoped. **스트리밍 RPC(`SubscribeRoom` 등)는 한 스코프 = 한 DbContext를 수십 초 유지**한다.
+- 추적 쿼리는 EF identity map에 먼저 적재된 엔티티를 그대로 돌려주고 **DB 최신값으로 덮어쓰지 않는다.**
+- 결과: 다른 스코프(Consumer 등)가 DB에 쓴 변경을 **그 스트림이 끝날 때까지 영원히 못 읽는다.**
+  - 실제로 SendLoop이 `Starting`을 계속 읽어 `GameSessionEvent` 대신 `UpdateEvent`만 전송 → 클라가 던전 입장 못 함.
+
+```csharp
+// ❌ 추적 쿼리 — stale 엔티티 반환 위험
+var room = await context.DungeonRooms.SingleOrDefaultAsync(r => r.RoomId == id, ct);
+
+// ✅ cache-aside 읽기 전용이므로 추적 불필요. 항상 DB 최신값.
+var room = await context.DungeonRooms.AsNoTracking().SingleOrDefaultAsync(r => r.RoomId == id, ct);
+```
+
+**원칙: 이벤트는 "ID + 다시 읽어라"는 트리거일 뿐. 최신 상태는 항상 DB(진실의 원천)에서 읽는다.**
+모든 컴포넌트가 같은 DB를 단일 진실로 바라봐야 일관성이 보장된다. 캐시·EF 추적 메모리를 진실로 삼지 않는다.
 
 ## Redis 트랜잭션
 

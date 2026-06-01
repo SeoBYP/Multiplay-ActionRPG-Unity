@@ -47,7 +47,7 @@ public class GameSessionRepository(
                 return ParseGameSession(gameSessionId, entries);
 
             var gameSession =
-                await context.GameSessions.SingleOrDefaultAsync(gs => gs.GameSessionId == gameSessionId, ct);
+                await context.GameSessions.AsNoTracking().SingleOrDefaultAsync(gs => gs.GameSessionId == gameSessionId, ct);
             if (gameSession is null)
                 throw new KeyNotFoundException($"Game session not found for game session id {gameSessionId}");
 
@@ -74,7 +74,7 @@ public class GameSessionRepository(
                 }
             }
 
-            var gameSession = await context.GameSessions.SingleOrDefaultAsync(gs => gs.RoomId == roomId, ct);
+            var gameSession = await context.GameSessions.AsNoTracking().SingleOrDefaultAsync(gs => gs.RoomId == roomId, ct);
             if (gameSession is null)
                 return null;
 

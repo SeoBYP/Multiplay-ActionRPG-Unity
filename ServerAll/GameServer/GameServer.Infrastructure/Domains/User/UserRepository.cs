@@ -106,7 +106,7 @@ public class UserRepository(
             if (entries.Length > 0)
                 return ParseUserFromRedis(userId, entries);
 
-            var user = await context.Users.SingleOrDefaultAsync(u => u.UserId == userId, ct);
+            var user = await context.Users.AsNoTracking().SingleOrDefaultAsync(u => u.UserId == userId, ct);
             if (user is null)
                 throw new KeyNotFoundException($"User not found for user id {userId}");
 
@@ -161,6 +161,7 @@ public class UserRepository(
             if (missedUserIds.Count > 0)
             {
                 var dbUsers = await context.Users
+                    .AsNoTracking()
                     .Where(u => missedUserIds.Contains(u.UserId))
                     .ToListAsync(ct);
 
@@ -192,7 +193,7 @@ public class UserRepository(
             if (userId.HasValue && long.TryParse(userId.ToString(), out var id))
                 return await GetByIdAsync(id, ct);
 
-            var user = await context.Users.SingleOrDefaultAsync(u => u.PublicId == publicId, ct);
+            var user = await context.Users.AsNoTracking().SingleOrDefaultAsync(u => u.PublicId == publicId, ct);
             if (user is null)
                 throw new KeyNotFoundException($"User not found for public id {publicId}");
 

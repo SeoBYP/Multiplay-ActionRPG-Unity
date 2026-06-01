@@ -59,7 +59,11 @@ public class DungeonRoomRepository(
             if (entries.Length > 0)
                 return ParseDungeonRoomFromRedis(roomId, entries);
 
-            var room = await context.DungeonRooms.SingleOrDefaultAsync(r => r.RoomId == roomId, ct);
+            // AsNoTracking 필수: SubscribeRoom 스트리밍 RPC는 DbContext(Scoped)를 수십 초 유지한다.
+            // 추적 쿼리면 EF identity map이 먼저 적재된 stale 엔티티(예: Starting)를 그대로 돌려주고
+            // DB 최신값(Playing)으로 갱신하지 않아, 다른 스코프가 쓴 변경을 영원히 못 읽는다.
+            // 이 리포지토리는 cache-aside 읽기 전용이므로 추적이 불필요하다.
+            var room = await context.DungeonRooms.AsNoTracking().SingleOrDefaultAsync(r => r.RoomId == roomId, ct);
             if (room is null)
                 return null; // 없는 방은 null 반환(선언이 Task<DungeonRoom?>). 모든 호출자가 if(room is null)로 처리한다.
 
@@ -125,6 +129,7 @@ public class DungeonRoomRepository(
 
             // 2. 캐시가 불완전한 경우 DB에서 전체 활성 방 조회
             var dbActiveRooms = await context.DungeonRooms
+                .AsNoTracking()
                 .Where(r => r.Status != RoomStatus.Closed)
                 .ToListAsync(ct);
 
@@ -249,6 +254,9 @@ public class DungeonRoomRepository(
         if (!committed)
             throw new InvalidOperationException("Failed to set dungeon room cache");
     }
+
+    public Task InvalidateCacheAsync(long roomId, CancellationToken ct = default)
+        => DeleteDungeonRoomCacheAsync(roomId);
 
     private async Task DeleteDungeonRoomCacheAsync(long roomId)
     {

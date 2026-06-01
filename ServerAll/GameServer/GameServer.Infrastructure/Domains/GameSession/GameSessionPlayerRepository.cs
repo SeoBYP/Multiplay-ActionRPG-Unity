@@ -65,6 +65,7 @@ public class GameSessionPlayerRepository(
             }
 
             var dbPlayers = await context.GameSessionPlayers
+                .AsNoTracking()
                 .Where(gsp => gsp.GameSessionId == gameSessionId)
                 .ToListAsync(ct);
 
@@ -93,7 +94,7 @@ public class GameSessionPlayerRepository(
                 }
             }
 
-            var dbPlayer = await context.GameSessionPlayers.SingleOrDefaultAsync(gsp => gsp.UserId == userId, ct);
+            var dbPlayer = await context.GameSessionPlayers.AsNoTracking().SingleOrDefaultAsync(gsp => gsp.UserId == userId, ct);
             if (dbPlayer is not null)
             {
                 await SetGameSessionPlayerCacheAsync(dbPlayer);
@@ -166,6 +167,7 @@ public class GameSessionPlayerRepository(
             return ParseGameSessionPlayer(gameSessionId, userId, entries);
 
         var dbPlayer = await context.GameSessionPlayers
+            .AsNoTracking()
             .SingleOrDefaultAsync(gsp => gsp.GameSessionId == gameSessionId && gsp.UserId == userId, ct);
 
         if (dbPlayer is not null)

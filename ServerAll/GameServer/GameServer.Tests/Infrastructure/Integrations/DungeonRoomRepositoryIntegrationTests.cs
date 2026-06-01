@@ -1,4 +1,5 @@
-﻿using GameServer.Infrastructure.Domains;
+﻿using GameServer.Domain.Entities;
+using GameServer.Infrastructure.Domains;
 using GameServer.Infrastructure.Domains.DungeonRoom;
 using GameServer.Infrastructure.Domains.User;
 using GameServer.Tests.Infrastructure.Persistence;
@@ -208,5 +209,121 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
         // Assert
         Assert.Contains(activeRooms, r => r.RoomId == activeRoom!.RoomId);
         Assert.DoesNotContain(activeRooms, r => r.RoomId == closedRoom.RoomId);
+    }
+
+    // ── 캐시 stale 버그 회귀 테스트 ──────────────────────────────────
+    // 버그 재현 시나리오:
+    //   AddWithRoomUpdateAsync는 DB만 업데이트하고 Redis 캐시를 갱신하지 않는다.
+    //   이후 GetByIdAsync가 stale Waiting 상태를 반환하면
+    //   GameSessionReadyConsumer가 MarkGameSessionReady()를 스킵 → GameSessionEvent 미전송.
+    //
+    // 수정 검증:
+    //   StartGameAsync 호출 후 InvalidateCacheAsync를 명시적으로 호출해야
+    //   다음 GetByIdAsync가 DB에서 최신 Starting 상태를 읽어야 한다.
+
+    [Fact]
+    public async Task 캐시_무효화_없이는_StartGame_후_Waiting_stale_상태가_반환된다_버그_재현()
+    {
+        // Arrange
+        using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var host = await userRepo.CreateAsync();
+        var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
+
+        // 방 생성 → DB + Redis에 Waiting 상태 저장
+        var room = await repository.CreateAsync(host.UserId, "Stale Test Room");
+        Assert.Equal(RoomStatus.Waiting, room!.Status);
+
+        // OutboxRepository.AddWithRoomUpdateAsync 시뮬레이션:
+        // DB만 Starting으로 업데이트, Redis 캐시는 건드리지 않음
+        room.StartGame(host.UserId, 1);
+        using var contextForUpdate = _fixture.CreateDbContext();
+        contextForUpdate.DungeonRooms.Update(room);
+        await contextForUpdate.SaveChangesAsync();
+        // ← InvalidateCacheAsync 호출 없음 (버그 상황)
+
+        // Act: GetByIdAsync → Redis에 Waiting 캐시가 남아 있으므로 Waiting 반환
+        var staleRoom = await repository.GetByIdAsync(room.RoomId);
+
+        // Assert: stale 캐시 때문에 Starting이 아닌 Waiting이 반환됨 → 버그 확인
+        Assert.Equal(RoomStatus.Waiting, staleRoom!.Status); // stale hit
+    }
+
+    [Fact]
+    public async Task 캐시_무효화_후_StartGame_후_Starting_상태가_반환된다_수정_검증()
+    {
+        // Arrange
+        using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var host = await userRepo.CreateAsync();
+        var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
+
+        // 방 생성 → DB + Redis에 Waiting 상태 저장
+        var room = await repository.CreateAsync(host.UserId, "Fix Test Room");
+        Assert.Equal(RoomStatus.Waiting, room!.Status);
+
+        // OutboxRepository.AddWithRoomUpdateAsync 시뮬레이션: DB만 업데이트
+        room.StartGame(host.UserId, 1);
+        using var contextForUpdate = _fixture.CreateDbContext();
+        contextForUpdate.DungeonRooms.Update(room);
+        await contextForUpdate.SaveChangesAsync();
+
+        // 수정: InvalidateCacheAsync 호출 → Redis 캐시 삭제
+        await repository.InvalidateCacheAsync(room.RoomId);
+
+        // Act: GetByIdAsync → 캐시 미스 → DB에서 Starting 로드
+        var freshRoom = await repository.GetByIdAsync(room.RoomId);
+
+        // Assert: 캐시 무효화 후 DB의 Starting 상태를 반환해야 함
+        Assert.Equal(RoomStatus.Starting, freshRoom!.Status);
+    }
+
+    // ── 장수(long-lived) DbContext + EF 추적 stale 버그 회귀 테스트 ──────
+    // 실제 버그:
+    //   SubscribeRoom 스트리밍 RPC는 Scoped DbContext를 수십 초 유지한다.
+    //   GetByIdAsync의 DB 폴백이 추적 쿼리면, 먼저 적재된 stale 엔티티(Starting)를
+    //   계속 반환하고 다른 스코프가 쓴 Playing을 영원히 못 읽는다.
+    //   → SendLoop이 Starting만 읽어 GameSessionEvent 대신 UpdateEvent만 전송.
+    //
+    // 수정 검증:
+    //   GetByIdAsync에 AsNoTracking 적용 → 같은 DbContext로 재조회해도 매번 DB 최신값.
+
+    [Fact]
+    public async Task 장수_DbContext로_재조회해도_다른_스코프의_DB_변경을_읽는다()
+    {
+        // Arrange ── 방 생성 (Waiting)
+        using var seedContext = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, seedContext, NullLogger<UserRepository>.Instance);
+        var host = await userRepo.CreateAsync();
+        var seedRepo = new DungeonRoomRepository(_fixture.RedisConnection, seedContext, NullLogger<DungeonRoomRepository>.Instance);
+
+        var room = await seedRepo.CreateAsync(host.UserId, "LongLived Room");
+        var roomId = room!.RoomId;
+
+        // 방을 Starting으로 만들고 캐시 무효화 (StartGame 시점 재현)
+        room.StartGame(host.UserId, 1);
+        await seedRepo.UpdateAsync(room); // DB=Starting, 캐시 DEL
+
+        // ── 스트리밍 RPC가 쓰는 "장수" DbContext (수십 초 유지되는 단일 컨텍스트) ──
+        using var streamingContext = _fixture.CreateDbContext();
+        var streamingRepo = new DungeonRoomRepository(_fixture.RedisConnection, streamingContext, NullLogger<DungeonRoomRepository>.Instance);
+
+        // 1차 조회: 캐시 미스 → DB(Starting) 읽음. 추적 쿼리였다면 여기서 streamingContext에 Starting이 적재됨.
+        var firstRead = await streamingRepo.GetByIdAsync(roomId);
+        Assert.Equal(RoomStatus.Starting, firstRead!.Status);
+
+        // ── 다른 스코프(Consumer 재현)가 DB를 Playing으로 변경 + 캐시 무효화 ──
+        using var consumerContext = _fixture.CreateDbContext();
+        var consumerRepo = new DungeonRoomRepository(_fixture.RedisConnection, consumerContext, NullLogger<DungeonRoomRepository>.Instance);
+        var consumerRoom = await consumerRepo.GetByIdAsync(roomId);
+        consumerRoom!.MarkGameSessionReady(); // Starting → Playing
+        await consumerRepo.UpdateAsync(consumerRoom); // DB=Playing, 캐시 DEL
+
+        // Act ── 같은 장수 DbContext로 재조회 (SendLoop 2차 처리 재현)
+        var secondRead = await streamingRepo.GetByIdAsync(roomId);
+
+        // Assert ── AsNoTracking이므로 DB 최신값(Playing)을 읽어야 한다.
+        //          추적 쿼리였다면 streamingContext가 캐싱한 stale Starting이 반환되어 실패.
+        Assert.Equal(RoomStatus.Playing, secondRead!.Status);
     }
 }

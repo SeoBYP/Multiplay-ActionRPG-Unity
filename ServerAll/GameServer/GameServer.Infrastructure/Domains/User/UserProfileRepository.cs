@@ -45,7 +45,7 @@ public class UserProfileRepository(
             if (entries.Length > 0)
                 return ParseUserProfileFromRedis(userId, entries);
 
-            var userProfile = await context.UserProfiles.SingleOrDefaultAsync(up => up.UserId == userId, ct);
+            var userProfile = await context.UserProfiles.AsNoTracking().SingleOrDefaultAsync(up => up.UserId == userId, ct);
             if (userProfile == null)
                 throw new KeyNotFoundException($"User profile not found for user id {userId}");
 

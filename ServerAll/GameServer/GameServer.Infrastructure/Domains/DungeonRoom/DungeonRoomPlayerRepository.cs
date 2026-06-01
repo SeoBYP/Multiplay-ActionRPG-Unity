@@ -62,6 +62,7 @@ public class DungeonRoomPlayerRepository(
             }
 
             var dbPlayers = await context.DungeonRoomPlayers
+                .AsNoTracking()
                 .Where(drp => drp.RoomId == roomId)
                 .ToListAsync(ct);
 
@@ -90,7 +91,7 @@ public class DungeonRoomPlayerRepository(
                 }
             }
 
-            var dbPlayer = await context.DungeonRoomPlayers.SingleOrDefaultAsync(drp => drp.UserId == userId, ct);
+            var dbPlayer = await context.DungeonRoomPlayers.AsNoTracking().SingleOrDefaultAsync(drp => drp.UserId == userId, ct);
             if (dbPlayer is not null)
             {
                 await SetDungeonRoomPlayerCacheAsync(dbPlayer);
@@ -161,6 +162,7 @@ public class DungeonRoomPlayerRepository(
             return ParseDungeonRoomPlayer(roomId, userId, entries);
 
         var dbPlayer = await context.DungeonRoomPlayers
+            .AsNoTracking()
             .SingleOrDefaultAsync(drp => drp.RoomId == roomId && drp.UserId == userId, ct);
 
         if (dbPlayer is not null)

@@ -34,6 +34,7 @@ public class ChatMessageRepository(
             {
                 // Redis에 없는 경우 DB에서 조회
                 messages = await context.ChatMessages
+                    .AsNoTracking()
                     .Where(m => m.MessageId > afterMessageId)
                     .OrderBy(m => m.MessageId)
                     .ToListAsync(ct);
@@ -99,7 +100,7 @@ public class ChatMessageRepository(
             if (entries.Length > 0)
                 return ParseChatMessage(messageId, entries);
 
-            var dbMessage = await context.ChatMessages.SingleOrDefaultAsync(m => m.MessageId == messageId, ct);
+            var dbMessage = await context.ChatMessages.AsNoTracking().SingleOrDefaultAsync(m => m.MessageId == messageId, ct);
             if (dbMessage is not null)
             {
                 await SetChatMessageCacheAsync(dbMessage);
@@ -130,6 +131,7 @@ public class ChatMessageRepository(
 
             // Redis 미스 시 DB 조회
             var dbMessages = await context.ChatMessages
+                .AsNoTracking()
                 .OrderByDescending(m => m.MessageId)
                 .Take(100) // 전체 조회 시 성능을 위해 최근 100개로 제한하는 것이 일반적
                 .ToListAsync(ct);
@@ -170,6 +172,7 @@ public class ChatMessageRepository(
 
             // DB 폴백
             var query = context.ChatMessages
+                .AsNoTracking()
                 .Where(m => m.SenderUserNickName == userName);
 
             if (beforeMessageId.HasValue)
@@ -218,6 +221,7 @@ public class ChatMessageRepository(
 
             // DB 폴백
             var query = context.ChatMessages
+                .AsNoTracking()
                 .Where(m => m.RoomId == roomId);
 
             if (beforeMessageId.HasValue)
