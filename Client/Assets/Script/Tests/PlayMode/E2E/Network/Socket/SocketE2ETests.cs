@@ -117,6 +117,95 @@ namespace Game.Tests.PlayMode.E2E
             }
         });
 
+        // ── 재연결 / Disconnected 상태 시나리오 ────────────────────────
+
+        /// <summary>
+        /// C_PlayerLeave 없이 강제 연결 종료(게임 크래시 시뮬레이션) 후
+        /// 같은 방에 다시 입장할 수 있어야 한다.
+        ///
+        /// 조건: 방에 다른 플레이어(게스트)가 남아 있어 SocketServer 방이 유지됨.
+        /// gamesession:player 키는 2시간 TTL → 재접속에 사용 가능.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 강제_연결_끊김_후_재접속_성공() => UniTask.ToCoroutine(async () =>
+        {
+            var room = await CreateStartedTwoPlayerRoomAsync();
+
+            // 게스트 먼저 입장 (방 유지 앵커)
+            var guestCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
+            // 호스트 첫 번째 입장
+            var hostCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+            try
+            {
+                // 호스트 강제 종료 — C_PlayerLeave 없이 TCP 연결만 끊는다 (크래시 시뮬레이션)
+                await hostCollector.DisposeAsync();
+                hostCollector = null;
+
+                // 서버가 TCP 연결 끊김을 감지할 시간을 준다
+                await UniTask.Delay(TimeSpan.FromMilliseconds(600));
+
+                // 호스트 재접속 시도 — gamesession:player 키가 유효하고
+                // 게스트가 방을 유지 중이므로 재입장 가능해야 한다
+                hostCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+                Assert.IsNotNull(hostCollector, "강제 끊김 후 재접속이 성공해야 한다");
+            }
+            finally
+            {
+                if (hostCollector != null)  await hostCollector.DisposeAsync();
+                await guestCollector.DisposeAsync();
+            }
+        });
+
+        /// <summary>
+        /// SocketSession 이 Disconnected 상태가 되어도 재접속 루프가
+        /// 무한 대기에 빠지지 않고 다음 시도를 진행해야 한다.
+        ///
+        /// 시나리오:
+        ///   1회 시도: TCP 연결 직후 강제 종료 → Session.State = Disconnected
+        ///   2회 시도: 정상 입장 → Joined
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Disconnected_상태에서_재시도로_입장_성공() => UniTask.ToCoroutine(async () =>
+        {
+            var room = await CreateStartedTwoPlayerRoomAsync();
+
+            // 게스트가 방을 유지
+            var guestCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
+
+            try
+            {
+                // --- 1차 시도: 연결 후 즉시 Disconnect (응답 대기 없이 끊음) ---
+                var state1    = new SocketPacketState();
+                var connector1 = new SocketConnector();
+                var dispatcher1 = new SocketPacketDispatcher(new IPacketHandler[]
+                    { new PlayerJoinedPacketHandler(state1), new MovePacketHandler(state1) });
+                var session1 = new SocketSession(connector1, dispatcher1);
+
+                await session1.ConnectAsync(
+                    new SocketConnectionInfo(ServerConfig.SocketServerHost, ServerConfig.SocketServerPort,
+                        room.RoomId, room.HostUserId), Timeout());
+
+                // JoinRoomAsync 없이 강제 Disconnect → State = Disconnected
+                await session1.DisconnectAsync(CancellationToken.None);
+                await connector1.DisposeAsync();
+
+                Assert.AreEqual(SocketSessionState.Disconnected, session1.State,
+                    "강제 종료 후 Disconnected 상태여야 한다");
+
+                // --- 2차 시도: 정상 입장 ---
+                // Disconnected 상태에서 새 세션을 만들어 재시도하면 성공해야 한다
+                var hostCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+                Assert.IsNotNull(hostCollector, "Disconnected 이후 재시도로 입장 성공해야 한다");
+                await hostCollector.DisposeAsync();
+            }
+            finally
+            {
+                await guestCollector.DisposeAsync();
+            }
+        });
+
         [UnityTest]
         public IEnumerator 게스트_부분퇴장후_재로그인시_방복원_안되고_호스트는_유지() => UniTask.ToCoroutine(async () =>
         {

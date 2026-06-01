@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Network.Https.Core;
@@ -8,7 +7,6 @@ using Game.Network.Https.Services;
 using GameServer.Grpc.Auth;
 using GameServer.Grpc.User;
 using NUnit.Framework;
-using UnityEngine.TestTools;
 
 namespace Game.Tests.PlayMode.E2E
 {
@@ -24,8 +22,12 @@ namespace Game.Tests.PlayMode.E2E
         protected string RefreshToken;
         protected string SessionId;
 
-        [UnitySetUp]
-        public IEnumerator SetUp() => UniTask.ToCoroutine(async () =>
+        // [UnitySetUp] / [UnityTearDown] + UniTask.ToCoroutine 대신 일반 [SetUp] / [TearDown] 사용.
+        // SetUp/TearDown은 동기 코드만 포함하므로 코루틴 상태머신이 불필요하다.
+        // [UnitySetUp]을 쓰면 EditMode 테스트 실행 후 EditModePcHelper가
+        // null enumerator를 복원하려다 NullReferenceException을 던지는 문제가 생긴다.
+        [SetUp]
+        public void SetUp()
         {
             ChannelProvider = new GrpcChannelProvider(ServerConfig.GameServerGrpcAddress);
             ChannelProvider.AccessTokenProvider = () => AccessToken;
@@ -34,13 +36,13 @@ namespace Game.Tests.PlayMode.E2E
             UserService = new UserGrpcService(ChannelProvider);
             LobbyService = new DungeonLobbyGrpcService(ChannelProvider);
             ChatService = new ChatGrpcService(ChannelProvider);
-        });
+        }
 
-        [UnityTearDown]
-        public IEnumerator TearDown() => UniTask.ToCoroutine(async () =>
+        [TearDown]
+        public void TearDown()
         {
             ChannelProvider?.Dispose();
-        });
+        }
 
         protected static string UniqueEmail()
             => $"e2e_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}@test.com";

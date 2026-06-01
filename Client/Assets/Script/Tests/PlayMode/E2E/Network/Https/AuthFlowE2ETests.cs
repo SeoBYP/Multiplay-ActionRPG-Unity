@@ -1,6 +1,6 @@
-using System.Collections;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using System.Collections;
 using Game.Network.Https.Core;
 using Game.Network.Https.Interfaces;
 using Game.Network.Https.Services;
@@ -18,8 +18,8 @@ namespace Game.Tests.PlayMode.E2E
         private AuthSession _authSession;
         private IAuthService _clientAuthService;
 
-        [UnitySetUp]
-        public IEnumerator 인증흐름_테스트_준비() => UniTask.ToCoroutine(async () =>
+        [SetUp]
+        public void 인증흐름_테스트_준비()
         {
             TokenStorage.Clear();
 
@@ -29,14 +29,14 @@ namespace Game.Tests.PlayMode.E2E
 
             IAuthGrpcService authGrpcService = new AuthGrpcService(_authFlowChannelProvider);
             _clientAuthService = new AuthService(authGrpcService, _authFlowChannelProvider, _authSession, new UserProfile(), new StartupIntentQueue());
-        });
+        }
 
-        [UnityTearDown]
-        public IEnumerator 인증흐름_테스트_정리() => UniTask.ToCoroutine(async () =>
+        [TearDown]
+        public void 인증흐름_테스트_정리()
         {
             TokenStorage.Clear();
             _authFlowChannelProvider?.Dispose();
-        });
+        }
 
         [UnityTest]
         public IEnumerator 로그인또는회원가입_최초로그인시_토큰을저장한다() => UniTask.ToCoroutine(async () =>
