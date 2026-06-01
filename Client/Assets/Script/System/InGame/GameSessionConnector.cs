@@ -4,8 +4,8 @@ using Cysharp.Threading.Tasks;
 using Game.Network.Socket;
 using Game.System.DungeonLobby;
 using Game.System.Auth;
+using Game.System.GameScene;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using VContainer.Unity;
 
 namespace Game.System.InGame
@@ -16,17 +16,20 @@ namespace Game.System.InGame
     public class GameSessionConnector : IInitializable, IDisposable
     {
         private readonly IDungeonLobbyService _lobbyService;
-        private readonly ISocketSession _socketSession;
-        private readonly AuthSession _authSession;
+        private readonly ISocketSession       _socketSession;
+        private readonly AuthSession          _authSession;
+        private readonly IGameSceneManager    _sceneManager;
 
         public GameSessionConnector(
             IDungeonLobbyService lobbyService,
-            ISocketSession socketSession,
-            AuthSession authSession)
+            ISocketSession       socketSession,
+            AuthSession          authSession,
+            IGameSceneManager    sceneManager)
         {
-            _lobbyService   = lobbyService;
-            _socketSession  = socketSession;
-            _authSession    = authSession;
+            _lobbyService  = lobbyService;
+            _socketSession = socketSession;
+            _authSession   = authSession;
+            _sceneManager  = sceneManager;
         }
 
         public void Initialize()
@@ -56,12 +59,11 @@ namespace Game.System.InGame
             ConnectAndLoadDungeonAsync(ip, port, roomId).Forget();
         }
 
-        // SocketServer가 GameStartRequested를 소비해 방을 생성하는 시점과
-        // 클라가 GameSessionReady를 받아 접속하는 시점 사이에 레이스가 있다.
-        // 방이 아직 없으면 서버가 S_PlayerJoined{Success=false}("Room not found")를 보내므로,
-        // 단발 시도로 끝내지 않고 방 생성이 끝날 때까지 짧게 재접속·재입장한다.
-        private const int MaxJoinAttempts = 10;
-        private static readonly TimeSpan JoinRetryDelay = TimeSpan.FromMilliseconds(300);
+        // SocketServer가 방을 생성하는 시점과 클라 접속 사이에 레이스가 있다.
+        // 퇴장 후 재입장 시 auto-retrigger → Outbox → SocketServer 방 재생성까지 최대 10초 소요.
+        // 방이 아직 없거나 연결이 끊겨도 재시도 루프가 커버한다.
+        private const int MaxJoinAttempts = 30;
+        private static readonly TimeSpan JoinRetryDelay = TimeSpan.FromMilliseconds(500);
 
         private async UniTaskVoid ConnectAndLoadDungeonAsync(string ip, int port, long roomId)
         {
@@ -75,19 +77,24 @@ namespace Game.System.InGame
 
                     await _socketSession.ConnectAsync(info, CancellationToken.None);
                     await _socketSession.JoinRoomAsync(CancellationToken.None);
+
+                    // Joined / Failed 외에 Disconnected도 감지한다.
+                    // JoinRoomAsync 전송 후 응답 대기 중 연결이 끊기면
+                    // State = Disconnected가 되어 Joined/Failed 조건이 영원히 충족되지 않는다.
                     await UniTask.WaitUntil(
                         () => _socketSession.State == SocketSessionState.Joined
-                           || _socketSession.State == SocketSessionState.Failed);
+                           || _socketSession.State == SocketSessionState.Failed
+                           || _socketSession.State == SocketSessionState.Disconnected);
 
                     if (_socketSession.State == SocketSessionState.Joined)
                     {
                         Debug.Log("[GameSessionConnector] 방 입장 완료 — Dungeon 씬 로드");
-                        await SceneManager.LoadSceneAsync("Dungeon");
+                        await _sceneManager.LoadSceneAsync("Dungeon", CancellationToken.None);
                         return;
                     }
 
-                    // 방 생성 전 접속 레이스로 추정 — 연결을 닫고 잠시 후 재시도한다.
-                    Debug.LogWarning($"[GameSessionConnector] 방 입장 실패 (시도 {attempt}/{MaxJoinAttempts}) — 재시도");
+                    var failState = _socketSession.State;
+                    Debug.LogWarning($"[GameSessionConnector] 방 입장 실패 (시도 {attempt}/{MaxJoinAttempts}, state={failState}) — 재시도");
                     await _socketSession.DisconnectAsync(CancellationToken.None);
 
                     if (attempt < MaxJoinAttempts)

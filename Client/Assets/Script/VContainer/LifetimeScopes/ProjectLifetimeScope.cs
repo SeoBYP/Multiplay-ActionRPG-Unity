@@ -1,4 +1,6 @@
 using Game.Gameplay.Input;
+using Game.Presentation.GameScene;
+using Game.System.GameScene;
 using VContainer;
 using VContainer.Unity;
 
@@ -25,7 +27,9 @@ namespace Game.Installers
             builder.Install(new AuthInstaller());
             builder.Install(new DungeonLobbyInstaller());
             builder.Install(new GameSessionInstaller());
-            
+
+            builder.Register<IGameSceneManager, GameSceneManager>(Lifetime.Singleton);
+
             builder.Register<PlayerInputActions>(Lifetime.Scoped);
         }
     }
