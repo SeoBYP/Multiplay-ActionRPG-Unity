@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -6,13 +7,15 @@ using Game.Network.Socket;
 using Game.Network.Socket.Packets;
 using Game.System.Auth;
 using Game.System.DungeonLobby;
+using Game.System.GameScene;
 using GameServer.Grpc.DungeonLobby;
 using NUnit.Framework;
+using UnityEngine.TestTools;
 
-namespace Game.Tests.EditMode.InGame
+namespace Game.Tests.PlayMode.InGame
 {
     /// <summary>
-    /// GameSessionConnector 단위 테스트.
+    /// GameSessionConnector 단위 테스트 (PlayMode).
     ///
     /// 핵심 검증:
     ///   - JoinRoomAsync 응답 대기 중 연결이 끊겨 Disconnected 상태가 되어도
@@ -20,16 +23,17 @@ namespace Game.Tests.EditMode.InGame
     ///   - Joined 상태 도달 시 정상 흐름으로 빠져나가야 한다.
     ///   - 중복 GameSessionReady 이벤트는 무시해야 한다.
     ///
-    /// SceneManager.LoadSceneAsync는 EditMode에서 실행할 수 없으므로,
-    /// Joined 상태가 되면 씬 로드 예외가 catch(Exception)로 잡혀 루프가 종료된다.
-    /// ConnectCallCount로 시도 횟수만 검증한다.
+    /// PlayMode인 이유: 커넥터가 UniTask.WaitUntil/Delay를, 테스트가 UniTask.DelayFrame을
+    /// 사용한다. UniTask의 PlayerLoopHelper는 [RuntimeInitializeOnLoadMethod]로 초기화되어
+    /// Play 모드에서만 동작한다. EditMode에서는 PlayerLoop이 null이라 NRE가 난다.
+    /// (Docker 불필요 — Fake 기반 순수 단위 테스트다.)
     /// </summary>
     [TestFixture]
     public class GameSessionConnectorTests
     {
         // ── Fake ──────────────────────────────────────────────────────
 
-        private sealed class FakeGameSceneManager : Game.System.GameScene.IGameSceneManager
+        private sealed class FakeGameSceneManager : IGameSceneManager
         {
             public UniTask LoadSceneAsync(string sceneName, CancellationToken ct = default)
                 => UniTask.CompletedTask;
@@ -113,10 +117,28 @@ namespace Game.Tests.EditMode.InGame
             return session;
         }
 
+        /// <summary>
+        /// ConnectAsync가 expected회 호출될 때까지 대기한다.
+        /// 커넥터는 재시도 사이에 JoinRetryDelay(500ms)를 두므로 고정 프레임 대기로는 부족하다.
+        /// 버그로 재시도가 안 되면 무한 대기에 빠지지 않도록 타임아웃으로 끊는다(끊겨도 이후 Assert가 실제 횟수를 드러낸다).
+        /// </summary>
+        private static async UniTask WaitForConnectAttemptsAsync(FakeSocketSession session, int expected)
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            try
+            {
+                await UniTask.WaitUntil(() => session.ConnectCallCount >= expected, cancellationToken: cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                // 타임아웃 — 재시도가 일어나지 않은 경우. Assert가 실제 횟수로 실패 메시지를 보여준다.
+            }
+        }
+
         // ── 테스트 ───────────────────────────────────────────────────
 
-        [Test]
-        public async UniTask JoinRoomAsync_대기_중_Disconnected_상태면_재시도한다()
+        [UnityTest]
+        public IEnumerator JoinRoomAsync_대기_중_Disconnected_상태면_재시도한다() => UniTask.ToCoroutine(async () =>
         {
             // Arrange
             // 1차 → Disconnected (연결 끊김), 2차 → Joined (성공)
@@ -130,17 +152,20 @@ namespace Game.Tests.EditMode.InGame
 
             // Act
             lobbyService.FireGameSessionReady("127.0.0.1", 7777, 1);
-            await UniTask.DelayFrame(5);
+
+            // 재시도 사이에 JoinRetryDelay(500ms)가 있으므로 고정 프레임 대기로는 2차 시도를 못 본다.
+            // 2회 시도가 일어날 때까지 대기하되, 무한 대기 방지를 위해 타임아웃으로 묶는다.
+            await WaitForConnectAttemptsAsync(session, 2);
 
             // Assert — Disconnected(1차) + Joined(2차) = 2번 시도
             Assert.AreEqual(2, session.ConnectCallCount, "Disconnected 상태 시 재시도해야 한다");
             Assert.AreEqual(2, session.JoinCallCount);
 
             connector.Dispose();
-        }
+        });
 
-        [Test]
-        public async UniTask JoinRoomAsync_Failed_상태면_재시도한다()
+        [UnityTest]
+        public IEnumerator JoinRoomAsync_Failed_상태면_재시도한다() => UniTask.ToCoroutine(async () =>
         {
             // 1차 → Failed (방 없음), 2차 → Joined
             var session = new FakeSocketSession()
@@ -152,15 +177,15 @@ namespace Game.Tests.EditMode.InGame
             connector.Initialize();
 
             lobbyService.FireGameSessionReady("127.0.0.1", 7777, 1);
-            await UniTask.DelayFrame(5);
+            await WaitForConnectAttemptsAsync(session, 2);
 
             Assert.AreEqual(2, session.ConnectCallCount, "Failed 상태 시 재시도해야 한다");
 
             connector.Dispose();
-        }
+        });
 
-        [Test]
-        public async UniTask GameSessionReady_이미_연결_중이면_무시된다()
+        [UnityTest]
+        public IEnumerator GameSessionReady_이미_연결_중이면_무시된다() => UniTask.ToCoroutine(async () =>
         {
             var session = new FakeSocketSession()
                 .QueueState(SocketSessionState.Joined);
@@ -177,6 +202,6 @@ namespace Game.Tests.EditMode.InGame
             Assert.AreEqual(1, session.ConnectCallCount, "중복 이벤트는 무시해야 한다");
 
             connector.Dispose();
-        }
+        });
     }
 }
