@@ -14,22 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
   m_GroupName: UI_Common
   m_GUID: 3dd31ef22783c304497836836a419a9c
-  m_SerializeEntries:
-  - m_GUID: 0ce8a224cda2815448466ce1c81de9f9
-    m_Address: Assets/Prefabs/GUI/Common/AlertPopup.prefab
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: c0d5b2afebf15094b96a5b47bcb6443f
-    m_Address: Assets/Prefabs/GUI/Common/ConfirmPopup.prefab
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: eeed39646c1b7224788e4371aa787505
-    m_Address: Assets/Prefabs/GUI/Common/WarningPopup.prefab
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
+  m_SerializeEntries: []
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 9cc3160cdc041234caad31f304512f27, type: 2}
   m_SchemaSet:

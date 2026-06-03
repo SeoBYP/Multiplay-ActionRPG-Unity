@@ -15,6 +15,16 @@ MonoBehaviour:
   m_GroupName: Default Local Group
   m_GUID: 2efb398868f068141bdc3ad3f516ee73
   m_SerializeEntries:
+  - m_GUID: 0a28b832006a8824ca20d6db41bc7973
+    m_Address: Assets/Prefabs/GUI/Title/RegisterWindow.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0ce8a224cda2815448466ce1c81de9f9
+    m_Address: Assets/Prefabs/GUI/Common/Popups/AlertPopup.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 1fc5dabf54556b444a73d1f9bfbb8a01
     m_Address: Assets/Prefabs/GUI/HUD/EffectSlots/QuickButtonSlot.prefab
     m_ReadOnly: 0
@@ -22,6 +32,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 37395400f4ac38c41889af90393c46fa
     m_Address: Assets/Prefabs/GUI/HUD/EffectSlots/BattleEffectSlot.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 396bd6adea8b9364f8a1fe9241112362
+    m_Address: Assets/Prefabs/Character/RemotePlayerCharacter.prefab
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -40,8 +55,33 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 674bce3251c3d1d4fb059f2ccb4a6c3e
+    m_Address: Assets/Prefabs/GUI/Title/LoginWindow.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 88a2d3e045580174c8c7173b08b8ac6f
     m_Address: Assets/Prefabs/GUI/Common/FaderCanvas.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c0d5b2afebf15094b96a5b47bcb6443f
+    m_Address: Assets/Prefabs/GUI/Common/Popups/ConfirmPopup.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c43f36aedf7beb5479762e2c760b78cc
+    m_Address: Assets/Prefabs/GUI/Title/MainMenuWindow.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: eedb489d21a109747b75e38aed6041af
+    m_Address: Assets/Prefabs/Character/PlayerCharacter.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: eeed39646c1b7224788e4371aa787505
+    m_Address: Assets/Prefabs/GUI/Common/Popups/WarningPopup.prefab
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
