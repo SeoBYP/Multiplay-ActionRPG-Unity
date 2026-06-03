@@ -19,18 +19,24 @@ namespace Game.System.InGame
         private readonly ISocketSession       _socketSession;
         private readonly AuthSession          _authSession;
         private readonly IGameSceneManager    _sceneManager;
+        private readonly ISocketPacketState   _packetState;
 
         public GameSessionConnector(
             IDungeonLobbyService lobbyService,
             ISocketSession       socketSession,
             AuthSession          authSession,
-            IGameSceneManager    sceneManager)
+            IGameSceneManager    sceneManager,
+            ISocketPacketState   packetState)
         {
             _lobbyService  = lobbyService;
             _socketSession = socketSession;
             _authSession   = authSession;
             _sceneManager  = sceneManager;
+            _packetState   = packetState;
         }
+
+        /// <summary>전원 입장(S_GameStatus InProgress) 대기 타임아웃 — 초과 시 그대로 진행(무한 로딩 방지).</summary>
+        private static readonly TimeSpan DungeonReadyTimeout = TimeSpan.FromSeconds(30);
 
         public void Initialize()
         {
@@ -67,6 +73,16 @@ namespace Game.System.InGame
 
         private async UniTaskVoid ConnectAndLoadDungeonAsync(string ip, int port, long roomId)
         {
+            // 전원 입장(서버 S_GameStatus InProgress) 신호를 미리 잡아둔다.
+            // 입장(JoinRoom) 전에 구독하므로 서버 브로드캐스트를 놓치지 않는다(TCS 래치).
+            var readyTcs = new UniTaskCompletionSource();
+            void OnDungeonReady()
+            {
+                Debug.Log("[GameSessionConnector] 전원 입장 신호 수신 (S_GameStatus InProgress) — 로딩 해제");
+                readyTcs.TrySetResult();
+            }
+            _packetState.OnDungeonReady += OnDungeonReady;
+
             try
             {
                 var info = new SocketConnectionInfo(ip, port, roomId, _authSession.UserId);
@@ -88,8 +104,12 @@ namespace Game.System.InGame
 
                     if (_socketSession.State == SocketSessionState.Joined)
                     {
-                        Debug.Log("[GameSessionConnector] 방 입장 완료 — Dungeon 씬 로드");
-                        await _sceneManager.LoadSceneAsync("Dungeon", CancellationToken.None);
+                        Debug.Log("[GameSessionConnector] 방 입장 완료 — Dungeon 씬 로드(전원 입장까지 Loading 유지)");
+                        // 씬 로드 후 Loading을 띄운 채 전원 입장 대기 → 완료 시 Fader로 reveal.
+                        await _sceneManager.LoadSceneAsync(
+                            "Dungeon",
+                            CancellationToken.None,
+                            () => WaitForDungeonReadyAsync(readyTcs));
                         return;
                     }
 
@@ -111,6 +131,21 @@ namespace Game.System.InGame
             {
                 Debug.LogError($"[GameSessionConnector] 연결 실패: {e}");
             }
+            finally
+            {
+                _packetState.OnDungeonReady -= OnDungeonReady;
+            }
+        }
+
+        /// <summary>전원 입장 신호 또는 타임아웃까지 대기. 타임아웃 시 경고 후 진행(무한 로딩 방지).</summary>
+        private static async UniTask WaitForDungeonReadyAsync(UniTaskCompletionSource ready)
+        {
+            Debug.Log("[GameSessionConnector] 전원 입장 대기 시작 — 'Loading' 유지");
+            var winIndex = await UniTask.WhenAny(ready.Task, UniTask.Delay(DungeonReadyTimeout));
+            if (winIndex != 0)
+                Debug.LogWarning("[GameSessionConnector] 전원 입장 대기 타임아웃 — 그대로 진행");
+            else
+                Debug.Log("[GameSessionConnector] 전원 입장 확인 — 게임 시작(Fader 전환)");
         }
     }
 }

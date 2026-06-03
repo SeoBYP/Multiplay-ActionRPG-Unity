@@ -71,18 +71,6 @@ namespace Game.Gameplay.Character
                             context.InputSource,
                             context.LocomotionSettings.JumpToFallDelay));
                     }
-                    if (context.InputSource != null && availableStates.ContainsKey(StateKind.Attack))
-                    {
-                        state.AddTransition(new GroundToAttackTransition(context.InputSource));
-                    }
-                    if (context.InputSource != null &&
-                        context.InteractionDetector != null &&
-                        availableStates.ContainsKey(StateKind.Interact))
-                    {
-                        state.AddTransition(new GroundToInteractTransition(
-                            context.InputSource,
-                            context.InteractionDetector));
-                    }
                     break;
 
                 case StateKind.Jump:
@@ -106,22 +94,6 @@ namespace Game.Gameplay.Character
                     {
                         state.AddTransition(new LandToGroundTransition(
                             GetDuration(definition, context.LocomotionSettings.LandDuration)));
-                    }
-                    break;
-
-                case StateKind.Interact:
-                    if (availableStates.ContainsKey(StateKind.Ground))
-                    {
-                        state.AddTransition(new InteractToGroundTransition(
-                            GetDuration(definition, context.LocomotionSettings.InteractReturnDelay)));
-                    }
-                    break;
-
-                case StateKind.Attack:
-                    if (availableStates.ContainsKey(StateKind.Ground))
-                    {
-                        state.AddTransition(new AttackToGroundTransition(
-                            GetDuration(definition, 0.5f)));
                     }
                     break;
 

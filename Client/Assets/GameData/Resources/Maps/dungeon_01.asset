@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99d1c56b40bcc36468768a44b739f14e, type: 3}
+  m_Name: dungeon_01
+  m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Spawn.MapDefinition
+  mapId: dungeon_01
+  visualPrefab: {fileID: 395377278721909691, guid: 5b96864f9c019d44784274d95efba9bd, type: 3}
+  playerSpawns:
+  - position: {x: 0, y: 0, z: 0}
+    rotationY: 0
+  - position: {x: 2, y: 0, z: 0}
+    rotationY: 180
+  - position: {x: -2, y: 0, z: 0}
+    rotationY: 90
+  - position: {x: 0, y: 0, z: 2}
+    rotationY: 270

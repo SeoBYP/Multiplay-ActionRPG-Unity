@@ -204,6 +204,20 @@ namespace Game.Network.Socket
         }
 
         /// <summary>
+        /// 임의 패킷을 Joined 상태에서 전송한다. (C_Attack 등 게임플레이 패킷)
+        /// </summary>
+        public async UniTask SendAsync(Packet packet, CancellationToken ct)
+        {
+            if (State != SocketSessionState.Joined)
+            {
+                throw new InvalidOperationException("SocketSession is not joined.");
+            }
+
+            using var linkedCts = CreateLinkedToken(ct);
+            await _connector.SendAsync(packet, linkedCts.Token);
+        }
+
+        /// <summary>
         /// 세션을 종료하고 연결 리소스를 정리한다.
         /// </summary>
         public async UniTask DisconnectAsync(CancellationToken ct)

@@ -33,7 +33,8 @@
         "Microsoft.Extensions.Options.dll",
         "Google.Protobuf.dll",
         "System.Collections.Immutable.dll",
-        "R3.dll"
+        "R3.dll",
+        "Shared.Gameplay.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

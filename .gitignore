@@ -512,6 +512,7 @@ fabric.properties
 ExportedObj/
 .consulo/
 *.csproj
+!ServerAll/**/*.csproj
 *.unityproj
 *.sln
 *.booproj

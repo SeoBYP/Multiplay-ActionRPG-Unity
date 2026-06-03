@@ -49,6 +49,34 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
+        public IEnumerator RawSocket_전원_입장하면_양쪽_S_GameStatus_InProgress_수신() => UniTask.ToCoroutine(async () =>
+        {
+            // 전원(2/2) 입장 시 서버 RoomJoinLeaveHandler 가 방에 S_GameStatus(InProgress) 브로드캐스트.
+            // = 클라 "전원 입장(던전 준비 완료)" 신호. 로딩 해제 → Fader 전환의 트리거.
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var hostCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+            var guestCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
+
+            try
+            {
+                var guestStatus = await guestCollector.WaitForPacketAsync<S_GameStatus>(
+                    packet => packet.RoomId == room.RoomId && packet.GameStatus == EGameStatus.InProgress,
+                    Timeout());
+                Assert.AreEqual(EGameStatus.InProgress, guestStatus.GameStatus, "게스트가 전원 입장 신호를 받아야 한다");
+
+                var hostStatus = await hostCollector.WaitForPacketAsync<S_GameStatus>(
+                    packet => packet.RoomId == room.RoomId && packet.GameStatus == EGameStatus.InProgress,
+                    Timeout());
+                Assert.AreEqual(EGameStatus.InProgress, hostStatus.GameStatus, "호스트도 전원 입장 신호를 받아야 한다");
+            }
+            finally
+            {
+                await hostCollector.DisposeAsync();
+                await guestCollector.DisposeAsync();
+            }
+        });
+
+        [UnityTest]
         public IEnumerator RawSocket_호스트가_Move_전송하면_게스트가_S_Move_수신() => UniTask.ToCoroutine(async () =>
         {
             var room = await CreateStartedTwoPlayerRoomAsync();
@@ -83,6 +111,40 @@ namespace Game.Tests.PlayMode.E2E
                 Assert.AreEqual(moveY, move.PosY);
                 Assert.AreEqual(moveZ, move.PosZ);
                 Assert.AreEqual(rotY, move.RotY);
+            }
+            finally
+            {
+                await hostCollector.DisposeAsync();
+                await guestCollector.DisposeAsync();
+            }
+        });
+
+        [UnityTest]
+        public IEnumerator RawSocket_호스트가_정면의_게스트를_공격하면_서버권위_적중_S_ApplyEffect() => UniTask.ToCoroutine(async () =>
+        {
+            // CA-3: 서버가 hitbox로 적중을 재계산(권위). 호스트를 원점·+Z 정면, 게스트를 정면 1유닛 앞으로
+            // 이동시켜 basic_swing hitbox 안에 들어가게 한 뒤 C_Attack → 서버가 적중 판정 → S_ApplyEffect 브로드캐스트.
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var hostCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+            var guestCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
+
+            try
+            {
+                // 위치 세팅: 서버 Room이 두 이동을 반영하도록 전송 후 잠시 대기.
+                await hostCollector.SendAsync(new C_Move { PosX = 0, PosY = 0, PosZ = 0, RotY = 0 }, Timeout());
+                await guestCollector.SendAsync(new C_Move { PosX = 0, PosY = 0, PosZ = 1, RotY = 0 }, Timeout());
+                await UniTask.Delay(TimeSpan.FromMilliseconds(400));
+
+                await hostCollector.SendAsync(new C_Attack { SkillId = 0 }, Timeout());
+
+                var apply = await guestCollector.WaitForPacketAsync<S_ApplyEffect>(
+                    packet => packet.TargetId == room.GuestUserId && packet.SourceId == room.HostUserId,
+                    Timeout());
+
+                Assert.AreEqual(room.GuestUserId, apply.TargetId);
+                Assert.AreEqual(room.HostUserId, apply.SourceId);
+                Assert.AreEqual("basic_attack_dmg", apply.EffectId, "basic_swing의 OnHitEffect가 적용돼야 한다");
+                Assert.Greater(apply.InstanceId, 0, "서버가 InstanceId를 권위 발급해야 한다");
             }
             finally
             {

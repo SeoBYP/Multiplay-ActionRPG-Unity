@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Shared.Infrastructure.Messages;
+using Shared.Infrastructure.Spawn;
 using Shared.Packet.Packets;
 
 namespace Server.Room;
@@ -37,11 +38,15 @@ public class RoomManager
         }
 
         _roomMessages[msgRoomId] = message;
+        room.MapId = message.MapId;
+        var layout = SpawnLayoutTable.Get(message.MapId);
         foreach (var playerInfo in message.PlayerInfos)
         {
             _userRoomIndex[playerInfo.UserId] = msgRoomId;
-            var spawn = ResolveSpawn(playerInfo.SpawnIndex);
-            room.InitPlayerState(playerInfo.UserId, playerInfo.Nickname, spawn.X, spawn.Y, spawn.Z);
+            var spawn = SpawnResolver.Resolve(layout, playerInfo.SpawnIndex);
+            room.InitPlayerState(
+                playerInfo.UserId, playerInfo.Nickname, playerInfo.SpawnIndex,
+                spawn.X, spawn.Y, spawn.Z, spawn.RotY);
         }
 
         _logger.LogInformation("Room {RoomId} created with {MaxPlayers} players", msgRoomId, msgPlayerIds.Count);
@@ -189,19 +194,6 @@ public class RoomManager
     public List<Room> GetAllRooms()
     {
         return _rooms.Values.ToList();
-    }
-
-    private static (float X, float Y, float Z) ResolveSpawn(int spawnIndex)
-    {
-        return spawnIndex switch
-        {
-            0 => (0f, 0f, 0f),
-            1 => (2f, 0f, 0f),
-            2 => (-2f, 0f, 0f),
-            3 => (0f, 0f, 2f),
-            4 => (0f, 0f, -2f),
-            _ => (spawnIndex * 1.5f, 0f, 0f)
-        };
     }
 
     private void RemoveUserRoomIndexes(long roomId)

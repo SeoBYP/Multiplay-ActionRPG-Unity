@@ -7,6 +7,8 @@
         "Game.System.DungeonLobby",
         "Game.System.InGame",
         "Game.Gameplay",
+        "Game.Presentation",
+        "Game.GUI",
         "UniTask",
         "VContainer",
         "Unity.InputSystem",
@@ -26,7 +28,8 @@
         "Microsoft.Extensions.Logging.dll",
         "Microsoft.Extensions.Logging.Abstractions.dll",
         "Microsoft.Extensions.Options.dll",
-        "Google.Protobuf.dll"
+        "Google.Protobuf.dll",
+        "Shared.Gameplay.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

@@ -15,8 +15,33 @@ MonoBehaviour:
   m_GroupName: Default Local Group
   m_GUID: 2efb398868f068141bdc3ad3f516ee73
   m_SerializeEntries:
+  - m_GUID: 1fc5dabf54556b444a73d1f9bfbb8a01
+    m_Address: Assets/Prefabs/GUI/HUD/EffectSlots/QuickButtonSlot.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 37395400f4ac38c41889af90393c46fa
+    m_Address: Assets/Prefabs/GUI/HUD/EffectSlots/BattleEffectSlot.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3b9553bdfed50e4489f17428aa445aff
+    m_Address: Assets/Prefabs/GUI/Common/Loading/LoadingCanvas.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5b96864f9c019d44784274d95efba9bd
+    m_Address: Assets/Prefabs/Enviroment/Plane.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 60b1abc51294c6e4496fb8281b6cb87e
     m_Address: Assets/Prefabs/GUI/HUD/GameHud.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 88a2d3e045580174c8c7173b08b8ac6f
+    m_Address: Assets/Prefabs/GUI/Common/FaderCanvas.prefab
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

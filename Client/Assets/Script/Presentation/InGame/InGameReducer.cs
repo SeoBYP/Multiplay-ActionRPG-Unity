@@ -14,6 +14,18 @@ namespace Game.Presentation.InGame
             if (result is InGameResult.Failed failed)
                 return state.WithError(failed.Message);
 
+            if (result is InGameResult.HpChanged hp)
+                return state.WithHp(hp.Current, hp.Max);
+
+            if (result is InGameResult.MpChanged mp)
+                return state.WithMp(mp.Current, mp.Max);
+
+            if (result is InGameResult.BuffsChanged buffs)
+                return state.WithBuffs(buffs.Buffs);
+
+            if (result is InGameResult.DungeonReady)
+                return state.WithDungeonReady();
+
             return state;
         }
     }

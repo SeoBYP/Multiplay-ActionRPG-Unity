@@ -18,6 +18,9 @@ namespace Game.Network.Socket.Packets
     // 전투
     [MemoryPackUnion(1600,typeof(C_Attack))]
     [MemoryPackUnion(1601,typeof(S_Attack))]
+    // 전투 - Effect(버프/디버프) 동기화
+    [MemoryPackUnion(1640,typeof(S_ApplyEffect))]
+    [MemoryPackUnion(1641,typeof(S_RemoveEffect))]
     // 게임 라이프사이클
     [MemoryPackUnion(1701,typeof(S_GameStatus))]
     public abstract partial class Packet

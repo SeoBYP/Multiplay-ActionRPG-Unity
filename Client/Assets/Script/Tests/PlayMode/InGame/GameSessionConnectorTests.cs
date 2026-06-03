@@ -35,7 +35,7 @@ namespace Game.Tests.PlayMode.InGame
 
         private sealed class FakeGameSceneManager : IGameSceneManager
         {
-            public UniTask LoadSceneAsync(string sceneName, CancellationToken ct = default)
+            public UniTask LoadSceneAsync(string sceneName, CancellationToken ct = default, global::System.Func<UniTask> holdUntil = null)
                 => UniTask.CompletedTask;
         }
 
@@ -79,6 +79,7 @@ namespace Game.Tests.PlayMode.InGame
             }
 
             public UniTask SendMoveAsync(C_Move packet, CancellationToken ct) => UniTask.CompletedTask;
+            public UniTask SendAsync(Packet packet, CancellationToken ct) => UniTask.CompletedTask;
         }
 
         private sealed class FakeDungeonLobbyService : IDungeonLobbyService
@@ -147,7 +148,7 @@ namespace Game.Tests.PlayMode.InGame
                 .QueueState(SocketSessionState.Joined);
 
             var lobbyService = new FakeDungeonLobbyService();
-            var connector    = new Game.System.InGame.GameSessionConnector(lobbyService, session, MakeAuthSession(), new FakeGameSceneManager());
+            var connector    = new Game.System.InGame.GameSessionConnector(lobbyService, session, MakeAuthSession(), new FakeGameSceneManager(), new SocketPacketState());
             connector.Initialize();
 
             // Act
@@ -173,7 +174,7 @@ namespace Game.Tests.PlayMode.InGame
                 .QueueState(SocketSessionState.Joined);
 
             var lobbyService = new FakeDungeonLobbyService();
-            var connector    = new Game.System.InGame.GameSessionConnector(lobbyService, session, MakeAuthSession(), new FakeGameSceneManager());
+            var connector    = new Game.System.InGame.GameSessionConnector(lobbyService, session, MakeAuthSession(), new FakeGameSceneManager(), new SocketPacketState());
             connector.Initialize();
 
             lobbyService.FireGameSessionReady("127.0.0.1", 7777, 1);
@@ -191,7 +192,7 @@ namespace Game.Tests.PlayMode.InGame
                 .QueueState(SocketSessionState.Joined);
 
             var lobbyService = new FakeDungeonLobbyService();
-            var connector    = new Game.System.InGame.GameSessionConnector(lobbyService, session, MakeAuthSession(), new FakeGameSceneManager());
+            var connector    = new Game.System.InGame.GameSessionConnector(lobbyService, session, MakeAuthSession(), new FakeGameSceneManager(), new SocketPacketState());
             connector.Initialize();
 
             lobbyService.FireGameSessionReady("127.0.0.1", 7777, 1);

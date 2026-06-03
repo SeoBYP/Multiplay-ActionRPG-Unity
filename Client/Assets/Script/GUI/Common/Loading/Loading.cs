@@ -15,5 +15,10 @@ namespace Game.GUI.Common
             slider.value = progress;
             text.text = $"로딩중 {(int)progress}%";
         }
+
+        public void SetMessage(string message)
+        {
+            if (text != null) text.text = message;
+        }
     }
 }

@@ -13,7 +13,6 @@ namespace Game.Gameplay.Character
                 Animations = AgentAnimations,
                 InputSource = InputSource,
                 AbilitySystem = AbilitySystem,
-                HitEventReceiver = GetComponent<CharacterHitEventReceiver>(),
                 LocomotionSettings = settings,
             };
         }
