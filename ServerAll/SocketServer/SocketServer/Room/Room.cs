@@ -11,10 +11,19 @@ public class Room
     public long RoomId { get; private set; }
     public int MaxMembers { get; private set; }
 
+    /// <summary>플레이 중인 맵 식별자. 스폰 레이아웃 선택에 사용. CreateRoom 에서 설정.</summary>
+    public string MapId { get; set; } = Shared.Infrastructure.Spawn.MapIds.Default;
+
     private readonly Dictionary<ulong, Session> _playerSessions = new();
     private readonly Dictionary<long, PlayerState> _playerStates = new();
     private readonly HashSet<long> _expectedUserIds;
     private readonly ILogger<Room> _logger;
+
+    // 서버 권위 GameplayEffect InstanceId 발급기 (방 단위, 스레드 안전).
+    private int _nextEffectInstanceId;
+
+    /// <summary>활성 Effect 인스턴스에 부여할 서버 권위 InstanceId를 1씩 증가시켜 반환한다.</summary>
+    public int NextEffectInstanceId() => System.Threading.Interlocked.Increment(ref _nextEffectInstanceId);
     
 
     public int MemberCount
@@ -125,7 +134,7 @@ public class Room
         }
     }
 
-    public void InitPlayerState(long userId, string nickname, float spawnX, float spawnY, float spawnZ)
+    public void InitPlayerState(long userId, string nickname, int spawnIndex, float spawnX, float spawnY, float spawnZ, float rotY)
     {
         lock (_playerStates)
         {
@@ -133,18 +142,21 @@ public class Room
             {
                 UserId = userId,
                 Nickname = nickname,
+                SpawnIndex = spawnIndex,
                 PosX = spawnX,
                 PosY = spawnY,
                 PosZ = spawnZ,
+                RotY = rotY,
                 LastMovedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             };
 
             _playerStates[userId] = playerState;
-            
+
             _logger.LogInformation(
-                "Initialized player state for User {UserId} ({Nickname}) at ({SpawnX}, {SpawnY}, {SpawnZ}) in Room {RoomId}",
+                "Initialized player state for User {UserId} ({Nickname}) slot {SpawnIndex} at ({SpawnX}, {SpawnY}, {SpawnZ}) in Room {RoomId}",
                 userId,
                 nickname,
+                spawnIndex,
                 spawnX,
                 spawnY,
                 spawnZ,

@@ -13,4 +13,16 @@ MonoBehaviour:
   m_Name: CharacterStateConfig
   m_EditorClassIdentifier: Game.Main::Game.Main.Character.CharacterStateConfig
   InitialState: 0
-  States: []
+  States:
+  - Kind: 0
+    Duration: 0
+    InvokeDelay: 0
+  - Kind: 1
+    Duration: 0
+    InvokeDelay: 0
+  - Kind: 2
+    Duration: 0
+    InvokeDelay: 0
+  - Kind: 3
+    Duration: 0.533
+    InvokeDelay: 0

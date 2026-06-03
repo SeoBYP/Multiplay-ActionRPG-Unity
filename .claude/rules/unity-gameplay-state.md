@@ -41,19 +41,21 @@ Motor                  ← 실제 이동/물리 적용
 점프는 "버튼을 누르면 위로 움직이는 기능"이 아니라 이동 모드 전환이다.  
 `Jump` 입력은 `JumpState`가 생길 때 `ConsumeJumpPressed()`로 연결. 즉시 강제 연결 금지.
 
-## AttackState 책임 범위
+## 두 축 분리 (CA-1, 최우선)
 
-담당하는 것:
-- 공격 상태 진입 및 종료
-- Animator Trigger 실행
-- 공격 지속 시간 관리
-- 중복 타격 방지용 HitTarget 목록 초기화
+캐릭터는 **두 축**으로 나눈다. 섞지 않는다.
+- **Locomotion 축** = FSM (`Ground/Jump/Fall/Land`) — 배타적 이동 모드.
+- **Action 축**(공격/상호작용/스킬) = **FSM 상태가 아니다.** 입력→발동(GAS/대상 위임).
 
-직접 하면 안 되는 것:
-- Hit 판정 (`HitDetector` 책임)
-- 데미지 적용 (`AbilitySystemComponent` → `GameplayEffect` 흐름)
-- Health 직접 수정
-- `AbilitySystemComponent` 직접 호출
+→ **`AttackState`/`InteractState`는 없다(제거됨).** Action을 새 FSM 상태로 만들지 말 것.
+이동 제약(루트/감속)이 필요하면 **GameplayEffect/태그**로 표현(상태 전이 아님).
+
+## Attack = Action 축 (FSM 아님)
+
+- 발동: 로컬 드라이버(`PlayerCharacterAgent.HandleAttackInput`)가 `ConsumeAttackPressed`로 폴링 → 히트타겟 리셋 + 공격 애니 트리거. (이동 중 공격 가능 = 두 축 직교)
+- 데미지: **Animation Event 기준**(아래 Hit 흐름) — 입력 순간이 아님.
+- 직접 하면 안 되는 것: Hit 판정(`HitDetector`)/데미지 적용은 입력 핸들러가 하지 않는다.
+- ※ 스윙의 정식 GAS 어빌리티化(쿨다운·active window·서버 권위 예측)는 CA-3. 그 전엔 입력 폴링 + 기존 GAS 데미지 체인.
 
 ## Hit 판정 흐름
 
@@ -68,15 +70,25 @@ Animation Event (타격 프레임)
     → Health 감소
 ```
 
-## 상호작용 원칙
+## 상호작용 원칙 (Action 축 — FSM 아님)
 
-상호작용을 `if (E pressed) Interact()` 패턴으로 구현하지 않는다.  
-탐지(InteractionDetector) → 상태 전환(InteractionState) → 실제 실행(IInteractable.Interact()) 흐름으로 처리.
+`InteractState`(FSM)는 제거됐다. 탐지/위임 흐름으로 처리한다:
+
+```
+InteractionDetector (탐지, 매 프레임 최근접 IInteractable 선택)
+   → 로컬 드라이버 입력 폴링 (ConsumeInteractPressed)
+   → IInteractable.Interact(interactor)   ← 대상(문/아이템/NPC)이 행동을 소유
+```
+
+- 탐지를 건너뛴 `if (E pressed) Interact()` 직결 금지(탐지는 `InteractionDetector`가 분리 담당).
+- **`IInteractable.Interact(GameObject interactor)`** — instigator를 받는다(아이템 줍기/효과 대상 식별). 소비 아이템 등은 그 구현체가 `ASC.ApplyEffect`를 호출(아이템↔GAS는 interactable 안에서 합류).
+- ※ 던전 상호작용 실작동 경로 = `Game.Gameplay.Character`(detector+`IInteractable`). `Game.Gameplay.Input.InteractionSystem`(리치/라우터)은 아웃게임 등록·휴면 중복 → 일원화는 별도 정리 대상.
 
 ## CharacterStateConfig와 캐릭터 분리
 
 `PlayerStateConfig`와 `NPCStateConfig`는 별도 ScriptableObject.  
-NPC가 사용하지 않는 State (예: Attack)는 NPCStateConfig에서 제외.  
+캐릭터가 사용하지 않는 Locomotion State(예: NPC가 `Jump` 미사용)는 해당 Config에서 제외.  
+(Action은 더 이상 State가 아니므로 Config엔 Locomotion만 남음.)  
 StateFactory는 두 Config를 동일하게 처리 — 캐릭터 타입을 알지 않는다.
 
 ## GameplayAttribute Inspector 직렬화

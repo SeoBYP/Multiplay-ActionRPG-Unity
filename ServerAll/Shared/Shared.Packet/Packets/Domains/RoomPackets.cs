@@ -16,10 +16,14 @@ public partial class S_PlayerJoined : Packet
     public string Message { get; set; } = "";
     public long UserId { get; set; }
     public string Nickname { get; set; } = "";
+    // 현재(또는 마지막으로 알려진) 위치. 이미 움직인 원격 플레이어의 위치 복원에 사용.
     public float PosX { get; set; }
     public float PosY { get; set; }
     public float PosZ { get; set; }
     public float RotY { get; set; }
+    // 결정론적 스폰 입력. 클라가 MapId 레이아웃 + SpawnIndex 로 자기 스폰 위치를 직접 계산한다.
+    public string MapId { get; set; } = "";
+    public int SpawnIndex { get; set; }
 }
 
 [MemoryPackable]

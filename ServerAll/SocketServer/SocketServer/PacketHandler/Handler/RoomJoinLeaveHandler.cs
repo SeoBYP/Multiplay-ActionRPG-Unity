@@ -1,9 +1,24 @@
+using Server.Player;
 using Shared.Packet.Packets;
 
 namespace Server.PacketHandler.Handler;
 
 public static class RoomJoinLeaveHandler
 {
+    private static S_PlayerJoined ToJoinedPacket(PlayerState state, string mapId) => new()
+    {
+        Success = true,
+        Message = "",
+        UserId = state.UserId,
+        Nickname = state.Nickname,
+        PosX = state.PosX,
+        PosY = state.PosY,
+        PosZ = state.PosZ,
+        RotY = state.RotY,
+        MapId = mapId,
+        SpawnIndex = state.SpawnIndex
+    };
+
     [PacketHandler(typeof(C_PlayerJoin))]
     public static async ValueTask HandlePlayerJoin(Session session, C_PlayerJoin packet, CancellationToken ct)
     {
@@ -46,20 +61,20 @@ public static class RoomJoinLeaveHandler
             return;
         }
 
-        var joinedPacket = new S_PlayerJoined
-        {
-            Success = true,
-            Message = "",
-            UserId = playerState.UserId,
-            Nickname = playerState.Nickname,
-            PosX = playerState.PosX,
-            PosY = playerState.PosY,
-            PosZ = playerState.PosZ,
-            RotY = playerState.RotY
-        };
+        var joinedPacket = ToJoinedPacket(playerState, room.MapId);
 
+        // 1) 본인에게 자기 입장 응답(MapId+SpawnIndex 포함 → 클라가 결정론으로 스폰).
         await session.SendPacketAsync(joinedPacket, ct);
+        // 2) 기존 입장자들에게 신규 플레이어 통보.
         room.Broadcast(joinedPacket, session.SessionId);
+
+        // 3) 신규 입장자에게 방의 기존 멤버 로스터를 회신.
+        //    이게 없으면 늦게 입장한 플레이어가 먼저 들어온 플레이어를 영영 못 본다.
+        foreach (var other in room.GetAllPlayerStates())
+        {
+            if (other.UserId == session.UserId) continue;
+            await session.SendPacketAsync(ToJoinedPacket(other, room.MapId), ct);
+        }
 
         if (room.MemberCount == room.MaxMembers)
         {

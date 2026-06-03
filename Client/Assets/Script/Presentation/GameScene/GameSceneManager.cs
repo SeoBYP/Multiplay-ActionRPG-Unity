@@ -30,7 +30,7 @@ namespace Game.Presentation.GameScene
         // 씬이 즉시 로드돼도 로딩 화면이 깜빡이지 않도록 최소 노출 시간을 보장한다.
         private const float MinLoadingSeconds = 2f;
 
-        public async UniTask LoadSceneAsync(string sceneName, CancellationToken ct = default)
+        public async UniTask LoadSceneAsync(string sceneName, CancellationToken ct = default, Func<UniTask> holdUntil = null)
         {
             var enterFader  = default(Overlay); // 진입용 Fader (현재 씬 → 검게)
             var loading     = default(Overlay); // 로딩 캔버스
@@ -74,6 +74,17 @@ namespace Game.Presentation.GameScene
 
                 loadOp.allowSceneActivation = true;
                 await UniTask.WaitUntil(() => loadOp.isDone, cancellationToken: ct);
+
+                // ── 3.5. holdUntil 대기 — 새 씬은 활성화됐지만 Loading 으로 덮은 채 ────
+                // (예: 던전 "전원 입장"까지 로딩 유지. 그동안 씬은 Loading 뒤에서 스폰 등 준비.)
+                if (holdUntil != null)
+                {
+                    loadingView?.SetProgress(100f);
+                    loadingView?.SetMessage("다른 플레이어를 기다리는 중…");
+                    Debug.Log($"[GameSceneManager] '{sceneName}' 활성화 완료 — holdUntil 대기 시작(Loading 유지)");
+                    await holdUntil();
+                    Debug.Log($"[GameSceneManager] '{sceneName}' holdUntil 완료 — Fader로 화면 전환 시작");
+                }
 
                 // ── 4. 진출 Fader를 로딩 위에 생성 + FadeIn — 로딩을 검게 덮는다 ──
                 exitFader = await LoadOverlayAsync(FaderKey, ct);

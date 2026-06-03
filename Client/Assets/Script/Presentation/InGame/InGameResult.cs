@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Game.Presentation.InGame
 {
     /// <summary>
@@ -20,6 +22,36 @@ namespace Game.Presentation.InGame
         {
             public readonly string Message;
             public Failed(string message) { Message = message; }
+        }
+
+        /// <summary>로컬 플레이어 HP 변경 (GAS Attribute 중계).</summary>
+        public sealed class HpChanged : InGameResult
+        {
+            public readonly int Current;
+            public readonly int Max;
+            public HpChanged(int current, int max) { Current = current; Max = max; }
+        }
+
+        /// <summary>로컬 플레이어 MP 변경 (GAS Attribute 중계).</summary>
+        public sealed class MpChanged : InGameResult
+        {
+            public readonly int Current;
+            public readonly int Max;
+            public MpChanged(int current, int max) { Current = current; Max = max; }
+        }
+
+        /// <summary>활성 버프/디버프 목록 변경 (GAS ActiveEffects 중계).</summary>
+        public sealed class BuffsChanged : InGameResult
+        {
+            public readonly IReadOnlyList<BuffView> Buffs;
+            public BuffsChanged(IReadOnlyList<BuffView> buffs) { Buffs = buffs; }
+        }
+
+        /// <summary>전원 입장 완료(서버 S_GameStatus InProgress) — 던전 시작 가능.</summary>
+        public sealed class DungeonReady : InGameResult
+        {
+            public static readonly DungeonReady Instance = new DungeonReady();
+            private DungeonReady() { }
         }
     }
 }

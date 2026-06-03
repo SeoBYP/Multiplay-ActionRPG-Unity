@@ -10,8 +10,6 @@ namespace Game.Gameplay.Character
         public GroundedDetector GroundDetector;
         public CharacterAgentAnimations Animations;
         public ICharacterInputSource InputSource;
-        public InteractionDetector InteractionDetector;
-        public CharacterHitEventReceiver HitEventReceiver;
         public AbilitySystemComponent AbilitySystem;
         public LocomotionSettings LocomotionSettings;
 

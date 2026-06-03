@@ -18,6 +18,7 @@ Claude와의 대화를 통해 배운 내용, 틀렸던 부분, 수정 이력을 
 | [챕터 8](./chapter-08-socket-movement.md) | SocketServer 이동 동기화 (Session Composition / IHost / HeartBeat) | ✅ 기록 완료 |
 | [챕터 9](./chapter-09-unity-client.md) | Unity 클라이언트 (gRPC + VContainer + Docker E2E) | ✅ 기록 완료 |
 | [챕터 11](./chapter-11-socket-session-entry.md) | 소켓 세션 진입 흐름 (C_Auth 제거 · Redis 기반 검증 · 버그 수정) | ✅ 기록 완료 |
+| [챕터 12](./chapter-12-addressable-popup-system.md) | Addressable 리소스 관리 & 공통 팝업 시스템 (AddressableLoader · Glow · MVI 연동) | ✅ 기록 완료 |
 
 ---
 

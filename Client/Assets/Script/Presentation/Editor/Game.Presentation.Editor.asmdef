@@ -1,0 +1,19 @@
+{
+    "name": "Game.Presentation.Editor",
+    "rootNamespace": "Game.Presentation.Editor",
+    "references": [
+        "Game.Presentation",
+        "Game.System"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

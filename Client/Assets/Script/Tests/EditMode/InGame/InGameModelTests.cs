@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using Game.Presentation.InGame;
 using Game.Network.Socket;
 using Game.Network.Socket.Packets;
+using Game.System.Player;
 using NUnit.Framework;
 
 namespace Game.Tests.EditMode.InGame
@@ -69,7 +70,7 @@ namespace Game.Tests.EditMode.InGame
         public void ReturnToLobby_인텐트시_IsReturning_상태가_true가_된다()
         {
             var fake = new FakeSocketSession();
-            var model = new InGameModel(fake);
+            var model = new InGameModel(fake, new LocalPlayerContext());
 
             Assert.IsFalse(model.State.CurrentValue.IsReturning);
 
@@ -84,7 +85,7 @@ namespace Game.Tests.EditMode.InGame
         public void ReturnToLobby_LeaveRoom이_Disconnect보다_먼저_호출된다()
         {
             var fake = new FakeSocketSession();
-            var model = new InGameModel(fake);
+            var model = new InGameModel(fake, new LocalPlayerContext());
 
             model.Accept(InGameIntent.ReturnToLobby.Instance);
 
@@ -98,7 +99,7 @@ namespace Game.Tests.EditMode.InGame
         public void ReturnToLobby_처리중_재진입은_무시된다()
         {
             var fake = new FakeSocketSession();
-            var model = new InGameModel(fake);
+            var model = new InGameModel(fake, new LocalPlayerContext());
 
             model.Accept(InGameIntent.ReturnToLobby.Instance);
             // 첫 호출이 disconnect에서 suspend된 상태(_isProcessing=true)에서 재진입

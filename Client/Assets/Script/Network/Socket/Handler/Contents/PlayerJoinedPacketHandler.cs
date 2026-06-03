@@ -33,6 +33,8 @@ namespace Game.Network.Socket
             _state.UpsertPlayer(
                 packet.UserId,
                 packet.Nickname,
+                packet.SpawnIndex,
+                packet.MapId,
                 packet.PosX,
                 packet.PosY,
                 packet.PosZ,

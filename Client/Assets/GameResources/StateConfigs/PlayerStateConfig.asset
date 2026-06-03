@@ -26,9 +26,3 @@ MonoBehaviour:
   - Kind: 3
     Duration: 0.533
     InvokeDelay: 0
-  - Kind: 4
-    Duration: 0.3
-    InvokeDelay: 0.3
-  - Kind: 5
-    Duration: 0.6
-    InvokeDelay: 0

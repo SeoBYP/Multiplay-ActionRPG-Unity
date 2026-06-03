@@ -127,8 +127,8 @@ namespace Game.Tests.EditMode.Socket
         {
             var state = _container.Resolve<ISocketPacketState>();
 
-            state.UpsertPlayer(1, "a", 0, 0, 0, 0);
-            state.UpsertPlayer(2, "b", 0, 0, 0, 0);
+            state.UpsertPlayer(1, "a", 0, "dungeon_01", 0, 0, 0, 0);
+            state.UpsertPlayer(2, "b", 1, "dungeon_01", 0, 0, 0, 0);
             CollectionAssert.AreEquivalent(
                 new[] { 1L, 2L },
                 state.GetAllPlayers().Select(p => p.UserId).ToArray());

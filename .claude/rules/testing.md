@@ -28,6 +28,17 @@ E2E 테스트는 Docker 서버를 대상으로 실행한다. 목(mock)으로 서
 
 베이스: `Tests/PlayMode/E2E/E2ETestBase.cs` (채널/서비스 생성, RegisterAndLogin 공통 헬퍼)
 
+### ⚠️ E2E 실행 전 Docker 서버 이미지 신선도 확인 (필수)
+
+E2E는 실행 중인 Docker 서버를 때린다. **소스보다 이미지가 오래되면 옛 서버를 검증해 거짓 실패(주로 전부 타임아웃)** 가 난다. Stop 훅의 stale-image guard가 불일치를 경고하니, 경고가 뜨면 리빌드부터:
+
+```powershell
+docker compose -f ServerAll/Infra/docker-compose.yml build gameserver socketserver
+docker compose -f ServerAll/Infra/docker-compose.yml up -d gameserver socketserver
+```
+
+MPPM 멀티 클라/플레이 테스트 전반은 [docs/wiki/mppm-testing.md](../../docs/wiki/mppm-testing.md) 참조.
+
 ## 네임스페이스 주의
 
 테스트 네임스페이스에 `System` 세그먼트 포함 금지.  

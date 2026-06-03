@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using VContainer;
@@ -22,6 +23,11 @@ namespace Game.Network.Socket
             builder.Register<IPacketHandler, PlayerJoinedPacketHandler>(Lifetime.Singleton);
             builder.Register<IPacketHandler, PlayerLeftPacketHandler>(Lifetime.Singleton);
             builder.Register<IPacketHandler, MovePacketHandler>(Lifetime.Singleton);
+            // EF-2d: 서버 권위 Effect(버프/디버프) 수신.
+            builder.Register<IPacketHandler, EffectApplyPacketHandler>(Lifetime.Singleton);
+            builder.Register<IPacketHandler, EffectRemovePacketHandler>(Lifetime.Singleton);
+            // 전원 입장(S_GameStatus InProgress) → 던전 준비 완료.
+            builder.Register<IPacketHandler, GameStatusPacketHandler>(Lifetime.Singleton);
 
             // 송수신 파이프라인 등록.
             builder.Register<ISocketPacketDispatcher, SocketPacketDispatcher>(Lifetime.Singleton);
@@ -35,13 +41,36 @@ namespace Game.Network.Socket
     /// </summary>
     public interface ISocketPacketState
     {
-        void UpsertPlayer(long userId, string nickname, float posX, float posY, float posZ, float rotY, long timeStamp = 0);
+        /// <summary>현재 플레이 중인 맵 식별자. S_PlayerJoined 수신 시 세팅. 결정론 스폰 레이아웃 선택에 사용.</summary>
+        string MapId { get; }
+
+        void UpsertPlayer(long userId, string nickname, int spawnIndex, string mapId, float posX, float posY, float posZ, float rotY, long timeStamp = 0);
         void UpdatePlayerTransform(long userId, float posX, float posY, float posZ, float rotY, long timeStamp);
         bool TryGetPlayer(long userId, out SocketPlayerSnapshot snapshot);
         /// <summary>방에서 나간 플레이어를 상태에서 제거한다.</summary>
         void RemovePlayer(long userId);
         /// <summary>현재 보관 중인 모든 플레이어 스냅샷의 복사본을 반환한다. (원격 캐릭터 동기화용)</summary>
         IReadOnlyList<SocketPlayerSnapshot> GetAllPlayers();
+
+        /// <summary>UpsertPlayer 호출 시 발행. CharacterSpawner가 원격 캐릭터를 스폰하는 데 사용한다.</summary>
+        event Action<SocketPlayerSnapshot> OnPlayerJoined;
+        /// <summary>RemovePlayer 호출 시 발행. CharacterSpawner가 원격 캐릭터를 디스폰하는 데 사용한다.</summary>
+        event Action<long> OnPlayerLeft;
+        /// <summary>기존 플레이어 transform 갱신 시 발행. RemoteDriver가 보간 대상으로 사용한다.</summary>
+        event Action<SocketPlayerSnapshot> OnPlayerMoved;
+
+        // ── EF-2d: 서버 권위 Effect 수신 (핸들러가 기록 → EffectReceiver가 ASC에 적용) ──
+        /// <summary>S_ApplyEffect 수신 시 발행.</summary>
+        event Action<SocketEffectApply> OnEffectApplied;
+        /// <summary>S_RemoveEffect 수신 시 발행 (instanceId).</summary>
+        event Action<int> OnEffectRemoved;
+        void ApplyEffect(SocketEffectApply data);
+        void RemoveEffect(int instanceId);
+
+        // ── 전원 입장(서버 S_GameStatus InProgress) = 던전 준비 완료 ──
+        /// <summary>전원 입장 시 발행. Presentation(InGameModel)이 인게임 UI 전환에 사용.</summary>
+        event Action OnDungeonReady;
+        void MarkDungeonReady();
     }
 
     /// <summary>
@@ -52,40 +81,60 @@ namespace Game.Network.Socket
         private readonly object _sync = new object();
         private readonly Dictionary<long, SocketPlayerSnapshot> _players = new Dictionary<long, SocketPlayerSnapshot>();
 
-        /// <summary>
-        /// 새로 합류한 플레이어를 추가하거나 기존 스냅샷을 갱신한다.
-        /// </summary>
-        public void UpsertPlayer(long userId, string nickname, float posX, float posY, float posZ, float rotY, long timeStamp = 0)
+        public string MapId { get; private set; } = string.Empty;
+
+        public event Action<SocketPlayerSnapshot> OnPlayerJoined;
+        public event Action<long>                 OnPlayerLeft;
+        public event Action<SocketPlayerSnapshot> OnPlayerMoved;
+        public event Action<SocketEffectApply>    OnEffectApplied;
+        public event Action<int>                  OnEffectRemoved;
+        public event Action                       OnDungeonReady;
+
+        public void MarkDungeonReady() => OnDungeonReady?.Invoke();
+
+        public void ApplyEffect(SocketEffectApply data)
         {
-            lock (_sync)
-            {
-                _players[userId] = new SocketPlayerSnapshot(userId, nickname ?? string.Empty, posX, posY, posZ, rotY, timeStamp);
-            }
+            if (data != null) OnEffectApplied?.Invoke(data);
         }
 
-        /// <summary>
-        /// 기존 플레이어의 좌표만 갱신한다.
-        /// 미등록 플레이어가 오면 닉네임 없는 임시 스냅샷으로 생성한다.
-        /// </summary>
+        public void RemoveEffect(int instanceId)
+        {
+            OnEffectRemoved?.Invoke(instanceId);
+        }
+
+        public void UpsertPlayer(long userId, string nickname, int spawnIndex, string mapId, float posX, float posY, float posZ, float rotY, long timeStamp = 0)
+        {
+            SocketPlayerSnapshot snapshot;
+            lock (_sync)
+            {
+                if (!string.IsNullOrEmpty(mapId)) MapId = mapId;
+                snapshot = new SocketPlayerSnapshot(userId, nickname ?? string.Empty, spawnIndex, posX, posY, posZ, rotY, timeStamp);
+                _players[userId] = snapshot;
+            }
+            OnPlayerJoined?.Invoke(snapshot);
+        }
+
         public void UpdatePlayerTransform(long userId, float posX, float posY, float posZ, float rotY, long timeStamp)
         {
+            SocketPlayerSnapshot updated = null;
             lock (_sync)
             {
-                // 기존 스냅샷이 있으면 위치 정보만 덮어쓴다.
                 if (_players.TryGetValue(userId, out var existing))
                 {
-                    _players[userId] = existing.WithTransform(posX, posY, posZ, rotY, timeStamp);
-                    return;
+                    updated = existing.WithTransform(posX, posY, posZ, rotY, timeStamp);
+                    _players[userId] = updated;
                 }
-
-                // 아직 조인 패킷이 오지 않은 플레이어는 최소 정보로 생성한다.
-                _players[userId] = new SocketPlayerSnapshot(userId, string.Empty, posX, posY, posZ, rotY, timeStamp);
+                else
+                {
+                    // S_Move가 S_PlayerJoined보다 먼저 도달한 경우 — 최소 스냅샷으로 보관만 한다.
+                    // SpawnIndex는 아직 모름(-1). S_PlayerJoined 수신 시 Upsert로 교정된다.
+                    // OnPlayerMoved는 발행하지 않는다 (아직 RemoteDriver가 없음).
+                    _players[userId] = new SocketPlayerSnapshot(userId, string.Empty, -1, posX, posY, posZ, rotY, timeStamp);
+                }
             }
+            if (updated != null) OnPlayerMoved?.Invoke(updated);
         }
 
-        /// <summary>
-        /// 플레이어 스냅샷을 안전한 복사본으로 반환한다.
-        /// </summary>
         public bool TryGetPlayer(long userId, out SocketPlayerSnapshot snapshot)
         {
             lock (_sync)
@@ -95,27 +144,18 @@ namespace Game.Network.Socket
                     snapshot = existing.Clone();
                     return true;
                 }
-
                 snapshot = null;
                 return false;
             }
         }
 
-        /// <summary>
-        /// 방에서 나간 플레이어를 상태에서 제거한다.
-        /// </summary>
         public void RemovePlayer(long userId)
         {
-            lock (_sync)
-            {
-                _players.Remove(userId);
-            }
+            bool removed;
+            lock (_sync) { removed = _players.Remove(userId); }
+            if (removed) OnPlayerLeft?.Invoke(userId);
         }
 
-        /// <summary>
-        /// 현재 보관 중인 모든 플레이어 스냅샷의 복사본을 반환한다.
-        /// 원격 캐릭터 프리젠터가 "지금 방에 누가 있는가"를 매 틱 조회하는 데 쓴다.
-        /// </summary>
         public IReadOnlyList<SocketPlayerSnapshot> GetAllPlayers()
         {
             lock (_sync)
@@ -132,16 +172,19 @@ namespace Game.Network.Socket
     {
         public long UserId { get; }
         public string Nickname { get; }
+        /// <summary>스폰 슬롯 인덱스. 결정론 스폰 입력(자기 캐릭터 스폰 위치 계산). 미상이면 -1.</summary>
+        public int SpawnIndex { get; }
         public float PosX { get; }
         public float PosY { get; }
         public float PosZ { get; }
         public float RotY { get; }
         public long TimeStamp { get; }
 
-        public SocketPlayerSnapshot(long userId, string nickname, float posX, float posY, float posZ, float rotY, long timeStamp)
+        public SocketPlayerSnapshot(long userId, string nickname, int spawnIndex, float posX, float posY, float posZ, float rotY, long timeStamp)
         {
             UserId = userId;
             Nickname = nickname ?? string.Empty;
+            SpawnIndex = spawnIndex;
             PosX = posX;
             PosY = posY;
             PosZ = posZ;
@@ -150,11 +193,11 @@ namespace Game.Network.Socket
         }
 
         /// <summary>
-        /// 플레이어 식별 정보는 유지하고 transform 정보만 갱신한 새 스냅샷을 만든다.
+        /// 플레이어 식별 정보(SpawnIndex 포함)는 유지하고 transform 정보만 갱신한 새 스냅샷을 만든다.
         /// </summary>
         public SocketPlayerSnapshot WithTransform(float posX, float posY, float posZ, float rotY, long timeStamp)
         {
-            return new SocketPlayerSnapshot(UserId, Nickname, posX, posY, posZ, rotY, timeStamp);
+            return new SocketPlayerSnapshot(UserId, Nickname, SpawnIndex, posX, posY, posZ, rotY, timeStamp);
         }
 
         /// <summary>
@@ -162,7 +205,31 @@ namespace Game.Network.Socket
         /// </summary>
         public SocketPlayerSnapshot Clone()
         {
-            return new SocketPlayerSnapshot(UserId, Nickname, PosX, PosY, PosZ, RotY, TimeStamp);
+            return new SocketPlayerSnapshot(UserId, Nickname, SpawnIndex, PosX, PosY, PosZ, RotY, TimeStamp);
+        }
+    }
+
+    /// <summary>
+    /// 서버에서 수신한 Effect 부여 정보(네트워크 레이어 DTO). EffectId는 공유 카탈로그 키.
+    /// EffectReceiver(상위 레이어)가 카탈로그 조회 + 타겟 ASC 적용에 사용한다.
+    /// </summary>
+    public sealed class SocketEffectApply
+    {
+        public string EffectId { get; }
+        public int InstanceId { get; }
+        public long TargetId { get; }
+        public long SourceId { get; }
+        public long StartTick { get; }
+        public int Stacks { get; }
+
+        public SocketEffectApply(string effectId, int instanceId, long targetId, long sourceId, long startTick, int stacks)
+        {
+            EffectId = effectId ?? string.Empty;
+            InstanceId = instanceId;
+            TargetId = targetId;
+            SourceId = sourceId;
+            StartTick = startTick;
+            Stacks = stacks;
         }
     }
 }

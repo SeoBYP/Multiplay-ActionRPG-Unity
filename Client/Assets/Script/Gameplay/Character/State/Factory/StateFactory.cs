@@ -30,17 +30,6 @@ namespace Game.Gameplay.Character
 
                 StateKind.Land => new LandState(context.Animations),
 
-                StateKind.Interact => new InteractState(
-                    context.Animations,
-                    context.InteractionDetector,
-                    definition.InvokeDelay),
-
-                StateKind.Attack => new AttackState(
-                    context.Motor,
-                    context.Animations,
-                    context.InputSource,
-                    context.HitEventReceiver),
-
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
