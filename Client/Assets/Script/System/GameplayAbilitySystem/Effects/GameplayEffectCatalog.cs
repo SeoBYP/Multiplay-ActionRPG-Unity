@@ -55,6 +55,18 @@ namespace Script.System.GamePlayAbilitySystem
                 {
                     GameplayAttributeModifier.Create(EGameplayAttribute.Defense, -10, EModifierType.Additive),
                 }));
+
+            // CA-3: basic_swing(SkillTimeline) 적중 시 서버가 부여하는 즉발 피해. Health 감소.
+            // 즉발이라 ApplyEffectAuthoritative가 Resource(Health)를 즉시 깎는다(버프 아이콘 없음).
+            Register(new GameplayEffectDefinition(
+                id: "basic_attack_dmg",
+                category: EEffectCategory.AttackPower,
+                policy: EDurationPolicy.Instant,
+                durationMs: 0,
+                modifiers: new[]
+                {
+                    GameplayAttributeModifier.Create(EGameplayAttribute.Health, -10, EModifierType.Additive),
+                }));
         }
     }
 }

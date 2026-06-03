@@ -1,25 +1,58 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Server.PacketHandler.Handler;
+using Server.Player;
 using Shared.Infrastructure.Messages;
 
 namespace Server.Tests.Combat;
 
 /// <summary>
-/// EF-2d 테스트 등급 전투: 공격 → Effect 부여 패킷 구성 + 서버 권위 InstanceId 발급 검증.
+/// CA-3 서버 권위 적중 판정: 시전자 위치/yaw 기준 hitbox로 대상 적중을 재계산.
 /// </summary>
 public class CombatHandlerTests
 {
-    [Fact]
-    public void BuildAttackEffect는_공격자_대상_효과를_매핑한다()
-    {
-        var packet = CombatHandler.BuildAttackEffect(attackerId: 200, targetId: 100, instanceId: 5, startTick: 999);
+    private static PlayerState Player(long id, float x, float z, float rotY = 0f)
+        => new() { UserId = id, PosX = x, PosY = 0f, PosZ = z, RotY = rotY };
 
-        Assert.Equal(5, packet.InstanceId);
-        Assert.Equal(CombatHandler.TestDebuffEffectId, packet.EffectId);
-        Assert.Equal(100, packet.TargetId);
-        Assert.Equal(200, packet.SourceId);
-        Assert.Equal(999, packet.StartTick);
-        Assert.Equal(1, packet.Stacks);
+    [Fact]
+    public void 정면_hitbox_안의_대상은_적중이다()
+    {
+        var skill = CombatHandler.ResolveSkill(0)!;       // basic_swing: 정면(+Z) 박스
+        var attacker = Player(100, 0, 0, rotY: 0f);
+        var candidates = new List<PlayerState> { attacker, Player(200, 0, 1f) };
+
+        var hits = CombatHandler.SelectHitTargets(skill, attacker, candidates, CombatHandler.TargetRadius);
+
+        Assert.Contains(200L, hits);
+        Assert.DoesNotContain(100L, hits); // 자기 자신 제외
+    }
+
+    [Fact]
+    public void 뒤_또는_먼_대상은_적중하지_않는다()
+    {
+        var skill = CombatHandler.ResolveSkill(0)!;
+        var attacker = Player(100, 0, 0, rotY: 0f);
+        var candidates = new List<PlayerState>
+        {
+            attacker,
+            Player(201, 0, -1f),  // 뒤
+            Player(202, 0, 3f),   // 정면이지만 너무 멀다
+        };
+
+        var hits = CombatHandler.SelectHitTargets(skill, attacker, candidates, CombatHandler.TargetRadius);
+
+        Assert.Empty(hits);
+    }
+
+    [Fact]
+    public void yaw_180도면_뒤의_대상이_정면이_되어_적중한다()
+    {
+        var skill = CombatHandler.ResolveSkill(0)!;
+        var attacker = Player(100, 0, 0, rotY: 180f);
+        var candidates = new List<PlayerState> { attacker, Player(200, 0, -1f) };
+
+        var hits = CombatHandler.SelectHitTargets(skill, attacker, candidates, CombatHandler.TargetRadius);
+
+        Assert.Contains(200L, hits);
     }
 
     [Fact]

@@ -12,6 +12,8 @@ namespace Game.Network.Socket
         /// <summary>C_PlayerLeave 패킷을 전송한다. DisconnectAsync 전에 호출해야 한다.</summary>
         UniTask LeaveRoomAsync(CancellationToken ct);
         UniTask SendMoveAsync(C_Move packet, CancellationToken ct);
+        /// <summary>임의 패킷 송신(Joined 상태에서만). C_Attack 등 게임플레이 패킷용.</summary>
+        UniTask SendAsync(Packet packet, CancellationToken ct);
         UniTask DisconnectAsync(CancellationToken ct);
     }
 }

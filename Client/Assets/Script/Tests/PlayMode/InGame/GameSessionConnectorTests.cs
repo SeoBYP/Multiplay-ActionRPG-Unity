@@ -79,6 +79,7 @@ namespace Game.Tests.PlayMode.InGame
             }
 
             public UniTask SendMoveAsync(C_Move packet, CancellationToken ct) => UniTask.CompletedTask;
+            public UniTask SendAsync(Packet packet, CancellationToken ct) => UniTask.CompletedTask;
         }
 
         private sealed class FakeDungeonLobbyService : IDungeonLobbyService

@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace Script.System.GamePlayAbilitySystem
 {
     /// <summary>
     /// 캐릭터나 오브젝트가 GAS 기능을 사용하기 위한 진입점이다.
-    /// Attribute를 보관하고, Ability를 부여하고, Ability 활성화를 중계한다.
+    /// Attribute를 보관하고, GameplayEffect(버프/디버프) 적용·만료를 중계한다.
     /// </summary>
     public class AbilitySystemComponent : MonoBehaviour
     {
@@ -15,14 +14,12 @@ namespace Script.System.GamePlayAbilitySystem
         public List<GameplayAttribute> Attributes = new();
 
         private Dictionary<EGameplayAttribute, GameplayAttribute> _gameplayAttributes = new();
-        private readonly List<Ability> _abilities = new();
         private readonly HashSet<GameplayAttribute> _wired = new();
         private readonly List<ActiveGameplayEffect> _active = new();
         private long _clockMs;
         private int _nextInstanceId = 1;
         private bool _initialized;
 
-        public IReadOnlyList<Ability> Abilities => _abilities;
         public IReadOnlyList<ActiveGameplayEffect> ActiveEffects => _active;
 
         /// <summary>
@@ -93,35 +90,6 @@ namespace Script.System.GamePlayAbilitySystem
         {
             EnsureInitialized();
             return _gameplayAttributes.TryGetValue(attributeType, out attribute);
-        }
-
-        public T GrantAbility<T>(T ability) where T : Ability
-        {
-            if (ability == null)
-                throw new ArgumentNullException(nameof(ability));
-
-            // Ability가 어떤 ASC에 속하는지 연결한 뒤 목록에 보관한다.
-            ability.GrantTo(this);
-            _abilities.Add(ability);
-            return ability;
-        }
-
-        public bool TryActivateAbility<T>(AbilityActivationContext context) where T : Ability
-        {
-            // 타입으로 Ability를 찾는 편의 API. 같은 타입 Ability를 여러 개 둘 계획이면 별도 핸들이 필요하다.
-            T ability = _abilities.OfType<T>().FirstOrDefault();
-            return ability != null && TryActivateAbility(ability, context);
-        }
-
-        public bool TryActivateAbility(Ability ability, AbilityActivationContext context)
-        {
-            if (ability == null)
-                return false;
-
-            // 호출자가 Source를 몰라도 ASC가 항상 자신을 Source로 넣어준다.
-            AbilityActivationContext sourcedContext = (context ?? new AbilityActivationContext(new List<AbilitySystemComponent>()))
-                .WithSource(this);
-            return ability.TryActivate(sourcedContext);
         }
 
         // ── GameplayEffect (버프/디버프) ───────────────────────────

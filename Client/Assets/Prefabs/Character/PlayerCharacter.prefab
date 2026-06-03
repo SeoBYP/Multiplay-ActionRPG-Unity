@@ -165,6 +165,7 @@ GameObject:
   - component: {fileID: 1654161916142727158}
   - component: {fileID: 4634662420481816259}
   - component: {fileID: 8907706458393213720}
+  - component: {fileID: 6779707700611208475}
   m_Layer: 0
   m_Name: PlayerCharacter
   m_TagString: Untagged
@@ -187,7 +188,6 @@ Transform:
   m_Children:
   - {fileID: 5850493033304236987}
   - {fileID: 3649779391245654106}
-  - {fileID: 1541227202818813127}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!143 &4406385326664212521
@@ -376,55 +376,17 @@ MonoBehaviour:
     InteractInvokeDelay: 0.3
     InteractReturnDelay: 0.3
   <CurrentStateKind>k__BackingField: 0
---- !u!1 &9027258987866454565
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1541227202818813127}
-  - component: {fileID: 7029796578641342200}
-  m_Layer: 0
-  m_Name: AttackPoint
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1541227202818813127
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9027258987866454565}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 9141560104725153293}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &7029796578641342200
+--- !u!114 &6779707700611208475
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9027258987866454565}
+  m_GameObject: {fileID: 8898314510884851665}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7bea20efe1c3d9e4eb7719d6aab248de, type: 3}
+  m_Script: {fileID: 11500000, guid: 5b644760241ba404cb344105abb51678, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Game.Main::Game.Main.Character.HitDetector
-  _origin: {fileID: 9141560104725153293}
-  _boxCenterOffset: {x: 0, y: 1, z: 0.8}
-  _boxSize: {x: 1.1, y: 1.2, z: 1.2}
-  _targetLayerMask:
-    serializedVersion: 2
-    m_Bits: 256
-  _maxHits: 16
-  _drawGizmos: 1
+  m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.HitStopController
+  _animator: {fileID: 0}
+  _defaultDurationSec: 0.08

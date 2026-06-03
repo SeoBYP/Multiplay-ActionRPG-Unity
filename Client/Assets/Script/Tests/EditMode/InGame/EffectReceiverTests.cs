@@ -81,6 +81,22 @@ namespace Game.Tests.EditMode.InGame
             Assert.AreEqual(0, asc.ActiveEffects.Count);
         }
 
+        [Test]
+        public void 서버_basic_attack_dmg_수신시_로컬_HP가_즉발_감소한다()
+        {
+            var state = new SocketPacketState();
+            var asc = CreateAsc();
+            var localPlayer = new LocalPlayerContext();
+            localPlayer.Set(asc);
+            _receiver = Build(state, localPlayer);
+
+            // CA-3: 서버가 적중 판정 후 보낸 basic_attack_dmg(Instant Health -10) 적용 → HP 감소.
+            state.ApplyEffect(new SocketEffectApply("basic_attack_dmg", instanceId: 1, targetId: LocalUserId, sourceId: 200, startTick: 0, stacks: 1));
+
+            Assert.AreEqual(90, asc.GetAttribute(EGameplayAttribute.Health).CurrentValue);
+            Assert.AreEqual(0, asc.ActiveEffects.Count, "즉발 피해는 ActiveEffect로 추적되지 않는다");
+        }
+
         // ── 헬퍼 ────────────────────────────────────────
 
         private EffectReceiver Build(SocketPacketState state, LocalPlayerContext localPlayer)

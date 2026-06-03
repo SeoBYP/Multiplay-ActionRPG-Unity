@@ -4,6 +4,7 @@ WORKDIR /src
 COPY SocketServer/SocketServer/SocketServer.csproj             SocketServer/SocketServer/
 COPY Shared/Shared.Infrastructure/Shared.Infrastructure.csproj Shared/Shared.Infrastructure/
 COPY Shared/Shared.Packet/Shared.Packet.csproj                 Shared/Shared.Packet/
+COPY Shared/Shared.Gameplay/Shared.Gameplay.csproj             Shared/Shared.Gameplay/
 
 RUN dotnet restore SocketServer/SocketServer/SocketServer.csproj
 

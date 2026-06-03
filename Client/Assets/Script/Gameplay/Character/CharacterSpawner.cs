@@ -66,6 +66,7 @@ namespace Game.Gameplay.Character
             }
 
             AttachMoveSyncSender();
+            AttachCombatSyncSender();
             // 구독을 먼저 한다 — 구독과 초기 스폰 사이에 도착하는 로스터 패킷 유실 방지.
             // 중복은 SpawnRemote의 _remotes.ContainsKey 가드로 흡수된다.
             SubscribeNetworkEvents();
@@ -144,6 +145,14 @@ namespace Game.Gameplay.Character
             var sender = _localCharacterGo.AddComponent<MoveSyncSender>();
             _container.Inject(sender);
             Debug.Log("[CharacterSpawner] MoveSyncSender 부착 완료 — C_Move 송신 활성화");
+        }
+
+        private void AttachCombatSyncSender()
+        {
+            if (_localCharacterGo == null) return;
+            var sender = _localCharacterGo.AddComponent<CombatSyncSender>();
+            _container.Inject(sender);
+            Debug.Log("[CharacterSpawner] CombatSyncSender 부착 완료 — C_Attack 송신 활성화");
         }
 
         // ── 원격 캐릭터 ──────────────────────────────────

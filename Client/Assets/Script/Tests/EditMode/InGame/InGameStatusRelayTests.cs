@@ -143,6 +143,7 @@ namespace Game.Tests.EditMode.InGame
             public UniTask JoinRoomAsync(CancellationToken ct) => UniTask.CompletedTask;
             public UniTask LeaveRoomAsync(CancellationToken ct) => UniTask.CompletedTask;
             public UniTask SendMoveAsync(C_Move packet, CancellationToken ct) => UniTask.CompletedTask;
+            public UniTask SendAsync(Packet packet, CancellationToken ct) => UniTask.CompletedTask;
             public UniTask DisconnectAsync(CancellationToken ct) => UniTask.CompletedTask;
         }
     }

@@ -120,17 +120,22 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public IEnumerator RawSocket_호스트가_Attack_전송하면_게스트가_S_ApplyEffect_수신() => UniTask.ToCoroutine(async () =>
+        public IEnumerator RawSocket_호스트가_정면의_게스트를_공격하면_서버권위_적중_S_ApplyEffect() => UniTask.ToCoroutine(async () =>
         {
-            // EF-2d: 호스트가 게스트를 공격(C_Attack) → 서버가 권위 InstanceId+StartTick로
-            // S_ApplyEffect(디버프)를 방에 브로드캐스트 → 게스트가 수신.
+            // CA-3: 서버가 hitbox로 적중을 재계산(권위). 호스트를 원점·+Z 정면, 게스트를 정면 1유닛 앞으로
+            // 이동시켜 basic_swing hitbox 안에 들어가게 한 뒤 C_Attack → 서버가 적중 판정 → S_ApplyEffect 브로드캐스트.
             var room = await CreateStartedTwoPlayerRoomAsync();
             var hostCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
             var guestCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
 
             try
             {
-                await hostCollector.SendAsync(new C_Attack { TargetId = room.GuestUserId }, Timeout());
+                // 위치 세팅: 서버 Room이 두 이동을 반영하도록 전송 후 잠시 대기.
+                await hostCollector.SendAsync(new C_Move { PosX = 0, PosY = 0, PosZ = 0, RotY = 0 }, Timeout());
+                await guestCollector.SendAsync(new C_Move { PosX = 0, PosY = 0, PosZ = 1, RotY = 0 }, Timeout());
+                await UniTask.Delay(TimeSpan.FromMilliseconds(400));
+
+                await hostCollector.SendAsync(new C_Attack { SkillId = 0 }, Timeout());
 
                 var apply = await guestCollector.WaitForPacketAsync<S_ApplyEffect>(
                     packet => packet.TargetId == room.GuestUserId && packet.SourceId == room.HostUserId,
@@ -138,7 +143,7 @@ namespace Game.Tests.PlayMode.E2E
 
                 Assert.AreEqual(room.GuestUserId, apply.TargetId);
                 Assert.AreEqual(room.HostUserId, apply.SourceId);
-                Assert.IsFalse(string.IsNullOrEmpty(apply.EffectId), "서버가 EffectId를 채워야 한다");
+                Assert.AreEqual("basic_attack_dmg", apply.EffectId, "basic_swing의 OnHitEffect가 적용돼야 한다");
                 Assert.Greater(apply.InstanceId, 0, "서버가 InstanceId를 권위 발급해야 한다");
             }
             finally

@@ -58,6 +58,12 @@ namespace Game.Tests.EditMode.InGame
                 return UniTask.CompletedTask;
             }
 
+            public UniTask SendAsync(Packet packet, CancellationToken ct)
+            {
+                Calls.Add("send");
+                return UniTask.CompletedTask;
+            }
+
             public UniTask DisconnectAsync(CancellationToken ct)
             {
                 Calls.Add("disconnect");

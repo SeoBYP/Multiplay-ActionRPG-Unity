@@ -1,3 +1,4 @@
+using System;
 using Game.Core;
 using Game.Gameplay.Character.Input;
 using UnityEngine;
@@ -7,13 +8,14 @@ namespace Game.Gameplay.Character
     public class PlayerCharacterAgent : CharacterAgent
     {
         private InteractionDetector _interactionDetector;
-        private CharacterHitEventReceiver _hitEventReceiver;
+
+        /// <summary>공격 입력으로 스윙이 발동될 때 발행. 던전 전용 `CombatSyncSender`가 구독해 C_Attack을 송신한다.</summary>
+        public event Action OnAttackPerformed;
 
         protected override void Awake()
         {
             base.Awake();
             _interactionDetector = this.GetAroundComponent<InteractionDetector>();
-            _hitEventReceiver    = this.GetAroundComponent<CharacterHitEventReceiver>();
 
             // MotionMatchingDriver가 붙어 있으면 MM 연동, 없으면 기존 Animator 방식
             var motionMatching = this.GetAroundComponent<IMotionMatchingDriver>();
@@ -39,17 +41,17 @@ namespace Game.Gameplay.Character
         }
 
         /// <summary>
-        /// 공격 = Action 축. FSM 상태(구 AttackState)가 아니라 입력→스윙으로 처리한다.
-        /// 데미지는 Animation Event → CharacterHitEventReceiver → BasicAttackAbility(GAS) 체인.
-        /// (쿨다운·active window·정식 GAS 어빌리티화는 CA-3에서.)
+        /// 공격 = Action 축. 입력→스윙 애니 + OnAttackPerformed 발행.
+        /// 적중 판정·데미지는 **서버 권위**(CombatSyncSender가 C_Attack 송신 → 서버 HitboxMath → S_ApplyEffect).
+        /// 로컬은 연출만(피격 HitStop은 HitStopController가 HP 감소로 자동 트리거).
         /// </summary>
         private void HandleAttackInput()
         {
             if (InputSource == null || !InputSource.ConsumeAttackPressed())
                 return;
 
-            _hitEventReceiver?.ResetHitTargets();
             AgentAnimations?.SetTrigger(AnimationTriggerType.Attack);
+            OnAttackPerformed?.Invoke();
         }
 
         /// <summary>
