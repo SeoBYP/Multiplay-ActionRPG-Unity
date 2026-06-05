@@ -68,10 +68,17 @@ namespace Game.Tests.EditMode.OutGame
             public UniTask<AuthResult> RefreshTokenAsync(CancellationToken ct) => UniTask.FromResult(AuthResult.Success);
         }
 
+        private sealed class FakeInputContext : Game.System.Input.IInputContext
+        {
+            public bool IsUiActive { get; private set; }
+            public void EnterUi() => IsUiActive = true;
+            public void ExitUi()  => IsUiActive = false;
+        }
+
         private static LobbyModel BuildModel(FakeDungeonLobbyService service)
         {
             var repository = new LobbyRepository(service);
-            return new LobbyModel(repository, service, new FakeAuthService(), new StartupIntentQueue());
+            return new LobbyModel(repository, service, new FakeAuthService(), new StartupIntentQueue(), new FakeInputContext());
         }
 
         [Test]

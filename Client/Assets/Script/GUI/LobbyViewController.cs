@@ -104,9 +104,10 @@ namespace Game.GUI.OutGame
         {
             if (action != GameInputAction.ToggleLobby) return false;
 
-            if (_lobbyInst != null) CloseLobby();
-            else                    OpenLobbyAsync().Forget();
-
+            // L = 열기/표시 전용(닫지 않음). OpenLobbyAsync가 상태별로 처리한다:
+            //   _lobbyInst 없음 → 로드 / 숨겨짐(X로 SetActive false) → 다시 표시 / 이미 표시 → 목록 갱신.
+            // (표시 중엔 입력이 캡처돼 Player 맵(ToggleLobby 포함)이 꺼지므로 L이 안 들어온다 → 토글로 안 닫힘.)
+            OpenLobbyAsync().Forget();
             return true;
         }
 
@@ -114,7 +115,15 @@ namespace Game.GUI.OutGame
 
         private async UniTaskVoid OpenLobbyAsync()
         {
-            if (_lobbyInst != null) return;
+            // 이미 로드돼 있으면(X 버튼이 SetActive(false)로 숨긴 상태 포함) 다시 활성화해 보여준다.
+            // L은 열기/표시 전용 — 닫지 않는다. 닫기(숨김)는 X 버튼(SetActive)이 담당.
+            if (_lobbyInst != null)
+            {
+                var hidden = _lobbyInst.GameObject.GetComponentInChildren<Game.GUI.OutGame.Lobby.DungeonRoomLobbyView>(true);
+                if (hidden != null) hidden.gameObject.SetActive(true);
+                _model.Accept(LobbyIntent.LoadRooms.Instance);
+                return;
+            }
 
             // 로비가 열리는 시점에 방 목록을 로드한다.
             _model.Accept(LobbyIntent.LoadRooms.Instance);
@@ -124,11 +133,13 @@ namespace Game.GUI.OutGame
 
             if (_lobbyInst != null)
                 _resolver.InjectGameObject(_lobbyInst.GameObject);
+            // 입력 점유는 DungeonRoomLobbyView의 UiInputCaptureBehaviour가 활성 동안 담당
+            // (X로 숨기면 OnDisable에서 자동 해제 → 플레이어 이동 복구).
         }
 
         private void CloseLobby()
         {
-            _lobbyInst?.Dispose();
+            _lobbyInst?.Dispose(); // Dispose가 점유 해제까지 처리(CaptureWhileOpen)
             _lobbyInst = null;
         }
 
@@ -146,13 +157,14 @@ namespace Game.GUI.OutGame
             if (_detailInst != null)
             {
                 _resolver.InjectGameObject(_detailInst.GameObject);
+                _detailInst.CaptureWhileOpen(_model); // 방 상세 떠 있는 동안 게임플레이 입력 점유(닫힘에 자동 해제)
                 Debug.Log("[LobbyViewController] RoomDetail 로드 완료");
             }
         }
 
         private void CloseRoomDetail()
         {
-            _detailInst?.Dispose();
+            _detailInst?.Dispose(); // Dispose가 점유 해제까지 처리
             _detailInst = null;
         }
 

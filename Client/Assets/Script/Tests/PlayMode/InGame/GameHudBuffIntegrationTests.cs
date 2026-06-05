@@ -74,6 +74,7 @@ namespace Game.Tests.PlayMode.InGame
             var builder = new ContainerBuilder();
             builder.RegisterInstance(localPlayer);
             builder.RegisterInstance(new FakeSocketSession()).As<ISocketSession>();
+            builder.RegisterInstance<ISocketPacketState>(new SocketPacketState());
             builder.RegisterInstance(catalog);
             builder.RegisterInstance(ScriptableObject.CreateInstance<EffectIconCatalog>());
             builder.Register<InGameModel>(Lifetime.Singleton).AsSelf();

@@ -14,6 +14,7 @@ namespace Game.GUI
         public GameObject GameObject { get; }
 
         private readonly AsyncOperationHandle<GameObject> _handle;
+        private Action _onDisposed;
         private bool _disposed;
 
         internal AddressableInstance(GameObject go, AsyncOperationHandle<GameObject> handle)
@@ -21,6 +22,9 @@ namespace Game.GUI
             GameObject = go;
             _handle    = handle;
         }
+
+        /// <summary>닫힘(Dispose) 시 한 번 호출될 콜백. UI 입력 점유 해제 등을 닫힘 생명주기에 묶을 때 사용.</summary>
+        public void SetOnDisposed(Action onDisposed) => _onDisposed = onDisposed;
 
         public void Dispose()
         {
@@ -32,6 +36,9 @@ namespace Game.GUI
 
             if (_handle.IsValid())
                 Addressables.Release(_handle);
+
+            _onDisposed?.Invoke();
+            _onDisposed = null;
         }
     }
 }

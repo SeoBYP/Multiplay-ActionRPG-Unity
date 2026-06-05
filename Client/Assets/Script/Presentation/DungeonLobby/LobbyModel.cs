@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.System.DungeonLobby;
+using Game.System.Input;
 using GameServer.Grpc.DungeonLobby;
 using R3;
 using Game.System.Auth;
@@ -27,6 +28,7 @@ namespace Game.Presentation.DungeonLobby
         private readonly IDungeonLobbyService  _lobbyService;
         private readonly IAuthService          _authService;
         private readonly StartupIntentQueue    _startupQueue;
+        private readonly IInputContext         _inputContext;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
         private readonly ReactiveProperty<LobbyState> _state
@@ -50,16 +52,27 @@ namespace Game.Presentation.DungeonLobby
             LobbyRepository    repository,
             IDungeonLobbyService lobbyService,
             IAuthService         authService,
-            StartupIntentQueue   startupQueue)
+            StartupIntentQueue   startupQueue,
+            IInputContext        inputContext)
         {
             _repository   = repository;
             _lobbyService = lobbyService;
             _authService  = authService;
             _startupQueue = startupQueue;
+            _inputContext = inputContext;
 
             _lobbyService.OnRoomUpdated      += HandleRoomUpdated;
             _lobbyService.OnGameSessionReady += HandleGameSessionReady;
         }
+
+        // ── UI 입력 점유 (모달 열림/닫힘 시 View가 호출) ───────────────
+        // 모달이 떠 있는 동안 게임플레이(Player) 입력을 끈다. 실제 토글은 IInputContext가 담당.
+
+        /// <summary>모달 열림 — 게임플레이 입력 점유 시작.</summary>
+        public void BeginUiCapture() => _inputContext.EnterUi();
+
+        /// <summary>모달 닫힘 — 게임플레이 입력 점유 해제.</summary>
+        public void EndUiCapture() => _inputContext.ExitUi();
 
         private void HandleRoomUpdated(RoomInfo room) =>
             Dispatch(new LobbyResult.RoomUpdated(room));

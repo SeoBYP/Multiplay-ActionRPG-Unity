@@ -70,6 +70,11 @@ namespace Game.GUI.OutGame.Lobby
 
             joinRoomButton.onClick.AddListener(OnJoinClicked);
 
+            // 이 오브젝트가 활성인 동안 게임플레이 입력 점유. btn_close는 이 GameObject를
+            // SetActive(false)로 끄므로 → OnDisable에서 자동 해제(버튼 리스너에 의존하지 않음).
+            gameObject.AddComponent<UiInputCaptureBehaviour>()
+                      .Bind(_model.BeginUiCapture, _model.EndUiCapture);
+
             detailPanel.SetActive(false);
         }
 
@@ -130,12 +135,16 @@ namespace Game.GUI.OutGame.Lobby
             _popupInst = await AddressableLoader.LoadAndInstantiateAsync(
                 AddressKeys.UI.CreateRoomPopup, transform.root, destroyCancellationToken);
 
-            _popupInst?.GameObject.GetComponent<CreateDungeonRoomPopupView>().Setup(_model, ClosePopup);
+            if (_popupInst == null) return; // 로드 실패/취소
+
+            // 모달이 열려 있는 동안 게임플레이 입력 점유(닫힘 Dispose에 해제 자동 연결)
+            _popupInst.CaptureWhileOpen(_model);
+            _popupInst.GameObject.GetComponent<CreateDungeonRoomPopupView>().Setup(_model, ClosePopup);
         }
 
         private void ClosePopup()
         {
-            _popupInst?.Dispose();
+            _popupInst?.Dispose(); // Dispose가 점유 해제까지 처리
             _popupInst = null;
         }
 
