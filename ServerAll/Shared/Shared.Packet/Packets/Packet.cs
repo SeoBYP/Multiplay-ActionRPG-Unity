@@ -25,6 +25,8 @@ namespace Shared.Packet.Packets;
 [MemoryPackUnion(1810, typeof(S_SpawnMonster))]
 [MemoryPackUnion(1811, typeof(S_MonsterState))]
 [MemoryPackUnion(1812, typeof(S_MonsterDead))]
+// 던전 이벤트 - 라이프사이클(클리어/결과)
+[MemoryPackUnion(1820, typeof(S_DungeonClear))]
 public abstract partial class Packet
 {
     

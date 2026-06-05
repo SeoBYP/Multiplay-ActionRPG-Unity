@@ -2,7 +2,11 @@
 
 > **새 채팅 시작 시 이 파일을 먼저 읽어라.**
 > Phase가 완료될 때마다 즉시 갱신한다.
-> 마지막 갱신: 2026-06-05 (**M3 몬스터 완료** 🎉 — 스폰·이동(`MonsterAiMath` Patrol/Chase/Attack + 매 틱 bounds.Clamp)·**양방향 전투**(플레이어→몬스터 피격/사망 GAS·`S_MonsterDead` / 몬스터→플레이어 공격 `S_ApplyEffect{monster_attack_dmg}`)·클라 렌더(`MonsterEntity` 보간, **2인 플레이 시각검증**)·E2E 3종 작성. 서버 권위 + 단일 `RoomTickService` + GAS. SocketServer.Tests **43/43** + 클라/E2E 빌드 0오류. **추가 보완**: ① 게임시작 불가 버그(컨테이너 재시작 시 Redis `LOADING`에 `GameStartRequestedConsumer` 영구사망) → `ResilientStreamConsumer` 복원력 중앙화·3개 컨슈머 이관(plan §9.10 / codemap §2.8). ② 몬스터 프리팹(Capsule+빨강 URP) 제작. 상세 = `§M3`.)
+> 마지막 갱신: 2026-06-06 (**M4 A 트랙 완료** — 던전 클리어 루프 골격 그린. 몬스터 전멸→`Room.TryMarkCleared`(서버 권위 1회)→`S_DungeonClear`(1820) 브로드캐스트+`DungeonClearMessage`(stream:game:dungeon:result)→`DungeonResultConsumer`(수신·로그, 보상 TODO)→클라 `InGameState.IsDungeonCleared`→`GameHud` 패널+기존 `ReturnToLobby`. **SocketServer.Tests 47/47 + PlayMode SocketE2ETests 12/12**(Docker 리빌드 후). 상세 = codemap §2.9. **A 잔여(사용자 영역)**: 전투 플레이 검증·결과 패널 아트. **다음 = B 트랙(보상)**: DungeonId(EF 마이그레이션)→Inventory→Progression→`DungeonResultConsumer` TODO 자리에 보상 산정·지급(Outbox 원자화)→결과/보상 UI.)
+>
+> 직전: 2026-06-05 (**M4 착수 — DoD 던전 루프**: A 트랙(클리어 루프 골격)→B 트랙(보상). **전투**: 플레이어→몬스터 = **서버 권위 유지**(기존 M3 ⑤ `C_Attack`→서버 hitbox→`DamageMonster`). 클라는 **트리거(`C_Attack`)만** 송신. 클리어 = **몬스터 전멸 1회**. 보상 = 경험치+아이템 둘 다.)
+>
+> 직전: 2026-06-05 (**M3 몬스터 완료** 🎉 — 스폰·이동(`MonsterAiMath` Patrol/Chase/Attack + 매 틱 bounds.Clamp)·**양방향 전투**(플레이어→몬스터 피격/사망 GAS·`S_MonsterDead` / 몬스터→플레이어 공격 `S_ApplyEffect{monster_attack_dmg}`)·클라 렌더(`MonsterEntity` 보간, **2인 플레이 시각검증**)·E2E 3종 작성. 서버 권위 + 단일 `RoomTickService` + GAS. SocketServer.Tests **43/43** + 클라/E2E 빌드 0오류. **추가 보완**: ① 게임시작 불가 버그(컨테이너 재시작 시 Redis `LOADING`에 `GameStartRequestedConsumer` 영구사망) → `ResilientStreamConsumer` 복원력 중앙화·3개 컨슈머 이관(plan §9.10 / codemap §2.8). ② 몬스터 프리팹(Capsule+빨강 URP) 제작. 상세 = `§M3`.)
 >
 > 직전 갱신: 2026-06-04 (**M3 몬스터 플랜 확정** — 스폰·패트롤(자식 마커 씬 드래그)·맵경계를 Map Editor에서 저작 → spawn-layouts.json → 서버 파싱. 증분 ①패킷→②a데이터·②b에디터·②c파싱→③서버상태→④틱AI→⑤피격사망→⑥클라렌더→⑦E2E. 같은 날 선행: **WBS 통합**(`wbs.md` 삭제·마일스톤↔WBS ID 일원화).)
 
@@ -85,10 +89,10 @@
   - **4.1.4** 서버 전투 — 플레이어→몬스터 피격/사망(GAS, `S_MonsterDead`) + 몬스터→플레이어 공격(`S_ApplyEffect`) 양방향 — ✅ | T1 | 🔵
   - **4.1.5** 클라 `MonsterEntity` 스폰/보간/사망 (`RemoteDriver` 패턴 재사용) — ✅ | T1 | ⚪
   - **4.1.6** 몬스터 웨이브/스폰 페이즈 — ⬜ | T2 | ⚪
-- **4.2 던전 클리어/보상(DungeonResult)** — `DungeonResult` 신규 도메인 — ⬜ | T1 | 🟢
-  - **4.2.1** 패킷 `S_DungeonClear`(1820) + Union — ⬜ | T1 | ⚪
-  - **4.2.2** SocketServer 클리어 감지 → `DungeonClearMessage` → Redis Stream — ⬜ | T1 | 🟢
-  - **4.2.3** GameServer `DungeonResultConsumer` → 보상 산정(경험치/아이템) — ⬜ | T1 | 🟢
+- **4.2 던전 클리어/보상(DungeonResult)** — `DungeonResult` 신규 도메인 — 🔄 | T1 | 🟢 (A 트랙 클리어 골격 완료, 보상=B)
+  - **4.2.1** 패킷 `S_DungeonClear`(1820) + Union — ✅ | T1 | ⚪
+  - **4.2.2** SocketServer 클리어 감지 → `DungeonClearMessage` → Redis Stream — ✅ | T1 | 🟢
+  - **4.2.3** GameServer `DungeonResultConsumer` → 보상 산정(경험치/아이템) — 🔄 | T1 | 🟢 (컨슈머 수신·로그 골격 완료, 산정은 B)
   - **4.2.4** 보상 지급 — 3.1 Inventory + 2.3 Progression 호출(Outbox 원자화) — ⬜ | T1 | 🟢
 - **4.3** 던전 메타 — `DungeonRoom.DungeonId` 추가(=9.2 부채) — ⬜ | T1 | 🟢
 - **4.4** 퀘스트(Quest) — 수주/진행/완료·보상 (`Quest` 신규) — ⬜ | T2 | ⚪
@@ -237,12 +241,27 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 
 ### M4 — 던전 루프 완성 (= DoD) [WBS 2.3·3.1·4.2·4.3·6.1·6.2·7.1]
 선행: M3. **이번 세션(서버 도메인 🟢) 핵심 영역.**
-- [ ] **인벤토리 도메인** — Item/InventoryItem·Service·Repo(Cache-Aside)·proto·테스트 [3.1] ← 즉시 착수
+
+**전투 모델 결정 (2026-06-05) — 플레이어→몬스터 = 서버 권위, 트리거만 클라**
+- **모델(= 기존 M3 ⑤ 유지)**: 클라 좌클릭 → `C_Attack{skillId}` 송신(트리거) → 서버 `CombatHandler`가 시전자 위치/yaw로 hitbox 재계산(권위 판정) → `Room.DamageMonster`(서버 HP·데미지 산정) → `S_MonsterState`/`S_MonsterDead` 브로드캐스트.
+- **역할 분리**: 클라 = **트리거만**(어떤 몬스터/데미지 모름). 서버 = **판정·데미지·HP·전멸·브로드캐스트 전부 권위**.
+- **후속(M5)**: 데미지 산식을 GAS 스탯(공격력/방어력) 기반으로 승격. 현재는 `CombatEffectCatalog` 고정값.
+- **확인 필요**: 현 서버 권위 경로(`ApplyAttackToMonsters`)가 **실제 플레이에서 동작하는지**(몬스터 콜라이더/위치 추적·hitbox 튜닝). 코드는 존재(M3 ⑤) → A 트랙은 *검증·배선*이지 신규 구축 아님.
+
+**A 트랙 — 클리어 루프 골격** (보상 없이 먼저 관통 → DoD "모양"). DungeonId는 보상 산정 전제라 B로 미룸(A는 DB 스키마 변경 없이 관통).
+- [ ] **전투 검증(사용자 플레이)** — 클라 공격 체인은 **코드 완성·배선 확인됨**(좌클릭→`PressAttack`→`CombatSyncSender`→`C_Attack`→서버 hitbox→`DamageMonster`; `CharacterSpawner.cs:69`서 부착). **신규 구현 없음**. 사용자가 던전 플레이로 검증 → 갭(공격 애니 클립/`monsterPrefab` 미할당/HP 피드백) 발견 시 그 지점만 수선
+- [x] **클리어 감지** — `Room.TryMarkCleared`(스폰됨 & 전멸 최초 1회) → `S_DungeonClear`(Union **1820**) 방 브로드캐스트 + `DungeonClearMessage{RoomId,MapId,Participants[]}` 발행(`IDungeonResultPublisher`→`DungeonResultMessageQueue`, `stream:game:dungeon:result`). `CombatHandler.ApplyAttackToMonsters`가 처치 후 발화. **SocketServer.Tests 47/47**(클리어 4 신규)
+- [x] **DungeonResultConsumer** — `ResilientStreamConsumer`(§9.10) 위임 + `DungeonClearMessageQueue`(Consumer Group) + DI. A단계는 수신·로그만(보상 자리 `TODO(B)`)
+- [x] **클라 결과→복귀** — codegen 미러(`S_DungeonClear`) → `DungeonClearPacketHandler`→`ISocketPacketState.OnDungeonCleared`→`InGameModel`→`InGameState.IsDungeonCleared`→`GameHud.dungeonClearPanel` 토글(미할당 무해)+기존 `ReturnToLobby` 재사용. **Unity 컴파일 0오류**. ※결과 패널 아트(GameHud 프리팹)는 Unity에서 사람이
+- [x] **A 트랙 E2E** — `SocketE2ETests.RawSocket_몬스터_전멸하면_양쪽_S_DungeonClear_수신`: dungeon_01 슬라임 1마리 처치(재조준 루프 재사용) → 호스트+게스트 양쪽 `S_DungeonClear{RoomId}` 수신. **Docker 리빌드·재배포 후 PlayMode 실행 → SocketE2ETests 12/12 그린**(신규 클리어 1 + 회귀 11)
+
+**B 트랙 — 보상 채우기** (도메인 2개 + 지급 + UI)
+- [ ] **던전 구분** — `DungeonRoom.DungeonId`(기본 1) [4.3 / 부채 9.2] — 엔티티 4곳(`Clone/FromRedis/ParseFromRedis/ToHashEntry`)+EF 마이그레이션, `GameStartRequestedMessage`→`Room.DungeonId` 전파. 보상 테이블 키로 사용(현재 클리어 메시지는 MapId로 식별)
+- [ ] **인벤토리 도메인** — Item/InventoryItem·Service·Repo(Cache-Aside)·proto·테스트 [3.1]
 - [ ] **진행/성장(레벨·경험치) 도메인** [2.3]
-- [ ] **던전 클리어/보상(DungeonResult)** — 클리어 감지→Stream→Consumer 보상 산정·지급 [4.2]
-- [ ] 던전 구분 — `DungeonRoom.DungeonId` [4.3 / 부채 9.2]
-- [ ] 캐릭터 진행 영속(레벨/인벤/장비) [6.1] + 결과/보상 화면→로비 복귀 [6.2 / 7.1]
-- [ ] 완전한 Co-op 1판 루프 E2E (MPPM 2-client)
+- [ ] **보상 산정·지급** — `DungeonResultConsumer`가 Progression.AddExp + Inventory.Grant 호출(Outbox 원자화) [4.2.3/4.2.4]
+- [ ] **결과/보상 UI** [7.1] + 캐릭터 진행 영속(레벨/인벤) [6.1] → 로비 복귀 [6.2]
+- [ ] **완전한 Co-op 1판 루프 E2E** (MPPM 2-client)
 
 ### M5 — 폴리시 + PVE 맛보기 [WBS 2.4·2.6·2.7·3.2~3.8·4.4~4.7·5.*·6.3~6.4·7.2~7.8·8.*]
 - [ ] 애니메이션(MotionMatching V2 액션 블렌딩, 🟣)·HUD 다듬기·스킬1~2·아이템 최소·사운드(8.*)

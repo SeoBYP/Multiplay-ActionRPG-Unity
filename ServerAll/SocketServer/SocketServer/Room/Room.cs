@@ -27,6 +27,10 @@ public class Room
     private MapBounds _bounds = MapBounds.Unbounded;
     private int _nextMonsterInstanceId;
 
+    // 클리어 감지(몬스터 전멸) — lock(_monsters) 안에서만 접근.
+    private bool _monstersSpawned;   // 한 번이라도 몬스터가 스폰됐는지(빈 방을 클리어로 오판 방지)
+    private bool _cleared;           // 전멸 이벤트를 이미 발화했는지(중복 발화 방지)
+
     /// <summary>맵 경계 — 몬스터 이동 clamp 기준(RoomTickService 사용).</summary>
     public MapBounds Bounds => _bounds;
 
@@ -233,7 +237,28 @@ public class Room
                 }
             }
 
+            if (_monsters.Count > 0)
+                _monstersSpawned = true;
+
             _logger.LogInformation("Room {RoomId} spawned {Count} monsters", RoomId, _monsters.Count);
+        }
+    }
+
+    /// <summary>
+    /// 몬스터가 전멸했는지 검사하고, 전멸이면 클리어를 <b>최초 1회만</b> true 로 표시한다.
+    /// 스폰된 적이 있어야(빈 방 오판 방지) &amp;&amp; 살아있는 몬스터 0 일 때만 true.
+    /// 사망 몬스터는 DamageMonster 가 즉시 제거하므로 _monsters.Count==0 == 전멸.
+    /// 호출 위치: 몬스터 처치 직후(CombatHandler). 동시 호출돼도 최초 1회만 발화한다.
+    /// </summary>
+    public bool TryMarkCleared()
+    {
+        lock (_monsters)
+        {
+            if (_cleared || !_monstersSpawned || _monsters.Count > 0)
+                return false;
+
+            _cleared = true;
+            return true;
         }
     }
 

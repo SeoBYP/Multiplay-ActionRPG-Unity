@@ -47,12 +47,14 @@ namespace Game.Gameplay.Input
             _actions.Player.ToggleLobby.performed += ctx => Route(GameInputAction.ToggleLobby, ctx);
             _actions.Player.Pause.performed       += ctx => Route(GameInputAction.Pause,       ctx);
 
-            _actions.Player.Enable();
+            // 맵 활성화는 전역(GlobalInputInitializer)이 소유한다. 여기서 Enable/Disable 하지 않는다.
+            // (InputRouter는 Main 스코프 전용 → Dispose에서 전역 맵을 끄면 다음 씬(던전) 입력이 죽는다.)
         }
 
         public void Dispose()
         {
-            _actions.Player.Disable();
+            // 전역 PlayerInputActions의 맵을 끄지 않는다(다른 씬과 공유). 라우팅 핸들러만 비운다.
+            _handlers.Clear();
         }
 
         // ── IInputRouter ──────────────────────────

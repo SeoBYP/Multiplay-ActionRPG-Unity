@@ -23,7 +23,8 @@ public class RoomManagerLeaveRoomTests
         _roomManager = new RoomManager(
             NullLogger<RoomManager>.Instance,
             NullLogger<global::Server.Room.Room>.Instance,
-            _publisher);
+            _publisher,
+            new FakeDungeonResultPublisher());
     }
 
     private static GameStartRequestedMessage BuildMessage(long roomId, params long[] userIds)

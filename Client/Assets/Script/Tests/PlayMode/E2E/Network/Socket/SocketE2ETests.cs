@@ -245,6 +245,56 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
+        public IEnumerator RawSocket_몬스터_전멸하면_양쪽_S_DungeonClear_수신() => UniTask.ToCoroutine(async () =>
+        {
+            // M4 A 트랙 ③: dungeon_01 시드 = 슬라임 1마리. 그 1마리를 처치하면 전멸 →
+            // 서버 Room.TryMarkCleared(최초 1회) → S_DungeonClear 를 방에 브로드캐스트.
+            // 시전자(호스트) + 같은 방 게스트 둘 다 수신해야 한다.
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+            var guest = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
+
+            try
+            {
+                var spawn = await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "slime", Timeout());
+                int slimeId = spawn.InstanceId;
+
+                // 움직이는 슬라임을 최신 위치로 재조준하며 전멸(=클리어)까지 반복 타격.
+                bool cleared = false;
+                var deadline = DateTime.UtcNow.AddSeconds(ServerConfig.TimeoutSeconds);
+                while (!cleared && DateTime.UtcNow < deadline)
+                {
+                    float sx = spawn.PosX, sz = spawn.PosZ;
+                    if (host.TryGetLatest<S_MonsterState>(p => p.InstanceId == slimeId, out var st))
+                    {
+                        sx = st.PosX;
+                        sz = st.PosZ;
+                    }
+
+                    // 슬라임 1유닛 앞(−Z)에서 +Z 정면 → basic_swing hitbox에 슬라임이 들어옴.
+                    await host.SendAsync(new C_Move { PosX = sx, PosY = 0, PosZ = sz - 1f, RotY = 0 }, Timeout());
+                    await UniTask.Delay(TimeSpan.FromMilliseconds(250));
+                    await host.SendAsync(new C_Attack { SkillId = 0 }, Timeout());
+                    await UniTask.Delay(TimeSpan.FromMilliseconds(200));
+
+                    cleared = host.TryGetLatest<S_DungeonClear>(p => p.RoomId == room.RoomId, out _);
+                }
+
+                Assert.IsTrue(cleared, "몬스터 전멸 시 호스트(시전자)가 S_DungeonClear를 받아야 한다");
+
+                // 같은 방의 게스트도 브로드캐스트를 받아야 한다(서버 권위 1회 발화).
+                var guestClear = await guest.WaitForPacketAsync<S_DungeonClear>(
+                    p => p.RoomId == room.RoomId, Timeout());
+                Assert.AreEqual(room.RoomId, guestClear.RoomId, "게스트도 던전 클리어를 받아야 한다");
+            }
+            finally
+            {
+                await host.DisposeAsync();
+                await guest.DisposeAsync();
+            }
+        });
+
+        [UnityTest]
         public IEnumerator RawSocket_호스트가_퇴장하면_게스트가_S_PlayerLeft_수신() => UniTask.ToCoroutine(async () =>
         {
             var room = await CreateStartedTwoPlayerRoomAsync();

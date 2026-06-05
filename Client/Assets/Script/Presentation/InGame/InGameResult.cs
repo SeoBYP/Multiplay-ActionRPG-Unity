@@ -53,5 +53,12 @@ namespace Game.Presentation.InGame
             public static readonly DungeonReady Instance = new DungeonReady();
             private DungeonReady() { }
         }
+
+        /// <summary>던전 클리어(서버 S_DungeonClear, 몬스터 전멸) — 결과 화면 표시.</summary>
+        public sealed class DungeonCleared : InGameResult
+        {
+            public static readonly DungeonCleared Instance = new DungeonCleared();
+            private DungeonCleared() { }
+        }
     }
 }

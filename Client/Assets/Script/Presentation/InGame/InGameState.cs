@@ -28,10 +28,14 @@ namespace Game.Presentation.InGame
         /// <summary>전원 입장 완료(서버 S_GameStatus InProgress). 던전 시작 가능 = "서로 보임" 상태.</summary>
         public readonly bool IsDungeonReady;
 
-        public static readonly InGameState Initial = new InGameState(false, null, 0, 0, 0, 0, EmptyBuffs, false);
+        /// <summary>던전 클리어(서버 S_DungeonClear, 몬스터 전멸). 결과 화면 표시 → 로비 복귀 유도.</summary>
+        public readonly bool IsDungeonCleared;
+
+        public static readonly InGameState Initial = new InGameState(false, null, 0, 0, 0, 0, EmptyBuffs, false, false);
 
         private InGameState(bool isReturning, string errorMessage,
-            int hp, int maxHp, int mp, int maxMp, IReadOnlyList<BuffView> buffs, bool isDungeonReady)
+            int hp, int maxHp, int mp, int maxMp, IReadOnlyList<BuffView> buffs,
+            bool isDungeonReady, bool isDungeonCleared)
         {
             IsReturning  = isReturning;
             ErrorMessage = errorMessage;
@@ -41,24 +45,28 @@ namespace Game.Presentation.InGame
             MaxMp = maxMp;
             Buffs = buffs ?? EmptyBuffs;
             IsDungeonReady = isDungeonReady;
+            IsDungeonCleared = isDungeonCleared;
         }
 
         public InGameState WithReturning() =>
-            new InGameState(true, null, Hp, MaxHp, Mp, MaxMp, Buffs, IsDungeonReady);
+            new InGameState(true, null, Hp, MaxHp, Mp, MaxMp, Buffs, IsDungeonReady, IsDungeonCleared);
 
         public InGameState WithError(string message) =>
-            new InGameState(false, message, Hp, MaxHp, Mp, MaxMp, Buffs, IsDungeonReady);
+            new InGameState(false, message, Hp, MaxHp, Mp, MaxMp, Buffs, IsDungeonReady, IsDungeonCleared);
 
         public InGameState WithHp(int hp, int maxHp) =>
-            new InGameState(IsReturning, ErrorMessage, hp, maxHp, Mp, MaxMp, Buffs, IsDungeonReady);
+            new InGameState(IsReturning, ErrorMessage, hp, maxHp, Mp, MaxMp, Buffs, IsDungeonReady, IsDungeonCleared);
 
         public InGameState WithMp(int mp, int maxMp) =>
-            new InGameState(IsReturning, ErrorMessage, Hp, MaxHp, mp, maxMp, Buffs, IsDungeonReady);
+            new InGameState(IsReturning, ErrorMessage, Hp, MaxHp, mp, maxMp, Buffs, IsDungeonReady, IsDungeonCleared);
 
         public InGameState WithBuffs(IReadOnlyList<BuffView> buffs) =>
-            new InGameState(IsReturning, ErrorMessage, Hp, MaxHp, Mp, MaxMp, buffs, IsDungeonReady);
+            new InGameState(IsReturning, ErrorMessage, Hp, MaxHp, Mp, MaxMp, buffs, IsDungeonReady, IsDungeonCleared);
 
         public InGameState WithDungeonReady() =>
-            new InGameState(IsReturning, ErrorMessage, Hp, MaxHp, Mp, MaxMp, Buffs, true);
+            new InGameState(IsReturning, ErrorMessage, Hp, MaxHp, Mp, MaxMp, Buffs, true, IsDungeonCleared);
+
+        public InGameState WithDungeonCleared() =>
+            new InGameState(IsReturning, ErrorMessage, Hp, MaxHp, Mp, MaxMp, Buffs, IsDungeonReady, true);
     }
 }

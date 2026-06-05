@@ -67,6 +67,8 @@ namespace Server
                     // 5. 게임 로직 및 네트워크
                     services.AddSingleton<RoomLifecycleMessageQueue>();
                     services.AddSingleton<IRoomLifecyclePublisher>(sp => sp.GetRequiredService<RoomLifecycleMessageQueue>());
+                    services.AddSingleton<DungeonResultMessageQueue>();
+                    services.AddSingleton<IDungeonResultPublisher>(sp => sp.GetRequiredService<DungeonResultMessageQueue>());
                     services.AddSingleton<RoomManager>();
                     services.AddSingleton<SessionManager>();
                     services.AddSingleton<TcpNetworkListener>(sp =>

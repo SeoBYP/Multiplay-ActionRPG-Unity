@@ -24,8 +24,7 @@ namespace Game.Installers.Scenes
             // LobbyViewController가 Addressable 프리팹을 Canvas 하위에 생성한다.
             builder.RegisterInstance(uiCanvas);
 
-            builder.Register<PlayerInputActions>(Lifetime.Scoped).AsSelf();
-
+            // PlayerInputActions는 루트(ProjectLifetimeScope)의 전역 Singleton을 공유한다 — 여기서 재등록하지 않는다.
             builder.RegisterInstance(new LocomotionSettings());
             builder.Register<IStateFactory, StateFactory>(Lifetime.Scoped);
             builder.Register<IStateMachineBuilder, StateMachineBuilder>(Lifetime.Scoped);
@@ -51,7 +50,7 @@ namespace Game.Installers.Scenes
 
             builder.Install(new OutgameInstaller());
 
-            builder.RegisterEntryPoint<MainSceneInitializer>(Lifetime.Scoped);
+            // 입력 맵 활성화는 루트 GlobalInputInitializer가 전역 1회 담당(씬별 초기화 제거).
             builder.RegisterEntryPoint<MainSceneStartup>(Lifetime.Scoped);
         }
     }

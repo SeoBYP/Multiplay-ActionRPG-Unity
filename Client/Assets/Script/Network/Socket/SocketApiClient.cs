@@ -32,6 +32,8 @@ namespace Game.Network.Socket
             builder.Register<IPacketHandler, MonsterDeadPacketHandler>(Lifetime.Singleton);
             // 전원 입장(S_GameStatus InProgress) → 던전 준비 완료.
             builder.Register<IPacketHandler, GameStatusPacketHandler>(Lifetime.Singleton);
+            // M4 ③: 몬스터 전멸 → 던전 클리어.
+            builder.Register<IPacketHandler, DungeonClearPacketHandler>(Lifetime.Singleton);
 
             // 송수신 파이프라인 등록.
             builder.Register<ISocketPacketDispatcher, SocketPacketDispatcher>(Lifetime.Singleton);
@@ -76,6 +78,11 @@ namespace Game.Network.Socket
         event Action OnDungeonReady;
         void MarkDungeonReady();
 
+        // ── 던전 클리어(서버 전멸 감지 S_DungeonClear) ──
+        /// <summary>S_DungeonClear 수신 시 발행. Presentation(InGameModel)이 결과 화면→로비 복귀에 사용.</summary>
+        event Action OnDungeonCleared;
+        void MarkDungeonCleared();
+
         // ── M3 ⑥: 서버 권위 몬스터(클라는 보간만) ──
         /// <summary>S_SpawnMonster 수신 시 발행. MonsterSpawner가 몬스터 엔티티를 스폰한다.</summary>
         event Action<SocketMonsterSnapshot> OnMonsterSpawned;
@@ -108,11 +115,13 @@ namespace Game.Network.Socket
         public event Action<SocketEffectApply>    OnEffectApplied;
         public event Action<int>                  OnEffectRemoved;
         public event Action                       OnDungeonReady;
+        public event Action                       OnDungeonCleared;
         public event Action<SocketMonsterSnapshot> OnMonsterSpawned;
         public event Action<SocketMonsterSnapshot> OnMonsterMoved;
         public event Action<int>                   OnMonsterDead;
 
         public void MarkDungeonReady() => OnDungeonReady?.Invoke();
+        public void MarkDungeonCleared() => OnDungeonCleared?.Invoke();
 
         public void ApplyEffect(SocketEffectApply data)
         {

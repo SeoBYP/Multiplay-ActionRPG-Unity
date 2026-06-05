@@ -51,7 +51,8 @@ public class SpawnLayoutTests
         var roomManager = new RoomManager(
             NullLogger<RoomManager>.Instance,
             NullLogger<global::Server.Room.Room>.Instance,
-            new FakeRoomLifecyclePublisher());
+            new FakeRoomLifecyclePublisher(),
+            new FakeDungeonResultPublisher());
 
         const long roomId = 10;
         var message = new GameStartRequestedMessage

@@ -41,8 +41,8 @@ public class DungeonLifetimeScope : LifetimeScope
         builder.RegisterEntryPoint<GameHudController>(Lifetime.Scoped);
 
         // CharacterAgent.Construct(IStateMachineBuilder)에 주입되는 게임플레이 의존성.
-        // MainLifetimeScope와 동일하게 등록해야 InjectGameObject()가 성공한다.
-        builder.Register<PlayerInputActions>(Lifetime.Scoped).AsSelf();
+        // PlayerInputActions는 루트(ProjectLifetimeScope)의 전역 Singleton을 공유한다 — 재등록 금지.
+        // (InjectGameObject가 부모 스코프에서 resolve하므로 씬 재등록 없이도 주입된다.)
         builder.RegisterInstance(new LocomotionSettings());
         builder.Register<IStateFactory, StateFactory>(Lifetime.Scoped);
         builder.Register<IStateMachineBuilder, StateMachineBuilder>(Lifetime.Scoped);

@@ -63,13 +63,22 @@ namespace Game.Presentation.InGame
 
             // 전원 입장(S_GameStatus InProgress) → 던전 준비 완료 상태로 전환.
             if (_packetState != null)
+            {
                 _packetState.OnDungeonReady += OnDungeonReady;
+                _packetState.OnDungeonCleared += OnDungeonCleared;
+            }
         }
 
         private void OnDungeonReady()
         {
             Debug.Log("[InGameModel] 전원 입장 — IsDungeonReady=true 로 전환");
             Dispatch(InGameResult.DungeonReady.Instance);
+        }
+
+        private void OnDungeonCleared()
+        {
+            Debug.Log("[InGameModel] 던전 클리어 — IsDungeonCleared=true 로 전환");
+            Dispatch(InGameResult.DungeonCleared.Instance);
         }
 
         // ── 로컬 플레이어 ASC ↔ State 중계 ────────────
@@ -223,7 +232,10 @@ namespace Game.Presentation.InGame
         {
             _localPlayer.OnSet -= BindLocalPlayer;
             if (_packetState != null)
+            {
                 _packetState.OnDungeonReady -= OnDungeonReady;
+                _packetState.OnDungeonCleared -= OnDungeonCleared;
+            }
             if (_asc != null)
             {
                 _asc.OnAttributeChanged -= OnAttributeChanged;

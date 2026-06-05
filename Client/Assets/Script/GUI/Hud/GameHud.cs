@@ -41,6 +41,10 @@ namespace Game.GUI.OutGame
 
         [SerializeField] private Button returnToLobbyButton;
 
+        [Header("Dungeon Clear")]
+        [Tooltip("던전 클리어(몬스터 전멸) 시 표시할 결과 패널. 미할당이어도 동작은 무해(토글만 생략).")]
+        [SerializeField] private GameObject dungeonClearPanel;
+
         [Header("Side Buttons")]
         [SerializeField] private SideButton[] sideButtons;
         
@@ -111,6 +115,10 @@ namespace Game.GUI.OutGame
         {
             // 복귀 처리 중에는 버튼 비활성화 (중복 클릭 방지)
             returnToLobbyButton.interactable = !state.IsReturning;
+
+            // 던전 클리어(몬스터 전멸) → 결과 패널 표시. 복귀(ReturnToLobby)는 기존 버튼 재사용.
+            if (dungeonClearPanel != null && dungeonClearPanel.activeSelf != state.IsDungeonCleared)
+                dungeonClearPanel.SetActive(state.IsDungeonCleared);
 
             // 로컬 플레이어 스탯 → 게이지 (GAS Attribute에서 중계된 값)
             if (hpSlider != null)

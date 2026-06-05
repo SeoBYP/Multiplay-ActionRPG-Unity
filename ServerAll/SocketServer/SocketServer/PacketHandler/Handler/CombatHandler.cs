@@ -89,7 +89,7 @@ public static class CombatHandler
         }
 
         // 2) 몬스터 피격 → 서버 권위 HP 차감(GAS) → S_MonsterState / S_MonsterDead — 신규(⑤)
-        ApplyAttackToMonsters(room, skill, attacker);
+        ApplyAttackToMonsters(session, room, skill, attacker);
 
         return ValueTask.CompletedTask;
     }
@@ -98,7 +98,7 @@ public static class CombatHandler
     /// 시전자 hitbox 와 겹치는 몬스터에 on-hit 효과를 GAS Health 모디파이어로 적용(서버 권위).
     /// 사망 시 S_MonsterDead, 생존 시 갱신된 HP 를 S_MonsterState 로 즉시 브로드캐스트.
     /// </summary>
-    private static void ApplyAttackToMonsters(global::Server.Room.Room room, SkillTimeline skill, PlayerState attacker)
+    private static void ApplyAttackToMonsters(Session session, global::Server.Room.Room room, SkillTimeline skill, PlayerState attacker)
     {
         var mods = new List<GameplayAttributeModifier>();
         foreach (var effectId in skill.OnHitEffectIds)
@@ -107,6 +107,7 @@ public static class CombatHandler
             return;
 
         var attackerPos = new Vector3(attacker.PosX, attacker.PosY, attacker.PosZ);
+        bool anyKilled = false;
 
         foreach (var monster in room.GetAllMonsters())
         {
@@ -123,6 +124,7 @@ public static class CombatHandler
 
             if (dead)
             {
+                anyKilled = true;
                 room.Broadcast(new S_MonsterDead { InstanceId = monster.InstanceId });
             }
             else
@@ -136,6 +138,14 @@ public static class CombatHandler
                     Phase = (byte)monster.Phase,
                 });
             }
+        }
+
+        // 클리어 감지: 이번 스윙으로 몬스터가 죽었고, 그 결과 전멸이면 1회만 발화.
+        // S_DungeonClear(클라 결과화면) + DungeonClearMessage(GameServer 보상) 두 경로로 통지.
+        if (anyKilled && room.TryMarkCleared())
+        {
+            room.Broadcast(new S_DungeonClear { RoomId = room.RoomId });
+            session.RoomManager.PublishDungeonClear(room);
         }
     }
 }

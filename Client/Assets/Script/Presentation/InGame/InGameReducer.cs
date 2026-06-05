@@ -26,6 +26,9 @@ namespace Game.Presentation.InGame
             if (result is InGameResult.DungeonReady)
                 return state.WithDungeonReady();
 
+            if (result is InGameResult.DungeonCleared)
+                return state.WithDungeonCleared();
+
             return state;
         }
     }

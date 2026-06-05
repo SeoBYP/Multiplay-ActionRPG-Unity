@@ -14,15 +14,18 @@ public class RoomManager
     private readonly ILogger<RoomManager> _logger;
     private readonly ILogger<Room> _roomLogger;
     private readonly IRoomLifecyclePublisher _lifecycleQueue;
+    private readonly IDungeonResultPublisher _dungeonResultQueue;
 
     public RoomManager(
         ILogger<RoomManager> logger,
         ILogger<Room> roomLogger,
-        IRoomLifecyclePublisher lifecycleQueue)
+        IRoomLifecyclePublisher lifecycleQueue,
+        IDungeonResultPublisher dungeonResultQueue)
     {
         _logger = logger;
         _roomLogger = roomLogger;
         _lifecycleQueue = lifecycleQueue;
+        _dungeonResultQueue = dungeonResultQueue;
     }
 
     private readonly ConcurrentDictionary<long, GameStartRequestedMessage> _roomMessages = new();
@@ -162,6 +165,25 @@ public class RoomManager
                 RoomEmptied = emptied
             });
         }
+    }
+
+    /// <summary>
+    /// 던전 클리어(몬스터 전멸)를 GameServer에 발행한다. 현재 방 참가자(UserId)와 MapId를 담는다.
+    /// 클라 브로드캐스트(S_DungeonClear)는 호출자(CombatHandler)가 별도로 한다 — 여기선 서버 간 통지만.
+    /// 전멸 1회 보장은 Room.TryMarkCleared 책임이므로 호출자가 true 일 때만 부른다.
+    /// </summary>
+    public void PublishDungeonClear(Room room)
+    {
+        var participants = room.GetAllPlayerStates().Select(p => p.UserId).ToArray();
+        _ = _dungeonResultQueue.EnqueueAsync(new DungeonClearMessage
+        {
+            RoomId = room.RoomId,
+            MapId = room.MapId,
+            Participants = participants,
+        });
+        _logger.LogInformation(
+            "Room {RoomId} cleared (MapId={MapId}, participants={Count})",
+            room.RoomId, room.MapId, participants.Length);
     }
 
     public Room? GetPlayerRoom(ulong sessionId)

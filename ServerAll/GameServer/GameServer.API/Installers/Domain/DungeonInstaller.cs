@@ -32,10 +32,12 @@ public class DungeonInstaller : IServiceInstaller
         services.AddSingleton<IMessageQueue<GameStartRequestedMessage>, GameStartRequestedMessageQueue>();
         services.AddSingleton<IMessageQueue<GameSessionReadyMessage>, GameSessionReadyMessageQueue>();
         services.AddSingleton<IMessageQueue<PlayerLeftRoomMessage>, PlayerLeftRoomMessageQueue>();
+        services.AddSingleton<IMessageQueue<DungeonClearMessage>, DungeonClearMessageQueue>();
 
         services.AddScoped<IOutboxRepository, OutboxRepository>();
         services.AddHostedService<OutboxPublisherService>();
         services.AddHostedService<GameSessionReadyConsumer>();
         services.AddHostedService<RoomLifecycleConsumer>();
+        services.AddHostedService<DungeonResultConsumer>();
     }
 }

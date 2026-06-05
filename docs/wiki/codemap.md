@@ -37,6 +37,24 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.10 입력 시스템 전역화 (PlayerInputActions·InputContext = 루트 Singleton)
+- **증상**: 던전 진입 시 PlayerCharacter가 안 움직임(`PlayerInputComponent`의 Action 콜백 0). 또 UI 점유 입력 차단(`InputContext`)이 Main에서만 동작.
+- **근본 원인**: `PlayerInputActions`가 `ProjectLifetimeScope`에서 **`Scoped`**로 등록되고 Main/Dungeon이 **각자 또 `Scoped` 재등록** → **스코프마다 다른 인스턴스 3개**. ① 던전 인스턴스의 `Player` 맵을 아무도 `Enable()` 안 함(Main은 `MainSceneInitializer`가 켰지만 던전엔 대응물 없음) → 콜백 0. ② `InputContext`를 루트에 두면 씬 인스턴스와 달라 "안 먹힘" → 팀이 `OutgameInstaller`(Main)로 우회 등록(증상 회피, 원인=Scoped 미해결).
+- **수정(전역 단일 인스턴스)**: `PlayerInputActions` → **루트 `Singleton`**(`ProjectLifetimeScope`), Main/Dungeon **재등록 삭제**(자식 스코프가 부모 등록 resolve → `CharacterSpawner._container.InjectGameObject`가 루트 인스턴스 주입). `IInputContext→InputContext`도 **루트 Singleton**(전 씬 UI 게이팅). 맵 활성화는 **`GlobalInputInitializer`(루트 `IInitializable`)**가 진입 시 1회 Enable. 구 `MainSceneInitializer`/`DungeonSceneInitializer` **삭제**(전역으로 통합). `OutgameInstaller`의 `IInputContext` 등록 삭제(루트로 이동). `InputRouter`/`InteractionSystem`는 OutGame 전용이라 Main 스코프 유지(루트 싱글톤 resolve).
+- **Dispose 함정**: 전역 공유이므로 씬 나갈 때 `PlayerInputActions.Dispose()` 금지(다른 씬 깨짐). 루트 Singleton이라 **VContainer가 앱 종료 시 1회 dispose** → `GlobalInputInitializer`는 Enable만, 수동 Dispose 안 함. `Title`은 입력 맵 미접촉(자동로그인만)이라 충돌 없음.
+- **후속 버그(전역화로 드러남)**: 전역 싱글톤이 되자 **Main 스코프 전용 `InputRouter.Dispose()`가 `_actions.Player.Disable()`**로 그 싱글톤 맵을 껐다 → Main→Dungeon 전환 시 Main 스코프 파괴 → 던전 입력 사망(`PlayerInputComponent 구독 완료 ... Player.enabled=False` 로그로 확인). 수정: `InputRouter`에서 맵 Enable/Disable 제거(맵 소유 = `GlobalInputInitializer`만, 라우팅만 담당). **교훈: 씬 스코프 컴포넌트는 전역 입력 상태(enable/disable)를 Initialize/Dispose에서 건드리면 안 된다.**
+- **남은 잠재 부채**: `InputRouter`가 전역 `PlayerInputActions.performed`에 람다 구독(Initialize) → Dispose에서 미해제(람다 캡처라 해제 어려움). Main 재진입 시 중복 구독 누수 가능(L키 이중 처리). 실사용 빈도 낮아 보류 — 명명 델리게이트로 unsubscribe 필요 시 후속.
+- **원칙**: 입력은 게임 생명주기 전역 관심사 → 씬 스코프에 묶지 않는다(CLAUDE.md 원칙 3). 한 씬에서만 동작하는 입력/UI게이팅은 구조 오류.
+- **검증**: Unity 컴파일 0오류 + EditMode **137/137** + 던전 진입 로그로 `Player.enabled` False→(수정 후)True 전환 확인 예정. ※실제 Main·Dungeon 양쪽 이동/UI게이팅은 사용자 플레이 확인.
+
+### 2.9 던전 클리어 루프 (M4 A 트랙 — 전멸 감지 → 결과 → 로비 복귀)
+- **무엇/왜**: 방의 몬스터 전멸을 **서버 권위로 1회만** 감지해 ① 클라에 결과 화면을 띄우고 ② GameServer에 보상 산정용 이벤트를 통지. DoD "클리어→복귀" 골격(보상은 B 트랙).
+- **감지(SocketServer)**: `Room.TryMarkCleared()`(`Room.cs`) — `_monstersSpawned`(빈 방 오판 방지) && 살아있는 몬스터 0 && `!_cleared` 일 때 최초 1회 true(lock(_monsters), 중복 발화 차단). 사망 몬스터는 `DamageMonster`가 즉시 제거하므로 `_monsters.Count==0`==전멸. 호출 위치 = `CombatHandler.ApplyAttackToMonsters`(처치 후 `anyKilled && TryMarkCleared()`).
+- **두 경로 통지**: ① 클라 — `room.Broadcast(S_DungeonClear{RoomId})`(Union **1820**, `Shared.Packet/Domains/DungeonPackets.cs`). ② GameServer — `session.RoomManager.PublishDungeonClear(room)` → `IDungeonResultPublisher`→`DungeonResultMessageQueue`(`stream:game:dungeon:result`) → `DungeonClearMessage{RoomId,MapId,Participants[]}`. 던전 식별은 현재 `MapId`(DB `DungeonId`는 B 트랙 부채 9.2). 발행 패턴 = `IRoomLifecyclePublisher` 미러.
+- **소비(GameServer)**: `DungeonClearMessageQueue`(Consumer Group `dungeon-result-service`) + `DungeonResultConsumer`(`ResilientStreamConsumer` 위임, §2.8). **A단계는 수신·로그만** — 보상 산정/지급(Progression+Inventory, Outbox 원자화)은 `ProcessAsync`의 `TODO(B)`. DI = `DungeonInstaller`.
+- **클라(Presentation)**: codegen 미러 `S_DungeonClear` → `DungeonClearPacketHandler`(`Network/Socket/Handler/Contents`) → `ISocketPacketState.MarkDungeonCleared`/`OnDungeonCleared`(`SocketApiClient.cs`) → `InGameModel`이 구독 → `InGameResult.DungeonCleared`→`InGameState.IsDungeonCleared`→`GameHud`가 `dungeonClearPanel` 토글(SerializeField, 미할당 무해) + 기존 `returnToLobbyButton`→`InGameIntent.ReturnToLobby`(§2.1 복귀 경로) 재사용.
+- **검증**: SocketServer.Tests **47/47**(`DungeonClearTests` 4: 전멸 1회·생존 시 false·미스폰 false·발행 참가자/MapId) + 서버 빌드 0오류 + Unity 컴파일 0오류. **남음**: A 트랙 E2E(2클라 처치→양쪽 `S_DungeonClear`), 결과 패널 아트(GameHud 프리팹, 사람).
+
 ### 2.8 컨슈머 복원력 중앙화 (일시적 Redis 오류에 안 죽는 BackgroundService)
 - **무엇/왜**: 일시적 인프라 오류(Redis `LOADING`·연결끊김)에 BackgroundService 스트림 컨슈머가 outer `catch`로 루프를 빠져나가 **영구히 죽던 버그**(`.NET BackgroundService`는 `ExecuteAsync` 리턴 시 부활 안 함). 실사례: 컨테이너 재시작 직후 Redis 로딩 중 `GameStartRequestedConsumer`가 죽어 방 생성·`GameSessionReady` 발행이 멈춤 → 클라가 `GameSessionEvent` 대신 `UpdateEvent`만 받아 던전 입장 실패.
 - **위치**: `Shared/Shared.Infrastructure/MessageQueue/ResilientStreamConsumer.cs` — `RunAsync(name, readStream, handleMessage, logger, ct, baseDelay?, maxDelay?)`. 3분류: 취소→정상종료 / 스트림 읽기 실패→지수백오프(+지터) 재시도(**안 죽음**) / 메시지 핸들러 실패(poison)→그 메시지만 skip(스트림 유지). 백오프 지연 주입 가능(테스트 단축).
