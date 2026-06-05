@@ -7,10 +7,14 @@ namespace Shared.Infrastructure.Spawn;
 public sealed record SpawnPoint(float X, float Y, float Z, float RotY);
 
 /// <summary>
-/// 한 맵의 스폰 레이아웃 — 명시적 스폰 포인트 목록.
-/// spawnIndex 가 Points 배열의 인덱스가 된다.
+/// 한 맵의 스폰 레이아웃 — 플레이어 스폰 포인트 + 맵 경계 + 몬스터 스폰 정의.
+/// spawnIndex 가 Points 배열의 인덱스가 된다. Bounds/Monsters 는 서버 권위 몬스터 시뮬레이션이 사용한다.
 /// </summary>
-public sealed record MapSpawnLayout(string MapId, IReadOnlyList<SpawnPoint> Points);
+public sealed record MapSpawnLayout(
+    string MapId,
+    IReadOnlyList<SpawnPoint> Points,
+    MapBounds Bounds,
+    IReadOnlyList<MonsterSpawnDef> Monsters);
 
 /// <summary>
 /// 결정론적 스폰 리졸버 — 순수 함수.

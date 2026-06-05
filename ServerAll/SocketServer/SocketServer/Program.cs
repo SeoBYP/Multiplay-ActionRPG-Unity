@@ -81,6 +81,7 @@ namespace Server
                     services.AddHostedService<TcpListenerService>();
                     services.AddHostedService<GameStartRequestedConsumer>();
                     services.AddHostedService<HeartBeatService>();
+                    services.AddHostedService<Server.Monster.RoomTickService>();
                 })
                 .Build();
 

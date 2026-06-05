@@ -49,6 +49,9 @@ public class RoomManager
                 spawn.X, spawn.Y, spawn.Z, spawn.RotY);
         }
 
+        // 몬스터 초기 스폰(서버 권위) — 맵 경계도 함께 보관(이동 clamp 기준).
+        room.SpawnMonsters(layout.Monsters, layout.Bounds);
+
         _logger.LogInformation("Room {RoomId} created with {MaxPlayers} players", msgRoomId, msgPlayerIds.Count);
         return room;
     }

@@ -153,6 +153,97 @@ namespace Game.Tests.PlayMode.E2E
             }
         });
 
+        // ── M3 몬스터(서버 권위 스폰/이동/전투) ────────────────────────
+
+        [UnityTest]
+        public IEnumerator RawSocket_입장하면_몬스터_스폰_로스터_수신() => UniTask.ToCoroutine(async () =>
+        {
+            // 입장 시 RoomJoinLeaveHandler가 현재 몬스터 로스터(S_SpawnMonster×N)를 회신.
+            // dungeon_01에는 슬라임 1마리(MaxHp 30) 시드됨.
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+            try
+            {
+                var spawn = await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "slime", Timeout());
+                Assert.AreEqual("slime", spawn.MonsterId);
+                Assert.Greater(spawn.InstanceId, 0, "서버가 InstanceId를 권위 발급해야 한다");
+                Assert.AreEqual(30, spawn.MaxHp, "dungeon_01 슬라임 MaxHp");
+            }
+            finally
+            {
+                await host.DisposeAsync();
+            }
+        });
+
+        [UnityTest]
+        public IEnumerator RawSocket_몬스터를_반복_공격하면_S_MonsterDead_수신() => UniTask.ToCoroutine(async () =>
+        {
+            // 플레이어→몬스터: basic_swing 적중마다 서버 권위로 HP -10(basic_attack_dmg). 30→0 = 3타 이상.
+            // 슬라임이 패트롤/추격으로 움직이므로 최신 S_MonsterState 위치로 재조준해 정면(−Z 1유닛)에서 타격.
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+            try
+            {
+                var spawn = await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "slime", Timeout());
+                int slimeId = spawn.InstanceId;
+
+                bool dead = false;
+                var deadline = DateTime.UtcNow.AddSeconds(ServerConfig.TimeoutSeconds);
+                while (!dead && DateTime.UtcNow < deadline)
+                {
+                    float sx = spawn.PosX, sz = spawn.PosZ;
+                    if (host.TryGetLatest<S_MonsterState>(p => p.InstanceId == slimeId, out var st))
+                    {
+                        sx = st.PosX;
+                        sz = st.PosZ;
+                    }
+
+                    // 슬라임 1유닛 앞(−Z)에서 +Z 정면 → basic_swing hitbox에 슬라임이 들어옴.
+                    await host.SendAsync(new C_Move { PosX = sx, PosY = 0, PosZ = sz - 1f, RotY = 0 }, Timeout());
+                    await UniTask.Delay(TimeSpan.FromMilliseconds(250));
+                    await host.SendAsync(new C_Attack { SkillId = 0 }, Timeout());
+                    await UniTask.Delay(TimeSpan.FromMilliseconds(200));
+
+                    dead = host.TryGetLatest<S_MonsterDead>(p => p.InstanceId == slimeId, out _);
+                }
+
+                Assert.IsTrue(dead, "슬라임(HP30)을 반복 공격하면 S_MonsterDead를 받아야 한다");
+            }
+            finally
+            {
+                await host.DisposeAsync();
+            }
+        });
+
+        [UnityTest]
+        public IEnumerator RawSocket_몬스터_사거리_안이면_S_ApplyEffect_monster_attack_dmg_수신() => UniTask.ToCoroutine(async () =>
+        {
+            // 몬스터→플레이어: 패트롤 사각형(6,6)~(10,10) 중심(8,8)으로 가면 슬라임이 항상 aggro 범위 →
+            // 추격·사거리 진입 → 쿨다운마다 monster_attack_dmg(S_ApplyEffect)를 그 플레이어에게 발행.
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+            try
+            {
+                await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "slime", Timeout());
+
+                await host.SendAsync(new C_Move { PosX = 8, PosY = 0, PosZ = 8, RotY = 0 }, Timeout());
+
+                var apply = await host.WaitForPacketAsync<S_ApplyEffect>(
+                    p => p.EffectId == "monster_attack_dmg" && p.TargetId == room.HostUserId,
+                    Timeout());
+
+                Assert.AreEqual("monster_attack_dmg", apply.EffectId);
+                Assert.AreEqual(room.HostUserId, apply.TargetId, "공격 대상이 가장 가까운 플레이어(호스트)여야 한다");
+            }
+            finally
+            {
+                await host.DisposeAsync();
+            }
+        });
+
         [UnityTest]
         public IEnumerator RawSocket_호스트가_퇴장하면_게스트가_S_PlayerLeft_수신() => UniTask.ToCoroutine(async () =>
         {
@@ -621,6 +712,26 @@ namespace Game.Tests.PlayMode.E2E
                     foreach (var packet in _receivedPackets)
                     {
                         if (packet is TPacket typed && predicate(typed))
+                        {
+                            found = typed;
+                            return true;
+                        }
+                    }
+                }
+
+                found = null;
+                return false;
+            }
+
+            /// <summary>조건에 맞는 가장 최근 패킷(역순 탐색). 움직이는 몬스터의 최신 위치 조회용.</summary>
+            public bool TryGetLatest<TPacket>(Func<TPacket, bool> predicate, out TPacket found)
+                where TPacket : Packet
+            {
+                lock (_sync)
+                {
+                    for (int i = _receivedPackets.Count - 1; i >= 0; i--)
+                    {
+                        if (_receivedPackets[i] is TPacket typed && predicate(typed))
                         {
                             found = typed;
                             return true;

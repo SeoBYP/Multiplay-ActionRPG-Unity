@@ -2,9 +2,9 @@
 
 > **새 채팅 시작 시 이 파일을 먼저 읽어라.**
 > Phase가 완료될 때마다 즉시 갱신한다.
-> 마지막 갱신: 2026-06-04 (**WBS 통합** — 전체 RPG 스코프 트리(`§전체 범위`)를 plan.md로 흡수하고 `wbs.md` 삭제. 마일스톤 ↔ WBS ID 매핑, 서버 도메인 세션 트랙(`§세션 트랙`) 명시. 마일스톤(실행 순서)과 WBS(구조)를 공유 ID로 일원화.)
+> 마지막 갱신: 2026-06-05 (**M3 몬스터 완료** 🎉 — 스폰·이동(`MonsterAiMath` Patrol/Chase/Attack + 매 틱 bounds.Clamp)·**양방향 전투**(플레이어→몬스터 피격/사망 GAS·`S_MonsterDead` / 몬스터→플레이어 공격 `S_ApplyEffect{monster_attack_dmg}`)·클라 렌더(`MonsterEntity` 보간, **2인 플레이 시각검증**)·E2E 3종 작성. 서버 권위 + 단일 `RoomTickService` + GAS. SocketServer.Tests **43/43** + 클라/E2E 빌드 0오류. **추가 보완**: ① 게임시작 불가 버그(컨테이너 재시작 시 Redis `LOADING`에 `GameStartRequestedConsumer` 영구사망) → `ResilientStreamConsumer` 복원력 중앙화·3개 컨슈머 이관(plan §9.10 / codemap §2.8). ② 몬스터 프리팹(Capsule+빨강 URP) 제작. 상세 = `§M3`.)
 >
-> 직전 갱신: 2026-06-03 (**M1 던전 입장 코어 완료 + 커밋**(`feature/m1-dungeon-entry-foundations`). ① 결정론 스폰: `spawn-layouts.json`+`SpawnResolver`(서버·클라 미러)·`CharacterSpawner`. ② 맵 저작: `MapDefinition`+`MapLoader`+에디터 툴. ③ 전원 입장→로딩 게이트→Fader(`S_GameStatus` 재사용). **E2E `SocketE2ETests` 그린** + MPPM 2-창 시각 검증 완료. codemap §2.3 / **M2 CA-3 증분②까지 완료** — 증분③(2-client 검증)만 남음)
+> 직전 갱신: 2026-06-04 (**M3 몬스터 플랜 확정** — 스폰·패트롤(자식 마커 씬 드래그)·맵경계를 Map Editor에서 저작 → spawn-layouts.json → 서버 파싱. 증분 ①패킷→②a데이터·②b에디터·②c파싱→③서버상태→④틱AI→⑤피격사망→⑥클라렌더→⑦E2E. 같은 날 선행: **WBS 통합**(`wbs.md` 삭제·마일스톤↔WBS ID 일원화).)
 
 ---
 
@@ -21,7 +21,7 @@
 | ✅ M0 | 인증·로비·채팅·소켓·던전 입퇴장·DB/캐시·Unity OutGame (기반) | 1.* |
 | ✅ M1 | 인게임 진입 — 로컬/원격 캐릭터 스폰·이동, 인게임 UI 전환 | 1.6 |
 | 🔄 M2 | 전투 코어 — Character 두 축 리팩터(GAS) + 서버 권위 Attack/Hit/Damage | 2.1·2.2·2.5.1·2.6.2 |
-| M3 | 몬스터 — Spawn/AI/State/Dead 동기화 | 4.1.* |
+| ✅ M3 | 몬스터 — Spawn·이동(AI)·State·Dead + 양방향 전투(P↔M) + 클라 렌더(2인 검증) | 4.1.1~4.1.5 |
 | M4 | 던전 루프 완성 — Clear → 보상 → 로비 복귀 **(= DoD)** | 2.3·3.1·4.2·4.3·6.1·6.2·7.1 |
 | M5 | 폴리시/콘텐츠 — 애니(MotionMatching V2)·스킬·아이템·사운드 + PVE 맛보기 | 2.4·2.6·2.7·3.2~3.8·4.4~4.7·5.*·6.3~6.4·7.2~7.8·8.* |
 | M6 | 마감 — 데모·부하/E2E 검증·배포/포트폴리오 문서 | 9.8·9.9 |
@@ -37,6 +37,8 @@
 > **범례** — 상태: `✅`완료 `🔄`진행 `⬜`미착수 / **Tier**: **T1** 코어·DoD 필수 · **T2** RPG 확장 · **T3** 향후/선택 / **Owner**: 🟢 서버 도메인 세션 · 🔵 GAS/전투 세션 · 🟣 애니(MotionMatching V2) 세션 · ⚪ 미배정. (말단에만 `상태 | Tier | Owner` 태그)
 >
 > **YAGNI**: 카탈로그는 *가시화* 목적. 실제 착수는 Tier 순(T1→T2→T3)으로 마일스톤에 편입될 때만.
+>
+> **🔗 GitHub Project 자동 동기화**: 노드 줄의 상태 마커(✅/🔄/⬜)를 바꿔 plan.md를 **커밋**하면 post-commit 훅이 [Project #2](https://github.com/users/SeoBYP/projects/2)에 자동 반영한다 — Status 필드 + 이슈 open/close, **새 `x.y` 노드는 이슈 자동 생성**(`9.2`처럼 중복은 스크립트 EXCLUDE). 한 줄=한 노드·`**x.y**`+상태마커 형식을 지켜야 파싱된다. 수동/미리보기: `python .claude/scripts/sync-github-project.py [--dry-run]`.
 
 ### 1. 기반 시스템 — ✅ 완료 (M0/M1) → 상세는 `§완료된 Phase`
 - **1.1** 계정/인증 · **1.2** 유저/프로필 · **1.3** 로비/매칭 · **1.4** 채팅 · **1.5** 게임 세션 연결 — ✅
@@ -49,10 +51,10 @@
 - **2.2** 스킬/어빌리티 — SkillTimeline, `basic_swing` 외 확장 — 🔄 | T1 | 🔵
 - **2.3** 진행/성장(Progression) — 레벨·경험치·스탯 성장 영속 (`Progression` 신규) — ⬜ | T1 | 🟢
 - **2.4** 스탯 산식 — 레벨/장비/버프 합산 서버 권위 재계산 — ⬜ | T2 | ⚪
-- **2.5 사망/부활**
+- **2.5 사망/부활** — ⬜ | T1 | 🔵
   - **2.5.1** 사망 처리 — HP 0 다운/리스폰 (전투 루프 필수) — ⬜ | T1 | 🔵
   - **2.5.2** Co-op 부활 — 다운된 아군 살리기 — ⬜ | T2 | ⚪
-- **2.6 전투 보조**
+- **2.6 전투 보조** — ⬜ | T2 | ⚪
   - **2.6.1** 회피/구르기(Dodge) — 무적 프레임·모션 (입력 `DodgePressed` 존재) — ⬜ | T2 | ⚪
   - **2.6.2** 상태이상/CC — 스턴·슬로우·넉백 (GAS 태그/이펙트 확장) — ⬜ | T2 | 🔵
   - **2.6.3** 타겟팅/락온 — ⬜ | T2 | ⚪
@@ -76,14 +78,14 @@
 - **3.8** 소모품/포션 — HP/MP 회복 (인벤토리 소비 → GAS 효과) — ⬜ | T2 | ⚪
 
 ### 4. 콘텐츠 시스템
-- **4.1 몬스터**
-  - **4.1.1** 패킷 `S_SpawnMonster`(1810)/`S_MonsterState`(1811)/`S_MonsterDead`(1812) + Union — ⬜ | T1 | ⚪
-  - **4.1.2** 서버 `MonsterManager` — `monsterSpawns[]`(선반영) 결정론 스폰 — ⬜ | T1 | 🟢
-  - **4.1.3** 서버 AI 틱 — 추적/공격(권위) → `S_MonsterState` — ⬜ | T1 | ⚪
-  - **4.1.4** 서버 히트/사망 판정 → `S_MonsterDead` (GAS 합류) — ⬜ | T1 | 🔵
-  - **4.1.5** 클라 `MonsterEntity` 스폰/보간/사망 (`CharacterSpawner`·`NetworkCharacter` 재사용) — ⬜ | T1 | ⚪
+- **4.1 몬스터** — ✅ | T1 | ⚪ (코어 완료, 상세 = `§M3`)
+  - **4.1.1** 패킷 `S_SpawnMonster`(1810)/`S_MonsterState`(1811)/`S_MonsterDead`(1812) + Union — ✅ | T1 | ⚪
+  - **4.1.2** 서버 스폰 — `Room` 몬스터 보유(단일 `RoomTickService`, MonsterManager 분리 안 함) + `monsterSpawns[]`/패트롤/경계 Map Editor 저작→파싱 — ✅ | T1 | 🟢
+  - **4.1.3** 서버 AI 틱 — `MonsterAiMath`(Patrol/Chase/Attack + bounds clamp) → `S_MonsterState` — ✅ | T1 | ⚪
+  - **4.1.4** 서버 전투 — 플레이어→몬스터 피격/사망(GAS, `S_MonsterDead`) + 몬스터→플레이어 공격(`S_ApplyEffect`) 양방향 — ✅ | T1 | 🔵
+  - **4.1.5** 클라 `MonsterEntity` 스폰/보간/사망 (`RemoteDriver` 패턴 재사용) — ✅ | T1 | ⚪
   - **4.1.6** 몬스터 웨이브/스폰 페이즈 — ⬜ | T2 | ⚪
-- **4.2 던전 클리어/보상(DungeonResult)** — `DungeonResult` 신규 도메인
+- **4.2 던전 클리어/보상(DungeonResult)** — `DungeonResult` 신규 도메인 — ⬜ | T1 | 🟢
   - **4.2.1** 패킷 `S_DungeonClear`(1820) + Union — ⬜ | T1 | ⚪
   - **4.2.2** SocketServer 클리어 감지 → `DungeonClearMessage` → Redis Stream — ⬜ | T1 | 🟢
   - **4.2.3** GameServer `DungeonResultConsumer` → 보상 산정(경험치/아이템) — ⬜ | T1 | 🟢
@@ -91,10 +93,10 @@
 - **4.3** 던전 메타 — `DungeonRoom.DungeonId` 추가(=9.2 부채) — ⬜ | T1 | 🟢
 - **4.4** 퀘스트(Quest) — 수주/진행/완료·보상 (`Quest` 신규) — ⬜ | T2 | ⚪
 - **4.5** NPC/대화(Dialogue) — 상호작용·대화 트리 (`Npc` 신규) — ⬜ | T2 | ⚪
-- **4.6 월드/존(World)** — 오픈월드 PVE 맛보기 (`World` 신규)
+- **4.6 월드/존(World)** — 오픈월드 PVE 맛보기 (`World` 신규) — ⬜ | T2 | ⚪
   - **4.6.1** 존 맵·존 전환·포탈 — ⬜ | T2 | ⚪
   - **4.6.2** 텔레포트/패스트트래블 — ⬜ | T2 | ⚪
-- **4.7 상호작용 오브젝트** (`IInteractable` 확장)
+- **4.7 상호작용 오브젝트** (`IInteractable` 확장) — 🔄 | T2 | ⚪
   - **4.7.1** 문/상자/채집 노드·파괴 가능 오브젝트 — 🔄 | T2 | ⚪
   - **4.7.2** 함정/환경 기믹 — ⬜ | T3 | ⚪
 - **4.8** 보스/특수 몬스터 — ⬜ | T3 | ⚪
@@ -118,12 +120,18 @@
 
 ### 7. UI / UX (클라 프레젠테이션 — MVI, View는 자기 Model만 참조)
 - **7.1** 결과/보상 화면 (대응 6.2/4.2) — ⬜ | T1 | ⚪
-- **7.2** 인벤토리/장비 UI (3.1/3.2) · **7.3** 캐릭터 정보/스탯창 (2.3/2.4) — ⬜ | T2 | ⚪
-- **7.4** 퀘스트 UI/추적 HUD (4.4) · **7.5** 대화 UI (4.5) · **7.6** 상점 UI (3.5) — ⬜ | T2 | ⚪
-- **7.7** 미니맵 HUD (4.6) · **7.8** 설정 메뉴 (6.3) — ⬜ | T2 | ⚪
+- **7.2** 인벤토리/장비 UI (대응 3.1/3.2) — ⬜ | T2 | ⚪
+- **7.3** 캐릭터 정보/스탯창 (대응 2.3/2.4) — ⬜ | T2 | ⚪
+- **7.4** 퀘스트 UI/추적 HUD (대응 4.4) — ⬜ | T2 | ⚪
+- **7.5** 대화 UI (대응 4.5) — ⬜ | T2 | ⚪
+- **7.6** 상점 UI (대응 3.5) — ⬜ | T2 | ⚪
+- **7.7** 미니맵 HUD (대응 4.6) — ⬜ | T2 | ⚪
+- **7.8** 설정 메뉴 (대응 6.3) — ⬜ | T2 | ⚪
 
 ### 8. 오디오
-- **8.1** BGM/환경음 — ⬜ | T3 · **8.2** 전투 SFX/타격감(HitStop 연계) — ⬜ | T2 · **8.3** UI SFX — ⬜ | T3
+- **8.1** BGM/환경음 — ⬜ | T3 | ⚪
+- **8.2** 전투 SFX/타격감 (HitStop 연계) — ⬜ | T2 | ⚪
+- **8.3** UI SFX — ⬜ | T3 | ⚪
 
 ### 9. 인프라 / 품질 / 기술 부채
 - **9.1** SocketServer IP 하드코딩 → appsettings.json — ⬜ | 높음 | 🟢
@@ -135,6 +143,7 @@
 - **9.7** status.md stale → plan.md 일원화 — ⬜ | 낮음 | 🟢
 - **9.8** 부하 테스트 + 전체 E2E 회귀 자동화 — ⬜ | 마감 | ⚪
 - **9.9** 배포 문서 + 포트폴리오 챕터 마감 — ⬜ | 마감 | ⚪
+- **9.10** 컨슈머 복원력 — 일시적 Redis 오류(`LOADING`/연결끊김)에 BackgroundService 컨슈머가 outer catch로 루프 종료 → **영구히 죽던 버그**(게임시작 체인 끊김 실사례). `Shared.Infrastructure/MessageQueue/ResilientStreamConsumer`로 중앙화(while 재시도 + 지수백오프+지터, poison 메시지 격리). `GameStartRequestedConsumer`·`GameSessionReadyConsumer`·`RoomLifecycleConsumer` 이관. SocketServer.Tests 복원력 3 + 양 서버 재배포 검증 — ✅ | 높음 | 🟢
 
 ---
 
@@ -212,11 +221,19 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 
 ### M3 — 몬스터 [WBS 4.1]
 선행: M2.
-- [ ] 패킷 — `S_SpawnMonster`/`S_MonsterState`/`S_MonsterDead`(1810~) + Union [4.1.1]
-- [ ] 서버 `MonsterManager` — `monsterSpawns[]`(선반영) 결정론 스폰 [4.1.2]
-- [ ] 서버 AI 틱(추적/공격, 권위) → `S_MonsterState` 브로드캐스트 [4.1.3]
-- [ ] GAS 피격/사망 동기화 → `S_MonsterDead` [4.1.4]
-- [ ] 클라 `MonsterEntity` 스폰/보간/사망 (`CharacterSpawner`·`NetworkCharacter` 재사용) [4.1.5]
+
+**설계 결정**: 몬스터 HP = **서버 권위**(플레이어 HP는 기존 클라 결정론 유지 — 의도된 비대칭, 몬스터는 서버 소유 NPC). 이동 = **서버 시뮬 + 클라 보간**(`RemoteDriver` 모델, 클라엔 몬스터 AI/물리 없음). **단일 `RoomTickService`**가 전 방 순회(몬스터 상태는 `Room` 동거), AI *수식*만 순수 `MonsterAiMath`로 분리(단위테스트). 스폰/패트롤/맵경계는 **Map Editor 저작 → spawn-layouts.json → 서버 파싱**(클라 런타임은 미사용 — 받은 위치에 인스턴스+보간만).
+
+- [x] **① 패킷** — `S_SpawnMonster`(1810)/`S_MonsterState`(1811)/`S_MonsterDead`(1812) + Union + 클라 미러 재생성(codegen 자동) [4.1.1] — SocketServer.Tests 직렬화 **4/4**
+- [x] **②a 데이터모델** — `MapDefinition.bounds`(MapBounds: centerX/Z·sizeX/Z) + `MonsterSpawn.patrolPoints`(List<Vector3>) + 공유 `MapBounds`(Clamp/Contains·무경계 가드)·`MonsterSpawnDef`(Patrol) + `MapDataExporter` DTO 확장(patrol/bounds, Bake+Import 양방향). ServerAll·Game.Gameplay·Editor 빌드 0오류
+- [x] **②b 에디터** — `MonsterSpawnMarker`·`PatrolPointMarker`·`MapBoundsMarker`(저작 마커) + `MapEditorWindow` Add Monster/Patrol·Load·SaveAndExport write-back·기즈모 라벨. Game.Gameplay·Editor 빌드 0오류(※실저작은 Unity에서 사람이)
+- [x] **②c 서버 파싱** — `MapSpawnLayout`(Bounds·Monsters) 확장 + `SpawnLayoutTable.Parse(Stream)` 공개·monsters/patrol/bounds 파싱 + `dungeon_01` JSON 시드(slime+4패트롤+40×40 경계, 클라/서버 양본). SocketServer.Tests **9/9**(파싱 합성JSON·clamp·임베디드) [4.1.2]
+- [x] **③ 서버 상태/스폰** — `Server.Monster`(`MonsterState`+`MonsterPhase`·`MonsterCatalog`) + `Room` 몬스터 보유(`SpawnMonsters`/`GetAllMonsters`/`GetMonster`/`RemoveMonster`·`Bounds`) + `CreateRoom` 스폰 + `RoomJoinLeaveHandler` 입장 시 `S_SpawnMonster`×N 로스터. SocketServer.Tests **26/26** [4.1.2]
+- [x] **④ 틱+AI(이동)** — `MonsterAiMath.Step`(순수: Chase/Attack/Patrol/Idle + **매 틱 bounds.Clamp**) + `Room.TickMonsters`(락 안 step→S_MonsterState 목록) + `RoomTickService`(BackgroundService 10Hz, Program.cs 등록). SocketServer.Tests **33/33**(AI 7). ※몬스터→플레이어 공격발동(쿨다운→`S_ApplyEffect`)은 ⑤에서 합류 [4.1.3]
+- [x] **⑤ 피격/사망(플레이어→몬스터, GAS)** — `CombatEffectCatalog`(effectId→`GameplayAttributeModifier`) + `Room.DamageMonster`(`GameplayEffectMath.Aggregate`로 HP 차감·0이하 제거) + `CombatHandler.ApplyAttackToMonsters`(몬스터 hitbox 판정 → `S_MonsterState`/`S_MonsterDead`). SocketServer.Tests **38/38**(피격 5) [4.1.4]
+  - [x] **⑤b 몬스터→플레이어 공격** — `MonsterAiMath.Step`이 aggro 타깃 인덱스 반환 → `Room.TickMonsters(dt, nowMs)`가 Attack 페이즈+쿨다운(`AttackCooldownMs`) 경과 시 최근접 플레이어에 `S_ApplyEffect{monster_attack_dmg}` 발행(`RoomTickService`가 nowMs 전달). 클라 `GameplayEffectCatalog`에 `monster_attack_dmg`(Instant Health -5). SocketServer.Tests **43/43**(공격 2). ※원격 피격자 HP는 `EffectReceiver` 로컬 라우팅만(원격 ASC 라우팅은 CA-3 후속 부채)
+- [x] **⑥ 클라 렌더** — `MonsterPacketHandler` 3종(디스패처 자동매핑) + `ISocketPacketState` 몬스터 상태/이벤트 + `SocketMonsterSnapshot` + `MonsterSpawner`(IAsyncStartable, DI 등록) + `MonsterEntity`(`RemoteDriver`류 보간) + `CharacterPrefabSettings.MonsterPrefab`. Game.Network/Gameplay/VContainer/Tests.EditMode 빌드 0오류 + EditMode 릴레이 테스트 4개. ※**Unity에서 사람이**: 몬스터 프리팹(+`MonsterEntity`) 제작 → `DungeonLifetimeScope.monsterPrefab` 할당 → EditMode 실행/플레이 확인 [4.1.5]
+- [x] **⑦ E2E(작성)** — `SocketE2ETests`에 몬스터 3종 추가: 입장→`S_SpawnMonster` 로스터 수신 / 반복 공격(최신 위치 재조준)→`S_MonsterDead` / 사거리 진입→`S_ApplyEffect{monster_attack_dmg}` 수신. `SocketPacketCollector.TryGetLatest` 추가. PlayMode 빌드 0오류 + 서버(⑤b) 재배포. ※실제 실행(Unity PlayMode, Docker 대상)은 대기
 
 ### M4 — 던전 루프 완성 (= DoD) [WBS 2.3·3.1·4.2·4.3·6.1·6.2·7.1]
 선행: M3. **이번 세션(서버 도메인 🟢) 핵심 영역.**
@@ -257,6 +274,7 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 
 ## 참고 파일
 
+- **일정/이슈 트래킹**: GitHub Project [Multiplay ActionRPG Roadmap](https://github.com/users/SeoBYP/projects/2) — WBS 노드 56개가 Issue로 등록됨(필드 Status·Tier·Owner·Milestone). **plan.md = 설계·이력 진실원 / Project = 일정·진척 뷰** (역할 분리).
 - 전체 현황: [`docs/wiki/status.md`](status.md) (※ 일부 stale — 부채 9.7)
 - 코드맵 + 설계 결정 로그: [`docs/wiki/codemap.md`](codemap.md)
 - 패킷 규칙: [`docs/wiki/packets.md`](packets.md)

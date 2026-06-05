@@ -1,5 +1,6 @@
 using System.Numerics;
 using Script.System.GamePlayAbilitySystem;
+using Server.Combat;
 using Server.Player;
 using Shared.Packet.Packets;
 
@@ -68,10 +69,8 @@ public static class CombatHandler
         if (attacker is null)
             return ValueTask.CompletedTask;
 
+        // 1) 플레이어 피격 → S_ApplyEffect (HP 는 클라가 공유 카탈로그로 결정론 계산) — 기존
         var hits = SelectHitTargets(skill, attacker, states, TargetRadius);
-        if (hits.Count == 0)
-            return ValueTask.CompletedTask;
-
         long startTick = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         foreach (var targetId in hits)
         {
@@ -89,6 +88,54 @@ public static class CombatHandler
             }
         }
 
+        // 2) 몬스터 피격 → 서버 권위 HP 차감(GAS) → S_MonsterState / S_MonsterDead — 신규(⑤)
+        ApplyAttackToMonsters(room, skill, attacker);
+
         return ValueTask.CompletedTask;
+    }
+
+    /// <summary>
+    /// 시전자 hitbox 와 겹치는 몬스터에 on-hit 효과를 GAS Health 모디파이어로 적용(서버 권위).
+    /// 사망 시 S_MonsterDead, 생존 시 갱신된 HP 를 S_MonsterState 로 즉시 브로드캐스트.
+    /// </summary>
+    private static void ApplyAttackToMonsters(global::Server.Room.Room room, SkillTimeline skill, PlayerState attacker)
+    {
+        var mods = new List<GameplayAttributeModifier>();
+        foreach (var effectId in skill.OnHitEffectIds)
+            mods.AddRange(CombatEffectCatalog.Resolve(effectId));
+        if (mods.Count == 0)
+            return;
+
+        var attackerPos = new Vector3(attacker.PosX, attacker.PosY, attacker.PosZ);
+
+        foreach (var monster in room.GetAllMonsters())
+        {
+            if (monster.IsDead)
+                continue;
+
+            var targetPos = new Vector3(monster.PosX, monster.PosY, monster.PosZ);
+            if (!HitboxMath.Overlaps(attackerPos, attacker.RotY, skill.Hitbox, targetPos, TargetRadius))
+                continue;
+
+            var (hit, newHp, dead) = room.DamageMonster(monster.InstanceId, mods);
+            if (!hit)
+                continue;
+
+            if (dead)
+            {
+                room.Broadcast(new S_MonsterDead { InstanceId = monster.InstanceId });
+            }
+            else
+            {
+                room.Broadcast(new S_MonsterState
+                {
+                    InstanceId = monster.InstanceId,
+                    PosX = monster.PosX, PosY = monster.PosY, PosZ = monster.PosZ,
+                    RotY = monster.RotY,
+                    Hp = newHp,
+                    Phase = (byte)monster.Phase,
+                });
+            }
+        }
     }
 }

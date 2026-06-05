@@ -26,6 +26,10 @@ namespace Game.Network.Socket
             // EF-2d: 서버 권위 Effect(버프/디버프) 수신.
             builder.Register<IPacketHandler, EffectApplyPacketHandler>(Lifetime.Singleton);
             builder.Register<IPacketHandler, EffectRemovePacketHandler>(Lifetime.Singleton);
+            // M3 ⑥: 서버 권위 몬스터 스폰/상태/사망 수신.
+            builder.Register<IPacketHandler, SpawnMonsterPacketHandler>(Lifetime.Singleton);
+            builder.Register<IPacketHandler, MonsterStatePacketHandler>(Lifetime.Singleton);
+            builder.Register<IPacketHandler, MonsterDeadPacketHandler>(Lifetime.Singleton);
             // 전원 입장(S_GameStatus InProgress) → 던전 준비 완료.
             builder.Register<IPacketHandler, GameStatusPacketHandler>(Lifetime.Singleton);
 
@@ -71,6 +75,20 @@ namespace Game.Network.Socket
         /// <summary>전원 입장 시 발행. Presentation(InGameModel)이 인게임 UI 전환에 사용.</summary>
         event Action OnDungeonReady;
         void MarkDungeonReady();
+
+        // ── M3 ⑥: 서버 권위 몬스터(클라는 보간만) ──
+        /// <summary>S_SpawnMonster 수신 시 발행. MonsterSpawner가 몬스터 엔티티를 스폰한다.</summary>
+        event Action<SocketMonsterSnapshot> OnMonsterSpawned;
+        /// <summary>S_MonsterState 수신(이동/HP/페이즈) 시 발행. MonsterEntity가 보간 대상으로 사용.</summary>
+        event Action<SocketMonsterSnapshot> OnMonsterMoved;
+        /// <summary>S_MonsterDead 수신 시 발행(instanceId). MonsterSpawner가 디스폰한다.</summary>
+        event Action<int> OnMonsterDead;
+        void AddMonster(SocketMonsterSnapshot snapshot);
+        void UpdateMonster(int instanceId, float posX, float posY, float posZ, float rotY, int hp, byte phase);
+        void RemoveMonster(int instanceId);
+        bool TryGetMonster(int instanceId, out SocketMonsterSnapshot snapshot);
+        /// <summary>현재 보관 중인 모든 몬스터 스냅샷의 복사본. (스포너 초기 로스터용)</summary>
+        IReadOnlyList<SocketMonsterSnapshot> GetAllMonsters();
     }
 
     /// <summary>
@@ -80,6 +98,7 @@ namespace Game.Network.Socket
     {
         private readonly object _sync = new object();
         private readonly Dictionary<long, SocketPlayerSnapshot> _players = new Dictionary<long, SocketPlayerSnapshot>();
+        private readonly Dictionary<int, SocketMonsterSnapshot> _monsters = new Dictionary<int, SocketMonsterSnapshot>();
 
         public string MapId { get; private set; } = string.Empty;
 
@@ -89,6 +108,9 @@ namespace Game.Network.Socket
         public event Action<SocketEffectApply>    OnEffectApplied;
         public event Action<int>                  OnEffectRemoved;
         public event Action                       OnDungeonReady;
+        public event Action<SocketMonsterSnapshot> OnMonsterSpawned;
+        public event Action<SocketMonsterSnapshot> OnMonsterMoved;
+        public event Action<int>                   OnMonsterDead;
 
         public void MarkDungeonReady() => OnDungeonReady?.Invoke();
 
@@ -163,6 +185,100 @@ namespace Game.Network.Socket
                 return _players.Values.Select(p => p.Clone()).ToList();
             }
         }
+
+        // ── M3 ⑥: 몬스터(서버 권위, 클라는 보간만) ──
+
+        public void AddMonster(SocketMonsterSnapshot snapshot)
+        {
+            if (snapshot == null) return;
+            lock (_sync) { _monsters[snapshot.InstanceId] = snapshot; }
+            OnMonsterSpawned?.Invoke(snapshot);
+        }
+
+        public void UpdateMonster(int instanceId, float posX, float posY, float posZ, float rotY, int hp, byte phase)
+        {
+            SocketMonsterSnapshot updated = null;
+            lock (_sync)
+            {
+                if (_monsters.TryGetValue(instanceId, out var existing))
+                {
+                    updated = existing.WithState(posX, posY, posZ, rotY, hp, phase);
+                    _monsters[instanceId] = updated;
+                }
+                else
+                {
+                    // 상태가 스폰보다 먼저 도달 — 최소 스냅샷 보관(이름/MaxHp 미상).
+                    // OnMonsterMoved는 발행하지 않는다(아직 MonsterEntity 없음). S_SpawnMonster 수신 시 교정.
+                    _monsters[instanceId] = new SocketMonsterSnapshot(instanceId, string.Empty, posX, posY, posZ, rotY, hp, hp, phase);
+                }
+            }
+            if (updated != null) OnMonsterMoved?.Invoke(updated);
+        }
+
+        public void RemoveMonster(int instanceId)
+        {
+            bool removed;
+            lock (_sync) { removed = _monsters.Remove(instanceId); }
+            if (removed) OnMonsterDead?.Invoke(instanceId);
+        }
+
+        public bool TryGetMonster(int instanceId, out SocketMonsterSnapshot snapshot)
+        {
+            lock (_sync)
+            {
+                if (_monsters.TryGetValue(instanceId, out var existing))
+                {
+                    snapshot = existing.Clone();
+                    return true;
+                }
+                snapshot = null;
+                return false;
+            }
+        }
+
+        public IReadOnlyList<SocketMonsterSnapshot> GetAllMonsters()
+        {
+            lock (_sync)
+            {
+                return _monsters.Values.Select(m => m.Clone()).ToList();
+            }
+        }
+    }
+
+    /// <summary>
+    /// 한 몬스터의 최근 상태(위치/회전/HP/페이즈)를 담는 불변 스냅샷. 서버 권위 — 클라는 보간/표시만.
+    /// </summary>
+    public sealed class SocketMonsterSnapshot
+    {
+        public int InstanceId { get; }
+        public string MonsterId { get; }
+        public float PosX { get; }
+        public float PosY { get; }
+        public float PosZ { get; }
+        public float RotY { get; }
+        public int Hp { get; }
+        public int MaxHp { get; }
+        public byte Phase { get; }
+
+        public SocketMonsterSnapshot(int instanceId, string monsterId, float posX, float posY, float posZ, float rotY, int hp, int maxHp, byte phase)
+        {
+            InstanceId = instanceId;
+            MonsterId = monsterId ?? string.Empty;
+            PosX = posX;
+            PosY = posY;
+            PosZ = posZ;
+            RotY = rotY;
+            Hp = hp;
+            MaxHp = maxHp;
+            Phase = phase;
+        }
+
+        /// <summary>식별 정보(MonsterId/MaxHp)는 유지하고 상태(위치/회전/HP/페이즈)만 갱신.</summary>
+        public SocketMonsterSnapshot WithState(float posX, float posY, float posZ, float rotY, int hp, byte phase)
+            => new SocketMonsterSnapshot(InstanceId, MonsterId, posX, posY, posZ, rotY, hp, MaxHp, phase);
+
+        public SocketMonsterSnapshot Clone()
+            => new SocketMonsterSnapshot(InstanceId, MonsterId, PosX, PosY, PosZ, RotY, Hp, MaxHp, Phase);
     }
 
     /// <summary>

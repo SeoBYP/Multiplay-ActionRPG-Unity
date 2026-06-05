@@ -16,42 +16,24 @@ public sealed class RoomLifecycleConsumer(
     IServiceScopeFactory scopeFactory,
     ILogger<RoomLifecycleConsumer> logger) : BackgroundService
 {
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    // 복원력(일시적 Redis 오류에 죽지 않음)은 ResilientStreamConsumer 공통 루프가 담당.
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        => ResilientStreamConsumer.RunAsync<PlayerLeftRoomMessage>(
+            nameof(RoomLifecycleConsumer),
+            playerLeftQueue.DequeueAllAsync,
+            ProcessAsync,
+            logger,
+            stoppingToken);
+
+    private async Task ProcessAsync(PlayerLeftRoomMessage message, CancellationToken ct)
     {
-        try
-        {
-            await foreach (var message in playerLeftQueue.DequeueAllAsync(stoppingToken))
-            {
-                if (stoppingToken.IsCancellationRequested) return;
+        using var scope = scopeFactory.CreateScope();
+        var lobbyService = scope.ServiceProvider.GetRequiredService<IDungeonLobbyService>();
+        var result = await lobbyService.RemovePlayerFromRoomAsync(message.RoomId, message.UserId, ct);
 
-                try
-                {
-                    using var scope = scopeFactory.CreateScope();
-                    var lobbyService = scope.ServiceProvider.GetRequiredService<IDungeonLobbyService>();
-                    var result = await lobbyService.RemovePlayerFromRoomAsync(message.RoomId, message.UserId, stoppingToken);
-
-                    if (result.IsSuccess)
-                        logger.LogInformation("[RoomLifecycle] Player {UserId} removed from room {RoomId} (emptied={Emptied})", message.UserId, message.RoomId, message.RoomEmptied);
-                    else
-                        logger.LogWarning("[RoomLifecycle] Player {UserId} remove from room {RoomId} failed: {Message}", message.UserId, message.RoomId, result.Message);
-                }
-                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-                {
-                    return;
-                }
-                catch (Exception e)
-                {
-                    logger.LogError(e, "[RoomLifecycle] Error processing PlayerLeft for RoomId={RoomId} UserId={UserId}", message.RoomId, message.UserId);
-                }
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // 서버 종료 시 정상 취소
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "RoomLifecycleConsumer loop failed unexpectedly");
-        }
+        if (result.IsSuccess)
+            logger.LogInformation("[RoomLifecycle] Player {UserId} removed from room {RoomId} (emptied={Emptied})", message.UserId, message.RoomId, message.RoomEmptied);
+        else
+            logger.LogWarning("[RoomLifecycle] Player {UserId} remove from room {RoomId} failed: {Message}", message.UserId, message.RoomId, result.Message);
     }
 }

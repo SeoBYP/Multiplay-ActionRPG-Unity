@@ -13,6 +13,7 @@ public class DungeonLifetimeScope : LifetimeScope
 {
     [SerializeField] private GameObject localPlayerPrefab;
     [SerializeField] private GameObject remotePlayerPrefab;
+    [SerializeField] private GameObject monsterPrefab; // M3 ⑥ 서버 권위 몬스터
     [SerializeField] private EffectIconCatalog effectIconCatalog; // 버프 표시 매핑(표시 전용)
 
     protected override void Configure(IContainerBuilder builder)
@@ -46,12 +47,14 @@ public class DungeonLifetimeScope : LifetimeScope
         builder.Register<IStateFactory, StateFactory>(Lifetime.Scoped);
         builder.Register<IStateMachineBuilder, StateMachineBuilder>(Lifetime.Scoped);
 
-        // Dungeon 씬은 로컬 + 원격 플레이어 모두 스폰.
-        builder.RegisterInstance(new CharacterPrefabSettings(localPlayerPrefab, remotePlayerPrefab));
+        // Dungeon 씬은 로컬 + 원격 플레이어 + 몬스터 스폰.
+        builder.RegisterInstance(new CharacterPrefabSettings(localPlayerPrefab, remotePlayerPrefab, monsterPrefab));
         // 결정론 스폰 레이아웃 제공자 (spawn-layouts.json 로드).
         builder.Register<SpawnLayoutProvider>(Lifetime.Scoped).AsSelf();
         // 던전 맵 배경 모델 로드 (MapDefinition.visualPrefab).
         builder.RegisterEntryPoint<MapLoader>(Lifetime.Scoped);
         builder.RegisterEntryPoint<CharacterSpawner>(Lifetime.Scoped);
+        // M3 ⑥: 서버 권위 몬스터 스폰/보간/디스폰.
+        builder.RegisterEntryPoint<MonsterSpawner>(Lifetime.Scoped);
     }
 }

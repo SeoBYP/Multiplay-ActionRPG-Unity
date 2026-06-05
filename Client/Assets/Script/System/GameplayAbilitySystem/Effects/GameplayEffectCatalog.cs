@@ -67,6 +67,17 @@ namespace Script.System.GamePlayAbilitySystem
                 {
                     GameplayAttributeModifier.Create(EGameplayAttribute.Health, -10, EModifierType.Additive),
                 }));
+
+            // M3 ⑤b: 몬스터가 사거리 안 플레이어를 공격 시 서버가 S_ApplyEffect로 부여하는 즉발 피해.
+            Register(new GameplayEffectDefinition(
+                id: "monster_attack_dmg",
+                category: EEffectCategory.AttackPower,
+                policy: EDurationPolicy.Instant,
+                durationMs: 0,
+                modifiers: new[]
+                {
+                    GameplayAttributeModifier.Create(EGameplayAttribute.Health, -5, EModifierType.Additive),
+                }));
         }
     }
 }

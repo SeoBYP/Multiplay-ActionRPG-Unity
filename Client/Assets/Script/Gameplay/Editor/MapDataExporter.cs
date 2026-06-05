@@ -78,6 +78,7 @@ namespace Game.Gameplay.Editor
                     .Select(d => new MapDto
                     {
                         mapId = d.mapId,
+                        bounds = ToBoundsDto(d.bounds),
                         points = (d.playerSpawns ?? new List<MapSpawnPoint>())
                             .Select(p => new PointDto
                             {
@@ -89,7 +90,10 @@ namespace Game.Gameplay.Editor
                             {
                                 monsterId = mn.monsterId,
                                 x = mn.position.x, y = mn.position.y, z = mn.position.z, rotY = mn.rotationY,
-                                count = mn.count, wave = mn.wave
+                                count = mn.count, wave = mn.wave,
+                                patrol = (mn.patrolPoints ?? new List<Vector3>())
+                                    .Select(p => new PatrolDto { x = p.x, z = p.z })
+                                    .ToList()
                             })
                             .ToList()
                     })
@@ -156,9 +160,15 @@ namespace Game.Gameplay.Editor
                         position = new Vector3(mn.x, mn.y, mn.z),
                         rotationY = mn.rotY,
                         count = mn.count,
-                        wave = mn.wave
+                        wave = mn.wave,
+                        patrolPoints = (mn.patrol ?? new List<PatrolDto>())
+                            .Select(p => new Vector3(p.x, 0f, p.z))
+                            .ToList()
                     })
                     .ToList();
+                def.bounds = map.bounds != null
+                    ? new MapBounds { centerX = map.bounds.centerX, centerZ = map.bounds.centerZ, sizeX = map.bounds.sizeX, sizeZ = map.bounds.sizeZ }
+                    : new MapBounds();
 
                 if (isNew)
                 {
@@ -217,10 +227,18 @@ namespace Game.Gameplay.Editor
             return Directory.GetParent(Application.dataPath)!.Parent!.FullName;
         }
 
+        private static BoundsDto ToBoundsDto(MapBounds b)
+        {
+            b ??= new MapBounds();
+            return new BoundsDto { centerX = b.centerX, centerZ = b.centerZ, sizeX = b.sizeX, sizeZ = b.sizeZ };
+        }
+
         // ── JSON DTO (런타임 로더와 동일 형식) ──
         [Serializable] private sealed class FileDto { public List<MapDto> maps = new(); }
-        [Serializable] private sealed class MapDto { public string mapId; public List<PointDto> points = new(); public List<MonsterDto> monsters = new(); }
+        [Serializable] private sealed class MapDto { public string mapId; public BoundsDto bounds = new(); public List<PointDto> points = new(); public List<MonsterDto> monsters = new(); }
         [Serializable] private sealed class PointDto { public float x, y, z, rotY; }
-        [Serializable] private sealed class MonsterDto { public string monsterId; public float x, y, z, rotY; public int count = 1; public int wave; }
+        [Serializable] private sealed class MonsterDto { public string monsterId; public float x, y, z, rotY; public int count = 1; public int wave; public List<PatrolDto> patrol = new(); }
+        [Serializable] private sealed class PatrolDto { public float x, z; }
+        [Serializable] private sealed class BoundsDto { public float centerX, centerZ, sizeX, sizeZ; }
     }
 }

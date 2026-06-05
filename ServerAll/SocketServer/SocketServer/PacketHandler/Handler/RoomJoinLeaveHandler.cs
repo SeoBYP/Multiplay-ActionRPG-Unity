@@ -76,6 +76,20 @@ public static class RoomJoinLeaveHandler
             await session.SendPacketAsync(ToJoinedPacket(other, room.MapId), ct);
         }
 
+        // 4) 신규 입장자에게 현재 몬스터 로스터를 회신(서버 권위 스폰 위치/HP).
+        //    플레이어 로스터와 같은 이유 — 늦게 입장해도 기존 몬스터를 본다.
+        foreach (var monster in room.GetAllMonsters())
+        {
+            await session.SendPacketAsync(new S_SpawnMonster
+            {
+                InstanceId = monster.InstanceId,
+                MonsterId  = monster.MonsterId,
+                PosX = monster.PosX, PosY = monster.PosY, PosZ = monster.PosZ,
+                RotY = monster.RotY,
+                Hp = monster.Hp, MaxHp = monster.MaxHp,
+            }, ct);
+        }
+
         if (room.MemberCount == room.MaxMembers)
         {
             room.Broadcast(new S_GameStatus

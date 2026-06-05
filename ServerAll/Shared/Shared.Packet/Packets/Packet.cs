@@ -21,6 +21,10 @@ namespace Shared.Packet.Packets;
 [MemoryPackUnion(1641,typeof(S_RemoveEffect))]
 // 게임 라이프사이클
 [MemoryPackUnion(1701,typeof(S_GameStatus))]
+// 던전 이벤트 - 몬스터
+[MemoryPackUnion(1810, typeof(S_SpawnMonster))]
+[MemoryPackUnion(1811, typeof(S_MonsterState))]
+[MemoryPackUnion(1812, typeof(S_MonsterDead))]
 public abstract partial class Packet
 {
     
