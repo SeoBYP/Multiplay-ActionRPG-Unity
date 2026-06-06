@@ -6,6 +6,8 @@ Claude와의 대화를 통해 배운 내용, 틀렸던 부분, 수정 이력을 
 
 ## 목차
 
+> 📍 **먼저 읽기**: [프로젝트 진행 로드맵 (M0→M4 마일스톤 요약)](./00-roadmap.md) — 무엇을 만들었고 왜 그렇게 설계했는지 한 장 요약. 아래 챕터는 영역별 상세.
+
 | 챕터 | 주제 | 상태 |
 |------|------|------|
 | [챕터 1](./chapter-01-architecture.md) | 아키텍처 설계 (이중 서버 / 프로토콜 / Clean Architecture) | ✅ 기록 완료 |
@@ -19,6 +21,8 @@ Claude와의 대화를 통해 배운 내용, 틀렸던 부분, 수정 이력을 
 | [챕터 9](./chapter-09-unity-client.md) | Unity 클라이언트 (gRPC + VContainer + Docker E2E) | ✅ 기록 완료 |
 | [챕터 11](./chapter-11-socket-session-entry.md) | 소켓 세션 진입 흐름 (C_Auth 제거 · Redis 기반 검증 · 버그 수정) | ✅ 기록 완료 |
 | [챕터 12](./chapter-12-addressable-popup-system.md) | Addressable 리소스 관리 & 공통 팝업 시스템 (AddressableLoader · Glow · MVI 연동) | ✅ 기록 완료 |
+| [챕터 13](./chapter-13-monster-server-authority.md) | 몬스터 (서버 권위 NPC · 단일 RoomTickService · MonsterAiMath · 클라 보간) | ✅ 기록 완료 |
+| [챕터 14](./chapter-14-dungeon-clear-loop.md) | 던전 클리어 루프 + Exp 보상 (Interlocked outcome · 멱등 지급 · MVI 결과) | ✅ 기록 완료 |
 
 ---
 
