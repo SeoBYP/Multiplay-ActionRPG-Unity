@@ -39,11 +39,18 @@ namespace Game.Tests.PlayMode.Input
             _actions = new PlayerInputActions();
             _router  = new InputRouter(_actions);
             _router.Initialize();
+
+            // 프로덕션에선 GlobalInputInitializer가 맵을 Enable한다(입력 전역화).
+            // InputRouter는 더 이상 Enable하지 않으므로, 그 초기화가 없는 이 테스트에서
+            // 직접 활성화해야 performed 콜백이 발생한다.
+            _actions.Enable();
         }
 
         public override void TearDown()
         {
             _router.Dispose();
+            // Disable 없이 asset만 파괴하면 PlayerInputActions 종료자가 맵 누수 경고를 띄운다.
+            _actions.Disable();
             if (_actions.asset != null)
                 Object.DestroyImmediate(_actions.asset);
 

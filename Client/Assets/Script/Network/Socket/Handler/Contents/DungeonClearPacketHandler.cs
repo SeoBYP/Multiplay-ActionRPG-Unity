@@ -19,8 +19,8 @@ namespace Game.Network.Socket
 
         public override UniTask HandleAsync(S_DungeonClear packet)
         {
-            Debug.Log($"[DungeonClearPacketHandler] S_DungeonClear 수신 — RoomId={packet.RoomId}");
-            _state.MarkDungeonCleared();
+            Debug.Log($"[DungeonClearPacketHandler] S_DungeonClear 수신 — RoomId={packet.RoomId} RewardExp={packet.RewardExp}");
+            _state.MarkDungeonCleared(packet.RewardExp);
             return UniTask.CompletedTask;
         }
     }

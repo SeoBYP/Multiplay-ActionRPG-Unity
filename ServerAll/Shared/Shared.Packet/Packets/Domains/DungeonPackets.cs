@@ -6,9 +6,30 @@ namespace Shared.Packet.Packets;
 /// 서버 → 클라: 던전 클리어(방의 몬스터 전멸). 서버가 전멸을 1회만 감지해 방에 브로드캐스트한다.
 /// 클라는 이 패킷을 받으면 결과 화면을 띄우고 로비 복귀 흐름으로 들어간다.
 /// 보상 산정/지급은 별개로 GameServer가 DungeonClearMessage(Redis Stream)를 소비해 처리한다.
+/// RewardExp = 표시용 — 지급(GameServer)과 동일 Shared 카탈로그(spawn-layouts.json expReward)에서 채운다.
 /// </summary>
 [MemoryPackable]
 public partial class S_DungeonClear : Packet
 {
     public long RoomId { get; set; }
+    public long RewardExp { get; set; }
+}
+
+/// <summary>
+/// 서버 → 클라: 던전 실패(참가자 전원 다운). 서버가 전원 다운을 1회만 감지해 방에 브로드캐스트한다.
+/// 클라는 실패 화면을 띄우고 로비 복귀 흐름으로 들어간다. 실패는 보상이 없다(GameServer 통지 없음).
+/// </summary>
+[MemoryPackable]
+public partial class S_DungeonFailed : Packet
+{
+    public long RoomId { get; set; }
+}
+
+/// <summary>
+/// 클라 → 서버: 로컬 플레이어 사망(HP 0) 보고. 플레이어 HP 는 클라 권위라 서버는 이 신호로 다운을 집계한다.
+/// 서버는 참가자 전원이 다운되면 S_DungeonFailed 를 발화한다.
+/// </summary>
+[MemoryPackable]
+public partial class C_PlayerDead : Packet
+{
 }

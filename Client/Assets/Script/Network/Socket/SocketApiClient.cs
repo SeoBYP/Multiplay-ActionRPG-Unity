@@ -34,6 +34,8 @@ namespace Game.Network.Socket
             builder.Register<IPacketHandler, GameStatusPacketHandler>(Lifetime.Singleton);
             // M4 ③: 몬스터 전멸 → 던전 클리어.
             builder.Register<IPacketHandler, DungeonClearPacketHandler>(Lifetime.Singleton);
+            // M4 B: 참가자 전원 다운 → 던전 실패.
+            builder.Register<IPacketHandler, DungeonFailedPacketHandler>(Lifetime.Singleton);
 
             // 송수신 파이프라인 등록.
             builder.Register<ISocketPacketDispatcher, SocketPacketDispatcher>(Lifetime.Singleton);
@@ -79,9 +81,14 @@ namespace Game.Network.Socket
         void MarkDungeonReady();
 
         // ── 던전 클리어(서버 전멸 감지 S_DungeonClear) ──
-        /// <summary>S_DungeonClear 수신 시 발행. Presentation(InGameModel)이 결과 화면→로비 복귀에 사용.</summary>
-        event Action OnDungeonCleared;
-        void MarkDungeonCleared();
+        /// <summary>S_DungeonClear 수신 시 발행(인자=보상 Exp). Presentation(InGameModel)이 결과 화면→로비 복귀에 사용.</summary>
+        event Action<long> OnDungeonCleared;
+        void MarkDungeonCleared(long rewardExp);
+
+        // ── 던전 실패(서버 전원 다운 감지 S_DungeonFailed) ──
+        /// <summary>S_DungeonFailed 수신 시 발행. Presentation(InGameModel)이 실패 화면→로비 복귀에 사용.</summary>
+        event Action OnDungeonFailed;
+        void MarkDungeonFailed();
 
         // ── M3 ⑥: 서버 권위 몬스터(클라는 보간만) ──
         /// <summary>S_SpawnMonster 수신 시 발행. MonsterSpawner가 몬스터 엔티티를 스폰한다.</summary>
@@ -115,13 +122,15 @@ namespace Game.Network.Socket
         public event Action<SocketEffectApply>    OnEffectApplied;
         public event Action<int>                  OnEffectRemoved;
         public event Action                       OnDungeonReady;
-        public event Action                       OnDungeonCleared;
+        public event Action<long>                 OnDungeonCleared;
+        public event Action                       OnDungeonFailed;
         public event Action<SocketMonsterSnapshot> OnMonsterSpawned;
         public event Action<SocketMonsterSnapshot> OnMonsterMoved;
         public event Action<int>                   OnMonsterDead;
 
         public void MarkDungeonReady() => OnDungeonReady?.Invoke();
-        public void MarkDungeonCleared() => OnDungeonCleared?.Invoke();
+        public void MarkDungeonCleared(long rewardExp) => OnDungeonCleared?.Invoke(rewardExp);
+        public void MarkDungeonFailed() => OnDungeonFailed?.Invoke();
 
         public void ApplyEffect(SocketEffectApply data)
         {

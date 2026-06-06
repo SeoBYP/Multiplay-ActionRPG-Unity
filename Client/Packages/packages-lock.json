@@ -8,7 +8,7 @@
         "com.unity.nuget.newtonsoft-json": "3.0.2",
         "com.unity.test-framework": "1.1.31"
       },
-      "hash": "417cf351a152b483c91e6e2deaf7ae355fa8eff3"
+      "hash": "78ee5418415953b79c358bfe6355fcc3fde7912b"
     },
     "com.cysharp.r3": {
       "version": "https://github.com/Cysharp/R3.git?path=src/R3.Unity/Assets/R3.Unity",

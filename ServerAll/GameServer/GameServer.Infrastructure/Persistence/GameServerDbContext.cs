@@ -12,6 +12,7 @@ public class GameServerDbContext(DbContextOptions<GameServerDbContext> options) 
     public DbSet<User> Users { get; set; }
     public DbSet<UserCredential> UserCredentials { get; set; }
     public DbSet<UserProfile> UserProfiles { get; set; }
+    public DbSet<UserProgression> UserProgressions { get; set; }
     public DbSet<UserSession> UserSessions { get; set; }
     
     public DbSet<DungeonRoom> DungeonRooms { get; set; }

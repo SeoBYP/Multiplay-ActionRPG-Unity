@@ -70,9 +70,11 @@ namespace Game.Gameplay.Character
             if (currentHorizontalSpeed < targetSpeed - speedOffset ||
                 currentHorizontalSpeed > targetSpeed + speedOffset)
             {
-                // creates curved result rather than a linear one giving a more organic speed change
-                // note T in Lerp is clamped, so we don't need to clamp our speed
-                m_speed = Mathf.Lerp(currentHorizontalSpeed, targetSpeed * inputMagnitude,
+                // 램프 시작점을 '실제 controller.velocity'가 아니라 'm_speed(직전 의도 속도)'로 둔다.
+                // 이유: velocity 기반이면 고fps에서 첫 프레임 변위가 CharacterController.minMoveDistance(0.001)보다
+                //       작아 컨트롤러가 이동을 무시 → velocity가 0에 머물러 램프가 0에서 못 벗어나는 교착이 생긴다.
+                //       m_speed 기반이면 실제 이동 여부와 무관하게 매 프레임 가속해 변위가 곧 임계를 넘어 정상 이동.
+                m_speed = Mathf.Lerp(m_speed, targetSpeed * inputMagnitude,
                     Time.deltaTime * _settings.SpeedChangeRate);
 
                 // round speed to 3 decimal places

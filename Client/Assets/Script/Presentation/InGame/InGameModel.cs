@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Network.Socket;
+using Game.Network.Socket.Packets;
 using Game.System.Player;
 using R3;
 using Script.System.GamePlayAbilitySystem;
@@ -36,6 +37,7 @@ namespace Game.Presentation.InGame
 
         private AbilitySystemComponent _asc;
         private bool _isProcessing;
+        private bool _localDeadReported;
 
         public ReadOnlyReactiveProperty<InGameState> State =>
             _state.ToReadOnlyReactiveProperty();
@@ -66,6 +68,7 @@ namespace Game.Presentation.InGame
             {
                 _packetState.OnDungeonReady += OnDungeonReady;
                 _packetState.OnDungeonCleared += OnDungeonCleared;
+                _packetState.OnDungeonFailed += OnDungeonFailed;
             }
         }
 
@@ -75,10 +78,16 @@ namespace Game.Presentation.InGame
             Dispatch(InGameResult.DungeonReady.Instance);
         }
 
-        private void OnDungeonCleared()
+        private void OnDungeonCleared(long rewardExp)
         {
-            Debug.Log("[InGameModel] 던전 클리어 — IsDungeonCleared=true 로 전환");
-            Dispatch(InGameResult.DungeonCleared.Instance);
+            Debug.Log($"[InGameModel] 던전 클리어 — IsDungeonCleared=true (보상 Exp={rewardExp})");
+            Dispatch(new InGameResult.DungeonCleared(rewardExp));
+        }
+
+        private void OnDungeonFailed()
+        {
+            Debug.Log("[InGameModel] 던전 실패 — IsDungeonFailed=true 로 전환");
+            Dispatch(InGameResult.DungeonFailed.Instance);
         }
 
         // ── 로컬 플레이어 ASC ↔ State 중계 ────────────
@@ -116,11 +125,26 @@ namespace Game.Presentation.InGame
             {
                 case EGameplayAttribute.Health:
                     Dispatch(new InGameResult.HpChanged(current, max));
+                    if (current <= 0)
+                        ReportLocalDeath();
                     break;
                 case EGameplayAttribute.Mana:
                     Dispatch(new InGameResult.MpChanged(current, max));
                     break;
             }
+        }
+
+        /// <summary>
+        /// 로컬 플레이어 HP 0 → 서버에 C_PlayerDead 1회 보고(플레이어 HP=클라 권위).
+        /// 서버는 참가자 전원 다운 시 S_DungeonFailed 를 발화한다.
+        /// </summary>
+        private void ReportLocalDeath()
+        {
+            if (_localDeadReported)
+                return;
+            _localDeadReported = true;
+            Debug.Log("[InGameModel] 로컬 플레이어 사망 — C_PlayerDead 송신");
+            _socketSession.SendAsync(new C_PlayerDead(), _cts.Token).Forget();
         }
 
         // ── 활성 버프/디버프 → BuffView 중계 ───────────
@@ -235,6 +259,7 @@ namespace Game.Presentation.InGame
             {
                 _packetState.OnDungeonReady -= OnDungeonReady;
                 _packetState.OnDungeonCleared -= OnDungeonCleared;
+                _packetState.OnDungeonFailed -= OnDungeonFailed;
             }
             if (_asc != null)
             {

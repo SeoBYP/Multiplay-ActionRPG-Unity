@@ -270,6 +270,25 @@ namespace GameServer.Infrastructure.Persistence.Migrations
                     b.ToTable("user_profiles", (string)null);
                 });
 
+            modelBuilder.Entity("GameServer.Domain.Entities.User.UserProgression", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("Exp")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("user_progressions", (string)null);
+                });
+
             modelBuilder.Entity("GameServer.Domain.Entities.UserSession", b =>
                 {
                     b.Property<string>("SessionId")

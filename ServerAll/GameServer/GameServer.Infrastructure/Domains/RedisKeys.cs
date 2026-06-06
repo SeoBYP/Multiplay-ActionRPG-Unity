@@ -10,6 +10,9 @@ public static class RedisKeys
     
     // UserProfile
     public static string UserProfile(long userId) => $"{Prefix}:user:profile:{userId}";
+
+    // UserProgression (레벨·경험치)
+    public static string UserProgression(long userId) => $"{Prefix}:user:progression:{userId}";
     
     // UserCredential
     public static string UserCredential(long userId) => $"{Prefix}:user:credential:{userId}";
@@ -38,6 +41,9 @@ public static class RedisKeys
     public static string GameSessionPlayerBySession(long gameSessionId) => $"{Prefix}:session:player:by-session:{gameSessionId}";
     public static string GameSessionPlayerByUser(long userId) => $"{Prefix}:session:player:by-user:{userId}";
     
+    // DungeonResult (보상 멱등 — 처리완료 RoomId 집합)
+    public static string DungeonResultProcessed() => $"{Prefix}:dungeon:result:done";
+
     // Chat
     public static string ChatMessage(long messageId) => $"{Prefix}:chat:message:{messageId}";
     public static string ChatAllMessages() => $"{Prefix}:chat:message:all";

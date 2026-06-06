@@ -281,11 +281,47 @@ namespace Game.Tests.PlayMode.E2E
                 }
 
                 Assert.IsTrue(cleared, "몬스터 전멸 시 호스트(시전자)가 S_DungeonClear를 받아야 한다");
+                host.TryGetLatest<S_DungeonClear>(p => p.RoomId == room.RoomId, out var hostClear);
+                Assert.AreEqual(100, hostClear.RewardExp, "호스트 S_DungeonClear에 dungeon_01 보상 Exp(100)가 실려야 한다");
 
                 // 같은 방의 게스트도 브로드캐스트를 받아야 한다(서버 권위 1회 발화).
                 var guestClear = await guest.WaitForPacketAsync<S_DungeonClear>(
                     p => p.RoomId == room.RoomId, Timeout());
                 Assert.AreEqual(room.RoomId, guestClear.RoomId, "게스트도 던전 클리어를 받아야 한다");
+                Assert.AreEqual(100, guestClear.RewardExp, "게스트 S_DungeonClear에도 보상 Exp(100)가 실려야 한다");
+            }
+            finally
+            {
+                await host.DisposeAsync();
+                await guest.DisposeAsync();
+            }
+        });
+
+        [UnityTest]
+        public IEnumerator RawSocket_참가자_전원_다운하면_양쪽_S_DungeonFailed_수신() => UniTask.ToCoroutine(async () =>
+        {
+            // M4 B: 참가자 전원이 C_PlayerDead 를 보고하면 서버 Room.TryMarkFailed(최초 1회) →
+            // S_DungeonFailed 를 방에 브로드캐스트. 일부만 다운이면 발화하지 않는다.
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+            var guest = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
+
+            try
+            {
+                // 호스트만 다운 → 아직 전원 다운 아님 → S_DungeonFailed 없어야 한다.
+                await host.SendAsync(new C_PlayerDead(), Timeout());
+                await UniTask.Delay(TimeSpan.FromMilliseconds(400));
+                Assert.IsFalse(
+                    host.TryGetLatest<S_DungeonFailed>(p => p.RoomId == room.RoomId, out _),
+                    "일부만 다운이면 실패가 발화되면 안 된다");
+
+                // 게스트까지 다운 → 전원 다운 → 양쪽 모두 S_DungeonFailed 수신.
+                await guest.SendAsync(new C_PlayerDead(), Timeout());
+
+                var hostFailed = await host.WaitForPacketAsync<S_DungeonFailed>(p => p.RoomId == room.RoomId, Timeout());
+                var guestFailed = await guest.WaitForPacketAsync<S_DungeonFailed>(p => p.RoomId == room.RoomId, Timeout());
+                Assert.AreEqual(room.RoomId, hostFailed.RoomId, "호스트가 던전 실패를 받아야 한다");
+                Assert.AreEqual(room.RoomId, guestFailed.RoomId, "게스트가 던전 실패를 받아야 한다");
             }
             finally
             {

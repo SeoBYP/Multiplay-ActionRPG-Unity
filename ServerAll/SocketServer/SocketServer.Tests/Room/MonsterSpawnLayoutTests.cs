@@ -98,4 +98,26 @@ public class MonsterSpawnLayoutTests
         Assert.NotEmpty(layout.Monsters);
         Assert.NotEmpty(layout.Monsters[0].Patrol);
     }
+
+    [Fact]
+    public void Parse_expReward를_읽고_없으면_0이다()
+    {
+        const string withReward = """
+        { "maps": [{ "mapId": "d", "expReward": 250, "points": [{ "x":0,"y":0,"z":0,"rotY":0 }] }] }
+        """;
+        const string without = """
+        { "maps": [{ "mapId": "d", "points": [{ "x":0,"y":0,"z":0,"rotY":0 }] }] }
+        """;
+
+        Assert.Equal(250L, ParseJson(withReward)["d"].ExpReward);
+        Assert.Equal(0L, ParseJson(without)["d"].ExpReward);
+    }
+
+    [Fact]
+    public void 임베디드_dungeon_01은_클리어_Exp보상을_가진다()
+    {
+        var layout = SpawnLayoutTable.Get(MapIds.Dungeon01);
+
+        Assert.Equal(100L, layout.ExpReward);
+    }
 }

@@ -11,6 +11,30 @@
 
 ---
 
+## 0. 설계 문서 지도 (어떤 문서를 언제 보나 — 먼저 여기서 찾는다)
+
+> 프로젝트가 커질수록 "그거 어디 적었지?"가 비싸진다. **새 작업 전 이 표에서 해당 문서를 먼저 연다.**
+
+| 보고 싶은 것 | 문서 |
+|--------------|------|
+| **지금 뭘 작업 중 / 다음 할 일 / WBS** | [plan.md](plan.md) |
+| **코드 위치 찾기 + "왜 이렇게 했나" 결정 로그** | codemap.md (이 문서) — §1 위치 인덱스, §2 결정 로그 |
+| **클라 vs 서버 권위 (전투·수치·연출 = 누가 소유?)** | [authority-model.md](authority-model.md) ← 전투/스킬/아이템 설계 전 필독 |
+| **Character 구조 (Locomotion/Action 두 축·GAS·Driver)** | [character-architecture.md](character-architecture.md) |
+| **GameplayEffect 버프/디버프 + HUD 연동** | [effect-system.md](effect-system.md) |
+| **서버 Clean Architecture·의존성 방향·도메인 경계** | [architecture.md](architecture.md), [.claude/rules/architecture-server.md](../../.claude/rules/architecture-server.md) |
+| **서버 연동 흐름 (게임 시작 E2E·세션)** | [gameflow.md](gameflow.md) |
+| **패킷/Union 추가 규칙** | [packets.md](packets.md), [.claude/rules/networking.md](../../.claude/rules/networking.md) |
+| **SocketServer (TCP·방·세션·핸들러)** | [socketserver.md](socketserver.md) |
+| **Redis (스트림·캐시·컨슈머)** | [redis.md](redis.md) |
+| **Unity 클라 (gRPC·VContainer·MVI 레이어)** | [unity-client.md](unity-client.md), [.claude/rules/unity-client.md](../../.claude/rules/unity-client.md) |
+| **입력 시스템 (버퍼·라우터·전역화)** | [.claude/rules/unity-input.md](../../.claude/rules/unity-input.md) + 아래 §2.10 |
+| **멀티플레이 테스트 (MPPM 2-창 / E2E)** | [mppm-testing.md](mppm-testing.md), [.claude/rules/testing.md](../../.claude/rules/testing.md) |
+
+> 신규 설계 문서를 만들면 **이 표에 한 줄 추가**한다(= 발견성 유지의 핵심).
+
+---
+
 ## 1. 도메인 → 정식 위치 인덱스 (위치 찾기용)
 
 | 도메인 | 정식 위치 | 심화 문서 |
@@ -21,6 +45,8 @@
 | 방 생명주기(닫기) | 아래 §2.1 | [redis.md](redis.md) |
 | 게임 세션 | `GameServer.Application/Domains/GameSession/` | [gameflow.md](gameflow.md) |
 | 패킷/Union | `ServerAll/Shared/Shared.Packet/Packets/`, `Packet.cs` | [packets.md](packets.md), `.claude/rules/networking.md` |
+| **공유 결정론 코어(전투 수식·히트박스·스킬)** | `ServerAll/Shared/Shared.Gameplay/`(서버 ProjectReference) + 클라 `Client/Assets/Plugins/Shared.Gameplay.dll`(동일 ns, 단일 소스) | [authority-model.md](authority-model.md) §2, §2.6 |
+| **전투 흐름(입력→판정→데미지→연출)** | 클라 `Gameplay/Character/`(`PlayerCharacterAgent`·`CombatSyncSender`) → 서버 `SocketServer/.../Handler/CombatHandler` → `Room.DamageMonster` | [authority-model.md](authority-model.md), §2.7 |
 | SocketServer(TCP/방/세션) | `ServerAll/SocketServer/SocketServer/{Room,Session,PacketHandler}` | [socketserver.md](socketserver.md) |
 | Redis 스트림/큐 | `Shared/Shared.Infrastructure/MessageQueue/`, `Messages/` | [redis.md](redis.md) |
 | 클라 gRPC | `Client/Assets/Script/Network/Https/` | [unity-client.md](unity-client.md) |
@@ -37,6 +63,20 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.12 진행/성장(Progression) Exp 영속 도메인 (M4 B 트랙)
+- **무엇**: 플레이어 경험치 영속용 신규 도메인. `user_progressions`(users 1:1, PK=FK · `Level`/`Exp`/`UpdatedAt`) — `UserProfile` 컬럼이 아니라 **별도 테이블**.
+- **왜 별도 테이블**: 미래 원신식 캐릭터 교체에서 Exp/Level은 **캐릭터 귀속** → 나중에 키를 `user_id`→`character_id`로 이관만 하면 됨(프로필·인증 무접촉). 지금은 계정당 암묵적 캐릭터 1개라 `user_id` 키. 캐릭터 시스템은 미구현(YAGNI). [[character-swap-direction]]
+- **왜 던전 Exp는 DB 안 씀**: 던전→Exp 매핑은 정적 기획데이터 + 두 서버 공유 → **Shared 카탈로그(spawn-layouts.json)**. DB에 넣으면 SocketServer가 GameServer DB를 봐야 해 "서버 간 직접 참조 금지" 위반.
+- **위치**: 엔티티 `GameServer.Domain/Entities/User/UserProgression.cs`(`AddExp` 누적·0이하 무시) · 인터페이스 `GameServer.Application/Domains/Progression/Interfaces/{IProgressionRepository,IProgressionService}` · 구현 `GameServer.Application/Domains/Progression/ProgressionService.cs` + `GameServer.Infrastructure/Domains/Progression/ProgressionRepository.cs`(Cache-Aside+Delete, lazy get-or-create, `AsNoTracking` 읽기) · `RedisKeys.UserProgression` · DI=`UserInstaller` · 마이그레이션 `AddUserProgressions`(raw SQL).
+- **테스트**: 엔티티 5 + 서비스 단위 3 + Repository Testcontainers 통합 6(Cache-Aside Delete 계약) + 보상 컨슈머 통합 2(InMemory) + **실 Redis Stream E2E 1**(`DungeonResultRewardE2ETests` — 발행→Consumer Group→DB Exp).
+- **연결(다음)**: `DungeonResultConsumer.ProcessAsync`(§2.9)가 `ProgressionService.AddExp`를 참가자별 호출(보상 지급 = B 트랙 잔여).
+
+### 2.11 클라/서버 권위 판단 기준 문서화 (authority-model.md)
+- **무엇/왜**: "이 값/동작을 클라가 소유하나 서버가 소유하나"를 기능마다 재논쟁하지 않도록 **판단 4축**(①치팅 ②일관성 ③반응성 ④결정론/공유공식)과 **본 프로젝트 매핑**을 정식 문서로 박제. 트리거 = "서버 권위 근거가 부족하게 느껴진다"는 피드백.
+- **핵심**: 수치·판정·보상=서버 / 연출·입력=클라 / 결정론 가능=공유 코어(미전송). 비대칭(플레이어 HP=클라 결정론 vs 몬스터 HP=서버)은 각 대상의 지배 축이 달라서임을 명시.
+- **데미지 표시 결정(A안)**: 숫자는 **서버 응답값**(시전자도 예측 안 함, 공식은 서버 소유). 연출만 입력 즉발. 구현=클라가 이전HP−새HP 델타로 플로팅 텍스트(패킷 무변경), 막타는 마지막 HP 근사. 정밀 필요 시 B안(`Damage` 필드)로 승격.
+- **위치**: [authority-model.md](authority-model.md). 설계 시 먼저 이 4축에 대입.
+
 ### 2.10 입력 시스템 전역화 (PlayerInputActions·InputContext = 루트 Singleton)
 - **증상**: 던전 진입 시 PlayerCharacter가 안 움직임(`PlayerInputComponent`의 Action 콜백 0). 또 UI 점유 입력 차단(`InputContext`)이 Main에서만 동작.
 - **근본 원인**: `PlayerInputActions`가 `ProjectLifetimeScope`에서 **`Scoped`**로 등록되고 Main/Dungeon이 **각자 또 `Scoped` 재등록** → **스코프마다 다른 인스턴스 3개**. ① 던전 인스턴스의 `Player` 맵을 아무도 `Enable()` 안 함(Main은 `MainSceneInitializer`가 켰지만 던전엔 대응물 없음) → 콜백 0. ② `InputContext`를 루트에 두면 씬 인스턴스와 달라 "안 먹힘" → 팀이 `OutgameInstaller`(Main)로 우회 등록(증상 회피, 원인=Scoped 미해결).
@@ -51,8 +91,9 @@
 - **무엇/왜**: 방의 몬스터 전멸을 **서버 권위로 1회만** 감지해 ① 클라에 결과 화면을 띄우고 ② GameServer에 보상 산정용 이벤트를 통지. DoD "클리어→복귀" 골격(보상은 B 트랙).
 - **감지(SocketServer)**: `Room.TryMarkCleared()`(`Room.cs`) — `_monstersSpawned`(빈 방 오판 방지) && 살아있는 몬스터 0 && `!_cleared` 일 때 최초 1회 true(lock(_monsters), 중복 발화 차단). 사망 몬스터는 `DamageMonster`가 즉시 제거하므로 `_monsters.Count==0`==전멸. 호출 위치 = `CombatHandler.ApplyAttackToMonsters`(처치 후 `anyKilled && TryMarkCleared()`).
 - **두 경로 통지**: ① 클라 — `room.Broadcast(S_DungeonClear{RoomId})`(Union **1820**, `Shared.Packet/Domains/DungeonPackets.cs`). ② GameServer — `session.RoomManager.PublishDungeonClear(room)` → `IDungeonResultPublisher`→`DungeonResultMessageQueue`(`stream:game:dungeon:result`) → `DungeonClearMessage{RoomId,MapId,Participants[]}`. 던전 식별은 현재 `MapId`(DB `DungeonId`는 B 트랙 부채 9.2). 발행 패턴 = `IRoomLifecyclePublisher` 미러.
-- **소비(GameServer)**: `DungeonClearMessageQueue`(Consumer Group `dungeon-result-service`) + `DungeonResultConsumer`(`ResilientStreamConsumer` 위임, §2.8). **A단계는 수신·로그만** — 보상 산정/지급(Progression+Inventory, Outbox 원자화)은 `ProcessAsync`의 `TODO(B)`. DI = `DungeonInstaller`.
-- **클라(Presentation)**: codegen 미러 `S_DungeonClear` → `DungeonClearPacketHandler`(`Network/Socket/Handler/Contents`) → `ISocketPacketState.MarkDungeonCleared`/`OnDungeonCleared`(`SocketApiClient.cs`) → `InGameModel`이 구독 → `InGameResult.DungeonCleared`→`InGameState.IsDungeonCleared`→`GameHud`가 `dungeonClearPanel` 토글(SerializeField, 미할당 무해) + 기존 `returnToLobbyButton`→`InGameIntent.ReturnToLobby`(§2.1 복귀 경로) 재사용.
+- **소비(GameServer)**: `DungeonClearMessageQueue`(Consumer Group `dungeon-result-service`) + `DungeonResultConsumer`(`ResilientStreamConsumer` 위임, §2.8). **보상 지급(B, §2.12)**: `expReward = SpawnLayoutTable.Get(MapId).ExpReward`(Shared 카탈로그 = SocketServer 표시값과 동일 소스) → 참가자 전원 `IProgressionService.AddExp`(scope per 메시지). **멱등** = RoomId 를 Redis SET(`RedisKeys.DungeonResultProcessed`)에 claim-first(at-most-once, AddExp 비멱등이라 이중지급 차단). 보상은 **Exp 전용**(인벤토리·Outbox 제외, 2026-06-06 범위 확정). DI = `DungeonInstaller`.
+- **클라(Presentation)**: codegen 미러 `S_DungeonClear{RoomId,RewardExp}` → `DungeonClearPacketHandler` → `ISocketPacketState.MarkDungeonCleared(exp)`/`OnDungeonCleared(long)`(`SocketApiClient.cs`) → `InGameModel` 구독 → `InGameResult.DungeonCleared(exp)`→`InGameState.IsDungeonCleared`+`RewardExp`→`GameHud`가 `DungeonClear` 패널 활성+`SetReward`. 패널 자체 return 버튼/기존 `returnToLobbyButton` 모두 `InGameIntent.ReturnToLobby`(§2.1 복귀=`LoadSceneAsync("Main")`) 재사용.
+- **실패 경로(전원 다운, B)**: 클라 로컬 HP 0(`InGameModel.OnAttributeChanged` Health≤0) → `C_PlayerDead`(1822) 1회 송신(`_localDeadReported` 가드, 플레이어 HP=클라 권위) → 서버 `DungeonLifecycleHandler` → `Room.TryMarkFailed(userId)`(기대 로스터 전원 다운 시 1회) → `S_DungeonFailed`(1821) 방 브로드캐스트(보상 없음→GameServer 통지 X) → 클라 `DungeonFailedPacketHandler`→`MarkDungeonFailed`/`OnDungeonFailed`→`InGameState.IsDungeonFailed`→`GameHud` `DungeonFailed` 패널→ReturnToLobby. **클리어/실패 상호 배타** = `Room._outcome`(0/1/2) `Interlocked.CompareExchange` 단일 terminal claim. 테스트: SocketServer Room 6 + 클라 EditMode 4 + E2E(클리어 RewardExp·전원다운 실패) 2.
 - **검증**: SocketServer.Tests **47/47**(`DungeonClearTests` 4: 전멸 1회·생존 시 false·미스폰 false·발행 참가자/MapId) + 서버 빌드 0오류 + Unity 컴파일 0오류. **남음**: A 트랙 E2E(2클라 처치→양쪽 `S_DungeonClear`), 결과 패널 아트(GameHud 프리팹, 사람).
 
 ### 2.8 컨슈머 복원력 중앙화 (일시적 Redis 오류에 안 죽는 BackgroundService)

@@ -41,9 +41,11 @@ namespace Game.GUI.OutGame
 
         [SerializeField] private Button returnToLobbyButton;
 
-        [Header("Dungeon Clear")]
-        [Tooltip("던전 클리어(몬스터 전멸) 시 표시할 결과 패널. 미할당이어도 동작은 무해(토글만 생략).")]
-        [SerializeField] private GameObject dungeonClearPanel;
+        [Header("Dungeon Result")]
+        [Tooltip("던전 클리어(몬스터 전멸) 결과 패널. 미할당이어도 동작은 무해(토글만 생략).")]
+        [SerializeField] private DungeonClear dungeonClearView;
+        [Tooltip("던전 실패(참가자 전원 다운) 패널. 미할당이어도 동작은 무해(토글만 생략).")]
+        [SerializeField] private DungeonFailed dungeonFailedView;
 
         [Header("Side Buttons")]
         [SerializeField] private SideButton[] sideButtons;
@@ -87,6 +89,10 @@ namespace Game.GUI.OutGame
         {
             returnToLobbyButton.onClick.AddListener(OnClickReturnToLobby);
 
+            // 결과 패널의 자체 return 버튼도 같은 복귀 흐름으로 연결.
+            if (dungeonClearView != null) dungeonClearView.Bind(OnClickReturnToLobby);
+            if (dungeonFailedView != null) dungeonFailedView.Bind(OnClickReturnToLobby);
+
             InitBuffPool();
 
             _model.State
@@ -116,9 +122,18 @@ namespace Game.GUI.OutGame
             // 복귀 처리 중에는 버튼 비활성화 (중복 클릭 방지)
             returnToLobbyButton.interactable = !state.IsReturning;
 
-            // 던전 클리어(몬스터 전멸) → 결과 패널 표시. 복귀(ReturnToLobby)는 기존 버튼 재사용.
-            if (dungeonClearPanel != null && dungeonClearPanel.activeSelf != state.IsDungeonCleared)
-                dungeonClearPanel.SetActive(state.IsDungeonCleared);
+            // 던전 클리어(몬스터 전멸) → 결과 패널 표시(+Exp). 복귀는 패널 버튼/기존 버튼 공용.
+            if (dungeonClearView != null)
+            {
+                if (dungeonClearView.gameObject.activeSelf != state.IsDungeonCleared)
+                    dungeonClearView.gameObject.SetActive(state.IsDungeonCleared);
+                if (state.IsDungeonCleared)
+                    dungeonClearView.SetReward(state.RewardExp);
+            }
+
+            // 던전 실패(참가자 전원 다운) → 실패 패널 표시.
+            if (dungeonFailedView != null && dungeonFailedView.gameObject.activeSelf != state.IsDungeonFailed)
+                dungeonFailedView.gameObject.SetActive(state.IsDungeonFailed);
 
             // 로컬 플레이어 스탯 → 게이지 (GAS Attribute에서 중계된 값)
             if (hpSlider != null)

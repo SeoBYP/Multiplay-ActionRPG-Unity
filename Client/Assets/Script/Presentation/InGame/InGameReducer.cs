@@ -26,8 +26,11 @@ namespace Game.Presentation.InGame
             if (result is InGameResult.DungeonReady)
                 return state.WithDungeonReady();
 
-            if (result is InGameResult.DungeonCleared)
-                return state.WithDungeonCleared();
+            if (result is InGameResult.DungeonCleared cleared)
+                return state.WithDungeonCleared(cleared.RewardExp);
+
+            if (result is InGameResult.DungeonFailed)
+                return state.WithDungeonFailed();
 
             return state;
         }

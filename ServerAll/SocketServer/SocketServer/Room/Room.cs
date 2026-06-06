@@ -29,7 +29,12 @@ public class Room
 
     // 클리어 감지(몬스터 전멸) — lock(_monsters) 안에서만 접근.
     private bool _monstersSpawned;   // 한 번이라도 몬스터가 스폰됐는지(빈 방을 클리어로 오판 방지)
-    private bool _cleared;           // 전멸 이벤트를 이미 발화했는지(중복 발화 방지)
+
+    // 던전 결과(클리어/실패) — 단일 terminal 상태. 0=None,1=Cleared,2=Failed.
+    // Interlocked.CompareExchange 로 최초 1회만 claim → 클리어/실패 상호 배타(둘 다 발화 불가).
+    private int _outcome;
+    // 실패 집계(다운된 참가자) — lock(_downed) 안에서만 접근.
+    private readonly HashSet<long> _downed = new();
 
     /// <summary>맵 경계 — 몬스터 이동 clamp 기준(RoomTickService 사용).</summary>
     public MapBounds Bounds => _bounds;
@@ -254,12 +259,32 @@ public class Room
     {
         lock (_monsters)
         {
-            if (_cleared || !_monstersSpawned || _monsters.Count > 0)
+            if (!_monstersSpawned || _monsters.Count > 0)
+                return false;
+        }
+
+        // 전멸 확인 후 terminal 상태를 원자적으로 claim — 실패와 동시 발화 불가.
+        return System.Threading.Interlocked.CompareExchange(ref _outcome, 1, 0) == 0;
+    }
+
+    /// <summary>
+    /// 한 플레이어의 다운(HP 0, 클라 C_PlayerDead 보고)을 집계하고, <b>참가자 전원</b>이 다운되면
+    /// 실패를 <b>최초 1회만</b> true 로 표시한다. 기대 로스터에 없는 userId 는 무시.
+    /// 클리어가 이미 발화됐으면(_outcome!=None) false — 상호 배타.
+    /// </summary>
+    public bool TryMarkFailed(long userId)
+    {
+        lock (_downed)
+        {
+            if (!_expectedUserIds.Contains(userId))
                 return false;
 
-            _cleared = true;
-            return true;
+            _downed.Add(userId);
+            if (_downed.Count < _expectedUserIds.Count)
+                return false;
         }
+
+        return System.Threading.Interlocked.CompareExchange(ref _outcome, 2, 0) == 0;
     }
 
     public IReadOnlyList<MonsterState> GetAllMonsters()

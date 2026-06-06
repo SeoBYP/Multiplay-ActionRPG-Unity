@@ -54,11 +54,18 @@ namespace Game.Presentation.InGame
             private DungeonReady() { }
         }
 
-        /// <summary>던전 클리어(서버 S_DungeonClear, 몬스터 전멸) — 결과 화면 표시.</summary>
+        /// <summary>던전 클리어(서버 S_DungeonClear, 몬스터 전멸) — 결과 화면 표시(+Exp 보상).</summary>
         public sealed class DungeonCleared : InGameResult
         {
-            public static readonly DungeonCleared Instance = new DungeonCleared();
-            private DungeonCleared() { }
+            public readonly long RewardExp;
+            public DungeonCleared(long rewardExp) { RewardExp = rewardExp; }
+        }
+
+        /// <summary>던전 실패(서버 S_DungeonFailed, 참가자 전원 다운) — 실패 화면 표시.</summary>
+        public sealed class DungeonFailed : InGameResult
+        {
+            public static readonly DungeonFailed Instance = new DungeonFailed();
+            private DungeonFailed() { }
         }
     }
 }

@@ -7,14 +7,16 @@ namespace Shared.Infrastructure.Spawn;
 public sealed record SpawnPoint(float X, float Y, float Z, float RotY);
 
 /// <summary>
-/// 한 맵의 스폰 레이아웃 — 플레이어 스폰 포인트 + 맵 경계 + 몬스터 스폰 정의.
+/// 한 맵의 스폰 레이아웃 — 플레이어 스폰 포인트 + 맵 경계 + 몬스터 스폰 정의 + 클리어 Exp 보상.
 /// spawnIndex 가 Points 배열의 인덱스가 된다. Bounds/Monsters 는 서버 권위 몬스터 시뮬레이션이 사용한다.
+/// ExpReward = 던전 클리어 시 참가자 전원에게 지급할 경험치(던전별 차등). 양 서버 공유 단일 소스.
 /// </summary>
 public sealed record MapSpawnLayout(
     string MapId,
     IReadOnlyList<SpawnPoint> Points,
     MapBounds Bounds,
-    IReadOnlyList<MonsterSpawnDef> Monsters);
+    IReadOnlyList<MonsterSpawnDef> Monsters,
+    long ExpReward);
 
 /// <summary>
 /// 결정론적 스폰 리졸버 — 순수 함수.

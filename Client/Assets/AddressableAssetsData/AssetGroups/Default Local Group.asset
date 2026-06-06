@@ -25,8 +25,18 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 179f4e7a1670d2e4994fd40e2106e53b
+    m_Address: Assets/Prefabs/GUI/Dungeon/DungeonClear.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 1fc5dabf54556b444a73d1f9bfbb8a01
     m_Address: Assets/Prefabs/GUI/HUD/EffectSlots/QuickButtonSlot.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2dfb4c9749719cb40b134b59556b9d24
+    m_Address: Assets/Prefabs/GUI/Dungeon/DungeonFaild.prefab
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

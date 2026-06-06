@@ -2,6 +2,7 @@ using System.Numerics;
 using Script.System.GamePlayAbilitySystem;
 using Server.Combat;
 using Server.Player;
+using Shared.Infrastructure.Spawn;
 using Shared.Packet.Packets;
 
 namespace Server.PacketHandler.Handler;
@@ -144,7 +145,9 @@ public static class CombatHandler
         // S_DungeonClear(클라 결과화면) + DungeonClearMessage(GameServer 보상) 두 경로로 통지.
         if (anyKilled && room.TryMarkCleared())
         {
-            room.Broadcast(new S_DungeonClear { RoomId = room.RoomId });
+            // 표시용 보상 = 지급(GameServer)과 동일 Shared 카탈로그 값(검증 가능).
+            long rewardExp = SpawnLayoutTable.Get(room.MapId).ExpReward;
+            room.Broadcast(new S_DungeonClear { RoomId = room.RoomId, RewardExp = rewardExp });
             session.RoomManager.PublishDungeonClear(room);
         }
     }

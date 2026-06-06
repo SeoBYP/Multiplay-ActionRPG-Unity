@@ -53,7 +53,7 @@
 ### 2. 캐릭터 시스템
 - **2.1** 전투 코어 — 서버 권위 Attack/Hit/Damage (GAS) — 🔄 | T1 | 🔵
 - **2.2** 스킬/어빌리티 — SkillTimeline, `basic_swing` 외 확장 — 🔄 | T1 | 🔵
-- **2.3** 진행/성장(Progression) — 레벨·경험치·스탯 성장 영속 (`Progression` 신규) — ⬜ | T1 | 🟢
+- **2.3** 진행/성장(Progression) — 레벨·경험치·스탯 성장 영속 (`Progression` 신규) — 🔄 | T1 | 🟢 (Exp 영속 도메인 완료, 레벨업/스탯 성장 M5)
 - **2.4** 스탯 산식 — 레벨/장비/버프 합산 서버 권위 재계산 — ⬜ | T2 | ⚪
 - **2.5 사망/부활** — ⬜ | T1 | 🔵
   - **2.5.1** 사망 처리 — HP 0 다운/리스폰 (전투 루프 필수) — ⬜ | T1 | 🔵
@@ -89,11 +89,11 @@
   - **4.1.4** 서버 전투 — 플레이어→몬스터 피격/사망(GAS, `S_MonsterDead`) + 몬스터→플레이어 공격(`S_ApplyEffect`) 양방향 — ✅ | T1 | 🔵
   - **4.1.5** 클라 `MonsterEntity` 스폰/보간/사망 (`RemoteDriver` 패턴 재사용) — ✅ | T1 | ⚪
   - **4.1.6** 몬스터 웨이브/스폰 페이즈 — ⬜ | T2 | ⚪
-- **4.2 던전 클리어/보상(DungeonResult)** — `DungeonResult` 신규 도메인 — 🔄 | T1 | 🟢 (A 트랙 클리어 골격 완료, 보상=B)
+- **4.2 던전 클리어/보상(DungeonResult)** — ✅ | T1 | 🟢 (클리어+실패 루프 + Exp 보상 전원 지급 완료. 결과패널 아트·PlayMode 실행은 Unity)
   - **4.2.1** 패킷 `S_DungeonClear`(1820) + Union — ✅ | T1 | ⚪
   - **4.2.2** SocketServer 클리어 감지 → `DungeonClearMessage` → Redis Stream — ✅ | T1 | 🟢
-  - **4.2.3** GameServer `DungeonResultConsumer` → 보상 산정(경험치/아이템) — 🔄 | T1 | 🟢 (컨슈머 수신·로그 골격 완료, 산정은 B)
-  - **4.2.4** 보상 지급 — 3.1 Inventory + 2.3 Progression 호출(Outbox 원자화) — ⬜ | T1 | 🟢
+  - **4.2.3** GameServer `DungeonResultConsumer` → 보상 산정(경험치) — ✅ | T1 | 🟢 (Shared 카탈로그 expReward → 참가자 전원 Exp 지급·RoomId 멱등. 아이템은 범위 제외)
+  - **4.2.4** 보상 지급 — 2.3 Progression.AddExp 호출(RoomId 멱등 Redis SET, at-most-once) — ✅ | T1 | 🟢 (Inventory·Outbox는 범위 제외, Exp 전용)
 - **4.3** 던전 메타 — `DungeonRoom.DungeonId` 추가(=9.2 부채) — ⬜ | T1 | 🟢
 - **4.4** 퀘스트(Quest) — 수주/진행/완료·보상 (`Quest` 신규) — ⬜ | T2 | ⚪
 - **4.5** NPC/대화(Dialogue) — 상호작용·대화 트리 (`Npc` 신규) — ⬜ | T2 | ⚪
@@ -123,7 +123,7 @@
 - **6.7** 튜토리얼/온보딩 — ⬜ | T3 | ⚪
 
 ### 7. UI / UX (클라 프레젠테이션 — MVI, View는 자기 Model만 참조)
-- **7.1** 결과/보상 화면 (대응 6.2/4.2) — ⬜ | T1 | ⚪
+- **7.1** 결과/보상 화면 (대응 6.2/4.2) — 🔄 | T1 | ⚪ (DungeonClear 프리팹 GameHud 배선 완료(`dungeonClearView` 할당, 전체화면·기본 비활성). **DungeonFailed.prefab 미존재 → `dungeonFailedView` 미할당**. 프리팹 아트 잔여는 Unity)
 - **7.2** 인벤토리/장비 UI (대응 3.1/3.2) — ⬜ | T2 | ⚪
 - **7.3** 캐릭터 정보/스탯창 (대응 2.3/2.4) — ⬜ | T2 | ⚪
 - **7.4** 퀘스트 UI/추적 HUD (대응 4.4) — ⬜ | T2 | ⚪
@@ -246,22 +246,26 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 - **모델(= 기존 M3 ⑤ 유지)**: 클라 좌클릭 → `C_Attack{skillId}` 송신(트리거) → 서버 `CombatHandler`가 시전자 위치/yaw로 hitbox 재계산(권위 판정) → `Room.DamageMonster`(서버 HP·데미지 산정) → `S_MonsterState`/`S_MonsterDead` 브로드캐스트.
 - **역할 분리**: 클라 = **트리거만**(어떤 몬스터/데미지 모름). 서버 = **판정·데미지·HP·전멸·브로드캐스트 전부 권위**.
 - **후속(M5)**: 데미지 산식을 GAS 스탯(공격력/방어력) 기반으로 승격. 현재는 `CombatEffectCatalog` 고정값.
+- **판단 기준**: 왜 서버 권위인가 = [authority-model.md](authority-model.md) 4축(치팅/일관성/반응성/결정론). **데미지 숫자 표시 = A안**(서버 응답값, 클라가 이전HP−새HP 델타로 플로팅 텍스트, 패킷 무변경 / 막타는 마지막 HP 근사). 연출만 입력 즉발.
 - **확인 필요**: 현 서버 권위 경로(`ApplyAttackToMonsters`)가 **실제 플레이에서 동작하는지**(몬스터 콜라이더/위치 추적·hitbox 튜닝). 코드는 존재(M3 ⑤) → A 트랙은 *검증·배선*이지 신규 구축 아님.
 
 **A 트랙 — 클리어 루프 골격** (보상 없이 먼저 관통 → DoD "모양"). DungeonId는 보상 산정 전제라 B로 미룸(A는 DB 스키마 변경 없이 관통).
-- [ ] **전투 검증(사용자 플레이)** — 클라 공격 체인은 **코드 완성·배선 확인됨**(좌클릭→`PressAttack`→`CombatSyncSender`→`C_Attack`→서버 hitbox→`DamageMonster`; `CharacterSpawner.cs:69`서 부착). **신규 구현 없음**. 사용자가 던전 플레이로 검증 → 갭(공격 애니 클립/`monsterPrefab` 미할당/HP 피드백) 발견 시 그 지점만 수선
+- [x] **전투 검증(사용자 플레이)** — 클라 공격 체인은 **코드 완성·배선 확인됨**(좌클릭→`PressAttack`→`CombatSyncSender`→`C_Attack`→서버 hitbox→`DamageMonster`; `CharacterSpawner.cs:69`서 부착). 사용자 던전 플레이로 클리어 플로우+이동 검증 완료. **검증 중 발견 버그 수정(2026-06-07)**: ① 고fps에서 이동 교착 — `CharacterMotor` 속도 램프를 `controller.velocity` → `m_speed`(직전 의도속도) 기반으로 변경(첫 프레임 변위가 `CharacterController.minMoveDistance`보다 작아 velocity가 0에 묶이던 deadlock 해소) ② `DungeonClear` 패널을 `GameHud` 프리팹에 배선(`dungeonClearView` 할당) ③ `runInBackground=true`(포커스 상실 시 시뮬레이션 멈춤 방지) ④ `InputSystemIntegrationTests` 입력맵 Enable 누락 수정
 - [x] **클리어 감지** — `Room.TryMarkCleared`(스폰됨 & 전멸 최초 1회) → `S_DungeonClear`(Union **1820**) 방 브로드캐스트 + `DungeonClearMessage{RoomId,MapId,Participants[]}` 발행(`IDungeonResultPublisher`→`DungeonResultMessageQueue`, `stream:game:dungeon:result`). `CombatHandler.ApplyAttackToMonsters`가 처치 후 발화. **SocketServer.Tests 47/47**(클리어 4 신규)
 - [x] **DungeonResultConsumer** — `ResilientStreamConsumer`(§9.10) 위임 + `DungeonClearMessageQueue`(Consumer Group) + DI. A단계는 수신·로그만(보상 자리 `TODO(B)`)
 - [x] **클라 결과→복귀** — codegen 미러(`S_DungeonClear`) → `DungeonClearPacketHandler`→`ISocketPacketState.OnDungeonCleared`→`InGameModel`→`InGameState.IsDungeonCleared`→`GameHud.dungeonClearPanel` 토글(미할당 무해)+기존 `ReturnToLobby` 재사용. **Unity 컴파일 0오류**. ※결과 패널 아트(GameHud 프리팹)는 Unity에서 사람이
 - [x] **A 트랙 E2E** — `SocketE2ETests.RawSocket_몬스터_전멸하면_양쪽_S_DungeonClear_수신`: dungeon_01 슬라임 1마리 처치(재조준 루프 재사용) → 호스트+게스트 양쪽 `S_DungeonClear{RoomId}` 수신. **Docker 리빌드·재배포 후 PlayMode 실행 → SocketE2ETests 12/12 그린**(신규 클리어 1 + 회귀 11)
 
-**B 트랙 — 보상 채우기** (도메인 2개 + 지급 + UI)
-- [ ] **던전 구분** — `DungeonRoom.DungeonId`(기본 1) [4.3 / 부채 9.2] — 엔티티 4곳(`Clone/FromRedis/ParseFromRedis/ToHashEntry`)+EF 마이그레이션, `GameStartRequestedMessage`→`Room.DungeonId` 전파. 보상 테이블 키로 사용(현재 클리어 메시지는 MapId로 식별)
-- [ ] **인벤토리 도메인** — Item/InventoryItem·Service·Repo(Cache-Aside)·proto·테스트 [3.1]
-- [ ] **진행/성장(레벨·경험치) 도메인** [2.3]
-- [ ] **보상 산정·지급** — `DungeonResultConsumer`가 Progression.AddExp + Inventory.Grant 호출(Outbox 원자화) [4.2.3/4.2.4]
-- [ ] **결과/보상 UI** [7.1] + 캐릭터 진행 영속(레벨/인벤) [6.1] → 로비 복귀 [6.2]
-- [ ] **완전한 Co-op 1판 루프 E2E** (MPPM 2-client)
+**B 트랙 — 보상 채우기** (Exp 전용 + 실패 경로 + UI)
+
+> **범위 확정(2026-06-06)**: 보상 = **Exp만**(인벤토리 제외). 던전→Exp 매핑은 **Shared 카탈로그(MapId 키)** — DB DungeonId/`DungeonRoom.DungeonId` 도입 **안 함**(서버 간 직접 참조 금지·정적 기획데이터, MapId가 이미 DungeonClearMessage로 흐름). 실패 트리거 = **참가자 전원 다운**(`C_PlayerDead`→서버 집계→`S_DungeonFailed`). Progression은 별도 `user_progressions`(미래 캐릭터 귀속 대비). 상세 = [[character-swap-direction]].
+
+- [x] **진행/성장(Exp) 도메인** [2.3] — `user_progressions` 테이블(users 1:1, Lv1/Exp/UpdatedAt)+엔티티 `AddExp`·`IProgressionRepository`/`Repository`(Cache-Aside+Delete, lazy get-or-create)·`IProgressionService`/`ProgressionService`·DI(UserInstaller)·RedisKeys. 단위 8 + Testcontainers 통합 6 그린. ※레벨업 산식·스탯 성장은 M5
+- [x] **던전 Exp 카탈로그(Shared)** — `MapSpawnLayout.ExpReward` + `spawn-layouts.json`(양본) `expReward:100`(dungeon_01). SocketServer.Tests 7(파싱·임베디드)
+- [x] **보상 산정·지급** — `DungeonResultConsumer`가 `SpawnLayoutTable.Get(MapId).ExpReward` → 참가자 전원 `ProgressionService.AddExp`. RoomId 멱등(Redis SET claim-first, at-most-once). `IConnectionMultiplexer`+`IServiceScopeFactory`. Testcontainers 통합 2(전원 지급·멱등) + **실 Redis Stream E2E 1**(발행→Consumer Group→DB Exp, `DungeonResultRewardE2ETests`) [4.2.3/4.2.4]
+- [x] **클리어 팝업 Exp 표시** — `S_DungeonClear.RewardExp`(SocketServer가 카탈로그값 실음) → 클라 `MarkDungeonCleared(exp)`→`InGameState.RewardExp`→`GameHud`가 `DungeonClear` 패널 표시+`SetReward`. `DungeonClear.cs` Bind/SetReward, return 버튼→ReturnToLobby [7.1]
+- [x] **실패 경로(전원 다운)** — `C_PlayerDead`(1822)/`S_DungeonFailed`(1821) 패킷 + `Room._outcome`(Interlocked, 클리어/실패 배타)+`TryMarkFailed`(전원 다운 1회) + `DungeonLifecycleHandler` + 클라 로컬HP0→`C_PlayerDead`송신·`DungeonFailed` 패널→ReturnToLobby. 단위(Room 6)+EditMode 4+E2E 1. ※클라 컴파일/PlayMode 실행·결과패널 아트는 Unity(사람)
+- [ ] **완전한 Co-op 1판 루프 E2E** (MPPM 2-client) → 로비 복귀 [6.2] — E2E 코드 작성(클리어 RewardExp·전원다운 실패), MPPM 시각·Main 복귀 확인은 Unity(사람). ※2026-06-07: MPPM 2-client 이동/서로보임 동작 확인(위 이동 교착 버그 수정 후). 남은 = 클리어→보상→로비 전체 1판 시각 통과
 
 ### M5 — 폴리시 + PVE 맛보기 [WBS 2.4·2.6·2.7·3.2~3.8·4.4~4.7·5.*·6.3~6.4·7.2~7.8·8.*]
 - [ ] 애니메이션(MotionMatching V2 액션 블렌딩, 🟣)·HUD 다듬기·스킬1~2·아이템 최소·사운드(8.*)

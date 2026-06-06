@@ -65,7 +65,7 @@ public static class SpawnLayoutTable
                         .ToList()))
                 .ToList();
 
-            result[map.MapId] = new MapSpawnLayout(map.MapId, points, bounds, monsters);
+            result[map.MapId] = new MapSpawnLayout(map.MapId, points, bounds, monsters, map.ExpReward);
         }
         return result;
     }
@@ -81,6 +81,9 @@ public static class SpawnLayoutTable
         public BoundsDto? Bounds { get; set; }
         public List<PointDto> Points { get; set; } = new();
         public List<MonsterDto> Monsters { get; set; } = new();
+
+        /// <summary>던전 클리어 시 참가자 전원에게 지급할 경험치. 누락 시 0(보상 없음).</summary>
+        public long ExpReward { get; set; }
     }
 
     private sealed class PointDto
