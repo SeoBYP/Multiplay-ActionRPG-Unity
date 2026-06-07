@@ -78,6 +78,7 @@ try
     new AuthInstaller().Install(builder.Services, builder.Configuration);
     new ChatInstaller().Install(builder.Services, builder.Configuration);
     new DungeonInstaller().Install(builder.Services, builder.Configuration);
+    new InventoryInstaller().Install(builder.Services, builder.Configuration);
     
     // 기존 ILogger 대신 Serilog 사용
     builder.Host.UseSerilog();

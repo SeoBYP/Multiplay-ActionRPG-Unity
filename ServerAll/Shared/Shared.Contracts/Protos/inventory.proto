@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+import "common.proto";
+
+package gameserver.inventory.v1;
+
+option csharp_namespace = "GameServer.Grpc.Inventory";
+
+service InventoryService {
+  // 현재 유저(토큰)의 인벤토리 조회. userId 는 서버가 JWT 에서 추출.
+  rpc GetInventory(GetInventoryRequest) returns (GetInventoryResponse);
+}
+
+message GetInventoryRequest {}
+
+message GetInventoryResponse {
+  gameserver.common.Result result = 1;
+  repeated InventoryItemInfo items = 2;
+}
+
+// 소유 아이템(수량). 정의(이름·등급·아이콘)는 클라가 itemId 로 자기 카탈로그에서 룩업.
+message InventoryItemInfo {
+  string item_id = 1;
+  int32 quantity = 2;
+}

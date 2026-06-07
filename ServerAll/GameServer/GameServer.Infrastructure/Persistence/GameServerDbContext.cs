@@ -1,6 +1,7 @@
 ﻿using GameServer.Domain.Entities;
 using GameServer.Domain.Entities.Chat;
 using GameServer.Domain.Entities.GameSession;
+using GameServer.Domain.Entities.Inventory;
 using GameServer.Domain.Entities.Outbox;
 using GameServer.Domain.Entities.User;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,8 @@ public class GameServerDbContext(DbContextOptions<GameServerDbContext> options) 
     public DbSet<UserProfile> UserProfiles { get; set; }
     public DbSet<UserProgression> UserProgressions { get; set; }
     public DbSet<UserSession> UserSessions { get; set; }
+
+    public DbSet<InventoryItem> InventoryItems { get; set; }
     
     public DbSet<DungeonRoom> DungeonRooms { get; set; }
     public DbSet<DungeonRoomPlayer> DungeonRoomPlayers { get; set; }

@@ -38,5 +38,6 @@ public class MiddlewareInstaller : IMiddlewareInstaller
         app.MapGrpcService<UserGrpcService>();
         app.MapGrpcService<DungeonLobbyGrpcService>();
         app.MapGrpcService<ChatGrpcService>();
+        app.MapGrpcService<InventoryGrpcService>();
     }
 }

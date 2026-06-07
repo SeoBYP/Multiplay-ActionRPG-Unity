@@ -63,6 +63,16 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.14 인벤토리 도메인 (3.1, 2026-06-07)
+- **무엇**: 서버 권위 아이템 소유 영속 도메인. 모든 보상/장비/상점/루트의 공통 전제.
+- **정의 vs 소유 분리(핵심)**: 아이템 *정의*(이름·등급·MaxStack·아이콘키)는 **코드 카탈로그 `ItemCatalog`**(DB 아님) — `GameplayEffectCatalog`·`MonsterCatalog`·spawn-layouts 와 동일 컨벤션(정적 기획데이터는 카탈로그). DB엔 **소유(수량)만**. → `items` 테이블 없음.
+- **소유 모델**: `InventoryItem` = 스택형 `(UserId, ItemId) → Quantity` 복합키. 장비 인스턴스(개별 상태)는 3.2 Equipment로 미룸(YAGNI). 키=user_id(미래 character_id 이관, [[character-swap-direction]]).
+- **캐시**: 유저당 Hash 1키 `game:user:inventory:{userId}`(field=itemId, value=qty). Cache-Aside+Delete. 빈 인벤토리는 캐시 안 함(HGETALL 빈결과=MISS 구분 불가 → DB 폴백, 트래픽 낮아 무해).
+- **위치**: 엔티티/카탈로그 `GameServer.Domain/Entities/Inventory/`(`InventoryItem`·`ItemDef`·`ItemGrade`·`ItemCatalog`) · `GameServer.Application/Domains/Inventory/`(`IInventoryService`/`InventoryService`·`Interfaces/IInventoryRepository`·`ItemGrantResult`) · `GameServer.Infrastructure/Domains/Inventory/InventoryRepository.cs` + `RedisKeys.UserInventory` + `Configurations/Inventory/InventoryItemConfiguration`(복합키) + 마이그레이션 `AddInventoryItems`(raw SQL) · DI `InventoryInstaller`(Program.cs) · gRPC `InventoryGrpcService`(`MiddlewareInstaller`) · proto `inventory.proto`(GetInventory) + `ServerCallContextExtension.GetUserId()`.
+- **진입점**: `IInventoryService.GrantItemAsync(userId, itemId, amount)` → 카탈로그 검증 + MaxStack clamp 적립 → `ItemGrantResult`. 보상/루트(3.3)가 호출(멱등은 호출자 책임 = Exp 보상과 동일). 조회 `GetInventoryAsync` → gRPC `GetInventory`(userId=JWT sub).
+- **범위 밖**: 획득 push 알림(3.3), 인벤토리 UI(7.2 — proto는 itemId+qty만, 클라가 자기 카탈로그로 표시).
+- **테스트**: 단위 13(엔티티 6·카탈로그 2·서비스 5) + Testcontainers 통합 7(Cache-Aside Delete 계약) = 20/20.
+
 ### 2.13 기술 부채 정리 1차 (9.1·9.3~9.7, 2026-06-07)
 - **9.6 GetRooms N+1 제거**: 방 목록이 방마다 `GetPlayersByRoomIdAsync`+`GetByIdsAsync` 2왕복(2N)이던 것을 → `IDungeonRoomPlayerRepository.GetPlayersByRoomIdsAsync(roomIds)`(단일 AsNoTracking 쿼리) + 유저 1쿼리 배치로 축소. 조립은 `DungeonRoomExtensions.ToRoomInfo(this DungeonRoom, IReadOnlyList<User>)` **동기 오버로드**(추가 I/O 0). **단일 방 응답(생성/입장)은 기존 async `ToRoomInfo(repo,repo)` 유지** — 1방은 N+1 아님. `FakeDungeonRoomPlayerRepository`도 동일 메서드 구현. count/페이징은 proto(공개계약) 변경이라 보류. 위치: `GameServer.API/Services/DungeonLobbyGrpcService.GetRooms`, `GameServer.API/Extensions/DungeonRoomExtensions.cs`, `GameServer.Infrastructure/.../DungeonRoomPlayerRepository.cs`.
 - **9.4 Room.Leave PlayerState 정리**: `SocketServer/Room/Room.Leave`가 `_playerSessions`만 지우고 `_playerStates`(userId→PlayerState)를 남겨 떠난 플레이어가 AI 타깃·위치 계산에 유령 잔류하던 버그. Leave가 제거 직전 `session.UserId`를 잡아 `_playerStates.Remove`. 테스트 `RoomManagerLeaveRoomTests.퇴장한_플레이어의_PlayerState는_정리된다`.

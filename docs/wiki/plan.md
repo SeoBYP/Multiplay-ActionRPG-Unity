@@ -68,13 +68,13 @@
 - **2.8** 직업/클래스 — ⬜ | T3 | ⚪
 
 ### 3. 아이템 / 경제 시스템
-- **3.1 인벤토리(Inventory)** — `Inventory` 신규 도메인(서버 권위 영속) — ⬜ | T1 | 🟢 ← **즉시 착수 후보**
-  - **3.1.1** Domain 엔티티 — `Item`(정의)·`InventoryItem`(소유)
-  - **3.1.2** Application — `IInventoryService`/`Service`·`IInventoryRepository`·`ItemGrantResult`
-  - **3.1.3** Infrastructure — `InventoryRepository` (PostgreSQL + Redis Cache-Aside+Delete, `AsNoTracking`)
-  - **3.1.4** EF 마이그레이션 + DbContext 등록 + DI Installer
-  - **3.1.5** `inventory.proto` (GetInventory/획득 알림) + 클라 Generated 재생성
-  - **3.1.6** 단위 + Testcontainers 통합 테스트(캐시 무효화 계약)
+- **3.1 인벤토리(Inventory)** — `Inventory` 신규 도메인(서버 권위 영속) — ✅ | T1 | 🟢 (2026-06-07 완료. 상세 = codemap §2.14. **설계**: ⓐ 정의=코드 `ItemCatalog`(DB 아님) → DB엔 소유만 ⓑ `InventoryItem`=스택형 `(UserId,ItemId)→Quantity`(장비 인스턴스는 3.2) ⓒ 키=user_id(미래 character_id, [[character-swap-direction]]) ⓓ 캐시=Hash 1키, Update→DEL ⓔ proto=`GetInventory` pull(획득 push·보상배선은 3.3, UI는 7.2) ⓕ `InventoryInstaller` 신규. **검증**: 단위 13 + Testcontainers 통합 7 = **20/20**, 서버 빌드 0오류, 클라 Generated 재생성. ※잔여(범위 밖): 획득 push 알림(3.3)·인벤토리 UI(7.2))
+  - [x] **3.1.1** Domain — `InventoryItem`(소유·수량규칙) + `ItemCatalog`/`ItemDef`/`ItemGrade`(정의 시드 3종)
+  - [x] **3.1.2** Application — `IInventoryService`/`Service`·`IInventoryRepository`·`ItemGrantResult`(보상 진입점)
+  - [x] **3.1.3** Infrastructure — `InventoryRepository` (PostgreSQL + Redis Cache-Aside+Delete, `AsNoTracking`)
+  - [x] **3.1.4** EF 마이그레이션(`inventory_items` 복합키) + DbSet + Config + `InventoryInstaller`
+  - [x] **3.1.5** `inventory.proto`(GetInventory) + `InventoryGrpcService` + 클라 Generated 재생성 (획득 push는 3.3로 보류)
+  - [x] **3.1.6** 단위(엔티티·카탈로그·서비스 13) + Testcontainers 통합 7(캐시 무효화 계약)
 - **3.2** 장비(Equipment) — 착용 슬롯·장비 스탯 모디파이어 → 2.4 합산 — ⬜ | T2 | 🟢
 - **3.3** 루트/드랍(Loot) — 드랍 테이블·보상 산정 — ⬜ | T2 | ⚪
 - **3.4** 재화(Wallet) — 골드 보유·증감(서버 권위) — ⬜ | T2 | 🟢

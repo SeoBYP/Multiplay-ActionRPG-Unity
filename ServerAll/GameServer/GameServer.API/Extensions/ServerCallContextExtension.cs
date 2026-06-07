@@ -13,6 +13,12 @@ public static class ServerCallContextExtension
         return context.GetHttpContext().User.FindFirstValue(JwtRegisteredClaimNames.Sid);
     }
 
+    public static long? GetUserId(this ServerCallContext context)
+    {
+        var sub = context.GetHttpContext().User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        return long.TryParse(sub, out var userId) ? userId : null;
+    }
+
     public static string? GetAccessToken(this ServerCallContext context)
     {
         var authHeader = context.RequestHeaders.GetValue("authorization");

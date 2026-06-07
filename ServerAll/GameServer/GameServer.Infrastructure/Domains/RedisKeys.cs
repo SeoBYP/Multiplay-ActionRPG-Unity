@@ -13,6 +13,9 @@ public static class RedisKeys
 
     // UserProgression (레벨·경험치)
     public static string UserProgression(long userId) => $"{Prefix}:user:progression:{userId}";
+
+    // Inventory (소유 아이템 — Hash: field=itemId, value=quantity)
+    public static string UserInventory(long userId) => $"{Prefix}:user:inventory:{userId}";
     
     // UserCredential
     public static string UserCredential(long userId) => $"{Prefix}:user:credential:{userId}";
