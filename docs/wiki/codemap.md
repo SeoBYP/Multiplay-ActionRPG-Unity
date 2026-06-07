@@ -63,6 +63,15 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.13 기술 부채 정리 1차 (9.1·9.3~9.7, 2026-06-07)
+- **9.6 GetRooms N+1 제거**: 방 목록이 방마다 `GetPlayersByRoomIdAsync`+`GetByIdsAsync` 2왕복(2N)이던 것을 → `IDungeonRoomPlayerRepository.GetPlayersByRoomIdsAsync(roomIds)`(단일 AsNoTracking 쿼리) + 유저 1쿼리 배치로 축소. 조립은 `DungeonRoomExtensions.ToRoomInfo(this DungeonRoom, IReadOnlyList<User>)` **동기 오버로드**(추가 I/O 0). **단일 방 응답(생성/입장)은 기존 async `ToRoomInfo(repo,repo)` 유지** — 1방은 N+1 아님. `FakeDungeonRoomPlayerRepository`도 동일 메서드 구현. count/페이징은 proto(공개계약) 변경이라 보류. 위치: `GameServer.API/Services/DungeonLobbyGrpcService.GetRooms`, `GameServer.API/Extensions/DungeonRoomExtensions.cs`, `GameServer.Infrastructure/.../DungeonRoomPlayerRepository.cs`.
+- **9.4 Room.Leave PlayerState 정리**: `SocketServer/Room/Room.Leave`가 `_playerSessions`만 지우고 `_playerStates`(userId→PlayerState)를 남겨 떠난 플레이어가 AI 타깃·위치 계산에 유령 잔류하던 버그. Leave가 제거 직전 `session.UserId`를 잡아 `_playerStates.Remove`. 테스트 `RoomManagerLeaveRoomTests.퇴장한_플레이어의_PlayerState는_정리된다`.
+- **9.5 Consumer name**: `GameStartRequestedMessageQueue.ConsumerName` `socket-1`(상수) → `socket-{Environment.MachineName}`(static readonly). 수평 확장 시 PEL 추적 충돌 방지, 컨테이너 hostname 안정적이라 재시작 PEL 복구 유지.
+- **9.1 SocketServer 설정 가시성**: IP는 이미 `ServerOptions`(Server 섹션·env)로 구성됨(코드 변경 0). `appsettings.json`에 `Server` 블록 명시 + docker `AdvertiseIp`에 "원격 배포 시 호스트 IP 교체" 주석.
+- **9.3 단일 세션 강제 = 이미 구현 확인**(무변경): `UserSessionRepository.CreateSessionAsync`가 로그인 시 기존 세션 DB+캐시 제거, refresh 바인딩 실패도 세션 제거. 부채 설명이 stale이었음.
+- **9.7 status.md**: stale 226줄 → plan.md/codemap 포인터 문서로 축소(진실원 일원화).
+- **9.2 보류**(YAGNI): `DungeonRoom.DungeonId`는 B트랙 MapId 카탈로그 우회와 정합 — 다중 던전 생기는 M5에 착수.
+
 ### 2.12 진행/성장(Progression) Exp 영속 도메인 (M4 B 트랙)
 - **무엇**: 플레이어 경험치 영속용 신규 도메인. `user_progressions`(users 1:1, PK=FK · `Level`/`Exp`/`UpdatedAt`) — `UserProfile` 컬럼이 아니라 **별도 테이블**.
 - **왜 별도 테이블**: 미래 원신식 캐릭터 교체에서 Exp/Level은 **캐릭터 귀속** → 나중에 키를 `user_id`→`character_id`로 이관만 하면 됨(프로필·인증 무접촉). 지금은 계정당 암묵적 캐릭터 1개라 `user_id` 키. 캐릭터 시스템은 미구현(YAGNI). [[character-swap-direction]]

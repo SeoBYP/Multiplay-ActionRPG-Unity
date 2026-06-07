@@ -14,7 +14,10 @@ public class GameStartRequestedMessageQueue(
 {
     private const string EntryId    = "data";
     private const string GroupName  = "socket-server";
-    private const string ConsumerName = "socket-1";
+
+    // 인스턴스 고유 consumer 이름 — 수평 확장(SocketServer N대) 시 PEL 추적 충돌 방지.
+    // 컨테이너 MachineName(=hostname)은 재시작해도 안정적이라 자기 PEL 복구(ReadPendingAsync)도 유지된다.
+    private static readonly string ConsumerName = $"socket-{Environment.MachineName}";
     
     // SocketServer는 발행 안 함
     public override Task EnqueueAsync(GameStartRequestedMessage message)

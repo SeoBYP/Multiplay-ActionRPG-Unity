@@ -26,6 +26,16 @@ public class FakeDungeonRoomPlayerRepository : IDungeonRoomPlayerRepository
         return Task.FromResult(players);
     }
 
+    public Task<List<DungeonRoomPlayer>> GetPlayersByRoomIdsAsync(IReadOnlyCollection<long> roomIds, CancellationToken ct = default)
+    {
+        var set = roomIds.ToHashSet();
+        var players = _players.Values
+            .Where(player => set.Contains(player.RoomId))
+            .OrderBy(player => player.JoinedAt)
+            .ToList();
+        return Task.FromResult(players);
+    }
+
     public Task<DungeonRoomPlayer?> GetByUserIdAsync(long userId, CancellationToken ct = default)
     {
         if (!_userRoomMap.TryGetValue(userId, out var roomId))

@@ -78,6 +78,27 @@ public class DungeonRoomPlayerRepository(
         }
     }
 
+    public async Task<List<DungeonRoomPlayer>> GetPlayersByRoomIdsAsync(IReadOnlyCollection<long> roomIds, CancellationToken ct = default)
+    {
+        if (roomIds.Count == 0)
+            return [];
+
+        try
+        {
+            // 방 목록 화면용 배치 읽기 — DB가 진실의 원천(CreateAsync가 DB 먼저 커밋).
+            // 캐시-aside 대신 단일 AsNoTracking 쿼리로 N+1(방마다 2왕복)을 1쿼리로 축소.
+            return await context.DungeonRoomPlayers
+                .AsNoTracking()
+                .Where(drp => roomIds.Contains(drp.RoomId))
+                .ToListAsync(ct);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to batch-get dungeon room players for {RoomCount} rooms", roomIds.Count);
+            throw;
+        }
+    }
+
     public async Task<DungeonRoomPlayer?> GetByUserIdAsync(long userId, CancellationToken ct = default)
     {
         try

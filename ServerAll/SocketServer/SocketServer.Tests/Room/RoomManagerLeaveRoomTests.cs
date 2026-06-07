@@ -111,6 +111,31 @@ public class RoomManagerLeaveRoomTests
     }
 
     [Fact]
+    public void 퇴장한_플레이어의_PlayerState는_정리된다()
+    {
+        const long roomId = 4;
+        var message = BuildMessage(roomId, 100, 200);
+        _roomManager.CreateRoom(roomId, message.PlayerInfos, message);
+
+        var session1 = TestSessionFactory.Create(_roomManager, sessionId: 1, userId: 100);
+        var session2 = TestSessionFactory.Create(_roomManager, sessionId: 2, userId: 200);
+        _roomManager.JoinRoom(session1, roomId);
+        _roomManager.JoinRoom(session2, roomId);
+
+        // 퇴장 전엔 두 플레이어 모두 상태 존재
+        Assert.NotNull(_roomManager.GetRoom(roomId)!.GetPlayerState(100));
+        Assert.NotNull(_roomManager.GetRoom(roomId)!.GetPlayerState(200));
+
+        _roomManager.LeaveRoom(session1);
+
+        var room = _roomManager.GetRoom(roomId)!;
+        // 떠난 100은 정리되고(유령 잔류 X), 남은 200만 유지
+        Assert.Null(room.GetPlayerState(100));
+        Assert.NotNull(room.GetPlayerState(200));
+        Assert.DoesNotContain(room.GetAllPlayerStates(), s => s.UserId == 100);
+    }
+
+    [Fact]
     public void 방에_속하지_않은_세션_퇴장은_false_반환()
     {
         var session = TestSessionFactory.Create(_roomManager, sessionId: 99, userId: 999);

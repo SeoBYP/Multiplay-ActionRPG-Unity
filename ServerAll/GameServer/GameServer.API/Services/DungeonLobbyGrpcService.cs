@@ -100,13 +100,29 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
             Result = result.ToGrpcResult(),
         };
 
-        // TODO : ROOM Count 방안 고민
-        if (result.Value is null) 
+        if (result.Value is null)
             throw new InvalidOperationException("Room List is null");
 
-        foreach (var dungeonRoom in result.Value)
+        var rooms = result.Value.ToList();
+
+        // N+1 회피: 방마다 (플레이어+유저) 2왕복하던 것을 → 플레이어 1쿼리 + 유저 1쿼리로 배치.
+        var roomIds = rooms.Select(r => r.RoomId).ToList();
+        var allPlayers = await dungeonRoomPlayerRepository.GetPlayersByRoomIdsAsync(roomIds, context.CancellationToken);
+        var allUserIds = allPlayers.Select(p => p.UserId).Distinct().ToList();
+        var users = await userRepository.GetByIdsAsync(allUserIds, context.CancellationToken);
+
+        var userById = users.ToDictionary(u => u.UserId);
+        var playersByRoom = allPlayers
+            .GroupBy(p => p.RoomId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        foreach (var dungeonRoom in rooms)
         {
-            response.RoomInfos.Add(await dungeonRoom.ToRoomInfo(userRepository, dungeonRoomPlayerRepository));
+            var playerUsers = playersByRoom.TryGetValue(dungeonRoom.RoomId, out var players)
+                ? players.Where(p => userById.ContainsKey(p.UserId)).Select(p => userById[p.UserId]).ToList()
+                : [];
+
+            response.RoomInfos.Add(dungeonRoom.ToRoomInfo(playerUsers));
         }
 
         logger.LogInformation("GetRooms succeeded for session {SessionId} with {RoomCount} rooms", sessionId, response.RoomInfos.Count);

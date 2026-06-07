@@ -2,6 +2,7 @@ using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
 using GameServer.Grpc.DungeonLobby;
+using UserEntity = GameServer.Domain.Entities.User.User;
 
 namespace GameServer.API.Extension;
 
@@ -27,6 +28,24 @@ public static class DungeonRoomExtensions
         {
             info.CurrentPlayers.Add(user.ToUserInfo());
         }
+
+        return info;
+    }
+
+    /// <summary>배치 조회로 미리 모은 플레이어 User 목록으로 RoomInfo를 조립 (N+1 회피, 추가 I/O 없음).</summary>
+    public static RoomInfo ToRoomInfo(this DungeonRoom room, IReadOnlyList<UserEntity> playersInRoom)
+    {
+        var info = new RoomInfo
+        {
+            RoomId = room.RoomId,
+            RoomName = room.RoomName,
+            HostUserId = room.HostUserId,
+            MaxPlayers = room.MaxPlayers,
+            Status = room.Status.ToGrpc(),
+        };
+
+        foreach (var user in playersInRoom)
+            info.CurrentPlayers.Add(user.ToUserInfo());
 
         return info;
     }

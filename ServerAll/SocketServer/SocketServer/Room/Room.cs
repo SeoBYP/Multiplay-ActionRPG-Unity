@@ -129,13 +129,17 @@ public class Room
     {
         try
         {
+            long userId;
             lock (_playerSessions)
             {
-                if (!_playerSessions.Remove(sessionId))
+                if (!_playerSessions.TryGetValue(sessionId, out var session))
                 {
                     _logger.LogWarning("Session {SessionId} is not in room {RoomId}", sessionId, RoomId);
                     return false;
                 }
+
+                userId = session.UserId;
+                _playerSessions.Remove(sessionId);
 
                 _logger.LogInformation(
                     "Session {SessionId} left room {RoomId}. Members: {MemberCount}/{MaxMembers}",
@@ -143,9 +147,18 @@ public class Room
                     RoomId,
                     MemberCount,
                     MaxMembers);
-
-                return true;
             }
+
+            // 퇴장 시 PlayerState도 정리 — 안 하면 떠난 플레이어가 위치/AI 타깃 계산에 유령으로 잔류한다.
+            if (userId > 0)
+            {
+                lock (_playerStates)
+                {
+                    _playerStates.Remove(userId);
+                }
+            }
+
+            return true;
         }
         catch (Exception e)
         {

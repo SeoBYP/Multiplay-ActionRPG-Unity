@@ -140,13 +140,13 @@
 - **8.3** UI SFX — ⬜ | T3 | ⚪
 
 ### 9. 인프라 / 품질 / 기술 부채
-- **9.1** SocketServer IP 하드코딩 → appsettings.json — ⬜ | 높음 | 🟢
-- **9.2** `DungeonRoom.DungeonId` 부재 (= 4.3) — ⬜ | 중간 | 🟢
-- **9.3** Auth: Binding 실패 시 세션 강제 만료 미구현 — ⬜ | 중간 | 🟢
-- **9.4** `Room.Leave` 시 `_playerStates` 정리 누락 — ⬜ | 낮음 | ⚪
-- **9.5** Redis Consumer name `socket-1` 고정 → 동적 생성 — ⬜ | 낮음 | ⚪
-- **9.6** `GetRooms` count/페이징 정책 — ⬜ | 낮음 | ⚪
-- **9.7** status.md stale → plan.md 일원화 — ⬜ | 낮음 | 🟢
+- **9.1** SocketServer IP 하드코딩 → appsettings.json — ✅ | 높음 | 🟢 (2026-06-07: 실은 이미 `ServerOptions`(Server 섹션)로 env 구성됨 — docker `Server__Ip/AdvertiseIp`. 남은 갭 = `appsettings.json`에 `Server` 블록 명시(자기문서화) + docker `AdvertiseIp`에 "원격 배포 시 호스트 IP 교체" 주석. 코드 변경 0)
+- **9.2** `DungeonRoom.DungeonId` 부재 (= 4.3) — ⬜ | 중간 | 🟢 (보류: B트랙이 MapId 카탈로그로 우회 결정. 다중 던전/선택 UI 생기는 M5에 착수 — 지금 도입은 YAGNI)
+- **9.3** Auth: 로그인 시 이전 세션 강제 만료 — ✅ | 중간 | 🟢 (2026-06-07 확인: **이미 구현됨**. `UserSessionRepository.CreateSessionAsync`가 로그인 시 기존 세션 DB+캐시 제거(단일 세션 강제), refresh 바인딩 실패(`AuthService.cs:176`)도 세션 제거. 잔여 이론적 갭=무상태 access token 15분 창은 설계상 수용)
+- **9.4** `Room.Leave` 시 `_playerStates` 정리 누락 — ✅ | 낮음 | ⚪ (2026-06-07: `Room.Leave`가 session.UserId로 `_playerStates.Remove` — 떠난 플레이어 유령 잔류(AI 타깃/위치) 차단. SocketServer.Tests +1)
+- **9.5** Redis Consumer name `socket-1` 고정 → 동적 생성 — ✅ | 낮음 | ⚪ (2026-06-07: `socket-{Environment.MachineName}` — 수평 확장 시 PEL 충돌 방지, 컨테이너 hostname 안정적이라 재시작 PEL 복구 유지)
+- **9.6** `GetRooms` count/페이징 정책 — 🔄 | 낮음 | ⚪ (2026-06-07: **N+1 해소** — 방마다 2왕복 → `GetPlayersByRoomIdsAsync` 1쿼리 + 유저 1쿼리 배치. count/페이징은 proto 변경(공개계약)이라 보류)
+- **9.7** status.md stale → plan.md 일원화 — ✅ | 낮음 | 🟢 (2026-06-07: status.md를 plan.md/codemap 포인터 문서로 축소)
 - **9.8** 부하 테스트 + 전체 E2E 회귀 자동화 — ⬜ | 마감 | ⚪
 - **9.9** 배포 문서 + 포트폴리오 챕터 마감 — ⬜ | 마감 | ⚪
 - **9.10** 컨슈머 복원력 — 일시적 Redis 오류(`LOADING`/연결끊김)에 BackgroundService 컨슈머가 outer catch로 루프 종료 → **영구히 죽던 버그**(게임시작 체인 끊김 실사례). `Shared.Infrastructure/MessageQueue/ResilientStreamConsumer`로 중앙화(while 재시도 + 지수백오프+지터, poison 메시지 격리). `GameStartRequestedConsumer`·`GameSessionReadyConsumer`·`RoomLifecycleConsumer` 이관. SocketServer.Tests 복원력 3 + 양 서버 재배포 검증 — ✅ | 높음 | 🟢
