@@ -103,6 +103,7 @@ Application이 Infrastructure를 직접 참조하면 위반.
 | 작업 | 파일 |
 |------|------|
 | 도메인/서비스 추가 | [docs/wiki/architecture.md](docs/wiki/architecture.md) |
+| **클라 vs 서버 권위 (전투·수치·연출 설계)** | [docs/wiki/authority-model.md](docs/wiki/authority-model.md) |
 | 패킷 추가/수정 | [docs/wiki/packets.md](docs/wiki/packets.md) |
 | SocketServer 작업 | [docs/wiki/socketserver.md](docs/wiki/socketserver.md) |
 | Redis 관련 | [docs/wiki/redis.md](docs/wiki/redis.md) |
@@ -114,7 +115,7 @@ Application이 Infrastructure를 직접 참조하면 위반.
 | 레이어 분리 (asmdef) | [docs/portfolio/chapter-10-layer-separation.md](docs/portfolio/chapter-10-layer-separation.md) |
 | 인증 초기화 순서 | [docs/portfolio/chapter-10-lifetime-auth.md](docs/portfolio/chapter-10-lifetime-auth.md) |
 | **멀티플레이 테스트 (MPPM 2-창 / E2E)** | [docs/wiki/mppm-testing.md](docs/wiki/mppm-testing.md) |
-| 현황 확인 | [docs/wiki/status.md](docs/wiki/status.md) |
+| 현황 확인 | [docs/wiki/plan.md](docs/wiki/plan.md) |
 
 ## 세부 규칙 인덱스
 

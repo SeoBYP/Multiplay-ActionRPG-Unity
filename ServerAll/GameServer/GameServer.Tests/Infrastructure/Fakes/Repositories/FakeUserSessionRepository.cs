@@ -10,6 +10,10 @@ public class FakeUserSessionRepository : IUserSessionRepository
 
     public Task<UserSession?> CreateSessionAsync(long userId, CancellationToken ct = default)
     {
+        // 실제 UserSessionRepository와 동일: 새 세션 생성 전 기존 세션 제거(단일 세션 강제).
+        if (_userToSession.TryGetValue(userId, out var existingSessionId))
+            _sessions.Remove(existingSessionId);
+
         var sessionId = Guid.NewGuid().ToString();
         var session = UserSession.Create(userId, sessionId);
 

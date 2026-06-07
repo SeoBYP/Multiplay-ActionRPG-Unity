@@ -155,6 +155,21 @@ public class AuthServiceTests
     }
 
     [Fact]
+    public async Task 새_기기_로그인_시_이전_세션은_강제_만료된다()
+    {
+        await RegisterWithProfileAsync("single@example.com", "Password123!", "single_user");
+
+        // 기기 A 로그인 → 같은 계정으로 기기 B 로그인(단일 세션 정책)
+        var loginA = await _authService.LoginAsync("single@example.com", "Password123!", "device-A");
+        var loginB = await _authService.LoginAsync("single@example.com", "Password123!", "device-B");
+
+        // 기기 A의 옛 세션은 제거되어 ValidateToken(세션 저장소 검증)이 실패 = 강제 만료. 기기 B만 유효.
+        Assert.False(await _authService.ValidateTokenAsync(loginA.Value!.AccessToken));
+        Assert.True(await _authService.ValidateTokenAsync(loginB.Value!.AccessToken));
+        Assert.Null(await _sessionRepository.GetBySessionIdAsync(loginA.Value.Session.SessionId));
+    }
+
+    [Fact]
     public async Task RefreshToken_다른_기기_접속_시_세션_만료()
     {
         await RegisterWithProfileAsync("binding@example.com", "Password123!", "binding_user");

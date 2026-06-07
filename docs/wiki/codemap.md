@@ -69,7 +69,7 @@
 - **9.5 Consumer name**: `GameStartRequestedMessageQueue.ConsumerName` `socket-1`(상수) → `socket-{Environment.MachineName}`(static readonly). 수평 확장 시 PEL 추적 충돌 방지, 컨테이너 hostname 안정적이라 재시작 PEL 복구 유지.
 - **9.1 SocketServer 설정 가시성**: IP는 이미 `ServerOptions`(Server 섹션·env)로 구성됨(코드 변경 0). `appsettings.json`에 `Server` 블록 명시 + docker `AdvertiseIp`에 "원격 배포 시 호스트 IP 교체" 주석.
 - **9.3 단일 세션 강제 = 이미 구현 확인**(무변경): `UserSessionRepository.CreateSessionAsync`가 로그인 시 기존 세션 DB+캐시 제거, refresh 바인딩 실패도 세션 제거. 부채 설명이 stale이었음.
-- **9.7 status.md**: stale 226줄 → plan.md/codemap 포인터 문서로 축소(진실원 일원화).
+- **9.7 status.md**: stale 226줄 파일 **삭제** + 참조(CLAUDE.md·AGENTS.md "현황 확인" → plan.md, plan.md 자기참조 제거). 현황 진실원 = plan.md 단일화.
 - **9.2 보류**(YAGNI): `DungeonRoom.DungeonId`는 B트랙 MapId 카탈로그 우회와 정합 — 다중 던전 생기는 M5에 착수.
 
 ### 2.12 진행/성장(Progression) Exp 영속 도메인 (M4 B 트랙)

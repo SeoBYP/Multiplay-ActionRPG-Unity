@@ -141,12 +141,12 @@
 
 ### 9. 인프라 / 품질 / 기술 부채
 - **9.1** SocketServer IP 하드코딩 → appsettings.json — ✅ | 높음 | 🟢 (2026-06-07: 실은 이미 `ServerOptions`(Server 섹션)로 env 구성됨 — docker `Server__Ip/AdvertiseIp`. 남은 갭 = `appsettings.json`에 `Server` 블록 명시(자기문서화) + docker `AdvertiseIp`에 "원격 배포 시 호스트 IP 교체" 주석. 코드 변경 0)
-- **9.2** `DungeonRoom.DungeonId` 부재 (= 4.3) — ⬜ | 중간 | 🟢 (보류: B트랙이 MapId 카탈로그로 우회 결정. 다중 던전/선택 UI 생기는 M5에 착수 — 지금 도입은 YAGNI)
-- **9.3** Auth: 로그인 시 이전 세션 강제 만료 — ✅ | 중간 | 🟢 (2026-06-07 확인: **이미 구현됨**. `UserSessionRepository.CreateSessionAsync`가 로그인 시 기존 세션 DB+캐시 제거(단일 세션 강제), refresh 바인딩 실패(`AuthService.cs:176`)도 세션 제거. 잔여 이론적 갭=무상태 access token 15분 창은 설계상 수용)
+- **9.2** `DungeonRoom.DungeonId` 부재 (= 4.3) — ⬜ | 중간 | 🟢 (**M5 폴리싱 태스크로 이관** — M5 §"메타/콘텐츠"에 명시. B트랙이 MapId 카탈로그로 우회했고, 다중 던전/선택 UI 생길 때 도입. 지금은 YAGNI)
+- **9.3** Auth: 로그인 시 이전 세션 강제 만료 — ✅ | 중간 | 🟢 (2026-06-07: **이미 end-to-end 구현 확인 + 회귀 테스트 추가**. ① 로그인=`UserSessionRepository.CreateSessionAsync`가 기존 세션 DB+캐시 제거 ② **`ValidateTokenAsync`가 매 요청 sid 클레임→세션 저장소 존재 검증**(`AuthService.cs:242`), `AuthInterceptor`가 호출 → 기기A 세션 제거 즉시 다음 요청 거부(**15분 창 없음**) ③ refresh 바인딩 실패도 세션 제거. 테스트: `새_기기_로그인_시_이전_세션은_강제_만료된다` + Fake 충실도 수정)
 - **9.4** `Room.Leave` 시 `_playerStates` 정리 누락 — ✅ | 낮음 | ⚪ (2026-06-07: `Room.Leave`가 session.UserId로 `_playerStates.Remove` — 떠난 플레이어 유령 잔류(AI 타깃/위치) 차단. SocketServer.Tests +1)
 - **9.5** Redis Consumer name `socket-1` 고정 → 동적 생성 — ✅ | 낮음 | ⚪ (2026-06-07: `socket-{Environment.MachineName}` — 수평 확장 시 PEL 충돌 방지, 컨테이너 hostname 안정적이라 재시작 PEL 복구 유지)
 - **9.6** `GetRooms` count/페이징 정책 — 🔄 | 낮음 | ⚪ (2026-06-07: **N+1 해소** — 방마다 2왕복 → `GetPlayersByRoomIdsAsync` 1쿼리 + 유저 1쿼리 배치. count/페이징은 proto 변경(공개계약)이라 보류)
-- **9.7** status.md stale → plan.md 일원화 — ✅ | 낮음 | 🟢 (2026-06-07: status.md를 plan.md/codemap 포인터 문서로 축소)
+- **9.7** status.md stale → plan.md 일원화 — ✅ | 낮음 | 🟢 (2026-06-07: stale status.md **삭제** + 참조(CLAUDE.md·AGENTS.md·plan.md) 정리. 현황 진실원 = plan.md 단일화)
 - **9.8** 부하 테스트 + 전체 E2E 회귀 자동화 — ⬜ | 마감 | ⚪
 - **9.9** 배포 문서 + 포트폴리오 챕터 마감 — ⬜ | 마감 | ⚪
 - **9.10** 컨슈머 복원력 — 일시적 Redis 오류(`LOADING`/연결끊김)에 BackgroundService 컨슈머가 outer catch로 루프 종료 → **영구히 죽던 버그**(게임시작 체인 끊김 실사례). `Shared.Infrastructure/MessageQueue/ResilientStreamConsumer`로 중앙화(while 재시도 + 지수백오프+지터, poison 메시지 격리). `GameStartRequestedConsumer`·`GameSessionReadyConsumer`·`RoomLifecycleConsumer` 이관. SocketServer.Tests 복원력 3 + 양 서버 재배포 검증 — ✅ | 높음 | 🟢
@@ -275,6 +275,7 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 - [ ] 장비/루트/재화/상점/소모품 [3.2~3.8] + 관련 UI [7.2~7.8]
 - [ ] 전투 보조(회피·CC·타겟팅·Co-op 부활) [2.6·2.5.2]
 - [ ] **CA-5**: Skill Timeline 에디터 툴(공유 JSON read/write) [2.7]
+- [ ] **던전 메타: `DungeonRoom.DungeonId` 도입** [4.3·9.2] — 다중 던전/던전 선택 UI 합류 시. 엔티티 4곳(Clone/FromRedis/ParseFromRedis/ToHashEntry)+EF 마이그레이션+Redis Hash 스키마. (M4까지는 MapId 카탈로그로 우회)
 - [ ] PVE 오픈월드 맛보기 — 월드/존·퀘스트·NPC/대화·상호작용 [4.4~4.7]
 - [ ] 소셜(핑/이모트)·설정/옵션·재접속 [5.2·6.3·6.4]
 
@@ -301,7 +302,6 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 ## 참고 파일
 
 - **일정/이슈 트래킹**: GitHub Project [Multiplay ActionRPG Roadmap](https://github.com/users/SeoBYP/projects/2) — WBS 노드 56개가 Issue로 등록됨(필드 Status·Tier·Owner·Milestone). **plan.md = 설계·이력 진실원 / Project = 일정·진척 뷰** (역할 분리).
-- 전체 현황: [`docs/wiki/status.md`](status.md) (※ 일부 stale — 부채 9.7)
 - 코드맵 + 설계 결정 로그: [`docs/wiki/codemap.md`](codemap.md)
 - 패킷 규칙: [`docs/wiki/packets.md`](packets.md)
 - SocketServer 규칙: [`docs/wiki/socketserver.md`](socketserver.md)
