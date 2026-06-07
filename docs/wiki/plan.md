@@ -2,7 +2,9 @@
 
 > **새 채팅 시작 시 이 파일을 먼저 읽어라.**
 > Phase가 완료될 때마다 즉시 갱신한다.
-> 마지막 갱신: 2026-06-06 (**M4 A 트랙 완료** — 던전 클리어 루프 골격 그린. 몬스터 전멸→`Room.TryMarkCleared`(서버 권위 1회)→`S_DungeonClear`(1820) 브로드캐스트+`DungeonClearMessage`(stream:game:dungeon:result)→`DungeonResultConsumer`(수신·로그, 보상 TODO)→클라 `InGameState.IsDungeonCleared`→`GameHud` 패널+기존 `ReturnToLobby`. **SocketServer.Tests 47/47 + PlayMode SocketE2ETests 12/12**(Docker 리빌드 후). 상세 = codemap §2.9. **A 잔여(사용자 영역)**: 전투 플레이 검증·결과 패널 아트. **다음 = B 트랙(보상)**: DungeonId(EF 마이그레이션)→Inventory→Progression→`DungeonResultConsumer` TODO 자리에 보상 산정·지급(Outbox 원자화)→결과/보상 UI.)
+> 마지막 갱신: 2026-06-07 (**M4 던전 루프 완성 = DoD 달성** 🎉 — A 트랙(클리어 루프)·B 트랙(Exp 보상+실패 경로+UI) 코드 완료에 더해, **MPPM 2-창 수동 플레이로 클리어→보상→로비 복귀 1판 전체 시각 검증 통과**(사람 확인). M4 마지막 잔여(완전한 Co-op 1판 루프) 닫힘 → **M4 전체 ✅**. **다음 = M5 폴리시/콘텐츠** 또는 서버 도메인 병렬 트랙(3.1 인벤토리 등). DoD: 2명 접속→방 생성·시작→던전 입장(서로 보임·이동)→몬스터 협력 처치→클리어→Exp 보상→로비 복귀 전 과정 서버 권위 + E2E 통과 — **충족**.)
+>
+> 직전: 2026-06-06 (**M4 A 트랙 완료** — 던전 클리어 루프 골격 그린. 몬스터 전멸→`Room.TryMarkCleared`(서버 권위 1회)→`S_DungeonClear`(1820) 브로드캐스트+`DungeonClearMessage`(stream:game:dungeon:result)→`DungeonResultConsumer`(수신·로그, 보상 TODO)→클라 `InGameState.IsDungeonCleared`→`GameHud` 패널+기존 `ReturnToLobby`. **SocketServer.Tests 47/47 + PlayMode SocketE2ETests 12/12**(Docker 리빌드 후). 상세 = codemap §2.9. **A 잔여(사용자 영역)**: 전투 플레이 검증·결과 패널 아트. **다음 = B 트랙(보상)**: DungeonId(EF 마이그레이션)→Inventory→Progression→`DungeonResultConsumer` TODO 자리에 보상 산정·지급(Outbox 원자화)→결과/보상 UI.)
 >
 > 직전: 2026-06-05 (**M4 착수 — DoD 던전 루프**: A 트랙(클리어 루프 골격)→B 트랙(보상). **전투**: 플레이어→몬스터 = **서버 권위 유지**(기존 M3 ⑤ `C_Attack`→서버 hitbox→`DamageMonster`). 클라는 **트리거(`C_Attack`)만** 송신. 클리어 = **몬스터 전멸 1회**. 보상 = 경험치+아이템 둘 다.)
 >
@@ -26,7 +28,7 @@
 | ✅ M1 | 인게임 진입 — 로컬/원격 캐릭터 스폰·이동, 인게임 UI 전환 | 1.6 |
 | 🔄 M2 | 전투 코어 — Character 두 축 리팩터(GAS) + 서버 권위 Attack/Hit/Damage | 2.1·2.2·2.5.1·2.6.2 |
 | ✅ M3 | 몬스터 — Spawn·이동(AI)·State·Dead + 양방향 전투(P↔M) + 클라 렌더(2인 검증) | 4.1.1~4.1.5 |
-| M4 | 던전 루프 완성 — Clear → 보상 → 로비 복귀 **(= DoD)** | 2.3·3.1·4.2·4.3·6.1·6.2·7.1 |
+| ✅ M4 | 던전 루프 완성 — Clear → 보상 → 로비 복귀 **(= DoD 달성)** | 2.3·4.2·6.2·7.1 |
 | M5 | 폴리시/콘텐츠 — 애니(MotionMatching V2)·스킬·아이템·사운드 + PVE 맛보기 | 2.4·2.6·2.7·3.2~3.8·4.4~4.7·5.*·6.3~6.4·7.2~7.8·8.* |
 | M6 | 마감 — 데모·부하/E2E 검증·배포/포트폴리오 문서 | 9.8·9.9 |
 
@@ -115,7 +117,7 @@
 
 ### 6. 메타 / 영속
 - **6.1** 캐릭터 진행 영속 — 레벨·인벤토리·장비 DB 영속 (2.3/3.1/3.2 합류) — ⬜ | T1 | 🟢
-- **6.2** 던전 결과 → 로비 복귀 — 결과 처리 + 기존 던전→Main 복귀 재사용 — ⬜ | T1 | ⚪
+- **6.2** 던전 결과 → 로비 복귀 — 결과 처리 + 기존 던전→Main 복귀 재사용 — ✅ | T1 | ⚪ (M4: 클리어/실패 → `GameHud` 패널 → `ReturnToLobby` 재사용, MPPM 1판 루프 시각 검증)
 - **6.3** 설정/옵션 — 그래픽·사운드·키 바인딩 + 영속 — ⬜ | T2 | ⚪
 - **6.4** 재접속/세션 복구 — 인게임 끊김 복구 — 🔄 | T2 | ⚪
 - **6.5** 통계/플레이 기록 — ⬜ | T3 | ⚪
@@ -239,8 +241,8 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 - [x] **⑥ 클라 렌더** — `MonsterPacketHandler` 3종(디스패처 자동매핑) + `ISocketPacketState` 몬스터 상태/이벤트 + `SocketMonsterSnapshot` + `MonsterSpawner`(IAsyncStartable, DI 등록) + `MonsterEntity`(`RemoteDriver`류 보간) + `CharacterPrefabSettings.MonsterPrefab`. Game.Network/Gameplay/VContainer/Tests.EditMode 빌드 0오류 + EditMode 릴레이 테스트 4개. ※**Unity에서 사람이**: 몬스터 프리팹(+`MonsterEntity`) 제작 → `DungeonLifetimeScope.monsterPrefab` 할당 → EditMode 실행/플레이 확인 [4.1.5]
 - [x] **⑦ E2E(작성)** — `SocketE2ETests`에 몬스터 3종 추가: 입장→`S_SpawnMonster` 로스터 수신 / 반복 공격(최신 위치 재조준)→`S_MonsterDead` / 사거리 진입→`S_ApplyEffect{monster_attack_dmg}` 수신. `SocketPacketCollector.TryGetLatest` 추가. PlayMode 빌드 0오류 + 서버(⑤b) 재배포. ※실제 실행(Unity PlayMode, Docker 대상)은 대기
 
-### M4 — 던전 루프 완성 (= DoD) [WBS 2.3·3.1·4.2·4.3·6.1·6.2·7.1]
-선행: M3. **이번 세션(서버 도메인 🟢) 핵심 영역.**
+### ✅ M4 — 던전 루프 완성 (= DoD 달성) [WBS 2.3·4.2·6.2·7.1]
+선행: M3. **DoD 달성 완료 (2026-06-07 MPPM 2-창 수동 검증 통과).** A 트랙(클리어 루프)·B 트랙(Exp 보상+실패+UI) 코드 + 1판 루프 시각 검증 모두 닫힘.
 
 **전투 모델 결정 (2026-06-05) — 플레이어→몬스터 = 서버 권위, 트리거만 클라**
 - **모델(= 기존 M3 ⑤ 유지)**: 클라 좌클릭 → `C_Attack{skillId}` 송신(트리거) → 서버 `CombatHandler`가 시전자 위치/yaw로 hitbox 재계산(권위 판정) → `Room.DamageMonster`(서버 HP·데미지 산정) → `S_MonsterState`/`S_MonsterDead` 브로드캐스트.
@@ -265,9 +267,10 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 - [x] **보상 산정·지급** — `DungeonResultConsumer`가 `SpawnLayoutTable.Get(MapId).ExpReward` → 참가자 전원 `ProgressionService.AddExp`. RoomId 멱등(Redis SET claim-first, at-most-once). `IConnectionMultiplexer`+`IServiceScopeFactory`. Testcontainers 통합 2(전원 지급·멱등) + **실 Redis Stream E2E 1**(발행→Consumer Group→DB Exp, `DungeonResultRewardE2ETests`) [4.2.3/4.2.4]
 - [x] **클리어 팝업 Exp 표시** — `S_DungeonClear.RewardExp`(SocketServer가 카탈로그값 실음) → 클라 `MarkDungeonCleared(exp)`→`InGameState.RewardExp`→`GameHud`가 `DungeonClear` 패널 표시+`SetReward`. `DungeonClear.cs` Bind/SetReward, return 버튼→ReturnToLobby [7.1]
 - [x] **실패 경로(전원 다운)** — `C_PlayerDead`(1822)/`S_DungeonFailed`(1821) 패킷 + `Room._outcome`(Interlocked, 클리어/실패 배타)+`TryMarkFailed`(전원 다운 1회) + `DungeonLifecycleHandler` + 클라 로컬HP0→`C_PlayerDead`송신·`DungeonFailed` 패널→ReturnToLobby. 단위(Room 6)+EditMode 4+E2E 1. ※클라 컴파일/PlayMode 실행·결과패널 아트는 Unity(사람)
-- [ ] **완전한 Co-op 1판 루프 E2E** (MPPM 2-client) → 로비 복귀 [6.2] — E2E 코드 작성(클리어 RewardExp·전원다운 실패), MPPM 시각·Main 복귀 확인은 Unity(사람). ※2026-06-07: MPPM 2-client 이동/서로보임 동작 확인(위 이동 교착 버그 수정 후). 남은 = 클리어→보상→로비 전체 1판 시각 통과
+- [x] **완전한 Co-op 1판 루프 E2E** (MPPM 2-client) → 로비 복귀 [6.2] — E2E 코드 작성(클리어 RewardExp·전원다운 실패) + **MPPM 2-창 수동 플레이로 클리어→보상→로비 복귀 전체 1판 시각 통과 확인(사람, 2026-06-07)**. 이동 교착 버그 수정 후 이동/서로보임도 동작 확인됨. **= M4 DoD 달성, M4 전체 완료.**
 
-### M5 — 폴리시 + PVE 맛보기 [WBS 2.4·2.6·2.7·3.2~3.8·4.4~4.7·5.*·6.3~6.4·7.2~7.8·8.*]
+### 🔄 M5 — 폴리시 + PVE 맛보기 (현재 작업) [WBS 2.4·2.6·2.7·3.2~3.8·4.4~4.7·5.*·6.3~6.4·7.2~7.8·8.*]
+> **즉시 착수 후보**(서버 도메인 🟢): **3.1 인벤토리 도메인** — 모든 보상/장비/상점/루트의 공통 전제, Cache-Aside 영속 쇼케이스 ([§세션 트랙](#-세션-트랙--서버-도메인이-세션-vs--gas-세션) 참조).
 - [ ] 애니메이션(MotionMatching V2 액션 블렌딩, 🟣)·HUD 다듬기·스킬1~2·아이템 최소·사운드(8.*)
 - [ ] 장비/루트/재화/상점/소모품 [3.2~3.8] + 관련 UI [7.2~7.8]
 - [ ] 전투 보조(회피·CC·타겟팅·Co-op 부활) [2.6·2.5.2]
