@@ -145,7 +145,8 @@
 - **9.3** Auth: 로그인 시 이전 세션 강제 만료 — ✅ | 중간 | 🟢 (2026-06-07: **이미 end-to-end 구현 확인 + 회귀 테스트 추가**. ① 로그인=`UserSessionRepository.CreateSessionAsync`가 기존 세션 DB+캐시 제거 ② **`ValidateTokenAsync`가 매 요청 sid 클레임→세션 저장소 존재 검증**(`AuthService.cs:242`), `AuthInterceptor`가 호출 → 기기A 세션 제거 즉시 다음 요청 거부(**15분 창 없음**) ③ refresh 바인딩 실패도 세션 제거. 테스트: `새_기기_로그인_시_이전_세션은_강제_만료된다` + Fake 충실도 수정)
 - **9.4** `Room.Leave` 시 `_playerStates` 정리 누락 — ✅ | 낮음 | ⚪ (2026-06-07: `Room.Leave`가 session.UserId로 `_playerStates.Remove` — 떠난 플레이어 유령 잔류(AI 타깃/위치) 차단. SocketServer.Tests +1)
 - **9.5** Redis Consumer name `socket-1` 고정 → 동적 생성 — ✅ | 낮음 | ⚪ (2026-06-07: `socket-{Environment.MachineName}` — 수평 확장 시 PEL 충돌 방지, 컨테이너 hostname 안정적이라 재시작 PEL 복구 유지)
-- **9.6** `GetRooms` count/페이징 정책 — 🔄 | 낮음 | ⚪ (2026-06-07: **N+1 해소** — 방마다 2왕복 → `GetPlayersByRoomIdsAsync` 1쿼리 + 유저 1쿼리 배치. count/페이징은 proto 변경(공개계약)이라 보류)
+- **9.6** `GetRooms` count/페이징 정책 — 🔄 | 낮음 | ⚪ (2026-06-07: **N+1 해소 완료** — 방마다 2왕복 → `GetPlayersByRoomIdsAsync` 1쿼리 + 유저 1쿼리 배치.
+  **잔여(보류 — 방 수 적어 YAGNI, 필요 시 착수)**: 페이징/총개수. 계획 = `lobby.proto` `GetRoomsRequest`에 `page`/`pageSize`, `GetRoomsResponse`에 `total_count` 추가(공개계약 변경 → **클라 `Generated/` 재생성 필수**) → `IDungeonLobbyService.GetActiveDungeonRoomsAsync(skip, take)` + 전체 카운트 반환. proto 수정 동반이라 명시 승인 후 진행)
 - **9.7** status.md stale → plan.md 일원화 — ✅ | 낮음 | 🟢 (2026-06-07: stale status.md **삭제** + 참조(CLAUDE.md·AGENTS.md·plan.md) 정리. 현황 진실원 = plan.md 단일화)
 - **9.8** 부하 테스트 + 전체 E2E 회귀 자동화 — ⬜ | 마감 | ⚪
 - **9.9** 배포 문서 + 포트폴리오 챕터 마감 — ⬜ | 마감 | ⚪
