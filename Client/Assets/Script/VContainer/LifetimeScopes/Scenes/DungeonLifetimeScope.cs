@@ -2,6 +2,7 @@ using Game.Gameplay.Character;
 using Game.Gameplay.Spawn;
 using Game.GUI.OutGame;
 using Game.Presentation.InGame;
+using Game.Presentation.Inventory;
 using Game.System.Player;
 using Script.System.GamePlayAbilitySystem;
 using UnityEngine;
@@ -15,6 +16,7 @@ public class DungeonLifetimeScope : LifetimeScope
     [SerializeField] private GameObject remotePlayerPrefab;
     [SerializeField] private GameObject monsterPrefab; // M3 ⑥ 서버 권위 몬스터
     [SerializeField] private EffectIconCatalog effectIconCatalog; // 버프 표시 매핑(표시 전용)
+    [SerializeField] private ItemDisplayCatalog itemDisplayCatalog; // 인벤토리 아이템 표시 매핑(itemId→이름·아이콘·분류)
 
     protected override void Configure(IContainerBuilder builder)
     {
@@ -39,6 +41,14 @@ public class DungeonLifetimeScope : LifetimeScope
 
         // GameHud는 씬에 미리 배치하지 않고 Addressable로 로드·생성한다.
         builder.RegisterEntryPoint<GameHudController>(Lifetime.Scoped);
+
+        // 인벤토리 MVI — Model + 표시 카탈로그(인스펙터 → Resources 폴백 → 빈 인스턴스) + 창 컨트롤러.
+        builder.RegisterInstance(itemDisplayCatalog != null
+            ? itemDisplayCatalog
+            : Resources.Load<ItemDisplayCatalog>("Inventory/ItemDisplayCatalog")
+              ?? ScriptableObject.CreateInstance<ItemDisplayCatalog>());
+        builder.Register<InventoryModel>(Lifetime.Scoped).AsSelf();
+        builder.RegisterEntryPoint<InventoryViewController>(Lifetime.Scoped);
 
         // CharacterAgent.Construct(IStateMachineBuilder)에 주입되는 게임플레이 의존성.
         // PlayerInputActions는 루트(ProjectLifetimeScope)의 전역 Singleton을 공유한다 — 재등록 금지.

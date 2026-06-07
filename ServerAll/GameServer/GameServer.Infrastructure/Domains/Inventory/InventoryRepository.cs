@@ -82,6 +82,36 @@ public class InventoryRepository(
         }
     }
 
+    public async Task<int?> RemoveQuantityAsync(long userId, string itemId, int amount, CancellationToken ct = default)
+    {
+        if (amount <= 0)
+            return null;
+
+        try
+        {
+            var item = await context.InventoryItems
+                .SingleOrDefaultAsync(i => i.UserId == userId && i.ItemId == itemId, ct);
+
+            // 미보유이거나 보유보다 많이 차감 요청 → 실패(변화 없음).
+            if (item is null || amount > item.Quantity)
+                return null;
+
+            item.Remove(amount);
+            if (item.Quantity == 0)
+                context.InventoryItems.Remove(item); // 0 스택은 행 삭제
+
+            await context.SaveChangesAsync(ct);
+            await DeleteCacheAsync(userId);
+
+            return item.Quantity;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to remove item {ItemId} x{Amount} for user {UserId}", itemId, amount, userId);
+            throw;
+        }
+    }
+
     private async Task SetCacheAsync(long userId, List<InventoryItem> items)
     {
         var key = RedisKeys.UserInventory(userId);

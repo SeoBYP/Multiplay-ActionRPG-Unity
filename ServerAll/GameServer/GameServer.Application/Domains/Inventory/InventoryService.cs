@@ -24,4 +24,17 @@ public sealed class InventoryService(IInventoryRepository repository) : IInvento
         var item = await repository.AddQuantityAsync(userId, itemId, amount, def.MaxStack, ct);
         return ItemGrantResult.Ok(itemId, item.Quantity);
     }
+
+    public async Task<ItemConsumeResult> ConsumeItemAsync(long userId, string itemId, int amount, CancellationToken ct = default)
+    {
+        if (amount <= 0)
+            return ItemConsumeResult.Fail(itemId, "amount must be positive");
+
+        // 소비는 보유 검증을 저장소가 원자적으로 수행(미보유/부족 → null). 카탈로그 검증 불필요 — 보유한 것만 소비 가능.
+        var remaining = await repository.RemoveQuantityAsync(userId, itemId, amount, ct);
+        if (remaining is null)
+            return ItemConsumeResult.Fail(itemId, "not owned or insufficient quantity");
+
+        return ItemConsumeResult.Ok(itemId, remaining.Value);
+    }
 }

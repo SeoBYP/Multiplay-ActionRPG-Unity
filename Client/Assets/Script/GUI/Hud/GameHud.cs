@@ -93,6 +93,10 @@ namespace Game.GUI.OutGame
             if (dungeonClearView != null) dungeonClearView.Bind(OnClickReturnToLobby);
             if (dungeonFailedView != null) dungeonFailedView.Bind(OnClickReturnToLobby);
 
+            // 사이드버튼 배선 — 현재는 Inventory만 연동(나머지 Ability/Shop 등은 후속).
+            // 버튼 클릭 → InGameModel 토글 신호 → InventoryViewController가 창 로드/토글(I키와 동일 funnel).
+            BindSideButton(SideButtonType.Inventory, () => _model.Accept(InGameIntent.ToggleInventory.Instance));
+
             InitBuffPool();
 
             _model.State
@@ -115,6 +119,20 @@ namespace Game.GUI.OutGame
         private void OnClickReturnToLobby()
         {
             _model.Accept(InGameIntent.ReturnToLobby.Instance);
+        }
+
+        /// <summary>sideButtons 배열에서 해당 타입의 버튼을 찾아 클릭 핸들러를 연결한다.</summary>
+        private void BindSideButton(SideButtonType type, global::System.Action onClick)
+        {
+            if (sideButtons == null) return;
+            foreach (var sb in sideButtons)
+            {
+                if (sb != null && sb.type == type && sb.button != null)
+                {
+                    sb.button.onClick.AddListener(() => onClick());
+                    return;
+                }
+            }
         }
 
         private void Render(InGameState state)

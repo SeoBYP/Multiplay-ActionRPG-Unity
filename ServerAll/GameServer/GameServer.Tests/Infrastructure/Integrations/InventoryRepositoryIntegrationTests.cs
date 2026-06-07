@@ -128,6 +128,72 @@ public class InventoryRepositoryIntegrationTests
     }
 
     [Fact]
+    public async Task RemoveQuantity_차감되고_캐시는_삭제된다()
+    {
+        var userId = await CreateUserAsync();
+        var repository = CreateRepository();
+        var db = _fixture.RedisConnection.GetDatabase();
+
+        await repository.AddQuantityAsync(userId, "potion_hp_small", 5, maxStack: 99);
+        await repository.GetAllAsync(userId); // 캐시 적재
+        Assert.True(await db.KeyExistsAsync(RedisKeys.UserInventory(userId)));
+
+        var remaining = await repository.RemoveQuantityAsync(userId, "potion_hp_small", 2);
+
+        Assert.Equal(3, remaining);
+        Assert.False(await db.KeyExistsAsync(RedisKeys.UserInventory(userId)));
+
+        using var ctx = _fixture.CreateDbContext();
+        var dbRow = await ctx.InventoryItems.FindAsync(userId, "potion_hp_small");
+        Assert.Equal(3, dbRow!.Quantity);
+    }
+
+    [Fact]
+    public async Task RemoveQuantity_전량차감하면_행이_삭제된다()
+    {
+        var userId = await CreateUserAsync();
+        var repository = CreateRepository();
+
+        await repository.AddQuantityAsync(userId, "potion_hp_small", 2, maxStack: 99);
+
+        var remaining = await repository.RemoveQuantityAsync(userId, "potion_hp_small", 2);
+
+        Assert.Equal(0, remaining);
+
+        using var ctx = _fixture.CreateDbContext();
+        var dbRow = await ctx.InventoryItems.FindAsync(userId, "potion_hp_small");
+        Assert.Null(dbRow); // 0 스택 → 행 삭제
+    }
+
+    [Fact]
+    public async Task RemoveQuantity_보유보다_많으면_null이고_변화없음()
+    {
+        var userId = await CreateUserAsync();
+        var repository = CreateRepository();
+
+        await repository.AddQuantityAsync(userId, "potion_hp_small", 2, maxStack: 99);
+
+        var remaining = await repository.RemoveQuantityAsync(userId, "potion_hp_small", 5);
+
+        Assert.Null(remaining);
+
+        using var ctx = _fixture.CreateDbContext();
+        var dbRow = await ctx.InventoryItems.FindAsync(userId, "potion_hp_small");
+        Assert.Equal(2, dbRow!.Quantity); // 변화 없음
+    }
+
+    [Fact]
+    public async Task RemoveQuantity_미보유면_null()
+    {
+        var userId = await CreateUserAsync();
+        var repository = CreateRepository();
+
+        var remaining = await repository.RemoveQuantityAsync(userId, "potion_hp_small", 1);
+
+        Assert.Null(remaining);
+    }
+
+    [Fact]
     public async Task GetAll_빈_인벤토리면_빈_리스트이고_캐시하지_않는다()
     {
         var userId = await CreateUserAsync();

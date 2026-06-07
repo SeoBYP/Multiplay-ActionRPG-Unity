@@ -68,7 +68,7 @@
 - **2.8** 직업/클래스 — ⬜ | T3 | ⚪
 
 ### 3. 아이템 / 경제 시스템
-- **3.1 인벤토리(Inventory)** — `Inventory` 신규 도메인(서버 권위 영속) — ✅ | T1 | 🟢 (2026-06-07 완료. 상세 = codemap §2.14. **설계**: ⓐ 정의=코드 `ItemCatalog`(DB 아님) → DB엔 소유만 ⓑ `InventoryItem`=스택형 `(UserId,ItemId)→Quantity`(장비 인스턴스는 3.2) ⓒ 키=user_id(미래 character_id, [[character-swap-direction]]) ⓓ 캐시=Hash 1키, Update→DEL ⓔ proto=`GetInventory` pull(획득 push·보상배선은 3.3, UI는 7.2) ⓕ `InventoryInstaller` 신규. **검증**: 단위 13 + Testcontainers 통합 7 = **20/20**, 서버 빌드 0오류, 클라 Generated 재생성. ※잔여(범위 밖): 획득 push 알림(3.3)·인벤토리 UI(7.2))
+- **3.1 인벤토리(Inventory)** — `Inventory` 신규 도메인(서버 권위 영속) — ✅ | T1 | 🟢 (2026-06-07 완료. 상세 = codemap §2.14. **설계**: ⓐ 정의=코드 `ItemCatalog`(DB 아님) → DB엔 소유만 ⓑ `InventoryItem`=스택형 `(UserId,ItemId)→Quantity`(장비 인스턴스는 3.2) ⓒ 키=user_id(미래 character_id, [[character-swap-direction]]) ⓓ 캐시=Hash 1키, Update→DEL ⓔ proto=`GetInventory` pull(획득 push·보상배선은 3.3, UI는 7.2) ⓕ `InventoryInstaller` 신규. **검증**: 서버 단위 18 + Testcontainers 통합 11 = **29/29**(2026-06-07 **D(소비) 추가로 CRUD 완성** — `ConsumeItemAsync`+`RemoveQuantityAsync`), 서버 빌드 0오류, 클라 Generated 재생성. ※잔여(범위 밖): 소비 클라 RPC·포션 효과(3.8)·획득 드랍 배선(3.3)·인벤토리 UI 마감(7.2))
   - [x] **3.1.1** Domain — `InventoryItem`(소유·수량규칙) + `ItemCatalog`/`ItemDef`/`ItemGrade`(정의 시드 3종)
   - [x] **3.1.2** Application — `IInventoryService`/`Service`·`IInventoryRepository`·`ItemGrantResult`(보상 진입점)
   - [x] **3.1.3** Infrastructure — `InventoryRepository` (PostgreSQL + Redis Cache-Aside+Delete, `AsNoTracking`)
@@ -76,7 +76,7 @@
   - [x] **3.1.5** `inventory.proto`(GetInventory) + `InventoryGrpcService` + 클라 Generated 재생성 (획득 push는 3.3로 보류)
   - [x] **3.1.6** 단위(엔티티·카탈로그·서비스 13) + Testcontainers 통합 7(캐시 무효화 계약)
 - **3.2** 장비(Equipment) — 착용 슬롯·장비 스탯 모디파이어 → 2.4 합산 — ⬜ | T2 | 🟢
-- **3.3** 루트/드랍(Loot) — 드랍 테이블·보상 산정 — ⬜ | T2 | ⚪
+- **3.3** 루트/드랍(Loot) — 드랍 테이블·보상 산정 → `IInventoryService.GrantItemAsync` 연결 — ⬜ | T2 | ⚪ (**몬스터 확장(4.1.6 웨이브 등) 작업 시 함께 진행** 결정 2026-06-07. 인벤토리 도메인(3.1)·GrantItem 진입점은 준비됨 → 드랍 테이블 + 처치 시 지급만 남음)
 - **3.4** 재화(Wallet) — 골드 보유·증감(서버 권위) — ⬜ | T2 | 🟢
 - **3.5** 상점(Shop) — 구매/판매·가격·재고 — ⬜ | T2 | ⚪
 - **3.6** 강화/크래프팅 — ⬜ | T3 | ⚪
@@ -126,7 +126,7 @@
 
 ### 7. UI / UX (클라 프레젠테이션 — MVI, View는 자기 Model만 참조)
 - **7.1** 결과/보상 화면 (대응 6.2/4.2) — 🔄 | T1 | ⚪ (DungeonClear 프리팹 GameHud 배선 완료(`dungeonClearView` 할당, 전체화면·기본 비활성). **DungeonFailed.prefab 미존재 → `dungeonFailedView` 미할당**. 프리팹 아트 잔여는 Unity)
-- **7.2** 인벤토리/장비 UI (대응 3.1/3.2) — ⬜ | T2 | ⚪
+- **7.2** 인벤토리/장비 UI (대응 3.1/3.2) — 🔄 | T2 | ⚪ (2026-06-07 **인벤토리 UI MVI 스택 코드 완료**, 상세 = codemap §2.15. Network `IInventoryGrpcService`→System `IInventoryService`(proto→도메인)→Presentation `InventoryModel`+`ItemDisplayCatalog`(SO)+5분류 `ItemCategory`→GUI `Inventory`/`UniversalSlot`/`ItemContentsSlot` 슬롯 렌더+탭 필터. 열기=HUD `btn_Inventory`→`InGameModel.ToggleInventory`→`InventoryViewController`(Addressable 로드/토글). E2E 2(GetInventory 빈목록·미인증거부) + PlayMode `InventoryModelTests` 3(Refresh 반영·탭선택·실패). **Unity 잔여(사람)**: csproj 재생성·컴파일, `ItemDisplayCatalog` 에셋 작성+스프라이트, Inventory.prefab 슬롯/탭 배선, **I키**(=`.inputactions` Inventory 액션+던전 InputRouter 등록+라우팅). 장비 UI는 3.2 후속)
 - **7.3** 캐릭터 정보/스탯창 (대응 2.3/2.4) — ⬜ | T2 | ⚪
 - **7.4** 퀘스트 UI/추적 HUD (대응 4.4) — ⬜ | T2 | ⚪
 - **7.5** 대화 UI (대응 4.5) — ⬜ | T2 | ⚪

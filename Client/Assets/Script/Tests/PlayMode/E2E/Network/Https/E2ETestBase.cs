@@ -17,6 +17,7 @@ namespace Game.Tests.PlayMode.E2E
         protected IUserGrpcService UserService;
         protected IDungeonLobbyGrpcService LobbyService;
         protected IChatGrpcService ChatService;
+        protected IInventoryGrpcService InventoryService;
 
         protected string AccessToken;
         protected string RefreshToken;
@@ -36,6 +37,7 @@ namespace Game.Tests.PlayMode.E2E
             UserService = new UserGrpcService(ChannelProvider);
             LobbyService = new DungeonLobbyGrpcService(ChannelProvider);
             ChatService = new ChatGrpcService(ChannelProvider);
+            InventoryService = new InventoryGrpcService(ChannelProvider);
         }
 
         [TearDown]

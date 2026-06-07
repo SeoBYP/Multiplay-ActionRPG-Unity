@@ -11,6 +11,7 @@ namespace Game.Gameplay.Input
     {
         // ── UI ──────────────────────────────────────
         ToggleLobby,       // L
+        ToggleInventory,   // I  — 인벤토리 창 토글(라우팅은 .inputactions에 Inventory 액션 추가 후 InputRouter 연결)
 
         // ── 월드 인터랙션 ─────────────────────────
         Interact,          // E  — 아이템 줍기 / 문 열기 / NPC 대화

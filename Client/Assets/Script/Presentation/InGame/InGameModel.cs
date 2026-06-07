@@ -35,6 +35,10 @@ namespace Game.Presentation.InGame
         private readonly ReactiveProperty<InGameState> _state
             = new ReactiveProperty<InGameState>(InGameState.Initial);
 
+        // HUD 버튼/I키가 인벤토리 토글을 요청하는 신호. InventoryViewController가 구독.
+        private readonly Subject<Unit> _toggleInventory = new Subject<Unit>();
+        public Observable<Unit> OnToggleInventory => _toggleInventory;
+
         private AbilitySystemComponent _asc;
         private bool _isProcessing;
         private bool _localDeadReported;
@@ -201,6 +205,13 @@ namespace Game.Presentation.InGame
 
         public void Accept(InGameIntent intent)
         {
+            // 인벤토리 토글은 비동기 Effect가 아닌 즉발 신호 — 처리 중 가드와 무관하게 항상 통과.
+            if (intent is InGameIntent.ToggleInventory)
+            {
+                _toggleInventory.OnNext(Unit.Default);
+                return;
+            }
+
             if (_isProcessing)
             {
                 Debug.LogWarning($"[InGameModel] {intent.GetType().Name} 무시됨 — 처리 중");
@@ -270,6 +281,7 @@ namespace Game.Presentation.InGame
             _cts.Cancel();
             _cts.Dispose();
             _state.Dispose();
+            _toggleInventory.Dispose();
         }
     }
 }

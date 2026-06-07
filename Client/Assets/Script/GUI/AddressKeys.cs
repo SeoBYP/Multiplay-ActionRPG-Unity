@@ -12,6 +12,7 @@ namespace Game.GUI
             public const string CreateRoomPopup  = "Assets/Prefabs/GUI/DungeonLobby/CreateDungeonRoomPopup.prefab";
             public const string RoomDetailView   = "Assets/Prefabs/GUI/DungeonLobby/DungeonRoomDetail.prefab";
             public const string GameHud          = "Assets/Prefabs/GUI/HUD/GameHud.prefab";
+            public const string Inventory        = "Assets/Prefabs/GUI/Inventory/Inventory.prefab";
 
             public const string AlertPopup       = "Assets/Prefabs/GUI/Common/Popups/AlertPopup.prefab";
             public const string ConfirmPopup     = "Assets/Prefabs/GUI/Common/Popups/ConfirmPopup.prefab";

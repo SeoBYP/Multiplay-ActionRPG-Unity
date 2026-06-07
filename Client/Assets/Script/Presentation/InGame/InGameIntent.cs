@@ -14,5 +14,12 @@ namespace Game.Presentation.InGame
             public static readonly ReturnToLobby Instance = new ReturnToLobby();
             private ReturnToLobby() { }
         }
+
+        /// <summary>인벤토리 창 토글(HUD 버튼·I키 공용 신호). 실제 창 로드/토글은 InventoryViewController가 담당.</summary>
+        public sealed class ToggleInventory : InGameIntent
+        {
+            public static readonly ToggleInventory Instance = new ToggleInventory();
+            private ToggleInventory() { }
+        }
     }
 }

@@ -26,4 +26,19 @@ public class FakeInventoryRepository : IInventoryRepository
 
         return Task.FromResult(item);
     }
+
+    public Task<int?> RemoveQuantityAsync(long userId, string itemId, int amount, CancellationToken ct = default)
+    {
+        if (amount <= 0)
+            return Task.FromResult<int?>(null);
+
+        if (!_items.TryGetValue((userId, itemId), out var item) || amount > item.Quantity)
+            return Task.FromResult<int?>(null);
+
+        item.Remove(amount);
+        if (item.Quantity == 0)
+            _items.Remove((userId, itemId));
+
+        return Task.FromResult<int?>(item.Quantity);
+    }
 }

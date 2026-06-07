@@ -70,6 +70,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 75a0e6db007411a49aa078190704718d
+    m_Address: Assets/Prefabs/GUI/Common/Slot/UniversalSlot.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 88a2d3e045580174c8c7173b08b8ac6f
     m_Address: Assets/Prefabs/GUI/Common/FaderCanvas.prefab
     m_ReadOnly: 0
@@ -85,6 +90,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ee7d113f24cff8f4193acc91ec6b9ef6
+    m_Address: Assets/Prefabs/GUI/Inventory/Inventory.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: eedb489d21a109747b75e38aed6041af
     m_Address: Assets/Prefabs/Character/PlayerCharacter.prefab
     m_ReadOnly: 0
@@ -92,6 +102,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: eeed39646c1b7224788e4371aa787505
     m_Address: Assets/Prefabs/GUI/Common/Popups/WarningPopup.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ef44db8af37d39242a3cfc85900373af
+    m_Address: Assets/Prefabs/GUI/Common/Slot/Contents/ItemContentsSlot.prefab
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

@@ -4,7 +4,6 @@
     "references": [
         "Game.Network",
         "Game.System",
-        "Game.System.DungeonLobby",
         "Game.System.InGame",
         "Game.Gameplay",
         "Game.Presentation",
@@ -13,7 +12,9 @@
         "VContainer",
         "Unity.InputSystem",
         "Unity.InputSystem.TestFramework",
-        "UnityEngine.TestRunner"
+        "UnityEngine.TestRunner",
+        "R3.Unity",
+        "R3.Unity.Editor"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -25,11 +26,10 @@
         "Grpc.Net.Client.dll",
         "Grpc.Net.Common.dll",
         "System.IO.Pipelines.dll",
-        "Microsoft.Extensions.Logging.dll",
         "Microsoft.Extensions.Logging.Abstractions.dll",
-        "Microsoft.Extensions.Options.dll",
         "Google.Protobuf.dll",
-        "Shared.Gameplay.dll"
+        "Shared.Gameplay.dll",
+        "R3.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

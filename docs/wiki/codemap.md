@@ -63,13 +63,24 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.15 인벤토리 UI 클라 스택 (7.2, 2026-06-07)
+- **무엇**: 인벤토리 창(서버 GetInventory 조회 → 슬롯 렌더). MVI 4레이어를 로비(DungeonLobby) 패턴 그대로.
+- **레이어 체인**: `IInventoryGrpcService`/`InventoryGrpcService`(Network, GameApiClient 등록) → `IInventoryService`/`InventoryService`(System, proto→`InventoryItemData` 도메인 변환·`InventoryResult`) → `InventoryModel`+`InventoryState`/`InventoryIntent`/`InventoryItemModel`+`ItemDisplayCatalog`(SO)+`ItemCategory`(Presentation, R3 MVI) → `Inventory`(GUI View, `InventoryModel`만 주입)+`UniversalSlot`/`ItemContentsSlot`(generic 슬롯, Presentation 비참조).
+- **정의 분리 일관성**: 서버처럼 클라도 표시 정의를 카탈로그로 — `ItemDisplayCatalog`(ScriptableObject, itemId→이름·Sprite·분류). proto는 itemId+qty만, View엔 합성된 `InventoryItemModel`만 노출.
+- **분류(ItemCategory)**: 5종 Equipment/Consumable/Material/Quest/Etc + 탭의 All(=SelectedCategory null). 클라 카탈로그가 분류 소유(서버 부담 0).
+- **창 열기**: HUD `btn_Inventory` → `GameHud`가 `InGameModel.Accept(ToggleInventory)` → `InGameModel.OnToggleInventory`(R3 Subject) → `InventoryViewController`(DungeonLifetimeScope EntryPoint)가 `AddressKeys.UI.Inventory` Addressable 로드(최초 1회)·Inject·SetActive 토글. I키도 같은 신호로 합류 예정(현재 던전 InputRouter 미등록 + `.inputactions` Inventory 액션 필요 → Unity 후속).
+- **DI**: Network=GameApiClient(루트), System=`InventoryInstaller`(루트, ProjectLifetimeScope), Presentation/GUI=`DungeonLifetimeScope`(InventoryModel·ItemDisplayCatalog·InventoryViewController).
+- **위치**: `Network/Https/{Interfaces,Services}/Inventory*`, `System/Inventory/*`, `Presentation/Inventory/*`, `GUI/Inventory/{Inventory,InventoryViewController}.cs`, `GUI/Common/Slots/*`. 테스트 `Tests/PlayMode/E2E/.../InventoryE2ETests`(빈목록·미인증).
+- **⚠️ 검증 한계**: 클라 `dotnet build`는 Unity 생성 csproj가 stale해 불가(신규 .cs 미포함 + orphan Game.Input.csproj) → Unity에서 컴파일 검증 필요. **Unity 잔여(사람)**: ItemDisplayCatalog 에셋·스프라이트, Inventory.prefab 슬롯/탭(Material/Quest/Etc 토글)·UniversalSlot/ItemContentsSlot SerializeField, btn_Inventory 배선, I키 입력.
+
 ### 2.14 인벤토리 도메인 (3.1, 2026-06-07)
 - **무엇**: 서버 권위 아이템 소유 영속 도메인. 모든 보상/장비/상점/루트의 공통 전제.
 - **정의 vs 소유 분리(핵심)**: 아이템 *정의*(이름·등급·MaxStack·아이콘키)는 **코드 카탈로그 `ItemCatalog`**(DB 아님) — `GameplayEffectCatalog`·`MonsterCatalog`·spawn-layouts 와 동일 컨벤션(정적 기획데이터는 카탈로그). DB엔 **소유(수량)만**. → `items` 테이블 없음.
 - **소유 모델**: `InventoryItem` = 스택형 `(UserId, ItemId) → Quantity` 복합키. 장비 인스턴스(개별 상태)는 3.2 Equipment로 미룸(YAGNI). 키=user_id(미래 character_id 이관, [[character-swap-direction]]).
 - **캐시**: 유저당 Hash 1키 `game:user:inventory:{userId}`(field=itemId, value=qty). Cache-Aside+Delete. 빈 인벤토리는 캐시 안 함(HGETALL 빈결과=MISS 구분 불가 → DB 폴백, 트래픽 낮아 무해).
 - **위치**: 엔티티/카탈로그 `GameServer.Domain/Entities/Inventory/`(`InventoryItem`·`ItemDef`·`ItemGrade`·`ItemCatalog`) · `GameServer.Application/Domains/Inventory/`(`IInventoryService`/`InventoryService`·`Interfaces/IInventoryRepository`·`ItemGrantResult`) · `GameServer.Infrastructure/Domains/Inventory/InventoryRepository.cs` + `RedisKeys.UserInventory` + `Configurations/Inventory/InventoryItemConfiguration`(복합키) + 마이그레이션 `AddInventoryItems`(raw SQL) · DI `InventoryInstaller`(Program.cs) · gRPC `InventoryGrpcService`(`MiddlewareInstaller`) · proto `inventory.proto`(GetInventory) + `ServerCallContextExtension.GetUserId()`.
-- **진입점**: `IInventoryService.GrantItemAsync(userId, itemId, amount)` → 카탈로그 검증 + MaxStack clamp 적립 → `ItemGrantResult`. 보상/루트(3.3)가 호출(멱등은 호출자 책임 = Exp 보상과 동일). 조회 `GetInventoryAsync` → gRPC `GetInventory`(userId=JWT sub).
+- **진입점**: `IInventoryService.GrantItemAsync(userId, itemId, amount)` → 카탈로그 검증 + MaxStack clamp 적립 → `ItemGrantResult`. 보상/루트(3.3)가 호출(멱등은 호출자 책임 = Exp 보상과 동일). 조회 `GetInventoryAsync` → gRPC `GetInventory`(userId=JWT sub/NameIdentifier — MapInboundClaims 리매핑 대응 `ServerCallContextExtension.ResolveUserId`).
+- **CRUD 완성(D 추가, 2026-06-07)**: `ConsumeItemAsync(userId,itemId,amount)` → `Repo.RemoveQuantityAsync`(보유 검증·차감·0이면 행삭제·캐시 DEL, 미보유/부족 → null) → `ItemConsumeResult`(남은수량). **클라가 직접 CRUD 안 함(서버 권위/치팅 방지)** — 획득=서버 드랍(3.3), 소비 클라 RPC·포션 효과=3.8. 현재는 도메인 C/U/R/D + 테스트만.
 - **범위 밖**: 획득 push 알림(3.3), 인벤토리 UI(7.2 — proto는 itemId+qty만, 클라가 자기 카탈로그로 표시).
 - **테스트**: 단위 13(엔티티 6·카탈로그 2·서비스 5) + Testcontainers 통합 7(Cache-Aside Delete 계약) = 20/20.
 
