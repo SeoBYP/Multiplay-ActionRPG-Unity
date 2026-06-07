@@ -65,11 +65,24 @@ namespace Game.GUI.OutGame
             _loading = true;
             try
             {
+                // GUIRoot이 없을 수도 있다(예: 던전 씬 직접 Play). GameHudController처럼 null 가드 — 없으면 부모 없이 생성.
+                var parent = GUIRoot.Instance != null ? GUIRoot.Instance.transform : null;
                 _inst = await AddressableLoader.LoadAndInstantiateAsync(
-                    AddressKeys.UI.Inventory, GUIRoot.Instance.transform, _cts.Token);
+                    AddressKeys.UI.Inventory, parent, _cts.Token);
 
                 if (_inst != null)
+                {
                     _resolver.InjectGameObject(_inst.GameObject); // Inventory.Start → 첫 Refresh
+                    Debug.Log("[InventoryViewController] Inventory 창 로드·생성 완료");
+                }
+                else
+                {
+                    Debug.LogError("[InventoryViewController] Inventory.prefab 로드 실패 (Addressable 확인 필요)");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[InventoryViewController] 인벤토리 토글 실패: {e}");
             }
             finally
             {

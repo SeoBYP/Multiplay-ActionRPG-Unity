@@ -49,6 +49,7 @@
 | **전투 흐름(입력→판정→데미지→연출)** | 클라 `Gameplay/Character/`(`PlayerCharacterAgent`·`CombatSyncSender`) → 서버 `SocketServer/.../Handler/CombatHandler` → `Room.DamageMonster` | [authority-model.md](authority-model.md), §2.7 |
 | SocketServer(TCP/방/세션) | `ServerAll/SocketServer/SocketServer/{Room,Session,PacketHandler}` | [socketserver.md](socketserver.md) |
 | Redis 스트림/큐 | `Shared/Shared.Infrastructure/MessageQueue/`, `Messages/` | [redis.md](redis.md) |
+| **루트/드랍(던전 경로)** | 드랍/줍기 = `SocketServer/Loot/`(DropTable·GroundItem)·`Handler/{CombatHandler.SpawnDrops,LootHandler}`·`Room`(GroundItem·TryPickup) / 지급 = `GameServer.Infrastructure/Common/{Consumer/LootGrantConsumer,MessageQueue/LootPickupMessageQueue}` → `IInventoryService.GrantItemAsync`. 아래 §2.16 | [loot-drop.md](loot-drop.md) |
 | 클라 gRPC | `Client/Assets/Script/Network/Https/` | [unity-client.md](unity-client.md) |
 | 클라 소켓 | `Client/Assets/Script/Network/Socket/` | `.claude/rules/networking.md` |
 | 클라 MVI 모델 (타이틀·로비·인게임) | `Client/Assets/Script/Presentation/{Title,DungeonLobby,InGame}` (asmdef `Game.Presentation`, ns `Game.Presentation.*`) — GUI가 바인딩하는 MVI 모델 레이어 | `.claude/rules/unity-client.md` |
@@ -63,6 +64,16 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.16 루트/드랍 던전 경로 서버 풀스택 (3.3 증분 1~5, 2026-06-08)
+- **무엇**: 몬스터 처치 → 드랍 roll → 바닥 아이템 → 줍기(수동 F) → 인벤토리 영속 지급. **던전(co-op) 경로 = 서버 권위**(SocketServer 월드 + GameServer 인벤토리, Redis Stream 단방향). 설계=[loot-drop.md](loot-drop.md). 클라 렌더(증분 6)·풀 E2E(증분 7)·Main 싱글 경로(증분 8~10)는 미착수.
+- **권위 분리(핵심)**: roll·바닥·줍기중재 = **SocketServer**(월드, itemId 문자열만 앎) / 영속 지급·정의검증 = **GameServer**(`ItemCatalog`). 둘은 직접 RPC 금지 → `stream:game:loot:pickup` 단방향. 경계 데이터 = `ItemPickedUpMessage{UserId,ItemId,Qty,PickupId}`만.
+- **드랍(SocketServer)**: `DropTable`(정적 카탈로그 `Loot/DropTable.cs`, `monsterId→DropEntry[]`, `slime→potion_hp_small 0.5 / gold_pouch 0.2`) — roll 은 `Random` 주입(테스트 결정론). `CombatHandler.SpawnDrops`가 몬스터 사망 분기에서 roll→`Room.SpawnGroundItem`→`S_SpawnGroundItem`(1830) 브로드캐스트. **자동지급 아님** — 월드에 떨어뜨리고 플레이어가 줍기 선택.
+- **바닥/줍기(SocketServer)**: `Room._groundItems`(groundId→`GroundItem`, lock) · `SpawnGroundItem`(GroundId 순차) · `GetAllGroundItems`(입장 로스터) · **`TryPickup(userId, groundId)`** = 거리검증(`PickupRange=3`) + 경쟁 중재(lock 안 Remove 1회만 성공=승자). `LootHandler`(`C_PickupItem` 1832) → TryPickup 성공 시 ① `S_GroundItemRemoved`(1831) 방 브로드캐스트 ② `S_ItemPickedUp`(1833) 본인 토스트 ③ `RoomManager.PublishItemPickup`(PickupId=`{RoomId}:{GroundId}`). 늦은 입장 = `RoomJoinLeaveHandler`가 바닥 로스터 재전송(몬스터 로스터와 동형).
+- **지급(GameServer)**: `LootPickupMessageQueue`(Consumer Group `loot-grant-service`, `DungeonClearMessageQueue` 미러) + `LootGrantConsumer`(`ResilientStreamConsumer` 위임) → **PickupId Redis SET claim-first 멱등**(`RedisKeys.LootPickupProcessed`, GrantItem 비멱등이라 이중지급 차단) → `IInventoryService.GrantItemAsync`(Create/Update, 미존재 itemId 는 "unknown item" 스킵). DI=`InventoryInstaller`.
+- **패킷/Union**: `Shared.Packet/Domains/LootPackets.cs` 4종 + Union **1830~1833**. 메시지 `Shared.Infrastructure/Messages/ItemPickedUpMessage.cs`. 발행자 `SocketServer/MessageQueue/{ILootPickupPublisher,LootPickupMessageQueue}` + Program.cs DI + `RoomManager`(생성자 5번째 인자).
+- **테스트**: SocketServer 단위 **65/65**(`DropTableTests` 4 roll·확률임계·미등록 / `LootRoomTests` 5 순차ID·범위·경쟁중재) + GameServer **4/4**(`LootGrantConsumerIntegrationTests` 3 지급·PickupId멱등·미존재itemId / 실 Redis Stream `LootGrantRewardE2ETests` 1). 서버 빌드 0오류.
+- **클라(증분6, 2026-06-08)**: 패킷 미러 = **ClientCodegen** 재생성(`Network/Socket/Packets/LootPackets.cs` + `Packet.cs` union 1830~1833 / proto 아님이라 protoc 무관). `ISocketPacketState`에 바닥아이템 상태(`SocketGroundItemSnapshot`·`_groundItems`)·이벤트(`OnGroundItemSpawned`/`OnGroundItemRemoved`/`OnItemPickedUp`)·`AddGroundItem`/`RemoveGroundItem`/`NotifyItemPickedUp`/`GetAllGroundItems`. 핸들러 `Handler/Contents/LootPacketHandler.cs` 3종(SocketApiClient.Install 등록). 렌더/줍기 = `Gameplay/Character/GroundItemEntity.cs`(IInteractable → `ISocketSession.SendAsync(C_PickupItem)`, 로컬 제거 안 함=서버 권위) + `GroundItemSpawner.cs`(MonsterSpawner 미러, IAsyncStartable). DI = `CharacterPrefabSettings.GroundItemPrefab` + `DungeonLifetimeScope`(SerializeField + RegisterEntryPoint). 프리팹 `Assets/Prefabs/Character/GroundItem.prefab`(**Layer 7**=InteractionDetector mask 128, 트리거 SphereCollider, GroundItemEntity 동일 GO — `collider.GetComponent<IInteractable>()` 충족). 검증: 클라 dotnet 빌드(Game.Network/Gameplay/VContainer) 0오류(신규 .cs를 csproj에 임시주입 후 빌드·원복 — Unity 생성 csproj가 stale해 신규파일 미포함). **Unity 잔여(사람)**: 프리팹을 `DungeonLifetimeScope.groundItemPrefab`에 할당 + 서버 리빌드 후 플레이 시각검증. per-item 비주얼·정식 토스트 위젯은 후속(현재 단일 프리팹 + `OnItemPickedUp` 로그).
+
 ### 2.15 인벤토리 UI 클라 스택 (7.2, 2026-06-07)
 - **무엇**: 인벤토리 창(서버 GetInventory 조회 → 슬롯 렌더). MVI 4레이어를 로비(DungeonLobby) 패턴 그대로.
 - **레이어 체인**: `IInventoryGrpcService`/`InventoryGrpcService`(Network, GameApiClient 등록) → `IInventoryService`/`InventoryService`(System, proto→`InventoryItemData` 도메인 변환·`InventoryResult`) → `InventoryModel`+`InventoryState`/`InventoryIntent`/`InventoryItemModel`+`ItemDisplayCatalog`(SO)+`ItemCategory`(Presentation, R3 MVI) → `Inventory`(GUI View, `InventoryModel`만 주입)+`UniversalSlot`/`ItemContentsSlot`(generic 슬롯, Presentation 비참조).
@@ -71,7 +82,15 @@
 - **창 열기**: HUD `btn_Inventory` → `GameHud`가 `InGameModel.Accept(ToggleInventory)` → `InGameModel.OnToggleInventory`(R3 Subject) → `InventoryViewController`(DungeonLifetimeScope EntryPoint)가 `AddressKeys.UI.Inventory` Addressable 로드(최초 1회)·Inject·SetActive 토글. I키도 같은 신호로 합류 예정(현재 던전 InputRouter 미등록 + `.inputactions` Inventory 액션 필요 → Unity 후속).
 - **DI**: Network=GameApiClient(루트), System=`InventoryInstaller`(루트, ProjectLifetimeScope), Presentation/GUI=`DungeonLifetimeScope`(InventoryModel·ItemDisplayCatalog·InventoryViewController).
 - **위치**: `Network/Https/{Interfaces,Services}/Inventory*`, `System/Inventory/*`, `Presentation/Inventory/*`, `GUI/Inventory/{Inventory,InventoryViewController}.cs`, `GUI/Common/Slots/*`. 테스트 `Tests/PlayMode/E2E/.../InventoryE2ETests`(빈목록·미인증).
-- **⚠️ 검증 한계**: 클라 `dotnet build`는 Unity 생성 csproj가 stale해 불가(신규 .cs 미포함 + orphan Game.Input.csproj) → Unity에서 컴파일 검증 필요. **Unity 잔여(사람)**: ItemDisplayCatalog 에셋·스프라이트, Inventory.prefab 슬롯/탭(Material/Quest/Etc 토글)·UniversalSlot/ItemContentsSlot SerializeField, btn_Inventory 배선, I키 입력.
+- **⚠️ 검증 한계**: 클라 `dotnet build`는 Unity 생성 csproj가 stale해 불가(신규 .cs 미포함 + orphan Game.Input.csproj) → Unity에서 컴파일 검증 필요.
+- **2026-06-08 수정/완성**(플레이 검증 중):
+  - **열기 버그 수정**: `InventoryViewController`가 `DungeonLifetimeScope`에만 등록돼 **Main 씬에선 토글 신호 수신 불가**였음 → `MainLifetimeScope`에도 인벤토리 스택(ItemDisplayCatalog·InventoryModel·InventoryViewController) 등록. (증상: I키/버튼 누르면 `Accept`까지 가는데 `InventoryViewController.Initialize`가 안 떠 무반응)
+  - **슬롯 구조 재설계**: `UniversalSlot`=컨테이너(빈 칸=컨테이너만), 아이템 칸만 `ItemContentsSlot`(Content) **동적 생성**(`EnsureContent`/`ClearContent`, 다른 prefab 요청 시 재생성=타입별 슬롯 대비). `Inventory.cs`는 `slotCount`(기본 30)만큼 `UniversalSlot`을 무조건 생성하고 탭/정렬/내용 변경 시 Content만 교체. 슬롯 두 prefab은 **Addressable 로드**(`AddressKeys.UI.UniversalSlot`/`ItemContentsSlot`, `LoadAssetAsync`→`InitializeAsync`서 로드→BuildSlots→구독→Refresh, OnDestroy Release).
+  - **I키**: 생성된 `PlayerInputActions` 래퍼에 `Inventory` 액션 미반영(.inputactions엔 있음) + 던전 InputRouter 미등록 → 임시로 **`GameHud.Update`가 `Keyboard.current.iKey` 폴링**해 `ToggleInventory`(버튼과 동일 funnel). `Game.GUI.asmdef`에 Unity.InputSystem 참조 추가. 래퍼 재생성 후 InputRouter 경로로 이관 예정.
+  - **아이콘 매칭**: `ItemDisplayCatalog.entries[itemId→{displayName,icon,category}]`. 서버 itemId(`potion_hp_small`/`potion_mp_small`/`gold_pouch`)와 정확히 일치해야 매칭. **경로 버그 수정**: 에셋이 `Resources/ItemDisplayCatalog`인데 코드가 `"Inventory/ItemDisplayCatalog"`로 로드 → Main 폴백 null이던 것을 `"ItemDisplayCatalog"`로 정정(양 스코프).
+  - **던전 클리어 패널**: 입력은 원래도 안 막힘(클리어가 Player 입력맵을 끄지 않음). 막타 드랍 루팅 위해 `GameHud`가 결과 패널을 `dungeonClearPanelDelaySeconds`(기본 4s) **지연 표시**(상태는 즉시, 표시만 지연 — 모델/테스트 무영향).
+  - **아이콘 매칭 완료**: `ItemDisplayCatalog.asset`(`Resources/`)에 서버 itemId 3종(`potion_hp_small`/`potion_mp_small`/`gold_pouch`) entry 작성 → 줍기→인벤토리 아이콘 표시 **플레이 검증 통과**.
+  - **Unity 잔여(사람)**: Inventory.prefab 탭(Material/Quest/Etc) 토글 배선, 정식 획득 토스트 위젯(현재 `OnItemPickedUp` 로그). DropTable 확률은 정식값(0.5/0.2)으로 원복 완료.
 
 ### 2.14 인벤토리 도메인 (3.1, 2026-06-07)
 - **무엇**: 서버 권위 아이템 소유 영속 도메인. 모든 보상/장비/상점/루트의 공통 전제.

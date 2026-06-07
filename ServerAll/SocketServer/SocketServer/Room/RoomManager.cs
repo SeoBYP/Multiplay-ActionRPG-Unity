@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
+using Server.Loot;
 using Shared.Infrastructure.Messages;
 using Shared.Infrastructure.Spawn;
 using Shared.Packet.Packets;
@@ -15,17 +16,20 @@ public class RoomManager
     private readonly ILogger<Room> _roomLogger;
     private readonly IRoomLifecyclePublisher _lifecycleQueue;
     private readonly IDungeonResultPublisher _dungeonResultQueue;
+    private readonly ILootPickupPublisher _lootPickupQueue;
 
     public RoomManager(
         ILogger<RoomManager> logger,
         ILogger<Room> roomLogger,
         IRoomLifecyclePublisher lifecycleQueue,
-        IDungeonResultPublisher dungeonResultQueue)
+        IDungeonResultPublisher dungeonResultQueue,
+        ILootPickupPublisher lootPickupQueue)
     {
         _logger = logger;
         _roomLogger = roomLogger;
         _lifecycleQueue = lifecycleQueue;
         _dungeonResultQueue = dungeonResultQueue;
+        _lootPickupQueue = lootPickupQueue;
     }
 
     private readonly ConcurrentDictionary<long, GameStartRequestedMessage> _roomMessages = new();
@@ -184,6 +188,28 @@ public class RoomManager
         _logger.LogInformation(
             "Room {RoomId} cleared (MapId={MapId}, participants={Count})",
             room.RoomId, room.MapId, participants.Length);
+    }
+
+    /// <summary>
+    /// 줍기 확정을 GameServer 에 발행한다(인벤토리 영속 지급). 줍기 1회 보장은 Room.TryPickup(경쟁 중재)
+    /// 책임이므로 호출자가 성공(non-null GroundItem)일 때만 부른다.
+    /// PickupId = "{RoomId}:{GroundId}" — GroundId 는 방 내 고유·픽업당 1회 제거라 멱등 키로 충분
+    /// (GameServer 가 Redis SET claim 으로 중복 메시지에도 1회만 지급).
+    /// 클라 브로드캐스트(S_GroundItemRemoved)·토스트(S_ItemPickedUp)는 호출자(LootHandler)가 별도로 한다.
+    /// </summary>
+    public void PublishItemPickup(Room room, long userId, GroundItem item)
+    {
+        string pickupId = $"{room.RoomId}:{item.GroundId}";
+        _ = _lootPickupQueue.EnqueueAsync(new ItemPickedUpMessage
+        {
+            UserId = userId,
+            ItemId = item.ItemId,
+            Qty = item.Qty,
+            PickupId = pickupId,
+        });
+        _logger.LogInformation(
+            "Room {RoomId} pickup: UserId={UserId} ItemId={ItemId} Qty={Qty} PickupId={PickupId}",
+            room.RoomId, userId, item.ItemId, item.Qty, pickupId);
     }
 
     public Room? GetPlayerRoom(ulong sessionId)

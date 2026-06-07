@@ -226,14 +226,14 @@ Main 처치 → Client roll/바닥/줍기(로컬) → gRPC GrantItem ┘   ← �
 
 ## 7. 증분 순서 (구현 시 — 아직 안 함)
 
-**A. 던전 경로 (서버권위 — 먼저)**
-1. `DropTable`(SocketServer 정적) + roll 단위테스트
-2. 패킷 4종 + Union(1830~1833) + `ItemPickedUpMessage`(Shared)
-3. SocketServer: Room `GroundItem` 보유·`SpawnGroundItem`·`TryPickup`(경쟁 중재) + CombatHandler 사망분기 발행
-4. SocketServer: `C_PickupItem` 핸들러 + `ILootPickupPublisher`/MessageQueue(`stream:game:loot:pickup`)
-5. GameServer: `LootGrantConsumer`(ResilientStreamConsumer) → GrantItemAsync, PickupId 멱등
-6. 클라: `GroundItemEntity` 렌더 + `IInteractable` 줍기 + `S_ItemPickedUp` 토스트 + 입장 로스터
-7. 테스트: SocketServer 단위(roll·경쟁) + GameServer 통합(Stream→DB 지급 멱등) + E2E(사냥→드랍→줍기→인벤토리)
+**A. 던전 경로 (서버권위 — 먼저)** — *증분 1~5 구현 완료 2026-06-08 (codemap §2.16). 6~7 잔여.*
+1. ✅ `DropTable`(SocketServer 정적) + roll 단위테스트
+2. ✅ 패킷 4종 + Union(1830~1833) + `ItemPickedUpMessage`(Shared)
+3. ✅ SocketServer: Room `GroundItem` 보유·`SpawnGroundItem`·`TryPickup`(경쟁 중재) + CombatHandler 사망분기 발행 (+입장 로스터)
+4. ✅ SocketServer: `C_PickupItem` 핸들러 + `ILootPickupPublisher`/MessageQueue(`stream:game:loot:pickup`)
+5. ✅ GameServer: `LootGrantConsumer`(ResilientStreamConsumer) → GrantItemAsync, PickupId 멱등
+6. ✅ 클라(코드+프리팹, 2026-06-08): 패킷 미러(ClientCodegen) + `ISocketPacketState` 바닥아이템 + `LootPacketHandler` 3종 + `GroundItemEntity`(IInteractable 줍기) + `GroundItemSpawner` + `GroundItem.prefab`(Layer7 트리거). ※Unity 잔여: `DungeonLifetimeScope.groundItemPrefab` 할당 + 플레이 시각검증. 정식 토스트 위젯·per-item 비주얼은 후속(현재 단일 프리팹+로그).
+7. 🔄 테스트: ✅ SocketServer 단위(roll·경쟁) + ✅ GameServer 통합(Stream→DB 지급 멱등) / ⬜ E2E(사냥→드랍→줍기→인벤토리, Unity PlayMode)
 
 **B. Main 경로 (클라로컬 — 던전 검증 후, 4.6 진행 시)**
 8. `GrantItem` gRPC(inventory.proto) + 서버 가드(catalog·수량상한·레이트리밋) + 클라 Generated 재생성

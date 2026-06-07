@@ -76,7 +76,14 @@
   - [x] **3.1.5** `inventory.proto`(GetInventory) + `InventoryGrpcService` + 클라 Generated 재생성 (획득 push는 3.3로 보류)
   - [x] **3.1.6** 단위(엔티티·카탈로그·서비스 13) + Testcontainers 통합 7(캐시 무효화 계약)
 - **3.2** 장비(Equipment) — 착용 슬롯·장비 스탯 모디파이어 → 2.4 합산 — ⬜ | T2 | 🟢
-- **3.3** 루트/드랍(Loot) — **월드 드랍 + 줍기**, **2경로** — ⬜ | T2 | ⚪ (**설계 확정·문서화 2026-06-07**, 상세 = [loot-drop.md](loot-drop.md). 자동지급 아님(플레이어가 줍기 선택). **던전(co-op)** = SocketServer 서버권위(roll·바닥 GroundItem·줍기 경쟁중재)→Redis Stream→**GameServer `GrantItemAsync`**(PickupId 멱등). **Main(싱글)** = Client 로컬 시뮬/드랍/줍기→**Client `GrantItem` gRPC 직접**(서버 가드: catalog·수량상한). **공통=지급(GameServer Create/Update)뿐**, 앞단은 다름. 책임: Socket=월드·Game=인벤토리·Client=표시+의도. 패킷 1830~1833. 구현: 던전 경로 먼저)
+- **3.3** 루트/드랍(Loot) — **월드 드랍 + 줍기**, **2경로** — 🔄 | T2 | 🟢 (**설계=** [loot-drop.md](loot-drop.md). **던전 경로 서버 풀스택(증분 1~5) + 클라 렌더/줍기(증분 6) 완료·플레이 검증 통과 2026-06-08**, 상세 = codemap §2.16·§2.15·[chapter-15](../portfolio/chapter-15-loot-drop-inventory.md). roll·바닥·줍기중재=SocketServer / 지급=GameServer(`GrantItemAsync`, PickupId 멱등) / Redis Stream 단방향. 패킷 1830~1833. 클라=`GroundItemEntity`(IInteractable, E 줍기)·`GroundItemSpawner`·`GroundItem.prefab`(Layer7). **플레이 검증**: 슬라임 처치→드랍→E 줍기→인벤토리 아이콘 표시까지 통과. **잔여**: 증분7 풀 E2E(PlayMode)·증분8~10 Main 싱글 경로(`GrantItem` gRPC+가드)·정식 획득 토스트 위젯)
+  - [x] **3.3.1** DropTable(SocketServer 정적) + GroundItem + roll/줍기 단위테스트
+  - [x] **3.3.2** 패킷 4종 + Union(1830~1833) + `ItemPickedUpMessage`(Shared)
+  - [x] **3.3.3** Room GroundItem 보유·SpawnGroundItem·TryPickup(경쟁중재) + CombatHandler 사망분기 드랍 + 입장 로스터
+  - [x] **3.3.4** `C_PickupItem` 핸들러 + `ILootPickupPublisher`/MessageQueue(`stream:game:loot:pickup`) + DI
+  - [x] **3.3.5** GameServer `LootGrantConsumer`(ResilientStreamConsumer) → GrantItemAsync, PickupId 멱등 + 통합/E2E
+  - [x] **3.3.6** 클라: 패킷 미러(ClientCodegen) + `ISocketPacketState` 바닥아이템 상태/이벤트 + `LootPacketHandler` 3종 + `GroundItemEntity`(IInteractable 줍기) + `GroundItemSpawner` + DI(`DungeonLifetimeScope`/`CharacterPrefabSettings`) + `GroundItem.prefab`(Layer7·트리거·구체). 클라 빌드 검증(Game.Network/Gameplay/VContainer 0오류). **플레이 검증 통과(2026-06-08)**: 드랍→E 줍기→인벤토리 지급·아이콘 표시. (E 줍기 버그=오브가 바닥높이라 감지구체 미스 → +0.7 띄움으로 해결) 정식 획득 토스트 위젯은 후속(현재 로그)
+  - [ ] **3.3.7** 풀 E2E(사냥→드랍→줍기→인벤토리) + Main 경로(3.3.8~10)
 - **3.4** 재화(Wallet) — 골드 보유·증감(서버 권위) — ⬜ | T2 | 🟢
 - **3.5** 상점(Shop) — 구매/판매·가격·재고 — ⬜ | T2 | ⚪
 - **3.6** 강화/크래프팅 — ⬜ | T3 | ⚪
@@ -127,7 +134,7 @@
 
 ### 7. UI / UX (클라 프레젠테이션 — MVI, View는 자기 Model만 참조)
 - **7.1** 결과/보상 화면 (대응 6.2/4.2) — 🔄 | T1 | ⚪ (DungeonClear 프리팹 GameHud 배선 완료(`dungeonClearView` 할당, 전체화면·기본 비활성). **DungeonFailed.prefab 미존재 → `dungeonFailedView` 미할당**. 프리팹 아트 잔여는 Unity)
-- **7.2** 인벤토리/장비 UI (대응 3.1/3.2) — 🔄 | T2 | ⚪ (2026-06-07 **인벤토리 UI MVI 스택 코드 완료**, 상세 = codemap §2.15. Network `IInventoryGrpcService`→System `IInventoryService`(proto→도메인)→Presentation `InventoryModel`+`ItemDisplayCatalog`(SO)+5분류 `ItemCategory`→GUI `Inventory`/`UniversalSlot`/`ItemContentsSlot` 슬롯 렌더+탭 필터. 열기=HUD `btn_Inventory`→`InGameModel.ToggleInventory`→`InventoryViewController`(Addressable 로드/토글). E2E 2(GetInventory 빈목록·미인증거부) + PlayMode `InventoryModelTests` 3(Refresh 반영·탭선택·실패). **Unity 잔여(사람)**: csproj 재생성·컴파일, `ItemDisplayCatalog` 에셋 작성+스프라이트, Inventory.prefab 슬롯/탭 배선, **I키**(=`.inputactions` Inventory 액션+던전 InputRouter 등록+라우팅). 장비 UI는 3.2 후속)
+- **7.2** 인벤토리/장비 UI (대응 3.1/3.2) — 🔄 | T2 | ⚪ (2026-06-07 MVI 스택 코드 완료 → **2026-06-08 열기·슬롯·아이콘 플레이 검증 통과**, 상세 = codemap §2.15. Network→System→Presentation(`InventoryModel`+`ItemDisplayCatalog`)→GUI(`Inventory`/`UniversalSlot`/`ItemContentsSlot`) MVI. **2026-06-08 수정**: ① 열기 버그(`InventoryViewController`가 `MainLifetimeScope` 누락 → Main 씬 무반응) 수정 ② 슬롯 재설계(`UniversalSlot`=컨테이너 고정 30 + `ItemContentsSlot` 동적 Content, 타입별 슬롯 대비, 두 prefab Addressable 로드) ③ I키=`GameHud.Update` Keyboard 폴링(임시, 래퍼 재생성 후 InputRouter 이관) ④ `ItemDisplayCatalog` Resources 경로 버그 수정 + 서버 itemId 정렬(아이콘 표시). **잔여**: 탭(Material/Quest/Etc) 토글 배선, I키 정석 배선, 장비 UI(3.2 후속))
 - **7.3** 캐릭터 정보/스탯창 (대응 2.3/2.4) — ⬜ | T2 | ⚪
 - **7.4** 퀘스트 UI/추적 HUD (대응 4.4) — ⬜ | T2 | ⚪
 - **7.5** 대화 UI (대응 4.5) — ⬜ | T2 | ⚪

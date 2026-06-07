@@ -31,6 +31,11 @@ namespace Game.Network.Socket.Packets
     [MemoryPackUnion(1820, typeof(S_DungeonClear))]
     [MemoryPackUnion(1821, typeof(S_DungeonFailed))]
     [MemoryPackUnion(1822, typeof(C_PlayerDead))]
+    // 던전 이벤트 - 루트/드랍(줍기)
+    [MemoryPackUnion(1830, typeof(S_SpawnGroundItem))]
+    [MemoryPackUnion(1831, typeof(S_GroundItemRemoved))]
+    [MemoryPackUnion(1832, typeof(C_PickupItem))]
+    [MemoryPackUnion(1833, typeof(S_ItemPickedUp))]
     public abstract partial class Packet
     {
 

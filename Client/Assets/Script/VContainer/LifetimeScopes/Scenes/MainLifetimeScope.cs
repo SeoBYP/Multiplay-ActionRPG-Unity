@@ -4,6 +4,7 @@ using Game.Gameplay.Spawn;
 using Game.GUI.OutGame;
 using Game.Installers.Scenes.Startup;
 using Game.Presentation.InGame;
+using Game.Presentation.Inventory;
 using Game.System.Player;
 using Script.System.GamePlayAbilitySystem;
 using UnityEngine;
@@ -43,6 +44,13 @@ namespace Game.Installers.Scenes
                                      ?? ScriptableObject.CreateInstance<EffectIconCatalog>());
             builder.Register<InGameModel>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.RegisterEntryPoint<GameHudController>(Lifetime.Scoped);
+
+            // 인벤토리 MVI — Main(로비)에서도 인벤토리 창 사용(I키·HUD 버튼). 던전 구성과 동일.
+            // ItemDisplayCatalog는 Resources 기본본 폴백(인스펙터 할당 불요).
+            builder.RegisterInstance(Resources.Load<ItemDisplayCatalog>("ItemDisplayCatalog")
+                                     ?? ScriptableObject.CreateInstance<ItemDisplayCatalog>());
+            builder.Register<InventoryModel>(Lifetime.Scoped).AsSelf();
+            builder.RegisterEntryPoint<InventoryViewController>(Lifetime.Scoped);
 
             // Main 씬은 로컬 플레이어만 스폰. RemotePlayerPrefab 없음.
             builder.RegisterInstance(new CharacterPrefabSettings(localPlayerPrefab));

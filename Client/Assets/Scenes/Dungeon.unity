@@ -626,13 +626,15 @@ MonoBehaviour:
   localPlayerPrefab: {fileID: 8898314510884851665, guid: eedb489d21a109747b75e38aed6041af, type: 3}
   remotePlayerPrefab: {fileID: 2620101429799267180, guid: 396bd6adea8b9364f8a1fe9241112362, type: 3}
   monsterPrefab: {fileID: 7811001, guid: f426bd609464bf24e9392c6c12a9a76f, type: 3}
-  effectIconCatalog: {fileID: 0}
+  groundItemPrefab: {fileID: 7900001, guid: 3c9a7e1d5b2f48a6c0e9d8b7a6f5e4d3, type: 3}
+  effectIconCatalog: {fileID: 11400000, guid: 774f635f9f8c9234dab86b331e496fe5, type: 2}
+  itemDisplayCatalog: {fileID: 11400000, guid: 153b9ca0a7044b046bd78cfdc46d1405, type: 2}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 961739753}
   - {fileID: 203844589}
-  - {fileID: 1586093573}
   - {fileID: 834465696}
   - {fileID: 757223206}
+  - {fileID: 1586093573}

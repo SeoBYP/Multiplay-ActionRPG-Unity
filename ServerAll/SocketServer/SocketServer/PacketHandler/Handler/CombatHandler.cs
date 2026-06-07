@@ -1,6 +1,8 @@
 using System.Numerics;
 using Script.System.GamePlayAbilitySystem;
 using Server.Combat;
+using Server.Loot;
+using Server.Monster;
 using Server.Player;
 using Shared.Infrastructure.Spawn;
 using Shared.Packet.Packets;
@@ -127,6 +129,7 @@ public static class CombatHandler
             {
                 anyKilled = true;
                 room.Broadcast(new S_MonsterDead { InstanceId = monster.InstanceId });
+                SpawnDrops(room, monster);
             }
             else
             {
@@ -149,6 +152,27 @@ public static class CombatHandler
             long rewardExp = SpawnLayoutTable.Get(room.MapId).ExpReward;
             room.Broadcast(new S_DungeonClear { RoomId = room.RoomId, RewardExp = rewardExp });
             session.RoomManager.PublishDungeonClear(room);
+        }
+    }
+
+    /// <summary>
+    /// 몬스터 사망 시 drop roll(서버 권위) → 바닥 아이템 스폰 → S_SpawnGroundItem 브로드캐스트.
+    /// roll 은 itemId 문자열 + 확률만 다루며(정의는 GameServer 소유), 지급은 줍기 확정 시 별도 경로(loot-drop.md §1).
+    /// 자동 지급이 아니라 월드에 떨어뜨리기만 한다 — 플레이어가 줍기(C_PickupItem)로 "먹을지" 선택.
+    /// </summary>
+    private static void SpawnDrops(global::Server.Room.Room room, MonsterState monster)
+    {
+        var drops = DropTable.Roll(monster.MonsterId, Random.Shared);
+        foreach (var drop in drops)
+        {
+            var ground = room.SpawnGroundItem(drop.ItemId, drop.Qty, monster.PosX, monster.PosY, monster.PosZ);
+            room.Broadcast(new S_SpawnGroundItem
+            {
+                GroundId = ground.GroundId,
+                ItemId = ground.ItemId,
+                Qty = ground.Qty,
+                PosX = ground.PosX, PosY = ground.PosY, PosZ = ground.PosZ,
+            });
         }
     }
 }

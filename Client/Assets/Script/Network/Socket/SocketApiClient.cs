@@ -36,6 +36,10 @@ namespace Game.Network.Socket
             builder.Register<IPacketHandler, DungeonClearPacketHandler>(Lifetime.Singleton);
             // M4 B: 참가자 전원 다운 → 던전 실패.
             builder.Register<IPacketHandler, DungeonFailedPacketHandler>(Lifetime.Singleton);
+            // 3.3 루트/드랍: 바닥 아이템 스폰/제거 + 줍기 토스트.
+            builder.Register<IPacketHandler, SpawnGroundItemPacketHandler>(Lifetime.Singleton);
+            builder.Register<IPacketHandler, GroundItemRemovedPacketHandler>(Lifetime.Singleton);
+            builder.Register<IPacketHandler, ItemPickedUpPacketHandler>(Lifetime.Singleton);
 
             // 송수신 파이프라인 등록.
             builder.Register<ISocketPacketDispatcher, SocketPacketDispatcher>(Lifetime.Singleton);
@@ -103,6 +107,19 @@ namespace Game.Network.Socket
         bool TryGetMonster(int instanceId, out SocketMonsterSnapshot snapshot);
         /// <summary>현재 보관 중인 모든 몬스터 스냅샷의 복사본. (스포너 초기 로스터용)</summary>
         IReadOnlyList<SocketMonsterSnapshot> GetAllMonsters();
+
+        // ── 루트/드랍: 바닥 아이템(서버 권위, 클라는 표시 + 줍기 의도만) ──
+        /// <summary>S_SpawnGroundItem 수신 시 발행. GroundItemSpawner가 바닥 아이템을 스폰한다.</summary>
+        event Action<SocketGroundItemSnapshot> OnGroundItemSpawned;
+        /// <summary>S_GroundItemRemoved 수신 시 발행(groundId). GroundItemSpawner가 디스폰한다.</summary>
+        event Action<int> OnGroundItemRemoved;
+        /// <summary>S_ItemPickedUp 수신 시 발행(itemId, qty). 획득 토스트 표시에 사용.</summary>
+        event Action<string, int> OnItemPickedUp;
+        void AddGroundItem(SocketGroundItemSnapshot snapshot);
+        void RemoveGroundItem(int groundId);
+        void NotifyItemPickedUp(string itemId, int qty);
+        /// <summary>현재 보관 중인 모든 바닥 아이템 스냅샷의 복사본. (스포너 초기 로스터용)</summary>
+        IReadOnlyList<SocketGroundItemSnapshot> GetAllGroundItems();
     }
 
     /// <summary>
@@ -113,6 +130,7 @@ namespace Game.Network.Socket
         private readonly object _sync = new object();
         private readonly Dictionary<long, SocketPlayerSnapshot> _players = new Dictionary<long, SocketPlayerSnapshot>();
         private readonly Dictionary<int, SocketMonsterSnapshot> _monsters = new Dictionary<int, SocketMonsterSnapshot>();
+        private readonly Dictionary<int, SocketGroundItemSnapshot> _groundItems = new Dictionary<int, SocketGroundItemSnapshot>();
 
         public string MapId { get; private set; } = string.Empty;
 
@@ -127,6 +145,9 @@ namespace Game.Network.Socket
         public event Action<SocketMonsterSnapshot> OnMonsterSpawned;
         public event Action<SocketMonsterSnapshot> OnMonsterMoved;
         public event Action<int>                   OnMonsterDead;
+        public event Action<SocketGroundItemSnapshot> OnGroundItemSpawned;
+        public event Action<int>                      OnGroundItemRemoved;
+        public event Action<string, int>             OnItemPickedUp;
 
         public void MarkDungeonReady() => OnDungeonReady?.Invoke();
         public void MarkDungeonCleared(long rewardExp) => OnDungeonCleared?.Invoke(rewardExp);
@@ -261,6 +282,59 @@ namespace Game.Network.Socket
                 return _monsters.Values.Select(m => m.Clone()).ToList();
             }
         }
+
+        // ── 루트/드랍: 바닥 아이템(서버 권위, 클라는 표시 + 줍기 의도만) ──
+
+        public void AddGroundItem(SocketGroundItemSnapshot snapshot)
+        {
+            if (snapshot == null) return;
+            lock (_sync) { _groundItems[snapshot.GroundId] = snapshot; }
+            OnGroundItemSpawned?.Invoke(snapshot);
+        }
+
+        public void RemoveGroundItem(int groundId)
+        {
+            bool removed;
+            lock (_sync) { removed = _groundItems.Remove(groundId); }
+            if (removed) OnGroundItemRemoved?.Invoke(groundId);
+        }
+
+        public void NotifyItemPickedUp(string itemId, int qty)
+            => OnItemPickedUp?.Invoke(itemId ?? string.Empty, qty);
+
+        public IReadOnlyList<SocketGroundItemSnapshot> GetAllGroundItems()
+        {
+            lock (_sync)
+            {
+                return _groundItems.Values.Select(g => g.Clone()).ToList();
+            }
+        }
+    }
+
+    /// <summary>
+    /// 바닥 아이템 1개의 불변 스냅샷(서버 권위). 클라는 위치 표시 + 줍기 의도 송신만 한다.
+    /// </summary>
+    public sealed class SocketGroundItemSnapshot
+    {
+        public int GroundId { get; }
+        public string ItemId { get; }
+        public int Qty { get; }
+        public float PosX { get; }
+        public float PosY { get; }
+        public float PosZ { get; }
+
+        public SocketGroundItemSnapshot(int groundId, string itemId, int qty, float posX, float posY, float posZ)
+        {
+            GroundId = groundId;
+            ItemId = itemId ?? string.Empty;
+            Qty = qty;
+            PosX = posX;
+            PosY = posY;
+            PosZ = posZ;
+        }
+
+        public SocketGroundItemSnapshot Clone()
+            => new SocketGroundItemSnapshot(GroundId, ItemId, Qty, PosX, PosY, PosZ);
     }
 
     /// <summary>

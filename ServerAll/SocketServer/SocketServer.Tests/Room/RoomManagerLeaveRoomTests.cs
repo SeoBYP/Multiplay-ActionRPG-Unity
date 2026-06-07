@@ -24,7 +24,8 @@ public class RoomManagerLeaveRoomTests
             NullLogger<RoomManager>.Instance,
             NullLogger<global::Server.Room.Room>.Instance,
             _publisher,
-            new FakeDungeonResultPublisher());
+            new FakeDungeonResultPublisher(),
+            new FakeLootPickupPublisher());
     }
 
     private static GameStartRequestedMessage BuildMessage(long roomId, params long[] userIds)

@@ -46,6 +46,8 @@ namespace Game.GUI.OutGame
         [SerializeField] private DungeonClear dungeonClearView;
         [Tooltip("던전 실패(참가자 전원 다운) 패널. 미할당이어도 동작은 무해(토글만 생략).")]
         [SerializeField] private DungeonFailed dungeonFailedView;
+        [Tooltip("던전 클리어 후 결과 패널을 띄우기까지 지연(초). 그 사이 막타 드랍을 주울 수 있다. 패널은 입력을 막지 않는다.")]
+        [SerializeField] private float dungeonClearPanelDelaySeconds = 4f;
 
         [Header("Side Buttons")]
         [SerializeField] private SideButton[] sideButtons;
@@ -56,6 +58,7 @@ namespace Game.GUI.OutGame
 
         private readonly List<BattleEffectSlot> _buffSlots = new List<BattleEffectSlot>();
         private bool _buffPoolInitialized;
+        private bool _clearShowScheduled;
 
         [Header("Quick Buttons")]
         [SerializeField] private QuickButtonSlot[] quickButtons;
@@ -116,6 +119,15 @@ namespace Game.GUI.OutGame
             _buffPoolInitialized = true;
         }
 
+        private void Update()
+        {
+            // I키 인벤토리 토글 — .inputactions 의 Inventory 액션 C# 래퍼가 아직 미생성이라
+            // 임시로 Keyboard 를 직접 폴링(HUD 버튼과 동일 funnel). 래퍼 재생성 후 InputRouter 경로로 이관 예정.
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (_model != null && kb != null && kb.iKey.wasPressedThisFrame)
+                _model.Accept(InGameIntent.ToggleInventory.Instance);
+        }
+
         private void OnClickReturnToLobby()
         {
             _model.Accept(InGameIntent.ReturnToLobby.Instance);
@@ -140,13 +152,24 @@ namespace Game.GUI.OutGame
             // 복귀 처리 중에는 버튼 비활성화 (중복 클릭 방지)
             returnToLobbyButton.interactable = !state.IsReturning;
 
-            // 던전 클리어(몬스터 전멸) → 결과 패널 표시(+Exp). 복귀는 패널 버튼/기존 버튼 공용.
+            // 던전 클리어(몬스터 전멸) → 결과 패널을 '지연' 표시(그 사이 막타 드랍 줍기 가능, 입력은 안 막음).
+            // 상태(IsDungeonCleared)는 즉시 true지만 패널 SetActive만 dungeonClearPanelDelaySeconds 만큼 늦춘다.
             if (dungeonClearView != null)
             {
-                if (dungeonClearView.gameObject.activeSelf != state.IsDungeonCleared)
-                    dungeonClearView.gameObject.SetActive(state.IsDungeonCleared);
                 if (state.IsDungeonCleared)
-                    dungeonClearView.SetReward(state.RewardExp);
+                {
+                    if (!_clearShowScheduled)
+                    {
+                        _clearShowScheduled = true;
+                        ShowDungeonClearAfterDelay(state.RewardExp).Forget();
+                    }
+                }
+                else
+                {
+                    _clearShowScheduled = false;
+                    if (dungeonClearView.gameObject.activeSelf)
+                        dungeonClearView.gameObject.SetActive(false);
+                }
             }
 
             // 던전 실패(참가자 전원 다운) → 실패 패널 표시.
@@ -160,6 +183,31 @@ namespace Game.GUI.OutGame
                 mpSlider.SetValue(state.Mp, state.MaxMp);
 
             RenderBuffs(state.Buffs);
+        }
+
+        /// <summary>
+        /// 클리어 결과 패널을 dungeonClearPanelDelaySeconds 뒤에 표시한다.
+        /// 지연 동안 플레이어는 막타로 떨어진 드랍을 줍고 자유롭게 이동할 수 있다(패널은 모달이 아님).
+        /// 지연 중 상태가 클리어 해제(복귀 등)되면 _clearShowScheduled가 false로 풀려 표시를 건너뛴다.
+        /// </summary>
+        private async UniTaskVoid ShowDungeonClearAfterDelay(long rewardExp)
+        {
+            try
+            {
+                await UniTask.Delay(
+                    TimeSpan.FromSeconds(dungeonClearPanelDelaySeconds),
+                    cancellationToken: destroyCancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (dungeonClearView == null || !_clearShowScheduled)
+                return;
+
+            dungeonClearView.SetReward(rewardExp);
+            dungeonClearView.gameObject.SetActive(true);
         }
 
         /// <summary>활성 버프 목록을 슬롯 풀에 바인딩. 부족하면 prefab으로 확장, 남으면 숨김.</summary>

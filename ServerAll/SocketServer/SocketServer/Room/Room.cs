@@ -1,4 +1,5 @@
 using Script.System.GamePlayAbilitySystem;
+using Server.Loot;
 using Server.Monster;
 using Server.Player;
 using Shared.Infrastructure.Messages;
@@ -26,6 +27,13 @@ public class Room
     private readonly Dictionary<int, MonsterState> _monsters = new();
     private MapBounds _bounds = MapBounds.Unbounded;
     private int _nextMonsterInstanceId;
+
+    // 서버 권위 바닥 아이템 (groundId → item). 접근 시 반드시 lock(_groundItems).
+    private readonly Dictionary<int, GroundItem> _groundItems = new();
+    private int _nextGroundItemId;
+
+    /// <summary>줍기 가능 반경(평면 거리). 너무 먼 위치에서의 줍기 요청을 거른다.</summary>
+    public const float PickupRange = 3f;
 
     // 클리어 감지(몬스터 전멸) — lock(_monsters) 안에서만 접근.
     private bool _monstersSpawned;   // 한 번이라도 몬스터가 스폰됐는지(빈 방을 클리어로 오판 방지)
@@ -404,6 +412,69 @@ public class Room
             }
         }
         return outPackets;
+    }
+
+    // ── 바닥 아이템(루트/드랍) ───────────────────────────────
+
+    /// <summary>
+    /// 드랍 roll 결과 1건을 바닥에 스폰(서버 권위). GroundId 는 방 단위 순차 발급.
+    /// 브로드캐스트(S_SpawnGroundItem)는 호출자 책임 — 여기선 상태 추가만.
+    /// </summary>
+    public GroundItem SpawnGroundItem(string itemId, int qty, float x, float y, float z)
+    {
+        lock (_groundItems)
+        {
+            int id = ++_nextGroundItemId;
+            var item = new GroundItem
+            {
+                GroundId = id,
+                ItemId = itemId,
+                Qty = qty,
+                PosX = x, PosY = y, PosZ = z,
+            };
+            _groundItems[id] = item;
+            return item;
+        }
+    }
+
+    /// <summary>현재 바닥 아이템 전체(입장 시 로스터 재전송용).</summary>
+    public IReadOnlyList<GroundItem> GetAllGroundItems()
+    {
+        lock (_groundItems)
+        {
+            return _groundItems.Values.ToList();
+        }
+    }
+
+    /// <summary>
+    /// 줍기 시도(경쟁 중재) — 거리 검증 후, 바닥에서 <b>제거에 성공한 1명만</b> 아이템을 가져간다.
+    /// 반환 non-null = 줍기 확정(이 플레이어가 가져감). null = 없음(이미 주워짐=경쟁 패배)·범위 밖·미존재 플레이어.
+    /// 동시 픽업해도 lock(_groundItems) 안 Remove 가 1회만 성공 → 중복 지급 없음.
+    /// </summary>
+    public GroundItem? TryPickup(long userId, int groundId)
+    {
+        // 거리 검증용 플레이어 위치 먼저 스냅(락 비중첩 — _groundItems 와 중첩 잠금 회피).
+        PlayerState? player;
+        lock (_playerStates)
+        {
+            player = _playerStates.GetValueOrDefault(userId);
+        }
+        if (player is null)
+            return null;
+
+        lock (_groundItems)
+        {
+            if (!_groundItems.TryGetValue(groundId, out var item))
+                return null; // 이미 주워짐(경쟁 패배) 또는 존재하지 않음
+
+            float dx = item.PosX - player.PosX;
+            float dz = item.PosZ - player.PosZ;
+            if (dx * dx + dz * dz > PickupRange * PickupRange)
+                return null; // 줍기 범위 밖
+
+            _groundItems.Remove(groundId); // 경쟁 중재: 제거 성공 = 이 호출자가 승자
+            return item;
+        }
     }
 
     public void Broadcast(Packet packet, ulong? excludeSessionId = null)

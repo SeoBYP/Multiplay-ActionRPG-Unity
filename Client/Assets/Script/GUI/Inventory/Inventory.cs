@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using Game.Core;
 using Game.GUI.Common;
 using Game.Presentation.Inventory;
 using R3;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.UI;
 using VContainer;
 
@@ -49,10 +52,20 @@ namespace Game.GUI.Inventory
         [SerializeField] private ScrollRect scrollRect;
         [SerializeField] private Transform contents;
 
+        [Header("Slot Generation")]
+        [Tooltip("총 슬롯(컨테이너) 개수 — 고정.")]
+        [SerializeField] private int slotCount = 30;
+
+        // 슬롯 prefab은 Addressable로 로드(UniversalSlot / ItemContentsSlot) — Inspector 할당 불요.
+        private UniversalSlot _universalSlotPrefab;
+        private ItemContentsSlot _itemContentsPrefab;
+        private AsyncOperationHandle<GameObject> _slotHandle;
+        private AsyncOperationHandle<GameObject> _contentHandle;
+
         /// <summary>
-        /// 현재 보유중인 아이템 슬롯
+        /// 생성된 컨테이너 슬롯들(고정 slotCount 개). 빈 칸은 Content 없이 컨테이너만 보인다.
         /// </summary>
-        private List<UniversalSlot> activeSlots = new List<UniversalSlot>();
+        private readonly List<UniversalSlot> activeSlots = new List<UniversalSlot>();
 
         [Inject] private InventoryModel _model;
 
@@ -77,9 +90,46 @@ namespace Game.GUI.Inventory
             contents = scrollRect.content;
         }
 
-        private void Awake()
+        /// <summary>UniversalSlot / ItemContentsSlot prefab을 Addressable로 로드한다.</summary>
+        private async UniTask LoadSlotPrefabsAsync()
         {
-            activeSlots = contents.GetComponentsInChildren<UniversalSlot>(true).ToList();
+            _slotHandle    = Addressables.LoadAssetAsync<GameObject>(AddressKeys.UI.UniversalSlot);
+            _contentHandle = Addressables.LoadAssetAsync<GameObject>(AddressKeys.UI.ItemContentsSlot);
+            try
+            {
+                await _slotHandle.Task.AsUniTask();
+                await _contentHandle.Task.AsUniTask();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[Inventory] 슬롯 prefab Addressable 로드 실패: {e.Message}");
+                return;
+            }
+
+            _universalSlotPrefab = _slotHandle.Result != null ? _slotHandle.Result.GetComponent<UniversalSlot>() : null;
+            _itemContentsPrefab  = _contentHandle.Result != null ? _contentHandle.Result.GetComponent<ItemContentsSlot>() : null;
+
+            if (_universalSlotPrefab == null)
+                Debug.LogError("[Inventory] UniversalSlot prefab 로드 실패/컴포넌트 없음 (Addressable 주소 확인)");
+            if (_itemContentsPrefab == null)
+                Debug.LogError("[Inventory] ItemContentsSlot prefab 로드 실패/컴포넌트 없음 (Addressable 주소 확인)");
+        }
+
+        /// <summary>컨테이너 슬롯을 slotCount 개 무조건 생성한다(프리팹에 미리 박힌 슬롯은 정리해 중복 방지).</summary>
+        private void BuildSlots()
+        {
+            if (_universalSlotPrefab == null || contents == null)
+            {
+                Debug.LogError("[Inventory] UniversalSlot prefab/contents 없음 — 슬롯 생성 불가");
+                return;
+            }
+
+            foreach (var existing in contents.GetComponentsInChildren<UniversalSlot>(true))
+                Destroy(existing.gameObject);
+
+            activeSlots.Clear();
+            for (int i = 0; i < slotCount; i++)
+                activeSlots.Add(Instantiate(_universalSlotPrefab, contents));
         }
 
         private void Start()
@@ -101,11 +151,21 @@ namespace Game.GUI.Inventory
                 }
             }
 
+            // 슬롯 prefab을 Addressable로 로드한 뒤 슬롯 생성·구독·첫 갱신을 순서대로 한다.
+            InitializeAsync().Forget();
+        }
+
+        /// <summary>슬롯 prefab 로드 → slotCount 개 컨테이너 생성 → State 구독 → 첫 Refresh.</summary>
+        private async UniTaskVoid InitializeAsync()
+        {
+            await LoadSlotPrefabsAsync();
+            BuildSlots();
+
             // R3 구독 — AddTo(CancellationToken)은 Game.GUI.Common import와 오버로드가 꼬여 CS1620이 나므로
             // IDisposable을 직접 보관해 OnDestroy에서 해제한다.
             _stateSubscription = _model.State.Subscribe(Render);
 
-            // 창이 처음 열릴 때(Start 시점) 1회 갱신.
+            // 슬롯 준비 후 1회 갱신.
             _model.Accept(InventoryIntent.Refresh.Instance);
         }
 
@@ -113,6 +173,8 @@ namespace Game.GUI.Inventory
         {
             _stateSubscription?.Dispose();
             _stateSubscription = null;
+            if (_slotHandle.IsValid()) Addressables.Release(_slotHandle);
+            if (_contentHandle.IsValid()) Addressables.Release(_contentHandle);
         }
 
         private void OnEnable()
@@ -135,18 +197,20 @@ namespace Game.GUI.Inventory
             {
                 if (i < filtered.Count)
                 {
-                    activeSlots[i].Show();
-                    activeSlots[i].ItemContents?.Bind(filtered[i].Icon, filtered[i].Quantity);
+                    // 아이템 있는 칸 — Content를 동적 생성/보장 후 바인딩.
+                    var content = activeSlots[i].EnsureContent(_itemContentsPrefab);
+                    content?.Bind(filtered[i].Icon, filtered[i].Quantity);
                 }
                 else
                 {
-                    activeSlots[i].Hide();
+                    // 빈 칸 — 컨테이너만 두고 Content 숨김.
+                    activeSlots[i].ClearContent();
                 }
             }
 
-            // 슬롯 풀보다 아이템이 많으면 잘림 — 침묵 금지(프리팹 슬롯 수 조정 필요).
+            // 슬롯 수보다 아이템이 많으면 잘림 — 침묵 금지(slotCount 조정 필요).
             if (filtered.Count > activeSlots.Count)
-                Debug.LogWarning($"[Inventory] 아이템 {filtered.Count}개 > 슬롯 {activeSlots.Count}개 — 일부 미표시. 슬롯 풀을 늘려라.");
+                Debug.LogWarning($"[Inventory] 아이템 {filtered.Count}개 > 슬롯 {activeSlots.Count}개 — 일부 미표시. slotCount를 늘려라.");
         }
 
         private static List<InventoryItemModel> Filter(IReadOnlyList<InventoryItemModel> items, ItemCategory? category)

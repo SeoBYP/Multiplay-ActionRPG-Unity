@@ -16,7 +16,8 @@ public class MonsterRoomTests
         NullLogger<RoomManager>.Instance,
         NullLogger<global::Server.Room.Room>.Instance,
         new FakeRoomLifecyclePublisher(),
-        new FakeDungeonResultPublisher());
+        new FakeDungeonResultPublisher(),
+        new FakeLootPickupPublisher());
 
     [Fact]
     public void CreateRoom은_맵의_몬스터를_스폰한다()

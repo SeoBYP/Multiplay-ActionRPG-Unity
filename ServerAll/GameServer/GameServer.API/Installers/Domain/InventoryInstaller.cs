@@ -1,6 +1,10 @@
 using GameServer.Application.Domains.Inventory;
 using GameServer.Application.Domains.Inventory.Interfaces;
+using GameServer.Infrastructure.Common.Consumer;
+using GameServer.Infrastructure.Common.MessageQueue;
 using GameServer.Infrastructure.Domains.Inventory;
+using Shared.Infrastructure.MessageQueue;
+using Shared.Infrastructure.Messages;
 
 namespace GameServer.API.Installers.Domain;
 
@@ -13,5 +17,9 @@ public class InventoryInstaller : IServiceInstaller
     {
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IInventoryService, InventoryService>();
+
+        // 루트/드랍(3.3): SocketServer 줍기 확정 → 인벤토리 영속 지급.
+        services.AddSingleton<IMessageQueue<ItemPickedUpMessage>, LootPickupMessageQueue>();
+        services.AddHostedService<LootGrantConsumer>();
     }
 }

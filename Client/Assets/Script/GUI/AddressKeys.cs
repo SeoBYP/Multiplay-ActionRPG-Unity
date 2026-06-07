@@ -14,6 +14,10 @@ namespace Game.GUI
             public const string GameHud          = "Assets/Prefabs/GUI/HUD/GameHud.prefab";
             public const string Inventory        = "Assets/Prefabs/GUI/Inventory/Inventory.prefab";
 
+            // 인벤토리 슬롯(동적 생성용 prefab — Addressable 로드).
+            public const string UniversalSlot    = "Assets/Prefabs/GUI/Common/Slot/UniversalSlot.prefab";
+            public const string ItemContentsSlot = "Assets/Prefabs/GUI/Common/Slot/Contents/ItemContentsSlot.prefab";
+
             public const string AlertPopup       = "Assets/Prefabs/GUI/Common/Popups/AlertPopup.prefab";
             public const string ConfirmPopup     = "Assets/Prefabs/GUI/Common/Popups/ConfirmPopup.prefab";
             public const string WarningPopup     = "Assets/Prefabs/GUI/Common/Popups/WarningPopup.prefab";

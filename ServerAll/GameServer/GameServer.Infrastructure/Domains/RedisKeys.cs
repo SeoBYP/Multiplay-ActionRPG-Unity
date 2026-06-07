@@ -47,6 +47,9 @@ public static class RedisKeys
     // DungeonResult (보상 멱등 — 처리완료 RoomId 집합)
     public static string DungeonResultProcessed() => $"{Prefix}:dungeon:result:done";
 
+    // LootPickup (지급 멱등 — 처리완료 PickupId 집합)
+    public static string LootPickupProcessed() => $"{Prefix}:loot:pickup:done";
+
     // Chat
     public static string ChatMessage(long messageId) => $"{Prefix}:chat:message:{messageId}";
     public static string ChatAllMessages() => $"{Prefix}:chat:message:all";

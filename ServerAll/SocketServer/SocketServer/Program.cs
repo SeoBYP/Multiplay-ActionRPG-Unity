@@ -69,6 +69,8 @@ namespace Server
                     services.AddSingleton<IRoomLifecyclePublisher>(sp => sp.GetRequiredService<RoomLifecycleMessageQueue>());
                     services.AddSingleton<DungeonResultMessageQueue>();
                     services.AddSingleton<IDungeonResultPublisher>(sp => sp.GetRequiredService<DungeonResultMessageQueue>());
+                    services.AddSingleton<LootPickupMessageQueue>();
+                    services.AddSingleton<ILootPickupPublisher>(sp => sp.GetRequiredService<LootPickupMessageQueue>());
                     services.AddSingleton<RoomManager>();
                     services.AddSingleton<SessionManager>();
                     services.AddSingleton<TcpNetworkListener>(sp =>

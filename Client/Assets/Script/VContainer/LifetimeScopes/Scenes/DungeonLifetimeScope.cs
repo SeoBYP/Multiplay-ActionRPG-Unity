@@ -15,6 +15,7 @@ public class DungeonLifetimeScope : LifetimeScope
     [SerializeField] private GameObject localPlayerPrefab;
     [SerializeField] private GameObject remotePlayerPrefab;
     [SerializeField] private GameObject monsterPrefab; // M3 ⑥ 서버 권위 몬스터
+    [SerializeField] private GameObject groundItemPrefab; // 3.3 서버 권위 드랍(바닥 아이템)
     [SerializeField] private EffectIconCatalog effectIconCatalog; // 버프 표시 매핑(표시 전용)
     [SerializeField] private ItemDisplayCatalog itemDisplayCatalog; // 인벤토리 아이템 표시 매핑(itemId→이름·아이콘·분류)
 
@@ -45,7 +46,7 @@ public class DungeonLifetimeScope : LifetimeScope
         // 인벤토리 MVI — Model + 표시 카탈로그(인스펙터 → Resources 폴백 → 빈 인스턴스) + 창 컨트롤러.
         builder.RegisterInstance(itemDisplayCatalog != null
             ? itemDisplayCatalog
-            : Resources.Load<ItemDisplayCatalog>("Inventory/ItemDisplayCatalog")
+            : Resources.Load<ItemDisplayCatalog>("ItemDisplayCatalog")
               ?? ScriptableObject.CreateInstance<ItemDisplayCatalog>());
         builder.Register<InventoryModel>(Lifetime.Scoped).AsSelf();
         builder.RegisterEntryPoint<InventoryViewController>(Lifetime.Scoped);
@@ -57,8 +58,8 @@ public class DungeonLifetimeScope : LifetimeScope
         builder.Register<IStateFactory, StateFactory>(Lifetime.Scoped);
         builder.Register<IStateMachineBuilder, StateMachineBuilder>(Lifetime.Scoped);
 
-        // Dungeon 씬은 로컬 + 원격 플레이어 + 몬스터 스폰.
-        builder.RegisterInstance(new CharacterPrefabSettings(localPlayerPrefab, remotePlayerPrefab, monsterPrefab));
+        // Dungeon 씬은 로컬 + 원격 플레이어 + 몬스터 + 바닥 아이템(드랍) 스폰.
+        builder.RegisterInstance(new CharacterPrefabSettings(localPlayerPrefab, remotePlayerPrefab, monsterPrefab, groundItemPrefab));
         // 결정론 스폰 레이아웃 제공자 (spawn-layouts.json 로드).
         builder.Register<SpawnLayoutProvider>(Lifetime.Scoped).AsSelf();
         // 던전 맵 배경 모델 로드 (MapDefinition.visualPrefab).
@@ -66,5 +67,7 @@ public class DungeonLifetimeScope : LifetimeScope
         builder.RegisterEntryPoint<CharacterSpawner>(Lifetime.Scoped);
         // M3 ⑥: 서버 권위 몬스터 스폰/보간/디스폰.
         builder.RegisterEntryPoint<MonsterSpawner>(Lifetime.Scoped);
+        // 3.3: 서버 권위 드랍(바닥 아이템) 스폰/디스폰 + 줍기.
+        builder.RegisterEntryPoint<GroundItemSpawner>(Lifetime.Scoped);
     }
 }

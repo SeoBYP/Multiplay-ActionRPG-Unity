@@ -1,0 +1,46 @@
+using MemoryPack;
+
+namespace Shared.Packet.Packets;
+
+/// <summary>
+/// 서버 → 클라: 바닥 아이템 1개 스폰. 몬스터 사망 drop roll 결과로 발생.
+/// 입장 시 현재 바닥 아이템 로스터 재전송에도 재사용(늦은 입장 대응).
+/// </summary>
+[MemoryPackable]
+public partial class S_SpawnGroundItem : Packet
+{
+    public int GroundId { get; set; }                    // 방 내 고유 ID(서버 발급)
+    public string ItemId { get; set; } = string.Empty;   // 정의 키(GameServer ItemCatalog 와 공유)
+    public int Qty { get; set; }
+    public float PosX { get; set; }
+    public float PosY { get; set; }
+    public float PosZ { get; set; }
+}
+
+/// <summary>
+/// 서버 → 클라: 바닥 아이템 제거(누군가 주웠거나 만료). 모든 클라가 렌더에서 제거.
+/// </summary>
+[MemoryPackable]
+public partial class S_GroundItemRemoved : Packet
+{
+    public int GroundId { get; set; }
+}
+
+/// <summary>
+/// 클라 → 서버: 바닥 아이템 줍기 의도. "먹을지" 선택 = 요청일 뿐, 줍기 확정(경쟁 중재)은 서버 권위.
+/// </summary>
+[MemoryPackable]
+public partial class C_PickupItem : Packet
+{
+    public int GroundId { get; set; }
+}
+
+/// <summary>
+/// 서버 → 클라: 줍기 성공 토스트(줍은 본인에게만). 인벤토리 수치 갱신은 클라가 GetInventory(pull).
+/// </summary>
+[MemoryPackable]
+public partial class S_ItemPickedUp : Packet
+{
+    public string ItemId { get; set; } = string.Empty;
+    public int Qty { get; set; }
+}

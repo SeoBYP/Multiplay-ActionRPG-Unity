@@ -90,6 +90,18 @@ public static class RoomJoinLeaveHandler
             }, ct);
         }
 
+        // 5) 신규 입장자에게 현재 바닥 아이템 로스터를 회신(이미 떨어진 드랍을 늦은 입장에도 보이게).
+        foreach (var ground in room.GetAllGroundItems())
+        {
+            await session.SendPacketAsync(new S_SpawnGroundItem
+            {
+                GroundId = ground.GroundId,
+                ItemId = ground.ItemId,
+                Qty = ground.Qty,
+                PosX = ground.PosX, PosY = ground.PosY, PosZ = ground.PosZ,
+            }, ct);
+        }
+
         if (room.MemberCount == room.MaxMembers)
         {
             room.Broadcast(new S_GameStatus

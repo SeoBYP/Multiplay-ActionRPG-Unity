@@ -72,7 +72,8 @@ public class DungeonClearTests
             NullLogger<RoomManager>.Instance,
             NullLogger<global::Server.Room.Room>.Instance,
             new FakeRoomLifecyclePublisher(),
-            fake);
+            fake,
+            new FakeLootPickupPublisher());
 
         const long roomId = 50;
         var message = new GameStartRequestedMessage

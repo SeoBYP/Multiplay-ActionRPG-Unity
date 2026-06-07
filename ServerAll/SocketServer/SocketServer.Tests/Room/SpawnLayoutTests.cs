@@ -52,7 +52,8 @@ public class SpawnLayoutTests
             NullLogger<RoomManager>.Instance,
             NullLogger<global::Server.Room.Room>.Instance,
             new FakeRoomLifecyclePublisher(),
-            new FakeDungeonResultPublisher());
+            new FakeDungeonResultPublisher(),
+            new FakeLootPickupPublisher());
 
         const long roomId = 10;
         var message = new GameStartRequestedMessage
