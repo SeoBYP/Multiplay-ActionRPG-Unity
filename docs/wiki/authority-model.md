@@ -108,6 +108,52 @@
 
 ---
 
+## 7. 씬/컨텐츠별 서버·클라 역할 매트릭스 (한눈에)
+
+> §3가 "도메인별 권위(코옵 기준)"라면, 여기는 **씬(게임 컨텐츠)별로 GameServer·SocketServer·Client가 각각 뭘 하나**를 박제. 새 기능은 *어느 씬·컨텐츠인지* 먼저 보고 이 표의 행에 끼워 넣는다.
+
+**3주체 한 줄 정의**
+- **GameServer** = *DB에 남는 것* — 인증·도메인 CRUD(로비·채팅·인벤토리·진행)·보상 지급. **모든 씬 공통**(영속·검증).
+- **SocketServer** = *코옵 실시간 월드 권위* — 이동·전투·몬스터·드랍·줍기 중재. **던전(코옵)에서만**. Title/Main 미관여.
+- **Client** = *입력·연출·표시* — 모든 씬. **싱글(Main 오픈월드)에선 로컬 권위**(몬스터·전투·드랍)까지 떠안음.
+
+### ① Title 씬 (인증)
+| 컨텐츠 | GameServer | SocketServer | Client |
+|---|---|---|---|
+| 로그인·회원가입·토큰·자동로그인 | ✅ JWT 발급·검증·세션·Refresh | — | 로그인 UI·토큰 보관·송신 |
+
+### ② Main 씬 (OutGame — 로비/소셜 + 싱글 오픈월드 맛보기)
+| 컨텐츠 | GameServer | SocketServer | Client |
+|---|---|---|---|
+| 방 목록·생성·입장(로비) | ✅ gRPC CRUD + `SubscribeRoom` 스트림 | — | UI·Intent |
+| 채팅 | ✅ Redis Streams 중계 | — | UI |
+| 인벤토리 조회 | ✅ 영속(`GetInventory`) | — | 표시 |
+| 게임시작 → 세션 생성 | ✅ Outbox→세션 IP:Port | (방 생성 수신) | 전이 UI |
+| **싱글 몬스터·전투·이동** | — | — | **Client 로컬 권위**(`Shared.Gameplay`) |
+| **싱글 드랍 roll·바닥·줍기** | — | — | **Client 로컬** |
+| **싱글 아이템 지급(영속)** | ✅ `GrantItem` gRPC(가드: catalog·수량상한) | — | 요청·표시 |
+| 진행/Exp 영속 | ✅ 검증·기록 | — | 표시 |
+
+### ③ Dungeon 씬 (InGame — 코옵 실시간)
+| 컨텐츠 | GameServer | SocketServer | Client |
+|---|---|---|---|
+| 플레이어 이동 | — | ✅ 릴레이(원본 ts) | 입력 즉발·원격 보간 |
+| 적중·데미지·몬스터 HP·사망 | — | ✅ 서버권위(`HitboxMath`·`DamageMonster`) | 입력·연출·예측 |
+| 몬스터 sim(AI·이동) | — | ✅ `RoomTickService`·`MonsterAiMath` | 보간 렌더 |
+| 플레이어 자기 HP | — | (릴레이) | 클라 결정론(④, 부채) |
+| **드랍 roll·바닥·줍기** | — | ✅ 월드 권위·경쟁중재 | 바닥 렌더·줍기 의도 |
+| 클리어/실패 감지 | — | ✅ 1회 발화 | 표시 |
+| **보상·아이템 지급(영속)** | ✅ Consumer→Progression/Inventory | (Redis Stream 발행) | 표시 |
+| 세션 IP:Port | ✅ 관리 | (자기 주소 advertise) | 접속 |
+
+### 핵심 규칙 (이 표가 강제하는 것)
+- **SocketServer는 던전(코옵)에서만.** Title/Main은 SocketServer 미관여 — Main 싱글은 **Client 로컬 + GameServer 지급(gRPC)** 으로 끝낸다(통신 최소).
+- **영속(DB에 남는 것)은 어느 씬이든 GameServer.** 단 *호출자*만 다름: 던전=SocketServer가 Stream으로, Main 싱글=Client가 gRPC로.
+- **같은 컨텐츠라도 씬에 따라 권위 주체가 바뀐다** — 몬스터/전투/드랍: 던전=SocketServer, Main=Client. (§2 context 적용, 모순 아님.)
+- 루트/드랍 상세 = [loot-drop.md](loot-drop.md).
+
+---
+
 ## 참고
 - 공유 결정론 코어: `Shared.Gameplay`(서버 ProjectReference / 클라 `Plugins/Shared.Gameplay.dll`) — codemap §2.6
 - 결정 로그: [codemap.md](codemap.md) §2.7(서버 권위 적중)·§2.9(클리어)·§2.6(SkillTimeline)·§2.3(결정론 스폰)

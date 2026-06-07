@@ -76,7 +76,7 @@
   - [x] **3.1.5** `inventory.proto`(GetInventory) + `InventoryGrpcService` + 클라 Generated 재생성 (획득 push는 3.3로 보류)
   - [x] **3.1.6** 단위(엔티티·카탈로그·서비스 13) + Testcontainers 통합 7(캐시 무효화 계약)
 - **3.2** 장비(Equipment) — 착용 슬롯·장비 스탯 모디파이어 → 2.4 합산 — ⬜ | T2 | 🟢
-- **3.3** 루트/드랍(Loot) — 드랍 테이블·보상 산정 → `IInventoryService.GrantItemAsync` 연결 — ⬜ | T2 | ⚪ (**몬스터 확장(4.1.6 웨이브 등) 작업 시 함께 진행** 결정 2026-06-07. 인벤토리 도메인(3.1)·GrantItem 진입점은 준비됨 → 드랍 테이블 + 처치 시 지급만 남음)
+- **3.3** 루트/드랍(Loot) — **월드 드랍 + 줍기**, **2경로** — ⬜ | T2 | ⚪ (**설계 확정·문서화 2026-06-07**, 상세 = [loot-drop.md](loot-drop.md). 자동지급 아님(플레이어가 줍기 선택). **던전(co-op)** = SocketServer 서버권위(roll·바닥 GroundItem·줍기 경쟁중재)→Redis Stream→**GameServer `GrantItemAsync`**(PickupId 멱등). **Main(싱글)** = Client 로컬 시뮬/드랍/줍기→**Client `GrantItem` gRPC 직접**(서버 가드: catalog·수량상한). **공통=지급(GameServer Create/Update)뿐**, 앞단은 다름. 책임: Socket=월드·Game=인벤토리·Client=표시+의도. 패킷 1830~1833. 구현: 던전 경로 먼저)
 - **3.4** 재화(Wallet) — 골드 보유·증감(서버 권위) — ⬜ | T2 | 🟢
 - **3.5** 상점(Shop) — 구매/판매·가격·재고 — ⬜ | T2 | ⚪
 - **3.6** 강화/크래프팅 — ⬜ | T3 | ⚪
@@ -99,9 +99,10 @@
 - **4.3** 던전 메타 — `DungeonRoom.DungeonId` 추가(=9.2 부채) — ⬜ | T1 | 🟢
 - **4.4** 퀘스트(Quest) — 수주/진행/완료·보상 (`Quest` 신규) — ⬜ | T2 | ⚪
 - **4.5** NPC/대화(Dialogue) — 상호작용·대화 트리 (`Npc` 신규) — ⬜ | T2 | ⚪
-- **4.6 월드/존(World)** — 오픈월드 PVE 맛보기 (`World` 신규) — ⬜ | T2 | ⚪
+- **4.6 월드/존(World)** — 오픈월드 PVE 맛보기 (`World` 신규) — ⬜ | T2 | ⚪ (**Main 몬스터의 전제**: 현재 Main은 소켓 미연결이라 서버 권위 몬스터 없음 → Main에 몬스터를 내려면 **Main이 네트워크 World 세션**이어야 함. SocketServer `Room`→`World` 일반화 시 드랍/줍기(3.3)가 그대로 적용. 상세 = [loot-drop.md](loot-drop.md) §6)
   - **4.6.1** 존 맵·존 전환·포탈 — ⬜ | T2 | ⚪
   - **4.6.2** 텔레포트/패스트트래블 — ⬜ | T2 | ⚪
+  - **4.6.3** Main 몬스터/드랍 = **Client 로컬 시뮬**(싱글) + `GrantItem` gRPC(서버 가드) — **네트워크 World 불필요**(정정 2026-06-07, [loot-drop.md](loot-drop.md) §1.4). co-op 오픈월드가 필요해지면 그때 서버 World 검토 — ⬜ | T2 | ⚪
 - **4.7 상호작용 오브젝트** (`IInteractable` 확장) — 🔄 | T2 | ⚪
   - **4.7.1** 문/상자/채집 노드·파괴 가능 오브젝트 — 🔄 | T2 | ⚪
   - **4.7.2** 함정/환경 기믹 — ⬜ | T3 | ⚪
