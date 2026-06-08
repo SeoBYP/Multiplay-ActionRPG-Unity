@@ -30,11 +30,24 @@ public class DropTableTests
     [Fact]
     public void 확률_임계_이상이면_해당_후보는_드랍되지_않는다()
     {
-        // potion(0.5): 0.5 >= 0.5 → 탈락 / gold(0.2): 0.9 >= 0.2 → 탈락.
-        var rng = new StubRandom(doubles: [0.5, 0.9], ints: []);
+        // potion(1.0): NextDouble 은 항상 < 1.0 → 보장 드랍 / gold(0.2): 0.9 >= 0.2 → 탈락.
+        var rng = new StubRandom(doubles: [0.99, 0.9], ints: []);
         var drops = DropTable.Roll("slime", rng);
 
-        Assert.Empty(drops);
+        // potion 만 남고 gold 는 임계 탈락.
+        Assert.Single(drops);
+        Assert.Equal("potion_hp_small", drops[0].ItemId);
+    }
+
+    [Fact]
+    public void potion_hp_small_은_확률과_무관하게_항상_드랍된다()
+    {
+        // Chance 1.0 → NextDouble 이 1.0 미만(항상)이라 어떤 값에서도 통과. gold 는 둘 다 탈락시킴.
+        var rng = new StubRandom(doubles: [0.999999, 0.999999], ints: []);
+        var drops = DropTable.Roll("slime", rng);
+
+        Assert.Contains(drops, d => d.ItemId == "potion_hp_small" && d.Qty == 1);
+        Assert.DoesNotContain(drops, d => d.ItemId == "gold_pouch");
     }
 
     [Fact]

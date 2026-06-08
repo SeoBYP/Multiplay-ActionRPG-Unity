@@ -41,14 +41,14 @@ public class HeartBeatService(
 
                     if (session.Room != null)
                     {
-                        // 방 안 플레이어 타임아웃:
-                        // LeaveRoom을 먼저 호출해 S_PlayerLeft 브로드캐스트 + 빈 방 정리를 즉시 처리.
+                        // 방 안 플레이어 무응답 타임아웃 = 네트워크 끊김 → graceful 퇴장.
+                        // 방에 다른 플레이어가 남아 있으면 재접속 유예 창 동안 상태 보존(재접속 가능).
                         // 이후 Disconnect가 Session.RunAsync finally를 트리거해도 LeaveRoom은 멱등하다.
                         logger.LogWarning(
                             "Room player timed out — SessionId={SessionId} UserId={UserId} RoomId={RoomId} LastRecvAt={LastRecvAt}",
                             session.SessionId, session.UserId, session.Room.RoomId, session.LastRecvAt);
 
-                        roomManager.LeaveRoom(session);
+                        roomManager.LeaveRoom(session, graceful: true);
                     }
                     else
                     {

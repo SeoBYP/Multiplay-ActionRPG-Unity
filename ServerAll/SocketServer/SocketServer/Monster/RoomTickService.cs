@@ -51,5 +51,8 @@ public class RoomTickService(
             foreach (var packet in packets)
                 room.Broadcast(packet);
         }
+
+        // 재접속 유예 만료된 끊김 플레이어 정리(영구 퇴장 확정 + association 정리).
+        roomManager.SweepDisconnectedPlayers(nowMs);
     }
 }

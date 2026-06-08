@@ -2,7 +2,9 @@
 
 > **새 채팅 시작 시 이 파일을 먼저 읽어라.**
 > Phase가 완료될 때마다 즉시 갱신한다.
-> 마지막 갱신: 2026-06-07 (**M4 던전 루프 완성 = DoD 달성** 🎉 — A 트랙(클리어 루프)·B 트랙(Exp 보상+실패 경로+UI) 코드 완료에 더해, **MPPM 2-창 수동 플레이로 클리어→보상→로비 복귀 1판 전체 시각 검증 통과**(사람 확인). M4 마지막 잔여(완전한 Co-op 1판 루프) 닫힘 → **M4 전체 ✅**. **다음 = M5 폴리시/콘텐츠** 또는 서버 도메인 병렬 트랙(3.1 인벤토리 등). DoD: 2명 접속→방 생성·시작→던전 입장(서로 보임·이동)→몬스터 협력 처치→클리어→Exp 보상→로비 복귀 전 과정 서버 권위 + E2E 통과 — **충족**.)
+> 마지막 갱신: 2026-06-09 (**3.3.7 루트 풀 E2E + 재접속 유예 창(6.4)** — ① 던전 루트 풀 E2E(사냥→드랍→줍기→인벤토리) 작성, `DropTable` 슬라임 potion 보장드랍(결정성)·`StartedRoomContext.HostAccessToken`. ② **9.4 부채수정이 만든 재접속 회귀**(크래시 시 `_playerStates` 즉시삭제 → 재입장 거부)를 **재접속 유예 창(grace)**으로 해소 = WBS 6.4 진척: 크래시는 60s 상태 보존+AI 유령필터, 명시퇴장만 즉시제거, 만료 스윕. **SocketServer.Tests 72/72 + PlayMode 16/16 그린**(UnityMCP). 상세 = codemap §2.17. **Main 루트 경로(3.3.8~10)·클라 재접속 팝업 잔여.**)
+>
+> 직전: 2026-06-07 (**M4 던전 루프 완성 = DoD 달성** 🎉 — A 트랙(클리어 루프)·B 트랙(Exp 보상+실패 경로+UI) 코드 완료에 더해, **MPPM 2-창 수동 플레이로 클리어→보상→로비 복귀 1판 전체 시각 검증 통과**(사람 확인). M4 마지막 잔여(완전한 Co-op 1판 루프) 닫힘 → **M4 전체 ✅**. **다음 = M5 폴리시/콘텐츠** 또는 서버 도메인 병렬 트랙(3.1 인벤토리 등). DoD: 2명 접속→방 생성·시작→던전 입장(서로 보임·이동)→몬스터 협력 처치→클리어→Exp 보상→로비 복귀 전 과정 서버 권위 + E2E 통과 — **충족**.)
 >
 > 직전: 2026-06-06 (**M4 A 트랙 완료** — 던전 클리어 루프 골격 그린. 몬스터 전멸→`Room.TryMarkCleared`(서버 권위 1회)→`S_DungeonClear`(1820) 브로드캐스트+`DungeonClearMessage`(stream:game:dungeon:result)→`DungeonResultConsumer`(수신·로그, 보상 TODO)→클라 `InGameState.IsDungeonCleared`→`GameHud` 패널+기존 `ReturnToLobby`. **SocketServer.Tests 47/47 + PlayMode SocketE2ETests 12/12**(Docker 리빌드 후). 상세 = codemap §2.9. **A 잔여(사용자 영역)**: 전투 플레이 검증·결과 패널 아트. **다음 = B 트랙(보상)**: DungeonId(EF 마이그레이션)→Inventory→Progression→`DungeonResultConsumer` TODO 자리에 보상 산정·지급(Outbox 원자화)→결과/보상 UI.)
 >
@@ -76,14 +78,14 @@
   - [x] **3.1.5** `inventory.proto`(GetInventory) + `InventoryGrpcService` + 클라 Generated 재생성 (획득 push는 3.3로 보류)
   - [x] **3.1.6** 단위(엔티티·카탈로그·서비스 13) + Testcontainers 통합 7(캐시 무효화 계약)
 - **3.2** 장비(Equipment) — 착용 슬롯·장비 스탯 모디파이어 → 2.4 합산 — ⬜ | T2 | 🟢
-- **3.3** 루트/드랍(Loot) — **월드 드랍 + 줍기**, **2경로** — 🔄 | T2 | 🟢 (**설계=** [loot-drop.md](loot-drop.md). **던전 경로 서버 풀스택(증분 1~5) + 클라 렌더/줍기(증분 6) 완료·플레이 검증 통과 2026-06-08**, 상세 = codemap §2.16·§2.15·[chapter-15](../portfolio/chapter-15-loot-drop-inventory.md). roll·바닥·줍기중재=SocketServer / 지급=GameServer(`GrantItemAsync`, PickupId 멱등) / Redis Stream 단방향. 패킷 1830~1833. 클라=`GroundItemEntity`(IInteractable, E 줍기)·`GroundItemSpawner`·`GroundItem.prefab`(Layer7). **플레이 검증**: 슬라임 처치→드랍→E 줍기→인벤토리 아이콘 표시까지 통과. **잔여**: 증분7 풀 E2E(PlayMode)·증분8~10 Main 싱글 경로(`GrantItem` gRPC+가드)·정식 획득 토스트 위젯)
+- **3.3** 루트/드랍(Loot) — **월드 드랍 + 줍기**, **2경로** — 🔄 | T2 | 🟢 (**설계=** [loot-drop.md](loot-drop.md). **던전 경로 서버 풀스택(증분 1~5) + 클라 렌더/줍기(증분 6) 완료·플레이 검증 통과 2026-06-08**, 상세 = codemap §2.16·§2.15·[chapter-15](../portfolio/chapter-15-loot-drop-inventory.md). roll·바닥·줍기중재=SocketServer / 지급=GameServer(`GrantItemAsync`, PickupId 멱등) / Redis Stream 단방향. 패킷 1830~1833. 클라=`GroundItemEntity`(IInteractable, E 줍기)·`GroundItemSpawner`·`GroundItem.prefab`(Layer7). **플레이 검증**: 슬라임 처치→드랍→E 줍기→인벤토리 아이콘 표시까지 통과. **잔여**: 증분7 던전 E2E **PlayMode 실행**(코드 작성·서버 검증 완료, A안 보장 드랍)·증분8~10 Main 싱글 경로(`GrantItem` gRPC+가드)·정식 획득 토스트 위젯)
   - [x] **3.3.1** DropTable(SocketServer 정적) + GroundItem + roll/줍기 단위테스트
   - [x] **3.3.2** 패킷 4종 + Union(1830~1833) + `ItemPickedUpMessage`(Shared)
   - [x] **3.3.3** Room GroundItem 보유·SpawnGroundItem·TryPickup(경쟁중재) + CombatHandler 사망분기 드랍 + 입장 로스터
   - [x] **3.3.4** `C_PickupItem` 핸들러 + `ILootPickupPublisher`/MessageQueue(`stream:game:loot:pickup`) + DI
   - [x] **3.3.5** GameServer `LootGrantConsumer`(ResilientStreamConsumer) → GrantItemAsync, PickupId 멱등 + 통합/E2E
   - [x] **3.3.6** 클라: 패킷 미러(ClientCodegen) + `ISocketPacketState` 바닥아이템 상태/이벤트 + `LootPacketHandler` 3종 + `GroundItemEntity`(IInteractable 줍기) + `GroundItemSpawner` + DI(`DungeonLifetimeScope`/`CharacterPrefabSettings`) + `GroundItem.prefab`(Layer7·트리거·구체). 클라 빌드 검증(Game.Network/Gameplay/VContainer 0오류). **플레이 검증 통과(2026-06-08)**: 드랍→E 줍기→인벤토리 지급·아이콘 표시. (E 줍기 버그=오브가 바닥높이라 감지구체 미스 → +0.7 띄움으로 해결) 정식 획득 토스트 위젯은 후속(현재 로그)
-  - [ ] **3.3.7** 풀 E2E(사냥→드랍→줍기→인벤토리) + Main 경로(3.3.8~10)
+  - 🔄 **3.3.7** 풀 E2E(사냥→드랍→줍기→인벤토리) + Main 경로(3.3.8~10) — **던전 풀 E2E 작성 완료**(2026-06-08): `SocketE2ETests.RawSocket_슬라임_처치_드랍_줍기하면_GameServer_인벤토리에_지급된다`(처치→`S_SpawnGroundItem`→`C_PickupItem`→`S_ItemPickedUp`/`S_GroundItemRemoved`→Stream→GameServer 지급→`GetInventory` 폴링). **결정성 확보**: `DropTable` 슬라임 `potion_hp_small` 보장 드랍(Chance 0.5→1.0, gold 0.2 유지) — 슬라임 1마리뿐인 dungeon_01에서 40% 거짓실패 제거. SocketServer.Tests **66/66**(DropTable 5, 보장 드랍 1 신규) + 양 서버 Docker 리빌드·재배포 완료. **PlayMode 실행 통과(2026-06-09, UnityMCP)**: SocketE2ETests 13/13 + GameSessionConnectorE2ETests 3/3 = **16/16 그린**(루트 풀E2E 포함). **Main 경로(3.3.8~10) 잔여.**
 - **3.4** 재화(Wallet) — 골드 보유·증감(서버 권위) — ⬜ | T2 | 🟢
 - **3.5** 상점(Shop) — 구매/판매·가격·재고 — ⬜ | T2 | ⚪
 - **3.6** 강화/크래프팅 — ⬜ | T3 | ⚪
@@ -127,7 +129,7 @@
 - **6.1** 캐릭터 진행 영속 — 레벨·인벤토리·장비 DB 영속 (2.3/3.1/3.2 합류) — ⬜ | T1 | 🟢
 - **6.2** 던전 결과 → 로비 복귀 — 결과 처리 + 기존 던전→Main 복귀 재사용 — ✅ | T1 | ⚪ (M4: 클리어/실패 → `GameHud` 패널 → `ReturnToLobby` 재사용, MPPM 1판 루프 시각 검증)
 - **6.3** 설정/옵션 — 그래픽·사운드·키 바인딩 + 영속 — ⬜ | T2 | ⚪
-- **6.4** 재접속/세션 복구 — 인게임 끊김 복구 — 🔄 | T2 | ⚪
+- **6.4** 재접속/세션 복구 — 인게임 끊김 복구 — 🔄 | T2 | 🟢 (**재접속 유예 창(grace) 구현 2026-06-09**, 상세 = codemap §2.17. 크래시/끊김 시 방에 인원 남으면 `PlayerState`를 60s(`Room.ReconnectGraceMs`) 보존 → 재접속 시 보존 상태로 던전 즉시 복귀, 만료 시 `RoomTickService` 스윕 정리. **9.4 부채수정이 만든 재접속 회귀(크래시=재입장 불가)를 해소** — 명시퇴장만 즉시 제거, 크래시는 유예+AI 유령필터. SocketServer.Tests 72/72 + PlayMode **복귀 플로우 Green/Red 6종**(보존위치 복귀·유예중 보류 / 명시퇴장·전원끊김·유예만료 거부) + 기존 재접속 2 = `SocketE2ETests` **19/19** + `GameSessionConnectorE2ETests` 3/3. **잔여**: 재접속 실패/방종료 **클라 팝업**, 방 자체 유예(전원 끊김 시 방 60s 생존))
 - **6.5** 통계/플레이 기록 — ⬜ | T3 | ⚪
 - **6.6** 도전과제/업적 — ⬜ | T3 | ⚪
 - **6.7** 튜토리얼/온보딩 — ⬜ | T3 | ⚪

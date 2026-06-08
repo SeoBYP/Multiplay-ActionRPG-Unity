@@ -57,9 +57,13 @@ public static class RoomJoinLeaveHandler
         var playerState = room.GetPlayerState(session.UserId);
         if (playerState is null)
         {
+            // 상태 없음 = 게임 미시작 or 재접속 유예 만료(>ReconnectGraceMs) 후. 재입장 불가.
             await session.SendPacketAsync(new S_PlayerJoined { Success = false, Message = "Player state not initialized" }, ct);
             return;
         }
+
+        // 재접속: 끊김 유예 동안 보존된 상태였다면 마킹을 해제해 다시 활성화(보존 위치/상태로 즉시 복귀).
+        room.MarkReconnected(session.UserId);
 
         var joinedPacket = ToJoinedPacket(playerState, room.MapId);
 

@@ -88,7 +88,9 @@ public sealed class Session
         }
         finally
         {
-            RoomManager.LeaveRoom(this);
+            // 수신 루프 종료 = 크래시/네트워크 끊김(C_PlayerLeave 없음) → graceful 퇴장.
+            // 방에 다른 플레이어가 남아 있으면 재접속 유예 창 동안 PlayerState 보존(즉시 퇴장 확정 보류).
+            RoomManager.LeaveRoom(this, graceful: true);
             Disconnect();
             _onDisconnected?.Invoke(SessionId);
         }

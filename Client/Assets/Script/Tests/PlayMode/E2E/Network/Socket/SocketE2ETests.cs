@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -13,6 +14,7 @@ using Game.Network.Socket;
 using Game.Network.Socket.Packets;
 using GameServer.Grpc.Auth;
 using GameServer.Grpc.DungeonLobby;
+using GameServer.Grpc.Inventory;
 using GameServer.Grpc.User;
 using NUnit.Framework;
 using UnityEngine.TestTools;
@@ -297,6 +299,83 @@ namespace Game.Tests.PlayMode.E2E
             }
         });
 
+        // ── 3.3.7 루트 풀 E2E (사냥 → 드랍 → 줍기 → 인벤토리 지급) ──────────
+
+        [UnityTest]
+        public IEnumerator RawSocket_슬라임_처치_드랍_줍기하면_GameServer_인벤토리에_지급된다() => UniTask.ToCoroutine(async () =>
+        {
+            // 던전 루트 경로 풀 체인 검증(loot-drop.md §3):
+            //   ① 슬라임 처치(서버 권위) → DropTable.Roll → S_SpawnGroundItem 브로드캐스트
+            //   ② C_PickupItem → 서버 TryPickup(경쟁 중재·거리) → S_ItemPickedUp + Redis Stream 발행
+            //   ③ GameServer LootGrantConsumer → GrantItemAsync → DB inventory_items(영속)
+            //   ④ 클라 GetInventory(pull)로 지급 확인
+            // dungeon_01 슬라임은 potion_hp_small 을 보장 드랍(DropTable Chance 1.0) → 결정적.
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+            try
+            {
+                var spawn = await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "slime", Timeout());
+                int slimeId = spawn.InstanceId;
+
+                // ① 움직이는 슬라임을 최신 위치로 재조준하며 처치 → 보장 드랍(S_SpawnGroundItem) 관측.
+                S_SpawnGroundItem ground = null;
+                var killDeadline = DateTime.UtcNow.AddSeconds(ServerConfig.TimeoutSeconds);
+                while (ground == null && DateTime.UtcNow < killDeadline)
+                {
+                    float sx = spawn.PosX, sz = spawn.PosZ;
+                    if (host.TryGetLatest<S_MonsterState>(p => p.InstanceId == slimeId, out var st))
+                    {
+                        sx = st.PosX;
+                        sz = st.PosZ;
+                    }
+
+                    await host.SendAsync(new C_Move { PosX = sx, PosY = 0, PosZ = sz - 1f, RotY = 0 }, Timeout());
+                    await UniTask.Delay(TimeSpan.FromMilliseconds(250));
+                    await host.SendAsync(new C_Attack { SkillId = 0 }, Timeout());
+                    await UniTask.Delay(TimeSpan.FromMilliseconds(200));
+
+                    // 입장 시 바닥 로스터는 비어 있으므로(시드 0), 유일한 S_SpawnGroundItem = 이번 처치 드랍.
+                    host.TryGetLatest<S_SpawnGroundItem>(p => p.ItemId == "potion_hp_small", out ground);
+                }
+
+                Assert.IsNotNull(ground, "슬라임 처치 시 보장 드랍(potion_hp_small)이 바닥에 스폰돼야 한다");
+                Assert.AreEqual("potion_hp_small", ground.ItemId);
+                Assert.GreaterOrEqual(ground.Qty, 1);
+
+                // ② 드랍 위치로 이동(서버측 거리 검증 통과 = 거리 0) 후 줍기.
+                await host.SendAsync(new C_Move { PosX = ground.PosX, PosY = 0, PosZ = ground.PosZ, RotY = 0 }, Timeout());
+                await UniTask.Delay(TimeSpan.FromMilliseconds(200));
+                await host.SendAsync(new C_PickupItem { GroundId = ground.GroundId }, Timeout());
+
+                // 줍기 확정 토스트 + 바닥 제거 브로드캐스트.
+                var picked = await host.WaitForPacketAsync<S_ItemPickedUp>(p => p.ItemId == "potion_hp_small", Timeout());
+                Assert.AreEqual(ground.Qty, picked.Qty, "줍은 수량은 바닥 아이템 수량과 일치해야 한다");
+                await host.WaitForPacketAsync<S_GroundItemRemoved>(p => p.GroundId == ground.GroundId, Timeout());
+
+                // ③④ GameServer 인벤토리 지급은 Redis Stream 비동기 → GetInventory 폴링(호스트 토큰 인증).
+                AccessToken = room.HostAccessToken;
+                int grantedQty = 0;
+                var grantDeadline = DateTime.UtcNow.AddSeconds(ServerConfig.TimeoutSeconds);
+                while (grantedQty < ground.Qty && DateTime.UtcNow < grantDeadline)
+                {
+                    var inventory = await InventoryService.GetInventoryAsync(new GetInventoryRequest(), Timeout());
+                    Assert.IsTrue(inventory.Result.Success, inventory.Result.Message);
+                    var slot = inventory.Items.FirstOrDefault(i => i.ItemId == "potion_hp_small");
+                    grantedQty = slot?.Quantity ?? 0;
+                    if (grantedQty < ground.Qty)
+                        await UniTask.Delay(TimeSpan.FromMilliseconds(300));
+                }
+
+                Assert.GreaterOrEqual(grantedQty, ground.Qty,
+                    "줍기 후 GameServer 인벤토리에 potion_hp_small 이 줍은 수량만큼 지급돼야 한다");
+            }
+            finally
+            {
+                await host.DisposeAsync();
+            }
+        });
+
         [UnityTest]
         public IEnumerator RawSocket_참가자_전원_다운하면_양쪽_S_DungeonFailed_수신() => UniTask.ToCoroutine(async () =>
         {
@@ -485,6 +564,183 @@ namespace Game.Tests.PlayMode.E2E
             }
         });
 
+        // ── 6.4 재접속 유예 창(grace) — 복귀 플로우 Green/Red ───────────────
+        //
+        // 두 퇴장 경로:
+        //   크래시/끊김(graceful)  → PlayerState 를 ReconnectGraceMs(60s) 보존 → 유예 내 재접속 = 복귀(GREEN)
+        //   명시 퇴장(C_PlayerLeave) → 상태 즉시 제거(영구)                    → 재접속 거부(RED)
+        // 경계:
+        //   유예 만료(>60s)        → 스윕이 상태 제거                          → 재접속 거부(RED, slow)
+        //   전원 끊김(방 빔)        → 방 즉시 소멸                              → 재접속 거부(RED, Room not found)
+        // 상세 = docs/wiki/codemap.md §2.17.
+
+        /// <summary>[GREEN] 크래시(graceful) 후 유예 내 재접속 시, 스폰이 아니라 끊기기 직전 위치로 복귀한다.</summary>
+        [UnityTest]
+        public IEnumerator 크래시_후_유예내_재접속하면_이동한_위치가_보존되어_복귀한다() => UniTask.ToCoroutine(async () =>
+        {
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var guest = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout()); // 방 유지 앵커
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+            try
+            {
+                const float px = 15f, pz = -8f;
+                await host.SendAsync(new C_Move { PosX = px, PosY = 0, PosZ = pz, RotY = 0 }, Timeout());
+                await UniTask.Delay(TimeSpan.FromMilliseconds(300)); // 서버 PlayerState 위치 갱신 대기
+
+                // 크래시 — C_PlayerLeave 없이 TCP 강제 종료.
+                await host.DisposeAsync();
+                await UniTask.Delay(TimeSpan.FromMilliseconds(600)); // 서버 끊김 감지 → graceful 보존
+
+                var reconnect = await ConnectAndSendJoinAsync(room.RoomId, room.HostUserId, Timeout());
+                try
+                {
+                    var joined = await reconnect.WaitForPacketAsync<S_PlayerJoined>(
+                        p => p.UserId == room.HostUserId || !p.Success, Timeout());
+
+                    Assert.IsTrue(joined.Success, $"유예 내 재접속은 성공해야 한다: {joined.Message}");
+                    Assert.AreEqual(px, joined.PosX, 0.01f, "보존된 X 위치로 복귀해야 한다(스폰 0 아님)");
+                    Assert.AreEqual(pz, joined.PosZ, 0.01f, "보존된 Z 위치로 복귀해야 한다(스폰 0 아님)");
+                }
+                finally { await reconnect.DisposeAsync(); }
+            }
+            finally
+            {
+                await guest.DisposeAsync();
+            }
+        });
+
+        /// <summary>[GREEN] 크래시 유예 중에는 퇴장 확정을 보류 — 남은 플레이어는 그 즉시 S_PlayerLeft 를 받지 않는다.</summary>
+        [UnityTest]
+        public IEnumerator 크래시_유예중에는_남은_플레이어에게_S_PlayerLeft가_즉시_오지_않는다() => UniTask.ToCoroutine(async () =>
+        {
+            // 대비: 명시 퇴장은 즉시 S_PlayerLeft(RawSocket_호스트가_퇴장하면_게스트가_S_PlayerLeft_수신).
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var guest = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+            try
+            {
+                await host.DisposeAsync();                            // 크래시
+                await UniTask.Delay(TimeSpan.FromSeconds(2));         // 서버 끊김 감지 + 여유
+
+                Assert.IsFalse(
+                    guest.TryGetLatest<S_PlayerLeft>(p => p.UserId == room.HostUserId, out _),
+                    "유예 중에는 남은 플레이어에게 S_PlayerLeft 가 즉시 브로드캐스트되지 않아야 한다");
+            }
+            finally
+            {
+                await guest.DisposeAsync();
+            }
+        });
+
+        /// <summary>[RED] 명시 퇴장(C_PlayerLeave) 후에는 상태가 즉시 제거되어 재접속이 거부된다(크래시와 대비).</summary>
+        [UnityTest]
+        public IEnumerator 명시퇴장_C_PlayerLeave_후_재접속하면_거부된다() => UniTask.ToCoroutine(async () =>
+        {
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var guest = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout()); // 방 유지
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+            try
+            {
+                await host.SendAsync(new C_PlayerLeave(), Timeout());
+                // 명시 퇴장은 즉시 확정 → 게스트가 S_PlayerLeft 받으면 상태 제거 완료가 보장된다.
+                await guest.WaitForPacketAsync<S_PlayerLeft>(p => p.UserId == room.HostUserId, Timeout());
+                await host.DisposeAsync();
+
+                var reconnect = await ConnectAndSendJoinAsync(room.RoomId, room.HostUserId, Timeout());
+                try
+                {
+                    var joined = await reconnect.WaitForPacketAsync<S_PlayerJoined>(
+                        p => !p.Success || p.UserId == room.HostUserId, Timeout());
+                    Assert.IsFalse(joined.Success, "명시 퇴장 후에는 재접속이 거부돼야 한다(상태 영구 제거)");
+                }
+                finally { await reconnect.DisposeAsync(); }
+            }
+            finally
+            {
+                await guest.DisposeAsync();
+            }
+        });
+
+        /// <summary>[RED] 전원 끊겨 방이 비면 방은 즉시 제거 → 재접속은 거부된다(클라는 "방 종료" 팝업).</summary>
+        [UnityTest]
+        public IEnumerator 전원_끊기면_방이_사라지고_재접속은_거부된다() => UniTask.ToCoroutine(async () =>
+        {
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var guest = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+            // 전원 크래시.
+            await host.DisposeAsync();
+            await guest.DisposeAsync();
+            await UniTask.Delay(TimeSpan.FromSeconds(1)); // 서버가 양쪽 끊김 감지 → 빈 방 제거
+
+            var reconnect = await ConnectAndSendJoinAsync(room.RoomId, room.HostUserId, Timeout());
+            try
+            {
+                var joined = await reconnect.WaitForPacketAsync<S_PlayerJoined>(
+                    p => !p.Success || p.UserId == room.HostUserId, Timeout());
+                Assert.IsFalse(joined.Success, "전원 끊겨 방이 사라지면 재접속은 거부돼야 한다");
+            }
+            finally { await reconnect.DisposeAsync(); }
+        });
+
+        /// <summary>
+        /// [RED · slow ~72s] 유예 창(60s) 만료 후엔 스윕이 상태를 제거 → 재접속 거부.
+        /// 방 유지를 위해 게스트는 keepalive(C_Move)로 RoomPlayerTimeout(60s)을 회피(send-only라 수신 루프와 무관).
+        /// 재접속 검증은 **새 단명 컬렉터**로 — 장수명 게스트는 70s간 몬스터 패킷 수백 개를 받아 취약.
+        /// (유예 만료 시 S_PlayerLeft 발화·association 정리는 서버 단위테스트 `ReconnectGraceTests.유예_만료_스윕`이 검증.)
+        /// 의도적으로 느린 테스트 — 유예 경계를 실제 시간으로 검증.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 유예_만료후_재접속하면_거부된다() => UniTask.ToCoroutine(async () =>
+        {
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var guest = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+            try
+            {
+                await host.DisposeAsync();                            // 크래시 → 유예 시작
+                await UniTask.Delay(TimeSpan.FromMilliseconds(600));
+
+                // ~72s 동안 게스트 keepalive(9s 간격) → 방 유지, 그동안 호스트 유예 만료(>60s) → 스윕이 호스트 상태 제거.
+                for (int i = 0; i < 8; i++)
+                {
+                    await guest.SendAsync(new C_Move { PosX = 5, PosY = 0, PosZ = 5, RotY = 0 }, Timeout());
+                    await UniTask.Delay(TimeSpan.FromSeconds(9));
+                }
+
+                // 유예 만료 후 fresh 재접속 → 호스트 상태 없음(스윕됨) → 거부.
+                var reconnect = await ConnectAndSendJoinAsync(room.RoomId, room.HostUserId, Timeout());
+                try
+                {
+                    var joined = await reconnect.WaitForPacketAsync<S_PlayerJoined>(
+                        p => !p.Success || p.UserId == room.HostUserId, Timeout());
+                    Assert.IsFalse(joined.Success, "유예 만료(60s 경과) 후 재접속은 거부돼야 한다(상태 스윕됨)");
+                }
+                finally { await reconnect.DisposeAsync(); }
+            }
+            finally
+            {
+                await guest.DisposeAsync();
+            }
+        });
+
+        /// <summary>
+        /// 원시 재접속 시도 — 연결 후 C_PlayerJoin 만 보낸 컬렉터를 반환한다(성공/실패 응답을 호출자가 검사).
+        /// ConnectAndJoinCollectorAsync 와 달리 실패 응답에 재시도하지 않는다 — 거부(RED) 케이스 검증용.
+        /// </summary>
+        private static async UniTask<SocketPacketCollector> ConnectAndSendJoinAsync(long roomId, long userId, CancellationToken ct)
+        {
+            var collector = new SocketPacketCollector();
+            await collector.ConnectAsync(ServerConfig.SocketServerHost, ServerConfig.SocketServerPort, ct);
+            await collector.SendAsync(new C_PlayerJoin { RoomId = roomId, UserId = userId }, ct);
+            return collector;
+        }
+
         private static async UniTask<long> ReloginCurrentRoomIdAsync(string email, string deviceId, CancellationToken ct)
         {
             var provider = new GrpcChannelProvider(ServerConfig.GameServerGrpcAddress);
@@ -600,7 +856,8 @@ namespace Game.Tests.PlayMode.E2E
                     hostNickname,
                     guestNickname,
                     hostEmail,
-                    guestEmail);
+                    guestEmail,
+                    hostLogin.AccessToken);
             }
             finally
             {
@@ -859,6 +1116,7 @@ namespace Game.Tests.PlayMode.E2E
             public string GuestNickname { get; }
             public string HostEmail { get; }
             public string GuestEmail { get; }
+            public string HostAccessToken { get; }
 
             public StartedRoomContext(
                 long roomId,
@@ -867,7 +1125,8 @@ namespace Game.Tests.PlayMode.E2E
                 string hostNickname,
                 string guestNickname,
                 string hostEmail,
-                string guestEmail)
+                string guestEmail,
+                string hostAccessToken)
             {
                 RoomId = roomId;
                 HostUserId = hostUserId;
@@ -876,6 +1135,7 @@ namespace Game.Tests.PlayMode.E2E
                 GuestNickname = guestNickname;
                 HostEmail = hostEmail;
                 GuestEmail = guestEmail;
+                HostAccessToken = hostAccessToken;
             }
         }
 

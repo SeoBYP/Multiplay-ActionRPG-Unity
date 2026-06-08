@@ -35,6 +35,14 @@ public class Room
     /// <summary>줍기 가능 반경(평면 거리). 너무 먼 위치에서의 줍기 요청을 거른다.</summary>
     public const float PickupRange = 3f;
 
+    /// <summary>
+    /// 재접속 유예 창(ms). 크래시/끊김(graceful) 시 PlayerState 를 즉시 지우지 않고 이 시간 동안 보존한다.
+    /// 방에 다른 플레이어가 남아 있는 한, 끊긴 플레이어가 이 안에 재접속하면 보존 상태로 즉시 던전 복귀.
+    /// 만료되면 RoomTickService 스윕이 상태를 정리하고 영구 퇴장으로 확정한다.
+    /// (전원 끊겨 방이 비면 방 자체가 즉시 제거되므로 유예 대상 아님 — 클라는 "방 종료" 팝업.)
+    /// </summary>
+    public const long ReconnectGraceMs = 60_000;
+
     // 클리어 감지(몬스터 전멸) — lock(_monsters) 안에서만 접근.
     private bool _monstersSpawned;   // 한 번이라도 몬스터가 스폰됐는지(빈 방을 클리어로 오판 방지)
 
@@ -133,7 +141,13 @@ public class Room
         }
     }
 
-    public bool Leave(ulong sessionId)
+    /// <param name="graceful">
+    /// true = 크래시/네트워크 끊김(C_PlayerLeave 없음). PlayerState 를 즉시 지우지 않고
+    ///        <see cref="ReconnectGraceMs"/> 동안 보존(DisconnectedAtMs 마킹) → 재접속 시 복귀.
+    /// false = 명시 퇴장(C_PlayerLeave). PlayerState 즉시 제거(영구 퇴장).
+    /// 어느 쪽이든 세션(_playerSessions)은 즉시 제거된다. 빈 방 처리·이벤트 발행은 RoomManager 책임.
+    /// </param>
+    public bool Leave(ulong sessionId, bool graceful = false)
     {
         try
         {
@@ -150,19 +164,28 @@ public class Room
                 _playerSessions.Remove(sessionId);
 
                 _logger.LogInformation(
-                    "Session {SessionId} left room {RoomId}. Members: {MemberCount}/{MaxMembers}",
+                    "Session {SessionId} left room {RoomId}. Members: {MemberCount}/{MaxMembers} (graceful={Graceful})",
                     sessionId,
                     RoomId,
                     MemberCount,
-                    MaxMembers);
+                    MaxMembers,
+                    graceful);
             }
 
-            // 퇴장 시 PlayerState도 정리 — 안 하면 떠난 플레이어가 위치/AI 타깃 계산에 유령으로 잔류한다.
             if (userId > 0)
             {
                 lock (_playerStates)
                 {
-                    _playerStates.Remove(userId);
+                    if (graceful && _playerStates.TryGetValue(userId, out var state))
+                    {
+                        // 크래시/끊김: 상태 보존 + 끊긴 시각 마킹. 재접속 유예 창 동안 AI 타깃에선 제외(TickMonsters).
+                        state.DisconnectedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                    }
+                    else
+                    {
+                        // 명시 퇴장(또는 상태 없음): 유령 잔류 방지로 즉시 제거.
+                        _playerStates.Remove(userId);
+                    }
                 }
             }
 
@@ -174,6 +197,47 @@ public class Room
             throw;
         }
     }
+
+    /// <summary>
+    /// 재접속 시 호출 — 끊김 마킹(DisconnectedAtMs)을 해제해 보존 상태를 다시 활성화한다.
+    /// 반환 false = 보존된 상태가 없음(유예 만료/명시 퇴장 후 → 재접속 불가).
+    /// </summary>
+    public bool MarkReconnected(long userId)
+    {
+        lock (_playerStates)
+        {
+            if (!_playerStates.TryGetValue(userId, out var state))
+                return false;
+
+            state.DisconnectedAtMs = null;
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// 유예 창이 만료된 끊김 플레이어 상태를 제거하고 그 userId 목록을 반환한다(RoomTickService 가 10Hz 로 호출).
+    /// 반환된 userId 는 RoomManager 가 영구 퇴장으로 확정(S_PlayerLeft 브로드캐스트 + association 정리).
+    /// </summary>
+    public List<long> SweepExpiredDisconnected(long nowMs, long graceMs)
+    {
+        List<long>? expired = null;
+        lock (_playerStates)
+        {
+            foreach (var (userId, state) in _playerStates)
+            {
+                if (state.DisconnectedAtMs is { } at && nowMs - at >= graceMs)
+                    (expired ??= new List<long>()).Add(userId);
+            }
+
+            if (expired != null)
+                foreach (var userId in expired)
+                    _playerStates.Remove(userId);
+        }
+
+        return expired ?? EmptyUserIds;
+    }
+
+    private static readonly List<long> EmptyUserIds = new();
 
     public void InitPlayerState(long userId, string nickname, int spawnIndex, float spawnX, float spawnY, float spawnZ, float rotY)
     {
@@ -367,7 +431,8 @@ public class Room
         List<PlayerState> players;
         lock (_playerStates)
         {
-            players = _playerStates.Values.ToList();
+            // 끊김(재접속 유예 중) 플레이어는 AI 타깃에서 제외 — 마지막 위치에 멈춘 유령을 몬스터가 쫓지 않도록.
+            players = _playerStates.Values.Where(p => p.DisconnectedAtMs is null).ToList();
         }
 
         var positions = new List<PlayerPos>(players.Count);

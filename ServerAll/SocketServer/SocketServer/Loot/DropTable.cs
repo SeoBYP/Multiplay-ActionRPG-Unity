@@ -22,7 +22,9 @@ public static class DropTable
     {
         ["slime"] = new List<DropEntry>
         {
-            new("potion_hp_small", 0.5, 1, 1),
+            // potion_hp_small 은 보장 드랍(Chance 1.0): 흔한 몹은 항상 소량 회복 포션을 떨군다.
+            // → 처치→드랍 체인이 결정적이라 풀 루트 E2E(사냥→드랍→줍기→인벤토리)가 안정적으로 통과한다.
+            new("potion_hp_small", 1.0, 1, 1),
             new("gold_pouch",      0.2, 1, 3),
         },
     };

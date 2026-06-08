@@ -97,7 +97,15 @@ public class RoomManager
         return false;
     }
 
-    public bool LeaveRoom(Session session)
+    /// <param name="graceful">
+    /// true = 크래시/네트워크 끊김(C_PlayerLeave 없음). 방에 다른 플레이어가 남아 있으면
+    ///        재접속 유예 창(<see cref="Room.ReconnectGraceMs"/>) 동안 PlayerState 를 보존하고
+    ///        S_PlayerLeft 브로드캐스트·association 정리를 <b>보류</b>한다(재접속하면 복귀).
+    ///        유예 안에 재접속 안 하면 RoomTickService 의 <see cref="SweepDisconnectedPlayers"/> 가 만료 확정.
+    /// false = 명시 퇴장(C_PlayerLeave) — 즉시 퇴장 확정(상태 제거 + 이벤트 발행).
+    /// 단, graceful 이라도 방이 비면(마지막 플레이어) 즉시 확정 — 빈 방은 유예 없이 제거된다.
+    /// </param>
+    public bool LeaveRoom(Session session, bool graceful = false)
     {
         if (!_playerRooms.TryRemove(session.SessionId, out long roomId))
             return false;
@@ -107,8 +115,14 @@ public class RoomManager
             return false;
 
         var userId = session.UserId;
-        room.Leave(session.SessionId);
+        room.Leave(session.SessionId, graceful);
         session.Room = null;
+
+        // 크래시인데 방에 다른 플레이어가 남음 → 재접속 유예. 퇴장 확정(브로드캐스트/association 정리)을 보류한다.
+        if (graceful && room.MemberCount > 0)
+            return true;
+
+        // 명시 퇴장 OR 크래시로 방이 빔 → 즉시 퇴장 확정.
         if (userId > 0)
         {
             room.Broadcast(new S_PlayerLeft
@@ -119,6 +133,34 @@ public class RoomManager
 
         PublishPlayerLeft(room, roomId, userId);
         return true;
+    }
+
+    /// <summary>
+    /// 재접속 유예가 만료된 끊김 플레이어를 영구 퇴장으로 확정한다(RoomTickService 가 10Hz 로 호출).
+    /// 만료 userId: S_PlayerLeft 브로드캐스트 + PlayerLeftRoomMessage 발행(association 정리).
+    /// _rooms 에 남은 방은 항상 연결 세션이 ≥1(마지막 세션이 떠나면 LeaveRoom 이 빈 방을 즉시 제거)이라,
+    /// 만료 정리 후에도 방은 유지된다.
+    /// </summary>
+    public void SweepDisconnectedPlayers(long nowMs)
+    {
+        foreach (var room in _rooms.Values)
+        {
+            var expired = room.SweepExpiredDisconnected(nowMs, Room.ReconnectGraceMs);
+            if (expired.Count == 0)
+                continue;
+
+            foreach (var userId in expired)
+            {
+                _logger.LogInformation(
+                    "Room {RoomId} reconnect grace expired for User {UserId} — finalizing leave",
+                    room.RoomId, userId);
+
+                if (userId > 0)
+                    room.Broadcast(new S_PlayerLeft { UserId = userId });
+
+                PublishPlayerLeft(room, room.RoomId, userId);
+            }
+        }
     }
 
     public bool LeaveRoom(ulong sessionId)
@@ -155,6 +197,21 @@ public class RoomManager
         var emptied = room.MemberCount == 0;
         if (emptied && _rooms.TryRemove(roomId, out _))
         {
+            // 빈 방 제거 — 유예 보존 중이던 다른 끊김 플레이어들도 함께 영구 퇴장 확정(association 정리 누락 방지).
+            // (예: 전원 크래시 — 마지막 세션이 떠날 때 앞서 끊긴 플레이어 상태가 유예로 남아 있을 수 있음)
+            foreach (var state in room.GetAllPlayerStates())
+            {
+                if (state.UserId > 0 && state.UserId != userId && state.DisconnectedAtMs is not null)
+                {
+                    _ = _lifecycleQueue.EnqueueAsync(new PlayerLeftRoomMessage
+                    {
+                        RoomId = roomId,
+                        UserId = state.UserId,
+                        RoomEmptied = true
+                    });
+                }
+            }
+
             RemoveUserRoomIndexes(roomId);
             _roomMessages.TryRemove(roomId, out _);
             _logger.LogInformation("Room {RoomId} removed because it is empty", roomId);
