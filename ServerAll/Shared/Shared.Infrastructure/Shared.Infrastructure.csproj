@@ -13,6 +13,11 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Spawn/spawn-layouts.json" />
+    <EmbeddedResource Include="Loot/drop-tables.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shared.Gameplay\Shared.Gameplay.csproj" />
   </ItemGroup>
 
 </Project>

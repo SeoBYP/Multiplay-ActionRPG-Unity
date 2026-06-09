@@ -9,9 +9,24 @@ option csharp_namespace = "GameServer.Grpc.Inventory";
 service InventoryService {
   // 현재 유저(토큰)의 인벤토리 조회. userId 는 서버가 JWT 에서 추출.
   rpc GetInventory(GetInventoryRequest) returns (GetInventoryResponse);
+
+  // Main 싱글 경로 지급(클라 로컬 드랍/줍기 → 직접 호출). userId 는 JWT 추출.
+  // 서버 가드: 인증(AuthInterceptor) + 호출당 수량 상한 + itemId 카탈로그 검증.
+  // ※ 던전(co-op)은 서버 권위라 이 RPC 를 쓰지 않는다(SocketServer→Stream→LootGrantConsumer). loot-drop.md §1.4
+  rpc GrantItem(GrantItemRequest) returns (GrantItemResponse);
 }
 
 message GetInventoryRequest {}
+
+message GrantItemRequest {
+  string item_id = 1;
+  int32 qty = 2;
+}
+
+message GrantItemResponse {
+  gameserver.common.Result result = 1;
+  int32 new_quantity = 2;  // 지급 후 보유 수량(성공 시)
+}
 
 message GetInventoryResponse {
   gameserver.common.Result result = 1;

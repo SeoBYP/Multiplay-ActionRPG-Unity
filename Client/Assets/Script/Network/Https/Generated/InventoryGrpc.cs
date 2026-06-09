@@ -49,6 +49,10 @@ namespace GameServer.Grpc.Inventory {
     static readonly grpc::Marshaller<global::GameServer.Grpc.Inventory.GetInventoryRequest> __Marshaller_gameserver_inventory_v1_GetInventoryRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.Inventory.GetInventoryRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::GameServer.Grpc.Inventory.GetInventoryResponse> __Marshaller_gameserver_inventory_v1_GetInventoryResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.Inventory.GetInventoryResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::GameServer.Grpc.Inventory.GrantItemRequest> __Marshaller_gameserver_inventory_v1_GrantItemRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.Inventory.GrantItemRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::GameServer.Grpc.Inventory.GrantItemResponse> __Marshaller_gameserver_inventory_v1_GrantItemResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.Inventory.GrantItemResponse.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::GameServer.Grpc.Inventory.GetInventoryRequest, global::GameServer.Grpc.Inventory.GetInventoryResponse> __Method_GetInventory = new grpc::Method<global::GameServer.Grpc.Inventory.GetInventoryRequest, global::GameServer.Grpc.Inventory.GetInventoryResponse>(
@@ -57,6 +61,14 @@ namespace GameServer.Grpc.Inventory {
         "GetInventory",
         __Marshaller_gameserver_inventory_v1_GetInventoryRequest,
         __Marshaller_gameserver_inventory_v1_GetInventoryResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::GameServer.Grpc.Inventory.GrantItemRequest, global::GameServer.Grpc.Inventory.GrantItemResponse> __Method_GrantItem = new grpc::Method<global::GameServer.Grpc.Inventory.GrantItemRequest, global::GameServer.Grpc.Inventory.GrantItemResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "GrantItem",
+        __Marshaller_gameserver_inventory_v1_GrantItemRequest,
+        __Marshaller_gameserver_inventory_v1_GrantItemResponse);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -76,6 +88,20 @@ namespace GameServer.Grpc.Inventory {
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::GameServer.Grpc.Inventory.GetInventoryResponse> GetInventory(global::GameServer.Grpc.Inventory.GetInventoryRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// Main 싱글 경로 지급(클라 로컬 드랍/줍기 → 직접 호출). userId 는 JWT 추출.
+      /// 서버 가드: 인증(AuthInterceptor) + 호출당 수량 상한 + itemId 카탈로그 검증.
+      /// ※ 던전(co-op)은 서버 권위라 이 RPC 를 쓰지 않는다(SocketServer→Stream→LootGrantConsumer). loot-drop.md §1.4
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::GameServer.Grpc.Inventory.GrantItemResponse> GrantItem(global::GameServer.Grpc.Inventory.GrantItemRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -157,6 +183,62 @@ namespace GameServer.Grpc.Inventory {
       {
         return CallInvoker.AsyncUnaryCall(__Method_GetInventory, null, options, request);
       }
+      /// <summary>
+      /// Main 싱글 경로 지급(클라 로컬 드랍/줍기 → 직접 호출). userId 는 JWT 추출.
+      /// 서버 가드: 인증(AuthInterceptor) + 호출당 수량 상한 + itemId 카탈로그 검증.
+      /// ※ 던전(co-op)은 서버 권위라 이 RPC 를 쓰지 않는다(SocketServer→Stream→LootGrantConsumer). loot-drop.md §1.4
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::GameServer.Grpc.Inventory.GrantItemResponse GrantItem(global::GameServer.Grpc.Inventory.GrantItemRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GrantItem(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Main 싱글 경로 지급(클라 로컬 드랍/줍기 → 직접 호출). userId 는 JWT 추출.
+      /// 서버 가드: 인증(AuthInterceptor) + 호출당 수량 상한 + itemId 카탈로그 검증.
+      /// ※ 던전(co-op)은 서버 권위라 이 RPC 를 쓰지 않는다(SocketServer→Stream→LootGrantConsumer). loot-drop.md §1.4
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::GameServer.Grpc.Inventory.GrantItemResponse GrantItem(global::GameServer.Grpc.Inventory.GrantItemRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_GrantItem, null, options, request);
+      }
+      /// <summary>
+      /// Main 싱글 경로 지급(클라 로컬 드랍/줍기 → 직접 호출). userId 는 JWT 추출.
+      /// 서버 가드: 인증(AuthInterceptor) + 호출당 수량 상한 + itemId 카탈로그 검증.
+      /// ※ 던전(co-op)은 서버 권위라 이 RPC 를 쓰지 않는다(SocketServer→Stream→LootGrantConsumer). loot-drop.md §1.4
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::GameServer.Grpc.Inventory.GrantItemResponse> GrantItemAsync(global::GameServer.Grpc.Inventory.GrantItemRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GrantItemAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Main 싱글 경로 지급(클라 로컬 드랍/줍기 → 직접 호출). userId 는 JWT 추출.
+      /// 서버 가드: 인증(AuthInterceptor) + 호출당 수량 상한 + itemId 카탈로그 검증.
+      /// ※ 던전(co-op)은 서버 권위라 이 RPC 를 쓰지 않는다(SocketServer→Stream→LootGrantConsumer). loot-drop.md §1.4
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::GameServer.Grpc.Inventory.GrantItemResponse> GrantItemAsync(global::GameServer.Grpc.Inventory.GrantItemRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_GrantItem, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override InventoryServiceClient NewInstance(ClientBaseConfiguration configuration)
@@ -171,7 +253,8 @@ namespace GameServer.Grpc.Inventory {
     public static grpc::ServerServiceDefinition BindService(InventoryServiceBase serviceImpl)
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
-          .AddMethod(__Method_GetInventory, serviceImpl.GetInventory).Build();
+          .AddMethod(__Method_GetInventory, serviceImpl.GetInventory)
+          .AddMethod(__Method_GrantItem, serviceImpl.GrantItem).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -182,6 +265,7 @@ namespace GameServer.Grpc.Inventory {
     public static void BindService(grpc::ServiceBinderBase serviceBinder, InventoryServiceBase serviceImpl)
     {
       serviceBinder.AddMethod(__Method_GetInventory, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::GameServer.Grpc.Inventory.GetInventoryRequest, global::GameServer.Grpc.Inventory.GetInventoryResponse>(serviceImpl.GetInventory));
+      serviceBinder.AddMethod(__Method_GrantItem, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::GameServer.Grpc.Inventory.GrantItemRequest, global::GameServer.Grpc.Inventory.GrantItemResponse>(serviceImpl.GrantItem));
     }
 
   }

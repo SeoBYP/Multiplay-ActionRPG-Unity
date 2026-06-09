@@ -9,6 +9,7 @@ COPY GameServer/GameServer.Infrastructure/GameServer.Infrastructure.csproj GameS
 COPY Shared/Shared.Contracts/Shared.Contracts.csproj                       Shared/Shared.Contracts/
 COPY Shared/Shared.Infrastructure/Shared.Infrastructure.csproj             Shared/Shared.Infrastructure/
 COPY Shared/Shared.Packet/Shared.Packet.csproj                             Shared/Shared.Packet/
+COPY Shared/Shared.Gameplay/Shared.Gameplay.csproj                         Shared/Shared.Gameplay/
 
 RUN dotnet restore GameServer/GameServer.API/GameServer.API.csproj
 

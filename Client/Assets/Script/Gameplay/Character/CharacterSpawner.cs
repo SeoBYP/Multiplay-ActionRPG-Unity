@@ -61,6 +61,7 @@ namespace Game.Gameplay.Character
 
             if (_socketSession.State != SocketSessionState.Joined)
             {
+                AttachLocalCombat(); // Main(싱글): 로컬 권위 전투(클라 히트 판정). 던전은 CombatSyncSender(서버 권위).
                 Debug.Log("[CharacterSpawner] Main 씬 모드 — 네트워크 동기화 없음");
                 return;
             }
@@ -153,6 +154,14 @@ namespace Game.Gameplay.Character
             var sender = _localCharacterGo.AddComponent<CombatSyncSender>();
             _container.Inject(sender);
             Debug.Log("[CharacterSpawner] CombatSyncSender 부착 완료 — C_Attack 송신 활성화");
+        }
+
+        /// <summary>Main(비네트워크): 로컬 캐릭터에 LocalCombat 부착 → 클라 권위 히트 판정(서버 미관여).</summary>
+        private void AttachLocalCombat()
+        {
+            if (_localCharacterGo == null) return;
+            _localCharacterGo.AddComponent<LocalCombat>(); // 주입 의존 없음
+            Debug.Log("[CharacterSpawner] LocalCombat 부착 완료 — Main 로컬 전투 활성화");
         }
 
         // ── 원격 캐릭터 ──────────────────────────────────

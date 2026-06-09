@@ -49,7 +49,7 @@
 | **전투 흐름(입력→판정→데미지→연출)** | 클라 `Gameplay/Character/`(`PlayerCharacterAgent`·`CombatSyncSender`) → 서버 `SocketServer/.../Handler/CombatHandler` → `Room.DamageMonster` | [authority-model.md](authority-model.md), §2.7 |
 | SocketServer(TCP/방/세션) | `ServerAll/SocketServer/SocketServer/{Room,Session,PacketHandler}` | [socketserver.md](socketserver.md) |
 | Redis 스트림/큐 | `Shared/Shared.Infrastructure/MessageQueue/`, `Messages/` | [redis.md](redis.md) |
-| **루트/드랍(던전 경로)** | 드랍/줍기 = `SocketServer/Loot/`(DropTable·GroundItem)·`Handler/{CombatHandler.SpawnDrops,LootHandler}`·`Room`(GroundItem·TryPickup) / 지급 = `GameServer.Infrastructure/Common/{Consumer/LootGrantConsumer,MessageQueue/LootPickupMessageQueue}` → `IInventoryService.GrantItemAsync`. 아래 §2.16 | [loot-drop.md](loot-drop.md) |
+| **루트/드랍(던전 경로)** | 드랍/줍기 = `SocketServer/Loot/`(DropTable·GroundItem)·`Handler/{CombatHandler.SpawnDrops,LootHandler}`·`Room`(GroundItem·TryPickup) / 지급 = `GameServer.Infrastructure/Common/{Consumer/LootGrantConsumer,MessageQueue/LootPickupMessageQueue}` → `IInventoryService.GrantItemAsync`. 아래 §2.16. **Main(싱글) 경로 지급 = `GameServer.API/Services/InventoryGrpcService.GrantItem`(gRPC+가드, §2.18)** | [loot-drop.md](loot-drop.md) |
 | 클라 gRPC | `Client/Assets/Script/Network/Https/` | [unity-client.md](unity-client.md) |
 | 클라 소켓 | `Client/Assets/Script/Network/Socket/` | `.claude/rules/networking.md` |
 | 클라 MVI 모델 (타이틀·로비·인게임) | `Client/Assets/Script/Presentation/{Title,DungeonLobby,InGame}` (asmdef `Game.Presentation`, ns `Game.Presentation.*`) — GUI가 바인딩하는 MVI 모델 레이어 | `.claude/rules/unity-client.md` |
@@ -63,6 +63,43 @@
 ---
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
+
+### 2.20 Main 로컬 전투 — 클라 권위 몬스터/히트 (3.3 증분 9b·9c, 2026-06-09)
+- **무엇**: Main(싱글)에서 클라가 권위로 몬스터를 스폰·전투·사망 판정. 던전(서버권위·`MonsterEntity` 보간)과 **다른 컴포넌트군**(서버 명령 수신이 아니라 클라가 판정). loot-drop.md §1.5.
+- **3 신규 컴포넌트**(`Game.Gameplay.Character`):
+  - `LocalMonster`(MonoBehaviour) — HP(`maxHp`)·간단 AI(`chaseRange` 내 추격/밖 Idle, 타깃=`LocalPlayerContext.AbilitySystem.transform` 지연조회)·`TakeDamage(dmg)`→HP≤0→`OnDied(this)`+Destroy. 콜라이더 필요(전투 수집용).
+  - `MainMonsterSpawner`(IAsyncStartable) — **비-Joined(Main)일 때만** `MainMonsterSettings`(프리팹+스폰점) 으로 스폰·`InjectGameObject`. `OnDied`→디스폰(+9d 드랍 훅 TODO). Joined(던전)면 스폰 안 함(이중 방지).
+  - `LocalCombat`(MonoBehaviour, 플레이어) — `PlayerCharacterAgent.OnAttackPerformed` 구독 → `Physics.OverlapSphere`로 근처 `LocalMonster` 수집 → **서버와 동일 `HitboxMath.Overlaps(SkillCatalog "basic_swing")`** 정밀판정 → `TakeDamage(10)`. `CharacterSpawner` Main 브랜치가 동적 부착(던전은 `CombatSyncSender`).
+- **왜 이렇게**: ① 판정 로직은 **Shared.Gameplay DLL 공유**(던전 서버와 같은 `HitboxMath`/`SkillCatalog`) — 이미 배포된 DLL이라 9b/9c는 **DLL 재배치 불필요**(DropTableRoll만 9d 전 필요). ② 몬스터 수집은 `Physics.OverlapSphere`+`GetComponentInParent`로 — 별도 레지스트리 없이 Unity 관용(YAGNI). ③ AI는 Idle/Chase만(MonsterAiMath 미이동, 결정대로 간단). ④ damage 10 = 클라 `GameplayEffectCatalog "basic_attack_dmg"`(Instant Health -10)과 정렬.
+- **위치**: `Gameplay/Character/{LocalMonster,MainMonsterSpawner,LocalCombat}.cs` · `CharacterSpawner.AttachLocalCombat`(Main 브랜치) · `VContainer/.../MainLifetimeScope.cs`(`localMonsterPrefab`/`monsterSpawnPoints[]`+`MainMonsterSettings`/`MainMonsterSpawner` 등록).
+- **9d 드랍→줍기→지급 완료 2026-06-09**: `MainMonsterSpawner.HandleDied` → `DropTableDefinition.Get(monsterId)`(SO) → `DropEntryDef`→`DropEntry` 변환 → **`DropTableRoll.Roll`(서버 던전과 동일 공유 로직)** → `LocalGroundItem` 스폰. `LocalGroundItem`(IInteractable, `Game.Gameplay.Character`): E 줍기 → `IInventoryGrpcService.GrantItemAsync`(증분8, 서버 가드) → 성공 시 디스폰+토스트(로그). 던전 `GroundItemEntity`(C_PickupItem→서버 중재)와 달리 싱글이라 클라가 직접 지급. **클라 `Shared.Gameplay.dll` 재배치 완료**(DropTableRoll/DropEntry 반영, PowerShell Copy-Item). MainLifetimeScope: `DropTableDefinition` Resources 로드 등록 + `localGroundItemPrefab` 직렬화. **함정**: `Game.System` 네임스페이스가 `System`을 가려 `System.Random`이 `Game.System.Random`으로 오인 → `global::System.Random` 으로 해소(CLAUDE.md 테스트 규칙의 그 함정). Unity 컴파일 0오류.
+- **E2E 2026-06-09**: `MainLootE2ETests.Main_슬라임_드랍을_굴려_GrantItem하면_인벤토리에_반영된다`(PlayMode, Docker) — 클라 `DropTableDefinition`(SO, Resources) → `DropTableRoll`(서버 던전과 공유 DLL) → `GrantItem` → `GetInventory` 반영 검증 **1/1 그린**. Main 경로 서버 통신은 GrantItem 1번뿐이라 이 chain 이 진짜 갭(MonoBehaviour 글루는 플레이 검증). **Dockerfile 수정**: 9a의 `Shared.Infrastructure→Shared.Gameplay` 참조로 **GameServer 가 Shared.Gameplay 전이 의존** → `GameServer/Dockerfile` restore 단계에 `Shared.Gameplay.csproj` COPY 누락 → `NETSDK1004`(project.assets.json) 빌드 실패 → COPY 추가로 해소(socketserver 는 원래 참조해 무영향).
+- **검증**: Unity 컴파일 0오류 + 상기 E2E 1/1. 히트 수학은 `HitboxMathTests`(Shared), roll 은 `DropTableRollTests`(Shared)가 커버. **Main 플레이 검증 통과(사용자, 2026-06-10)**: 공격→LocalMonster 사망→바닥 드랍 스폰→E 줍기→인벤토리 아이콘 전체 1판 시각 확인(`LocalMonster.prefab`/`LocalGroundItem.prefab` 제작·할당). → **3.3 루트 시스템 던전·Main 양 경로 코드+E2E+플레이 완결 ✅.**
+- **후속(범위 밖)**: 정식 획득 토스트 위젯(7.x UI — 현재 픽업 시 로그). 프리팹 제작·할당·플레이 검증은 위에서 완료.
+
+### 2.19 DropTable 데이터화 — Shared 이동 + JSON 단일 소스 (3.3 증분 9a, 2026-06-09)
+- **무엇**: 하드코딩 정적 클래스(`SocketServer/Server.Loot.DropTable`)였던 드랍 테이블을 **데이터(JSON) + 순수 roll 로직**으로 분리. 던전(서버)·Main(클라)이 같은 roll 로직을 공유하도록 재배치. 동작·데이터 동일(슬라임 potion 1.0 / gold 0.2) — **순수 리팩터**.
+- **3분할(왜 이렇게)**:
+  - `Shared.Gameplay`(netstandard, **클라 DLL**) = `DropEntry`/`DropResult`/`DropTableRoll.Roll(entries, rng)` 순수 로직. **JSON 의존 없음**(System.Text.Json 을 클라 배포 DLL에 넣지 않으려고 — Shared.Gameplay 는 순수 유지). 서버·클라가 이 함수로 굴려 결과 일관.
+  - `Shared.Infrastructure`(서버 net10) = `DropTableCatalog` — 임베디드 `Loot/drop-tables.json` 파싱 → `monsterId→IReadOnlyList<DropEntry>` + `Roll(monsterId, rng)`(Get→DropTableRoll 위임). **spawn-layouts 와 동일 컨벤션**(SO 저작→JSON bake→임베디드 파싱). `Shared.Gameplay` 프로젝트 참조 추가.
+  - 데이터 = `drop-tables.json`(임베디드). 클라는 ScriptableObject 로 저작(9a-2 예정) → 같은 JSON 으로 bake.
+- **왜 SO 를 서버가 직접 못 쓰나**: `Shared.Gameplay` 는 Unity 밖 컴파일 DLL → `ScriptableObject` 불가, SocketServer 도 `.asset` 런타임 로드 불가. → 데이터는 SO(클라 저작)→JSON bake→서버 임베디드 파싱(spawn-layouts 와 같은 다리). roll 로직만 DLL 공유.
+- **서버 교체**: `CombatHandler.SpawnDrops` 가 `DropTable.Roll` → `DropTableCatalog.Roll`. 기존 `Server.Loot.DropTable.cs` 삭제(같은 ns `GroundItem.cs` 는 유지).
+- **위치**: `Shared/Shared.Gameplay/DropTable.cs`(순수) · `Shared/Shared.Infrastructure/Loot/{DropTableCatalog.cs, drop-tables.json}` · `SocketServer/PacketHandler/Handler/CombatHandler.cs`(교체).
+- **테스트**: `Shared.Gameplay.Tests/DropTableRollTests` 5(순수 확률·수량) → **22/22** · `SocketServer.Tests/Loot/DropTableCatalogTests` 5(임베디드 데이터·파싱·위임) → **72/72**. 서버 빌드 0오류.
+- **9a-2 SO 저작 레이어 완료 2026-06-09**: `Game.Gameplay.Loot.DropTableDefinition`(SO, monsterId별 drops·`Get(monsterId)` 클라 런타임 조회) + `Game.Gameplay.Editor.DropTableExporter`(`Tools/Loot/Export Drop Tables` SO→JSON bake·`Import` 부트스트랩) — MapDefinition/MapDataExporter 동일 컨벤션. **클라는 SO 직접 읽음**(Resources `Loot/DropTableDefinition`) → bake는 **서버 임베디드 `drop-tables.json`만** 기록(SO가 클라 단일 소스, 클라 JSON 미러 불요). Unity 컴파일 0오류. `.asset` 부트스트랩(사용자 `Tools/Loot/Import` 1클릭)으로 `Assets/GameData/Resources/Loot/DropTableDefinition.asset` 생성·검증 완료.
+- **파이프라인 E2E 검증 2026-06-09**: SO에 `goblin`(potion_hp_small 5~10) 추가 → `Tools/Loot/Export` → 임베디드 `drop-tables.json` 반영 → `DropTableCatalogTests.임베디드_goblin_데이터가_로드된다` 통과. **함정**: JsonUtility가 `0.2f`를 `0.20000000298..`(float→double 아티팩트)로 직렬화 → catalog 테스트의 chance 비교는 **근사(`Math.Abs<1e-6`)**. SocketServer.Tests **73/73**. socketserver Docker 리빌드·재배포(임베디드 JSON 갱신).
+- **잔여**: ① **클라 `Shared.Gameplay.dll` 재배치**(`Client/Assets/Plugins/Shared.Gameplay/`) — 클라가 `DropTableRoll` 쓰는 9b 전 필수(복사 권한 거부로 보류). ② 9b~9d Main 로컬 전투/드랍/줍기 배선(`DropTableDefinition` SO + `DropTableRoll` 소비).
+
+### 2.18 루트 Main 경로 — GrantItem gRPC + 서버 가드 (3.3 증분 8+10, 2026-06-09)
+- **무엇**: 싱글 Main 경로의 인벤토리 지급 진입점. `inventory.proto`에 `rpc GrantItem(GrantItemRequest{item_id,qty}) → GrantItemResponse{result,new_quantity}` 추가 → 클라 `Generated/` 재생성. 던전(co-op·서버권위)과 달리 Main은 클라가 로컬에서 드랍/줍기를 판정하고(클라 신뢰), 줍은 순간 이 RPC로 **직접** 지급 호출(loot-drop.md §1.4).
+- **왜 이렇게(권위·경계)**: 던전 경로(`LootGrantConsumer`)는 SocketServer 서버권위→Stream→GameServer라 클라 신뢰 0. Main은 싱글 PVE라 동기화·경쟁이 없어 클라 로컬 시뮬을 수용하되, **영속 지급만은 서버 경계로 가드**. 위조 가능성은 인지하되 싱글 구간+가드로 수용(포트폴리오 결정).
+- **서버 가드 3겹**: ① **인증** = `AuthInterceptor`가 `[AllowAnonymous]` 없는 모든 RPC에 JWT 검증 자동 적용 → GrantItem도 무료로 보호(미인증 = `Unauthenticated`). ② **호출당 수량 상한** = `InventoryGrpcService.MaxGrantPerCall=99`, `qty≤0 || qty>99` → `Result.Failure(InvalidRequest)` 거부. ③ **catalog 검증** = `GrantItemAsync`가 `ItemCatalog.Get(itemId)==null`이면 실패(기존 재사용).
+- **가드 배치의 핵심**: 수량 상한은 **gRPC 진입점(`InventoryGrpcService.GrantItem`)에만** 둔다. 도메인 `GrantItemAsync`엔 넣지 않음 — 던전 서버권위 경로(`LootGrantConsumer`)도 같은 메서드를 호출하므로 cap을 걸면 정당한 대량 지급이 막힌다. "신뢰 못 하는 클라 진입점"에만 제한.
+- **멱등 없음(의도)**: Main 경로는 PickupId 없음(던전과 다름). 싱글 로컬 픽업이라 재시도 중복지급은 클라 책임·비치명. 던전은 PickupId Redis SET 멱등 유지.
+- **위치**: `Shared/Shared.Contracts/Protos/inventory.proto`(rpc+메시지) · `GameServer.API/Services/InventoryGrpcService.cs`(`GrantItem` override, `MaxGrantPerCall`) · 클라 `Network/Https/Generated/`(재생성) · `Network/Https/Interfaces/IInventoryGrpcService.cs`·`Services/InventoryGrpcService.cs`(`GrantItemAsync` 래퍼).
+- **테스트**: ① **서버 단위 `GameServer.Tests/API/InventoryGrpcServiceTests` 5종 — 5/5 그린**(정상지급+`new_quantity` · 수량상한초과 거부+미지급 · 0이하 거부 · 미존재itemId 거부 · 미인증 거부). 실 `InventoryService`+`FakeInventoryRepository` 합성, `ServerCallContext`는 최소 테스트 더블(`UserState["__HttpContext"].User` 클레임만 — Grpc 테스트 패키지 불필요). ② 클라 `InventoryE2ETests` 4종(동일 시나리오, Docker 서버 대상) — **PlayMode 실행 통과 6/6**(GrantItem 4 + 기존 GetInventory 2, 2026-06-09, GameServer 리빌드·재배포 후). 서버빌드·Game.Network 0오류. **테스트 격리 함정**: NUnit는 fixture 인스턴스를 테스트 간 공유 → `AccessToken`(인스턴스 필드)은 `[SetUp]`에서 초기화 안 됨 → 앞선 로그인 테스트 토큰이 남아 미인증 테스트가 인증됨. `GrantItem_미인증` 테스트는 `AccessToken=null` 명시 후 호출(기존 `GetInventory_미인증`은 알파벳 순 첫 실행이라 우연히 통과하던 것).
+- **잔여(증분9, 콘텐츠)**: Main 씬 로컬 몬스터 sim + 로컬 드랍(`DropTable` 공유)/줍기 → `GrantItemAsync` 호출 배선. Main에 처치 가능한 몬스터가 있어야 함(별도 콘텐츠 작업). 정식 획득 토스트 위젯도 후속.
 
 ### 2.17 재접속 유예 창 (grace window) — 9.4 회귀 해소 + WBS 6.4 (2026-06-09)
 - **무엇**: 크래시/네트워크 끊김(C_PlayerLeave 없음)으로 세션이 사라져도, **방에 다른 플레이어가 남아 있는 한** `PlayerState`를 `Room.ReconnectGraceMs`(60s) 동안 보존 → 그 안에 재접속하면 **보존 상태(위치 등) 그대로 던전 즉시 복귀**. 전원 끊겨 방이 비면 방은 즉시 제거(유예 없음, 클라는 "방 종료" 팝업=후속).

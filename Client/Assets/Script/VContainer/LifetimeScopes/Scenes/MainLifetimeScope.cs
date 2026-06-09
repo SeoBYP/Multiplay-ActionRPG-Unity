@@ -1,5 +1,6 @@
 using Game.Gameplay.Character;
 using Game.Gameplay.Input;
+using Game.Gameplay.Loot;
 using Game.Gameplay.Spawn;
 using Game.GUI.OutGame;
 using Game.Installers.Scenes.Startup;
@@ -17,6 +18,13 @@ namespace Game.Installers.Scenes
     {
         [SerializeField] private Canvas uiCanvas;
         [SerializeField] private GameObject localPlayerPrefab;
+
+        [Header("Main 로컬 몬스터(9b) — 콜라이더+LocalMonster 프리팹, 스폰 위치")]
+        [SerializeField] private GameObject localMonsterPrefab;
+        [SerializeField] private Vector3[] monsterSpawnPoints = new Vector3[0];
+
+        [Header("Main 로컬 드랍(9d) — LocalGroundItem 프리팹(GroundItem.prefab 구성 + LocalGroundItem)")]
+        [SerializeField] private GameObject localGroundItemPrefab;
 
         protected override void Configure(IContainerBuilder builder)
         {
@@ -55,6 +63,14 @@ namespace Game.Installers.Scenes
             // Main 씬은 로컬 플레이어만 스폰. RemotePlayerPrefab 없음.
             builder.RegisterInstance(new CharacterPrefabSettings(localPlayerPrefab));
             builder.RegisterEntryPoint<CharacterSpawner>(Lifetime.Scoped);
+
+            // 드랍 테이블(9d) — SO 직접 로드(Resources). 미존재 시 빈 SO 폴백(드랍 없음, 무해).
+            builder.RegisterInstance(Resources.Load<DropTableDefinition>("Loot/DropTableDefinition")
+                                     ?? ScriptableObject.CreateInstance<DropTableDefinition>());
+
+            // Main 로컬 몬스터(9b) + 드랍(9d) — 클라 권위 스폰·roll. 프리팹 미할당이면 무해(스폰/드랍 없음).
+            builder.RegisterInstance(new MainMonsterSettings(localMonsterPrefab, monsterSpawnPoints, localGroundItemPrefab));
+            builder.RegisterEntryPoint<MainMonsterSpawner>(Lifetime.Scoped);
 
             builder.Install(new OutgameInstaller());
 

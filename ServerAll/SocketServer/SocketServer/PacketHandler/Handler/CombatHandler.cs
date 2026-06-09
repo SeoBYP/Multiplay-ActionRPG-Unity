@@ -1,9 +1,9 @@
 using System.Numerics;
 using Script.System.GamePlayAbilitySystem;
 using Server.Combat;
-using Server.Loot;
 using Server.Monster;
 using Server.Player;
+using Shared.Infrastructure.Loot;
 using Shared.Infrastructure.Spawn;
 using Shared.Packet.Packets;
 
@@ -162,7 +162,7 @@ public static class CombatHandler
     /// </summary>
     private static void SpawnDrops(global::Server.Room.Room room, MonsterState monster)
     {
-        var drops = DropTable.Roll(monster.MonsterId, Random.Shared);
+        var drops = DropTableCatalog.Roll(monster.MonsterId, Random.Shared);
         foreach (var drop in drops)
         {
             var ground = room.SpawnGroundItem(drop.ItemId, drop.Qty, monster.PosX, monster.PosY, monster.PosZ);

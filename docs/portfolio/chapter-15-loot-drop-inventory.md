@@ -123,7 +123,7 @@ UniversalSlot (컨테이너, 고정 30개 무조건 생성)
 ## 아직 미완성인 것 (TODO)
 
 ```
-Main 경로(싱글 PVE): GrantItem gRPC + 서버 가드(catalog·수량상한) — 3.3 B (loot-drop.md §7-B)
+Main 경로(싱글 PVE): GrantItem gRPC + 서버 가드(catalog·수량상한) — ✅ 완료 → 챕터 16
 정식 획득 토스트 위젯 (현재 OnItemPickedUp 로그)
 아이템 타입별 ItemContentsSlot 디자인 (UniversalSlot은 교체 대비 완료)
 I키 정석 배선: PlayerInputActions 래퍼 재생성 → InputRouter route
