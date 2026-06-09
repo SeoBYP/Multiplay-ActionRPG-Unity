@@ -22,15 +22,30 @@ namespace Game.Tests.PlayMode.Inventory
         {
             private readonly InventoryResult _result;
             private readonly IReadOnlyList<InventoryItemData> _items;
+            private readonly InventoryResult _consumeResult;
 
-            public FakeInventoryService(InventoryResult result, IReadOnlyList<InventoryItemData> items)
+            public string LastConsumedItemId { get; private set; }
+            public int ConsumeCallCount { get; private set; }
+
+            public FakeInventoryService(
+                InventoryResult result,
+                IReadOnlyList<InventoryItemData> items,
+                InventoryResult consumeResult = InventoryResult.Success)
             {
                 _result = result;
                 _items = items;
+                _consumeResult = consumeResult;
             }
 
             public UniTask<(InventoryResult Result, IReadOnlyList<InventoryItemData> Items)> GetInventoryAsync(CancellationToken ct = default)
                 => UniTask.FromResult((_result, _items));
+
+            public UniTask<(InventoryResult Result, int Remaining)> ConsumeItemAsync(string itemId, int qty, CancellationToken ct = default)
+            {
+                ConsumeCallCount++;
+                LastConsumedItemId = itemId;
+                return UniTask.FromResult((_consumeResult, _consumeResult == InventoryResult.Success ? 0 : 0));
+            }
         }
 
         [UnityTest]
@@ -94,6 +109,52 @@ namespace Game.Tests.PlayMode.Inventory
 
             Assert.IsNotNull(latest.Error);
             Assert.AreEqual(0, latest.Items.Count);
+
+            model.Dispose();
+        });
+
+        [UnityTest]
+        public IEnumerator UseItem_차감성공하면_OnConsumableUsed와_OnToast가_발행된다() => UniTask.ToCoroutine(async () =>
+        {
+            var fake = new FakeInventoryService(
+                InventoryResult.Success, Array.Empty<InventoryItemData>(), consumeResult: InventoryResult.Success);
+            var model = new InventoryModel(fake, catalog: null);
+
+            string used = null;
+            string toast = null;
+            using var u = model.OnConsumableUsed.Subscribe(id => used = id);
+            using var t = model.OnToast.Subscribe(msg => toast = msg);
+
+            model.Accept(new InventoryIntent.UseItem("potion_hp_small"));
+            await UniTask.Yield();
+            await UniTask.Yield();
+
+            Assert.AreEqual("potion_hp_small", fake.LastConsumedItemId); // consume 먼저
+            Assert.AreEqual("potion_hp_small", used);                    // Side Effect A
+            Assert.IsNotNull(toast);                                     // Side Effect B
+
+            model.Dispose();
+        });
+
+        [UnityTest]
+        public IEnumerator UseItem_차감실패하면_OnConsumableUsed는_발행되지_않고_실패토스트만() => UniTask.ToCoroutine(async () =>
+        {
+            var fake = new FakeInventoryService(
+                InventoryResult.Success, Array.Empty<InventoryItemData>(), consumeResult: InventoryResult.Failed);
+            var model = new InventoryModel(fake, catalog: null);
+
+            bool usedFired = false;
+            string toast = null;
+            using var u = model.OnConsumableUsed.Subscribe(_ => usedFired = true);
+            using var t = model.OnToast.Subscribe(msg => toast = msg);
+
+            model.Accept(new InventoryIntent.UseItem("potion_hp_small"));
+            await UniTask.Yield();
+            await UniTask.Yield();
+
+            Assert.AreEqual(1, fake.ConsumeCallCount);
+            Assert.IsFalse(usedFired, "차감 실패인데 회복 Side Effect가 발행됨");
+            Assert.IsNotNull(toast, "실패 토스트가 없음");
 
             model.Dispose();
         });

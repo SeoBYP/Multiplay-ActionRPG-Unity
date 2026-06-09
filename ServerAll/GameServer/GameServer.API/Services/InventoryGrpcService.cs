@@ -73,4 +73,33 @@ public class InventoryGrpcService(
             NewQuantity = grant.NewQuantity,
         };
     }
+
+    public override async Task<ConsumeItemResponse> ConsumeItem(ConsumeItemRequest request, ServerCallContext context)
+    {
+        var userId = context.GetUserId();
+        if (userId is null)
+        {
+            logger.LogWarning("ConsumeItem rejected because user id was missing");
+            return new ConsumeItemResponse { Result = ResultExtensions.CreateUnauthorizedGrpcResult() };
+        }
+
+        // 서버 권위 = 보유/수량 검증·차감. 회복 효과 적용은 클라(GAS) — 서버는 차감만(plan 3.8).
+        // 보유 검증·원자적 차감은 ConsumeItemAsync(저장소)가 수행 → 미보유/부족이면 실패.
+        var consume = await inventoryService.ConsumeItemAsync(userId.Value, request.ItemId, request.Qty, context.CancellationToken);
+        if (!consume.Success)
+        {
+            logger.LogWarning("ConsumeItem failed for user {UserId} item {ItemId}: {Reason}", userId, request.ItemId, consume.FailReason);
+            return new ConsumeItemResponse
+            {
+                Result = Result.Failure(ErrorCodes.InvalidRequest, consume.FailReason ?? "consume failed").ToGrpcResult(),
+            };
+        }
+
+        logger.LogInformation("ConsumeItem succeeded: user {UserId} item {ItemId} -{Qty} -> {Remaining}", userId, request.ItemId, request.Qty, consume.RemainingQuantity);
+        return new ConsumeItemResponse
+        {
+            Result = Result.Success().ToGrpcResult(),
+            RemainingQuantity = consume.RemainingQuantity,
+        };
+    }
 }

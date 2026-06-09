@@ -2353,6 +2353,7 @@ MonoBehaviour:
     toggle: {fileID: 7215319543036384098}
   scrollRect: {fileID: 8173083601688481729}
   contents: {fileID: 8050812932472164944}
+  slotCount: 30
 --- !u!1 &8882617550338434436
 GameObject:
   m_ObjectHideFlags: 0

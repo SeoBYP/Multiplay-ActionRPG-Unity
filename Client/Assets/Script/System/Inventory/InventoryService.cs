@@ -43,5 +43,25 @@ namespace Game.System.Inventory
                 return (InventoryResult.Failed, Array.Empty<InventoryItemData>());
             }
         }
+
+        public async UniTask<(InventoryResult Result, int Remaining)> ConsumeItemAsync(string itemId, int qty, CancellationToken ct = default)
+        {
+            try
+            {
+                var res = await _grpc.ConsumeItemAsync(new ConsumeItemRequest { ItemId = itemId, Qty = qty }, ct);
+                if (!res.Result.Success)
+                {
+                    Debug.LogWarning($"[InventoryService] ConsumeItem 실패: {itemId} code={res.Result.ErrorCode}");
+                    return (InventoryResult.Failed, 0);
+                }
+
+                return (InventoryResult.Success, res.RemainingQuantity);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[InventoryService] ConsumeItem 예외: {e.Message}");
+                return (InventoryResult.Failed, 0);
+            }
+        }
     }
 }

@@ -60,6 +60,11 @@ namespace Game.Installers.Scenes
             builder.Register<InventoryModel>(Lifetime.Scoped).AsSelf();
             builder.RegisterEntryPoint<InventoryViewController>(Lifetime.Scoped);
 
+            // 소모품(3.8) — 효과 데이터(클라 SO) + Side Effect 핸들러(OnConsumableUsed→GAS). 미존재 시 빈 SO 폴백.
+            builder.RegisterInstance(Resources.Load<ConsumableCatalog>("ConsumableCatalog")
+                                     ?? ScriptableObject.CreateInstance<ConsumableCatalog>());
+            builder.RegisterEntryPoint<ConsumableEffectHandler>(Lifetime.Scoped);
+
             // Main 씬은 로컬 플레이어만 스폰. RemotePlayerPrefab 없음.
             builder.RegisterInstance(new CharacterPrefabSettings(localPlayerPrefab));
             builder.RegisterEntryPoint<CharacterSpawner>(Lifetime.Scoped);

@@ -64,6 +64,18 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.21 소모품/포션 사용 — MVI Side Effect (3.8 α 로직, 2026-06-10)
+- **무엇**: 인벤토리 소모품을 "사용"하면 서버가 수량을 차감(권위)하고 클라가 회복을 GAS로 적용. **MVI Side Effect Cycle**로 구현 — State(수량) vs Side Effect(회복·토스트) 분리.
+- **권위 비대칭(핵심)**: **인벤토리 수량 = 서버 권위**(`ConsumeItem` RPC = 보유/수량 검증·차감) / **플레이어 HP 회복 = 클라 권위**(GAS, 기존 비대칭 유지). 순서 = consume 성공 후에만 회복(없는 포션 사용 차단). → 회복 수치는 서버가 안 봐도 됨 → **효과 데이터는 클라 전용**(SO 서버 공유 불필요·불가).
+- **Side Effect 패턴(`LobbyModel.NavigateToRoom`과 동형)**: `InventoryModel`이 `Subject<string>`→`Observable` 2채널 — `OnConsumableUsed`(회복 트리거)·`OnToast`(메시지). `UseItem` 의도 → `UseItemAsync`: consume(gRPC) → 실패 시 `OnToast`(실패)만 / 성공 시 `OnConsumableUsed`+`OnToast`+Refresh. **Model은 신호만, 적용은 구독자**.
+- **구독자**: `ConsumableEffectHandler`(Presentation, IInitializable) — `OnConsumableUsed` 구독 → `ConsumableCatalog.Get(itemId)`(stat/amount/policy) → `GameplayEffectDefinition` 빌드 → `LocalPlayerContext.ASC.ApplyEffect`(GAS funnel → `OnAttributeChanged` → HUD 자동). 토스트는 View가 `OnToast` 구독(현재 로그, 정식 위젯 7.x).
+- **왜 System 최소**: `ConsumableUseService`(System 오케스트레이션) **만들지 않음** — System `IInventoryService`엔 proto 은닉용 `ConsumeItemAsync` 한 메서드만(GetInventory와 동일 성격). 오케스트레이션은 Model(MVI), 효과는 구독자. (사용자 선호 "System 최소" 반영)
+- **왜 이벤트 버스 아님**: VitalRouter/MessagePipe 미도입 — consume→heal은 결과 의존·순서·단일 소비자라 직접 await + Side Effect 채널이 적합(버스는 다대다 팬아웃 때 도입).
+- **데이터**: `ConsumableCatalog`(SO, `Game.Presentation.Inventory`) itemId→`ConsumableEffectDef[]{stat,amount,policy,durationMs}`. heal/mana/buff 전부 스탯 modifier라 코드 없이 데이터만 추가.
+- **위치**: proto `inventory.proto`(ConsumeItem) · `GameServer.API/Services/InventoryGrpcService.ConsumeItem` · 클라 `System/Inventory/{IInventoryService,InventoryService}.ConsumeItemAsync` · `Presentation/Inventory/{ConsumableCatalog,ConsumableEffectHandler}.cs`·`InventoryModel`(UseItem+채널)·`InventoryIntent.UseItem` · DI `Main/DungeonLifetimeScope`(ConsumableCatalog+Handler 등록).
+- **테스트**: `InventoryGrpcServiceTests` **9/9**(ConsumeItem 보유/미보유/부족/미인증 4 신규) + `InventoryModelTests` **5/5**(UseItem 성공→OnConsumableUsed+OnToast / 실패→토스트만 2 신규). 서버빌드·Unity 컴파일 0오류.
+- **β UI 코드 완료 2026-06-10**: `ItemContentsSlot`(IPointerClickHandler, itemId+클릭 콜백) → `Inventory.OpenActionPanel(itemId, slotRect)`: **`ItemActionPanel`(`Script.GUI.Inventory`)을 Canvas 직속 생성**(슬롯 자식 아님 — `GetWorldCorners`로 슬롯 오른쪽 변에 pivot(0,0.5) 배치) + 뒤에 **`BackDropButton`(`Game.GUI.Common`, 런타임 생성 풀스크린 투명 raycast)** 깔고 패널 `SetAsLastSibling`. `ItemActionPanel.useButton`→`Bind`의 onUse(`Accept(UseItem)`)+`OnCloseRequested`→View `CloseActionPanel`(패널+백드롭 파괴). 백드롭 클릭→`CloseActionPanel`. `OnToast`→로그(정식 위젯 7.x). 패널 prefab은 **Addressable**(`AddressKeys.UI.ItemActionPanel`, 슬롯 prefab과 동일 컨벤션 — `Inventory.LoadSlotPrefabsAsync`에서 로드) → `Default Local Group`에 주소=에셋경로로 등록(execute_code). Unity 컴파일 0오류. **클릭은 `ItemContentsSlot.itemButton`(Button.onClick, IPointerClickHandler 제거 — 리스너 1회 등록 가드)**, 패널 prefab은 **온디맨드 Addressable**(`InstantiateAsync`↔`ReleaseInstance`, eager 필드 없음). **플레이 검증 완전 통과(사용자, 2026-06-10)**: 슬롯 버튼 클릭→패널→사용→`ConsumeItem`(서버 차감)→Side Effect→**GAS `ASC.ApplyEffect` HP 회복**+토스트 전 경로 동작(`ConsumableCatalog.asset` 저작 후 `[ConsumableEffectHandler] 'potion_hp_small' 효과 적용` 로그 확인). → **3.8 코어 완결 ✅.** **후속(폴리시)**: ① **소모품만 사용 가능 제한**(현재 gold_pouch도 사용 버튼 노출·차감 — category==Consumable 필터) ② 정식 토스트 위젯(7.x).
+
 ### 2.20 Main 로컬 전투 — 클라 권위 몬스터/히트 (3.3 증분 9b·9c, 2026-06-09)
 - **무엇**: Main(싱글)에서 클라가 권위로 몬스터를 스폰·전투·사망 판정. 던전(서버권위·`MonsterEntity` 보간)과 **다른 컴포넌트군**(서버 명령 수신이 아니라 클라가 판정). loot-drop.md §1.5.
 - **3 신규 컴포넌트**(`Game.Gameplay.Character`):

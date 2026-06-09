@@ -14,6 +14,10 @@ service InventoryService {
   // 서버 가드: 인증(AuthInterceptor) + 호출당 수량 상한 + itemId 카탈로그 검증.
   // ※ 던전(co-op)은 서버 권위라 이 RPC 를 쓰지 않는다(SocketServer→Stream→LootGrantConsumer). loot-drop.md §1.4
   rpc GrantItem(GrantItemRequest) returns (GrantItemResponse);
+
+  // 소모품 사용 시 수량 차감(서버 권위 = 보유/수량 검증). 회복 효과 적용은 클라(GAS) — 서버는 차감만.
+  // 보유하지 않거나 수량 부족이면 실패. 3.8 소모품/포션.
+  rpc ConsumeItem(ConsumeItemRequest) returns (ConsumeItemResponse);
 }
 
 message GetInventoryRequest {}
@@ -26,6 +30,16 @@ message GrantItemRequest {
 message GrantItemResponse {
   gameserver.common.Result result = 1;
   int32 new_quantity = 2;  // 지급 후 보유 수량(성공 시)
+}
+
+message ConsumeItemRequest {
+  string item_id = 1;
+  int32 qty = 2;
+}
+
+message ConsumeItemResponse {
+  gameserver.common.Result result = 1;
+  int32 remaining_quantity = 2;  // 차감 후 남은 수량(성공 시, 전량 소비면 0)
 }
 
 message GetInventoryResponse {

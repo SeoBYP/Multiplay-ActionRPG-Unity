@@ -16,5 +16,12 @@ namespace Game.Presentation.Inventory
             public readonly ItemCategory? Category;
             public SelectTab(ItemCategory? category) { Category = category; }
         }
+
+        /// <summary>소모품 사용. 차감(서버 권위)→성공 시 회복·토스트는 Side Effect(OnConsumableUsed/OnToast).</summary>
+        public sealed class UseItem : InventoryIntent
+        {
+            public readonly string ItemId;
+            public UseItem(string itemId) { ItemId = itemId; }
+        }
     }
 }

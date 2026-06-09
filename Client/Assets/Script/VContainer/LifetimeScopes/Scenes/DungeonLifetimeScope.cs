@@ -51,6 +51,11 @@ public class DungeonLifetimeScope : LifetimeScope
         builder.Register<InventoryModel>(Lifetime.Scoped).AsSelf();
         builder.RegisterEntryPoint<InventoryViewController>(Lifetime.Scoped);
 
+        // 소모품(3.8) — 효과 데이터(클라 SO) + Side Effect 핸들러(OnConsumableUsed→GAS). 미존재 시 빈 SO 폴백.
+        builder.RegisterInstance(Resources.Load<ConsumableCatalog>("ConsumableCatalog")
+                                 ?? ScriptableObject.CreateInstance<ConsumableCatalog>());
+        builder.RegisterEntryPoint<ConsumableEffectHandler>(Lifetime.Scoped);
+
         // CharacterAgent.Construct(IStateMachineBuilder)에 주입되는 게임플레이 의존성.
         // PlayerInputActions는 루트(ProjectLifetimeScope)의 전역 Singleton을 공유한다 — 재등록 금지.
         // (InjectGameObject가 부모 스코프에서 resolve하므로 씬 재등록 없이도 주입된다.)

@@ -10,5 +10,8 @@ namespace Game.System.Inventory
     public interface IInventoryService
     {
         UniTask<(InventoryResult Result, IReadOnlyList<InventoryItemData> Items)> GetInventoryAsync(CancellationToken ct = default);
+
+        /// <summary>소모품 차감(서버 권위). 성공 시 남은 수량. proto 는 여기서 숨긴다(Presentation 비노출).</summary>
+        UniTask<(InventoryResult Result, int Remaining)> ConsumeItemAsync(string itemId, int qty, CancellationToken ct = default);
     }
 }

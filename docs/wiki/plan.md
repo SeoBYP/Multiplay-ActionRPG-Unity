@@ -90,7 +90,7 @@
 - **3.5** 상점(Shop) — 구매/판매·가격·재고 — ⬜ | T2 | ⚪
 - **3.6** 강화/크래프팅 — ⬜ | T3 | ⚪
 - **3.7** 아이템 등급/레어도 + 도감 — ⬜ | T2 | 🟢
-- **3.8** 소모품/포션 — HP/MP 회복 (인벤토리 소비 → GAS 효과) — ⬜ | T2 | ⚪
+- **3.8** 소모품/포션 — HP/MP 회복 (인벤토리 소비 → GAS 효과) — ✅ | T2 | ⚪ (**α 로직 슬라이스 완료 2026-06-10**: MVI Side Effect 패턴. `ConsumeItem` gRPC(서버 권위 차감) + 클라 System `ConsumeItemAsync`(proto 은닉) + `ConsumableCatalog`(클라 SO, itemId→stat/amount/policy, 서버 미공유=회복은 클라 권위) + `InventoryModel.UseItem` 의도 → consume 성공 시 **Side Effect** `OnConsumableUsed`(회복)·`OnToast`(메시지) 발행 → `ConsumableEffectHandler`가 GAS `ASC.ApplyEffect`로 적용(HUD 자동). 권위=인벤토리 수량(서버)/HP 회복(클라). `InventoryGrpcServiceTests` 9/9(ConsumeItem 4) + `InventoryModelTests` 5/5(UseItem Side Effect 2). 서버빌드·Unity 컴파일 0오류. **β UI 코드 완료 2026-06-10**: 슬롯 클릭(`ItemContentsSlot` IPointerClickHandler)→`Inventory.OpenActionPanel`(Canvas 직속 `ItemActionPanel` 슬롯 오른쪽 배치 + 풀스크린 `BackDropButton` 뒤 클릭 닫기)→사용 버튼→`UseItem`, `OnToast`→로그. 슬롯 클릭=`itemButton`(Button), 패널=온디맨드 Addressable(`InstantiateAsync`↔`ReleaseInstance`). **플레이 검증 완전 통과(사용자, 2026-06-10)**: 슬롯 클릭→패널→사용→ConsumeItem(서버 차감)→Side Effect→**GAS ASC.ApplyEffect HP 회복**+토스트 전 경로 동작(`ConsumableCatalog.asset` potion_hp_small→Health 저작 완료, `[ConsumableEffectHandler] 효과 적용` 로그 확인). Unity 컴파일 0오류. 상세=codemap §2.21. **→ 3.8 코어 완결 ✅.** **후속(폴리시)**: 소모품만 사용가능 제한(현 gold도 차감)·정식 토스트 위젯(7.x))
 
 ### 4. 콘텐츠 시스템
 - **4.1 몬스터** — ✅ | T1 | ⚪ (코어 완료, 상세 = `§M3`)

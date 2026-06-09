@@ -92,6 +92,47 @@ public class InventoryGrpcServiceTests
         Assert.Empty(await _repository.GetAllAsync(1L));
     }
 
+    // ── ConsumeItem (3.8 소모품 — 서버 권위 차감) ──
+
+    [Fact]
+    public async Task 보유한_소모품_사용은_성공하고_남은수량을_반환한다()
+    {
+        await _service.GrantItem(new GrantItemRequest { ItemId = "potion_hp_small", Qty = 3 }, Authed(1L));
+
+        var res = await _service.ConsumeItem(new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Authed(1L));
+
+        Assert.True(res.Result.Success, res.Result.Message);
+        Assert.Equal(2, res.RemainingQuantity);
+    }
+
+    [Fact]
+    public async Task 미보유_소모품_사용은_거부된다()
+    {
+        var res = await _service.ConsumeItem(new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Authed(1L));
+
+        Assert.False(res.Result.Success);
+    }
+
+    [Fact]
+    public async Task 보유보다_많이_사용하면_거부되고_변화가_없다()
+    {
+        await _service.GrantItem(new GrantItemRequest { ItemId = "potion_hp_small", Qty = 2 }, Authed(1L));
+
+        var res = await _service.ConsumeItem(new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 5 }, Authed(1L));
+
+        Assert.False(res.Result.Success);
+        var inv = await _repository.GetAllAsync(1L);
+        Assert.Equal(2, inv[0].Quantity);
+    }
+
+    [Fact]
+    public async Task 미인증_사용은_거부된다()
+    {
+        var res = await _service.ConsumeItem(new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Anonymous());
+
+        Assert.False(res.Result.Success);
+    }
+
     /// <summary>
     /// 최소 ServerCallContext 테스트 더블. GetUserId 는 UserState["__HttpContext"].User 만 읽으므로
     /// UserState 외 멤버는 기본값으로 충분(별도 Grpc 테스트 패키지 불필요).

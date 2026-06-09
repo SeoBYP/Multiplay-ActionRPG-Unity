@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using Game.Core;
 using Game.GUI.Common;
 using Game.Presentation.Inventory;
+using Script.GUI.Inventory;
 using R3;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
@@ -70,6 +71,11 @@ namespace Game.GUI.Inventory
         [Inject] private InventoryModel _model;
 
         private IDisposable _stateSubscription;
+        private IDisposable _toastSubscription;
+
+        private Canvas _canvas;
+        private ItemActionPanel _activePanel;
+        private BackDropButton _activeBackdrop;
 
         [InspectorButton("Quick Setting")]
         private void QuickSetting()
@@ -165,6 +171,9 @@ namespace Game.GUI.Inventory
             // IDisposable을 직접 보관해 OnDestroy에서 해제한다.
             _stateSubscription = _model.State.Subscribe(Render);
 
+            // Side Effect: 토스트(사용/실패). 정식 위젯은 7.x — 현재는 로그.
+            _toastSubscription = _model.OnToast.Subscribe(msg => Debug.Log($"[Inventory] 토스트: {msg}"));
+
             // 슬롯 준비 후 1회 갱신.
             _model.Accept(InventoryIntent.Refresh.Instance);
         }
@@ -173,6 +182,9 @@ namespace Game.GUI.Inventory
         {
             _stateSubscription?.Dispose();
             _stateSubscription = null;
+            _toastSubscription?.Dispose();
+            _toastSubscription = null;
+            CloseActionPanel();
             if (_slotHandle.IsValid()) Addressables.Release(_slotHandle);
             if (_contentHandle.IsValid()) Addressables.Release(_contentHandle);
         }
@@ -186,6 +198,7 @@ namespace Game.GUI.Inventory
 
         private void Close()
         {
+            CloseActionPanel();
             gameObject.SetActive(false);
         }
 
@@ -197,9 +210,11 @@ namespace Game.GUI.Inventory
             {
                 if (i < filtered.Count)
                 {
-                    // 아이템 있는 칸 — Content를 동적 생성/보장 후 바인딩.
+                    // 아이템 있는 칸 — Content를 동적 생성/보장 후 바인딩. 클릭 → 슬롯 오른쪽에 액션 패널.
                     var content = activeSlots[i].EnsureContent(_itemContentsPrefab);
-                    content?.Bind(filtered[i].Icon, filtered[i].Quantity);
+                    var item = filtered[i];
+                    var slotRect = (RectTransform)activeSlots[i].transform;
+                    content?.Bind(item.ItemId, item.Icon, item.Quantity, id => OpenActionPanel(id, slotRect).Forget());
                 }
                 else
                 {
@@ -211,6 +226,93 @@ namespace Game.GUI.Inventory
             // 슬롯 수보다 아이템이 많으면 잘림 — 침묵 금지(slotCount 조정 필요).
             if (filtered.Count > activeSlots.Count)
                 Debug.LogWarning($"[Inventory] 아이템 {filtered.Count}개 > 슬롯 {activeSlots.Count}개 — 일부 미표시. slotCount를 늘려라.");
+        }
+
+        // ── 액션 패널 (슬롯 클릭 → 오른쪽 팝업, Canvas 직속) ──
+
+        /// <summary>
+        /// 클릭한 슬롯 오른쪽에 ItemActionPanel 을 Canvas 직속으로 생성. 뒤에 백드롭(클릭 시 닫힘)을 깐다.
+        /// 팝업은 클릭 시에만 필요하므로 **온디맨드 Addressable 로드**(필드로 들고 있지 않음). 닫을 때 ReleaseInstance.
+        /// </summary>
+        private async UniTask OpenActionPanel(string itemId, RectTransform slotRect)
+        {
+            CloseActionPanel(); // 기존 열린 팝업 정리(한 번에 하나)
+
+            var canvas = ResolveCanvas();
+            if (canvas == null)
+            {
+                Debug.LogWarning("[Inventory] Canvas 없음 — 액션 패널 생략");
+                return;
+            }
+
+            // 백드롭 먼저(즉시 뒤 화면 차단) → 패널을 그 위(SetAsLastSibling). 둘 다 Canvas 직속.
+            _activeBackdrop = BackDropButton.Create(canvas.transform);
+            _activeBackdrop.Clicked += CloseActionPanel;
+            var openedBackdrop = _activeBackdrop; // 로드 중 재진입 감지용
+
+            GameObject go;
+            try
+            {
+                go = await Addressables.InstantiateAsync(AddressKeys.UI.ItemActionPanel, canvas.transform).Task.AsUniTask();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[Inventory] ItemActionPanel Addressable 로드 실패: {e.Message}");
+                CloseActionPanel();
+                return;
+            }
+
+            // 로드 중 다른 슬롯 클릭/닫힘이 끼어들었으면 이 인스턴스는 폐기(현재 백드롭이 바뀜).
+            if (_activeBackdrop != openedBackdrop)
+            {
+                Addressables.ReleaseInstance(go);
+                return;
+            }
+
+            _activePanel = go.GetComponent<ItemActionPanel>();
+            if (_activePanel == null)
+            {
+                Debug.LogError("[Inventory] ItemActionPanel 컴포넌트 없음 (prefab 확인)");
+                Addressables.ReleaseInstance(go);
+                CloseActionPanel();
+                return;
+            }
+
+            var panelRt = (RectTransform)_activePanel.transform;
+            panelRt.SetAsLastSibling();
+
+            // 슬롯 오른쪽 변 중앙에 패널 왼쪽-중앙 pivot 을 맞춘다(자식 아님 — 월드 좌표 계산).
+            var corners = new Vector3[4];
+            slotRect.GetWorldCorners(corners); // 0 BL, 1 TL, 2 TR, 3 BR
+            panelRt.pivot = new Vector2(0f, 0.5f);
+            panelRt.position = (corners[2] + corners[3]) * 0.5f;
+
+            _activePanel.OnCloseRequested += CloseActionPanel;
+            _activePanel.Bind(itemId, id => _model.Accept(new InventoryIntent.UseItem(id)));
+        }
+
+        /// <summary>열린 액션 패널 + 백드롭을 파괴한다(useButton 사용·백드롭 클릭·창 닫기/파괴 시).</summary>
+        private void CloseActionPanel()
+        {
+            if (_activePanel != null)
+            {
+                _activePanel.OnCloseRequested -= CloseActionPanel;
+                Addressables.ReleaseInstance(_activePanel.gameObject); // InstantiateAsync 짝
+                _activePanel = null;
+            }
+            if (_activeBackdrop != null)
+            {
+                _activeBackdrop.Clicked -= CloseActionPanel;
+                Destroy(_activeBackdrop.gameObject);
+                _activeBackdrop = null;
+            }
+        }
+
+        private Canvas ResolveCanvas()
+        {
+            if (_canvas == null)
+                _canvas = GetComponentInParent<Canvas>()?.rootCanvas;
+            return _canvas;
         }
 
         private static List<InventoryItemModel> Filter(IReadOnlyList<InventoryItemModel> items, ItemCategory? category)
