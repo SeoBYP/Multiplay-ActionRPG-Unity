@@ -2,7 +2,9 @@
 
 > **새 채팅 시작 시 이 파일을 먼저 읽어라.**
 > Phase가 완료될 때마다 즉시 갱신한다.
-> 마지막 갱신: 2026-06-09 (**3.3.7 루트 풀 E2E + 재접속 유예 창(6.4)** — ① 던전 루트 풀 E2E(사냥→드랍→줍기→인벤토리) 작성, `DropTable` 슬라임 potion 보장드랍(결정성)·`StartedRoomContext.HostAccessToken`. ② **9.4 부채수정이 만든 재접속 회귀**(크래시 시 `_playerStates` 즉시삭제 → 재입장 거부)를 **재접속 유예 창(grace)**으로 해소 = WBS 6.4 진척: 크래시는 60s 상태 보존+AI 유령필터, 명시퇴장만 즉시제거, 만료 스윕. **SocketServer.Tests 72/72 + PlayMode 16/16 그린**(UnityMCP). 상세 = codemap §2.17. **Main 루트 경로(3.3.8~10)·클라 재접속 팝업 잔여.**)
+> 마지막 갱신: 2026-06-11 (**GAS 구조 정리 + 플레이어 HP 서버 권위 승격(2.5.1 사망)** — 커밋 `ebbb8579`. ① **GAS 정리(ⓐ~ⓓ)**: Shared.Gameplay 폴더 개념별 재구성 / `GameplayTag`·Container / effect 수치 단일소스화(서버 위임) / **서버 발동 게이트(쿨다운)로 C_Attack 연사 치팅 차단**. ② **2.5.1 사망**: `State.Dead` 태그 입력게이트(던전 다운-잠금) + `S_PlayerDead`(Union 1823) 원격 다운 가시성. ③ **플레이어 HP 서버 권위(authority-model §0 권위결정규칙 + §4 승격)**: 기존 "클라 결정론"은 사용자 미승인 가정·**불사 핵 부채**였음 → 던전 HP=서버권위로. 증분1=서버 데미지누적→HP0 직접감지→S_PlayerDead(C_PlayerDead 격하). 증분2=회복 크로스서버(ConsumeItem→GameServer 검증·차감→Redis→SocketServer ApplyPlayerEffect(+heal)+S_ApplyEffect). ④ **버그픽스**: 다운 플레이어 몬스터 타깃 제외. ⑤ **맵 선택 슬림 배선**(StartRoomRequest.map_id, 4.3 부분상환) + test fixture(test_brute/test_arena). **검증: GameServer 252/252 + SocketServer 85/85 + Shared 30/30 + 클라 EditMode/PlayMode + SocketE2E 2종(회복/사망) 그린**. 상세 = codemap §2.6b. **잔여(2.5.1): 다운 포즈/애니·Main 타이머 리스폰·회복 수치 단일소스. 던전 내 부활=2.5.2.**)
+>
+> 직전: 2026-06-09 (**3.3.7 루트 풀 E2E + 재접속 유예 창(6.4)** — ① 던전 루트 풀 E2E(사냥→드랍→줍기→인벤토리) 작성, `DropTable` 슬라임 potion 보장드랍(결정성)·`StartedRoomContext.HostAccessToken`. ② **9.4 부채수정이 만든 재접속 회귀**(크래시 시 `_playerStates` 즉시삭제 → 재입장 거부)를 **재접속 유예 창(grace)**으로 해소 = WBS 6.4 진척: 크래시는 60s 상태 보존+AI 유령필터, 명시퇴장만 즉시제거, 만료 스윕. **SocketServer.Tests 72/72 + PlayMode 16/16 그린**(UnityMCP). 상세 = codemap §2.17. **Main 루트 경로(3.3.8~10)·클라 재접속 팝업 잔여.**)
 >
 > 직전: 2026-06-07 (**M4 던전 루프 완성 = DoD 달성** 🎉 — A 트랙(클리어 루프)·B 트랙(Exp 보상+실패 경로+UI) 코드 완료에 더해, **MPPM 2-창 수동 플레이로 클리어→보상→로비 복귀 1판 전체 시각 검증 통과**(사람 확인). M4 마지막 잔여(완전한 Co-op 1판 루프) 닫힘 → **M4 전체 ✅**. **다음 = M5 폴리시/콘텐츠** 또는 서버 도메인 병렬 트랙(3.1 인벤토리 등). DoD: 2명 접속→방 생성·시작→던전 입장(서로 보임·이동)→몬스터 협력 처치→클리어→Exp 보상→로비 복귀 전 과정 서버 권위 + E2E 통과 — **충족**.)
 >

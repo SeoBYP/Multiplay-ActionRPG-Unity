@@ -55,6 +55,10 @@ namespace Game.Presentation.InGame
             }
 
             target.ApplyEffectAuthoritative(def, data.InstanceId, data.Stacks);
+
+            // 로컬 플레이어가 받은 효과(데미지/회복)와 적용 후 HP 로그.
+            var hp = target.GetAttribute(EGameplayAttribute.Health);
+            Debug.Log($"[EffectReceiver] 효과 적용 — EffectId={data.EffectId} → HP={hp?.CurrentValue}/{hp?.MaxValue}");
         }
 
         private void OnEffectRemoved(int instanceId)
