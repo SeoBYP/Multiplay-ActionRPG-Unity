@@ -52,6 +52,18 @@
                     ]
                 }
             ]
+        },
+        {
+            "mapId": "test_arena",
+            "expReward": 0,
+            "bounds": { "centerX": 0.0, "centerZ": 0.0, "sizeX": 40.0, "sizeZ": 40.0 },
+            "points": [
+                { "x": 0.0, "y": 0.0, "z": 0.0, "rotY": 0.0 },
+                { "x": 2.0, "y": 0.0, "z": 0.0, "rotY": 180.0 }
+            ],
+            "monsters": [
+                { "monsterId": "test_brute", "x": 0.0, "y": 0.0, "z": 0.0, "rotY": 0.0, "count": 1, "wave": 0, "patrol": [] }
+            ]
         }
     ]
 }

@@ -29,6 +29,7 @@ namespace Shared.Packet.Packets;
 [MemoryPackUnion(1820, typeof(S_DungeonClear))]
 [MemoryPackUnion(1821, typeof(S_DungeonFailed))]
 [MemoryPackUnion(1822, typeof(C_PlayerDead))]
+[MemoryPackUnion(1823, typeof(S_PlayerDead))]
 // 던전 이벤트 - 루트/드랍(줍기)
 [MemoryPackUnion(1830, typeof(S_SpawnGroundItem))]
 [MemoryPackUnion(1831, typeof(S_GroundItemRemoved))]

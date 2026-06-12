@@ -59,8 +59,8 @@
 - **2.2** 스킬/어빌리티 — SkillTimeline, `basic_swing` 외 확장 — 🔄 | T1 | 🔵
 - **2.3** 진행/성장(Progression) — 레벨·경험치·스탯 성장 영속 (`Progression` 신규) — 🔄 | T1 | 🟢 (Exp 영속 도메인 완료, 레벨업/스탯 성장 M5)
 - **2.4** 스탯 산식 — 레벨/장비/버프 합산 서버 권위 재계산 — ⬜ | T2 | ⚪
-- **2.5 사망/부활** — ⬜ | T1 | 🔵
-  - **2.5.1** 사망 처리 — HP 0 다운/리스폰 (전투 루프 필수) — ⬜ | T1 | 🔵
+- **2.5 사망/부활** — 🔄 | T1 | 🔵
+  - **2.5.1** 사망 처리 — HP 0 다운/리스폰 (전투 루프 필수) — 🔄 | T1 | 🔵 (**ⓔ-1 로컬 사망 게이트 코드 완료 2026-06-11**: GAS 정리(ⓐ~ⓓ) 위에 `State.Dead` 태그로. HP≤0(클라 결정론) → `PlayerCharacterAgent`가 `ASC.AddTag(State.Dead)` → `Update` 게이트가 Action(공격/상호작용) 무시 + `base.Update()` 미호출로 Locomotion 정지 = **던전 다운-잠금**. 상수 `GameplayTags.Dead`(Shared). 서버 빌드 0오류. **ⓔ-2 원격 다운 가시성 완료 2026-06-11**: `S_PlayerDead`(Union 1823) — 서버 `DungeonLifecycleHandler`가 `C_PlayerDead`→방 브로드캐스트, 클라 `PlayerDeadPacketHandler`→`CharacterSpawner.HandlePlayerDead`(원격=로그+Destroy / 로컬=로그만, 카메라·HUD 보호). SocketServer **80/80**(직렬화 2) + Docker 리빌드. EditMode 4+PlayMode 2(ⓔ-1) 그린. **플레이어 HP 서버 권위 승격 완료 2026-06-11**(authority-model §0 권위결정규칙 + §4): 던전 플레이어 HP=서버권위(기존 클라결정론은 미승인 가정·불사핵 부채). 증분1=서버 데미지누적+HP0 직접감지→S_PlayerDead(C_PlayerDead 격하), 증분2=회복 크로스서버(ConsumeItem→GameServer검증·차감→Redis→SocketServer ApplyPlayerEffect(+heal)+S_ApplyEffect, 던전 ConsumableEffectHandler 미등록). GameServer 252/252 + SocketServer 85/85 + 양서버 Docker. 상세=codemap §2.6b. **잔여**: 다운 포즈/애니·Main 타이머 리스폰·E2E·진단로그 제거·회복수치 단일소스. 던전 내 부활=2.5.2)
   - **2.5.2** Co-op 부활 — 다운된 아군 살리기 — ⬜ | T2 | ⚪
 - **2.6 전투 보조** — ⬜ | T2 | ⚪
   - **2.6.1** 회피/구르기(Dodge) — 무적 프레임·모션 (입력 `DodgePressed` 존재) — ⬜ | T2 | ⚪
@@ -317,4 +317,5 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 - 패킷 규칙: [`docs/wiki/packets.md`](packets.md)
 - SocketServer 규칙: [`docs/wiki/socketserver.md`](socketserver.md)
 - 서버 흐름: [`docs/wiki/gameflow.md`](gameflow.md)
+- GAS 아키텍처(Tag·Effect·Ability·Cue·발동권위): [`docs/wiki/gas-architecture.md`](gas-architecture.md)
 - Effect/버프 시스템: [`docs/wiki/effect-system.md`](effect-system.md)

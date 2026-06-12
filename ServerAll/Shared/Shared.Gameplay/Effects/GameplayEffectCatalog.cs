@@ -78,6 +78,19 @@ namespace Script.System.GamePlayAbilitySystem
                 {
                     GameplayAttributeModifier.Create(EGameplayAttribute.Health, -5, EModifierType.Additive),
                 }));
+
+            // 소모품 회복(던전 서버 권위). effectId == itemId 규칙 — GameServer 가 소비 검증 후
+            // 이 effectId 를 SocketServer 에 통지, SocketServer 가 PlayerState.Hp 에 적용 + S_ApplyEffect 브로드캐스트.
+            // 수치는 클라 ConsumableCatalog(Main 솔로용)와 정렬(potion_hp_small = Health +100).
+            Register(new GameplayEffectDefinition(
+                id: "potion_hp_small",
+                category: EEffectCategory.AttackPower, // Instant 회복은 버프 아이콘 없음(cosmetic)
+                policy: EDurationPolicy.Instant,
+                durationMs: 0,
+                modifiers: new[]
+                {
+                    GameplayAttributeModifier.Create(EGameplayAttribute.Health, 100, EModifierType.Additive),
+                }));
         }
     }
 }

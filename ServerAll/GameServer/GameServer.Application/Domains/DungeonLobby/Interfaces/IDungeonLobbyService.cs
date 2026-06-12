@@ -59,7 +59,8 @@ public interface IDungeonLobbyService
     /// <param name="userId">게임 시작을 요청한 사용자 ID</param>
     /// <param name="roomId">게임을 시작할 방 ID</param>
     /// <returns>게임 시작 결과</returns>
-    Task<Result<DungeonRoom>> StartGameAsync(string sessionId, long roomId, string traceId, CancellationToken ct = default);
+    // mapId: 비우면 기본 맵(MapIds.Default). 특정 맵 강제 시 지정(StartRoomRequest.map_id, E2E 등).
+    Task<Result<DungeonRoom>> StartGameAsync(string sessionId, long roomId, string traceId, string mapId = "", CancellationToken ct = default);
 
     /// <summary>
     /// SubscribeRoom 진입 전 세션·방·멤버십 검증

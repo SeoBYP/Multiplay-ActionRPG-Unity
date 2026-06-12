@@ -43,6 +43,23 @@ public class MonsterDamageTests
     }
 
     [Fact]
+    public void CombatEffectCatalog는_Shared_단일소스를_위임한다()
+    {
+        // 수치 진실원은 Shared GameplayEffectCatalog 하나. 서버 접근자는 그 정의를 그대로 꺼낸다.
+        // (예전 자체 Dictionary 이중정의 → 단일소스 위임 회귀 가드)
+        var server = CombatEffectCatalog.Resolve("basic_attack_dmg");
+        var shared = new GameplayEffectCatalog().Get("basic_attack_dmg")!.Modifiers;
+
+        Assert.Equal(shared.Count, server.Count);
+        for (int i = 0; i < shared.Count; i++)
+        {
+            Assert.Equal(shared[i].AttributeType, server[i].AttributeType);
+            Assert.Equal(shared[i].ModifierType, server[i].ModifierType);
+            Assert.Equal(shared[i].Amount, server[i].Amount);
+        }
+    }
+
+    [Fact]
     public void DamageMonster는_GAS로_HP를_깎는다()
     {
         var room = NewRoomWithSlime();

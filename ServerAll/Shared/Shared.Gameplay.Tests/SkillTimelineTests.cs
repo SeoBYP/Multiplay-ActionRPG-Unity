@@ -46,4 +46,13 @@ public class SkillTimelineTests
         Assert.Equal(300, t.ActiveEndMs);
         Assert.Equal(450, t.TotalMs);
     }
+
+    [Fact]
+    public void CooldownElapsed는_쿨다운_경과를_경계포함으로_판정한다()
+    {
+        // last=1000, cooldown=400 → 1400 부터 발동 가능(경계 포함).
+        Assert.False(SkillTimelineMath.CooldownElapsed(400, lastCastMs: 1000, nowMs: 1399));
+        Assert.True(SkillTimelineMath.CooldownElapsed(400, lastCastMs: 1000, nowMs: 1400));
+        Assert.True(SkillTimelineMath.CooldownElapsed(400, lastCastMs: 1000, nowMs: 5000));
+    }
 }

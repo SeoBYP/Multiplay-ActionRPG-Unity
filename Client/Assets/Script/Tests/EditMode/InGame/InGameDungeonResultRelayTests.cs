@@ -13,10 +13,10 @@ using Object = UnityEngine.Object;
 namespace Game.Tests.EditMode.InGame
 {
     /// <summary>
-    /// 던전 결과(클리어/실패) 릴레이 + 로컬 사망 보고 단위 테스트 (EditMode).
+    /// 던전 결과(클리어/실패) 릴레이 단위 테스트 (EditMode).
     ///   - S_DungeonClear(보상 Exp) 신호 → State.IsDungeonCleared + RewardExp
     ///   - S_DungeonFailed 신호 → State.IsDungeonFailed
-    ///   - 로컬 HP 0 → C_PlayerDead 1회 송신(플레이어 HP=클라 권위)
+    ///   - 사망 감지는 **서버 권위**(authority-model §4) → 클라는 C_PlayerDead 를 보내지 않는다.
     /// </summary>
     [TestFixture]
     public class InGameDungeonResultRelayTests
@@ -65,8 +65,10 @@ namespace Game.Tests.EditMode.InGame
         }
 
         [Test]
-        public void 로컬_HP가_0이_되면_C_PlayerDead를_한_번만_송신한다()
+        public void 로컬_HP가_0이_되어도_C_PlayerDead를_송신하지_않는다()
         {
+            // 플레이어 HP 서버 권위 승격(§4): 사망은 서버(Room.TickMonsters)가 자기 HP 로 직접 감지.
+            // 클라는 더 이상 C_PlayerDead 를 보고하지 않는다(보내면 서버가 dedup, 보낼 필요 없음).
             var session = new RecordingSocketSession();
             var localPlayer = new LocalPlayerContext();
             _model = new InGameModel(session, localPlayer, null, null, new SocketPacketState());
@@ -75,24 +77,7 @@ namespace Game.Tests.EditMode.InGame
             var asc = CreateAsc(100, 100);
             localPlayer.Set(asc);
 
-            ApplyDamage(asc, EGameplayAttribute.Health, -100); // HP 0 → 사망 보고
-            ApplyDamage(asc, EGameplayAttribute.Health, -10);  // 추가 데미지 — 중복 송신 없어야
-
-            Assert.AreEqual(1, session.SentPackets.FindAll(p => p is C_PlayerDead).Count);
-        }
-
-        [Test]
-        public void HP가_0보다_크면_C_PlayerDead를_송신하지_않는다()
-        {
-            var session = new RecordingSocketSession();
-            var localPlayer = new LocalPlayerContext();
-            _model = new InGameModel(session, localPlayer, null, null, new SocketPacketState());
-            _model.Initialize();
-
-            var asc = CreateAsc(100, 100);
-            localPlayer.Set(asc);
-
-            ApplyDamage(asc, EGameplayAttribute.Health, -30);
+            ApplyDamage(asc, EGameplayAttribute.Health, -100); // HP 0
 
             Assert.IsEmpty(session.SentPackets.FindAll(p => p is C_PlayerDead));
         }

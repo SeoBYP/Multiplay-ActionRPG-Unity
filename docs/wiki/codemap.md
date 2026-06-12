@@ -97,7 +97,7 @@
   - 데이터 = `drop-tables.json`(임베디드). 클라는 ScriptableObject 로 저작(9a-2 예정) → 같은 JSON 으로 bake.
 - **왜 SO 를 서버가 직접 못 쓰나**: `Shared.Gameplay` 는 Unity 밖 컴파일 DLL → `ScriptableObject` 불가, SocketServer 도 `.asset` 런타임 로드 불가. → 데이터는 SO(클라 저작)→JSON bake→서버 임베디드 파싱(spawn-layouts 와 같은 다리). roll 로직만 DLL 공유.
 - **서버 교체**: `CombatHandler.SpawnDrops` 가 `DropTable.Roll` → `DropTableCatalog.Roll`. 기존 `Server.Loot.DropTable.cs` 삭제(같은 ns `GroundItem.cs` 는 유지).
-- **위치**: `Shared/Shared.Gameplay/DropTable.cs`(순수) · `Shared/Shared.Infrastructure/Loot/{DropTableCatalog.cs, drop-tables.json}` · `SocketServer/PacketHandler/Handler/CombatHandler.cs`(교체).
+- **위치**: `Shared/Shared.Gameplay/Loot/DropTable.cs`(순수, 2026-06-11 reorg로 `Loot/`로 이동) · `Shared/Shared.Infrastructure/Loot/{DropTableCatalog.cs, drop-tables.json}` · `SocketServer/PacketHandler/Handler/CombatHandler.cs`(교체).
 - **테스트**: `Shared.Gameplay.Tests/DropTableRollTests` 5(순수 확률·수량) → **22/22** · `SocketServer.Tests/Loot/DropTableCatalogTests` 5(임베디드 데이터·파싱·위임) → **72/72**. 서버 빌드 0오류.
 - **9a-2 SO 저작 레이어 완료 2026-06-09**: `Game.Gameplay.Loot.DropTableDefinition`(SO, monsterId별 drops·`Get(monsterId)` 클라 런타임 조회) + `Game.Gameplay.Editor.DropTableExporter`(`Tools/Loot/Export Drop Tables` SO→JSON bake·`Import` 부트스트랩) — MapDefinition/MapDataExporter 동일 컨벤션. **클라는 SO 직접 읽음**(Resources `Loot/DropTableDefinition`) → bake는 **서버 임베디드 `drop-tables.json`만** 기록(SO가 클라 단일 소스, 클라 JSON 미러 불요). Unity 컴파일 0오류. `.asset` 부트스트랩(사용자 `Tools/Loot/Import` 1클릭)으로 `Assets/GameData/Resources/Loot/DropTableDefinition.asset` 생성·검증 완료.
 - **파이프라인 E2E 검증 2026-06-09**: SO에 `goblin`(potion_hp_small 5~10) 추가 → `Tools/Loot/Export` → 임베디드 `drop-tables.json` 반영 → `DropTableCatalogTests.임베디드_goblin_데이터가_로드된다` 통과. **함정**: JsonUtility가 `0.2f`를 `0.20000000298..`(float→double 아티팩트)로 직렬화 → catalog 테스트의 chance 비교는 **근사(`Math.Abs<1e-6`)**. SocketServer.Tests **73/73**. socketserver Docker 리빌드·재배포(임베디드 JSON 갱신).
@@ -222,6 +222,64 @@
 - **HitStop**(`Gameplay/Character/HitStopController.cs` → `PlayerCharacter.prefab` 루트): per-actor `Animator.speed=0`(전역 `Time.timeScale` 금지). 자신 HP 감소(`ASC.OnAttributeChanged`) 자동 트리거 + 외부 `Begin()`. 즉 서버 데미지(`S_ApplyEffect`→로컬 ASC HP↓) 도착 시 그 캐릭터만 멈칫. unscaledTime 복원.
 - **검증**: 클라 EditMode **131/131** + 서버 빌드 0 에러 + **E2E `SocketE2ETests` 8/8**(combat: 호스트 정면 1유닛 게스트 공격→게스트 `S_ApplyEffect{basic_attack_dmg}` 수신).
 - **남음(정밀화)**: 공유 시계(StartTick 정밀 만료)·클라 예측/정정·**원격 캐릭터 ASC 라우팅**(현재 `EffectReceiver`는 로컬 대상만 → 원격 피격자 HitStop 미발동)·SkillId→Timeline 매핑·active-window 타이밍. JSON 로더/저작툴=CA-5.
+
+### 2.6b Shared.Gameplay 폴더 정리 (GAS 구조 ⓐ, 2026-06-11)
+- **무엇**: 플랫 11파일 → 개념 폴더 `{Attributes,Effects,Abilities,Combat,Loot}/`로 분산 + `Enums.cs`를 `Attributes/AttributeEnums.cs`+`Effects/EffectEnums.cs`로 분리. **`git mv`(이력 보존), ns(`Script.System.GamePlayAbilitySystem`) 무변경** → 클라 DLL 머지·서버 참조 무영향(SDK glob이라 .csproj 수정 0).
+- **왜**: 플랫 나열이 찾기 어려움. ns를 폴더에 맞춰 바꾸면 클라 DLL 머지가 깨지므로 **폴더만**. 설계 전체 = [gas-architecture.md](gas-architecture.md).
+- **검증**: Shared.Gameplay 빌드 0오류 + 단위 **22/22** + SocketServer 빌드 0오류(동작 보존, 테스트 신규 불필요 — 이동만).
+
+**ⓑ 카탈로그 단일화 (서버 위임, 2026-06-11)**
+- **무엇**: `GameplayEffectDefinition.cs`+`GameplayEffectCatalog.cs`를 Client→`Shared.Gameplay/Effects/`로 이사(순수, ns 동일). 서버 `CombatEffectCatalog`를 **자체 Dictionary 제거 → Shared `GameplayEffectCatalog` 위임**(`_shared.Get(id)?.Modifiers`)로 축소 = **effect 수치 단일소스**(문제① 해소). 클라 `GameplayEffectDefinition.cs.meta`/`Catalog.cs.meta`는 gitignore라 디스크 rm.
+- **DLL 재배치**: `Shared.Gameplay.dll`(11→13.8KB, Definition/Catalog 포함) → `Client/Assets/Plugins/Shared.Gameplay/` 재복사(공개 API 변경이라 필수).
+- **검증(서버)**: Shared 22/22 + **SocketServer 74/74**(신규 `CombatEffectCatalog는_Shared_단일소스를_위임한다` 회귀가드 포함, 기존 MonsterDamage 보존) + DLL 빌드 0오류. **클라 컴파일은 Unity 미실행(unity-mcp 미연결)으로 CLI 검증 불가 — Unity 인에디터 재컴파일 필요**(same-ns 이동이라 안전 예상). ※ Unity 생성 `Game.*.csproj`는 stale(삭제파일 잔존)이라 dotnet 빌드 검증 부적합.
+- **남음(미착수)**: 결정2(클라 `GameplayEffect`/`AbilitySystemUtils`는 테스트 헬퍼 — 마이그레이션 후 삭제, 사용자 미결) · ⓔ 2.5.1 사망=`State.Dead` 태그.
+
+**ⓒ GameplayTag 인프라 (2026-06-11)**
+- **무엇**: Shared `Tags/GameplayTag.cs`(readonly struct, 값 동등성, 문자열 implicit, 정확일치)+`Tags/GameplayTagContainer.cs`(HashSet 기반 Add/Remove/HasTag/HasAny) 신설. `GameplayEffectDefinition`에 `GrantedTags[]`(선택 파라미터, 기본 빈목록) 추가 — 활성 Effect가 부여하는 상태태그(예: 스턴=State.Stunned). 클라 `AbilitySystemComponent`에 `_tags` 컨테이너 + `AddTag/RemoveTag/HasTag` — HasTag=직접태그 ∪ 활성Effect.GrantedTags(동적 합산). 사망 `State.Dead`는 Effect 없이 `ASC.AddTag` 직접.
+- **왜**: 사망(2.5.1)·CC(2.6.2)·상태 Cue의 공통 인프라. 계층 부모 매칭은 YAGNI(정확일치만, 후속). GrantedTags는 데이터+ASC 동적합산만(Effect→Container 동기화 로직 불필요 — HasTag가 _active 스캔).
+- **검증**: Shared.Gameplay.Tests **29/29**(태그 7 신규: 동등성·컨테이너·HasAny·GrantedTags 기본/지정) + SocketServer 빌드 0오류(GrantedTags 선택파라미터 후방호환) + DLL 재복사(15.3KB). **클라 ASC 글루는 Unity 인에디터 검증 필요**(small 추가, same-ns DLL 타입). 클라 컴파일 0오류 확인(사용자). ASC 태그 EditMode 테스트는 ⓔ 2.5.1 게이트 합류 시 추가.
+
+**ⓓ 서버 발동 게이트 = 권위 쿨다운 (치팅 차단, 2026-06-11)**
+- **무엇**: `C_Attack` 연사=폭딜 치팅을 서버에서 차단. Shared 순수 `SkillTimelineMath.CooldownElapsed(cooldownMs,lastCastMs,nowMs)` + 서버 `PlayerState.TryBeginSkill(skillId,cooldownMs,nowMs)`(스킬별 `Dictionary<int,long>` 마지막 발동시각, 쿨다운 경과 시 기록+true / 아니면 false) + `CombatHandler.HandleAttack` 진입부 게이트(거부 시 `return` → 데미지 0, 적중판정도 안 함). basic_swing 쿨다운=400ms.
+- **왜**: 기존엔 서버가 cadence 미추적 → 매 `C_Attack`마다 hitbox 평가→데미지(authority-model ① 치팅 구멍). 쿨다운 데이터는 `SkillTimeline.CooldownMs`에 이미 존재 → 서버가 읽어 게이트만. active-window 정밀 시뮬은 YAGNI(쿨다운으로 1차 차단). 연출은 클라 즉발 유지(거부돼도 피격 Effect 없음→자연 정리).
+- **위치**: `Shared.Gameplay/Abilities/SkillTimelineMath.cs`(CooldownElapsed) · `SocketServer/Player/PlayerState.cs`(TryBeginSkill) · `SocketServer/PacketHandler/Handler/CombatHandler.cs`(게이트 배선, 0단계).
+- **검증**: Shared **30/30**(CooldownElapsed 경계 1) + SocketServer **78/78**(SkillCooldownGate 4: 첫발동·연사거부·쿨경과재발동·스킬별독립) + DLL 동기화. **서버 단독**(클라/패킷 무변경). ※E2E 검증·Docker 리빌드는 별도(연사 거부 E2E는 후속).
+- **남음**: 위치도 lite권위(C_Move 릴레이값, 텔레포트핵)는 별개 부채. active-window 정밀(서버 tick)도 후속.
+
+**ⓔ-1 로컬 사망 게이트 = 2.5.1 착수 (2026-06-11)**
+- **무엇**: HP≤0(클라 결정론) → 로컬 플레이어 다운-잠금. Shared `Tags/GameplayTags.cs`(상수 `Dead="State.Dead"`, 매직스트링 방지). 클라 `PlayerCharacterAgent`: `AbilitySystem.OnAttributeChanged` 구독 → Health≤0 시 `ASC.AddTag(State.Dead)`(1회) → `Update`에서 `IsDead`면 `return`(Action 입력 무시 + `base.Update()` 미호출로 Locomotion FSM 정지 = 이동/공격/상호작용 한 번에 게이트). OnDestroy 구독해제.
+- **왜**: 사망=FSM 상태 아님(두 축 규칙) → GAS 태그로(ⓒ 인프라 위). 던전=다운-잠금(씬 복귀/2.5.2 부활 전까지 유지), Main 타이머 리스폰은 별개. base.Update 미호출=가장 간단한 3축 동시 게이트(가사 시 freeze, 다운포즈는 후속).
+- **위치**: `Shared.Gameplay/Tags/GameplayTags.cs` · `Client/.../Gameplay/Character/Agent/PlayerCharacterAgent.cs`.
+- **검증**: Shared 30/30 + SocketServer 빌드 0오류 + DLL 재복사. **클라 컴파일 0오류(사용자)**. 테스트: ① EditMode `AbilitySystemTagTests` 4종(직접태그·무효·GrantedTags 합산·독립) — **사용자 실행 그린**. ② PlayMode `PlayerDeathGateTests` 2종(생존 시 공격 발동 / HP0→State.Dead+공격 억제) — `TestableAgent`로 Start(FSM) 스킵하고 Update 직접 구동(프레임 미yield로 컴포넌트 부작용 차단), `FakeInput` 컴포넌트. **사용자 Test Runner 실행 그린**(2/2). → **ⓔ-1 로컬 사망 게이트 EditMode 4 + PlayMode 2 자동검증 완결.** 
+- **잔여(2.5.1)**: 신규 패킷 `S_PlayerDead{userId}`(Union 1823, 원격 다운 가시성·공개계약 승인 필요) · 다운 포즈/애니(Animator, 사용자) · Main 로컬 타이머 리스폰. 던전 내 부활=2.5.2.
+
+**ⓔ-2 S_PlayerDead 원격 다운 가시성 (2026-06-11)**
+- **무엇**: 서버 `DungeonLifecycleHandler.HandlePlayerDead`가 `C_PlayerDead` 수신 시 ① `S_PlayerDead{UserId}`(신규, **Union 1823**) 방 브로드캐스트(개별 다운 가시성) ② 기존 `TryMarkFailed`(전원다운→S_DungeonFailed). 클라: ClientCodegen 미러 재생성 → `PlayerDeadPacketHandler`(SocketApiClient.Install 등록) → `ISocketPacketState.OnPlayerDead`/`NotifyPlayerDead` → `CharacterSpawner.HandlePlayerDead`.
+- **다운 처리(현재=로그+Destroy, 다운포즈 후속)**: **원격** 사망 → `DespawnRemote`(다른 플레이어가 다운을 봄=핵심). **로컬** 사망 → **destroy 안 함**(이미 ⓔ-1 State.Dead 게이트로 입력 정지 + 자기 GO destroy 시 `CharacterCameraFollow.CinemachineCameraTarget`/HUD NRE) → 로그만.
+- **위치**: `Shared.Packet/Packets/Domains/DungeonPackets.cs`(S_PlayerDead) · `Packet.cs`(Union 1823) · `SocketServer/PacketHandler/Handler/DungeonLifecycleHandler.cs` · 클라 `Network/Socket/SocketApiClient.cs`(iface+impl+등록) · `Handler/Contents/PlayerDeadPacketHandler.cs` · `Gameplay/Character/CharacterSpawner.cs`.
+- **검증**: SocketServer **80/80**(`DungeonPacketSerializationTests` 2 신규: S_PlayerDead 라운드트립·Union 복원) + socketserver Docker 리빌드·재배포. **클라 컴파일/원격 가시성 플레이(MPPM)는 Unity 검증 필요**. ※브로드캐스트 자체는 소켓 fire-and-forget이라 단위 캡처 불가 → 직렬화+E2E(후속)로 커버.
+- **플레이 검증(2026-06-11)**: MPPM 2-창 — HP 10→5→0(`EffectReceiver` 진단로그)→`C_PlayerDead`→`S_PlayerDead(UserId)`→**다른 창에서 그 캐릭터 디스폰** 전 경로 확인. 로컬 캐릭터는 의도대로 유지(게이트 정지).
+- **버그 픽스(플레이 중 발견)**: 다운된 플레이어를 몬스터가 **계속 타깃·공격**(HP0 후에도 `monster_attack_dmg`) → `Room.TickMonsters`가 타깃 후보에서 **`_downed` 플레이어 제외**(끊김 `DisconnectedAtMs` 제외와 동일 자리, `_downed` 스냅샷 후 필터). SocketServer **81/81**(`다운된_플레이어는_몬스터_공격_대상에서_제외된다` 신규) + Docker 리빌드. ※`EffectReceiver`에 임시 진단로그(효과수신/적용HP/비-내대상 Δ) — 검증 후 제거 예정.
+- **남음(2.5.1)**: 다운 포즈/애니(로그+Destroy 대체) · Main 로컬 타이머 리스폰. 던전 내 부활=2.5.2.
+
+**플레이어 HP 서버 권위 — 증분 1: 데미지+사망감지 (2026-06-11)**
+- **규칙 선행**: authority-model **§0 권위 결정 규칙**(기본=서버, 코옵/PvP 공유상태=서버, "문서에 적힘≠결정됨", "할 수 있다≠소유해야") + **§4 플레이어 HP 서버 권위 승격 결정**(기존 클라 결정론은 사용자 미승인 가정·부채였음 → 불사 핵). §3·§7 표 갱신.
+- **무엇**: `PlayerState.Hp`/`MaxHp`(입장 시 `Room.DefaultMaxHp=100`) + `Room.ApplyPlayerEffect(userId, mods)`(`GameplayEffectMath.Aggregate`로 데미지/회복 공용, 클라와 동일함수→값 일치) + `Room.MarkPlayerDowned`(TryMarkFailed 일반화, NewlyDowned/FailClaimed로 중복발화 dedup) + **`Room.TickMonsters`가 monster_attack_dmg 발행 시 서버 HP 누적→HP≤0 직접 감지→`S_PlayerDead`(+전원다운 `S_DungeonFailed`)**. 락순서 `_monsters→_playerStates→_downed`(역순 없음).
+- **C_PlayerDead 격하**: 클라 `InGameModel`이 더 이상 송신 안 함(서버가 감지). 서버 `DungeonLifecycleHandler`는 보조/하위호환 — `MarkPlayerDowned` NewlyDowned로 dedup(서버 틱이 먼저면 무시). E2E는 수동 C_PlayerDead 송신이라 무관.
+- **불사 핵 차단(부분)**: 서버 HP=damage-only 누적 → "데미지 무시"·"가짜 회복" 둘 다 서버 HP가 떨어져 사망 감지. **단 정상 회복도 서버 미적용 → false-kill(증분 2가 복구)**.
+- **위치**: `SocketServer/Player/PlayerState.cs`(Hp/MaxHp/IsDowned) · `Room/Room.cs`(DefaultMaxHp·ApplyPlayerEffect·MarkPlayerDowned·TickMonsters) · `PacketHandler/Handler/DungeonLifecycleHandler.cs`(dedup) · 클라 `Presentation/InGame/InGameModel.cs`(송신 제거).
+- **검증**: SocketServer **85/85**(`PlayerHpServerAuthorityTests` 4 신규: 입장 만피·데미지누적+다운·회복+클램프·**C_PlayerDead 없이 서버 사망감지→S_PlayerDead**) + 클라 EditMode `InGameDungeonResultRelayTests` 갱신(HP0→C_PlayerDead 미송신). 클라 컴파일/Docker는 증분 2 후 일괄.
+**플레이어 HP 서버 권위 — 증분 2: 회복 서버 동기 (2026-06-11)**
+- **무엇**: 정상 회복이 서버 HP에 반영되도록 크로스-서버 흐름. `클라 → ConsumeItem gRPC(GameServer 검증·차감) 성공 → GameServer가 PlayerConsumedMessage{UserId, EffectId=itemId} 발행(Redis stream:game:player:consumed) → SocketServer PlayerConsumedConsumer가 userId로 방 조회(GetAssignedRoom) → Room.ApplyPlayerEffect(+heal) + S_ApplyEffect(effectId) 브로드캐스트 → 클라 EffectReceiver 미러`. 회복 효과 = **Shared GameplayEffectCatalog "potion_hp_small"(Health +100)**, effectId==itemId 규칙(별도 카탈로그 불필요).
+- **왜**: 차감 검증=GameServer 권위 유지(가짜회복 차단), 회복은 검증 *후* SocketServer 적용(무한힐 불가). 키=userId라 GameServer가 던전 컨텍스트 몰라도 됨(SocketServer가 방 조회, Main은 방 없어 no-op). SocketServer→GameServer 직접 RPC 없음(Redis 단방향).
+- **클라 게이트**: 던전은 `ConsumableEffectHandler` **미등록**(DungeonLifetimeScope) → 로컬 회복 적용 안 함(서버 S_ApplyEffect로 미러, 이중적용 방지). Main은 유지(클라 권위, §2 솔로).
+- **위치**: `Shared.Infrastructure/Messages/PlayerConsumedMessage.cs` · `Shared.Infrastructure/MessageQueue/PlayerConsumedMessageQueue.cs`(양측 공용 단일 큐) · `SocketServer/MessageQueue/Consumer/PlayerConsumedConsumer.cs`(+Program.cs 등록) · GameServer `API/Services/InventoryGrpcService.cs`(ConsumeItem 성공 발행)·`InventoryInstaller.cs`(큐 등록) · Shared `GameplayEffectCatalog`(potion_hp_small) · 클라 `DungeonLifetimeScope`(핸들러 제거).
+- **검증**: GameServer **252/252**(`InventoryGrpcServiceTests` +2: 소비성공→PlayerConsumed 발행·EffectId==itemId / 실패시 미발행) + SocketServer **85/85** + 솔루션 빌드 0오류 + DLL 재복사 + 양 서버 Docker 리빌드·재배포. **클라 컴파일·E2E(소비→서버회복→HP복구)·MPPM 플레이는 Unity 검증 필요**(unity-mcp 미연결).
+- **E2E(작성, Unity 실행 대기)**: `SocketE2ETests` 2종 — ① `던전에서_포션_소비하면_서버가_회복_S_ApplyEffect를_브로드캐스트`(빠름: GrantItem→ConsumeItem gRPC→S_ApplyEffect(potion_hp_small) 관측 = 크로스서버 회복 전경로) ② `몬스터에게_죽으면_서버가_C_PlayerDead_없이_S_PlayerDead`(**~2초**: test_arena 맵의 fixture 몬스터 `test_brute`가 호스트를 빠르게 죽임 → 서버 HP0 직접감지→S_PlayerDead = 불사핵 차단 직접증명). 양 서버 Docker 리빌드·재배포.
+- **맵 선택 슬림 배선(4.3 부분 상환, 2026-06-11)**: `StartRoomRequest.map_id`(proto, optional) → `DungeonLobbyGrpcService.StartRoom`→`StartGameAsync(...,mapId,...)`→`GameStartRequestedMessage.MapId`(비우면 `MapIds.Default`). DungeonRoom 엔티티/Redis **무변경**(StartGame 시점에만 맵 지정 — 정식 던전선택 UI 생기면 방 생성으로 승격). 테스트 fixture: `MonsterCatalog.test_brute`(사거리·aggro 무한, 쿨다운 50ms, 고HP) + `spawn-layouts.json`(서버+클라) `test_arena` 맵. 클라 proto 재생성(StartRoomRequest.MapId). GameServer 252/252 + SocketServer 85/85(시그니처 변경 후방호환).
+- **잔여 부채**: 회복 수치 이중정의(클라 ConsumableCatalog SO +100 vs Shared potion_hp_small +100) — Main도 Shared로 수렴하면 단일소스(후속). ~~EffectReceiver 진단로그~~(제거 완료). E2E 2종 Unity 실행 **그린 확인(사용자, 2026-06-11)**.
+
+### 2.6 CA-2 SkillTimeline 스키마 + 서버 권위 설계 (Shared.Gameplay)
 
 ### 2.6 CA-2 SkillTimeline 스키마 + 서버 권위 설계 (Shared.Gameplay)
 - **무엇**: `Shared.Gameplay`(ns `Script.System.GamePlayAbilitySystem`)에 스킬 결정론 코어 — `SkillTimeline`(Id·Startup/Active/Recovery/Cooldown ms·`HitboxSpec`·`OnHitEffectIds[]`), `HitboxSpec`(Box/Sphere, `System.Numerics.Vector3`), `ESkillPhase`/`EHitboxShape`, `SkillTimelineMath`(PhaseAt/IsActive), `HitboxMath.Overlaps`(yaw로 월드→로컬 변환+박스/구 겹침, 엔진 비의존), `SkillCatalog`(코드 시드).

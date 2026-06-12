@@ -2,6 +2,7 @@
 
 > 대상: GAS의 GameplayEffect(버프·디버프)와 그 HUD 표시·서버 동기화.
 > **plan.md M2(CA-1~3)에서 이미 결정된 큰 골격 위에** 디테일을 채우는 문서다.
+> GAS 전체 구조(Tag·Effect·Ability·Cue·발동 권위·2층 연출 분리) = [gas-architecture.md](gas-architecture.md) (상위 설계 기준).
 > 작성: 2026-06-03
 
 ---

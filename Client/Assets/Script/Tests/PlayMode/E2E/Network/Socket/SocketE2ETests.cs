@@ -377,6 +377,78 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
+        public IEnumerator RawSocket_던전에서_포션_소비하면_서버가_회복_S_ApplyEffect를_브로드캐스트한다() => UniTask.ToCoroutine(async () =>
+        {
+            // 플레이어 HP 서버 권위 증분2(authority-model §4): 던전 회복 = 크로스-서버.
+            //   클라 ConsumeItem(GameServer 검증·차감) → PlayerConsumedMessage(Redis stream:game:player:consumed)
+            //   → SocketServer PlayerConsumedConsumer → Room.ApplyPlayerEffect(+heal) + S_ApplyEffect(potion_hp_small) 브로드캐스트.
+            // 호스트가 던전 방에서 그 회복 브로드캐스트를 받으면 전 경로 통과(차감은 GameServer 권위 = 무한힐 불가).
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+            try
+            {
+                await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "slime", Timeout()); // 던전 준비 동기화
+
+                // 호스트 토큰으로 포션 지급 후 소비(gRPC). 회복 수치는 클램프(만피)라도 브로드캐스트는 발생.
+                AccessToken = room.HostAccessToken;
+                var grant = await InventoryService.GrantItemAsync(
+                    new GrantItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Timeout());
+                Assert.IsTrue(grant.Result.Success, grant.Result.Message);
+
+                var consume = await InventoryService.ConsumeItemAsync(
+                    new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Timeout());
+                Assert.IsTrue(consume.Result.Success, consume.Result.Message);
+
+                // 크로스-서버 회복 통지 → 서버가 던전 방의 호스트에게 회복 효과를 브로드캐스트.
+                var heal = await host.WaitForPacketAsync<S_ApplyEffect>(
+                    p => p.EffectId == "potion_hp_small" && p.TargetId == room.HostUserId, Timeout());
+
+                Assert.AreEqual("potion_hp_small", heal.EffectId);
+                Assert.AreEqual(room.HostUserId, heal.TargetId, "회복 대상은 소비한 호스트여야 한다");
+            }
+            finally
+            {
+                await host.DisposeAsync();
+            }
+        });
+
+        [UnityTest]
+        public IEnumerator RawSocket_몬스터에게_죽으면_서버가_C_PlayerDead_없이_S_PlayerDead를_브로드캐스트한다() => UniTask.ToCoroutine(async () =>
+        {
+            // 플레이어 HP 서버 권위 증분1: 가만히 맞으면 서버가 자기 HP≤0 을 **직접 감지**(클라 C_PlayerDead 미송신)
+            //   → S_PlayerDead{호스트} 브로드캐스트(죽은 본인도 수신). 불사 핵 차단의 직접 증명.
+            // test_arena 맵 = 강한 fixture 몬스터 test_brute(사거리·aggro 무한, 쿨다운 50ms) → 호스트가 가만히 있어도
+            //   ~2초에 사망. 게스트는 멀리 보내 호스트를 최근접 타깃으로 만든다. C_Attack/C_PlayerDead 는 절대 안 보냄.
+            var room = await CreateStartedTwoPlayerRoomAsync("test_arena");
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+            var guest = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
+
+            try
+            {
+                await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "test_brute", Timeout());
+
+                bool dead = false;
+                var deadline = DateTime.UtcNow.AddSeconds(20);
+                while (!dead && DateTime.UtcNow < deadline)
+                {
+                    // 게스트를 멀리(keep-alive) → 브루트가 최근접 = 호스트를 타깃. 호스트는 스폰 자리에 가만히(keep-alive).
+                    await guest.SendAsync(new C_Move { PosX = -18, PosY = 0, PosZ = -18, RotY = 0 }, Timeout());
+                    await host.SendAsync(new C_Move { PosX = 0, PosY = 0, PosZ = 0, RotY = 0 }, Timeout());
+                    await UniTask.Delay(TimeSpan.FromMilliseconds(300));
+                    dead = host.TryGetLatest<S_PlayerDead>(p => p.UserId == room.HostUserId, out _);
+                }
+
+                Assert.IsTrue(dead, "서버가 HP0 을 직접 감지해 S_PlayerDead 를 발행해야 한다(C_PlayerDead 미송신).");
+            }
+            finally
+            {
+                await host.DisposeAsync();
+                await guest.DisposeAsync();
+            }
+        });
+
+        [UnityTest]
         public IEnumerator RawSocket_참가자_전원_다운하면_양쪽_S_DungeonFailed_수신() => UniTask.ToCoroutine(async () =>
         {
             // M4 B: 참가자 전원이 C_PlayerDead 를 보고하면 서버 Room.TryMarkFailed(최초 1회) →
@@ -762,7 +834,7 @@ namespace Game.Tests.PlayMode.E2E
             }
         }
 
-        private static async UniTask<StartedRoomContext> CreateStartedTwoPlayerRoomAsync()
+        private static async UniTask<StartedRoomContext> CreateStartedTwoPlayerRoomAsync(string mapId = null)
         {
             var provider = new GrpcChannelProvider(ServerConfig.GameServerGrpcAddress);
 
@@ -845,7 +917,8 @@ namespace Game.Tests.PlayMode.E2E
 
                 var started = await lobbyService.StartRoomAsync(new StartRoomRequest
                 {
-                    RoomId = created.RoomInfo.RoomId
+                    RoomId = created.RoomInfo.RoomId,
+                    MapId = mapId ?? ""  // 비우면 서버 기본 맵(dungeon_01). test_arena 등 지정 시 그 맵으로 시작.
                 }, Timeout());
                 Assert.IsTrue(started.Result.Success, started.Result.Message);
 

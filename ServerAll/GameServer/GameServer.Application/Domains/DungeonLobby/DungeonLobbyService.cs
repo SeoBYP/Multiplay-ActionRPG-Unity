@@ -218,8 +218,12 @@ public class DungeonLobbyService(
         }
     }
 
-    public async Task<Result<DungeonRoom>> StartGameAsync(string sessionId, long roomId, string traceId, CancellationToken ct = default)
+    public async Task<Result<DungeonRoom>> StartGameAsync(string sessionId, long roomId, string traceId, string mapId = "", CancellationToken ct = default)
     {
+        // 비우면 기본 맵. 특정 맵 강제(테스트/향후 던전 선택)는 mapId 로 GameStartRequested.MapId 에 실린다.
+        var effectiveMapId = string.IsNullOrEmpty(mapId)
+            ? Shared.Infrastructure.Spawn.MapIds.Default
+            : mapId;
         try
         {
             var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
@@ -266,7 +270,8 @@ public class DungeonLobbyService(
                     {
                         RoomId = room.RoomId,
                         PlayerInfos = playerInfos,
-                        TraceId = traceId
+                        TraceId = traceId,
+                        MapId = effectiveMapId
                     };
                     var retryOutbox = OutboxMessage.Create(
                         OutboxTopics.GameStartRequested,
@@ -285,7 +290,8 @@ public class DungeonLobbyService(
                     {
                         RoomId = room.RoomId,
                         PlayerInfos = playerInfos,
-                        TraceId = traceId
+                        TraceId = traceId,
+                        MapId = effectiveMapId
                     };
                     var retryOutbox = OutboxMessage.Create(
                         OutboxTopics.GameStartRequested,
@@ -303,7 +309,8 @@ public class DungeonLobbyService(
             {
                 RoomId = room.RoomId,
                 PlayerInfos = playerInfos,
-                TraceId = traceId
+                TraceId = traceId,
+                MapId = effectiveMapId
             };
 
             var outboxMessage = OutboxMessage.Create(

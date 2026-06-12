@@ -193,7 +193,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         }
         var traceId = context.GetHttpContext().Items["TraceId"] as string ?? "";
         logger.LogInformation("StartRoom request received for session {SessionId}, room {RoomId}, trace {TraceId}", sessionId, request.RoomId, traceId);
-        var result = await dungeonLobbyService.StartGameAsync(sessionId, request.RoomId,traceId ,context.CancellationToken);
+        var result = await dungeonLobbyService.StartGameAsync(sessionId, request.RoomId, traceId, request.MapId, context.CancellationToken);
         if (result.IsSuccess)
             logger.LogInformation("StartRoom succeeded for session {SessionId} and room {RoomId}", sessionId, request.RoomId);
         else
@@ -271,7 +271,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
                     "SubscribeRoom: host {UserId} reconnected to {Status} room {RoomId}, auto-retriggering StartGame",
                     validation.Value, currentRoom.Value.Status, request.RoomId);
                 var retriggerResult = await dungeonLobbyService.StartGameAsync(
-                    sessionId, request.RoomId, Guid.NewGuid().ToString(), ct);
+                    sessionId, request.RoomId, Guid.NewGuid().ToString(), mapId: "", ct);
                 if (!retriggerResult.IsSuccess)
                     logger.LogWarning(
                         "SubscribeRoom auto-retrigger failed for room {RoomId}: {ErrorCode}",

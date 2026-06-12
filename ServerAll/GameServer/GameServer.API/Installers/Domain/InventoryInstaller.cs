@@ -21,5 +21,8 @@ public class InventoryInstaller : IServiceInstaller
         // 루트/드랍(3.3): SocketServer 줍기 확정 → 인벤토리 영속 지급.
         services.AddSingleton<IMessageQueue<ItemPickedUpMessage>, LootPickupMessageQueue>();
         services.AddHostedService<LootGrantConsumer>();
+
+        // 소모품 소비 통지(GameServer→Socket, 서버 권위 회복). InventoryGrpcService.ConsumeItem 가 발행.
+        services.AddSingleton<IMessageQueue<PlayerConsumedMessage>, PlayerConsumedMessageQueue>();
     }
 }

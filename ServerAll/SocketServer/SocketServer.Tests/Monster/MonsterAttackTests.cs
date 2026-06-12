@@ -43,6 +43,23 @@ public class MonsterAttackTests
     }
 
     [Fact]
+    public void 다운된_플레이어는_몬스터_공격_대상에서_제외된다()
+    {
+        var room = NewRoom();
+        room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f); // 사거리 안
+        room.SpawnMonsters(
+            new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
+            new MapBounds(0f, 0f, 40f, 40f));
+
+        // 살아있을 때: 공격 발생
+        Assert.Single(room.TickMonsters(0.1f, 1_000_000).OfType<S_ApplyEffect>());
+
+        // 다운(HP 0 보고) 처리 → 더 이상 타깃 아님 → 쿨다운 지나도 공격 없음
+        room.TryMarkFailed(100);
+        Assert.Empty(room.TickMonsters(0.1f, 1_000_000 + 5000).OfType<S_ApplyEffect>());
+    }
+
+    [Fact]
     public void 플레이어가_aggro밖이면_공격하지_않는다()
     {
         var room = NewRoom();

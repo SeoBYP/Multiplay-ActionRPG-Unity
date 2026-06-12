@@ -16,5 +16,12 @@ namespace Script.System.GamePlayAbilitySystem
         /// <summary>active window [ActiveStart, ActiveEnd) 안인지. 이 구간에서만 hitbox를 평가한다.</summary>
         public static bool IsActive(SkillTimeline timeline, int elapsedMs)
             => elapsedMs >= timeline.ActiveStartMs && elapsedMs < timeline.ActiveEndMs;
+
+        /// <summary>
+        /// 마지막 발동(lastCastMs) 이후 cooldownMs가 지났는지. 서버 발동 게이트(연사=폭딜 치팅 차단)용.
+        /// 첫 발동(lastCastMs=0 등 과거값)은 항상 true.
+        /// </summary>
+        public static bool CooldownElapsed(int cooldownMs, long lastCastMs, long nowMs)
+            => nowMs - lastCastMs >= cooldownMs;
     }
 }

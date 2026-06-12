@@ -22,13 +22,30 @@ public class InventoryGrpcServiceTests
     private const int OverCap = 100; // MaxGrantPerCall(99) 초과
 
     private readonly FakeInventoryRepository _repository = new();
+    private readonly RecordingConsumeQueue _consumeQueue = new();
     private readonly InventoryGrpcService _service;
 
     public InventoryGrpcServiceTests()
     {
         _service = new InventoryGrpcService(
             new AppInventoryService(_repository),
+            _consumeQueue,
             NullLogger<InventoryGrpcService>.Instance);
+    }
+
+    /// <summary>발행 검증용 — ConsumeItem 성공 시 PlayerConsumedMessage 를 모은다.</summary>
+    private sealed class RecordingConsumeQueue
+        : Shared.Infrastructure.MessageQueue.IMessageQueue<Shared.Infrastructure.Messages.PlayerConsumedMessage>
+    {
+        public readonly List<Shared.Infrastructure.Messages.PlayerConsumedMessage> Sent = new();
+        public Task EnqueueAsync(Shared.Infrastructure.Messages.PlayerConsumedMessage message)
+        {
+            Sent.Add(message);
+            return Task.CompletedTask;
+        }
+        public IAsyncEnumerable<Shared.Infrastructure.Messages.PlayerConsumedMessage> DequeueAllAsync(
+            CancellationToken cancellationToken = default)
+            => AsyncEnumerable.Empty<Shared.Infrastructure.Messages.PlayerConsumedMessage>();
     }
 
     private static ServerCallContext Context(ClaimsPrincipal user)
@@ -111,6 +128,27 @@ public class InventoryGrpcServiceTests
         var res = await _service.ConsumeItem(new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Authed(1L));
 
         Assert.False(res.Result.Success);
+    }
+
+    [Fact]
+    public async Task 소비_성공시_PlayerConsumed를_발행한다_EffectId는_itemId()
+    {
+        await _service.GrantItem(new GrantItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Authed(1L));
+
+        await _service.ConsumeItem(new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Authed(1L));
+
+        var msg = Assert.Single(_consumeQueue.Sent);
+        Assert.Equal(1L, msg.UserId);
+        Assert.Equal("potion_hp_small", msg.EffectId); // EffectId == itemId 규칙
+    }
+
+    [Fact]
+    public async Task 소비_실패시_PlayerConsumed를_발행하지_않는다()
+    {
+        // 미보유 → 차감 실패 → 발행 없음(서버 권위 회복이 위조되지 않도록).
+        await _service.ConsumeItem(new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Authed(1L));
+
+        Assert.Empty(_consumeQueue.Sent);
     }
 
     [Fact]

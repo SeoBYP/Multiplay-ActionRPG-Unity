@@ -18,6 +18,9 @@ public static class MonsterCatalog
     private static readonly Dictionary<string, MonsterStats> Table = new()
     {
         ["slime"] = new MonsterStats(MaxHp: 30, MoveSpeed: 2.0f, AggroRange: 6f, AttackRange: 1.2f, AttackCooldownMs: 1500f, AttackDamage: 5),
+        // 테스트 전용: 사거리·aggro 무한 + 쿨다운 50ms(=매 틱) + 고HP(불사) → 플레이어가 가만히 있어도 ~2초에 사망.
+        //   "몬스터가 죽이면 서버 권위 사망 감지" E2E 를 빠르게 만들기 위한 fixture(test_arena 맵에서만 사용).
+        ["test_brute"] = new MonsterStats(MaxHp: 999999, MoveSpeed: 0f, AggroRange: 1000f, AttackRange: 1000f, AttackCooldownMs: 50f, AttackDamage: 5),
     };
 
     public static MonsterStats Get(string? monsterId)

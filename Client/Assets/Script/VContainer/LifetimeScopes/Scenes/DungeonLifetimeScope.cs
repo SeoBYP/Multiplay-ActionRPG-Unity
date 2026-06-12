@@ -51,10 +51,13 @@ public class DungeonLifetimeScope : LifetimeScope
         builder.Register<InventoryModel>(Lifetime.Scoped).AsSelf();
         builder.RegisterEntryPoint<InventoryViewController>(Lifetime.Scoped);
 
-        // 소모품(3.8) — 효과 데이터(클라 SO) + Side Effect 핸들러(OnConsumableUsed→GAS). 미존재 시 빈 SO 폴백.
+        // 소모품(3.8) — 효과 데이터(클라 SO, 토스트/표시용). 미존재 시 빈 SO 폴백.
         builder.RegisterInstance(Resources.Load<ConsumableCatalog>("ConsumableCatalog")
                                  ?? ScriptableObject.CreateInstance<ConsumableCatalog>());
-        builder.RegisterEntryPoint<ConsumableEffectHandler>(Lifetime.Scoped);
+        // ※ 던전은 ConsumableEffectHandler(로컬 회복 적용)를 등록하지 않는다 — 플레이어 HP 서버 권위(§4):
+        //   ConsumeItem 성공 → GameServer→SocketServer 통지 → 서버가 회복 적용 + S_ApplyEffect 브로드캐스트 →
+        //   EffectReceiver 가 로컬 ASC 에 적용(서버 미러). 여기서 로컬 적용하면 이중 회복.
+        //   Main(솔로)은 SocketServer 없음 → MainLifetimeScope 가 ConsumableEffectHandler 로 클라 로컬 적용(§2).
 
         // CharacterAgent.Construct(IStateMachineBuilder)에 주입되는 게임플레이 의존성.
         // PlayerInputActions는 루트(ProjectLifetimeScope)의 전역 Singleton을 공유한다 — 재등록 금지.

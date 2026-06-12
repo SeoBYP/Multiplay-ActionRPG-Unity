@@ -50,6 +50,8 @@ namespace Server
                     // 3. 메시지 큐
                     services.AddSingleton<GameStartRequestedMessageQueue>();
                     services.AddSingleton<GameSessionReadyMessageQueue>();
+                    // 소모품 소비 통지(GameServer→Socket, 서버 권위 회복).
+                    services.AddSingleton<Shared.Infrastructure.MessageQueue.PlayerConsumedMessageQueue>();
 
                     // 4. 패킷 핸들러 및 디스패처
                     services.AddSingleton<PacketHandlerRegistry>(sp =>
@@ -84,6 +86,7 @@ namespace Server
                     // 6. 백그라운드 서비스 (호스팅 서비스)
                     services.AddHostedService<TcpListenerService>();
                     services.AddHostedService<GameStartRequestedConsumer>();
+                    services.AddHostedService<Server.Consumer.PlayerConsumedConsumer>();
                     services.AddHostedService<HeartBeatService>();
                     services.AddHostedService<Server.Monster.RoomTickService>();
                 })

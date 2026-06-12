@@ -19,6 +19,13 @@ namespace Script.System.GamePlayAbilitySystem
         /// <summary>버프/디버프 색 판정. null이면 modifier 부호로 자동 판정한다.</summary>
         public bool? PolarityOverride { get; }
 
+        /// <summary>
+        /// 이 Effect가 활성인 동안 대상에 부여하는 상태 태그(예: 스턴=State.Stunned).
+        /// ASC가 적용/만료 시 TagContainer에 반영한다. 빈 목록이면 태그 부여 없음.
+        /// (사망 State.Dead 처럼 Effect 없이 직접 세우는 태그는 ASC.AddTag로 — 이 필드 무관.)
+        /// </summary>
+        public IReadOnlyList<GameplayTag> GrantedTags { get; }
+
         public GameplayEffectDefinition(
             string id,
             EEffectCategory category,
@@ -27,7 +34,8 @@ namespace Script.System.GamePlayAbilitySystem
             IReadOnlyList<GameplayAttributeModifier> modifiers,
             EStackPolicy stack = EStackPolicy.None,
             int maxStacks = 1,
-            bool? polarityOverride = null)
+            bool? polarityOverride = null,
+            IReadOnlyList<GameplayTag>? grantedTags = null)
         {
             Id = id;
             Category = category;
@@ -37,6 +45,7 @@ namespace Script.System.GamePlayAbilitySystem
             Stack = stack;
             MaxStacks = maxStacks < 1 ? 1 : maxStacks;
             PolarityOverride = polarityOverride;
+            GrantedTags = grantedTags ?? new List<GameplayTag>();
         }
     }
 }

@@ -179,6 +179,7 @@ namespace Game.Gameplay.Character
         {
             _packetState.OnPlayerJoined += HandlePlayerJoined;
             _packetState.OnPlayerLeft   += HandlePlayerLeft;
+            _packetState.OnPlayerDead   += HandlePlayerDead;
         }
 
         private void HandlePlayerJoined(SocketPlayerSnapshot snapshot)
@@ -188,6 +189,24 @@ namespace Game.Gameplay.Character
         }
 
         private void HandlePlayerLeft(long userId) => DespawnRemote(userId);
+
+        /// <summary>
+        /// 2.5.1 ⓔ-2: 한 플레이어의 다운(S_PlayerDead) 처리. **현재는 로그+Destroy(다운 포즈 후속)**.
+        /// 원격: 해당 캐릭터를 디스폰(다른 플레이어가 다운을 봄 = 이 기능의 핵심).
+        /// 로컬: 자기 캐릭터는 destroy 하지 않는다 — 이미 State.Dead 게이트(ⓔ-1)로 입력이 정지됐고,
+        ///       자기 GO 를 지우면 카메라 타깃/HUD 가 깨진다. 로그만 남긴다(다운 포즈 도입 시 교체).
+        /// </summary>
+        private void HandlePlayerDead(long userId)
+        {
+            if (userId == _authSession.UserId)
+            {
+                Debug.Log($"[CharacterSpawner] 로컬 플레이어 다운 — UserId={userId} (입력 게이트 처리됨, 캐릭터 유지)");
+                return;
+            }
+
+            Debug.Log($"[CharacterSpawner] 원격 플레이어 다운 — UserId={userId} (로그+Destroy)");
+            DespawnRemote(userId);
+        }
 
         private void SpawnRemote(SocketPlayerSnapshot snapshot)
         {
@@ -234,6 +253,7 @@ namespace Game.Gameplay.Character
             _localPlayer.Clear();
             _packetState.OnPlayerJoined -= HandlePlayerJoined;
             _packetState.OnPlayerLeft   -= HandlePlayerLeft;
+            _packetState.OnPlayerDead   -= HandlePlayerDead;
 
             foreach (var driver in _remotes.Values)
             {

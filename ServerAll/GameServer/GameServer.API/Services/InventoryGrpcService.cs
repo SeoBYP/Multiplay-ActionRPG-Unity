@@ -10,6 +10,7 @@ namespace GameServer.API.Services;
 
 public class InventoryGrpcService(
     IInventoryService inventoryService,
+    Shared.Infrastructure.MessageQueue.IMessageQueue<Shared.Infrastructure.Messages.PlayerConsumedMessage> playerConsumedQueue,
     ILogger<InventoryGrpcService> logger) : InventoryGrpc.InventoryServiceBase
 {
     /// <summary>
@@ -96,6 +97,23 @@ public class InventoryGrpcService(
         }
 
         logger.LogInformation("ConsumeItem succeeded: user {UserId} item {ItemId} -{Qty} -> {Remaining}", userId, request.ItemId, request.Qty, consume.RemainingQuantity);
+
+        // 서버 권위 회복(던전): 검증·차감 성공을 SocketServer 에 통지 → 던전이면 서버 HP 에 회복 적용
+        // + S_ApplyEffect 브로드캐스트. EffectId == itemId 규칙. 던전 밖(방 없음)이면 SocketServer 가 no-op
+        // (Main 솔로 회복은 클라 로컬). authority-model §4. 발행 실패가 차감을 막지 않도록 try-catch.
+        try
+        {
+            await playerConsumedQueue.EnqueueAsync(new Shared.Infrastructure.Messages.PlayerConsumedMessage
+            {
+                UserId = userId.Value,
+                EffectId = request.ItemId,
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "ConsumeItem: failed to publish PlayerConsumed for user {UserId} item {ItemId}", userId, request.ItemId);
+        }
+
         return new ConsumeItemResponse
         {
             Result = Result.Success().ToGrpcResult(),

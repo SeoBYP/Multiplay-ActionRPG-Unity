@@ -33,3 +33,14 @@ public partial class S_DungeonFailed : Packet
 public partial class C_PlayerDead : Packet
 {
 }
+
+/// <summary>
+/// 서버 → 클라: 한 플레이어의 다운(HP 0)을 방에 브로드캐스트한다(원격 다운 가시성).
+/// 서버는 C_PlayerDead 수신 시 그 플레이어의 UserId 를 실어 전파한다. 각 클라는 해당 캐릭터를
+/// 다운 처리(현재는 로그+Destroy, 다운 포즈는 후속)한다. 전원 다운 실패 집계(S_DungeonFailed)와는 별개.
+/// </summary>
+[MemoryPackable]
+public partial class S_PlayerDead : Packet
+{
+    public long UserId { get; set; }
+}

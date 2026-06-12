@@ -1,4 +1,5 @@
 using Script.System.GamePlayAbilitySystem;
+using Server.Combat;
 using Server.Loot;
 using Server.Monster;
 using Server.Player;
@@ -51,6 +52,9 @@ public class Room
     private int _outcome;
     // 실패 집계(다운된 참가자) — lock(_downed) 안에서만 접근.
     private readonly HashSet<long> _downed = new();
+
+    /// <summary>플레이어 기본 최대 HP(서버 권위). 후속에 Progression/스탯에서 주입. 클라 prefab ASC(100)와 정렬.</summary>
+    public const int DefaultMaxHp = 100;
 
     /// <summary>맵 경계 — 몬스터 이동 clamp 기준(RoomTickService 사용).</summary>
     public MapBounds Bounds => _bounds;
@@ -252,7 +256,10 @@ public class Room
                 PosY = spawnY,
                 PosZ = spawnZ,
                 RotY = rotY,
-                LastMovedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                LastMovedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                // 서버 권위 HP — 입장 시 만피로 초기화. MaxHp 출처는 후속(Progression/스탯), 지금은 상수.
+                Hp = DefaultMaxHp,
+                MaxHp = DefaultMaxHp,
             };
 
             _playerStates[userId] = playerState;
@@ -353,24 +360,31 @@ public class Room
     }
 
     /// <summary>
-    /// 한 플레이어의 다운(HP 0, 클라 C_PlayerDead 보고)을 집계하고, <b>참가자 전원</b>이 다운되면
-    /// 실패를 <b>최초 1회만</b> true 로 표시한다. 기대 로스터에 없는 userId 는 무시.
-    /// 클리어가 이미 발화됐으면(_outcome!=None) false — 상호 배타.
+    /// 한 플레이어의 다운(HP 0)을 집계한다. 반환:
+    ///   NewlyDowned = 이 호출로 처음 다운됐는가(중복/유령 가드 — S_PlayerDead 1회 발화용).
+    ///   FailClaimed = 이 다운으로 <b>참가자 전원</b> 다운이 돼 실패를 최초 claim 했는가(상호 배타).
+    /// 기대 로스터에 없는 userId 는 (false,false). 서버 사망감지(TickMonsters)·C_PlayerDead 양쪽이 호출.
     /// </summary>
-    public bool TryMarkFailed(long userId)
+    public (bool NewlyDowned, bool FailClaimed) MarkPlayerDowned(long userId)
     {
+        bool newly;
+        bool allDown;
         lock (_downed)
         {
             if (!_expectedUserIds.Contains(userId))
-                return false;
+                return (false, false);
 
-            _downed.Add(userId);
-            if (_downed.Count < _expectedUserIds.Count)
-                return false;
+            newly = _downed.Add(userId);
+            allDown = _downed.Count >= _expectedUserIds.Count;
         }
 
-        return System.Threading.Interlocked.CompareExchange(ref _outcome, 2, 0) == 0;
+        bool failClaimed = allDown
+            && System.Threading.Interlocked.CompareExchange(ref _outcome, 2, 0) == 0;
+        return (newly, failClaimed);
     }
+
+    /// <summary>하위호환: 전원 다운 시 실패 claim 여부만 반환(기존 C_PlayerDead 핸들러·테스트).</summary>
+    public bool TryMarkFailed(long userId) => MarkPlayerDowned(userId).FailClaimed;
 
     public IReadOnlyList<MonsterState> GetAllMonsters()
     {
@@ -420,6 +434,33 @@ public class Room
     }
 
     /// <summary>
+    /// 서버 권위 플레이어 HP 에 GAS Health 모디파이어 적용(데미지=음수/회복=양수 공용).
+    /// `GameplayEffectMath.Aggregate`(클라와 동일 함수) → 서버 HP == 클라 HP. HP≤0 이면 다운 집계.
+    /// 반환: (적용 후 HP, 이번에 처음 다운, 전원다운 실패 claim). 미존재 userId 는 (0,false,false).
+    /// </summary>
+    public (int NewHp, bool NewlyDowned, bool FailClaimed) ApplyPlayerEffect(
+        long userId, IReadOnlyList<GameplayAttributeModifier> mods)
+    {
+        int newHp;
+        lock (_playerStates)
+        {
+            if (!_playerStates.TryGetValue(userId, out var p))
+                return (0, false, false);
+
+            var healthMods = mods.Where(x => x.AttributeType == EGameplayAttribute.Health);
+            p.Hp = GameplayEffectMath.Aggregate(p.Hp, healthMods, p.MaxHp);
+            newHp = p.Hp;
+        }
+
+        if (newHp > 0)
+            return (newHp, false, false);
+
+        // HP 0 — 다운 집계는 _playerStates 락 밖에서(MarkPlayerDowned 가 _downed/_outcome 락).
+        var (newly, failClaimed) = MarkPlayerDowned(userId);
+        return (newHp, newly, failClaimed);
+    }
+
+    /// <summary>
     /// 한 틱 몬스터 시뮬레이션. 플레이어 스냅샷을 먼저 떠(락 비중첩) 각 몬스터를 MonsterAiMath 로 진행하고,
     /// 브로드캐스트할 패킷 목록(이동 S_MonsterState + 공격 S_ApplyEffect)을 반환한다(전송 I/O 는 호출자가 락 밖에서).
     ///
@@ -428,11 +469,18 @@ public class Room
     /// </summary>
     public List<Packet> TickMonsters(float dt, long nowMs)
     {
+        // 다운(HP 0 보고)된 플레이어는 AI 타깃에서 제외 — 죽은(다운) 플레이어를 몬스터가 계속 때리지 않도록.
+        // 다운 = C_PlayerDead → DungeonLifecycleHandler → TryMarkFailed 로 _downed 에 집계됨.
+        HashSet<long> downed;
+        lock (_downed) downed = new HashSet<long>(_downed);
+
         List<PlayerState> players;
         lock (_playerStates)
         {
-            // 끊김(재접속 유예 중) 플레이어는 AI 타깃에서 제외 — 마지막 위치에 멈춘 유령을 몬스터가 쫓지 않도록.
-            players = _playerStates.Values.Where(p => p.DisconnectedAtMs is null).ToList();
+            // 끊김(재접속 유예 중)·다운 플레이어는 제외 — 마지막 위치에 멈춘 유령/시체를 몬스터가 쫓지 않도록.
+            players = _playerStates.Values
+                .Where(p => p.DisconnectedAtMs is null && !downed.Contains(p.UserId))
+                .ToList();
         }
 
         var positions = new List<PlayerPos>(players.Count);
@@ -464,15 +512,24 @@ public class Room
                     && nowMs - m.LastAttackAt >= stats.AttackCooldownMs)
                 {
                     m.LastAttackAt = nowMs;
+                    long targetUserId = players[targetIdx].UserId;
                     outPackets.Add(new S_ApplyEffect
                     {
                         InstanceId = NextEffectInstanceId(),
                         EffectId = "monster_attack_dmg",
-                        TargetId = players[targetIdx].UserId,
+                        TargetId = targetUserId,
                         SourceId = 0, // 0 = 몬스터/환경
                         StartTick = nowMs,
                         Stacks = 1,
                     });
+
+                    // 서버 권위 HP 누적 + 사망 직접 감지(클라 보고에 의존 안 함 → 불사 핵 차단).
+                    var (_, newlyDowned, failClaimed) =
+                        ApplyPlayerEffect(targetUserId, CombatEffectCatalog.Resolve("monster_attack_dmg"));
+                    if (newlyDowned)
+                        outPackets.Add(new S_PlayerDead { UserId = targetUserId });
+                    if (failClaimed)
+                        outPackets.Add(new S_DungeonFailed { RoomId = RoomId });
                 }
             }
         }

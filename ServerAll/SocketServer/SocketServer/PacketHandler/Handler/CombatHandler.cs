@@ -72,9 +72,14 @@ public static class CombatHandler
         if (attacker is null)
             return ValueTask.CompletedTask;
 
+        // 0) 서버 발동 게이트(권위 쿨다운). 쿨다운 중이면 발동 거부 → 데미지 0.
+        //    클라가 C_Attack 을 연사해도 서버가 cadence 를 강제해 폭딜 치팅을 막는다.
+        long startTick = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        if (!attacker.TryBeginSkill(packet.SkillId, skill.CooldownMs, startTick))
+            return ValueTask.CompletedTask;
+
         // 1) 플레이어 피격 → S_ApplyEffect (HP 는 클라가 공유 카탈로그로 결정론 계산) — 기존
         var hits = SelectHitTargets(skill, attacker, states, TargetRadius);
-        long startTick = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         foreach (var targetId in hits)
         {
             foreach (var effectId in skill.OnHitEffectIds)

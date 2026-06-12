@@ -41,7 +41,6 @@ namespace Game.Presentation.InGame
 
         private AbilitySystemComponent _asc;
         private bool _isProcessing;
-        private bool _localDeadReported;
 
         public ReadOnlyReactiveProperty<InGameState> State =>
             _state.ToReadOnlyReactiveProperty();
@@ -129,27 +128,15 @@ namespace Game.Presentation.InGame
             {
                 case EGameplayAttribute.Health:
                     Dispatch(new InGameResult.HpChanged(current, max));
-                    if (current <= 0)
-                        ReportLocalDeath();
                     break;
                 case EGameplayAttribute.Mana:
                     Dispatch(new InGameResult.MpChanged(current, max));
                     break;
             }
         }
-
-        /// <summary>
-        /// 로컬 플레이어 HP 0 → 서버에 C_PlayerDead 1회 보고(플레이어 HP=클라 권위).
-        /// 서버는 참가자 전원 다운 시 S_DungeonFailed 를 발화한다.
-        /// </summary>
-        private void ReportLocalDeath()
-        {
-            if (_localDeadReported)
-                return;
-            _localDeadReported = true;
-            Debug.Log("[InGameModel] 로컬 플레이어 사망 — C_PlayerDead 송신");
-            _socketSession.SendAsync(new C_PlayerDead(), _cts.Token).Forget();
-        }
+        // 사망 보고(C_PlayerDead 송신)는 제거됨 — 플레이어 HP 서버 권위 승격(authority-model §4).
+        // 서버 `Room.TickMonsters`가 자기 HP≤0 을 직접 감지해 S_PlayerDead 를 발행한다(클라 보고 불필요).
+        // 로컬 다운 연출/입력 게이트는 PlayerCharacterAgent 가 HP≤0 예측으로 즉발 처리(즉발 손맛).
 
         // ── 활성 버프/디버프 → BuffView 중계 ───────────
 

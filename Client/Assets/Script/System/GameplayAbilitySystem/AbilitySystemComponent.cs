@@ -16,6 +16,7 @@ namespace Script.System.GamePlayAbilitySystem
         private Dictionary<EGameplayAttribute, GameplayAttribute> _gameplayAttributes = new();
         private readonly HashSet<GameplayAttribute> _wired = new();
         private readonly List<ActiveGameplayEffect> _active = new();
+        private readonly GameplayTagContainer _tags = new();
         private long _clockMs;
         private int _nextInstanceId = 1;
         private bool _initialized;
@@ -180,6 +181,32 @@ namespace Script.System.GamePlayAbilitySystem
                 return;
             RecalculateStats();
             OnActiveEffectsChanged?.Invoke();
+        }
+
+        // ── GameplayTag (상태 태그) ───────────────────────────
+
+        /// <summary>
+        /// 직접 부여한 상태 태그(예: 사망 State.Dead). Effect 없이 즉시 세우는 태그용.
+        /// 활성 Effect의 GrantedTags 는 HasTag 가 동적으로 합산하므로 여기 넣지 않는다.
+        /// </summary>
+        public void AddTag(GameplayTag tag) => _tags.Add(tag);
+
+        public void RemoveTag(GameplayTag tag) => _tags.Remove(tag);
+
+        /// <summary>직접 부여한 태그 + 활성 Effect의 GrantedTags 를 합쳐 질의. 입력 게이트 등이 폴링한다.</summary>
+        public bool HasTag(GameplayTag tag)
+        {
+            if (_tags.HasTag(tag))
+                return true;
+
+            foreach (var e in _active)
+            {
+                var granted = e.Definition.GrantedTags;
+                for (int i = 0; i < granted.Count; i++)
+                    if (granted[i] == tag)
+                        return true;
+            }
+            return false;
         }
 
         /// <summary>내부 clock을 전진시키고 만료된 Effect를 제거한다. (테스트는 직접 호출)</summary>

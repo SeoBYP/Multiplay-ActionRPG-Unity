@@ -80,6 +80,9 @@ message GetRoomsResponse{
 
 message StartRoomRequest{
   int64 room_id = 1;
+  // 비우면 서버 기본 맵(MapIds.Default=dungeon_01). 특정 맵을 강제할 때 지정(E2E 테스트 등).
+  // ※ 정식 던전 선택(4.3)은 방 생성 시 맵 결정 — 그때 이 필드는 방 MapId 로 승격.
+  string map_id = 2;
 }
 
 message StartRoomResponse{
