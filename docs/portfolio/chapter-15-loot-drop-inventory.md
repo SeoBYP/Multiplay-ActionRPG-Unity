@@ -123,7 +123,8 @@ UniversalSlot (컨테이너, 고정 30개 무조건 생성)
 ## 아직 미완성인 것 (TODO)
 
 ```
-Main 경로(싱글 PVE): GrantItem gRPC + 서버 가드(catalog·수량상한) — ✅ 완료 → 챕터 16
+Main 경로(싱글 PVE): 클라 시뮬·렌더 + 서버 검증(B-lite ClaimKill) — ✅ 완료 → 챕터 16
+   (구 "GrantItem gRPC + 수량상한 가드"는 무한 파밍 핵으로 폐기 → 서버 슬롯/쿨다운 검증+권위 roll)
 정식 획득 토스트 위젯 (현재 OnItemPickedUp 로그)
 아이템 타입별 ItemContentsSlot 디자인 (UniversalSlot은 교체 대비 완료)
 I키 정석 배선: PlayerInputActions 래퍼 재생성 → InputRouter route
