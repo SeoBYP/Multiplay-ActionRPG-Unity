@@ -1,6 +1,5 @@
 using Game.Gameplay.Character;
 using Game.Gameplay.Input;
-using Game.Gameplay.Loot;
 using Game.Gameplay.Spawn;
 using Game.GUI.OutGame;
 using Game.Installers.Scenes.Startup;
@@ -19,11 +18,11 @@ namespace Game.Installers.Scenes
         [SerializeField] private Canvas uiCanvas;
         [SerializeField] private GameObject localPlayerPrefab;
 
-        [Header("Main 로컬 몬스터(9b) — 콜라이더+LocalMonster 프리팹, 스폰 위치")]
+        [Header("Main 로컬 몬스터(B-lite) — 콜라이더+LocalMonster 프리팹. 스폰 위치/슬롯은 spawn-layouts 의 mainMapId 맵에서")]
         [SerializeField] private GameObject localMonsterPrefab;
-        [SerializeField] private Vector3[] monsterSpawnPoints = new Vector3[0];
+        [SerializeField] private string mainMapId = "main_field_01";
 
-        [Header("Main 로컬 드랍(9d) — LocalGroundItem 프리팹(GroundItem.prefab 구성 + LocalGroundItem)")]
+        [Header("Main 전리품 오브 — LocalGroundItem 프리팹(GroundItem.prefab 구성 + LocalGroundItem). 줍기→ClaimKill")]
         [SerializeField] private GameObject localGroundItemPrefab;
 
         protected override void Configure(IContainerBuilder builder)
@@ -63,19 +62,21 @@ namespace Game.Installers.Scenes
             // 소모품(3.8) — 효과 데이터(클라 SO) + Side Effect 핸들러(OnConsumableUsed→GAS). 미존재 시 빈 SO 폴백.
             builder.RegisterInstance(Resources.Load<ConsumableCatalog>("ConsumableCatalog")
                                      ?? ScriptableObject.CreateInstance<ConsumableCatalog>());
+            // 소모품 회복 effect 를 GameplayEffectCatalog 에 등록(SO→카탈로그, 교리 gas-architecture §2.5).
+            builder.RegisterEntryPoint<ConsumableCatalogSeeder>(Lifetime.Scoped);
             builder.RegisterEntryPoint<ConsumableEffectHandler>(Lifetime.Scoped);
 
             // Main 씬은 로컬 플레이어만 스폰. RemotePlayerPrefab 없음.
             builder.RegisterInstance(new CharacterPrefabSettings(localPlayerPrefab));
             builder.RegisterEntryPoint<CharacterSpawner>(Lifetime.Scoped);
 
-            // 드랍 테이블(9d) — SO 직접 로드(Resources). 미존재 시 빈 SO 폴백(드랍 없음, 무해).
-            builder.RegisterInstance(Resources.Load<DropTableDefinition>("Loot/DropTableDefinition")
-                                     ?? ScriptableObject.CreateInstance<DropTableDefinition>());
-
-            // Main 로컬 몬스터(9b) + 드랍(9d) — 클라 권위 스폰·roll. 프리팹 미할당이면 무해(스폰/드랍 없음).
-            builder.RegisterInstance(new MainMonsterSettings(localMonsterPrefab, monsterSpawnPoints, localGroundItemPrefab));
+            // Main 로컬 몬스터(B-lite) — 슬롯 기반 클라 스폰·렌더. 드랍 roll·정원·쿨다운은 서버(ClaimKill).
+            // 스폰 위치/슬롯은 SpawnLayoutProvider(spawn-layouts.json mainMapId 맵)에서 읽는다. 프리팹 미할당이면 무해.
+            builder.RegisterInstance(new MainMonsterSettings(localMonsterPrefab, mainMapId, localGroundItemPrefab));
             builder.RegisterEntryPoint<MainMonsterSpawner>(Lifetime.Scoped);
+
+            // Main 타이머 리스폰(2.5.1) — Main 전용. 던전은 미등록 → 다운잠금 유지(의도된 비대칭).
+            builder.RegisterEntryPoint<LocalRespawnController>(Lifetime.Scoped);
 
             builder.Install(new OutgameInstaller());
 

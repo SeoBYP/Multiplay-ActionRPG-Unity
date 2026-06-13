@@ -2,57 +2,58 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using Game.Gameplay.Loot;
+using Game.Gameplay.Spawn;
 using Game.Network.Socket;
-using Shared.Gameplay;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
 
 namespace Game.Gameplay.Character
 {
-    /// <summary>Main 로컬 몬스터 스폰 설정(몬스터 프리팹 + 스폰 위치 + 바닥아이템 프리팹). MainLifetimeScope 가 인스턴스로 등록.</summary>
+    /// <summary>Main 로컬 몬스터 스폰 설정 — 몬스터 프리팹 + 맵 id(스폰 슬롯은 spawn-layouts 에서) + 바닥아이템 프리팹.</summary>
     public sealed class MainMonsterSettings
     {
         public GameObject Prefab { get; }
-        public IReadOnlyList<Vector3> SpawnPoints { get; }
+        public string MapId { get; }
         public GameObject GroundItemPrefab { get; }
 
-        public MainMonsterSettings(GameObject prefab, IReadOnlyList<Vector3> spawnPoints, GameObject groundItemPrefab)
+        public MainMonsterSettings(GameObject prefab, string mapId, GameObject groundItemPrefab)
         {
             Prefab = prefab;
-            SpawnPoints = spawnPoints ?? Array.Empty<Vector3>();
+            MapId = mapId;
             GroundItemPrefab = groundItemPrefab;
         }
     }
 
     /// <summary>
-    /// Main(싱글) 로컬 몬스터 스포너. 던전 MonsterSpawner(서버 권위)의 자매 — 클라 권위 LocalMonster 담당.
+    /// Main(싱글) 로컬 몬스터 스포너 — B-lite. 던전 MonsterSpawner(서버 권위)의 자매.
+    /// 스폰 위치·식별자는 서버와 같은 spawn-layouts(`SpawnLayoutProvider`)의 **몬스터 슬롯**에서 읽는다
+    /// (서버가 ClaimKill 검증의 기준으로 보유 = 무한파밍 차단). 클라는 스폰·렌더·예측만.
     ///
-    /// - 네트워크 미연결(Main)에서만 동작. Joined(던전)면 스폰하지 않는다(던전은 서버가 스폰).
-    /// - 스폰 시 _container.InjectGameObject 로 LocalMonster 에 LocalPlayerContext 주입(AI 타깃).
-    /// - LocalMonster.OnDied → 디스폰. 드랍(roll→GroundItem→GrantItem)은 9d 에서 이 자리에 합류.
+    /// - 네트워크 미연결(Main)에서만 동작. Joined(던전)면 스폰 안 함(서버 스폰).
+    /// - LocalMonster.OnDied → 사망 위치에 LocalGroundItem(슬롯) 스폰. **드랍 roll 은 클라가 안 함** —
+    ///   줍기 시 서버 ClaimKill 이 슬롯 검증 후 권위 roll 로 지급한다. 정본 = main-spawn-claim.md.
     /// </summary>
     public sealed class MainMonsterSpawner : IAsyncStartable, IDisposable
     {
         private readonly ISocketSession      _socketSession;
         private readonly IObjectResolver     _container;
         private readonly MainMonsterSettings _settings;
-        private readonly DropTableDefinition _dropTable;
+        private readonly SpawnLayoutProvider _spawnLayouts;
 
         private readonly List<LocalMonster> _monsters = new();
-        private readonly global::System.Random _rng = new();
+        private readonly CancellationTokenSource _cts = new(); // 재스폰 대기 취소(Dispose)
 
         public MainMonsterSpawner(
             ISocketSession      socketSession,
             IObjectResolver     container,
             MainMonsterSettings settings,
-            DropTableDefinition dropTable)
+            SpawnLayoutProvider spawnLayouts)
         {
             _socketSession = socketSession;
             _container     = container;
             _settings      = settings;
-            _dropTable     = dropTable;
+            _spawnLayouts  = spawnLayouts;
         }
 
         public UniTask StartAsync(CancellationToken ct)
@@ -64,22 +65,24 @@ namespace Game.Gameplay.Character
                 return UniTask.CompletedTask;
             }
 
-            if (_settings.Prefab == null)
+            if (_settings.Prefab == null || string.IsNullOrEmpty(_settings.MapId))
             {
-                Debug.LogWarning("[MainMonsterSpawner] LocalMonster 프리팹 미할당 — 스폰 없음");
+                Debug.LogWarning("[MainMonsterSpawner] 프리팹/맵 미설정 — 스폰 없음");
                 return UniTask.CompletedTask;
             }
 
-            foreach (var point in _settings.SpawnPoints)
-                Spawn(point);
+            var layout = _spawnLayouts.Get(_settings.MapId);
+            foreach (var slot in layout.Monsters)
+                Spawn(slot);
 
-            Debug.Log($"[MainMonsterSpawner] Main 모드 — 로컬 몬스터 {_monsters.Count}마리 스폰");
+            Debug.Log($"[MainMonsterSpawner] Main 모드 — 슬롯 몬스터 {_monsters.Count}마리 스폰 (map {_settings.MapId})");
             return UniTask.CompletedTask;
         }
 
-        private void Spawn(Vector3 point)
+        private void Spawn(MonsterSlot slot)
         {
-            var go = UnityEngine.Object.Instantiate(_settings.Prefab, point, Quaternion.identity);
+            var pos = new Vector3(slot.X, slot.Y, slot.Z);
+            var go = UnityEngine.Object.Instantiate(_settings.Prefab, pos, Quaternion.identity);
             _container.InjectGameObject(go); // LocalMonster 의 [Inject] LocalPlayerContext 충족
 
             var monster = go.GetComponent<LocalMonster>();
@@ -90,6 +93,7 @@ namespace Game.Gameplay.Character
                 return;
             }
 
+            monster.Configure(slot.MonsterId, _settings.MapId, slot.SlotId); // 슬롯 식별자 주입(ClaimKill 키)
             monster.OnDied += HandleDied;
             _monsters.Add(monster);
         }
@@ -99,28 +103,41 @@ namespace Game.Gameplay.Character
             monster.OnDied -= HandleDied;
             _monsters.Remove(monster);
 
-            // 사망 위치에서 드랍 roll → 바닥 아이템 스폰. 위치는 Destroy 전(이번 프레임) 유효.
-            var dropPos = monster.transform.position;
-            RollAndSpawnDrops(monster.MonsterId, dropPos);
-            Debug.Log($"[MainMonsterSpawner] 로컬 몬스터 사망 — {monster.MonsterId}");
+            // 사망 위치에 전리품 오브 1개. 드랍 내용은 줍기 시 서버 ClaimKill 이 결정(클라 roll 없음).
+            SpawnGroundItem(monster.MapId, monster.SlotId, monster.transform.position);
+            Debug.Log($"[MainMonsterSpawner] 로컬 몬스터 사망 — {monster.MonsterId} (slot {monster.SlotId})");
+
+            // 슬롯 쿨다운 후 같은 슬롯에 재스폰(서버 ClaimKill 쿨다운과 동일 값 → 보상도 그때 다시 가능).
+            ScheduleRespawn(monster.SlotId).Forget();
         }
 
-        /// <summary>SO(DropTableDefinition) 데이터 → 공유 DropTableRoll(서버 던전과 동일 로직) → LocalGroundItem 스폰.</summary>
-        private void RollAndSpawnDrops(string monsterId, Vector3 pos)
+        /// <summary>슬롯의 RespawnCooldownMs 후 그 슬롯 몬스터를 다시 스폰한다. Dispose 시 취소.</summary>
+        private async UniTaskVoid ScheduleRespawn(int slotId)
         {
-            if (_dropTable == null || _settings.GroundItemPrefab == null)
+            MonsterSlot slot = null;
+            foreach (var s in _spawnLayouts.Get(_settings.MapId).Monsters)
+                if (s.SlotId == slotId) { slot = s; break; }
+            if (slot == null) return;
+
+            int delayMs = Mathf.Max(slot.RespawnCooldownMs, 1000); // 데이터 0이면 1s 하한
+            try
+            {
+                await UniTask.Delay(delayMs, cancellationToken: _cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                return; // 씬 종료/Dispose
+            }
+
+            Spawn(slot);
+            Debug.Log($"[MainMonsterSpawner] 슬롯 재스폰 — slot {slotId} ({delayMs}ms 경과)");
+        }
+
+        private void SpawnGroundItem(string mapId, int slotId, Vector3 pos)
+        {
+            if (_settings.GroundItemPrefab == null || slotId <= 0)
                 return;
 
-            var entries = new List<DropEntry>();
-            foreach (var d in _dropTable.Get(monsterId))
-                entries.Add(new DropEntry(d.itemId, d.chance, d.minQty, d.maxQty));
-
-            foreach (var drop in DropTableRoll.Roll(entries, _rng))
-                SpawnGroundItem(drop.ItemId, drop.Qty, pos);
-        }
-
-        private void SpawnGroundItem(string itemId, int qty, Vector3 pos)
-        {
             var go = UnityEngine.Object.Instantiate(_settings.GroundItemPrefab, pos, Quaternion.identity);
             _container.InjectGameObject(go); // LocalGroundItem 의 [Inject] IInventoryGrpcService 충족
 
@@ -132,12 +149,15 @@ namespace Game.Gameplay.Character
                 return;
             }
 
-            item.Initialize(itemId, qty, pos);
-            Debug.Log($"[MainMonsterSpawner] 드랍 스폰 — {itemId} x{qty}");
+            item.Initialize(mapId, slotId, pos);
+            Debug.Log($"[MainMonsterSpawner] 전리품 오브 스폰 — map {mapId} slot {slotId}");
         }
 
         public void Dispose()
         {
+            _cts.Cancel(); // 대기 중인 재스폰 취소
+            _cts.Dispose();
+
             foreach (var monster in _monsters)
             {
                 if (monster == null) continue;

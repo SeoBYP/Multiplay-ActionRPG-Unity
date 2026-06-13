@@ -56,11 +56,45 @@ namespace Game.Gameplay.Character
             base.Update();
         }
 
-        /// <summary>HP(클라 결정론)가 0 이하가 되면 State.Dead 를 1회 세운다. 이후 게이트가 작동한다.</summary>
+        /// <summary>HP(서버 권위/클라 결정론)가 0 이하가 되면 State.Dead 를 1회 세우고 다운 포즈를 재생한다.</summary>
         private void OnAttributeChanged(EGameplayAttribute type, int current, int max)
         {
             if (type == EGameplayAttribute.Health && current <= 0 && AbilitySystem != null && !IsDead)
+            {
                 AbilitySystem.AddTag(DeadTag);
+                AgentAnimations?.SetTrigger(AnimationTriggerType.Dead); // 다운 포즈(Animator "Dead" 클립 배선은 클라 발전 시).
+                Debug.Log("[PlayerCharacterAgent] 로컬 다운 — HP≤0 → State.Dead (입력 게이트). ※다운 애니는 미배선(로그 대체)");
+            }
+        }
+
+        /// <summary>
+        /// 로컬 부활(Main 타이머 리스폰 전용 — 던전은 다운잠금이라 호출되지 않는다).
+        /// State.Dead 해제 + HP 만피 복구 + 다운 트리거 리셋 + 스폰 지점 텔레포트. 게이트가 풀려 이동·Action 재개.
+        /// </summary>
+        public void Revive(Vector3 spawnPos)
+        {
+            if (AbilitySystem == null) return;
+
+            AbilitySystem.RemoveTag(DeadTag);
+            var hp = AbilitySystem.GetAttribute(EGameplayAttribute.Health);
+            hp?.SetCurrent(hp.MaxValue);
+
+            AgentAnimations?.ResetTrigger(AnimationTriggerType.Dead);
+
+            // CharacterController 텔레포트 — 비활성화 후 위치 설정해야 내부 위치와 어긋나지 않는다.
+            var cc = GetComponent<CharacterController>();
+            if (cc != null)
+            {
+                cc.enabled = false;
+                transform.position = spawnPos;
+                cc.enabled = true;
+            }
+            else
+            {
+                transform.position = spawnPos;
+            }
+
+            Debug.Log($"[PlayerCharacterAgent] 부활 — State.Dead 해제, HP 만피, 스폰 {spawnPos} 텔레포트. ※부활 애니는 미배선(로그 대체)");
         }
 
         private void OnDestroy()

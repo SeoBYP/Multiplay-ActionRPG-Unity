@@ -20,7 +20,7 @@
 
 | # | 문제 | 위치 |
 |---|------|------|
-| ① | **데미지 수치 이중 정의** — 같은 effect가 클라/서버 카탈로그에 손으로 중복. `monster_attack_dmg`는 서버에 아예 없음 | 클라 `GameplayEffectCatalog` vs 서버 `CombatEffectCatalog` |
+| ① | ~~**데미지 수치 이중 정의** — 같은 effect가 클라/서버 카탈로그에 손으로 중복~~ → **해소**: 전투=`CombatEffectCatalog`가 Shared 코드 시드 위임(2.6b ⓑ), 소모품=클라 SO 저작→bake 단일소스(§2.5·2.6c). | (해소됨) |
 | ② | **"Effect 적용"이 두 엔진** — 클라 ASC vs 서버 인라인(`Room.DamageMonster`가 `GameplayEffectMath` 직접 호출) | ASC가 MonoBehaviour라 Shared 불가 |
 | ③ | **죽은 구 ability 경로 잔존** — `GameplayEffect`+`AbilitySystemUtils` (CA-4에서 같이 삭제됐어야 함) | `Effects/GameplayEffect.cs` |
 | ④ | **태그 시스템 부재** — `AbilitySystemUtils` 주석은 "태그 검사 넣을 수 있다"지만 GameplayTag가 없음. 사망(2.5.1)을 표현할 자리가 없음 | — |
@@ -64,6 +64,29 @@
 
 **원칙: Shared는 게임플레이 순수. 서버는 Cue 문자열을 하나도 안 가진다. 모든 연출 매핑은 클라 SO.**
 `SkillTimeline`의 기존 doc 주석("Cue/VFX 미포함")을 그대로 지킨다 — 연출은 별도 클라 트랙(①)으로 분리.
+
+---
+
+## 2.5 데이터 진실원 교리 — SO 저작(클라) → Shared 배포(서버 검증)  [2026-06-13 확정]
+
+게임플레이 **콘텐츠 데이터**(아이템·소모품·스킬 수치)의 단일 교리. 문제①(수치 이중정의)의 근본 해법.
+
+```
+[기획자] Unity Inspector 에서만 편집
+   └─ ScriptableObject (예: ConsumableCatalog · DropTableDefinition)   ◀── 저작 진실원(편집 쉬움)
+        ├─(런타임 직접 읽기)──▶ 클라: 아이템/스킬 정보 프리뷰·UI·로컬 적용 (클라가 미리 데이터를 앎)
+        └─[Tools/.../Export] (에디터 1버튼)
+              └─ bake ▶ *.json (Shared.Infrastructure 임베디드)   ◀── 기계 산출물(기획자 비노출)
+                          └─▶ 서버: 클라가 보낸 아이템/스킬 사용이 적합한지 **검증(치팅 방지)**
+```
+
+- **왜 SO가 저작 진실원**: ① Inspector 편집이 쉬움(기획 친화) ② **클라가 데이터를 미리 알아야** 아이템/스킬 정보를 화면에 보여줄 수 있음.
+- **왜 Shared 사본이 필요**: 서버가 클라 요청(아이템 소비·스킬 발동)을 **검증하려면 같은 데이터를 알아야** 함. 서버는 UnityEngine 미참조라 SO를 못 읽으므로 SO→bake JSON 으로 배포.
+- **공통 키**: `effectId == itemId`(소모품) · `skillId` 등 → 클라·서버 동일 조회. 기획자는 JSON을 만지지 않는다(자동 산출물).
+- **2-소스 합류**(현재 상태): effect 수치는 `effectId` **단일 조회**로 합치되 출처는 둘 —
+  - **콘텐츠(소모품 등)** = 클라 SO 저작 → bake (`ConsumableEffectCatalog`, 임베디드 JSON). ✅ 적용됨(2026-06-13, codemap §2.6c).
+  - **전투 밸런스**(`basic_attack_dmg`/`monster_attack_dmg`) = **서버 권위**라 코드 시드(`GameplayEffectCatalog`) 유지(2.6b ⓑ). 전투·스킬의 SO 저작 수렴은 후속.
+- **폐기**: effect-system.md 옛 전제 *"ScriptableObject를 진실원으로 쓰지 않음"* 은 이 교리로 **대체**됨 — SO = **저작** 진실원, JSON = bake 산출물(둘은 모순 아님: SO 상류 → JSON 하류).
 
 ---
 
@@ -160,7 +183,7 @@ Main(싱글) = 일정 시간 후 로컬 리스폰(후속 증분, 로컬 권위�
 |------|------|------|
 | `GameplayTag`+`Container` 신설 | Shared NEW | 사망/버프/상태 공통 |
 | `GameplayEffectDefinition`/`Catalog`/`ActiveGameplayEffect` 이사 | Client→Shared | 순수라 이동 가능 |
-| 클라/서버 effect 카탈로그 **단일화** | Shared | 문제① 해소. `CombatEffectCatalog` 흡수/삭제 |
+| 클라/서버 effect 카탈로그 **단일화** | Shared | 문제① 해소(✅). 전투=`CombatEffectCatalog` 위임(2.6bⓑ) / 소모품=SO 저작→bake(§2.5) |
 | `EffectDefinition`에 `GrantedTags[]` 추가 | Shared | 상태 부여 |
 | `GameplayEffect`+`AbilitySystemUtils` **삭제** | Client | 문제③ 죽은코드 |
 | 서버 발동 게이트(쿨다운/시전중) | Server | 문제⑤. 데이터 이미 존재 |

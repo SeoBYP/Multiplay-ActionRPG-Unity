@@ -277,7 +277,48 @@
 - **검증**: GameServer **252/252**(`InventoryGrpcServiceTests` +2: 소비성공→PlayerConsumed 발행·EffectId==itemId / 실패시 미발행) + SocketServer **85/85** + 솔루션 빌드 0오류 + DLL 재복사 + 양 서버 Docker 리빌드·재배포. **클라 컴파일·E2E(소비→서버회복→HP복구)·MPPM 플레이는 Unity 검증 필요**(unity-mcp 미연결).
 - **E2E(작성, Unity 실행 대기)**: `SocketE2ETests` 2종 — ① `던전에서_포션_소비하면_서버가_회복_S_ApplyEffect를_브로드캐스트`(빠름: GrantItem→ConsumeItem gRPC→S_ApplyEffect(potion_hp_small) 관측 = 크로스서버 회복 전경로) ② `몬스터에게_죽으면_서버가_C_PlayerDead_없이_S_PlayerDead`(**~2초**: test_arena 맵의 fixture 몬스터 `test_brute`가 호스트를 빠르게 죽임 → 서버 HP0 직접감지→S_PlayerDead = 불사핵 차단 직접증명). 양 서버 Docker 리빌드·재배포.
 - **맵 선택 슬림 배선(4.3 부분 상환, 2026-06-11)**: `StartRoomRequest.map_id`(proto, optional) → `DungeonLobbyGrpcService.StartRoom`→`StartGameAsync(...,mapId,...)`→`GameStartRequestedMessage.MapId`(비우면 `MapIds.Default`). DungeonRoom 엔티티/Redis **무변경**(StartGame 시점에만 맵 지정 — 정식 던전선택 UI 생기면 방 생성으로 승격). 테스트 fixture: `MonsterCatalog.test_brute`(사거리·aggro 무한, 쿨다운 50ms, 고HP) + `spawn-layouts.json`(서버+클라) `test_arena` 맵. 클라 proto 재생성(StartRoomRequest.MapId). GameServer 252/252 + SocketServer 85/85(시그니처 변경 후방호환).
-- **잔여 부채**: 회복 수치 이중정의(클라 ConsumableCatalog SO +100 vs Shared potion_hp_small +100) — Main도 Shared로 수렴하면 단일소스(후속). ~~EffectReceiver 진단로그~~(제거 완료). E2E 2종 Unity 실행 **그린 확인(사용자, 2026-06-11)**.
+- **잔여 부채**: 회복 수치 이중정의 → **단일소스화 진행(아래 §2.6c)**. ~~EffectReceiver 진단로그~~(제거 완료). E2E 2종 Unity 실행 **그린 확인(사용자, 2026-06-11)**.
+
+### 2.6c 소모품 회복 수치 단일소스 — SO 저작 → bake → 서버 (2026-06-13, 2.5.1 잔여)
+
+> **교리 정본 = [gas-architecture.md §2.5](gas-architecture.md)** (SO 저작/Shared 검증). 본 절은 그 교리의 소모품 구현 로그. 전투 effect 위임은 §2.6b ⓑ.
+
+**문제(이중정의의 경위)** — 같은 회복 수치(potion_hp_small = Health +100)가 두 곳에 손으로 유지되어 드리프트 위험:
+1. **3.8 소모품(2026-06-10)**: 회복=클라 권위로 설계 → 클라 `ConsumableCatalog` SO에 수치 저작. 서버 무관여.
+2. **2.5.1 증분2(2026-06-11)**: 던전 플레이어 HP를 서버 권위로 승격 → 서버도 회복 수치가 필요 → 단일소스 파이프라인(SO→bake)을 까는 대신 `GameplayEffectCatalog` 코드 시드에 `potion_hp_small`을 **손으로 복사**(주석 "클라와 정렬")하고 부채로 미룸.
+
+**설계 원칙 (DropTable 컨벤션과 1:1 동일 — 기획자는 JSON을 만지지 않는다)**:
+```
+[기획자] Unity Inspector 에서만 편집
+   └─ ConsumableCatalog.asset (ScriptableObject)   ◀── 유일 저작면(진실원)
+        ├─(런타임 직접 읽기)──▶ 클라: ConsumableEffectHandler(Main 적용) / ConsumableCatalogSeeder(던전 EffectReceiver 미러용 등록)
+        └─[Tools/Consumables/Export] (에디터 메뉴 1버튼)
+              └─ bake ▶ consumable-effects.json   ◀── 기계 산출물(기획자 안 봄·git에만)
+                          └─(Shared.Infrastructure 임베디드)─▶ 서버: ConsumableEffectCatalog → CombatEffectCatalog static ctor 가 Register 로 흡수 → effectId 조회
+```
+- **편집면 = `ConsumableCatalog.asset` Inspector 한 곳.** JSON 은 서버가 UnityEngine(SO)을 못 읽어서 익스포터가 자동 생성하는 **서버 전용 산출물** — 기획자 비노출.
+- effectId == itemId 규칙으로 클라(SO)·서버(bake JSON)가 동일 수치. Shared `GameplayEffectCatalog` 코드 시드에서 `potion_hp_small` 제거(소모품은 더 이상 코드 시드 아님) = 이것이 그 카탈로그가 예고한 "2단계 JSON 로더"의 실현.
+- 전투 효과(basic_attack_dmg/monster_attack_dmg)는 **서버 게임밸런스 권위라 코드 시드 유지** — 소모품(기획 콘텐츠)만 SO 저작. 두 출처를 effectId 단일 조회로 합류.
+
+**위치**: 클라 `Presentation/Inventory/ConsumableCatalog.cs`(SO, 저작면) · 신규 Editor `ConsumableEffectExporter`(SO→JSON, DropTableExporter 자매) · 신규 클라 `ConsumableCatalogSeeder`(SO→DI `GameplayEffectCatalog` 등록) · 신규 `Shared.Infrastructure/Consumables/{ConsumableEffectCatalog.cs, consumable-effects.json(임베디드)}` · `SocketServer/Combat/CombatEffectCatalog.cs`(static ctor 흡수) · `Shared.Gameplay/Effects/GameplayEffectCatalog.cs`(potion 시드 제거).
+- **상태(2026-06-13)**: ✅ 코드 완료. 서버 = `ConsumableEffectCatalog`(임베디드 `consumable-effects.json`) + `CombatEffectCatalog` static ctor 흡수 + `GameplayEffectCatalog` potion 시드 제거(빌드 0오류). 클라 = `ConsumableCatalogSeeder`(SO→DI `GameplayEffectCatalog`, Dungeon+Main 등록 — **코드시드 제거로 깨진 던전 회복 미러 회귀 복구**) + Editor `ConsumableEffectExporter`(SO→JSON). 클라 컴파일·플레이는 Unity 검증 대기.
+
+### 2.6d Main 획득 B-lite 서버 검증 — 무한 파밍 핵 차단 (2026-06-13)
+- **정본 = [main-spawn-claim.md](main-spawn-claim.md) / authority-model §4b.** 무엇/왜/시나리오·흐름·증분은 거기. 여기는 코드 위치 요약.
+- **핵**: Main 획득이 클라 권위(`GrantItem(itemId,qty)` 무검증) → 무한 스폰·무한 GrantItem = 만렙 핵. **결정 = B-lite**(서버가 map 스폰 데이터 보유 → 클라는 슬롯만 지목, 서버가 검증·roll·grant).
+- **서버**(완료·검증, 빌드0+단위14 그린): 스키마 `MonsterSpawnDef`/`SpawnLayoutTable`(`SlotId`/`RespawnCooldownMs` additive)+`spawn-layouts.json` `main_field_01` · `IMainSpawnClaimService`/`MainSpawnClaimService`(슬롯검증+쿨다운+`DropTableCatalog.Roll`+`GrantItemAsync`) · `IClaimCooldownStore`/`RedisClaimCooldownStore`(`SET NX PX`=원자 쿨다운) · gRPC `ClaimKill` 추가/`GrantItem` 제거(`inventory.proto`·`InventoryGrpcService`·Generated·ClientCodegen) · `InventoryInstaller` DI. 테스트 `MainSpawnClaimServiceTests`(슬롯/없는맵/유효지급/쿨다운거부) + `InventoryGrpcServiceTests`(ClaimKill 매핑·미인증).
+- **클라**(코드 완료, Unity 검증 대기): `SpawnLayoutProvider`/`MapSpawnLayout`+`MonsterSpawn`(monsters 파싱) · `LocalMonster.Configure(slotId,mapId)` · `MainMonsterSpawner`(슬롯 스폰+클레임 드랍, **클라 roll 제거**) · `LocalGroundItem`→`ClaimKillAsync` · `MainLifetimeScope`(`MainMonsterSettings{prefab,mapId,groundItem}`). E2E `MainLootE2ETests`(정상/쿨다운차단/위조슬롯) · `SocketE2ETests`(포션 시드 ClaimKill) · `InventoryE2ETests`(GrantItem 제거).
+- **9b~9d 영향**: LocalMonster 스폰·렌더 유지, **roll이 클라→서버 / GrantItem→ClaimKill** 교체. loot-drop §1.4 구결정 폐기(배너).
+- **검증(2026-06-13)**: ✅ 서버 솔루션 374 그린(Docker 리빌드 후) + Unity 컴파일 + **PlayMode E2E 그린**(`MainLootE2ETests` 3·`SocketE2ETests` 회복, 사용자) + **플레이: 처치→오브→E 줍기→ClaimKill→potion 지급(보유 누적) 확인**.
+- **플레이 중 보완(2026-06-13)**: 처치 후 슬롯이 영구히 비는 문제 → `MainMonsterSpawner.ScheduleRespawn`(`UniTask.Delay(RespawnCooldownMs)` 후 `Spawn(slot)` 재스폰, `_cts` Dispose 취소). 서버 claim 쿨다운과 동일 값 → 재스폰 시점에 보상도 다시 가능.
+
+### 2.6e Main 타이머 리스폰 + 다운 포즈 (2.5.1 마무리, 2026-06-13)
+- **다운 포즈(던전·Main 공통, 로컬)**: `AnimationTriggerType.Dead` + `CharacterAgentAnimations.m_animationDeathTrigger` 신설. `PlayerCharacterAgent.OnAttributeChanged` 가 HP≤0 시 `AddTag(Dead)` + `SetTrigger(Dead)` + **다운 로그**. **Animator "Dead" 클립 배선은 의도적 보류**(서버 우선, 클라 발전 시) → 지금은 **로그로 관찰**. `SetTrigger/ResetTrigger` 는 파라미터명 빈 값(미배선)이면 조용히 스킵(Animator 경고 방지).
+- **부활**: `PlayerCharacterAgent.Revive(spawnPos)` — `RemoveTag(Dead)` + Health `SetCurrent(Max)` + `ResetTrigger(Dead)` + CharacterController-safe 텔레포트. 게이트(`IsDead`)가 풀려 이동·Action 재개.
+- **Main 타이머 리스폰**: `LocalRespawnController : ITickable` — **MainLifetimeScope 에만 등록**(던전 미등록 = 다운잠금 유지, 의도된 비대칭). Dead 상승엣지 감지 → `RespawnDelaySec`(3s) 후 `Revive`(스폰 = 맵 레이아웃 첫 Point/원점). death-respawn-2-5-1-direction.
+- **Main 사망 트리거**: `LocalMonster` 근접 공격 추가 — `attackRange` 내에서 `attackCooldownSec` 마다 플레이어 ASC 에 즉발 `local_monster_attack`(Health -dmg, 클라 로컬 권위). 다운 플레이어는 공격 안 함. (없으면 Main 에서 죽을 수단이 없어 리스폰 잠복.)
+- **위치**: `Gameplay/Character/{Agent/PlayerCharacterAgent, LocalRespawnController, LocalMonster, CharacterAgentAnimations}.cs` · `VContainer/.../MainLifetimeScope.cs`.
+- **남음**: Animator "Dead" 배선(아트)·Unity 컴파일·플레이 검증.
 
 ### 2.6 CA-2 SkillTimeline 스키마 + 서버 권위 설계 (Shared.Gameplay)
 

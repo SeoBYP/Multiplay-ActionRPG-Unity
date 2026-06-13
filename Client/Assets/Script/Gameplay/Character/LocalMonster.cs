@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using Game.System.Player;
+using Script.System.GamePlayAbilitySystem;
 using UnityEngine;
 using VContainer;
 
@@ -29,34 +31,87 @@ namespace Game.Gameplay.Character
         [SerializeField] private float chaseRange = 6f;
         [SerializeField] private float moveSpeed = 2f;
 
+        [Header("플레이어 공격(Main 사망 트리거)")]
+        [Tooltip("이 거리 안이면 추격을 멈추고 공격한다.")]
+        [SerializeField] private float attackRange = 1.5f;
+        [SerializeField] private int attackDamage = 10;
+        [SerializeField] private float attackCooldownSec = 1.5f;
+
         [Inject] private readonly LocalPlayerContext _localPlayer = null;
 
         private int _hp;
+        private float _nextAttackTime;
+        private GameplayEffectDefinition _attackEffect;
 
-        /// <summary>사망 시 발행(자기 자신 전달). MainMonsterSpawner 가 디스폰·드랍(9d)에 사용.</summary>
+        /// <summary>사망 시 발행(자기 자신 전달). MainMonsterSpawner 가 디스폰·드랍(B-lite 클레임)에 사용.</summary>
         public event Action<LocalMonster> OnDied;
 
         public string MonsterId => monsterId;
         public float TargetRadius => targetRadius;
         public bool IsDead { get; private set; }
 
-        private void Awake() => _hp = maxHp;
+        /// <summary>스폰 레이아웃 슬롯(B-lite). 줍기 시 이 슬롯으로 ClaimKill → 서버 검증·roll. 0=미설정.</summary>
+        public int SlotId { get; private set; }
+
+        /// <summary>이 몬스터가 속한 맵 id(ClaimKill 키). MainMonsterSpawner 가 슬롯 스폰 시 주입.</summary>
+        public string MapId { get; private set; } = string.Empty;
+
+        /// <summary>슬롯 기반 스폰 시 식별자 주입(spawn-layouts 슬롯). 직렬화 기본값을 덮어쓴다.</summary>
+        public void Configure(string monsterId, string mapId, int slotId)
+        {
+            this.monsterId = monsterId;
+            MapId = mapId;
+            SlotId = slotId;
+        }
+
+        private void Awake()
+        {
+            _hp = maxHp;
+            // 즉발 피해 effect(클라 로컬 권위, Main 솔로). 던전 플레이어 피해는 서버 권위라 무관.
+            _attackEffect = new GameplayEffectDefinition(
+                id: "local_monster_attack",
+                category: EEffectCategory.AttackPower,
+                policy: EDurationPolicy.Instant,
+                durationMs: 0,
+                modifiers: new List<GameplayAttributeModifier>
+                {
+                    GameplayAttributeModifier.Create(EGameplayAttribute.Health, -attackDamage, EModifierType.Additive),
+                });
+        }
 
         private void Update()
         {
             if (IsDead) return;
 
-            var target = _localPlayer?.AbilitySystem != null ? _localPlayer.AbilitySystem.transform : null;
-            if (target == null) return;
+            var asc = _localPlayer?.AbilitySystem;
+            if (asc == null) return;
 
-            var to = target.position - transform.position;
+            // 다운(사망)한 플레이어는 공격/추격하지 않는다(던전 _downed 제외와 동일 취지).
+            if (asc.HasTag(GameplayTags.Dead)) return;
+
+            var to = asc.transform.position - transform.position;
             to.y = 0f;
             float dist = to.magnitude;
-            if (dist > chaseRange || dist < 0.01f) return; // 범위 밖이거나 너무 가까우면 정지
+            if (dist > chaseRange) return; // 범위 밖 = 정지
 
-            var dir = to / dist;
-            transform.position += dir * (moveSpeed * Time.deltaTime);
+            var dir = dist > 0.01f ? to / dist : transform.forward;
             transform.rotation = Quaternion.LookRotation(dir);
+
+            if (dist <= attackRange)
+            {
+                TryAttack(asc); // 사거리 내 = 멈추고 공격
+                return;
+            }
+
+            transform.position += dir * (moveSpeed * Time.deltaTime); // 사거리 밖 = 추격
+        }
+
+        /// <summary>쿨다운마다 플레이어 ASC 에 즉발 피해(로컬 권위). HP≤0 → PlayerCharacterAgent 가 다운 처리.</summary>
+        private void TryAttack(AbilitySystemComponent target)
+        {
+            if (Time.time < _nextAttackTime) return;
+            _nextAttackTime = Time.time + attackCooldownSec;
+            target.ApplyEffect(_attackEffect);
         }
 
         /// <summary>로컬 피격. HP 차감 후 0 이하면 사망 처리(1회).</summary>

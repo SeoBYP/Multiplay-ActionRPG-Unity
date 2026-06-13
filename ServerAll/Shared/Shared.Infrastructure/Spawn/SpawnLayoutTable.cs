@@ -62,7 +62,8 @@ public static class SpawnLayoutTable
                     m.Count, m.Wave,
                     (m.Patrol ?? new List<PatrolDto>())
                         .Select(p => new PatrolPoint(p.X, p.Z))
-                        .ToList()))
+                        .ToList(),
+                    m.SlotId, m.RespawnCooldownMs))
                 .ToList();
 
             result[map.MapId] = new MapSpawnLayout(map.MapId, points, bounds, monsters, map.ExpReward);
@@ -112,6 +113,12 @@ public static class SpawnLayoutTable
         public int Count { get; set; } = 1;
         public int Wave { get; set; }
         public List<PatrolDto> Patrol { get; set; } = new();
+
+        /// <summary>Main B-lite 클레임 키(슬롯 안정 식별자). 던전 미사용(기본 0). main-spawn-claim.md.</summary>
+        public int SlotId { get; set; }
+
+        /// <summary>Main B-lite 재청구 쿨다운(ms) = 파밍률 상한. 던전 미사용(기본 0).</summary>
+        public int RespawnCooldownMs { get; set; }
     }
 
     private sealed class PatrolDto

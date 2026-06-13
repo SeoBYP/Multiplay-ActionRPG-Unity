@@ -13,7 +13,7 @@
 |------|------|------|
 | 코드 공유 | **`Shared.Gameplay`(netstandard2.1) DLL** 을 서버·Unity 둘 다 참조 | CA-2 |
 | 권위 모델 | **서버 권위**(active window 판정 + GE 데미지) + **클라 예측** | CA-3 |
-| 데이터 진실원 | **공유 JSON** (SkillTimeline·GE 정의). ScriptableObject를 진실원으로 쓰지 않음 | "안 함" |
+| 데이터 진실원 | **콘텐츠(아이템·소모품·스킬) = Client SO 저작 → bake → Shared 배포(서버 검증)** / 전투 밸런스 = 코드 시드. ~~"SO를 진실원으로 안 씀"~~은 폐기(2026-06-13) — 교리 정본 [gas-architecture.md §2.5](gas-architecture.md) | 갱신 |
 | 결정론 범위 | fixed-point/롤백(lockstep) **안 함**. "동일 로직 + 권위 시작시각" 수준 | "안 함" |
 | 아이콘 표시 | **카테고리 아이콘 + polarity(버프/디버프) 색** | 이번 결정 |
 

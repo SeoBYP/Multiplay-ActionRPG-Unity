@@ -1,0 +1,13 @@
+{
+    "consumables": [
+        {
+            "itemId": "potion_hp_small",
+            "modifiers": [
+                {
+                    "stat": "Health",
+                    "amount": 100
+                }
+            ]
+        }
+    ]
+}

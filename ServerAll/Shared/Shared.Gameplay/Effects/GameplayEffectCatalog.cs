@@ -3,8 +3,9 @@ using System.Collections.Generic;
 namespace Script.System.GamePlayAbilitySystem
 {
     /// <summary>
-    /// EffectId → 정의 조회. 1단계는 코드로 시드 등록한다 (ScriptableObject/JSON을 진실원으로 쓰지 않음 — plan 준수).
-    /// 2단계에서 공유 JSON 로더가 같은 Register API로 정의를 채운다.
+    /// EffectId → 정의 조회. **전투 밸런스 effect**(basic_attack_dmg/monster_attack_dmg 등)는 서버 권위라 여기 코드 시드로 둔다.
+    /// **콘텐츠 effect**(소모품 회복 등)는 클라 SO 저작 → bake JSON → `Register` API 로 흡수한다(서버 측은 `CombatEffectCatalog` static ctor).
+    /// 데이터 진실원 교리 = gas-architecture.md §2.5 (SO 저작/Shared 배포·검증).
     /// </summary>
     public sealed class GameplayEffectCatalog
     {
@@ -79,18 +80,10 @@ namespace Script.System.GamePlayAbilitySystem
                     GameplayAttributeModifier.Create(EGameplayAttribute.Health, -5, EModifierType.Additive),
                 }));
 
-            // 소모품 회복(던전 서버 권위). effectId == itemId 규칙 — GameServer 가 소비 검증 후
-            // 이 effectId 를 SocketServer 에 통지, SocketServer 가 PlayerState.Hp 에 적용 + S_ApplyEffect 브로드캐스트.
-            // 수치는 클라 ConsumableCatalog(Main 솔로용)와 정렬(potion_hp_small = Health +100).
-            Register(new GameplayEffectDefinition(
-                id: "potion_hp_small",
-                category: EEffectCategory.AttackPower, // Instant 회복은 버프 아이콘 없음(cosmetic)
-                policy: EDurationPolicy.Instant,
-                durationMs: 0,
-                modifiers: new[]
-                {
-                    GameplayAttributeModifier.Create(EGameplayAttribute.Health, 100, EModifierType.Additive),
-                }));
+            // 소모품 회복(potion_*)은 이 코드 시드에 두지 않는다 — 단일소스 = 클라 `ConsumableCatalog` SO.
+            //   서버: Export 툴이 bake 한 임베디드 JSON(`ConsumableEffectCatalog`)을 `CombatEffectCatalog` static ctor 가 Register 로 흡수.
+            //   클라: `ConsumableCatalogSeeder` 가 같은 SO 를 이 카탈로그에 Register(던전 EffectReceiver 미러용).
+            // → effectId == itemId 규칙으로 양쪽 동일 수치. (이 주석이 GameplayEffectCatalog "2단계 JSON 로더"의 실현)
         }
     }
 }

@@ -10,34 +10,40 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 99d1c56b40bcc36468768a44b739f14e, type: 3}
-  m_Name: dungeon_01
+  m_Name: main_field_01
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Spawn.MapDefinition
-  mapId: dungeon_01
-  visualPrefab: {fileID: 395377278721909691, guid: 5b96864f9c019d44784274d95efba9bd, type: 3}
+  mapId: main_field_01
+  visualPrefab: {fileID: 0}
   playerSpawns:
   - position: {x: 0, y: 0, z: 0}
     rotationY: 0
-  - position: {x: 2, y: 0, z: 0}
-    rotationY: 180
-  - position: {x: -2, y: 0, z: 0}
-    rotationY: 90
-  - position: {x: 0, y: 0, z: 2}
-    rotationY: 270
   monsterSpawns:
   - monsterId: slime
-    position: {x: 6, y: 0, z: 6}
+    position: {x: 8, y: 0, z: 8}
     rotationY: 0
     count: 1
     wave: 0
-    slotId: 0
-    respawnCooldownMs: 0
-    patrolPoints:
-    - {x: 6, y: 0, z: 6}
-    - {x: 10, y: 0, z: 6}
-    - {x: 10, y: 0, z: 10}
-    - {x: 6, y: 0, z: 10}
+    slotId: 1
+    respawnCooldownMs: 5000
+    patrolPoints: []
+  - monsterId: slime
+    position: {x: -8, y: 0, z: 8}
+    rotationY: 0
+    count: 1
+    wave: 0
+    slotId: 2
+    respawnCooldownMs: 5000
+    patrolPoints: []
+  - monsterId: slime
+    position: {x: 8, y: 0, z: -8}
+    rotationY: 0
+    count: 1
+    wave: 0
+    slotId: 3
+    respawnCooldownMs: 5000
+    patrolPoints: []
   bounds:
     centerX: 0
     centerZ: 0
-    sizeX: 40
-    sizeZ: 40
+    sizeX: 60
+    sizeZ: 60

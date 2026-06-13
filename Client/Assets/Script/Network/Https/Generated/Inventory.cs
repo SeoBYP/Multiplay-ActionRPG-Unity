@@ -25,32 +25,35 @@ namespace GameServer.Grpc.Inventory {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "Cg9pbnZlbnRvcnkucHJvdG8SF2dhbWVzZXJ2ZXIuaW52ZW50b3J5LnYxGgxj",
-            "b21tb24ucHJvdG8iFQoTR2V0SW52ZW50b3J5UmVxdWVzdCIwChBHcmFudEl0",
-            "ZW1SZXF1ZXN0Eg8KB2l0ZW1faWQYASABKAkSCwoDcXR5GAIgASgFIlQKEUdy",
-            "YW50SXRlbVJlc3BvbnNlEikKBnJlc3VsdBgBIAEoCzIZLmdhbWVzZXJ2ZXIu",
-            "Y29tbW9uLlJlc3VsdBIUCgxuZXdfcXVhbnRpdHkYAiABKAUiMgoSQ29uc3Vt",
-            "ZUl0ZW1SZXF1ZXN0Eg8KB2l0ZW1faWQYASABKAkSCwoDcXR5GAIgASgFIlwK",
-            "E0NvbnN1bWVJdGVtUmVzcG9uc2USKQoGcmVzdWx0GAEgASgLMhkuZ2FtZXNl",
-            "cnZlci5jb21tb24uUmVzdWx0EhoKEnJlbWFpbmluZ19xdWFudGl0eRgCIAEo",
-            "BSJ8ChRHZXRJbnZlbnRvcnlSZXNwb25zZRIpCgZyZXN1bHQYASABKAsyGS5n",
-            "YW1lc2VydmVyLmNvbW1vbi5SZXN1bHQSOQoFaXRlbXMYAiADKAsyKi5nYW1l",
-            "c2VydmVyLmludmVudG9yeS52MS5JbnZlbnRvcnlJdGVtSW5mbyI2ChFJbnZl",
-            "bnRvcnlJdGVtSW5mbxIPCgdpdGVtX2lkGAEgASgJEhAKCHF1YW50aXR5GAIg",
-            "ASgFMs0CChBJbnZlbnRvcnlTZXJ2aWNlEmsKDEdldEludmVudG9yeRIsLmdh",
-            "bWVzZXJ2ZXIuaW52ZW50b3J5LnYxLkdldEludmVudG9yeVJlcXVlc3QaLS5n",
-            "YW1lc2VydmVyLmludmVudG9yeS52MS5HZXRJbnZlbnRvcnlSZXNwb25zZRJi",
-            "CglHcmFudEl0ZW0SKS5nYW1lc2VydmVyLmludmVudG9yeS52MS5HcmFudEl0",
-            "ZW1SZXF1ZXN0GiouZ2FtZXNlcnZlci5pbnZlbnRvcnkudjEuR3JhbnRJdGVt",
-            "UmVzcG9uc2USaAoLQ29uc3VtZUl0ZW0SKy5nYW1lc2VydmVyLmludmVudG9y",
-            "eS52MS5Db25zdW1lSXRlbVJlcXVlc3QaLC5nYW1lc2VydmVyLmludmVudG9y",
-            "eS52MS5Db25zdW1lSXRlbVJlc3BvbnNlQhyqAhlHYW1lU2VydmVyLkdycGMu",
-            "SW52ZW50b3J5YgZwcm90bzM="));
+            "b21tb24ucHJvdG8iFQoTR2V0SW52ZW50b3J5UmVxdWVzdCIzChBDbGFpbUtp",
+            "bGxSZXF1ZXN0Eg4KBm1hcF9pZBgBIAEoCRIPCgdzbG90X2lkGAIgASgFInUK",
+            "EUNsYWltS2lsbFJlc3BvbnNlEikKBnJlc3VsdBgBIAEoCzIZLmdhbWVzZXJ2",
+            "ZXIuY29tbW9uLlJlc3VsdBI1CgdncmFudGVkGAIgAygLMiQuZ2FtZXNlcnZl",
+            "ci5pbnZlbnRvcnkudjEuR3JhbnRlZEl0ZW0iQQoLR3JhbnRlZEl0ZW0SDwoH",
+            "aXRlbV9pZBgBIAEoCRILCgNxdHkYAiABKAUSFAoMbmV3X3F1YW50aXR5GAMg",
+            "ASgFIjIKEkNvbnN1bWVJdGVtUmVxdWVzdBIPCgdpdGVtX2lkGAEgASgJEgsK",
+            "A3F0eRgCIAEoBSJcChNDb25zdW1lSXRlbVJlc3BvbnNlEikKBnJlc3VsdBgB",
+            "IAEoCzIZLmdhbWVzZXJ2ZXIuY29tbW9uLlJlc3VsdBIaChJyZW1haW5pbmdf",
+            "cXVhbnRpdHkYAiABKAUifAoUR2V0SW52ZW50b3J5UmVzcG9uc2USKQoGcmVz",
+            "dWx0GAEgASgLMhkuZ2FtZXNlcnZlci5jb21tb24uUmVzdWx0EjkKBWl0ZW1z",
+            "GAIgAygLMiouZ2FtZXNlcnZlci5pbnZlbnRvcnkudjEuSW52ZW50b3J5SXRl",
+            "bUluZm8iNgoRSW52ZW50b3J5SXRlbUluZm8SDwoHaXRlbV9pZBgBIAEoCRIQ",
+            "CghxdWFudGl0eRgCIAEoBTLNAgoQSW52ZW50b3J5U2VydmljZRJrCgxHZXRJ",
+            "bnZlbnRvcnkSLC5nYW1lc2VydmVyLmludmVudG9yeS52MS5HZXRJbnZlbnRv",
+            "cnlSZXF1ZXN0Gi0uZ2FtZXNlcnZlci5pbnZlbnRvcnkudjEuR2V0SW52ZW50",
+            "b3J5UmVzcG9uc2USYgoJQ2xhaW1LaWxsEikuZ2FtZXNlcnZlci5pbnZlbnRv",
+            "cnkudjEuQ2xhaW1LaWxsUmVxdWVzdBoqLmdhbWVzZXJ2ZXIuaW52ZW50b3J5",
+            "LnYxLkNsYWltS2lsbFJlc3BvbnNlEmgKC0NvbnN1bWVJdGVtEisuZ2FtZXNl",
+            "cnZlci5pbnZlbnRvcnkudjEuQ29uc3VtZUl0ZW1SZXF1ZXN0GiwuZ2FtZXNl",
+            "cnZlci5pbnZlbnRvcnkudjEuQ29uc3VtZUl0ZW1SZXNwb25zZUIcqgIZR2Ft",
+            "ZVNlcnZlci5HcnBjLkludmVudG9yeWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::GameServer.Grpc.Common.CommonReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Inventory.GetInventoryRequest), global::GameServer.Grpc.Inventory.GetInventoryRequest.Parser, null, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Inventory.GrantItemRequest), global::GameServer.Grpc.Inventory.GrantItemRequest.Parser, new[]{ "ItemId", "Qty" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Inventory.GrantItemResponse), global::GameServer.Grpc.Inventory.GrantItemResponse.Parser, new[]{ "Result", "NewQuantity" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Inventory.ClaimKillRequest), global::GameServer.Grpc.Inventory.ClaimKillRequest.Parser, new[]{ "MapId", "SlotId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Inventory.ClaimKillResponse), global::GameServer.Grpc.Inventory.ClaimKillResponse.Parser, new[]{ "Result", "Granted" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Inventory.GrantedItem), global::GameServer.Grpc.Inventory.GrantedItem.Parser, new[]{ "ItemId", "Qty", "NewQuantity" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Inventory.ConsumeItemRequest), global::GameServer.Grpc.Inventory.ConsumeItemRequest.Parser, new[]{ "ItemId", "Qty" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Inventory.ConsumeItemResponse), global::GameServer.Grpc.Inventory.ConsumeItemResponse.Parser, new[]{ "Result", "RemainingQuantity" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Inventory.GetInventoryResponse), global::GameServer.Grpc.Inventory.GetInventoryResponse.Parser, new[]{ "Result", "Items" }, null, null, null, null),
@@ -223,16 +226,16 @@ namespace GameServer.Grpc.Inventory {
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class GrantItemRequest : pb::IMessage<GrantItemRequest>
+  public sealed partial class ClaimKillRequest : pb::IMessage<ClaimKillRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
   #endif
   {
-    private static readonly pb::MessageParser<GrantItemRequest> _parser = new pb::MessageParser<GrantItemRequest>(() => new GrantItemRequest());
+    private static readonly pb::MessageParser<ClaimKillRequest> _parser = new pb::MessageParser<ClaimKillRequest>(() => new ClaimKillRequest());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<GrantItemRequest> Parser { get { return _parser; } }
+    public static pb::MessageParser<ClaimKillRequest> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -248,7 +251,7 @@ namespace GameServer.Grpc.Inventory {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public GrantItemRequest() {
+    public ClaimKillRequest() {
       OnConstruction();
     }
 
@@ -256,59 +259,65 @@ namespace GameServer.Grpc.Inventory {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public GrantItemRequest(GrantItemRequest other) : this() {
-      itemId_ = other.itemId_;
-      qty_ = other.qty_;
+    public ClaimKillRequest(ClaimKillRequest other) : this() {
+      mapId_ = other.mapId_;
+      slotId_ = other.slotId_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public GrantItemRequest Clone() {
-      return new GrantItemRequest(this);
+    public ClaimKillRequest Clone() {
+      return new ClaimKillRequest(this);
     }
 
-    /// <summary>Field number for the "item_id" field.</summary>
-    public const int ItemIdFieldNumber = 1;
-    private string itemId_ = "";
+    /// <summary>Field number for the "map_id" field.</summary>
+    public const int MapIdFieldNumber = 1;
+    private string mapId_ = "";
+    /// <summary>
+    /// 스폰 레이아웃 맵 식별자(예: main_field_01)
+    /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string ItemId {
-      get { return itemId_; }
+    public string MapId {
+      get { return mapId_; }
       set {
-        itemId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        mapId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
 
-    /// <summary>Field number for the "qty" field.</summary>
-    public const int QtyFieldNumber = 2;
-    private int qty_;
+    /// <summary>Field number for the "slot_id" field.</summary>
+    public const int SlotIdFieldNumber = 2;
+    private int slotId_;
+    /// <summary>
+    /// 그 맵의 몬스터 슬롯 id(클레임 키)
+    /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public int Qty {
-      get { return qty_; }
+    public int SlotId {
+      get { return slotId_; }
       set {
-        qty_ = value;
+        slotId_ = value;
       }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
-      return Equals(other as GrantItemRequest);
+      return Equals(other as ClaimKillRequest);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(GrantItemRequest other) {
+    public bool Equals(ClaimKillRequest other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (ItemId != other.ItemId) return false;
-      if (Qty != other.Qty) return false;
+      if (MapId != other.MapId) return false;
+      if (SlotId != other.SlotId) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -316,8 +325,8 @@ namespace GameServer.Grpc.Inventory {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (ItemId.Length != 0) hash ^= ItemId.GetHashCode();
-      if (Qty != 0) hash ^= Qty.GetHashCode();
+      if (MapId.Length != 0) hash ^= MapId.GetHashCode();
+      if (SlotId != 0) hash ^= SlotId.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -336,13 +345,13 @@ namespace GameServer.Grpc.Inventory {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (ItemId.Length != 0) {
+      if (MapId.Length != 0) {
         output.WriteRawTag(10);
-        output.WriteString(ItemId);
+        output.WriteString(MapId);
       }
-      if (Qty != 0) {
+      if (SlotId != 0) {
         output.WriteRawTag(16);
-        output.WriteInt32(Qty);
+        output.WriteInt32(SlotId);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -354,13 +363,13 @@ namespace GameServer.Grpc.Inventory {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (ItemId.Length != 0) {
+      if (MapId.Length != 0) {
         output.WriteRawTag(10);
-        output.WriteString(ItemId);
+        output.WriteString(MapId);
       }
-      if (Qty != 0) {
+      if (SlotId != 0) {
         output.WriteRawTag(16);
-        output.WriteInt32(Qty);
+        output.WriteInt32(SlotId);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -372,11 +381,11 @@ namespace GameServer.Grpc.Inventory {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (ItemId.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(ItemId);
+      if (MapId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(MapId);
       }
-      if (Qty != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeInt32Size(Qty);
+      if (SlotId != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(SlotId);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -386,15 +395,15 @@ namespace GameServer.Grpc.Inventory {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(GrantItemRequest other) {
+    public void MergeFrom(ClaimKillRequest other) {
       if (other == null) {
         return;
       }
-      if (other.ItemId.Length != 0) {
-        ItemId = other.ItemId;
+      if (other.MapId.Length != 0) {
+        MapId = other.MapId;
       }
-      if (other.Qty != 0) {
-        Qty = other.Qty;
+      if (other.SlotId != 0) {
+        SlotId = other.SlotId;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -416,11 +425,11 @@ namespace GameServer.Grpc.Inventory {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10: {
-            ItemId = input.ReadString();
+            MapId = input.ReadString();
             break;
           }
           case 16: {
-            Qty = input.ReadInt32();
+            SlotId = input.ReadInt32();
             break;
           }
         }
@@ -443,11 +452,11 @@ namespace GameServer.Grpc.Inventory {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 10: {
-            ItemId = input.ReadString();
+            MapId = input.ReadString();
             break;
           }
           case 16: {
-            Qty = input.ReadInt32();
+            SlotId = input.ReadInt32();
             break;
           }
         }
@@ -458,16 +467,16 @@ namespace GameServer.Grpc.Inventory {
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class GrantItemResponse : pb::IMessage<GrantItemResponse>
+  public sealed partial class ClaimKillResponse : pb::IMessage<ClaimKillResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
   #endif
   {
-    private static readonly pb::MessageParser<GrantItemResponse> _parser = new pb::MessageParser<GrantItemResponse>(() => new GrantItemResponse());
+    private static readonly pb::MessageParser<ClaimKillResponse> _parser = new pb::MessageParser<ClaimKillResponse>(() => new ClaimKillResponse());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<GrantItemResponse> Parser { get { return _parser; } }
+    public static pb::MessageParser<ClaimKillResponse> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -483,7 +492,7 @@ namespace GameServer.Grpc.Inventory {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public GrantItemResponse() {
+    public ClaimKillResponse() {
       OnConstruction();
     }
 
@@ -491,16 +500,16 @@ namespace GameServer.Grpc.Inventory {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public GrantItemResponse(GrantItemResponse other) : this() {
+    public ClaimKillResponse(ClaimKillResponse other) : this() {
       result_ = other.result_ != null ? other.result_.Clone() : null;
-      newQuantity_ = other.newQuantity_;
+      granted_ = other.granted_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public GrantItemResponse Clone() {
-      return new GrantItemResponse(this);
+    public ClaimKillResponse Clone() {
+      return new ClaimKillResponse(this);
     }
 
     /// <summary>Field number for the "result" field.</summary>
@@ -515,30 +524,29 @@ namespace GameServer.Grpc.Inventory {
       }
     }
 
-    /// <summary>Field number for the "new_quantity" field.</summary>
-    public const int NewQuantityFieldNumber = 2;
-    private int newQuantity_;
+    /// <summary>Field number for the "granted" field.</summary>
+    public const int GrantedFieldNumber = 2;
+    private static readonly pb::FieldCodec<global::GameServer.Grpc.Inventory.GrantedItem> _repeated_granted_codec
+        = pb::FieldCodec.ForMessage(18, global::GameServer.Grpc.Inventory.GrantedItem.Parser);
+    private readonly pbc::RepeatedField<global::GameServer.Grpc.Inventory.GrantedItem> granted_ = new pbc::RepeatedField<global::GameServer.Grpc.Inventory.GrantedItem>();
     /// <summary>
-    /// 지급 후 보유 수량(성공 시)
+    /// 서버가 roll 해 실제 지급한 보상(0개 가능 = 쿨다운/드랍없음)
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public int NewQuantity {
-      get { return newQuantity_; }
-      set {
-        newQuantity_ = value;
-      }
+    public pbc::RepeatedField<global::GameServer.Grpc.Inventory.GrantedItem> Granted {
+      get { return granted_; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
-      return Equals(other as GrantItemResponse);
+      return Equals(other as ClaimKillResponse);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(GrantItemResponse other) {
+    public bool Equals(ClaimKillResponse other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
@@ -546,7 +554,7 @@ namespace GameServer.Grpc.Inventory {
         return true;
       }
       if (!object.Equals(Result, other.Result)) return false;
-      if (NewQuantity != other.NewQuantity) return false;
+      if(!granted_.Equals(other.granted_)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -555,7 +563,7 @@ namespace GameServer.Grpc.Inventory {
     public override int GetHashCode() {
       int hash = 1;
       if (result_ != null) hash ^= Result.GetHashCode();
-      if (NewQuantity != 0) hash ^= NewQuantity.GetHashCode();
+      hash ^= granted_.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -578,10 +586,7 @@ namespace GameServer.Grpc.Inventory {
         output.WriteRawTag(10);
         output.WriteMessage(Result);
       }
-      if (NewQuantity != 0) {
-        output.WriteRawTag(16);
-        output.WriteInt32(NewQuantity);
-      }
+      granted_.WriteTo(output, _repeated_granted_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -596,10 +601,7 @@ namespace GameServer.Grpc.Inventory {
         output.WriteRawTag(10);
         output.WriteMessage(Result);
       }
-      if (NewQuantity != 0) {
-        output.WriteRawTag(16);
-        output.WriteInt32(NewQuantity);
-      }
+      granted_.WriteTo(ref output, _repeated_granted_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -613,6 +615,281 @@ namespace GameServer.Grpc.Inventory {
       if (result_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Result);
       }
+      size += granted_.CalculateSize(_repeated_granted_codec);
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(ClaimKillResponse other) {
+      if (other == null) {
+        return;
+      }
+      if (other.result_ != null) {
+        if (result_ == null) {
+          Result = new global::GameServer.Grpc.Common.Result();
+        }
+        Result.MergeFrom(other.Result);
+      }
+      granted_.Add(other.granted_);
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            if (result_ == null) {
+              Result = new global::GameServer.Grpc.Common.Result();
+            }
+            input.ReadMessage(Result);
+            break;
+          }
+          case 18: {
+            granted_.AddEntriesFrom(input, _repeated_granted_codec);
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            if (result_ == null) {
+              Result = new global::GameServer.Grpc.Common.Result();
+            }
+            input.ReadMessage(Result);
+            break;
+          }
+          case 18: {
+            granted_.AddEntriesFrom(ref input, _repeated_granted_codec);
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  /// <summary>
+  /// ClaimKill 로 실제 지급된 한 항목.
+  /// </summary>
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class GrantedItem : pb::IMessage<GrantedItem>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<GrantedItem> _parser = new pb::MessageParser<GrantedItem>(() => new GrantedItem());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<GrantedItem> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[3]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public GrantedItem() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public GrantedItem(GrantedItem other) : this() {
+      itemId_ = other.itemId_;
+      qty_ = other.qty_;
+      newQuantity_ = other.newQuantity_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public GrantedItem Clone() {
+      return new GrantedItem(this);
+    }
+
+    /// <summary>Field number for the "item_id" field.</summary>
+    public const int ItemIdFieldNumber = 1;
+    private string itemId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ItemId {
+      get { return itemId_; }
+      set {
+        itemId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "qty" field.</summary>
+    public const int QtyFieldNumber = 2;
+    private int qty_;
+    /// <summary>
+    /// 이번에 지급된 수량
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int Qty {
+      get { return qty_; }
+      set {
+        qty_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "new_quantity" field.</summary>
+    public const int NewQuantityFieldNumber = 3;
+    private int newQuantity_;
+    /// <summary>
+    /// 지급 후 보유 총량
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int NewQuantity {
+      get { return newQuantity_; }
+      set {
+        newQuantity_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as GrantedItem);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(GrantedItem other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (ItemId != other.ItemId) return false;
+      if (Qty != other.Qty) return false;
+      if (NewQuantity != other.NewQuantity) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (ItemId.Length != 0) hash ^= ItemId.GetHashCode();
+      if (Qty != 0) hash ^= Qty.GetHashCode();
+      if (NewQuantity != 0) hash ^= NewQuantity.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (ItemId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(ItemId);
+      }
+      if (Qty != 0) {
+        output.WriteRawTag(16);
+        output.WriteInt32(Qty);
+      }
+      if (NewQuantity != 0) {
+        output.WriteRawTag(24);
+        output.WriteInt32(NewQuantity);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (ItemId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(ItemId);
+      }
+      if (Qty != 0) {
+        output.WriteRawTag(16);
+        output.WriteInt32(Qty);
+      }
+      if (NewQuantity != 0) {
+        output.WriteRawTag(24);
+        output.WriteInt32(NewQuantity);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (ItemId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ItemId);
+      }
+      if (Qty != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(Qty);
+      }
       if (NewQuantity != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(NewQuantity);
       }
@@ -624,15 +901,15 @@ namespace GameServer.Grpc.Inventory {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(GrantItemResponse other) {
+    public void MergeFrom(GrantedItem other) {
       if (other == null) {
         return;
       }
-      if (other.result_ != null) {
-        if (result_ == null) {
-          Result = new global::GameServer.Grpc.Common.Result();
-        }
-        Result.MergeFrom(other.Result);
+      if (other.ItemId.Length != 0) {
+        ItemId = other.ItemId;
+      }
+      if (other.Qty != 0) {
+        Qty = other.Qty;
       }
       if (other.NewQuantity != 0) {
         NewQuantity = other.NewQuantity;
@@ -657,13 +934,14 @@ namespace GameServer.Grpc.Inventory {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10: {
-            if (result_ == null) {
-              Result = new global::GameServer.Grpc.Common.Result();
-            }
-            input.ReadMessage(Result);
+            ItemId = input.ReadString();
             break;
           }
           case 16: {
+            Qty = input.ReadInt32();
+            break;
+          }
+          case 24: {
             NewQuantity = input.ReadInt32();
             break;
           }
@@ -687,13 +965,14 @@ namespace GameServer.Grpc.Inventory {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 10: {
-            if (result_ == null) {
-              Result = new global::GameServer.Grpc.Common.Result();
-            }
-            input.ReadMessage(Result);
+            ItemId = input.ReadString();
             break;
           }
           case 16: {
+            Qty = input.ReadInt32();
+            break;
+          }
+          case 24: {
             NewQuantity = input.ReadInt32();
             break;
           }
@@ -719,7 +998,7 @@ namespace GameServer.Grpc.Inventory {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[3]; }
+      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[4]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -954,7 +1233,7 @@ namespace GameServer.Grpc.Inventory {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[4]; }
+      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[5]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1201,7 +1480,7 @@ namespace GameServer.Grpc.Inventory {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[5]; }
+      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[6]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1437,7 +1716,7 @@ namespace GameServer.Grpc.Inventory {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[6]; }
+      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[7]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

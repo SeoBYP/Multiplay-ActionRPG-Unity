@@ -44,7 +44,13 @@ namespace Game.Gameplay.Spawn
                 var points = new List<SpawnPoint>(map.points.Length);
                 foreach (var p in map.points)
                     points.Add(new SpawnPoint(p.x, p.y, p.z, p.rotY));
-                result[map.mapId] = new MapSpawnLayout(map.mapId, points);
+
+                var monsters = new List<MonsterSlot>();
+                if (map.monsters != null)
+                    foreach (var m in map.monsters)
+                        monsters.Add(new MonsterSlot(m.monsterId, m.x, m.y, m.z, m.slotId, m.respawnCooldownMs));
+
+                result[map.mapId] = new MapSpawnLayout(map.mapId, points, monsters);
             }
             return result;
         }
@@ -61,6 +67,7 @@ namespace Game.Gameplay.Spawn
         {
             public string mapId;
             public PointDto[] points;
+            public MonsterDto[] monsters;
         }
 
         [Serializable]
@@ -70,6 +77,18 @@ namespace Game.Gameplay.Spawn
             public float y;
             public float z;
             public float rotY;
+        }
+
+        // Main 슬롯 기반 스폰 + ClaimKill 클레임에 필요한 필드만(서버 monsters[] 의 부분집합).
+        [Serializable]
+        private sealed class MonsterDto
+        {
+            public string monsterId;
+            public float x;
+            public float y;
+            public float z;
+            public int slotId;
+            public int respawnCooldownMs;
         }
     }
 }

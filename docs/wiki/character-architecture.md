@@ -90,8 +90,8 @@ Unity 클라  ── DLL 참조 ──▶ Shared.Gameplay  + Presentation(애니
 ```
 
 - Unity는 netstandard DLL 참조 가능(이미 `R3.dll`이 그 방식) → **codegen 드리프트 없이 같은 어셈블리 공유**.
-- **스킬 데이터 = JSON**(엔진 비종속). 클라·서버가 *같은 파일* 로드. **Unity ScriptableObject를 진실원으로 두지 않는다**(서버가 못 읽음).
-- **저작 = Unity Editor "Skill Timeline" 툴** → 공유 JSON read/write (SO는 쓰더라도 저작 전용 + export).
+- **스킬 데이터**: **저작 진실원 = Client SO**(편집 쉬움·클라 프리뷰), **서버 검증용 = bake JSON**(엔진 비종속, 서버가 읽음). SO→export 로 배포 = 데이터 진실원 교리 [gas-architecture.md §2.5](gas-architecture.md)와 동일. (런타임/서버는 SO를 직접 진실로 삼지 않고 bake JSON 을 읽는다 — 서버가 SO 못 읽음.)
+- **저작 = Unity Editor "Skill Timeline" 툴** → SO 편집 → 공유 JSON export(클라·서버 합류).
 - 같은 코어 + 같은 데이터 → **같은 입력 = 같은 판정**(클라 예측 ↔ 서버 권위 reconcile).
 
 ### 결정론 수준 (과설계 경계)

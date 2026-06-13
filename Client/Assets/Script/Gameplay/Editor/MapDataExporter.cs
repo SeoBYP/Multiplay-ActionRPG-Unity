@@ -91,6 +91,7 @@ namespace Game.Gameplay.Editor
                                 monsterId = mn.monsterId,
                                 x = mn.position.x, y = mn.position.y, z = mn.position.z, rotY = mn.rotationY,
                                 count = mn.count, wave = mn.wave,
+                                slotId = mn.slotId, respawnCooldownMs = mn.respawnCooldownMs,
                                 patrol = (mn.patrolPoints ?? new List<Vector3>())
                                     .Select(p => new PatrolDto { x = p.x, z = p.z })
                                     .ToList()
@@ -161,6 +162,8 @@ namespace Game.Gameplay.Editor
                         rotationY = mn.rotY,
                         count = mn.count,
                         wave = mn.wave,
+                        slotId = mn.slotId,
+                        respawnCooldownMs = mn.respawnCooldownMs,
                         patrolPoints = (mn.patrol ?? new List<PatrolDto>())
                             .Select(p => new Vector3(p.x, 0f, p.z))
                             .ToList()
@@ -237,7 +240,7 @@ namespace Game.Gameplay.Editor
         [Serializable] private sealed class FileDto { public List<MapDto> maps = new(); }
         [Serializable] private sealed class MapDto { public string mapId; public BoundsDto bounds = new(); public List<PointDto> points = new(); public List<MonsterDto> monsters = new(); }
         [Serializable] private sealed class PointDto { public float x, y, z, rotY; }
-        [Serializable] private sealed class MonsterDto { public string monsterId; public float x, y, z, rotY; public int count = 1; public int wave; public List<PatrolDto> patrol = new(); }
+        [Serializable] private sealed class MonsterDto { public string monsterId; public float x, y, z, rotY; public int count = 1; public int wave; public int slotId; public int respawnCooldownMs; public List<PatrolDto> patrol = new(); }
         [Serializable] private sealed class PatrolDto { public float x, z; }
         [Serializable] private sealed class BoundsDto { public float centerX, centerZ, sizeX, sizeZ; }
     }

@@ -1,61 +1,77 @@
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
-using Game.Gameplay.Loot;
 using GameServer.Grpc.Inventory;
 using NUnit.Framework;
-using Shared.Gameplay;
-using UnityEngine;
 using UnityEngine.TestTools;
 
 namespace Game.Tests.PlayMode.E2E
 {
     /// <summary>
-    /// Main(싱글) 루트 경로 E2E (Docker 서버 대상). 던전 풀 E2E(SocketE2ETests)의 Main 대응판.
+    /// Main(싱글) 획득 경로 E2E (Docker 서버 대상) — B-lite 서버 검증. 던전 풀 E2E(SocketE2ETests)의 Main 대응판.
     ///
-    /// Main 경로의 서버 통신은 GrantItem gRPC 1번뿐이라(나머지는 클라 로컬), 여기서는
-    /// **클라 실제 데이터·로직 체인**을 검증한다:
-    ///   DropTableDefinition(SO, 클라 저작) → DropTableRoll(서버 던전과 공유 DLL) → GrantItem → 인벤토리 반영.
-    /// (MonoBehaviour 글루 — LocalMonster/LocalCombat/LocalGroundItem 입력·콜라이더 — 는 플레이 검증 영역.)
+    /// 검증: 클라는 (mapId, slotId)만 보고(ClaimKill) → **서버가 슬롯 검증 + 권위 roll + 지급**.
+    ///   - 유효 슬롯 처치 → slime 보장 드랍(potion_hp_small)이 인벤토리에 반영.
+    ///   - 무한 스폰·재청구(쿨다운 내) → 보상 없음 = 무한 파밍 차단(핵 직접 증명).
+    ///   - 위조 슬롯 → 거부.
+    /// 정본 = docs/wiki/main-spawn-claim.md / authority-model §4b.
+    /// (MonoBehaviour 글루 — LocalMonster/LocalGroundItem 입력·콜라이더 — 는 플레이 검증 영역.)
     /// </summary>
     [TestFixture]
     public class MainLootE2ETests : E2ETestBase
     {
+        private const string MainMap = "main_field_01";
+
         [UnityTest]
-        public IEnumerator Main_슬라임_드랍을_굴려_GrantItem하면_인벤토리에_반영된다() => UniTask.ToCoroutine(async () =>
+        public IEnumerator Main_유효슬롯_클레임하면_서버roll로_인벤토리에_반영된다() => UniTask.ToCoroutine(async () =>
         {
             await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
 
-            // 1) 클라 저작 SO 로드 — Tools/Loot/Import 로 부트스트랩된 에셋.
-            var dropTable = Resources.Load<DropTableDefinition>("Loot/DropTableDefinition");
-            Assert.IsNotNull(dropTable, "DropTableDefinition.asset 없음 — Tools/Loot/Import (bootstrap) 필요");
+            // 클라는 슬롯만 지목 — 보상 내용은 서버가 결정(권위 roll). slime 슬롯 1은 potion 보장 드랍.
+            var claim = await InventoryService.ClaimKillAsync(
+                new ClaimKillRequest { MapId = MainMap, SlotId = 1 }, Timeout());
 
-            // 2) SO 데이터 → 공유 roll(서버 던전과 동일 DropTableRoll). slime potion 은 보장 드랍(1.0).
-            var entries = new List<DropEntry>();
-            foreach (var d in dropTable.Get("slime"))
-                entries.Add(new DropEntry(d.itemId, d.chance, d.minQty, d.maxQty));
-            Assert.IsNotEmpty(entries, "slime 드랍 데이터가 비어있다");
+            Assert.IsTrue(claim.Result.Success, claim.Result.Message);
+            Assert.IsTrue(claim.Granted.Any(g => g.ItemId == "potion_hp_small"), "서버 roll 보장 드랍 potion 누락");
 
-            var drops = DropTableRoll.Roll(entries, new global::System.Random(12345));
-            Assert.IsTrue(drops.Any(x => x.ItemId == "potion_hp_small"), "보장 드랍 potion_hp_small 누락");
-
-            // 3) 줍기 확정 시 클라가 하는 것과 동일: 굴린 각 드랍을 GrantItem 으로 지급.
-            foreach (var drop in drops)
-            {
-                var res = await InventoryService.GrantItemAsync(
-                    new GrantItemRequest { ItemId = drop.ItemId, Qty = drop.Qty }, Timeout());
-                Assert.IsTrue(res.Result.Success, $"{drop.ItemId} 지급 실패: {res.Result.Message}");
-            }
-
-            // 4) 진실원 = 서버 DB: 굴린 드랍이 인벤토리에 반영됐는지(수량 누적).
+            // 진실원 = 서버 DB.
             var inv = await InventoryService.GetInventoryAsync(new GetInventoryRequest(), Timeout());
-            foreach (var drop in drops)
-            {
-                var item = inv.Items.FirstOrDefault(i => i.ItemId == drop.ItemId);
-                Assert.IsNotNull(item, $"{drop.ItemId} 가 인벤토리에 반영되지 않았다");
-                Assert.GreaterOrEqual(item.Quantity, drop.Qty, $"{drop.ItemId} 수량 부족");
-            }
+            var item = inv.Items.FirstOrDefault(i => i.ItemId == "potion_hp_small");
+            Assert.IsNotNull(item, "potion_hp_small 가 인벤토리에 반영되지 않았다");
+            Assert.GreaterOrEqual(item.Quantity, 1);
+        });
+
+        [UnityTest]
+        public IEnumerator Main_쿨다운_내_재청구는_지급되지_않는다_무한파밍_차단() => UniTask.ToCoroutine(async () =>
+        {
+            await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
+
+            // 1회차: 정상 지급.
+            var first = await InventoryService.ClaimKillAsync(new ClaimKillRequest { MapId = MainMap, SlotId = 2 }, Timeout());
+            Assert.IsTrue(first.Result.Success, first.Result.Message);
+            Assert.IsNotEmpty(first.Granted);
+            var after1 = (await InventoryService.GetInventoryAsync(new GetInventoryRequest(), Timeout()))
+                .Items.First(i => i.ItemId == "potion_hp_small").Quantity;
+
+            // 2회차(쿨다운 내, 무한 스폰 후 재청구 시도): 성공이지만 보상 0 → 인벤토리 불변 = 파밍 차단.
+            var second = await InventoryService.ClaimKillAsync(new ClaimKillRequest { MapId = MainMap, SlotId = 2 }, Timeout());
+            Assert.IsTrue(second.Result.Success);
+            Assert.IsEmpty(second.Granted);
+            var after2 = (await InventoryService.GetInventoryAsync(new GetInventoryRequest(), Timeout()))
+                .Items.First(i => i.ItemId == "potion_hp_small").Quantity;
+            Assert.AreEqual(after1, after2, "쿨다운 내 재청구로 수량이 늘면 무한 파밍 가능");
+        });
+
+        [UnityTest]
+        public IEnumerator Main_위조슬롯_클레임은_거부된다() => UniTask.ToCoroutine(async () =>
+        {
+            await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
+
+            var claim = await InventoryService.ClaimKillAsync(
+                new ClaimKillRequest { MapId = MainMap, SlotId = 999 }, Timeout());
+
+            Assert.IsFalse(claim.Result.Success, "맵에 없는 슬롯은 거부되어야 한다");
+            Assert.IsEmpty(claim.Granted);
         });
     }
 }

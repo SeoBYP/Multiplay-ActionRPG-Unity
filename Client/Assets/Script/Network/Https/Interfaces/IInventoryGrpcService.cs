@@ -10,7 +10,7 @@ namespace Game.Network.Https.Interfaces
     public interface IInventoryGrpcService
     {
         UniTask<GetInventoryResponse> GetInventoryAsync(GetInventoryRequest request, CancellationToken ct = default);
-        UniTask<GrantItemResponse> GrantItemAsync(GrantItemRequest request, CancellationToken ct = default);
+        UniTask<ClaimKillResponse> ClaimKillAsync(ClaimKillRequest request, CancellationToken ct = default);
         UniTask<ConsumeItemResponse> ConsumeItemAsync(ConsumeItemRequest request, CancellationToken ct = default);
     }
 }

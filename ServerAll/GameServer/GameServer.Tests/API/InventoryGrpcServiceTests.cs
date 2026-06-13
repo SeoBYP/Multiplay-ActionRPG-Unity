@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using GameServer.API.Services;
 using GameServer.Application.Domains.Inventory;
+using GameServer.Application.Domains.Inventory.Interfaces;
 using GameServer.Grpc.Inventory;
 using GameServer.Tests.Infrastructure.Fakes.Repositories;
 using Grpc.Core;
@@ -8,105 +9,74 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.IdentityModel.JsonWebTokens;
 using AppInventoryService = GameServer.Application.Domains.Inventory.InventoryService;
+using AppGrantedItem = GameServer.Application.Domains.Inventory.GrantedItem;
 
 namespace GameServer.Tests.API;
 
 /// <summary>
-/// Main 싱글 경로 지급(GrantItem) gRPC 진입점의 서버 가드 검증.
-/// 가드는 진입점 전용(수량 상한) — catalog·amount 검증은 InventoryService(GrantItemAsync)가 수행하므로
-/// 실제 InventoryService + FakeRepository 를 합성해 "가드 + 위임"을 함께 본다.
-/// ※ 던전(co-op) 경로는 LootGrantConsumer 가 GrantItemAsync 를 직접 호출 → 이 cap 과 무관.
+/// InventoryService gRPC 진입점 검증 — ClaimKill(Main 획득 B-lite, 서버가 검증·roll·지급) + ConsumeItem(소모품 차감).
+/// ClaimKill 의 슬롯/쿨다운/roll 로직 자체는 <see cref="MainSpawnClaimServiceTests"/> 가 검증한다.
+/// 여기서는 gRPC 레이어(인증 + 결과 매핑)만 본다 → IMainSpawnClaimService 는 fake.
 /// </summary>
 public class InventoryGrpcServiceTests
 {
-    private const int OverCap = 100; // MaxGrantPerCall(99) 초과
-
     private readonly FakeInventoryRepository _repository = new();
+    private readonly AppInventoryService _inventory;
+    private readonly FakeMainSpawnClaimService _claim = new();
     private readonly RecordingConsumeQueue _consumeQueue = new();
     private readonly InventoryGrpcService _service;
 
     public InventoryGrpcServiceTests()
     {
-        _service = new InventoryGrpcService(
-            new AppInventoryService(_repository),
-            _consumeQueue,
-            NullLogger<InventoryGrpcService>.Instance);
+        _inventory = new AppInventoryService(_repository);
+        _service = new InventoryGrpcService(_inventory, _claim, _consumeQueue, NullLogger<InventoryGrpcService>.Instance);
     }
 
-    /// <summary>발행 검증용 — ConsumeItem 성공 시 PlayerConsumedMessage 를 모은다.</summary>
-    private sealed class RecordingConsumeQueue
-        : Shared.Infrastructure.MessageQueue.IMessageQueue<Shared.Infrastructure.Messages.PlayerConsumedMessage>
-    {
-        public readonly List<Shared.Infrastructure.Messages.PlayerConsumedMessage> Sent = new();
-        public Task EnqueueAsync(Shared.Infrastructure.Messages.PlayerConsumedMessage message)
-        {
-            Sent.Add(message);
-            return Task.CompletedTask;
-        }
-        public IAsyncEnumerable<Shared.Infrastructure.Messages.PlayerConsumedMessage> DequeueAllAsync(
-            CancellationToken cancellationToken = default)
-            => AsyncEnumerable.Empty<Shared.Infrastructure.Messages.PlayerConsumedMessage>();
-    }
-
-    private static ServerCallContext Context(ClaimsPrincipal user)
-    {
-        // Grpc.AspNetCore 의 GetHttpContext() 는 UserState["__HttpContext"] 를 읽는다 → GetUserId 가 User 클레임을 본다.
-        var ctx = new FakeServerCallContext();
-        ctx.UserState["__HttpContext"] = new DefaultHttpContext { User = user };
-        return ctx;
-    }
-
-    private static ServerCallContext Authed(long userId)
-        => Context(new ClaimsPrincipal(new ClaimsIdentity(
-            new[] { new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()) }, "test")));
-
-    private static ServerCallContext Anonymous()
-        => Context(new ClaimsPrincipal(new ClaimsIdentity()));
+    // ── ClaimKill (Main 획득 B-lite — gRPC 레이어: 인증 + 매핑) ──
 
     [Fact]
-    public async Task 정상_지급은_성공하고_보유수량을_반환한다()
+    public async Task ClaimKill_성공시_서버가_roll한_보상을_매핑해_반환한다()
     {
-        var res = await _service.GrantItem(new GrantItemRequest { ItemId = "potion_hp_small", Qty = 3 }, Authed(1L));
+        _claim.Result = MainClaimResult.Ok(new[] { new AppGrantedItem("potion_hp_small", 2, 5) });
+
+        var res = await _service.ClaimKill(new ClaimKillRequest { MapId = "main_field_01", SlotId = 1 }, Authed(7L));
 
         Assert.True(res.Result.Success, res.Result.Message);
-        Assert.Equal(3, res.NewQuantity);
-        var inv = await _repository.GetAllAsync(1L);
-        Assert.Equal(3, inv[0].Quantity);
+        var g = Assert.Single(res.Granted);
+        Assert.Equal("potion_hp_small", g.ItemId);
+        Assert.Equal(2, g.Qty);
+        Assert.Equal(5, g.NewQuantity);
+        Assert.Equal((7L, "main_field_01", 1), _claim.LastCall); // 진입점이 userId(JWT)·요청을 그대로 위임
     }
 
     [Fact]
-    public async Task 수량상한_초과는_거부되고_지급되지_않는다()
+    public async Task ClaimKill_쿨다운이면_성공이지만_보상이_비어있다()
     {
-        var res = await _service.GrantItem(new GrantItemRequest { ItemId = "potion_hp_small", Qty = OverCap }, Authed(1L));
+        _claim.Result = MainClaimResult.OnCooldown();
+
+        var res = await _service.ClaimKill(new ClaimKillRequest { MapId = "main_field_01", SlotId = 1 }, Authed(1L));
+
+        Assert.True(res.Result.Success); // 쿨다운은 에러 아님 — 보상만 없음
+        Assert.Empty(res.Granted);
+    }
+
+    [Fact]
+    public async Task ClaimKill_검증실패_위조슬롯은_거부된다()
+    {
+        _claim.Result = MainClaimResult.Fail("invalid slot 999");
+
+        var res = await _service.ClaimKill(new ClaimKillRequest { MapId = "main_field_01", SlotId = 999 }, Authed(1L));
 
         Assert.False(res.Result.Success);
-        Assert.Empty(await _repository.GetAllAsync(1L));
     }
 
     [Fact]
-    public async Task 수량이_0이하이면_거부된다()
+    public async Task ClaimKill_미인증은_거부되고_서비스를_호출하지_않는다()
     {
-        Assert.False((await _service.GrantItem(new GrantItemRequest { ItemId = "potion_hp_small", Qty = 0 }, Authed(1L))).Result.Success);
-        Assert.False((await _service.GrantItem(new GrantItemRequest { ItemId = "potion_hp_small", Qty = -5 }, Authed(1L))).Result.Success);
-        Assert.Empty(await _repository.GetAllAsync(1L));
-    }
-
-    [Fact]
-    public async Task 미존재_itemId는_거부되고_지급되지_않는다()
-    {
-        var res = await _service.GrantItem(new GrantItemRequest { ItemId = "hack_sword_9000", Qty = 1 }, Authed(1L));
+        var res = await _service.ClaimKill(new ClaimKillRequest { MapId = "main_field_01", SlotId = 1 }, Anonymous());
 
         Assert.False(res.Result.Success);
-        Assert.Empty(await _repository.GetAllAsync(1L));
-    }
-
-    [Fact]
-    public async Task 미인증_userId없음은_거부된다()
-    {
-        var res = await _service.GrantItem(new GrantItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Anonymous());
-
-        Assert.False(res.Result.Success);
-        Assert.Empty(await _repository.GetAllAsync(1L));
+        Assert.Null(_claim.LastCall); // 인증 게이트에서 차단 — 클레임 로직 미진입
     }
 
     // ── ConsumeItem (3.8 소모품 — 서버 권위 차감) ──
@@ -114,7 +84,7 @@ public class InventoryGrpcServiceTests
     [Fact]
     public async Task 보유한_소모품_사용은_성공하고_남은수량을_반환한다()
     {
-        await _service.GrantItem(new GrantItemRequest { ItemId = "potion_hp_small", Qty = 3 }, Authed(1L));
+        await _inventory.GrantItemAsync(1L, "potion_hp_small", 3);
 
         var res = await _service.ConsumeItem(new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Authed(1L));
 
@@ -133,7 +103,7 @@ public class InventoryGrpcServiceTests
     [Fact]
     public async Task 소비_성공시_PlayerConsumed를_발행한다_EffectId는_itemId()
     {
-        await _service.GrantItem(new GrantItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Authed(1L));
+        await _inventory.GrantItemAsync(1L, "potion_hp_small", 1);
 
         await _service.ConsumeItem(new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Authed(1L));
 
@@ -154,7 +124,7 @@ public class InventoryGrpcServiceTests
     [Fact]
     public async Task 보유보다_많이_사용하면_거부되고_변화가_없다()
     {
-        await _service.GrantItem(new GrantItemRequest { ItemId = "potion_hp_small", Qty = 2 }, Authed(1L));
+        await _inventory.GrantItemAsync(1L, "potion_hp_small", 2);
 
         var res = await _service.ConsumeItem(new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 5 }, Authed(1L));
 
@@ -171,6 +141,49 @@ public class InventoryGrpcServiceTests
         Assert.False(res.Result.Success);
     }
 
+    // ── 테스트 더블 ──
+
+    private sealed class FakeMainSpawnClaimService : IMainSpawnClaimService
+    {
+        public MainClaimResult Result = MainClaimResult.Ok(Array.Empty<AppGrantedItem>());
+        public (long userId, string mapId, int slotId)? LastCall;
+
+        public Task<MainClaimResult> ClaimKillAsync(long userId, string mapId, int slotId, CancellationToken ct = default)
+        {
+            LastCall = (userId, mapId, slotId);
+            return Task.FromResult(Result);
+        }
+    }
+
+    /// <summary>발행 검증용 — ConsumeItem 성공 시 PlayerConsumedMessage 를 모은다.</summary>
+    private sealed class RecordingConsumeQueue
+        : Shared.Infrastructure.MessageQueue.IMessageQueue<Shared.Infrastructure.Messages.PlayerConsumedMessage>
+    {
+        public readonly List<Shared.Infrastructure.Messages.PlayerConsumedMessage> Sent = new();
+        public Task EnqueueAsync(Shared.Infrastructure.Messages.PlayerConsumedMessage message)
+        {
+            Sent.Add(message);
+            return Task.CompletedTask;
+        }
+        public IAsyncEnumerable<Shared.Infrastructure.Messages.PlayerConsumedMessage> DequeueAllAsync(
+            CancellationToken cancellationToken = default)
+            => AsyncEnumerable.Empty<Shared.Infrastructure.Messages.PlayerConsumedMessage>();
+    }
+
+    private static ServerCallContext Context(ClaimsPrincipal user)
+    {
+        var ctx = new FakeServerCallContext();
+        ctx.UserState["__HttpContext"] = new DefaultHttpContext { User = user };
+        return ctx;
+    }
+
+    private static ServerCallContext Authed(long userId)
+        => Context(new ClaimsPrincipal(new ClaimsIdentity(
+            new[] { new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()) }, "test")));
+
+    private static ServerCallContext Anonymous()
+        => Context(new ClaimsPrincipal(new ClaimsIdentity()));
+
     /// <summary>
     /// 최소 ServerCallContext 테스트 더블. GetUserId 는 UserState["__HttpContext"].User 만 읽으므로
     /// UserState 외 멤버는 기본값으로 충분(별도 Grpc 테스트 패키지 불필요).
@@ -179,7 +192,7 @@ public class InventoryGrpcServiceTests
     {
         private readonly Dictionary<object, object> _userState = new();
 
-        protected override string MethodCore => "GrantItem";
+        protected override string MethodCore => "ClaimKill";
         protected override string HostCore => string.Empty;
         protected override string PeerCore => string.Empty;
         protected override DateTime DeadlineCore => DateTime.UtcNow.AddMinutes(1);

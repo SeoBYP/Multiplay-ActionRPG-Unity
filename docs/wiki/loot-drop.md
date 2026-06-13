@@ -75,6 +75,8 @@ GameServer LootGrantConsumer → IInventoryService.GrantItemAsync(userId, itemId
 
 ## 1.4 던전 vs Main 드랍 경로 (확정 — 2개 경로)
 
+> ⚠️ **부분 폐기(2026-06-13)**: 아래 "Main 지급 = 클라 신뢰 + 서버 경계(가드)" 결정은 **무한 파밍 핵**(클라가 몬스터 무한 스폰→무한 `GrantItem`)으로 드러나 **B-lite 서버 검증으로 대체**됨 — 서버가 Main map 스폰 데이터 보유 → `ClaimKill(mapId, slotId)`(슬롯·정원·쿨다운 검증 + 서버 roll), `GrantItem`은 Main 경로에서 제거. **정본 결정 = [authority-model.md §4b](authority-model.md)**, 증분 = plan §4.6.3. (몬스터 sim·렌더가 클라라는 점은 유지, 보상 권위만 서버로.)
+
 > 던전 = **Co-op·서버권위**(SocketServer 시뮬→Stream→GameServer). Main = **싱글·클라로컬**(Client 시뮬→**Client gRPC 직접**→GameServer). **공통점은 지급(GameServer Create/Update)뿐**, 그 앞단은 완전히 다름.
 
 ```

@@ -31,10 +31,10 @@ namespace Game.Network.Https.Services
             return await call.ResponseAsync;
         }
 
-        public async UniTask<GrantItemResponse> GrantItemAsync(GrantItemRequest request, CancellationToken ct = default)
+        public async UniTask<ClaimKillResponse> ClaimKillAsync(ClaimKillRequest request, CancellationToken ct = default)
         {
             var client = CreateClient();
-            var call = client.GrantItemAsync(request, cancellationToken: ct);
+            var call = client.ClaimKillAsync(request, cancellationToken: ct);
             return await call.ResponseAsync;
         }
 

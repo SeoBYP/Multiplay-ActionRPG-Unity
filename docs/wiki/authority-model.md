@@ -93,11 +93,31 @@
 
 ### 승격 설계 골자 (구현 시 채움)
 - 서버 `PlayerState.Hp`/`MaxHp` 추가 → 서버가 발행하는 데미지를 **자기도 누적**(GameplayEffectMath, 몬스터 HP와 동일) → **서버가 HP≤0 감지 → S_PlayerDead 직접 발화**(C_PlayerDead는 클라 예측 트리거로 격하/제거).
-- **회복 동기**: 포션 회복은 현재 GameServer gRPC(`ConsumeItem`)→클라 GAS. 서버 HP가 진실이 되면 회복도 SocketServer player HP에 반영 경로 필요(설계 항목).
+- **회복 동기**: ✅ 구현됨(2.5.1 증분2). `ConsumeItem` gRPC(GameServer 검증·차감) → `PlayerConsumedMessage`(Redis) → SocketServer `PlayerConsumedConsumer`가 `Room.ApplyPlayerEffect(+heal)` + `S_ApplyEffect` 브로드캐스트. 회복 **수치 단일소스** = 클라 `ConsumableCatalog` SO 저작 → bake → `ConsumableEffectCatalog`(서버 검증·적용). 교리 = [gas-architecture.md §2.5](gas-architecture.md), 상세 codemap §2.6c.
 - **max HP 출처**: 서버가 플레이어 base/max HP를 알아야 함(Progression/스탯 → 던전 입장 시 주입).
 
 ### 몬스터 HP는 그대로 서버 권위
 몬스터는 여러 플레이어가 공유하는 서버 소유 NPC. ②일관성 + ①치팅 방지가 본질. (플레이어 HP 승격으로 **이제 둘 다 서버 권위 = 일관**.)
+
+---
+
+## 4b. Main 획득 권위 — B-lite 서버 검증 (결정 2026-06-13)
+
+**문제(HP 승격과 같은 핵)**: Main(싱글)은 클라가 몬스터 스폰·킬·드랍을 로컬 소유하고 `GrantItem(itemId, qty)` gRPC 로 영속 보상을 직접 지정한다. 서버 가드 = 인증 + 호출당 수량상한(≤99) + catalog 검증뿐 — **호출 빈도/킬 증명이 없어** 클라가 몬스터 무한 스폰→무한 GrantItem = **무한 파밍(만렙 핵)**. §0-2("문서에 적힘 ≠ 결정됨") + §0-3("할 수 있다 ≠ 소유해야") 위반. (구 결정 "싱글이라 클라 신뢰+가드 수용" = [loot-drop.md §1.4](loot-drop.md) → **본 절로 폐기**.)
+
+**근본 원리**: 클라가 저작한 이벤트("내가 잡았다")는 서버가 그 콘텐츠를 **소유(또는 데이터 보유+검증)**하지 않으면 검증 불가. rate-limit 단독은 파밍 *속도*만 늦춤(반창고).
+
+**결정 = B-lite (서버가 map 데이터 보유 → 클레임 검증, 실시간 AI 는 클라 유지)**:
+```
+map/spawn 데이터(dungeon + Main) = SO 저작→bake→Shared (데이터 진실원 교리 §2.5, 서버가 보유)
+클라(Main): 슬롯 기반 LocalMonster 스폰·렌더(손맛 유지) → 킬 → ClaimKill(mapId, slotId)
+서버(GameServer): ① slot ∈ map? ② per-user 쿨다운 경과?(Redis (userId,slotId)→lastClaimedAt)
+                 → 서버 권위 DropTableRoll → GrantItemAsync → 타임스탬프 기록.  거부 시 0.
+```
+- **클라는 보상 내용을 못 정함** — 슬롯만 지목. roll·정원·쿨다운·grant 전부 서버 → 파밍률이 **맵 설계치(정원/쿨다운)로 상한**, 무한 불가.
+- **`GrantItem(itemId,qty)` 는 Main 경로에서 제거**(치팅 진입점 봉쇄). 던전 `LootGrantConsumer`(서버권위)는 무관.
+- Main 은 여전히 소켓 세션 아님(gRPC) — 서버는 실시간 AI 를 안 돎, **map 데이터 + 클레임 상태만** 보유(부분 서버 상태).
+- 안 한 것(YAGNI): Main 서버 권위 풀 시뮬(B-full) = co-op 오픈월드 필요 시. **상세 설계·증분 = [main-spawn-claim.md](main-spawn-claim.md)** (스키마·proto·서버 로직·테스트).
 
 ---
 

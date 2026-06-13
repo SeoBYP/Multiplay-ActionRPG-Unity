@@ -10,15 +10,10 @@ namespace GameServer.API.Services;
 
 public class InventoryGrpcService(
     IInventoryService inventoryService,
+    IMainSpawnClaimService mainSpawnClaimService,
     Shared.Infrastructure.MessageQueue.IMessageQueue<Shared.Infrastructure.Messages.PlayerConsumedMessage> playerConsumedQueue,
     ILogger<InventoryGrpcService> logger) : InventoryGrpc.InventoryServiceBase
 {
-    /// <summary>
-    /// 호출당 지급 수량 상한. Main 싱글 경로는 클라가 드랍을 결정하므로(클라 신뢰) 진입점에서 위조 폭을 제한한다.
-    /// ※ 도메인 서비스(GrantItemAsync)에는 넣지 않는다 — 던전 서버 권위 경로(LootGrantConsumer)는 cap 무관.
-    /// </summary>
-    private const int MaxGrantPerCall = 99;
-
     public override async Task<GetInventoryResponse> GetInventory(GetInventoryRequest request, ServerCallContext context)
     {
         var userId = context.GetUserId();
@@ -38,41 +33,37 @@ public class InventoryGrpcService(
         return response;
     }
 
-    public override async Task<GrantItemResponse> GrantItem(GrantItemRequest request, ServerCallContext context)
+    /// <summary>
+    /// Main(싱글) 획득 — B-lite 서버 검증. 클라는 (mapId, slotId)만 보고. 서버가 슬롯/쿨다운 검증 + 권위 roll + 지급.
+    /// 보상 내용은 서버가 결정(클라가 itemId/qty 지정하던 무한파밍 핵 = 구 GrantItem 차단). main-spawn-claim.md.
+    /// </summary>
+    public override async Task<ClaimKillResponse> ClaimKill(ClaimKillRequest request, ServerCallContext context)
     {
         var userId = context.GetUserId();
         if (userId is null)
         {
-            logger.LogWarning("GrantItem rejected because user id was missing");
-            return new GrantItemResponse { Result = ResultExtensions.CreateUnauthorizedGrpcResult() };
+            logger.LogWarning("ClaimKill rejected because user id was missing");
+            return new ClaimKillResponse { Result = ResultExtensions.CreateUnauthorizedGrpcResult() };
         }
 
-        // 가드: 신뢰 못 하는 클라(싱글 Main) 진입점 → 호출당 수량 상한. (catalog 검증·amount≤0 은 GrantItemAsync 가 수행)
-        if (request.Qty <= 0 || request.Qty > MaxGrantPerCall)
+        var claim = await mainSpawnClaimService.ClaimKillAsync(userId.Value, request.MapId, request.SlotId, context.CancellationToken);
+        if (!claim.Success)
         {
-            logger.LogWarning("GrantItem rejected: qty {Qty} out of range for user {UserId} item {ItemId}", request.Qty, userId, request.ItemId);
-            return new GrantItemResponse
+            // 위조 슬롯/맵 — 정상 플레이에선 안 나옴(치팅/버그 신호).
+            logger.LogWarning("ClaimKill rejected for user {UserId} map {Map} slot {Slot}: {Reason}", userId, request.MapId, request.SlotId, claim.FailReason);
+            return new ClaimKillResponse
             {
-                Result = Result.Failure(ErrorCodes.InvalidRequest, $"qty must be in 1..{MaxGrantPerCall}").ToGrpcResult(),
+                Result = Result.Failure(ErrorCodes.InvalidRequest, claim.FailReason ?? "claim failed").ToGrpcResult(),
             };
         }
 
-        var grant = await inventoryService.GrantItemAsync(userId.Value, request.ItemId, request.Qty, context.CancellationToken);
-        if (!grant.Success)
-        {
-            logger.LogWarning("GrantItem failed for user {UserId} item {ItemId}: {Reason}", userId, request.ItemId, grant.FailReason);
-            return new GrantItemResponse
-            {
-                Result = Result.Failure(ErrorCodes.InvalidRequest, grant.FailReason ?? "grant failed").ToGrpcResult(),
-            };
-        }
+        // 성공(쿨다운 중이면 granted 비어있음 = 보상 없음, 에러 아님).
+        var response = new ClaimKillResponse { Result = Result.Success().ToGrpcResult() };
+        foreach (var g in claim.Granted)
+            response.Granted.Add(new GrantedItem { ItemId = g.ItemId, Qty = g.Qty, NewQuantity = g.NewQuantity });
 
-        logger.LogInformation("GrantItem succeeded: user {UserId} item {ItemId} +{Qty} -> {NewQuantity}", userId, request.ItemId, request.Qty, grant.NewQuantity);
-        return new GrantItemResponse
-        {
-            Result = Result.Success().ToGrpcResult(),
-            NewQuantity = grant.NewQuantity,
-        };
+        logger.LogInformation("ClaimKill succeeded: user {UserId} map {Map} slot {Slot} → {Count} item(s)", userId, request.MapId, request.SlotId, response.Granted.Count);
+        return response;
     }
 
     public override async Task<ConsumeItemResponse> ConsumeItem(ConsumeItemRequest request, ServerCallContext context)

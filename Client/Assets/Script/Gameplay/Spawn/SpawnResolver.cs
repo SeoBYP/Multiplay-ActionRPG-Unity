@@ -25,11 +25,33 @@ namespace Game.Gameplay.Spawn
     {
         public string MapId { get; }
         public IReadOnlyList<SpawnPoint> Points { get; }
+        public IReadOnlyList<MonsterSlot> Monsters { get; }
 
-        public MapSpawnLayout(string mapId, IReadOnlyList<SpawnPoint> points)
+        public MapSpawnLayout(string mapId, IReadOnlyList<SpawnPoint> points, IReadOnlyList<MonsterSlot> monsters = null)
         {
             MapId = mapId;
             Points = points;
+            Monsters = monsters ?? Array.Empty<MonsterSlot>();
+        }
+    }
+
+    /// <summary>
+    /// 한 맵의 몬스터 슬롯(Main B-lite, 런타임 레이아웃). 클라가 슬롯 기반 로컬 스폰 + 줍기 시 SlotId 로 ClaimKill 클레임.
+    /// ※ 서버 Shared.Infrastructure.Spawn.MonsterSpawnDef 의 미러(클레임 관련 필드만). main-spawn-claim.md.
+    /// (저작 SO 타입 MapDefinition.MonsterSpawn 과 별개 — 이쪽은 spawn-layouts.json 파싱 결과.)
+    /// </summary>
+    public sealed class MonsterSlot
+    {
+        public string MonsterId { get; }
+        public float X { get; }
+        public float Y { get; }
+        public float Z { get; }
+        public int SlotId { get; }
+        public int RespawnCooldownMs { get; }
+
+        public MonsterSlot(string monsterId, float x, float y, float z, int slotId, int respawnCooldownMs)
+        {
+            MonsterId = monsterId; X = x; Y = y; Z = z; SlotId = slotId; RespawnCooldownMs = respawnCooldownMs;
         }
     }
 

@@ -18,6 +18,10 @@ public class InventoryInstaller : IServiceInstaller
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IInventoryService, InventoryService>();
 
+        // Main 획득 서버 검증(B-lite): ClaimKill — 슬롯/쿨다운 검증 + 서버 roll + 지급. main-spawn-claim.md.
+        services.AddScoped<IMainSpawnClaimService, MainSpawnClaimService>();
+        services.AddSingleton<IClaimCooldownStore, RedisClaimCooldownStore>();
+
         // 루트/드랍(3.3): SocketServer 줍기 확정 → 인벤토리 영속 지급.
         services.AddSingleton<IMessageQueue<ItemPickedUpMessage>, LootPickupMessageQueue>();
         services.AddHostedService<LootGrantConsumer>();

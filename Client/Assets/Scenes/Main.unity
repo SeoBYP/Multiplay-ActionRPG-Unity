@@ -59362,6 +59362,7 @@ MonoBehaviour:
   m_animationLandTrigger: Land
   m_animationInteractTrigger: 
   m_animationAttackTrigger: 
+  m_animationDeathTrigger: 
 --- !u!114 &775610031
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -149948,10 +149949,7 @@ MonoBehaviour:
   uiCanvas: {fileID: 103714170}
   localPlayerPrefab: {fileID: 8898314510884851665, guid: eedb489d21a109747b75e38aed6041af, type: 3}
   localMonsterPrefab: {fileID: 7811001, guid: 57a13ef1567a46c4791d0c5303a89cb4, type: 3}
-  monsterSpawnPoints:
-  - {x: 0, y: 0, z: 17.2}
-  - {x: 8, y: 0, z: 10.5}
-  - {x: -4, y: 0, z: 10}
+  mainMapId: main_field_01
   localGroundItemPrefab: {fileID: 7900001, guid: a9abf5286a253dc45b846e623ca597b2, type: 3}
 --- !u!1 &2062206491
 GameObject:

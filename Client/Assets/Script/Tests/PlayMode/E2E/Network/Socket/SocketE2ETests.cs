@@ -390,11 +390,13 @@ namespace Game.Tests.PlayMode.E2E
             {
                 await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "slime", Timeout()); // 던전 준비 동기화
 
-                // 호스트 토큰으로 포션 지급 후 소비(gRPC). 회복 수치는 클램프(만피)라도 브로드캐스트는 발생.
+                // 호스트 토큰으로 포션 시드(ClaimKill = Main 슬롯 처치, slime 보장 드랍 potion) 후 소비(gRPC).
+                // 회복 수치는 클램프(만피)라도 브로드캐스트는 발생. ※ GrantItem 은 무한파밍 핵으로 제거됨(ClaimKill 대체).
                 AccessToken = room.HostAccessToken;
-                var grant = await InventoryService.GrantItemAsync(
-                    new GrantItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Timeout());
+                var grant = await InventoryService.ClaimKillAsync(
+                    new ClaimKillRequest { MapId = "main_field_01", SlotId = 1 }, Timeout());
                 Assert.IsTrue(grant.Result.Success, grant.Result.Message);
+                Assert.IsTrue(grant.Granted.Any(g => g.ItemId == "potion_hp_small"), "slime 보장 드랍 potion 시드 실패");
 
                 var consume = await InventoryService.ConsumeItemAsync(
                     new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Timeout());

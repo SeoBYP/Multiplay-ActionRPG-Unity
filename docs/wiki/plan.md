@@ -62,7 +62,7 @@
 - **2.3** 진행/성장(Progression) — 레벨·경험치·스탯 성장 영속 (`Progression` 신규) — 🔄 | T1 | 🟢 (Exp 영속 도메인 완료, 레벨업/스탯 성장 M5)
 - **2.4** 스탯 산식 — 레벨/장비/버프 합산 서버 권위 재계산 — ⬜ | T2 | ⚪
 - **2.5 사망/부활** — 🔄 | T1 | 🔵
-  - **2.5.1** 사망 처리 — HP 0 다운/리스폰 (전투 루프 필수) — 🔄 | T1 | 🔵 (**ⓔ-1 로컬 사망 게이트 코드 완료 2026-06-11**: GAS 정리(ⓐ~ⓓ) 위에 `State.Dead` 태그로. HP≤0(클라 결정론) → `PlayerCharacterAgent`가 `ASC.AddTag(State.Dead)` → `Update` 게이트가 Action(공격/상호작용) 무시 + `base.Update()` 미호출로 Locomotion 정지 = **던전 다운-잠금**. 상수 `GameplayTags.Dead`(Shared). 서버 빌드 0오류. **ⓔ-2 원격 다운 가시성 완료 2026-06-11**: `S_PlayerDead`(Union 1823) — 서버 `DungeonLifecycleHandler`가 `C_PlayerDead`→방 브로드캐스트, 클라 `PlayerDeadPacketHandler`→`CharacterSpawner.HandlePlayerDead`(원격=로그+Destroy / 로컬=로그만, 카메라·HUD 보호). SocketServer **80/80**(직렬화 2) + Docker 리빌드. EditMode 4+PlayMode 2(ⓔ-1) 그린. **플레이어 HP 서버 권위 승격 완료 2026-06-11**(authority-model §0 권위결정규칙 + §4): 던전 플레이어 HP=서버권위(기존 클라결정론은 미승인 가정·불사핵 부채). 증분1=서버 데미지누적+HP0 직접감지→S_PlayerDead(C_PlayerDead 격하), 증분2=회복 크로스서버(ConsumeItem→GameServer검증·차감→Redis→SocketServer ApplyPlayerEffect(+heal)+S_ApplyEffect, 던전 ConsumableEffectHandler 미등록). GameServer 252/252 + SocketServer 85/85 + 양서버 Docker. 상세=codemap §2.6b. **잔여**: 다운 포즈/애니·Main 타이머 리스폰·E2E·진단로그 제거·회복수치 단일소스. 던전 내 부활=2.5.2)
+  - **2.5.1** 사망 처리 — HP 0 다운/리스폰 (전투 루프 필수) — ✅ | T1 | 🔵 (**플레이 검증 완료 2026-06-13**: Main 타이머 리스폰(`LocalRespawnController`, Main 전용 등록=던전 다운잠금 유지)+`LocalMonster` 근접공격(사망 트리거)+다운→3s 부활 로그 플레이 확인. 다운포즈 Animator 클립은 클라 발전 시(로그 대체). **ⓔ-1 로컬 사망 게이트 코드 완료 2026-06-11**: GAS 정리(ⓐ~ⓓ) 위에 `State.Dead` 태그로. HP≤0(클라 결정론) → `PlayerCharacterAgent`가 `ASC.AddTag(State.Dead)` → `Update` 게이트가 Action(공격/상호작용) 무시 + `base.Update()` 미호출로 Locomotion 정지 = **던전 다운-잠금**. 상수 `GameplayTags.Dead`(Shared). 서버 빌드 0오류. **ⓔ-2 원격 다운 가시성 완료 2026-06-11**: `S_PlayerDead`(Union 1823) — 서버 `DungeonLifecycleHandler`가 `C_PlayerDead`→방 브로드캐스트, 클라 `PlayerDeadPacketHandler`→`CharacterSpawner.HandlePlayerDead`(원격=로그+Destroy / 로컬=로그만, 카메라·HUD 보호). SocketServer **80/80**(직렬화 2) + Docker 리빌드. EditMode 4+PlayMode 2(ⓔ-1) 그린. **플레이어 HP 서버 권위 승격 완료 2026-06-11**(authority-model §0 권위결정규칙 + §4): 던전 플레이어 HP=서버권위(기존 클라결정론은 미승인 가정·불사핵 부채). 증분1=서버 데미지누적+HP0 직접감지→S_PlayerDead(C_PlayerDead 격하), 증분2=회복 크로스서버(ConsumeItem→GameServer검증·차감→Redis→SocketServer ApplyPlayerEffect(+heal)+S_ApplyEffect, 던전 ConsumableEffectHandler 미등록). GameServer 252/252 + SocketServer 85/85 + 양서버 Docker. 상세=codemap §2.6b·§2.6e. **완료(2026-06-13)**: Main 타이머 리스폰·회복수치 단일소스(SO 저작→bake, §2.6c)·다운/부활. 다운포즈 Animator 클립=클라 발전 시 보류(로그 대체). 던전 내 부활=2.5.2(별도 T2))
   - **2.5.2** Co-op 부활 — 다운된 아군 살리기 — ⬜ | T2 | ⚪
 - **2.6 전투 보조** — ⬜ | T2 | ⚪
   - **2.6.1** 회피/구르기(Dodge) — 무적 프레임·모션 (입력 `DodgePressed` 존재) — ⬜ | T2 | ⚪
@@ -113,7 +113,7 @@
 - **4.6 월드/존(World)** — 오픈월드 PVE 맛보기 (`World` 신규) — ⬜ | T2 | ⚪ (**Main 몬스터의 전제**: 현재 Main은 소켓 미연결이라 서버 권위 몬스터 없음 → Main에 몬스터를 내려면 **Main이 네트워크 World 세션**이어야 함. SocketServer `Room`→`World` 일반화 시 드랍/줍기(3.3)가 그대로 적용. 상세 = [loot-drop.md](loot-drop.md) §6)
   - **4.6.1** 존 맵·존 전환·포탈 — ⬜ | T2 | ⚪
   - **4.6.2** 텔레포트/패스트트래블 — ⬜ | T2 | ⚪
-  - **4.6.3** Main 몬스터/드랍 = **Client 로컬 시뮬**(싱글) + `GrantItem` gRPC(서버 가드) — **네트워크 World 불필요**(정정 2026-06-07, [loot-drop.md](loot-drop.md) §1.4). co-op 오픈월드가 필요해지면 그때 서버 World 검토 — ⬜ | T2 | ⚪
+  - **4.6.3** Main 몬스터/드랍 = **Client 로컬 시뮬·렌더 + 서버 검증(B-lite)** — ✅ | T1 | 🟢 (**플레이 검증 완료 2026-06-13** — 서버 솔루션 374 + PlayMode E2E 그린 + 플레이: 슬롯 스폰→킬→`ClaimKill` 서버 roll 지급(potion+gold)→5s 재스폰, 쿨다운 파밍 차단 전부 확인. **승격 2026-06-13**: 구 "클라 신뢰+GrantItem 가드"는 **무한 파밍 핵** → 폐기. **결정 정본 = [authority-model.md §4b](authority-model.md)**. 서버가 map 스폰 데이터 보유(SO→bake→Shared 교리) → `ClaimKill(mapId, slotId)` gRPC: ①슬롯∈map ②per-user 쿨다운(Redis claim) → **서버 권위 DropTableRoll → GrantItemAsync**. `GrantItem(itemId,qty)`는 Main 경로 제거(치팅 진입점 봉쇄). 서버 실시간 AI 없음(map데이터+클레임상태만). **증분**: ①spawn-layouts에 Main map+`SpawnSlot{id,monsterType,respawnCooldownMs}` ②클라 슬롯기반 스폰 ③`ClaimKill` 서버검증+roll+grant ④클라 줍기→ClaimKill 교체 ⑤GrantItem Main제거 ⑥테스트(슬롯/쿨다운 거부·E2E). B-full(서버 권위 풀 시뮬)=co-op 필요 시 YAGNI)
 - **4.7 상호작용 오브젝트** (`IInteractable` 확장) — 🔄 | T2 | ⚪
   - **4.7.1** 문/상자/채집 노드·파괴 가능 오브젝트 — 🔄 | T2 | ⚪
   - **4.7.2** 함정/환경 기믹 — ⬜ | T3 | ⚪
@@ -283,6 +283,11 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 - [x] **완전한 Co-op 1판 루프 E2E** (MPPM 2-client) → 로비 복귀 [6.2] — E2E 코드 작성(클리어 RewardExp·전원다운 실패) + **MPPM 2-창 수동 플레이로 클리어→보상→로비 복귀 전체 1판 시각 통과 확인(사람, 2026-06-07)**. 이동 교착 버그 수정 후 이동/서로보임도 동작 확인됨. **= M4 DoD 달성, M4 전체 완료.**
 
 ### 🔄 M5 — 폴리시 + PVE 맛보기 (현재 작업) [WBS 2.4·2.6·2.7·3.2~3.8·4.4~4.7·5.*·6.3~6.4·7.2~7.8·8.*]
+> **🔴 진행 중 (2026-06-13)**:
+> 1. **회복 수치 단일소스** — ✅ **코드 완료**(서버 bake JSON + 클라 `ConsumableCatalogSeeder`로 던전 회복 미러 회귀 복구 + Editor `ConsumableEffectExporter`). 교리 = [gas-architecture.md §2.5](gas-architecture.md), 상세 codemap §2.6c. 클라 컴파일은 Unity 검증 대기.
+> 2. **4.6.3 Main 획득 B-lite 서버 검증 (T1)** — ✅ **완료(플레이 검증 2026-06-13)**: 서버 374 그린 + PlayMode E2E + 플레이(슬롯 스폰→킬→`ClaimKill` 서버roll 지급→5s 재스폰, 쿨다운 파밍차단). 무한파밍 핵 차단(`GrantItem` 제거). 저작=`MapDefinition` SO→bake. 설계 = [main-spawn-claim.md](main-spawn-claim.md).
+> 3. **2.5.1 사망/리스폰** — ✅ **완료(플레이 검증 2026-06-13)**: Main 타이머 리스폰(`LocalRespawnController`)+`LocalMonster` 근접공격(사망 트리거)+다운→3s 부활. 다운포즈 Animator 클립=클라 발전 시 보류(로그 대체). 던전 다운잠금·서버권위 HP 기존 완료. 던전 내 부활=2.5.2(T2).
+>
 > **즉시 착수 후보**(서버 도메인 🟢): **3.1 인벤토리 도메인** — 모든 보상/장비/상점/루트의 공통 전제, Cache-Aside 영속 쇼케이스 ([§세션 트랙](#-세션-트랙--서버-도메인이-세션-vs--gas-세션) 참조).
 - [ ] 애니메이션(MotionMatching V2 액션 블렌딩, 🟣)·HUD 다듬기·스킬1~2·아이템 최소·사운드(8.*)
 - [ ] 장비/루트/재화/상점/소모품 [3.2~3.8] + 관련 UI [7.2~7.8]

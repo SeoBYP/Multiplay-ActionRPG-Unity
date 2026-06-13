@@ -50,9 +50,9 @@ namespace GameServer.Grpc.Inventory {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::GameServer.Grpc.Inventory.GetInventoryResponse> __Marshaller_gameserver_inventory_v1_GetInventoryResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.Inventory.GetInventoryResponse.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::GameServer.Grpc.Inventory.GrantItemRequest> __Marshaller_gameserver_inventory_v1_GrantItemRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.Inventory.GrantItemRequest.Parser));
+    static readonly grpc::Marshaller<global::GameServer.Grpc.Inventory.ClaimKillRequest> __Marshaller_gameserver_inventory_v1_ClaimKillRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.Inventory.ClaimKillRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::GameServer.Grpc.Inventory.GrantItemResponse> __Marshaller_gameserver_inventory_v1_GrantItemResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.Inventory.GrantItemResponse.Parser));
+    static readonly grpc::Marshaller<global::GameServer.Grpc.Inventory.ClaimKillResponse> __Marshaller_gameserver_inventory_v1_ClaimKillResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.Inventory.ClaimKillResponse.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::GameServer.Grpc.Inventory.ConsumeItemRequest> __Marshaller_gameserver_inventory_v1_ConsumeItemRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.Inventory.ConsumeItemRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
@@ -67,12 +67,12 @@ namespace GameServer.Grpc.Inventory {
         __Marshaller_gameserver_inventory_v1_GetInventoryResponse);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Method<global::GameServer.Grpc.Inventory.GrantItemRequest, global::GameServer.Grpc.Inventory.GrantItemResponse> __Method_GrantItem = new grpc::Method<global::GameServer.Grpc.Inventory.GrantItemRequest, global::GameServer.Grpc.Inventory.GrantItemResponse>(
+    static readonly grpc::Method<global::GameServer.Grpc.Inventory.ClaimKillRequest, global::GameServer.Grpc.Inventory.ClaimKillResponse> __Method_ClaimKill = new grpc::Method<global::GameServer.Grpc.Inventory.ClaimKillRequest, global::GameServer.Grpc.Inventory.ClaimKillResponse>(
         grpc::MethodType.Unary,
         __ServiceName,
-        "GrantItem",
-        __Marshaller_gameserver_inventory_v1_GrantItemRequest,
-        __Marshaller_gameserver_inventory_v1_GrantItemResponse);
+        "ClaimKill",
+        __Marshaller_gameserver_inventory_v1_ClaimKillRequest,
+        __Marshaller_gameserver_inventory_v1_ClaimKillResponse);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::GameServer.Grpc.Inventory.ConsumeItemRequest, global::GameServer.Grpc.Inventory.ConsumeItemResponse> __Method_ConsumeItem = new grpc::Method<global::GameServer.Grpc.Inventory.ConsumeItemRequest, global::GameServer.Grpc.Inventory.ConsumeItemResponse>(
@@ -105,15 +105,15 @@ namespace GameServer.Grpc.Inventory {
       }
 
       /// <summary>
-      /// Main 싱글 경로 지급(클라 로컬 드랍/줍기 → 직접 호출). userId 는 JWT 추출.
-      /// 서버 가드: 인증(AuthInterceptor) + 호출당 수량 상한 + itemId 카탈로그 검증.
-      /// ※ 던전(co-op)은 서버 권위라 이 RPC 를 쓰지 않는다(SocketServer→Stream→LootGrantConsumer). loot-drop.md §1.4
+      /// Main 싱글 획득(B-lite 서버 검증). 클라는 "어느 슬롯을 죽였다"만 보고 → 서버가 map 스폰 데이터로
+      /// 슬롯 검증 + per-user 쿨다운(재청구 차단) + 서버 권위 DropTableRoll → 지급. 보상 내용은 서버가 결정.
+      /// 구 GrantItem(itemId,qty)을 대체(클라가 보상 임의지정 = 무한파밍 핵 차단). main-spawn-claim.md / authority-model §4b.
       /// </summary>
       /// <param name="request">The request received from the client.</param>
       /// <param name="context">The context of the server-side call handler being invoked.</param>
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::System.Threading.Tasks.Task<global::GameServer.Grpc.Inventory.GrantItemResponse> GrantItem(global::GameServer.Grpc.Inventory.GrantItemRequest request, grpc::ServerCallContext context)
+      public virtual global::System.Threading.Tasks.Task<global::GameServer.Grpc.Inventory.ClaimKillResponse> ClaimKill(global::GameServer.Grpc.Inventory.ClaimKillRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -209,9 +209,9 @@ namespace GameServer.Grpc.Inventory {
         return CallInvoker.AsyncUnaryCall(__Method_GetInventory, null, options, request);
       }
       /// <summary>
-      /// Main 싱글 경로 지급(클라 로컬 드랍/줍기 → 직접 호출). userId 는 JWT 추출.
-      /// 서버 가드: 인증(AuthInterceptor) + 호출당 수량 상한 + itemId 카탈로그 검증.
-      /// ※ 던전(co-op)은 서버 권위라 이 RPC 를 쓰지 않는다(SocketServer→Stream→LootGrantConsumer). loot-drop.md §1.4
+      /// Main 싱글 획득(B-lite 서버 검증). 클라는 "어느 슬롯을 죽였다"만 보고 → 서버가 map 스폰 데이터로
+      /// 슬롯 검증 + per-user 쿨다운(재청구 차단) + 서버 권위 DropTableRoll → 지급. 보상 내용은 서버가 결정.
+      /// 구 GrantItem(itemId,qty)을 대체(클라가 보상 임의지정 = 무한파밍 핵 차단). main-spawn-claim.md / authority-model §4b.
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -219,27 +219,27 @@ namespace GameServer.Grpc.Inventory {
       /// <param name="cancellationToken">An optional token for canceling the call.</param>
       /// <returns>The response received from the server.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::GameServer.Grpc.Inventory.GrantItemResponse GrantItem(global::GameServer.Grpc.Inventory.GrantItemRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual global::GameServer.Grpc.Inventory.ClaimKillResponse ClaimKill(global::GameServer.Grpc.Inventory.ClaimKillRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return GrantItem(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return ClaimKill(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      /// Main 싱글 경로 지급(클라 로컬 드랍/줍기 → 직접 호출). userId 는 JWT 추출.
-      /// 서버 가드: 인증(AuthInterceptor) + 호출당 수량 상한 + itemId 카탈로그 검증.
-      /// ※ 던전(co-op)은 서버 권위라 이 RPC 를 쓰지 않는다(SocketServer→Stream→LootGrantConsumer). loot-drop.md §1.4
+      /// Main 싱글 획득(B-lite 서버 검증). 클라는 "어느 슬롯을 죽였다"만 보고 → 서버가 map 스폰 데이터로
+      /// 슬롯 검증 + per-user 쿨다운(재청구 차단) + 서버 권위 DropTableRoll → 지급. 보상 내용은 서버가 결정.
+      /// 구 GrantItem(itemId,qty)을 대체(클라가 보상 임의지정 = 무한파밍 핵 차단). main-spawn-claim.md / authority-model §4b.
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
       /// <returns>The response received from the server.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::GameServer.Grpc.Inventory.GrantItemResponse GrantItem(global::GameServer.Grpc.Inventory.GrantItemRequest request, grpc::CallOptions options)
+      public virtual global::GameServer.Grpc.Inventory.ClaimKillResponse ClaimKill(global::GameServer.Grpc.Inventory.ClaimKillRequest request, grpc::CallOptions options)
       {
-        return CallInvoker.BlockingUnaryCall(__Method_GrantItem, null, options, request);
+        return CallInvoker.BlockingUnaryCall(__Method_ClaimKill, null, options, request);
       }
       /// <summary>
-      /// Main 싱글 경로 지급(클라 로컬 드랍/줍기 → 직접 호출). userId 는 JWT 추출.
-      /// 서버 가드: 인증(AuthInterceptor) + 호출당 수량 상한 + itemId 카탈로그 검증.
-      /// ※ 던전(co-op)은 서버 권위라 이 RPC 를 쓰지 않는다(SocketServer→Stream→LootGrantConsumer). loot-drop.md §1.4
+      /// Main 싱글 획득(B-lite 서버 검증). 클라는 "어느 슬롯을 죽였다"만 보고 → 서버가 map 스폰 데이터로
+      /// 슬롯 검증 + per-user 쿨다운(재청구 차단) + 서버 권위 DropTableRoll → 지급. 보상 내용은 서버가 결정.
+      /// 구 GrantItem(itemId,qty)을 대체(클라가 보상 임의지정 = 무한파밍 핵 차단). main-spawn-claim.md / authority-model §4b.
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -247,22 +247,22 @@ namespace GameServer.Grpc.Inventory {
       /// <param name="cancellationToken">An optional token for canceling the call.</param>
       /// <returns>The call object.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::GameServer.Grpc.Inventory.GrantItemResponse> GrantItemAsync(global::GameServer.Grpc.Inventory.GrantItemRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual grpc::AsyncUnaryCall<global::GameServer.Grpc.Inventory.ClaimKillResponse> ClaimKillAsync(global::GameServer.Grpc.Inventory.ClaimKillRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return GrantItemAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return ClaimKillAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      /// Main 싱글 경로 지급(클라 로컬 드랍/줍기 → 직접 호출). userId 는 JWT 추출.
-      /// 서버 가드: 인증(AuthInterceptor) + 호출당 수량 상한 + itemId 카탈로그 검증.
-      /// ※ 던전(co-op)은 서버 권위라 이 RPC 를 쓰지 않는다(SocketServer→Stream→LootGrantConsumer). loot-drop.md §1.4
+      /// Main 싱글 획득(B-lite 서버 검증). 클라는 "어느 슬롯을 죽였다"만 보고 → 서버가 map 스폰 데이터로
+      /// 슬롯 검증 + per-user 쿨다운(재청구 차단) + 서버 권위 DropTableRoll → 지급. 보상 내용은 서버가 결정.
+      /// 구 GrantItem(itemId,qty)을 대체(클라가 보상 임의지정 = 무한파밍 핵 차단). main-spawn-claim.md / authority-model §4b.
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
       /// <returns>The call object.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::GameServer.Grpc.Inventory.GrantItemResponse> GrantItemAsync(global::GameServer.Grpc.Inventory.GrantItemRequest request, grpc::CallOptions options)
+      public virtual grpc::AsyncUnaryCall<global::GameServer.Grpc.Inventory.ClaimKillResponse> ClaimKillAsync(global::GameServer.Grpc.Inventory.ClaimKillRequest request, grpc::CallOptions options)
       {
-        return CallInvoker.AsyncUnaryCall(__Method_GrantItem, null, options, request);
+        return CallInvoker.AsyncUnaryCall(__Method_ClaimKill, null, options, request);
       }
       /// <summary>
       /// 소모품 사용 시 수량 차감(서버 권위 = 보유/수량 검증). 회복 효과 적용은 클라(GAS) — 서버는 차감만.
@@ -331,7 +331,7 @@ namespace GameServer.Grpc.Inventory {
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
           .AddMethod(__Method_GetInventory, serviceImpl.GetInventory)
-          .AddMethod(__Method_GrantItem, serviceImpl.GrantItem)
+          .AddMethod(__Method_ClaimKill, serviceImpl.ClaimKill)
           .AddMethod(__Method_ConsumeItem, serviceImpl.ConsumeItem).Build();
     }
 
@@ -343,7 +343,7 @@ namespace GameServer.Grpc.Inventory {
     public static void BindService(grpc::ServiceBinderBase serviceBinder, InventoryServiceBase serviceImpl)
     {
       serviceBinder.AddMethod(__Method_GetInventory, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::GameServer.Grpc.Inventory.GetInventoryRequest, global::GameServer.Grpc.Inventory.GetInventoryResponse>(serviceImpl.GetInventory));
-      serviceBinder.AddMethod(__Method_GrantItem, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::GameServer.Grpc.Inventory.GrantItemRequest, global::GameServer.Grpc.Inventory.GrantItemResponse>(serviceImpl.GrantItem));
+      serviceBinder.AddMethod(__Method_ClaimKill, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::GameServer.Grpc.Inventory.ClaimKillRequest, global::GameServer.Grpc.Inventory.ClaimKillResponse>(serviceImpl.ClaimKill));
       serviceBinder.AddMethod(__Method_ConsumeItem, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::GameServer.Grpc.Inventory.ConsumeItemRequest, global::GameServer.Grpc.Inventory.ConsumeItemResponse>(serviceImpl.ConsumeItem));
     }
 

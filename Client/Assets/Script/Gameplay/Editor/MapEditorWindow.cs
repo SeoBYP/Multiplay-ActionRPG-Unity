@@ -230,12 +230,14 @@ namespace Game.Gameplay.Editor
 
                 result.Add(new MonsterSpawn
                 {
-                    monsterId    = marker.monsterId,
-                    position     = m.position,
-                    rotationY    = m.eulerAngles.y,
-                    count        = Mathf.Max(1, marker.count),
-                    wave         = marker.wave,
-                    patrolPoints = patrol,
+                    monsterId         = marker.monsterId,
+                    position          = m.position,
+                    rotationY         = m.eulerAngles.y,
+                    count             = Mathf.Max(1, marker.count),
+                    wave              = marker.wave,
+                    slotId            = marker.slotId,
+                    respawnCooldownMs = marker.respawnCooldownMs,
+                    patrolPoints      = patrol,
                 });
             }
             return result;
@@ -249,9 +251,11 @@ namespace Game.Gameplay.Editor
             go.transform.eulerAngles = new Vector3(0f, def.rotationY, 0f);
 
             var m = go.AddComponent<MonsterSpawnMarker>();
-            m.monsterId = string.IsNullOrEmpty(def.monsterId) ? "slime" : def.monsterId;
-            m.count     = Mathf.Max(1, def.count);
-            m.wave      = def.wave;
+            m.monsterId         = string.IsNullOrEmpty(def.monsterId) ? "slime" : def.monsterId;
+            m.count             = Mathf.Max(1, def.count);
+            m.wave              = def.wave;
+            m.slotId            = def.slotId;
+            m.respawnCooldownMs = def.respawnCooldownMs;
 
             var patrol = def.patrolPoints ?? new List<Vector3>();
             for (int i = 0; i < patrol.Count; i++)

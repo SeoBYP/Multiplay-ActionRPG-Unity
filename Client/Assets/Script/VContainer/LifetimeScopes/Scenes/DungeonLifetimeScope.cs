@@ -54,6 +54,9 @@ public class DungeonLifetimeScope : LifetimeScope
         // 소모품(3.8) — 효과 데이터(클라 SO, 토스트/표시용). 미존재 시 빈 SO 폴백.
         builder.RegisterInstance(Resources.Load<ConsumableCatalog>("ConsumableCatalog")
                                  ?? ScriptableObject.CreateInstance<ConsumableCatalog>());
+        // 소모품 회복 effect 를 GameplayEffectCatalog 에 등록(SO→카탈로그) → EffectReceiver 회복 미러가 effectId 로 조회 가능.
+        // 데이터 진실원 교리 = gas-architecture §2.5(소모품 수치는 코드 시드 아닌 SO 저작).
+        builder.RegisterEntryPoint<ConsumableCatalogSeeder>(Lifetime.Scoped);
         // ※ 던전은 ConsumableEffectHandler(로컬 회복 적용)를 등록하지 않는다 — 플레이어 HP 서버 권위(§4):
         //   ConsumeItem 성공 → GameServer→SocketServer 통지 → 서버가 회복 적용 + S_ApplyEffect 브로드캐스트 →
         //   EffectReceiver 가 로컬 ASC 에 적용(서버 미러). 여기서 로컬 적용하면 이중 회복.
