@@ -118,6 +118,33 @@ namespace Game.Tests.EditMode.GamePlayAbilitySystem
             Assert.AreEqual(1, asc.ActiveEffects.Count, "같은 서버 InstanceId 재수신은 멱등이어야 한다.");
         }
 
+        [Test]
+        public void 서버권위_HealthOverride는_카탈로그_고정값_대신_적용된다()
+        {
+            var asc = CreateAsc(); // Health 100/100
+            var dmg = new GameplayEffectDefinition(
+                "monster_attack_dmg", EEffectCategory.AttackPower, EDurationPolicy.Instant, 0,
+                new[] { GameplayAttributeModifier.Create(EGameplayAttribute.Health, -30, EModifierType.Additive) });
+
+            // 서버가 Defense 반영해 보낸 -7 을 적용(카탈로그 -30 무시) → 93.
+            asc.ApplyEffectAuthoritative(dmg, instanceId: 5, stacks: 1, healthOverride: -7);
+
+            Assert.AreEqual(93, asc.GetAttribute(EGameplayAttribute.Health).CurrentValue);
+        }
+
+        [Test]
+        public void HealthOverride가_0이면_카탈로그_고정값을_그대로_적용한다()
+        {
+            var asc = CreateAsc();
+            var dmg = new GameplayEffectDefinition(
+                "x", EEffectCategory.AttackPower, EDurationPolicy.Instant, 0,
+                new[] { GameplayAttributeModifier.Create(EGameplayAttribute.Health, -30, EModifierType.Additive) });
+
+            asc.ApplyEffectAuthoritative(dmg, instanceId: 6, stacks: 1, healthOverride: 0);
+
+            Assert.AreEqual(70, asc.GetAttribute(EGameplayAttribute.Health).CurrentValue); // 하위호환
+        }
+
         // ── 헬퍼 ────────────────────────────────────────
 
         private AbilitySystemComponent CreateAsc()

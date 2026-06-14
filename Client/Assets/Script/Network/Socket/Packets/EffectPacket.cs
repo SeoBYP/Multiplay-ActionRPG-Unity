@@ -17,6 +17,12 @@ namespace Game.Network.Socket.Packets
         public long SourceId { get; set; }    // 시전자 actor
         public long StartTick { get; set; }   // 권위 시작시각 (공유 시계 기준 ms)
         public int Stacks { get; set; }
+
+        /// <summary>
+        /// 서버가 계산한 Health 델타(음수=데미지/양수=회복). 0 = 카탈로그 고정값 사용(버프/디버프 하위호환).
+        /// 스탯 의존 데미지(몬스터 공격 − 플레이어 Defense 등)는 클라가 자체계산 불가 → 서버 권위 수치를 그대로 전달.
+        /// </summary>
+        public int Amount { get; set; }
     }
 
     /// <summary>

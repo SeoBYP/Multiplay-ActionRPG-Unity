@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Game.System.Player;
+using Game.System.Progression;
 using Script.System.GamePlayAbilitySystem;
 using UnityEngine;
 using VContainer;
@@ -38,10 +39,12 @@ namespace Game.Gameplay.Character
         [SerializeField] private float attackCooldownSec = 1.5f;
 
         [Inject] private readonly LocalPlayerContext _localPlayer = null;
+        // Main 클라 스탯 캐시(서버 권위 GetProgression). 플레이어 Defense 를 공격 데미지에서 차감하는 데 쓴다.
+        // 던전(서버권위)의 Room.TickMonsters Defense 반영과 동일 산식의 Main(클라권위) 대응판. 미주입 시 Defense=0 폴백.
+        [Inject] private readonly PlayerProgressionHolder _progression = null;
 
         private int _hp;
         private float _nextAttackTime;
-        private GameplayEffectDefinition _attackEffect;
 
         /// <summary>사망 시 발행(자기 자신 전달). MainMonsterSpawner 가 디스폰·드랍(B-lite 클레임)에 사용.</summary>
         public event Action<LocalMonster> OnDied;
@@ -67,16 +70,6 @@ namespace Game.Gameplay.Character
         private void Awake()
         {
             _hp = maxHp;
-            // 즉발 피해 effect(클라 로컬 권위, Main 솔로). 던전 플레이어 피해는 서버 권위라 무관.
-            _attackEffect = new GameplayEffectDefinition(
-                id: "local_monster_attack",
-                category: EEffectCategory.AttackPower,
-                policy: EDurationPolicy.Instant,
-                durationMs: 0,
-                modifiers: new List<GameplayAttributeModifier>
-                {
-                    GameplayAttributeModifier.Create(EGameplayAttribute.Health, -attackDamage, EModifierType.Additive),
-                });
         }
 
         private void Update()
@@ -111,8 +104,25 @@ namespace Game.Gameplay.Character
         {
             if (Time.time < _nextAttackTime) return;
             _nextAttackTime = Time.time + attackCooldownSec;
-            target.ApplyEffect(_attackEffect);
+
+            // 데미지 = attackDamage − 플레이어 Defense (던전 Room.TickMonsters 와 동일 Shared 산식, 최소1).
+            // 홀더 미주입/미갱신 시 Defense=0 → attackDamage 그대로(하위호환).
+            int dmg = StatCombatMath.MeleeDamage(attackDamage, 0, _progression?.Defense ?? 0);
+            target.ApplyEffect(BuildAttackEffect(dmg));
+            Debug.Log($"[LocalMonster] 공격 dmg={dmg} (attackDamage {attackDamage} − Defense {_progression?.Defense ?? 0})");
         }
+
+        /// <summary>즉발 Health 피해 effect 생성(클라 로컬 권위, Main 솔로). 던전 플레이어 피해는 서버 권위라 무관.</summary>
+        private static GameplayEffectDefinition BuildAttackEffect(int damage)
+            => new GameplayEffectDefinition(
+                id: "local_monster_attack",
+                category: EEffectCategory.AttackPower,
+                policy: EDurationPolicy.Instant,
+                durationMs: 0,
+                modifiers: new List<GameplayAttributeModifier>
+                {
+                    GameplayAttributeModifier.Create(EGameplayAttribute.Health, -damage, EModifierType.Additive),
+                });
 
         /// <summary>로컬 피격. HP 차감 후 0 이하면 사망 처리(1회).</summary>
         public void TakeDamage(int amount)

@@ -43,6 +43,39 @@ public class MonsterAttackTests
     }
 
     [Fact]
+    public void 몬스터_공격은_플레이어_Defense를_빼고_데미지를_적용한다()
+    {
+        var room = NewRoom();
+        // slime AttackDamage=5, 플레이어 Defense=2 → 데미지 = max(1, 5-2) = 3
+        room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f, attackPower: 0, defense: 2);
+        room.SpawnMonsters(
+            new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
+            new MapBounds(0f, 0f, 40f, 40f));
+
+        var atk = Assert.Single(room.TickMonsters(0.1f, 1_000_000).OfType<S_ApplyEffect>());
+        Assert.Equal(-3, atk.Amount); // 서버 권위 Health 델타(Defense 반영)
+
+        // 서버 HP 도 같은 값으로 차감(클라 표시값 == 서버 권위).
+        var hp = room.GetAllPlayerStates().Single().Hp;
+        Assert.Equal(global::Server.Room.Room.DefaultMaxHp - 3, hp);
+    }
+
+    [Fact]
+    public void Defense가_공격력보다_커도_최소_1_데미지는_들어간다()
+    {
+        var room = NewRoom();
+        // slime AttackDamage=5, 플레이어 Defense=10 → max(1, 5-10) = 1 (무피해 방지)
+        room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f, attackPower: 0, defense: 10);
+        room.SpawnMonsters(
+            new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
+            new MapBounds(0f, 0f, 40f, 40f));
+
+        var atk = Assert.Single(room.TickMonsters(0.1f, 1_000_000).OfType<S_ApplyEffect>());
+        Assert.Equal(-1, atk.Amount);
+        Assert.Equal(global::Server.Room.Room.DefaultMaxHp - 1, room.GetAllPlayerStates().Single().Hp);
+    }
+
+    [Fact]
     public void 다운된_플레이어는_몬스터_공격_대상에서_제외된다()
     {
         var room = NewRoom();

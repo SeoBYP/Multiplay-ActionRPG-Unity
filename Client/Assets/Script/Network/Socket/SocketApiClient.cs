@@ -439,7 +439,10 @@ namespace Game.Network.Socket
         public long StartTick { get; }
         public int Stacks { get; }
 
-        public SocketEffectApply(string effectId, int instanceId, long targetId, long sourceId, long startTick, int stacks)
+        /// <summary>서버 권위 Health 델타(음수=데미지/양수=회복). 0 = 카탈로그 고정값 사용(버프/디버프).</summary>
+        public int Amount { get; }
+
+        public SocketEffectApply(string effectId, int instanceId, long targetId, long sourceId, long startTick, int stacks, int amount = 0)
         {
             EffectId = effectId ?? string.Empty;
             InstanceId = instanceId;
@@ -447,6 +450,7 @@ namespace Game.Network.Socket
             SourceId = sourceId;
             StartTick = startTick;
             Stacks = stacks;
+            Amount = amount;
         }
     }
 }

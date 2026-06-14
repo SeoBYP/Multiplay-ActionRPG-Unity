@@ -149,7 +149,11 @@ namespace Script.System.GamePlayAbilitySystem
         /// 시작 시각은 로컬 clock(_clockMs)을 쓴다 — 공유 시계(서버 tick) 도입 전까지 만료 타이밍의
         /// 클라 일관성을 위해. 서버 StartTick 기반 정밀 정정은 공유 시계 합류 시.
         /// </summary>
-        public void ApplyEffectAuthoritative(GameplayEffectDefinition def, int instanceId, int stacks = 1)
+        /// <param name="healthOverride">
+        /// 0이 아니면 Instant 효과의 Health 모디파이어 양을 이 서버 권위 값(음수=데미지)으로 덮어쓴다.
+        /// 스탯 의존 데미지(몬스터 공격 − Defense 등)는 카탈로그 고정값 대신 서버가 계산해 보낸 값을 적용한다.
+        /// </param>
+        public void ApplyEffectAuthoritative(GameplayEffectDefinition def, int instanceId, int stacks = 1, int healthOverride = 0)
         {
             EnsureInitialized();
             if (def == null)
@@ -159,7 +163,12 @@ namespace Script.System.GamePlayAbilitySystem
             {
                 foreach (var mod in def.Modifiers)
                     if (_gameplayAttributes.TryGetValue(mod.AttributeType, out var attr))
-                        attr.ApplyModifier(mod);
+                    {
+                        var applied = (healthOverride != 0 && mod.AttributeType == EGameplayAttribute.Health)
+                            ? GameplayAttributeModifier.Create(EGameplayAttribute.Health, healthOverride, mod.ModifierType)
+                            : mod;
+                        attr.ApplyModifier(applied);
+                    }
                 return;
             }
 

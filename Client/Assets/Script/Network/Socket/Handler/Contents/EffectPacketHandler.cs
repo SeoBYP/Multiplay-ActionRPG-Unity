@@ -24,7 +24,8 @@ namespace Game.Network.Socket
                 packet.TargetId,
                 packet.SourceId,
                 packet.StartTick,
-                packet.Stacks));
+                packet.Stacks,
+                packet.Amount));
             return UniTask.CompletedTask;
         }
     }

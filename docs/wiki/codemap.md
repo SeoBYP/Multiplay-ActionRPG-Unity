@@ -95,6 +95,22 @@
   - ① `Slider.value=` 가 프리팹에 잘못 연결된 `onValueChanged`(UI.Text 변환 실패) persistent 리스너를 발동 → ArgumentException. exp 게이지는 표시 전용이라 `expSlider.SetValueWithoutNotify(fill)` 로 콜백 차단(GameHud.RenderExp). 프리팹 리스너 정리는 사용자 권장.
   - ② 홀더 `StartAsync` 가 인증 전 eager pull → `GetProgression Unauthenticated` Error 로그 노이즈. `AuthSession.AuthenticatedAsync().AttachExternalCancellation` 로 **로그인 완료 후 pull**(`PlayerProgressionHolder` 에 `AuthSession` optional 주입, 같은 Game.System 어셈블리).
 - **검증**: EditMode `InGameExpRelayTests` 2/2 그린(홀더 Refresh→State 반영 / 홀더 없으면 초기값). 변경 어셈블리 dotnet build 0오류(Game.System·Game.Presentation·Game.GUI·Game.VContainer). ⚠️ 게이지 실렌더 육안 확인은 사용자 플레이.
+
+### 2.26 몬스터→플레이어 Defense 반영 (2.4 증분3, 2026-06-14)
+- **무엇**: 몬스터가 플레이어를 때릴 때 **플레이어 Defense를 데미지에서 차감**(이전: 고정 `monster_attack_dmg` 카탈로그값, Defense 무시). 플레이어→몬스터(증분2)의 역방향 대칭.
+- **산식**: `Room.TickMonsters`에서 `int dmg = StatCombatMath.MeleeDamage(MonsterDef.AttackDamage, 0, PlayerState.Defense)` = `max(1, AttackDamage − Defense)`(무피해 방지 최소1). 몬스터별 `AttackDamage`(카탈로그 기존 필드) 사용 — 고정 catalog 아님.
+- **전달(패킷 계약 변경)**: `S_ApplyEffect`에 `int Amount` 필드 추가(서버 권위 Health 델타, 음수=데미지). 데미지가 player Defense 의존이라 클라가 자체계산 불가 → 서버가 계산해 전달. **Amount=0 = 카탈로그 고정값 사용(버프/디버프 하위호환)**. 클라 미러는 **ClientCodegen 재생성**(`Network/Socket/Packets/EffectPacket.cs`, Union 1640 불변).
+- **서버 흐름**: `Room.TickMonsters` → `ApplyPlayerEffect(target, Health −dmg)`(서버 HP 권위, Defense 반영) + `S_ApplyEffect{ Amount = −dmg }` 브로드캐스트. `CombatEffectCatalog.Resolve("monster_attack_dmg")` 의존 제거(Room.cs).
+- **클라 흐름**: `EffectApplyPacketHandler`(packet.Amount → `SocketEffectApply.Amount`) → `EffectReceiver` → `ASC.ApplyEffectAuthoritative(def, id, stacks, healthOverride: Amount)`. healthOverride≠0이면 Instant 효과의 Health 모디파이어 양을 그 값으로 덮어씀(카탈로그 무시).
+- **클라 예측 미도입**: 몬스터→플레이어는 로컬 예측 대상 아님(서버 수치 그대로 렌더). 공유 시계·예측-정정은 EF-2d 후속(YAGNI).
+- **위치**: 서버 `Shared.Packet/Packets/Domains/EffectPacket.cs`(+Amount) · `SocketServer/Room/Room.cs`(TickMonsters). 클라 `Network/Socket/Packets/EffectPacket.cs`(코드젠) · `Handler/Contents/EffectPacketHandler.cs` · `SocketApiClient.cs`(SocketEffectApply) · `Presentation/InGame/EffectReceiver.cs` · `System/GameplayAbilitySystem/AbilitySystemComponent.cs`(healthOverride).
+- **검증**: SocketServer 103/103(신규 `MonsterAttackTests` Defense 2: AttackDamage−Defense·최소1) + 클라 EditMode `EffectSystemTests` 9/9(신규 HealthOverride 2) + 서버/클라 빌드·Unity 컴파일 0오류. **플레이 검증 통과(2026-06-15)**: 던전에서 Lv1(Def5) 플레이어가 slime(AD5)에게 맞을 때 `amount=-1`·HP 1씩 감소(이전 옛 서버는 5씩) — 서버 리빌드 후 확인. (옛 Docker 이미지면 `amount=0` 폴백=거짓검증 함정.)
+
+#### 2.26b Main 대응판 — LocalMonster Defense 반영 (클라 전용, 2026-06-15)
+- **무엇**: Main(클라 권위 로컬)의 `LocalMonster`도 플레이어 Defense를 차감(이전: 고정 `-attackDamage` Health effect). 던전(서버권위, §2.26)의 Main 대응. **서버/패킷 0 — 클라 1파일**(Main은 싱글, LocalMonster가 로컬 ASC에 직접 즉발피해).
+- **산식/주입**: `LocalMonster.TryAttack` → `int dmg = StatCombatMath.MeleeDamage(attackDamage, 0, _progression?.Defense ?? 0)`(던전과 동일 Shared 함수, 최소1) → `BuildAttackEffect(dmg)` 즉발 적용. `[Inject] PlayerProgressionHolder _progression`(`MainMonsterSpawner.Spawn`의 `_container.InjectGameObject`로 충족, `_localPlayer`와 동일 경로). 미주입 시 Defense=0 폴백. 고정 prebuilt `_attackEffect` 제거→공격마다 빌드(쿨다운 1.5s, 빈도 낮음).
+- **테스트**: 데미지 산식 = `StatCombatMath`(기존 단위테스트 `StatCombatMathTests` 4종, base/AP/Defense/최소1). LocalMonster는 그 함수에 holder.Defense를 배선만 — 신규 산식 없음. (MonoBehaviour Update/주입 통합은 PlayMode 영역, 플레이 검증으로 대체.)
+- **위치**: `Gameplay/Character/LocalMonster.cs`(`_progression` 주입 + `TryAttack`/`BuildAttackEffect`). ⚠️ 플레이 육안(Main slime 피격 `[LocalMonster] 공격 dmg=N` 로그·Defense만큼 덜 깎임)은 사용자.
 - slime expReward=20(SO 조정 가능). 신규 클라 .cs `.meta` `git add -f`([[unity-meta-gitignored]]).
 
 ### 2.23 스탯 산식 — 크로스서버 스탯 전파 + 스탯 기반 데미지 (2.4 증분1·2, 2026-06-14)

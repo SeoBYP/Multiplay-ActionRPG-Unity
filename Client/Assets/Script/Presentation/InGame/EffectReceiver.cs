@@ -54,11 +54,12 @@ namespace Game.Presentation.InGame
                 return;
             }
 
-            target.ApplyEffectAuthoritative(def, data.InstanceId, data.Stacks);
+            // 서버가 Amount(스탯 반영 Health 델타)를 보냈으면 카탈로그 고정값 대신 그 값을 적용(서버 권위).
+            target.ApplyEffectAuthoritative(def, data.InstanceId, data.Stacks, data.Amount);
 
             // 로컬 플레이어가 받은 효과(데미지/회복)와 적용 후 HP 로그.
             var hp = target.GetAttribute(EGameplayAttribute.Health);
-            Debug.Log($"[EffectReceiver] 효과 적용 — EffectId={data.EffectId} → HP={hp?.CurrentValue}/{hp?.MaxValue}");
+            Debug.Log($"[EffectReceiver] 효과 적용 — EffectId={data.EffectId} amount={data.Amount} → HP={hp?.CurrentValue}/{hp?.MaxValue}");
         }
 
         private void OnEffectRemoved(int instanceId)

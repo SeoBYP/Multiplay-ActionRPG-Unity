@@ -524,7 +524,17 @@ public class Room
                     && nowMs - m.LastAttackAt >= stats.AttackCooldownMs)
                 {
                     m.LastAttackAt = nowMs;
-                    long targetUserId = players[targetIdx].UserId;
+                    var target = players[targetIdx];
+                    long targetUserId = target.UserId;
+
+                    // 데미지 = 몬스터 AttackDamage − 플레이어 Defense (Shared 결정론, 플레이어→몬스터와 동일 산식).
+                    // 스탯 의존이라 클라가 자체계산 불가 → 서버가 권위 수치를 Amount 로 전달하고, HP 도 같은 값으로 차감.
+                    int finalDamage = StatCombatMath.MeleeDamage(stats.AttackDamage, 0, target.Defense);
+                    var dmgMods = new[]
+                    {
+                        GameplayAttributeModifier.Create(EGameplayAttribute.Health, -finalDamage, EModifierType.Additive),
+                    };
+
                     outPackets.Add(new S_ApplyEffect
                     {
                         InstanceId = NextEffectInstanceId(),
@@ -533,11 +543,11 @@ public class Room
                         SourceId = 0, // 0 = 몬스터/환경
                         StartTick = nowMs,
                         Stacks = 1,
+                        Amount = -finalDamage, // 서버 권위 Health 델타(클라가 그대로 적용)
                     });
 
                     // 서버 권위 HP 누적 + 사망 직접 감지(클라 보고에 의존 안 함 → 불사 핵 차단).
-                    var (_, newlyDowned, failClaimed) =
-                        ApplyPlayerEffect(targetUserId, CombatEffectCatalog.Resolve("monster_attack_dmg"));
+                    var (_, newlyDowned, failClaimed) = ApplyPlayerEffect(targetUserId, dmgMods);
                     if (newlyDowned)
                         outPackets.Add(new S_PlayerDead { UserId = targetUserId });
                     if (failClaimed)
