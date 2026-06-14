@@ -59,8 +59,8 @@
 ### 2. 캐릭터 시스템
 - **2.1** 전투 코어 — 서버 권위 Attack/Hit/Damage (GAS) — 🔄 | T1 | 🔵
 - **2.2** 스킬/어빌리티 — SkillTimeline, `basic_swing` 외 확장 — 🔄 | T1 | 🔵
-- **2.3** 진행/성장(Progression) — 레벨·경험치·스탯 성장 영속 (`Progression` 신규) — 🔄 | T1 | 🟢 (Exp 영속 도메인 완료, 레벨업/스탯 성장 M5)
-- **2.4** 스탯 산식 — 레벨/장비/버프 합산 서버 권위 재계산 — ⬜ | T2 | ⚪
+- **2.3** 진행/성장(Progression) — 레벨·경험치·스탯 성장 영속 (`Progression` 신규) — ✅ | T1 | 🟢 (Exp 영속 + **레벨업 산식·레벨별 스탯 테이블 룩업·클라 노출(GetProgression) 완료 2026-06-14**. 스탯=레벨 룩업 파생(DB는 Level/Exp만). 상세 codemap §2.22. 스탯창 prefab(7.3)·`LevelTable.asset` 실저작은 사용자 Unity)
+- **2.4** 스탯 산식 — 레벨/장비/버프 합산 서버 권위 재계산 — 🔄 | T2 | 🟢 (**증분 1·2 완료 2026-06-14**: ① 스탯 전파 = GameServer 가 `ProgressionService.GetStatsAsync`(단일 합산 권위, LevelTable 룩업)로 계산해 `GameStartRequestedMessage.PlayerInfo`에 적재 → SocketServer `InitPlayerState`가 `PlayerState`에 세팅. **SocketServer DB 접근 0 — "합산 결과"만 메시지로 받음**(근거 authority-model §4c). ② 플레이어→몬스터 데미지 = `StatCombatMath.MeleeDamage(base+AttackPower−Defense)`(Shared 결정론, `CombatHandler.ScaleDamageByStats`) — AP=0이면 base 동일=하위호환. 검증(단위+통합+**E2E**): GetStatsAsync 2 + 스탯전파(CreateRoom→PlayerState 포함) 4 + StatCombatMath 4 + ScaleDamage 3 + **StartGame 메시지 스탯적재**(교차도메인) + **보상→레벨업 E2E/통합**(던전 100=Lv1임계→Lv2/Exp0 DB영속) — 전체 그린 **GameServer 272·SocketServer 96·Shared 34**. 상세 codemap §2.23. **잔여 = 몬스터→플레이어 Defense 반영**(= S_ApplyEffect amount 전달/클라 예측-정정 필요, EF-2d 정밀화와 합류) + 장비/버프 합류는 3.2)
 - **2.5 사망/부활** — 🔄 | T1 | 🔵
   - **2.5.1** 사망 처리 — HP 0 다운/리스폰 (전투 루프 필수) — ✅ | T1 | 🔵 (**플레이 검증 완료 2026-06-13**: Main 타이머 리스폰(`LocalRespawnController`, Main 전용 등록=던전 다운잠금 유지)+`LocalMonster` 근접공격(사망 트리거)+다운→3s 부활 로그 플레이 확인. 다운포즈 Animator 클립은 클라 발전 시(로그 대체). **ⓔ-1 로컬 사망 게이트 코드 완료 2026-06-11**: GAS 정리(ⓐ~ⓓ) 위에 `State.Dead` 태그로. HP≤0(클라 결정론) → `PlayerCharacterAgent`가 `ASC.AddTag(State.Dead)` → `Update` 게이트가 Action(공격/상호작용) 무시 + `base.Update()` 미호출로 Locomotion 정지 = **던전 다운-잠금**. 상수 `GameplayTags.Dead`(Shared). 서버 빌드 0오류. **ⓔ-2 원격 다운 가시성 완료 2026-06-11**: `S_PlayerDead`(Union 1823) — 서버 `DungeonLifecycleHandler`가 `C_PlayerDead`→방 브로드캐스트, 클라 `PlayerDeadPacketHandler`→`CharacterSpawner.HandlePlayerDead`(원격=로그+Destroy / 로컬=로그만, 카메라·HUD 보호). SocketServer **80/80**(직렬화 2) + Docker 리빌드. EditMode 4+PlayMode 2(ⓔ-1) 그린. **플레이어 HP 서버 권위 승격 완료 2026-06-11**(authority-model §0 권위결정규칙 + §4): 던전 플레이어 HP=서버권위(기존 클라결정론은 미승인 가정·불사핵 부채). 증분1=서버 데미지누적+HP0 직접감지→S_PlayerDead(C_PlayerDead 격하), 증분2=회복 크로스서버(ConsumeItem→GameServer검증·차감→Redis→SocketServer ApplyPlayerEffect(+heal)+S_ApplyEffect, 던전 ConsumableEffectHandler 미등록). GameServer 252/252 + SocketServer 85/85 + 양서버 Docker. 상세=codemap §2.6b·§2.6e. **완료(2026-06-13)**: Main 타이머 리스폰·회복수치 단일소스(SO 저작→bake, §2.6c)·다운/부활. 다운포즈 Animator 클립=클라 발전 시 보류(로그 대체). 던전 내 부활=2.5.2(별도 T2))
   - **2.5.2** Co-op 부활 — 다운된 아군 살리기 — ⬜ | T2 | ⚪
@@ -101,7 +101,7 @@
   - **4.1.3** 서버 AI 틱 — `MonsterAiMath`(Patrol/Chase/Attack + bounds clamp) → `S_MonsterState` — ✅ | T1 | ⚪
   - **4.1.4** 서버 전투 — 플레이어→몬스터 피격/사망(GAS, `S_MonsterDead`) + 몬스터→플레이어 공격(`S_ApplyEffect`) 양방향 — ✅ | T1 | 🔵
   - **4.1.5** 클라 `MonsterEntity` 스폰/보간/사망 (`RemoteDriver` 패턴 재사용) — ✅ | T1 | ⚪
-  - **4.1.6** 몬스터 웨이브/스폰 페이즈 — ⬜ | T2 | ⚪
+  - **4.1.6** 몬스터 웨이브/스폰 페이즈 — ⬜ | T2 | ⚪ (**= 단일 SpawnSystem 승격 1순위 트리거**. 착수 시 [spawn-system-evolution.md](spawn-system-evolution.md)대로 `SpawnRequest`+`SpawnSystem` 신설, 기존 `Room.SpawnMonsters` 재사용. 4.4 퀘스트·4.6.1 존 스폰도 같은 라우터에 합류)
 - **4.2 던전 클리어/보상(DungeonResult)** — ✅ | T1 | 🟢 (클리어+실패 루프 + Exp 보상 전원 지급 완료. 결과패널 아트·PlayMode 실행은 Unity)
   - **4.2.1** 패킷 `S_DungeonClear`(1820) + Union — ✅ | T1 | ⚪
   - **4.2.2** SocketServer 클리어 감지 → `DungeonClearMessage` → Redis Stream — ✅ | T1 | 🟢
@@ -283,12 +283,30 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 - [x] **완전한 Co-op 1판 루프 E2E** (MPPM 2-client) → 로비 복귀 [6.2] — E2E 코드 작성(클리어 RewardExp·전원다운 실패) + **MPPM 2-창 수동 플레이로 클리어→보상→로비 복귀 전체 1판 시각 통과 확인(사람, 2026-06-07)**. 이동 교착 버그 수정 후 이동/서로보임도 동작 확인됨. **= M4 DoD 달성, M4 전체 완료.**
 
 ### 🔄 M5 — 폴리시 + PVE 맛보기 (현재 작업) [WBS 2.4·2.6·2.7·3.2~3.8·4.4~4.7·5.*·6.3~6.4·7.2~7.8·8.*]
-> **🔴 진행 중 (2026-06-13)**:
-> 1. **회복 수치 단일소스** — ✅ **코드 완료**(서버 bake JSON + 클라 `ConsumableCatalogSeeder`로 던전 회복 미러 회귀 복구 + Editor `ConsumableEffectExporter`). 교리 = [gas-architecture.md §2.5](gas-architecture.md), 상세 codemap §2.6c. 클라 컴파일은 Unity 검증 대기.
+> **✅ 직전 완료 (2026-06-13, T1 잔여 전부 닫힘)**:
+> 1. **회복 수치 단일소스** — ✅ **완료(클라 컴파일 검증 통과 2026-06-13)**: 서버 bake JSON + 클라 `ConsumableCatalogSeeder`로 던전 회복 미러 회귀 복구 + Editor `ConsumableEffectExporter`. 교리 = [gas-architecture.md §2.5](gas-architecture.md), 상세 codemap §2.6c. **Unity 컴파일 0오류 확인 완료** — 잔여 검증 없음.
 > 2. **4.6.3 Main 획득 B-lite 서버 검증 (T1)** — ✅ **완료(플레이 검증 2026-06-13)**: 서버 374 그린 + PlayMode E2E + 플레이(슬롯 스폰→킬→`ClaimKill` 서버roll 지급→5s 재스폰, 쿨다운 파밍차단). 무한파밍 핵 차단(`GrantItem` 제거). 저작=`MapDefinition` SO→bake. 설계 = [main-spawn-claim.md](main-spawn-claim.md).
 > 3. **2.5.1 사망/리스폰** — ✅ **완료(플레이 검증 2026-06-13)**: Main 타이머 리스폰(`LocalRespawnController`)+`LocalMonster` 근접공격(사망 트리거)+다운→3s 부활. 다운포즈 Animator 클립=클라 발전 시 보류(로그 대체). 던전 다운잠금·서버권위 HP 기존 완료. 던전 내 부활=2.5.2(T2).
 >
-> **즉시 착수 후보**(서버 도메인 🟢): **3.1 인벤토리 도메인** — 모든 보상/장비/상점/루트의 공통 전제, Cache-Aside 영속 쇼케이스 ([§세션 트랙](#-세션-트랙--서버-도메인이-세션-vs--gas-세션) 참조).
+> **🟢 현재 트랙 (2026-06-13~): 서버 도메인 완성** — RPG 코어 서버 기능을 의존성 순서로 마무리한다. 우선순위(의존성 정렬):
+> 1. **2.3 레벨업/스탯 성장** — ✅ **완료(서버 28 + Unity 컴파일 0오류 + PlayMode E2E `ProgressionE2ETests` 2(Docker) + 전체 PlayMode 68/68, 2026-06-14)**. ① 데이터 = `LevelTableDefinition` SO(클라, 1~60) → `LevelTableExporter` bake → `Shared.Infrastructure.Progression.LevelTable`(임베디드 `level-table.json`, 거듭제곱 Exp `round(100·L^1.5)` + 레벨별 스탯 룩업). ② 도메인 = `UserProgression.AddExp(amount, ILevelCurve)` 레벨업 루프(remainder 이월·60만렙 고정), `ILevelCurve`(Domain) ↔ `LevelTableCurve`(Infra, LevelTable 위임). **DB는 Level/Exp만 영속(마이그레이션 0), 스탯은 레벨 룩업 파생=단일소스.** ③ 클라 노출 = `progression.proto` GetProgression(레벨/Exp/expToNext/스탯, userId=JWT) + `ProgressionGrpcService`(서버, LevelTable 룩업 합성) + Generated/Network 래퍼(ClientCodegen 재생성) + System `IProgressionService`(proto 은닉) + Presentation `ProgressionModel`(MVI pull, Main·Dungeon 스코프 등록). **검증: 서버 — 전체 솔루션 빌드 0오류 + 진행 테스트 28 그린(LevelTable 7·UserProgression 8·Service 3·gRPC 3·통합 7). 클라 — 생성 래퍼/인터페이스가 수기 코드와 일치 확인, 컴파일은 Inventory 동일 패턴 미러. ⚠️ Unity 클라 컴파일 최종 확인은 대기**(force refresh 후 Unity 브리지 도메인리로드 중 무응답 — 포커스 후 재시도 필요). **잔여 = 스탯창 prefab 비주얼 저작(7.3, 사용자 Unity) + Unity 컴파일 확정.**
+> 2. **2.4 스탯 산식** — 레벨/장비/버프 합산 서버 권위 재계산. 2.3 + 3.2 합류 지점.
+> 3. **3.2 장비(Equipment)** — 착용 슬롯 + 스탯 모디파이어 → 2.4 합산. (인벤토리 3.1 위에 적층)
+> 4. **3.4 재화(Wallet)** — 골드 보유·증감(서버 권위). 상점 전제.
+> 5. **3.5 상점(Shop)** — 구매/판매·가격·재고. 3.4 + 3.1 소비.
+> 6. **3.7 아이템 등급/도감** · **6.1 캐릭터 진행 영속 합류**(2.3/3.1/3.2 DB 통합).
+> 7. 부채 정리: **9.6 GetRooms 페이징**(proto 변경 동반 — 승인 후) · **4.3/9.2 DungeonId**(다중 던전 UI 합류 시).
+>
+> **✅ 완료(2026-06-14): 몬스터 카탈로그(SO) + Main 킬 Exp 보상** — ① 몬스터 정의를 SO 저작 카탈로그로 승격(`MonsterCatalogDefinition`→bake `monsters.json`→`Shared.Infrastructure.Monsters.MonsterCatalog`, 하드코딩 `Server.Monster.MonsterCatalog` 어댑터화). exp/스탯은 몬스터 정의에 — 스포너는 위치/슬롯만(비대 X). ② Main 처치 = **킬 즉시 exp(`ClaimMonsterExp`)** + 아이템은 줍기(`ClaimKill`) — exp/아이템 **독립 청구·독립 쿨다운**(사용자 결정: "쓰러트리면 즉시 exp, 아이템은 오브 줍기 유지"). 클라 킬 즉시 `MainMonsterSpawner`→exp 로그. **검증 완료: Shared 34·SocketServer 101·GameServer 전체 278(통합+E2E) + PlayMode `MainLootE2ETests` 통과 + 플레이 확인(킬 즉시 exp 로그, 사용자 2026-06-14).** 상세 codemap §2.24.
+>
+> **✅ 완료(2026-06-14): Main 클라 스탯 반영 + 레벨/exp 로그** — Main(클라 로컬 전투)이 현재 레벨 스탯을 반영. 2.4(던전=서버권위 스탯전투)의 **Main 대응판**(클라 권위 로컬). 이전: `LocalCombat` 데미지 고정 10(레벨/AttackPower 무관) → 이제 레벨업하면 다음 스윙부터 강해짐.
+>   - ① **클라 스탯 홀더** = `PlayerProgressionHolder`(`Game.System.Progression`, **Gameplay 가 Presentation 미참조라 System 에 둠** — ProgressionModel(MVI)과 별개). `GetProgression`(서버권위) 결과 캐시(`Current`: Level/Exp/ExpToNext/AttackPower/Defense). `IAsyncStartable.StartAsync`로 **Main 진입(로그인 직후) 1회** + 킬마다 `RefreshAsync`. MainLifetimeScope `RegisterEntryPoint(...).AsSelf()`(던전 미등록=서버 권위).
+>   - ② **킬 후 레벨/exp 로그** = `MainMonsterSpawner.ClaimExpAsync` 성공 → `holder.RefreshAsync` → `[Progression] 현재 Lv N · Exp X/Y (다음까지 Z)`(만렙=`(만렙)`). 서버 GetProgression 이 단일 진실.
+>   - ③ **LocalCombat 데미지 = AttackPower 기반** = 고정 10 → `StatCombatMath.MeleeDamage(BaseDamage 10, holder.AttackPower, 0)`(Shared 결정론, 던전과 동일 산식). 홀더 미갱신 시 AP=0 → base 그대로 폴백. LocalCombat 은 `[Inject] Construct` 메서드 주입, `CharacterSpawner.AttachLocalCombat`서 `AddComponent` 후 `_container.Inject(combat)`.
+>   - **DLL 재배치 필수였음**: `StatCombatMath`(2.4 추가)가 클라 `Plugins/Shared.Gameplay.dll`(stale)에 미포함 → 컴파일 실패. `Shared.Gameplay` Release 재빌드 → `Client/Assets/Plugins/Shared.Gameplay/`에 재복사(공개 API 변경이라 필수, codemap §공유코어 단일소스 패턴).
+>   - **검증**: 변경 어셈블리 dotnet build 0오류(Game.System·Game.Gameplay·Game.VContainer). ⚠️ **Unity 에디터 재임포트(새 dll meta)+플레이 확인은 사용자**. (Game.Input.csproj CS2001은 이동된 Input 파일 stale 생성참조 — 본 작업 무관.)
+>   - 비고: 스탯 진실원=서버(GetProgression). 클라는 표시·로컬전투 적용만. 장비/버프(3.2) 합류 시 `GetStatsAsync` 합산이 그대로 흘러옴. 정식 ASC 어트리뷰트 연동(GAS)은 선택(지금은 홀더로 충분, YAGNI).
+>   - **후속(2026-06-14): HUD exp 게이지 연결** — GameHud 에 추가된 `expSlider`+`expValue` 를 `holder.OnChanged → InGameModel(ExpChanged) → InGameState → GameHud.RenderExp` 로 배선(HP/MP·버프와 동일 MVI 경로, ProgressionModel 직접주입 X). 던전 HUD 표시 위해 홀더를 DungeonLifetimeScope 에도 등록(표시 전용). EditMode `InGameExpRelayTests` 2/2 그린. 상세 codemap §2.25b.
 - [ ] 애니메이션(MotionMatching V2 액션 블렌딩, 🟣)·HUD 다듬기·스킬1~2·아이템 최소·사운드(8.*)
 - [ ] 장비/루트/재화/상점/소모품 [3.2~3.8] + 관련 UI [7.2~7.8]
 - [ ] 전투 보조(회피·CC·타겟팅·Co-op 부활) [2.6·2.5.2]

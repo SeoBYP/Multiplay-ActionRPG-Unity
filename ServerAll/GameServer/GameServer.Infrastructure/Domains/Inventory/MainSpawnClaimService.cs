@@ -1,7 +1,9 @@
 using GameServer.Application.Domains.Inventory;
 using GameServer.Application.Domains.Inventory.Interfaces;
+using GameServer.Application.Domains.Progression.Interfaces;
 using Microsoft.Extensions.Logging;
 using Shared.Infrastructure.Loot;
+using Shared.Infrastructure.Monsters;
 using Shared.Infrastructure.Spawn;
 
 namespace GameServer.Infrastructure.Domains.Inventory;
@@ -19,57 +21,41 @@ public sealed class MainSpawnClaimService : IMainSpawnClaimService
     /// <summary>데이터 누락 방어 — 쿨다운 0(=무한 클레임)을 막기 위한 하한.</summary>
     private const int MinCooldownMs = 1000;
 
-    private const string KeyPrefix = "mainclaim";
+    private const string ItemKeyPrefix = "mainclaim"; // 아이템 줍기 쿨다운
+    private const string ExpKeyPrefix = "mainexp";    // 경험치 킬 쿨다운(아이템과 독립)
 
     private readonly IInventoryService _inventory;
+    private readonly IProgressionService _progression;
     private readonly IClaimCooldownStore _cooldown;
     private readonly ILogger<MainSpawnClaimService> _logger;
 
     public MainSpawnClaimService(
         IInventoryService inventory,
+        IProgressionService progression,
         IClaimCooldownStore cooldown,
         ILogger<MainSpawnClaimService> logger)
     {
         _inventory = inventory;
+        _progression = progression;
         _cooldown = cooldown;
         _logger = logger;
     }
 
     public async Task<MainClaimResult> ClaimKillAsync(long userId, string mapId, int slotId, CancellationToken ct = default)
     {
-        // 1. 슬롯 검증 — 서버가 보유한 map 스폰 데이터에 존재해야(위조 맵/슬롯 거부).
-        MapSpawnLayout layout;
-        try
-        {
-            layout = SpawnLayoutTable.Get(mapId);
-        }
-        catch (KeyNotFoundException)
-        {
-            _logger.LogWarning("ClaimKill rejected: unknown map '{Map}' (user {User})", mapId, userId);
-            return MainClaimResult.Fail($"unknown map '{mapId}'");
-        }
+        var (slot, fail) = ValidateSlot(mapId, slotId, userId, "ClaimKill");
+        if (slot is null)
+            return MainClaimResult.Fail(fail!);
 
-        var slot = layout.Monsters.FirstOrDefault(m => m.SlotId == slotId);
-        if (slotId <= 0 || slot is null)
-        {
-            _logger.LogWarning("ClaimKill rejected: invalid slot {Slot} in map '{Map}' (user {User})", slotId, mapId, userId);
-            return MainClaimResult.Fail($"invalid slot {slotId} in map '{mapId}'");
-        }
-
-        // 2. 쿨다운 — 키 없으면 점유(클레임) / 있으면 쿨다운 중(재청구 차단). 원자적(SET NX PX).
-        var cooldown = TimeSpan.FromMilliseconds(Math.Max(slot.RespawnCooldownMs, MinCooldownMs));
-        var key = $"{KeyPrefix}:{userId}:{mapId}:{slotId}";
-        var claimed = await _cooldown.TryClaimAsync(key, cooldown, ct);
-        if (!claimed)
+        // 아이템 쿨다운(줍기) — 키 없으면 점유 / 있으면 재청구 차단. 원자적(SET NX PX).
+        if (!await TryClaimCooldownAsync(ItemKeyPrefix, userId, mapId, slotId, slot.RespawnCooldownMs, ct))
         {
             _logger.LogInformation("ClaimKill on cooldown: user {User} map {Map} slot {Slot}", userId, mapId, slotId);
-            return MainClaimResult.OnCooldown(); // 보상 없음(에러 아님 — 정상 재청구 차단)
+            return MainClaimResult.OnCooldown();
         }
 
-        // 3. 서버 권위 roll — 클라 roll 불신. 같은 DropTableRoll(던전·Main 공유).
+        // 서버 권위 roll(클라 roll 불신, 던전·Main 공유) → 아이템 지급.
         var drops = DropTableCatalog.Roll(slot.MonsterId, Random.Shared);
-
-        // 4. 지급.
         var granted = new List<GrantedItem>();
         foreach (var d in drops)
         {
@@ -80,9 +66,62 @@ public sealed class MainSpawnClaimService : IMainSpawnClaimService
                 _logger.LogWarning("ClaimKill grant failed: {Item} x{Qty} — {Reason}", d.ItemId, d.Qty, g.FailReason);
         }
 
-        _logger.LogInformation(
-            "ClaimKill granted {Count} item(s): user {User} map {Map} slot {Slot} monster {Monster}",
+        _logger.LogInformation("ClaimKill granted {Count} item(s): user {User} map {Map} slot {Slot} monster {Monster}",
             granted.Count, userId, mapId, slotId, slot.MonsterId);
         return MainClaimResult.Ok(granted);
+    }
+
+    public async Task<MainExpClaimResult> ClaimExpAsync(long userId, string mapId, int slotId, CancellationToken ct = default)
+    {
+        var (slot, fail) = ValidateSlot(mapId, slotId, userId, "ClaimMonsterExp");
+        if (slot is null)
+            return MainExpClaimResult.Fail(fail!);
+
+        // exp 쿨다운(킬) — 아이템 줍기와 독립된 키. 죽이면 즉시 청구되며, 줍기 여부와 무관.
+        if (!await TryClaimCooldownAsync(ExpKeyPrefix, userId, mapId, slotId, slot.RespawnCooldownMs, ct))
+        {
+            _logger.LogInformation("ClaimMonsterExp on cooldown: user {User} map {Map} slot {Slot}", userId, mapId, slotId);
+            return MainExpClaimResult.OnCooldown(); // exp 0(에러 아님)
+        }
+
+        // 서버 권위 — 몬스터 정의의 ExpReward(클라 신뢰 0). 쿨다운 통과 1회만 적립 = exp 파밍률 상한.
+        long expReward = MonsterCatalog.Get(slot.MonsterId).ExpReward;
+        if (expReward > 0)
+            await _progression.AddExpAsync(userId, expReward, ct);
+
+        _logger.LogInformation("ClaimMonsterExp +{Exp} exp: user {User} map {Map} slot {Slot} monster {Monster}",
+            expReward, userId, mapId, slotId, slot.MonsterId);
+        return MainExpClaimResult.Ok(expReward);
+    }
+
+    /// <summary>슬롯 검증 — 서버가 보유한 map 스폰 데이터에 (mapId,slotId)가 존재해야(위조 거부). 실패 시 사유 반환.</summary>
+    private (MonsterSpawnDef? Slot, string? FailReason) ValidateSlot(string mapId, int slotId, long userId, string op)
+    {
+        MapSpawnLayout layout;
+        try
+        {
+            layout = SpawnLayoutTable.Get(mapId);
+        }
+        catch (KeyNotFoundException)
+        {
+            _logger.LogWarning("{Op} rejected: unknown map '{Map}' (user {User})", op, mapId, userId);
+            return (null, $"unknown map '{mapId}'");
+        }
+
+        var slot = layout.Monsters.FirstOrDefault(m => m.SlotId == slotId);
+        if (slotId <= 0 || slot is null)
+        {
+            _logger.LogWarning("{Op} rejected: invalid slot {Slot} in map '{Map}' (user {User})", op, slotId, mapId, userId);
+            return (null, $"invalid slot {slotId} in map '{mapId}'");
+        }
+        return (slot, null);
+    }
+
+    /// <summary>per-user 쿨다운 점유(SET NX PX). true=점유 성공(클레임 가능) / false=쿨다운 중.</summary>
+    private Task<bool> TryClaimCooldownAsync(string prefix, long userId, string mapId, int slotId, int cooldownMs, CancellationToken ct)
+    {
+        var cooldown = TimeSpan.FromMilliseconds(Math.Max(cooldownMs, MinCooldownMs));
+        var key = $"{prefix}:{userId}:{mapId}:{slotId}";
+        return _cooldown.TryClaimAsync(key, cooldown, ct);
     }
 }

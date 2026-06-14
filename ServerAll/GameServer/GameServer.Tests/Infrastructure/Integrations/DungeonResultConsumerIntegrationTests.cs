@@ -63,11 +63,11 @@ public class DungeonResultConsumerIntegrationTests
         };
     }
 
-    private async Task<long?> GetExpAsync(long userId)
+    private async Task<(int Level, long Exp)?> GetProgAsync(long userId)
     {
         using var ctx = _fixture.CreateDbContext();
         var row = await ctx.UserProgressions.AsNoTracking().SingleOrDefaultAsync(p => p.UserId == userId);
-        return row?.Exp;
+        return row is null ? null : (row.Level, row.Exp);
     }
 
     private static async Task WaitUntilAsync(Func<Task<bool>> condition, CancellationToken ct)
@@ -81,10 +81,10 @@ public class DungeonResultConsumerIntegrationTests
     }
 
     [Fact]
-    public async Task 클리어_소비시_참가자_전원에게_던전Exp를_지급한다()
+    public async Task 클리어_소비시_참가자_전원에게_던전Exp를_지급하고_임계를_넘으면_레벨업한다()
     {
         await using var h = BuildHarness();
-        long expReward = SpawnLayoutTable.Get(MapIds.Dungeon01).ExpReward; // 100
+        long expReward = SpawnLayoutTable.Get(MapIds.Dungeon01).ExpReward; // 100 = Lv1 임계 정확 → Lv2/Exp0
         long u1 = 7001, u2 = 7002;
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -97,10 +97,11 @@ public class DungeonResultConsumerIntegrationTests
             Participants = [u1, u2],
         });
 
-        await WaitUntilAsync(async () => await GetExpAsync(u1) == expReward && await GetExpAsync(u2) == expReward, cts.Token);
+        await WaitUntilAsync(async () => (await GetProgAsync(u1))?.Level == 2 && (await GetProgAsync(u2))?.Level == 2, cts.Token);
 
-        Assert.Equal(expReward, await GetExpAsync(u1));
-        Assert.Equal(expReward, await GetExpAsync(u2));
+        // 던전 보상 Exp 가 실제 레벨업으로 이어져 DB 에 영속됨(경험치→레벨업, 던전 경로).
+        Assert.Equal((2, 0L), await GetProgAsync(u1));
+        Assert.Equal((2, 0L), await GetProgAsync(u2));
 
         await h.Consumer.StopAsync(CancellationToken.None);
     }
@@ -109,7 +110,6 @@ public class DungeonResultConsumerIntegrationTests
     public async Task 같은_RoomId_재전달이면_이중지급하지_않는다()
     {
         await using var h = BuildHarness();
-        long expReward = SpawnLayoutTable.Get(MapIds.Dungeon01).ExpReward;
         long u1 = 7101;
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -117,13 +117,13 @@ public class DungeonResultConsumerIntegrationTests
 
         var msg = new DungeonClearMessage { RoomId = 71001, MapId = MapIds.Dungeon01, Participants = [u1] };
         await h.Queue.EnqueueAsync(msg);
-        await WaitUntilAsync(async () => await GetExpAsync(u1) == expReward, cts.Token);
+        await WaitUntilAsync(async () => (await GetProgAsync(u1))?.Level == 2, cts.Token); // 100 → Lv2/Exp0
 
-        // 동일 RoomId 재전달 — 멱등이라 추가 지급 없어야 함.
+        // 동일 RoomId 재전달 — 멱등이라 추가 지급 없어야 함(이중지급이면 Lv2/Exp100 이 됨).
         await h.Queue.EnqueueAsync(msg);
         await Task.Delay(300, cts.Token); // 처리 기회를 준 뒤
 
-        Assert.Equal(expReward, await GetExpAsync(u1));
+        Assert.Equal((2, 0L), await GetProgAsync(u1));
 
         await h.Consumer.StopAsync(CancellationToken.None);
     }

@@ -13,7 +13,12 @@ service InventoryService {
   // Main 싱글 획득(B-lite 서버 검증). 클라는 "어느 슬롯을 죽였다"만 보고 → 서버가 map 스폰 데이터로
   // 슬롯 검증 + per-user 쿨다운(재청구 차단) + 서버 권위 DropTableRoll → 지급. 보상 내용은 서버가 결정.
   // 구 GrantItem(itemId,qty)을 대체(클라가 보상 임의지정 = 무한파밍 핵 차단). main-spawn-claim.md / authority-model §4b.
+  // 아이템 전용(전리품 오브 줍기 시점). 경험치는 ClaimMonsterExp(킬 즉시) 가 별도 청구.
   rpc ClaimKill(ClaimKillRequest) returns (ClaimKillResponse);
+
+  // Main 킬 경험치(킬 즉시). ClaimKill 과 같은 슬롯 검증 + **별도 per-user 쿨다운**(아이템 줍기와 독립)
+  // → 몬스터 정의 ExpReward 적립(서버 권위). 줍기 여부와 무관하게 죽이면 즉시 exp. 쿨다운으로 exp 파밍도 상한.
+  rpc ClaimMonsterExp(ClaimMonsterExpRequest) returns (ClaimMonsterExpResponse);
 
   // 소모품 사용 시 수량 차감(서버 권위 = 보유/수량 검증). 회복 효과 적용은 클라(GAS) — 서버는 차감만.
   // 보유하지 않거나 수량 부족이면 실패. 3.8 소모품/포션.
@@ -30,6 +35,16 @@ message ClaimKillRequest {
 message ClaimKillResponse {
   gameserver.common.Result result = 1;
   repeated GrantedItem granted = 2;  // 서버가 roll 해 실제 지급한 보상(0개 가능 = 쿨다운/드랍없음)
+}
+
+message ClaimMonsterExpRequest {
+  string map_id = 1;   // 스폰 레이아웃 맵 식별자
+  int32 slot_id = 2;   // 그 맵의 몬스터 슬롯 id(쿨다운 키)
+}
+
+message ClaimMonsterExpResponse {
+  gameserver.common.Result result = 1;
+  int64 exp_gained = 2;  // 이번 킬로 획득한 경험치(서버 권위, 쿨다운 중이면 0). 클라는 "+N exp" 로그.
 }
 
 // ClaimKill 로 실제 지급된 한 항목.

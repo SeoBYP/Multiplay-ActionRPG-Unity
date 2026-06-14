@@ -58,11 +58,11 @@ public class DungeonResultRewardE2ETests
         await _fixture.RedisConnection.GetDatabase().StreamAddAsync(StreamKey, "data", json);
     }
 
-    private async Task<long?> GetExpAsync(long userId)
+    private async Task<(int Level, long Exp)?> GetProgAsync(long userId)
     {
         using var ctx = _fixture.CreateDbContext();
         var row = await ctx.UserProgressions.AsNoTracking().SingleOrDefaultAsync(p => p.UserId == userId);
-        return row?.Exp;
+        return row is null ? null : (row.Level, row.Exp);
     }
 
     private static async Task WaitUntilAsync(Func<Task<bool>> condition, CancellationToken ct)
@@ -76,9 +76,9 @@ public class DungeonResultRewardE2ETests
     }
 
     [Fact]
-    public async Task 클리어_이벤트를_Redis스트림으로_발행하면_참가자_전원_DB에_Exp가_지급된다()
+    public async Task 클리어_이벤트를_Redis스트림으로_발행하면_참가자_전원_Exp지급_및_레벨업이_DB에_영속된다()
     {
-        long expected = SpawnLayoutTable.Get(MapIds.Dungeon01).ExpReward; // 100
+        // dungeon_01 expReward=100 = Lv1 임계 정확 → 신규 유저는 Lv2/Exp0 으로 레벨업(경험치→레벨업, 던전 보상 경로).
         long u1 = 7201, u2 = 7202;
         var consumer = BuildConsumer();
 
@@ -92,10 +92,10 @@ public class DungeonResultRewardE2ETests
             Participants = [u1, u2],
         });
 
-        await WaitUntilAsync(async () => await GetExpAsync(u1) == expected && await GetExpAsync(u2) == expected, cts.Token);
+        await WaitUntilAsync(async () => (await GetProgAsync(u1))?.Level == 2 && (await GetProgAsync(u2))?.Level == 2, cts.Token);
 
-        Assert.Equal(expected, await GetExpAsync(u1));
-        Assert.Equal(expected, await GetExpAsync(u2));
+        Assert.Equal((2, 0L), await GetProgAsync(u1));
+        Assert.Equal((2, 0L), await GetProgAsync(u2));
 
         await consumer.StopAsync(CancellationToken.None);
     }

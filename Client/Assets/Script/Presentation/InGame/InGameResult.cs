@@ -47,6 +47,15 @@ namespace Game.Presentation.InGame
             public BuffsChanged(IReadOnlyList<BuffView> buffs) { Buffs = buffs; }
         }
 
+        /// <summary>진행(레벨/경험치) 변경 (서버 권위 GetProgression 중계, PlayerProgressionHolder).</summary>
+        public sealed class ExpChanged : InGameResult
+        {
+            public readonly int Level;
+            public readonly long Exp;
+            public readonly long ExpToNext;
+            public ExpChanged(int level, long exp, long expToNext) { Level = level; Exp = exp; ExpToNext = expToNext; }
+        }
+
         /// <summary>전원 입장 완료(서버 S_GameStatus InProgress) — 던전 시작 가능.</summary>
         public sealed class DungeonReady : InGameResult
         {

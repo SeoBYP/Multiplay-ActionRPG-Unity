@@ -23,6 +23,9 @@ namespace Game.Presentation.InGame
             if (result is InGameResult.BuffsChanged buffs)
                 return state.WithBuffs(buffs.Buffs);
 
+            if (result is InGameResult.ExpChanged exp)
+                return state.WithExp(exp.Level, exp.Exp, exp.ExpToNext);
+
             if (result is InGameResult.DungeonReady)
                 return state.WithDungeonReady();
 

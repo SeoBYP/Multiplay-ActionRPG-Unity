@@ -1,0 +1,24 @@
+{
+    "monsters": [
+        {
+            "monsterId": "slime",
+            "maxHp": 30,
+            "moveSpeed": 2.0,
+            "aggroRange": 6.0,
+            "attackRange": 1.2,
+            "attackCooldownMs": 1500.0,
+            "attackDamage": 5,
+            "expReward": 20
+        },
+        {
+            "monsterId": "test_brute",
+            "maxHp": 999999,
+            "moveSpeed": 0.0,
+            "aggroRange": 1000.0,
+            "attackRange": 1000.0,
+            "attackCooldownMs": 50.0,
+            "attackDamage": 5,
+            "expReward": 0
+        }
+    ]
+}

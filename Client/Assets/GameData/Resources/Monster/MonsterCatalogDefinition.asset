@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5dac40f8a9fbc44cbf6f6daaadcc7c2, type: 3}
+  m_Name: MonsterCatalogDefinition
+  m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Monster.MonsterCatalogDefinition
+  monsters:
+  - monsterId: slime
+    maxHp: 30
+    moveSpeed: 2
+    aggroRange: 6
+    attackRange: 1.2
+    attackCooldownMs: 1500
+    attackDamage: 5
+    expReward: 20
+  - monsterId: test_brute
+    maxHp: 999999
+    moveSpeed: 0
+    aggroRange: 1000
+    attackRange: 1000
+    attackCooldownMs: 50
+    attackDamage: 5
+    expReward: 0

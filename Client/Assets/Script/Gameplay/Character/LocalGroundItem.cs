@@ -53,6 +53,7 @@ namespace Game.Gameplay.Character
                 if (res.Result.Success)
                 {
                     // 서버가 roll 한 실제 보상(쿨다운이면 빈 목록 = 이미 클레임됨). TODO(7.x): 정식 획득 토스트.
+                    // 경험치는 줍기가 아니라 킬 즉시(MainMonsterSpawner→ClaimMonsterExp)로 별도 지급.
                     foreach (var g in res.Granted)
                         Debug.Log($"[LocalGroundItem] 획득 — {g.ItemId} x{g.Qty} (보유 {g.NewQuantity})");
                     if (res.Granted.Count == 0)

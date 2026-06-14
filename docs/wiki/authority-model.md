@@ -121,6 +121,32 @@ map/spawn 데이터(dungeon + Main) = SO 저작→bake→Shared (데이터 진�
 
 ---
 
+## 4c. 스탯 전파 — GameServer가 "합산 결과"를 메시지로, SocketServer는 DB 직접 접근 안 함 (결정 2026-06-14, 2.4)
+
+**문제**: 던전 전투 데미지를 스탯 기반(서버 권위 재계산)으로 승격하려면(2.4) SocketServer 의 `CombatHandler` 가 플레이어 AttackPower/Defense 를 알아야 한다. 스탯은 GameServer 도메인(progression·장비·버프). **SocketServer 가 어디서 스탯을 얻나?**
+
+**결정 = GameServer 가 합산해 게임시작 메시지로 스냅샷 전달. SocketServer 는 PostgreSQL 직접 접근 안 함(애초에 못 함 — EF/Npgsql 참조 0, Redis만).**
+
+```
+[GameServer]  progression 조회(Cache-Aside: Redis→PostgreSQL) → LevelTable.StatsAt(level)
+              (+미래 장비 modifier + 버프) = 합산 결과
+   └─ GameStartRequestedMessage.PlayerInfo { +AttackPower +Defense +MaxHealth } 적재 발행
+              │ stream:game:start (Redis Stream, 기존 경로 — 필드만 additive 추가)
+              ▼
+[SocketServer] GameStartRequestedConsumer → Room.InitPlayerState → PlayerState 에 스탯 세팅
+              → CombatHandler 가 그 권위 스탯으로 데미지 재계산(DB·계산로직 불필요)
+```
+
+**왜 (탄탄한 근거 2개 — 성능 아님, 초기화 1회뿐이라도 적용):**
+1. **데이터 소유/스키마 결합 회피.** `user_progressions` 스키마·EF·마이그레이션은 GameServer 소유. SocketServer 가 직접 읽으면 그 스키마가 의도 안 한 공개 계약이 되어, GameServer 의 마이그레이션([[character-swap-direction]] 등)이 SocketServer 를 조용히 깬다 = 분산 모놀리식. 추가로 SocketServer 는 **인터넷 노출 엣지 서버**라 DB 자격증명 부여 = 공격면 확대.
+2. **최종 스탯 = 다단계 합산이라 권위가 하나여야 함(결정적 이유).** 스탯 = `f(Level) + 장비 modifier + 버프`. 장비/버프는 GameServer 소유 도메인(Shared 아님, SocketServer 접근 불가). 둘이 따로 계산하면 갈라짐 = 서버 권위가 막으려는 바로 그 문제. → **원칙: 입력(Level·장비·버프)을 넘기지 말고 "계산된 답(최종 AttackPower)"을 넘긴다.** SocketServer 는 *어떻게* 나왔는지 몰라도 권위 숫자만 적용. (기존에 SpawnIndex·MapId 를 메시지로 받지 직접 계산 안 하는 것과 동형.)
+
+**함정(명시)**: 지금은 스탯=레벨뿐이고 `LevelTable`은 Shared.Infrastructure라 SocketServer 도 참조 가능 → "레벨만 넘기면 SocketServer 가 StatsAt 호출" 이 가능해 *보인다*. 하지만 **3.2 장비가 들어오면 깨진다**(장비 modifier 를 SocketServer 가 못 봄). 레벨-only 로 짜고 3.2 에서 재설계하느니 처음부터 "합산 결과 전달". 
+
+**언제는 DB 직접 읽기가 맞나**: 데이터가 SocketServer 소유일 때(자기 런타임 상태). 소유권이 기준 — progression/장비/버프는 GameServer 소유라 해당 안 됨.
+
+---
+
 ## 5. 데미지 숫자(Floating Text) 표시 — context-무관 View + 갈아끼우는 Source
 
 플로팅 텍스트는 **순수 연출(③)** 이라 "숫자 + 위치"만 있으면 된다. 누가 그 숫자를 만들었는지는 몰라도 된다 → **View는 멍청하게(dumb) 두고, 데미지 *이벤트*를 추상화해 Source만 교체**한다.

@@ -20,6 +20,13 @@ public class PlayerState
     public int Hp { get; set; }
     public int MaxHp { get; set; }
 
+    /// <summary>
+    /// 합산 전투 스탯(서버 권위). GameServer 가 게임시작 메시지로 채워 보낸 값(authority-model §4c) —
+    /// SocketServer 는 계산 안 하고 받아서 데미지 산식 입력으로만 쓴다. 0 = 미설정(스탯 보너스 없음).
+    /// </summary>
+    public int AttackPower { get; set; }
+    public int Defense { get; set; }
+
     public bool IsDowned => Hp <= 0;
     
     public float PosX { get; set; }

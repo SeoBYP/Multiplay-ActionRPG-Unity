@@ -160,7 +160,8 @@ namespace Game.Gameplay.Character
         private void AttachLocalCombat()
         {
             if (_localCharacterGo == null) return;
-            _localCharacterGo.AddComponent<LocalCombat>(); // 주입 의존 없음
+            var combat = _localCharacterGo.AddComponent<LocalCombat>();
+            _container.Inject(combat); // PlayerProgressionHolder(스탯) 주입 — 동적 부착이라 수동 주입 필요
             Debug.Log("[CharacterSpawner] LocalCombat 부착 완료 — Main 로컬 전투 활성화");
         }
 

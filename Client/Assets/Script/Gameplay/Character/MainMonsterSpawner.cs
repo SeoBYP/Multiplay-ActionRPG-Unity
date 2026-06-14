@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Gameplay.Spawn;
+using Game.Network.Https.Interfaces;
 using Game.Network.Socket;
+using Game.System.Progression;
+using GameServer.Grpc.Inventory;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -36,24 +39,30 @@ namespace Game.Gameplay.Character
     /// </summary>
     public sealed class MainMonsterSpawner : IAsyncStartable, IDisposable
     {
-        private readonly ISocketSession      _socketSession;
-        private readonly IObjectResolver     _container;
-        private readonly MainMonsterSettings _settings;
-        private readonly SpawnLayoutProvider _spawnLayouts;
+        private readonly ISocketSession        _socketSession;
+        private readonly IObjectResolver       _container;
+        private readonly MainMonsterSettings   _settings;
+        private readonly SpawnLayoutProvider   _spawnLayouts;
+        private readonly IInventoryGrpcService _inventory; // 킬 즉시 경험치 청구(ClaimMonsterExp)
+        private readonly PlayerProgressionHolder _progression; // 킬 후 레벨/Exp 재조회·로그(서버 권위 캐시)
 
         private readonly List<LocalMonster> _monsters = new();
         private readonly CancellationTokenSource _cts = new(); // 재스폰 대기 취소(Dispose)
 
         public MainMonsterSpawner(
-            ISocketSession      socketSession,
-            IObjectResolver     container,
-            MainMonsterSettings settings,
-            SpawnLayoutProvider spawnLayouts)
+            ISocketSession          socketSession,
+            IObjectResolver         container,
+            MainMonsterSettings     settings,
+            SpawnLayoutProvider     spawnLayouts,
+            IInventoryGrpcService   inventory,
+            PlayerProgressionHolder progression)
         {
             _socketSession = socketSession;
             _container     = container;
             _settings      = settings;
             _spawnLayouts  = spawnLayouts;
+            _inventory     = inventory;
+            _progression   = progression;
         }
 
         public UniTask StartAsync(CancellationToken ct)
@@ -103,12 +112,52 @@ namespace Game.Gameplay.Character
             monster.OnDied -= HandleDied;
             _monsters.Remove(monster);
 
-            // 사망 위치에 전리품 오브 1개. 드랍 내용은 줍기 시 서버 ClaimKill 이 결정(클라 roll 없음).
+            // 경험치 = 킬 즉시(서버 권위 ClaimMonsterExp). 줍기와 무관 — 죽이면 바로 적립.
+            ClaimExpAsync(monster.MapId, monster.SlotId).Forget();
+
+            // 사망 위치에 전리품 오브 1개. 아이템 드랍은 줍기 시 서버 ClaimKill 이 결정(클라 roll 없음).
             SpawnGroundItem(monster.MapId, monster.SlotId, monster.transform.position);
             Debug.Log($"[MainMonsterSpawner] 로컬 몬스터 사망 — {monster.MonsterId} (slot {monster.SlotId})");
 
             // 슬롯 쿨다운 후 같은 슬롯에 재스폰(서버 ClaimKill 쿨다운과 동일 값 → 보상도 그때 다시 가능).
             ScheduleRespawn(monster.SlotId).Forget();
+        }
+
+        /// <summary>킬 즉시 경험치 청구(서버 권위). exp 전용 쿨다운으로 파밍 상한. 줍기와 독립.</summary>
+        private async UniTaskVoid ClaimExpAsync(string mapId, int slotId)
+        {
+            if (_inventory == null || slotId <= 0 || string.IsNullOrEmpty(mapId))
+                return;
+            try
+            {
+                var res = await _inventory.ClaimMonsterExpAsync(
+                    new ClaimMonsterExpRequest { MapId = mapId, SlotId = slotId }, _cts.Token);
+                if (res.Result.Success && res.ExpGained > 0)
+                {
+                    Debug.Log($"[MainMonsterSpawner] 경험치 +{res.ExpGained} 획득 — {mapId} slot {slotId}");
+                    // 레벨업 가능 → 서버에서 최신 진행/스탯 재조회(단일 진실). 다음 스윙부터 LocalCombat 이 새 AttackPower 사용.
+                    await _progression.RefreshAsync(_cts.Token);
+                    LogProgression();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // 씬 종료/Dispose — 정상 취소
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[MainMonsterSpawner] 경험치 청구 실패 — {e.Message}");
+            }
+        }
+
+        /// <summary>현재 레벨/Exp 콘솔 로그(서버 GetProgression 캐시 = 단일 진실). 만렙이면 (만렙) 표기.</summary>
+        private void LogProgression()
+        {
+            var p = _progression.Current;
+            string tail = p.IsMaxLevel
+                ? "(만렙)"
+                : $"(다음까지 {Math.Max(0, p.ExpToNext - p.Exp)})";
+            Debug.Log($"[Progression] 현재 Lv {p.Level} · Exp {p.Exp}/{p.ExpToNext} {tail}");
         }
 
         /// <summary>슬롯의 RespawnCooldownMs 후 그 슬롯 몬스터를 다시 스폰한다. Dispose 시 취소.</summary>

@@ -2,6 +2,7 @@ using GameServer.Application.Common;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.Outbox;
+using GameServer.Application.Domains.Progression.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
 using GameServer.Domain.Entities.Outbox;
@@ -18,6 +19,7 @@ public class DungeonLobbyService(
     IUserSessionRepository userSessionRepository,
     IChatSubscriptionService chatSubscriptionService,
     IUserProfileRepository userProfileRepository,
+    IProgressionService progressionService,
     ILogger<DungeonLobbyService> logger) : IDungeonLobbyService
 {
     public async Task<Result<DungeonRoom>> CreateDungeonRoomAsync(string sessionId, string roomName, int maxPlayers, CancellationToken ct = default)
@@ -244,11 +246,16 @@ public class DungeonLobbyService(
             {
                 var player = players[i];
                 var profile = await userProfileRepository.GetByIdAsync(player.UserId, ct);
+                // 합산 전투 스탯(서버 권위)을 계산해 메시지에 적재 — SocketServer 는 DB 접근 없이 이 결과를 쓴다(§4c).
+                var stats = await progressionService.GetStatsAsync(player.UserId, ct);
                 playerInfos.Add(new PlayerInfo
                 {
                     UserId = player.UserId,
                     Nickname = profile?.NickName ?? $"Player_{player.UserId}",
-                    SpawnIndex = i
+                    SpawnIndex = i,
+                    MaxHealth = stats.MaxHealth,
+                    AttackPower = stats.AttackPower,
+                    Defense = stats.Defense,
                 });
             }
 

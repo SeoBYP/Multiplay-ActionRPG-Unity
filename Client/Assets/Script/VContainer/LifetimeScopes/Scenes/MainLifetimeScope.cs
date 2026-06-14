@@ -5,7 +5,9 @@ using Game.GUI.OutGame;
 using Game.Installers.Scenes.Startup;
 using Game.Presentation.InGame;
 using Game.Presentation.Inventory;
+using Game.Presentation.Progression;
 using Game.System.Player;
+using Game.System.Progression;
 using Script.System.GamePlayAbilitySystem;
 using UnityEngine;
 using VContainer;
@@ -58,6 +60,13 @@ namespace Game.Installers.Scenes
                                      ?? ScriptableObject.CreateInstance<ItemDisplayCatalog>());
             builder.Register<InventoryModel>(Lifetime.Scoped).AsSelf();
             builder.RegisterEntryPoint<InventoryViewController>(Lifetime.Scoped);
+
+            // 진행/스탯창(7.3) MVI — 서버 권위 pull(GetProgression). View(스탯창)는 Model만 주입받는다.
+            builder.Register<ProgressionModel>(Lifetime.Scoped).AsSelf();
+
+            // Main 클라 스탯 홀더 — GetProgression 캐시(로그인 시 StartAsync, 킬 시 MainMonsterSpawner 가 Refresh).
+            // LocalCombat(데미지=AttackPower)·킬 후 레벨/Exp 로그가 동기 읽기. 진실원=서버. 던전 미등록(서버 권위).
+            builder.RegisterEntryPoint<PlayerProgressionHolder>(Lifetime.Scoped).AsSelf();
 
             // 소모품(3.8) — 효과 데이터(클라 SO) + Side Effect 핸들러(OnConsumableUsed→GAS). 미존재 시 빈 SO 폴백.
             builder.RegisterInstance(Resources.Load<ConsumableCatalog>("ConsumableCatalog")

@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using Game.Network.Socket;
 using Game.Network.Socket.Packets;
 using Game.System.Player;
+using Game.System.Progression;
 using R3;
 using Script.System.GamePlayAbilitySystem;
 using UnityEngine;
@@ -30,6 +31,7 @@ namespace Game.Presentation.InGame
         private readonly GameplayEffectCatalog _effectCatalog;
         private readonly EffectIconCatalog _iconCatalog;
         private readonly ISocketPacketState _packetState;
+        private readonly PlayerProgressionHolder _progression; // 레벨/Exp 중계(없으면 exp 게이지 미갱신)
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
         private readonly ReactiveProperty<InGameState> _state
@@ -50,13 +52,15 @@ namespace Game.Presentation.InGame
             LocalPlayerContext localPlayer,
             GameplayEffectCatalog effectCatalog = null,
             EffectIconCatalog iconCatalog = null,
-            ISocketPacketState packetState = null)
+            ISocketPacketState packetState = null,
+            PlayerProgressionHolder progression = null)
         {
             _socketSession = socketSession;
             _localPlayer   = localPlayer;
             _effectCatalog = effectCatalog;
             _iconCatalog   = iconCatalog;
             _packetState   = packetState;
+            _progression   = progression;
         }
 
         public void Initialize()
@@ -73,6 +77,20 @@ namespace Game.Presentation.InGame
                 _packetState.OnDungeonCleared += OnDungeonCleared;
                 _packetState.OnDungeonFailed += OnDungeonFailed;
             }
+
+            // 진행(레벨/Exp) → exp 게이지 중계. holder.StartAsync(IAsyncStartable)는 Initialize 이후 실행되므로
+            // 여기서 먼저 구독하면 로그인 직후 첫 pull 의 OnChanged 를 놓치지 않는다. 현재값도 즉시 1회 반영.
+            if (_progression != null)
+            {
+                _progression.OnChanged += PushProgression;
+                PushProgression();
+            }
+        }
+
+        private void PushProgression()
+        {
+            var p = _progression.Current;
+            Dispatch(new InGameResult.ExpChanged(p.Level, p.Exp, p.ExpToNext));
         }
 
         private void OnDungeonReady()
@@ -259,6 +277,8 @@ namespace Game.Presentation.InGame
                 _packetState.OnDungeonCleared -= OnDungeonCleared;
                 _packetState.OnDungeonFailed -= OnDungeonFailed;
             }
+            if (_progression != null)
+                _progression.OnChanged -= PushProgression;
             if (_asc != null)
             {
                 _asc.OnAttributeChanged -= OnAttributeChanged;

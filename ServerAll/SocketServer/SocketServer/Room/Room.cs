@@ -243,10 +243,13 @@ public class Room
 
     private static readonly List<long> EmptyUserIds = new();
 
-    public void InitPlayerState(long userId, string nickname, int spawnIndex, float spawnX, float spawnY, float spawnZ, float rotY)
+    public void InitPlayerState(long userId, string nickname, int spawnIndex, float spawnX, float spawnY, float spawnZ, float rotY,
+        int attackPower = 0, int defense = 0, int maxHealth = 0)
     {
         lock (_playerStates)
         {
+            // MaxHp = GameServer 가 보낸 스탯(권위). 0(미설정)이면 상수 폴백(테스트·레거시 경로 호환).
+            int hp = maxHealth > 0 ? maxHealth : DefaultMaxHp;
             var playerState = new PlayerState
             {
                 UserId = userId,
@@ -257,9 +260,11 @@ public class Room
                 PosZ = spawnZ,
                 RotY = rotY,
                 LastMovedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                // 서버 권위 HP — 입장 시 만피로 초기화. MaxHp 출처는 후속(Progression/스탯), 지금은 상수.
-                Hp = DefaultMaxHp,
-                MaxHp = DefaultMaxHp,
+                // 서버 권위 HP — 입장 시 만피로 초기화. MaxHp 는 GameServer 합산 스탯(authority-model §4c).
+                Hp = hp,
+                MaxHp = hp,
+                AttackPower = attackPower,
+                Defense = defense,
             };
 
             _playerStates[userId] = playerState;
@@ -305,7 +310,14 @@ public class Room
 
     // ── 몬스터 ───────────────────────────────────────────
 
-    /// <summary>맵 레이아웃의 몬스터 정의로 초기 스폰(wave 0). InstanceId 는 방 단위 순차 발급.</summary>
+    /// <summary>
+    /// 맵 레이아웃의 몬스터 정의로 스폰(wave 0). InstanceId 는 방 단위 순차 발급.
+    ///
+    /// **서버 스폰의 단일 진입점(불변식)** — 모든 스폰 *원인*(현재=던전 시작/`RoomManager`,
+    /// 미래=웨이브 4.1.6·퀘스트 4.4·존 4.6.1·서버 리스폰)은 `_monsters` 에 직접 추가하지 말고
+    /// **반드시 이 메서드를 경유**한다. 원인이 여럿이 되면 이 한 점을 `SpawnSystem`(이벤트 라우터)로
+    /// 감싸 "왜 스폰(원인)"과 "어떻게 스폰(여기)"을 분리한다. 설계·승격 트리거 = docs/wiki/spawn-system-evolution.md.
+    /// </summary>
     public void SpawnMonsters(IReadOnlyList<MonsterSpawnDef> defs, MapBounds bounds)
     {
         lock (_monsters)

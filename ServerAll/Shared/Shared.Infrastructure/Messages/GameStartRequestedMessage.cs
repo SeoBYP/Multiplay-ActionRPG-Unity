@@ -14,4 +14,13 @@ public sealed class PlayerInfo
     public long UserId { get; init; }
     public string Nickname { get; init; } = "";
     public int SpawnIndex { get; init; }
+
+    /// <summary>
+    /// 합산 전투 스탯(서버 권위) — GameServer 가 게임시작 시 progression+레벨테이블로 계산해 채운다.
+    /// SocketServer 는 DB 접근 없이 이 "계산된 결과"를 PlayerState 에 세팅해 전투에 쓴다(authority-model §4c).
+    /// 기본 0(미설정) — SocketServer 는 0 이면 MaxHealth 를 상수로 폴백.
+    /// </summary>
+    public int MaxHealth { get; init; }
+    public int AttackPower { get; init; }
+    public int Defense { get; init; }
 }

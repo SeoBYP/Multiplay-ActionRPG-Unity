@@ -29,30 +29,38 @@ namespace GameServer.Grpc.Inventory {
             "bGxSZXF1ZXN0Eg4KBm1hcF9pZBgBIAEoCRIPCgdzbG90X2lkGAIgASgFInUK",
             "EUNsYWltS2lsbFJlc3BvbnNlEikKBnJlc3VsdBgBIAEoCzIZLmdhbWVzZXJ2",
             "ZXIuY29tbW9uLlJlc3VsdBI1CgdncmFudGVkGAIgAygLMiQuZ2FtZXNlcnZl",
-            "ci5pbnZlbnRvcnkudjEuR3JhbnRlZEl0ZW0iQQoLR3JhbnRlZEl0ZW0SDwoH",
-            "aXRlbV9pZBgBIAEoCRILCgNxdHkYAiABKAUSFAoMbmV3X3F1YW50aXR5GAMg",
-            "ASgFIjIKEkNvbnN1bWVJdGVtUmVxdWVzdBIPCgdpdGVtX2lkGAEgASgJEgsK",
-            "A3F0eRgCIAEoBSJcChNDb25zdW1lSXRlbVJlc3BvbnNlEikKBnJlc3VsdBgB",
-            "IAEoCzIZLmdhbWVzZXJ2ZXIuY29tbW9uLlJlc3VsdBIaChJyZW1haW5pbmdf",
-            "cXVhbnRpdHkYAiABKAUifAoUR2V0SW52ZW50b3J5UmVzcG9uc2USKQoGcmVz",
-            "dWx0GAEgASgLMhkuZ2FtZXNlcnZlci5jb21tb24uUmVzdWx0EjkKBWl0ZW1z",
-            "GAIgAygLMiouZ2FtZXNlcnZlci5pbnZlbnRvcnkudjEuSW52ZW50b3J5SXRl",
-            "bUluZm8iNgoRSW52ZW50b3J5SXRlbUluZm8SDwoHaXRlbV9pZBgBIAEoCRIQ",
-            "CghxdWFudGl0eRgCIAEoBTLNAgoQSW52ZW50b3J5U2VydmljZRJrCgxHZXRJ",
-            "bnZlbnRvcnkSLC5nYW1lc2VydmVyLmludmVudG9yeS52MS5HZXRJbnZlbnRv",
-            "cnlSZXF1ZXN0Gi0uZ2FtZXNlcnZlci5pbnZlbnRvcnkudjEuR2V0SW52ZW50",
-            "b3J5UmVzcG9uc2USYgoJQ2xhaW1LaWxsEikuZ2FtZXNlcnZlci5pbnZlbnRv",
-            "cnkudjEuQ2xhaW1LaWxsUmVxdWVzdBoqLmdhbWVzZXJ2ZXIuaW52ZW50b3J5",
-            "LnYxLkNsYWltS2lsbFJlc3BvbnNlEmgKC0NvbnN1bWVJdGVtEisuZ2FtZXNl",
-            "cnZlci5pbnZlbnRvcnkudjEuQ29uc3VtZUl0ZW1SZXF1ZXN0GiwuZ2FtZXNl",
-            "cnZlci5pbnZlbnRvcnkudjEuQ29uc3VtZUl0ZW1SZXNwb25zZUIcqgIZR2Ft",
-            "ZVNlcnZlci5HcnBjLkludmVudG9yeWIGcHJvdG8z"));
+            "ci5pbnZlbnRvcnkudjEuR3JhbnRlZEl0ZW0iOQoWQ2xhaW1Nb25zdGVyRXhw",
+            "UmVxdWVzdBIOCgZtYXBfaWQYASABKAkSDwoHc2xvdF9pZBgCIAEoBSJYChdD",
+            "bGFpbU1vbnN0ZXJFeHBSZXNwb25zZRIpCgZyZXN1bHQYASABKAsyGS5nYW1l",
+            "c2VydmVyLmNvbW1vbi5SZXN1bHQSEgoKZXhwX2dhaW5lZBgCIAEoAyJBCgtH",
+            "cmFudGVkSXRlbRIPCgdpdGVtX2lkGAEgASgJEgsKA3F0eRgCIAEoBRIUCgxu",
+            "ZXdfcXVhbnRpdHkYAyABKAUiMgoSQ29uc3VtZUl0ZW1SZXF1ZXN0Eg8KB2l0",
+            "ZW1faWQYASABKAkSCwoDcXR5GAIgASgFIlwKE0NvbnN1bWVJdGVtUmVzcG9u",
+            "c2USKQoGcmVzdWx0GAEgASgLMhkuZ2FtZXNlcnZlci5jb21tb24uUmVzdWx0",
+            "EhoKEnJlbWFpbmluZ19xdWFudGl0eRgCIAEoBSJ8ChRHZXRJbnZlbnRvcnlS",
+            "ZXNwb25zZRIpCgZyZXN1bHQYASABKAsyGS5nYW1lc2VydmVyLmNvbW1vbi5S",
+            "ZXN1bHQSOQoFaXRlbXMYAiADKAsyKi5nYW1lc2VydmVyLmludmVudG9yeS52",
+            "MS5JbnZlbnRvcnlJdGVtSW5mbyI2ChFJbnZlbnRvcnlJdGVtSW5mbxIPCgdp",
+            "dGVtX2lkGAEgASgJEhAKCHF1YW50aXR5GAIgASgFMsMDChBJbnZlbnRvcnlT",
+            "ZXJ2aWNlEmsKDEdldEludmVudG9yeRIsLmdhbWVzZXJ2ZXIuaW52ZW50b3J5",
+            "LnYxLkdldEludmVudG9yeVJlcXVlc3QaLS5nYW1lc2VydmVyLmludmVudG9y",
+            "eS52MS5HZXRJbnZlbnRvcnlSZXNwb25zZRJiCglDbGFpbUtpbGwSKS5nYW1l",
+            "c2VydmVyLmludmVudG9yeS52MS5DbGFpbUtpbGxSZXF1ZXN0GiouZ2FtZXNl",
+            "cnZlci5pbnZlbnRvcnkudjEuQ2xhaW1LaWxsUmVzcG9uc2USdAoPQ2xhaW1N",
+            "b25zdGVyRXhwEi8uZ2FtZXNlcnZlci5pbnZlbnRvcnkudjEuQ2xhaW1Nb25z",
+            "dGVyRXhwUmVxdWVzdBowLmdhbWVzZXJ2ZXIuaW52ZW50b3J5LnYxLkNsYWlt",
+            "TW9uc3RlckV4cFJlc3BvbnNlEmgKC0NvbnN1bWVJdGVtEisuZ2FtZXNlcnZl",
+            "ci5pbnZlbnRvcnkudjEuQ29uc3VtZUl0ZW1SZXF1ZXN0GiwuZ2FtZXNlcnZl",
+            "ci5pbnZlbnRvcnkudjEuQ29uc3VtZUl0ZW1SZXNwb25zZUIcqgIZR2FtZVNl",
+            "cnZlci5HcnBjLkludmVudG9yeWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::GameServer.Grpc.Common.CommonReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Inventory.GetInventoryRequest), global::GameServer.Grpc.Inventory.GetInventoryRequest.Parser, null, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Inventory.ClaimKillRequest), global::GameServer.Grpc.Inventory.ClaimKillRequest.Parser, new[]{ "MapId", "SlotId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Inventory.ClaimKillResponse), global::GameServer.Grpc.Inventory.ClaimKillResponse.Parser, new[]{ "Result", "Granted" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Inventory.ClaimMonsterExpRequest), global::GameServer.Grpc.Inventory.ClaimMonsterExpRequest.Parser, new[]{ "MapId", "SlotId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Inventory.ClaimMonsterExpResponse), global::GameServer.Grpc.Inventory.ClaimMonsterExpResponse.Parser, new[]{ "Result", "ExpGained" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Inventory.GrantedItem), global::GameServer.Grpc.Inventory.GrantedItem.Parser, new[]{ "ItemId", "Qty", "NewQuantity" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Inventory.ConsumeItemRequest), global::GameServer.Grpc.Inventory.ConsumeItemRequest.Parser, new[]{ "ItemId", "Qty" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.Inventory.ConsumeItemResponse), global::GameServer.Grpc.Inventory.ConsumeItemResponse.Parser, new[]{ "Result", "RemainingQuantity" }, null, null, null, null),
@@ -702,6 +710,494 @@ namespace GameServer.Grpc.Inventory {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class ClaimMonsterExpRequest : pb::IMessage<ClaimMonsterExpRequest>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<ClaimMonsterExpRequest> _parser = new pb::MessageParser<ClaimMonsterExpRequest>(() => new ClaimMonsterExpRequest());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<ClaimMonsterExpRequest> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[3]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ClaimMonsterExpRequest() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ClaimMonsterExpRequest(ClaimMonsterExpRequest other) : this() {
+      mapId_ = other.mapId_;
+      slotId_ = other.slotId_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ClaimMonsterExpRequest Clone() {
+      return new ClaimMonsterExpRequest(this);
+    }
+
+    /// <summary>Field number for the "map_id" field.</summary>
+    public const int MapIdFieldNumber = 1;
+    private string mapId_ = "";
+    /// <summary>
+    /// 스폰 레이아웃 맵 식별자
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string MapId {
+      get { return mapId_; }
+      set {
+        mapId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "slot_id" field.</summary>
+    public const int SlotIdFieldNumber = 2;
+    private int slotId_;
+    /// <summary>
+    /// 그 맵의 몬스터 슬롯 id(쿨다운 키)
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int SlotId {
+      get { return slotId_; }
+      set {
+        slotId_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as ClaimMonsterExpRequest);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(ClaimMonsterExpRequest other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (MapId != other.MapId) return false;
+      if (SlotId != other.SlotId) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (MapId.Length != 0) hash ^= MapId.GetHashCode();
+      if (SlotId != 0) hash ^= SlotId.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (MapId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(MapId);
+      }
+      if (SlotId != 0) {
+        output.WriteRawTag(16);
+        output.WriteInt32(SlotId);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (MapId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(MapId);
+      }
+      if (SlotId != 0) {
+        output.WriteRawTag(16);
+        output.WriteInt32(SlotId);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (MapId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(MapId);
+      }
+      if (SlotId != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(SlotId);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(ClaimMonsterExpRequest other) {
+      if (other == null) {
+        return;
+      }
+      if (other.MapId.Length != 0) {
+        MapId = other.MapId;
+      }
+      if (other.SlotId != 0) {
+        SlotId = other.SlotId;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            MapId = input.ReadString();
+            break;
+          }
+          case 16: {
+            SlotId = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            MapId = input.ReadString();
+            break;
+          }
+          case 16: {
+            SlotId = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class ClaimMonsterExpResponse : pb::IMessage<ClaimMonsterExpResponse>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<ClaimMonsterExpResponse> _parser = new pb::MessageParser<ClaimMonsterExpResponse>(() => new ClaimMonsterExpResponse());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<ClaimMonsterExpResponse> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[4]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ClaimMonsterExpResponse() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ClaimMonsterExpResponse(ClaimMonsterExpResponse other) : this() {
+      result_ = other.result_ != null ? other.result_.Clone() : null;
+      expGained_ = other.expGained_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ClaimMonsterExpResponse Clone() {
+      return new ClaimMonsterExpResponse(this);
+    }
+
+    /// <summary>Field number for the "result" field.</summary>
+    public const int ResultFieldNumber = 1;
+    private global::GameServer.Grpc.Common.Result result_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::GameServer.Grpc.Common.Result Result {
+      get { return result_; }
+      set {
+        result_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "exp_gained" field.</summary>
+    public const int ExpGainedFieldNumber = 2;
+    private long expGained_;
+    /// <summary>
+    /// 이번 킬로 획득한 경험치(서버 권위, 쿨다운 중이면 0). 클라는 "+N exp" 로그.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public long ExpGained {
+      get { return expGained_; }
+      set {
+        expGained_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as ClaimMonsterExpResponse);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(ClaimMonsterExpResponse other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (!object.Equals(Result, other.Result)) return false;
+      if (ExpGained != other.ExpGained) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (result_ != null) hash ^= Result.GetHashCode();
+      if (ExpGained != 0L) hash ^= ExpGained.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (result_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Result);
+      }
+      if (ExpGained != 0L) {
+        output.WriteRawTag(16);
+        output.WriteInt64(ExpGained);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (result_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Result);
+      }
+      if (ExpGained != 0L) {
+        output.WriteRawTag(16);
+        output.WriteInt64(ExpGained);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (result_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Result);
+      }
+      if (ExpGained != 0L) {
+        size += 1 + pb::CodedOutputStream.ComputeInt64Size(ExpGained);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(ClaimMonsterExpResponse other) {
+      if (other == null) {
+        return;
+      }
+      if (other.result_ != null) {
+        if (result_ == null) {
+          Result = new global::GameServer.Grpc.Common.Result();
+        }
+        Result.MergeFrom(other.Result);
+      }
+      if (other.ExpGained != 0L) {
+        ExpGained = other.ExpGained;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            if (result_ == null) {
+              Result = new global::GameServer.Grpc.Common.Result();
+            }
+            input.ReadMessage(Result);
+            break;
+          }
+          case 16: {
+            ExpGained = input.ReadInt64();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            if (result_ == null) {
+              Result = new global::GameServer.Grpc.Common.Result();
+            }
+            input.ReadMessage(Result);
+            break;
+          }
+          case 16: {
+            ExpGained = input.ReadInt64();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
   /// <summary>
   /// ClaimKill 로 실제 지급된 한 항목.
   /// </summary>
@@ -720,7 +1216,7 @@ namespace GameServer.Grpc.Inventory {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[3]; }
+      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[5]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -998,7 +1494,7 @@ namespace GameServer.Grpc.Inventory {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[4]; }
+      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[6]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1233,7 +1729,7 @@ namespace GameServer.Grpc.Inventory {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[5]; }
+      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[7]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1480,7 +1976,7 @@ namespace GameServer.Grpc.Inventory {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[6]; }
+      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[8]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1716,7 +2212,7 @@ namespace GameServer.Grpc.Inventory {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[7]; }
+      get { return global::GameServer.Grpc.Inventory.InventoryReflection.Descriptor.MessageTypes[9]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

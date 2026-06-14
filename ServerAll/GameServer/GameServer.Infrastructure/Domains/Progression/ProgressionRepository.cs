@@ -56,12 +56,12 @@ public class ProgressionRepository(
             if (progression is null)
             {
                 progression = UserProgression.Create(userId);
-                progression.AddExp(amount);
+                progression.AddExp(amount, LevelTableCurve.Instance);
                 await context.UserProgressions.AddAsync(progression, ct);
             }
             else
             {
-                progression.AddExp(amount);
+                progression.AddExp(amount, LevelTableCurve.Instance);
             }
 
             await context.SaveChangesAsync(ct);

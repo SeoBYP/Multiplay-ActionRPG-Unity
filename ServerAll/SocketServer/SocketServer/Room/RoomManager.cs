@@ -53,7 +53,8 @@ public class RoomManager
             var spawn = SpawnResolver.Resolve(layout, playerInfo.SpawnIndex);
             room.InitPlayerState(
                 playerInfo.UserId, playerInfo.Nickname, playerInfo.SpawnIndex,
-                spawn.X, spawn.Y, spawn.Z, spawn.RotY);
+                spawn.X, spawn.Y, spawn.Z, spawn.RotY,
+                playerInfo.AttackPower, playerInfo.Defense, playerInfo.MaxHealth);
         }
 
         // 몬스터 초기 스폰(서버 권위) — 맵 경계도 함께 보관(이동 clamp 기준).

@@ -2,6 +2,8 @@ using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.Outbox;
+using GameServer.Application.Domains.Progression;
+using GameServer.Application.Domains.Progression.Interfaces;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Infrastructure.Common.Consumer;
 using GameServer.Tests.Infrastructure.Fakes.MessageQueue;
@@ -50,6 +52,8 @@ public class RoomLifecycleConsumerIntegrationTests
         services.AddSingleton(Mock.Of<IDungeonLobbySubscriptionService>());
         services.AddSingleton(Mock.Of<IOutboxRepository>());
         services.AddSingleton<IMessageQueue<PlayerLeftRoomMessage>>(queue);
+        services.AddSingleton<IProgressionRepository>(new FakeProgressionRepository());
+        services.AddScoped<IProgressionService, ProgressionService>();
         services.AddScoped<IDungeonLobbyService, DungeonLobbyService>();
         services.AddSingleton<RoomLifecycleConsumer>();
 

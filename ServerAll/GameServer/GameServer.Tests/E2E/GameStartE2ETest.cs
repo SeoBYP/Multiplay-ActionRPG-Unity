@@ -263,6 +263,9 @@ public class GameStartE2ETest
             builder.Services.AddScoped<IAccountService, AccountService>();
             builder.Services.AddScoped<IAuthService, GameServer.Application.Domains.Auth.AuthService>();
             builder.Services.AddSingleton<IUserProfileService, UserProfileService>();
+            // 스탯 전파(2.4): StartGame 이 GetStatsAsync 로 참가자 스탯을 메시지에 채운다. Fake 저장소(신규유저=Lv1 기본).
+            builder.Services.AddSingleton<GameServer.Application.Domains.Progression.Interfaces.IProgressionRepository>(new FakeProgressionRepository());
+            builder.Services.AddScoped<GameServer.Application.Domains.Progression.Interfaces.IProgressionService, GameServer.Application.Domains.Progression.ProgressionService>();
             builder.Services.AddScoped<IDungeonLobbyService, GameServer.Application.Domains.DungeonLobby.DungeonLobbyService>();
 
             builder.Services.AddScoped<AuthInterceptor>();

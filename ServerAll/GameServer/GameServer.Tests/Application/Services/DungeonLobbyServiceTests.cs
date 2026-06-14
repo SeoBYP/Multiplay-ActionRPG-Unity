@@ -1,8 +1,10 @@
+using System.Text.Json;
 using GameServer.Application.Common;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.Outbox;
+using GameServer.Application.Domains.Progression;
 using GameServer.Domain.Entities;
 using GameServer.Domain.Entities.Outbox;
 using GameServer.Tests.Infrastructure.Fakes.Repositories;
@@ -22,6 +24,8 @@ public class DungeonLobbyServiceTests
     private readonly Mock<IChatSubscriptionService> _mockChatSubscriptionService = new();
     private readonly Mock<IDungeonLobbySubscriptionService> _mockDungeonLobbySubscriptionService = new();
     private readonly Mock<IOutboxRepository> _mockOutboxRepository = new();
+    // 실제 ProgressionService(Fake 저장소) — StartGame 이 GetStatsAsync 로 레벨 스탯을 메시지에 채운다(Lv1 기본).
+    private readonly ProgressionService _progressionService = new(new FakeProgressionRepository());
     private readonly DungeonLobbyService _service;
 
     public DungeonLobbyServiceTests()
@@ -34,6 +38,7 @@ public class DungeonLobbyServiceTests
             _sessionRepository,
             _mockChatSubscriptionService.Object,
             _userProfileRepository,
+            _progressionService,
             NullLogger<DungeonLobbyService>.Instance);
     }
 
@@ -436,6 +441,7 @@ public class DungeonLobbyServiceTests
             _sessionRepository,
             _mockChatSubscriptionService.Object,
             _userProfileRepository,
+            _progressionService,
             NullLogger<DungeonLobbyService>.Instance);
 
         var result = await service.RemovePlayerFromRoomAsync(999999L, 1);
@@ -482,5 +488,36 @@ public class DungeonLobbyServiceTests
         // Assert
         Assert.True(result.IsSuccess);
         Assert.True(_roomRepository.InvalidateCacheCallCount > callCountAfterFirst); // 재시도에서도 캐시 무효화
+    }
+
+    // ── 스탯 전파(2.4): StartGame 메시지에 참가자의 레벨 스탯이 실린다 ──
+    // GameServer 가 progression+레벨테이블로 합산한 스탯을 GameStartRequestedMessage 에 적재해야
+    // SocketServer 가 DB 접근 없이 그 값으로 전투한다(authority-model §4c).
+
+    [Fact]
+    public async Task StartGame_메시지에_참가자의_레벨업된_스탯이_실린다()
+    {
+        var hostSession = await _sessionRepository.CreateSessionAsync(1);
+        var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4);
+        var roomId = created.Value!.RoomId;
+
+        // 호스트(userId=1)를 Lv2 로 만든다(Lv1 임계 100 초과) → 스탯이 Lv2 테이블값으로 올라야 함.
+        await _progressionService.AddExpAsync(1, 120);
+
+        OutboxMessage? captured = null;
+        _mockOutboxRepository
+            .Setup(r => r.AddWithRoomUpdateAsync(It.IsAny<DungeonRoom>(), It.IsAny<OutboxMessage>(), It.IsAny<CancellationToken>()))
+            .Callback<DungeonRoom, OutboxMessage, CancellationToken>((_, m, _) => captured = m)
+            .Returns(Task.CompletedTask);
+
+        var result = await _service.StartGameAsync(hostSession.SessionId, roomId, "trace");
+
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(captured);
+        var message = JsonSerializer.Deserialize<GameStartRequestedMessage>(captured!.Payload)!;
+        var host = message.PlayerInfos.Single(p => p.UserId == 1);
+        Assert.Equal(120, host.MaxHealth);  // Lv2: 100 + 1*20
+        Assert.Equal(13, host.AttackPower); // Lv2: 10 + 1*3
+        Assert.Equal(7, host.Defense);      // Lv2: 5  + 1*2
     }
 }

@@ -45,13 +45,27 @@ public class UserProgression
             UpdatedAt = updatedAt,
         };
 
-    /// <summary>경험치를 누적 적립한다. 0 이하는 무시. 레벨업 산식은 후속(M5).</summary>
-    public void AddExp(long amount)
+    /// <summary>
+    /// 경험치를 누적 적립하고, 곡선 임계를 넘으면 레벨업한다(remainder 이월). 0 이하는 무시.
+    /// 만렙(<see cref="ILevelCurve.MaxLevel"/>)에 도달하면 레벨업을 멈춘다 — 남은 Exp 는 잔류(만렙 고정).
+    /// 스탯은 저장하지 않는다 — 레벨에서 테이블 룩업으로 항상 파생한다(단일소스).
+    /// </summary>
+    public void AddExp(long amount, ILevelCurve curve)
     {
         if (amount <= 0)
             return;
 
         Exp += amount;
+
+        while (Level < curve.MaxLevel)
+        {
+            long need = curve.ExpToNext(Level);
+            if (Exp < need)
+                break;
+            Exp -= need;
+            Level++;
+        }
+
         UpdatedAt = DateTime.UtcNow;
     }
 }

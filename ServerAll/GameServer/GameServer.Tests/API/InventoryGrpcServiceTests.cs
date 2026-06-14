@@ -50,6 +50,27 @@ public class InventoryGrpcServiceTests
     }
 
     [Fact]
+    public async Task ClaimMonsterExp_성공시_획득_exp를_응답에_매핑한다()
+    {
+        _claim.ExpResult = MainExpClaimResult.Ok(20);
+
+        var res = await _service.ClaimMonsterExp(new ClaimMonsterExpRequest { MapId = "main_field_01", SlotId = 1 }, Authed(1L));
+
+        Assert.True(res.Result.Success);
+        Assert.Equal(20, res.ExpGained);
+        Assert.Equal((1L, "main_field_01", 1), _claim.LastExpCall); // userId(JWT)·요청을 그대로 위임
+    }
+
+    [Fact]
+    public async Task ClaimMonsterExp_미인증은_거부되고_서비스를_호출하지_않는다()
+    {
+        var res = await _service.ClaimMonsterExp(new ClaimMonsterExpRequest { MapId = "main_field_01", SlotId = 1 }, Anonymous());
+
+        Assert.False(res.Result.Success);
+        Assert.Null(_claim.LastExpCall);
+    }
+
+    [Fact]
     public async Task ClaimKill_쿨다운이면_성공이지만_보상이_비어있다()
     {
         _claim.Result = MainClaimResult.OnCooldown();
@@ -146,12 +167,20 @@ public class InventoryGrpcServiceTests
     private sealed class FakeMainSpawnClaimService : IMainSpawnClaimService
     {
         public MainClaimResult Result = MainClaimResult.Ok(Array.Empty<AppGrantedItem>());
+        public MainExpClaimResult ExpResult = MainExpClaimResult.Ok(0);
         public (long userId, string mapId, int slotId)? LastCall;
+        public (long userId, string mapId, int slotId)? LastExpCall;
 
         public Task<MainClaimResult> ClaimKillAsync(long userId, string mapId, int slotId, CancellationToken ct = default)
         {
             LastCall = (userId, mapId, slotId);
             return Task.FromResult(Result);
+        }
+
+        public Task<MainExpClaimResult> ClaimExpAsync(long userId, string mapId, int slotId, CancellationToken ct = default)
+        {
+            LastExpCall = (userId, mapId, slotId);
+            return Task.FromResult(ExpResult);
         }
     }
 

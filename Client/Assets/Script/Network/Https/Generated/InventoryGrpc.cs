@@ -54,6 +54,10 @@ namespace GameServer.Grpc.Inventory {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::GameServer.Grpc.Inventory.ClaimKillResponse> __Marshaller_gameserver_inventory_v1_ClaimKillResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.Inventory.ClaimKillResponse.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::GameServer.Grpc.Inventory.ClaimMonsterExpRequest> __Marshaller_gameserver_inventory_v1_ClaimMonsterExpRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.Inventory.ClaimMonsterExpRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::GameServer.Grpc.Inventory.ClaimMonsterExpResponse> __Marshaller_gameserver_inventory_v1_ClaimMonsterExpResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.Inventory.ClaimMonsterExpResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::GameServer.Grpc.Inventory.ConsumeItemRequest> __Marshaller_gameserver_inventory_v1_ConsumeItemRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.Inventory.ConsumeItemRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::GameServer.Grpc.Inventory.ConsumeItemResponse> __Marshaller_gameserver_inventory_v1_ConsumeItemResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.Inventory.ConsumeItemResponse.Parser));
@@ -73,6 +77,14 @@ namespace GameServer.Grpc.Inventory {
         "ClaimKill",
         __Marshaller_gameserver_inventory_v1_ClaimKillRequest,
         __Marshaller_gameserver_inventory_v1_ClaimKillResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::GameServer.Grpc.Inventory.ClaimMonsterExpRequest, global::GameServer.Grpc.Inventory.ClaimMonsterExpResponse> __Method_ClaimMonsterExp = new grpc::Method<global::GameServer.Grpc.Inventory.ClaimMonsterExpRequest, global::GameServer.Grpc.Inventory.ClaimMonsterExpResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "ClaimMonsterExp",
+        __Marshaller_gameserver_inventory_v1_ClaimMonsterExpRequest,
+        __Marshaller_gameserver_inventory_v1_ClaimMonsterExpResponse);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::GameServer.Grpc.Inventory.ConsumeItemRequest, global::GameServer.Grpc.Inventory.ConsumeItemResponse> __Method_ConsumeItem = new grpc::Method<global::GameServer.Grpc.Inventory.ConsumeItemRequest, global::GameServer.Grpc.Inventory.ConsumeItemResponse>(
@@ -108,12 +120,26 @@ namespace GameServer.Grpc.Inventory {
       /// Main 싱글 획득(B-lite 서버 검증). 클라는 "어느 슬롯을 죽였다"만 보고 → 서버가 map 스폰 데이터로
       /// 슬롯 검증 + per-user 쿨다운(재청구 차단) + 서버 권위 DropTableRoll → 지급. 보상 내용은 서버가 결정.
       /// 구 GrantItem(itemId,qty)을 대체(클라가 보상 임의지정 = 무한파밍 핵 차단). main-spawn-claim.md / authority-model §4b.
+      /// 아이템 전용(전리품 오브 줍기 시점). 경험치는 ClaimMonsterExp(킬 즉시) 가 별도 청구.
       /// </summary>
       /// <param name="request">The request received from the client.</param>
       /// <param name="context">The context of the server-side call handler being invoked.</param>
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::GameServer.Grpc.Inventory.ClaimKillResponse> ClaimKill(global::GameServer.Grpc.Inventory.ClaimKillRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// Main 킬 경험치(킬 즉시). ClaimKill 과 같은 슬롯 검증 + **별도 per-user 쿨다운**(아이템 줍기와 독립)
+      /// → 몬스터 정의 ExpReward 적립(서버 권위). 줍기 여부와 무관하게 죽이면 즉시 exp. 쿨다운으로 exp 파밍도 상한.
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::GameServer.Grpc.Inventory.ClaimMonsterExpResponse> ClaimMonsterExp(global::GameServer.Grpc.Inventory.ClaimMonsterExpRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -212,6 +238,7 @@ namespace GameServer.Grpc.Inventory {
       /// Main 싱글 획득(B-lite 서버 검증). 클라는 "어느 슬롯을 죽였다"만 보고 → 서버가 map 스폰 데이터로
       /// 슬롯 검증 + per-user 쿨다운(재청구 차단) + 서버 권위 DropTableRoll → 지급. 보상 내용은 서버가 결정.
       /// 구 GrantItem(itemId,qty)을 대체(클라가 보상 임의지정 = 무한파밍 핵 차단). main-spawn-claim.md / authority-model §4b.
+      /// 아이템 전용(전리품 오브 줍기 시점). 경험치는 ClaimMonsterExp(킬 즉시) 가 별도 청구.
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -227,6 +254,7 @@ namespace GameServer.Grpc.Inventory {
       /// Main 싱글 획득(B-lite 서버 검증). 클라는 "어느 슬롯을 죽였다"만 보고 → 서버가 map 스폰 데이터로
       /// 슬롯 검증 + per-user 쿨다운(재청구 차단) + 서버 권위 DropTableRoll → 지급. 보상 내용은 서버가 결정.
       /// 구 GrantItem(itemId,qty)을 대체(클라가 보상 임의지정 = 무한파밍 핵 차단). main-spawn-claim.md / authority-model §4b.
+      /// 아이템 전용(전리품 오브 줍기 시점). 경험치는 ClaimMonsterExp(킬 즉시) 가 별도 청구.
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
@@ -240,6 +268,7 @@ namespace GameServer.Grpc.Inventory {
       /// Main 싱글 획득(B-lite 서버 검증). 클라는 "어느 슬롯을 죽였다"만 보고 → 서버가 map 스폰 데이터로
       /// 슬롯 검증 + per-user 쿨다운(재청구 차단) + 서버 권위 DropTableRoll → 지급. 보상 내용은 서버가 결정.
       /// 구 GrantItem(itemId,qty)을 대체(클라가 보상 임의지정 = 무한파밍 핵 차단). main-spawn-claim.md / authority-model §4b.
+      /// 아이템 전용(전리품 오브 줍기 시점). 경험치는 ClaimMonsterExp(킬 즉시) 가 별도 청구.
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -255,6 +284,7 @@ namespace GameServer.Grpc.Inventory {
       /// Main 싱글 획득(B-lite 서버 검증). 클라는 "어느 슬롯을 죽였다"만 보고 → 서버가 map 스폰 데이터로
       /// 슬롯 검증 + per-user 쿨다운(재청구 차단) + 서버 권위 DropTableRoll → 지급. 보상 내용은 서버가 결정.
       /// 구 GrantItem(itemId,qty)을 대체(클라가 보상 임의지정 = 무한파밍 핵 차단). main-spawn-claim.md / authority-model §4b.
+      /// 아이템 전용(전리품 오브 줍기 시점). 경험치는 ClaimMonsterExp(킬 즉시) 가 별도 청구.
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
@@ -263,6 +293,58 @@ namespace GameServer.Grpc.Inventory {
       public virtual grpc::AsyncUnaryCall<global::GameServer.Grpc.Inventory.ClaimKillResponse> ClaimKillAsync(global::GameServer.Grpc.Inventory.ClaimKillRequest request, grpc::CallOptions options)
       {
         return CallInvoker.AsyncUnaryCall(__Method_ClaimKill, null, options, request);
+      }
+      /// <summary>
+      /// Main 킬 경험치(킬 즉시). ClaimKill 과 같은 슬롯 검증 + **별도 per-user 쿨다운**(아이템 줍기와 독립)
+      /// → 몬스터 정의 ExpReward 적립(서버 권위). 줍기 여부와 무관하게 죽이면 즉시 exp. 쿨다운으로 exp 파밍도 상한.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::GameServer.Grpc.Inventory.ClaimMonsterExpResponse ClaimMonsterExp(global::GameServer.Grpc.Inventory.ClaimMonsterExpRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ClaimMonsterExp(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Main 킬 경험치(킬 즉시). ClaimKill 과 같은 슬롯 검증 + **별도 per-user 쿨다운**(아이템 줍기와 독립)
+      /// → 몬스터 정의 ExpReward 적립(서버 권위). 줍기 여부와 무관하게 죽이면 즉시 exp. 쿨다운으로 exp 파밍도 상한.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::GameServer.Grpc.Inventory.ClaimMonsterExpResponse ClaimMonsterExp(global::GameServer.Grpc.Inventory.ClaimMonsterExpRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_ClaimMonsterExp, null, options, request);
+      }
+      /// <summary>
+      /// Main 킬 경험치(킬 즉시). ClaimKill 과 같은 슬롯 검증 + **별도 per-user 쿨다운**(아이템 줍기와 독립)
+      /// → 몬스터 정의 ExpReward 적립(서버 권위). 줍기 여부와 무관하게 죽이면 즉시 exp. 쿨다운으로 exp 파밍도 상한.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::GameServer.Grpc.Inventory.ClaimMonsterExpResponse> ClaimMonsterExpAsync(global::GameServer.Grpc.Inventory.ClaimMonsterExpRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ClaimMonsterExpAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Main 킬 경험치(킬 즉시). ClaimKill 과 같은 슬롯 검증 + **별도 per-user 쿨다운**(아이템 줍기와 독립)
+      /// → 몬스터 정의 ExpReward 적립(서버 권위). 줍기 여부와 무관하게 죽이면 즉시 exp. 쿨다운으로 exp 파밍도 상한.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::GameServer.Grpc.Inventory.ClaimMonsterExpResponse> ClaimMonsterExpAsync(global::GameServer.Grpc.Inventory.ClaimMonsterExpRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_ClaimMonsterExp, null, options, request);
       }
       /// <summary>
       /// 소모품 사용 시 수량 차감(서버 권위 = 보유/수량 검증). 회복 효과 적용은 클라(GAS) — 서버는 차감만.
@@ -332,6 +414,7 @@ namespace GameServer.Grpc.Inventory {
       return grpc::ServerServiceDefinition.CreateBuilder()
           .AddMethod(__Method_GetInventory, serviceImpl.GetInventory)
           .AddMethod(__Method_ClaimKill, serviceImpl.ClaimKill)
+          .AddMethod(__Method_ClaimMonsterExp, serviceImpl.ClaimMonsterExp)
           .AddMethod(__Method_ConsumeItem, serviceImpl.ConsumeItem).Build();
     }
 
@@ -344,6 +427,7 @@ namespace GameServer.Grpc.Inventory {
     {
       serviceBinder.AddMethod(__Method_GetInventory, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::GameServer.Grpc.Inventory.GetInventoryRequest, global::GameServer.Grpc.Inventory.GetInventoryResponse>(serviceImpl.GetInventory));
       serviceBinder.AddMethod(__Method_ClaimKill, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::GameServer.Grpc.Inventory.ClaimKillRequest, global::GameServer.Grpc.Inventory.ClaimKillResponse>(serviceImpl.ClaimKill));
+      serviceBinder.AddMethod(__Method_ClaimMonsterExp, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::GameServer.Grpc.Inventory.ClaimMonsterExpRequest, global::GameServer.Grpc.Inventory.ClaimMonsterExpResponse>(serviceImpl.ClaimMonsterExp));
       serviceBinder.AddMethod(__Method_ConsumeItem, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::GameServer.Grpc.Inventory.ConsumeItemRequest, global::GameServer.Grpc.Inventory.ConsumeItemResponse>(serviceImpl.ConsumeItem));
     }
 

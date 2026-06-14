@@ -3,7 +3,9 @@ using Game.Gameplay.Spawn;
 using Game.GUI.OutGame;
 using Game.Presentation.InGame;
 using Game.Presentation.Inventory;
+using Game.Presentation.Progression;
 using Game.System.Player;
+using Game.System.Progression;
 using Script.System.GamePlayAbilitySystem;
 using UnityEngine;
 using VContainer;
@@ -50,6 +52,13 @@ public class DungeonLifetimeScope : LifetimeScope
               ?? ScriptableObject.CreateInstance<ItemDisplayCatalog>());
         builder.Register<InventoryModel>(Lifetime.Scoped).AsSelf();
         builder.RegisterEntryPoint<InventoryViewController>(Lifetime.Scoped);
+
+        // 진행/스탯창(7.3) MVI — 서버 권위 pull(GetProgression). View(스탯창)는 Model만 주입받는다.
+        builder.Register<ProgressionModel>(Lifetime.Scoped).AsSelf();
+
+        // 진행 캐시 홀더 — HUD exp 게이지용(던전 입장 시 StartAsync로 현재 레벨/Exp 1회 pull, InGameModel이 중계).
+        // 던전 전투 데미지는 서버 권위라 홀더 미사용 — 표시 전용. (Main은 추가로 LocalCombat 데미지에도 사용.)
+        builder.RegisterEntryPoint<PlayerProgressionHolder>(Lifetime.Scoped).AsSelf();
 
         // 소모품(3.8) — 효과 데이터(클라 SO, 토스트/표시용). 미존재 시 빈 SO 폴백.
         builder.RegisterInstance(Resources.Load<ConsumableCatalog>("ConsumableCatalog")

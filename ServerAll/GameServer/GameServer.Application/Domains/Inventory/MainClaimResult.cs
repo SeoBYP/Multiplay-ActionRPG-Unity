@@ -19,3 +19,17 @@ public sealed record MainClaimResult(bool Success, IReadOnlyList<GrantedItem> Gr
 
 /// <summary>ClaimKill 로 실제 지급된 한 항목.</summary>
 public sealed record GrantedItem(string ItemId, int Qty, int NewQuantity);
+
+/// <summary>
+/// Main 킬 경험치 청구(킬 즉시) 결과. ExpGained = 적립된 exp(쿨다운 중이면 0, 에러 아님).
+/// </summary>
+public sealed record MainExpClaimResult(bool Success, long ExpGained, string? FailReason = null)
+{
+    public static MainExpClaimResult Ok(long expGained) => new(true, expGained);
+
+    /// <summary>쿨다운 중(재청구 차단) — 정상 결과, exp 0.</summary>
+    public static MainExpClaimResult OnCooldown() => new(true, 0);
+
+    /// <summary>위조 슬롯/맵 등 — 검증 실패.</summary>
+    public static MainExpClaimResult Fail(string reason) => new(false, 0, reason);
+}

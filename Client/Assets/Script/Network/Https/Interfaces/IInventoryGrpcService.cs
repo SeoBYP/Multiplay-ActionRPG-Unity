@@ -11,6 +11,7 @@ namespace Game.Network.Https.Interfaces
     {
         UniTask<GetInventoryResponse> GetInventoryAsync(GetInventoryRequest request, CancellationToken ct = default);
         UniTask<ClaimKillResponse> ClaimKillAsync(ClaimKillRequest request, CancellationToken ct = default);
+        UniTask<ClaimMonsterExpResponse> ClaimMonsterExpAsync(ClaimMonsterExpRequest request, CancellationToken ct = default);
         UniTask<ConsumeItemResponse> ConsumeItemAsync(ConsumeItemRequest request, CancellationToken ct = default);
     }
 }

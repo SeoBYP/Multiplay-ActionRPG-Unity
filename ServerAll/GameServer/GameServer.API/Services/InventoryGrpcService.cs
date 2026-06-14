@@ -57,13 +57,45 @@ public class InventoryGrpcService(
             };
         }
 
-        // 성공(쿨다운 중이면 granted 비어있음 = 보상 없음, 에러 아님).
+        // 성공(쿨다운 중이면 granted 비어있음 = 보상 없음, 에러 아님). 경험치는 ClaimMonsterExp 가 별도.
         var response = new ClaimKillResponse { Result = Result.Success().ToGrpcResult() };
         foreach (var g in claim.Granted)
             response.Granted.Add(new GrantedItem { ItemId = g.ItemId, Qty = g.Qty, NewQuantity = g.NewQuantity });
 
         logger.LogInformation("ClaimKill succeeded: user {UserId} map {Map} slot {Slot} → {Count} item(s)", userId, request.MapId, request.SlotId, response.Granted.Count);
         return response;
+    }
+
+    /// <summary>
+    /// Main 킬 경험치(킬 즉시) — 슬롯 검증 + exp 전용 쿨다운(아이템 줍기와 독립) → 몬스터 정의 ExpReward 적립.
+    /// 줍기 여부와 무관하게 죽이면 즉시 exp. 쿨다운으로 exp 파밍도 상한.
+    /// </summary>
+    public override async Task<ClaimMonsterExpResponse> ClaimMonsterExp(ClaimMonsterExpRequest request, ServerCallContext context)
+    {
+        var userId = context.GetUserId();
+        if (userId is null)
+        {
+            logger.LogWarning("ClaimMonsterExp rejected because user id was missing");
+            return new ClaimMonsterExpResponse { Result = ResultExtensions.CreateUnauthorizedGrpcResult() };
+        }
+
+        var claim = await mainSpawnClaimService.ClaimExpAsync(userId.Value, request.MapId, request.SlotId, context.CancellationToken);
+        if (!claim.Success)
+        {
+            logger.LogWarning("ClaimMonsterExp rejected for user {UserId} map {Map} slot {Slot}: {Reason}", userId, request.MapId, request.SlotId, claim.FailReason);
+            return new ClaimMonsterExpResponse
+            {
+                Result = Result.Failure(ErrorCodes.InvalidRequest, claim.FailReason ?? "claim failed").ToGrpcResult(),
+            };
+        }
+
+        // 성공(쿨다운 중이면 exp 0). 클라는 ExpGained 로 "+N exp" 로그.
+        logger.LogInformation("ClaimMonsterExp succeeded: user {UserId} map {Map} slot {Slot} → +{Exp} exp", userId, request.MapId, request.SlotId, claim.ExpGained);
+        return new ClaimMonsterExpResponse
+        {
+            Result = Result.Success().ToGrpcResult(),
+            ExpGained = claim.ExpGained,
+        };
     }
 
     public override async Task<ConsumeItemResponse> ConsumeItem(ConsumeItemRequest request, ServerCallContext context)

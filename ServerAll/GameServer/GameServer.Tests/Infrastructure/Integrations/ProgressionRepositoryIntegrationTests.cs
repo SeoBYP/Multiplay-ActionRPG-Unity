@@ -35,15 +35,35 @@ public class ProgressionRepositoryIntegrationTests
         var userId = await CreateUserAsync();
         var repository = CreateRepository();
 
-        var result = await repository.AddExpAsync(userId, 120);
+        // 50 < Lv1 임계(100) → 레벨업 없이 row 생성·적립만 검증.
+        var result = await repository.AddExpAsync(userId, 50);
 
-        Assert.Equal(120L, result.Exp);
+        Assert.Equal(50L, result.Exp);
 
         using var assertContext = _fixture.CreateDbContext();
         var dbRow = await assertContext.UserProgressions.FindAsync(userId);
         Assert.NotNull(dbRow);
-        Assert.Equal(120L, dbRow.Exp);
+        Assert.Equal(50L, dbRow.Exp);
         Assert.Equal(1, dbRow.Level);
+    }
+
+    [Fact]
+    public async Task AddExp_임계를_넘으면_레벨업이_DB에_영속된다()
+    {
+        var userId = await CreateUserAsync();
+        var repository = CreateRepository();
+
+        // Lv1 임계 = level-table.json 의 ExpToNext(1) = 100. 120 → Lv2, remainder 20.
+        var result = await repository.AddExpAsync(userId, 120);
+
+        Assert.Equal(2, result.Level);
+        Assert.Equal(20L, result.Exp);
+
+        using var assertContext = _fixture.CreateDbContext();
+        var dbRow = await assertContext.UserProgressions.FindAsync(userId);
+        Assert.NotNull(dbRow);
+        Assert.Equal(2, dbRow.Level);
+        Assert.Equal(20L, dbRow.Exp);
     }
 
     [Fact]

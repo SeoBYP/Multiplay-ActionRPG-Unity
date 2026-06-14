@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+import "common.proto";
+
+package gameserver.progression.v1;
+
+option csharp_namespace = "GameServer.Grpc.Progression";
+
+service ProgressionService {
+  // 현재 유저(토큰)의 진행(레벨/경험치) + 레벨에서 파생된 base 스탯 조회. userId 는 서버가 JWT 에서 추출.
+  // 스탯은 DB 에 없고 서버가 레벨 테이블에서 룩업해 합성한다(단일소스). 스탯창(7.3) pull 진입점.
+  rpc GetProgression(GetProgressionRequest) returns (GetProgressionResponse);
+}
+
+message GetProgressionRequest {}
+
+message GetProgressionResponse {
+  gameserver.common.Result result = 1;
+  int32 level = 2;
+  int64 exp = 3;
+  int64 exp_to_next = 4;   // 현재 레벨에서 다음 레벨까지 필요한 Exp. 만렙이면 0.
+  int32 max_level = 5;
+  StatBlock stats = 6;     // level 에서 파생된 base 스탯(2.4 스탯합산의 입력)
+}
+
+// 레벨 파생 base 스탯. 장비/버프 합산(2.4)은 이 위에 얹는다.
+message StatBlock {
+  int32 max_health = 1;
+  int32 max_mana = 2;
+  int32 attack_power = 3;
+  int32 defense = 4;
+  int32 strength = 5;
+  int32 dexterity = 6;
+  int32 intelligence = 7;
+}

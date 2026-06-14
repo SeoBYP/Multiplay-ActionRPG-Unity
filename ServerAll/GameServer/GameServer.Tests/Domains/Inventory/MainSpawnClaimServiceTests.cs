@@ -1,4 +1,5 @@
 using GameServer.Application.Domains.Inventory.Interfaces;
+using GameServer.Application.Domains.Progression;
 using GameServer.Infrastructure.Domains.Inventory;
 using GameServer.Tests.Infrastructure.Fakes.Repositories;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -17,12 +18,14 @@ public class MainSpawnClaimServiceTests
 
     private readonly FakeInventoryRepository _repository = new();
     private readonly FakeClaimCooldownStore _cooldown = new();
+    private readonly ProgressionService _progression = new(new FakeProgressionRepository());
     private readonly MainSpawnClaimService _service;
 
     public MainSpawnClaimServiceTests()
     {
         _service = new MainSpawnClaimService(
             new AppInventoryService(_repository),
+            _progression,
             _cooldown,
             NullLogger<MainSpawnClaimService>.Instance);
     }
@@ -54,6 +57,52 @@ public class MainSpawnClaimServiceTests
         Assert.Contains(res.Granted, g => g.ItemId == "potion_hp_small"); // slime 보장 드랍(서버 roll)
         var inv = await _repository.GetAllAsync(1L);
         Assert.Contains(inv, i => i.ItemId == "potion_hp_small" && i.Quantity >= 1);
+    }
+
+    [Fact]
+    public async Task ClaimExp는_유효슬롯이면_킬_즉시_몬스터_exp를_적립한다()
+    {
+        // main_field_01 슬롯 1 = slime, MonsterCatalog slime.ExpReward = 20. 줍기와 무관하게 죽이면 즉시.
+        var res = await _service.ClaimExpAsync(1L, MainMap, slotId: 1);
+
+        Assert.True(res.Success, res.FailReason);
+        Assert.Equal(20, res.ExpGained);
+        var prog = await _progression.GetProgressionAsync(1L);
+        Assert.Equal(20, prog.Exp); // 서버 권위 적립(영속)
+    }
+
+    [Fact]
+    public async Task ClaimExp는_쿨다운_재청구시_exp를_적립하지_않는다()
+    {
+        await _service.ClaimExpAsync(1L, MainMap, slotId: 1); // 1회차 +20
+
+        var second = await _service.ClaimExpAsync(1L, MainMap, slotId: 1); // exp 쿨다운 내 재청구
+
+        Assert.True(second.Success);
+        Assert.Equal(0, second.ExpGained); // exp 파밍도 쿨다운으로 상한
+        var prog = await _progression.GetProgressionAsync(1L);
+        Assert.Equal(20, prog.Exp);        // 누적 20 그대로(이중 적립 없음)
+    }
+
+    [Fact]
+    public async Task ClaimExp와_ClaimKill은_쿨다운이_독립이다()
+    {
+        // exp(킬)와 아이템(줍기)은 별도 쿨다운 → exp 청구가 아이템 줍기를 막지 않는다.
+        var exp = await _service.ClaimExpAsync(1L, MainMap, slotId: 1);
+        var item = await _service.ClaimKillAsync(1L, MainMap, slotId: 1);
+
+        Assert.Equal(20, exp.ExpGained);
+        Assert.NotEmpty(item.Granted); // 같은 슬롯이어도 아이템 줍기는 별개 쿨다운이라 성공
+    }
+
+    [Fact]
+    public async Task ClaimExp는_위조슬롯이면_거부한다()
+    {
+        var res = await _service.ClaimExpAsync(1L, MainMap, slotId: 999);
+
+        Assert.False(res.Success);
+        var prog = await _progression.GetProgressionAsync(1L);
+        Assert.Equal(0, prog.Exp); // 적립 없음
     }
 
     [Fact]

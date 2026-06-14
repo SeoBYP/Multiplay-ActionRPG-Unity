@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using Game.Core;
 using Game.Presentation.InGame;
 using R3;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
@@ -66,6 +67,8 @@ namespace Game.GUI.OutGame
         [Header("Player Status")]
         [SerializeField] private SliderBall hpSlider;
         [SerializeField] private SliderBall mpSlider;
+        [SerializeField] private Slider expSlider;
+        [SerializeField] private TextMeshProUGUI expValue; // {현재 경험치}/{다음 레벨업에 필요한 경험치}
         
         [InspectorButton("Quick Setting")]
         private void QuickSetting()
@@ -86,6 +89,9 @@ namespace Game.GUI.OutGame
             
             hpSlider = this.FindChildComponentByName<SliderBall>("HP_Ball");
             mpSlider = this.FindChildComponentByName<SliderBall>("MP_Ball");
+            
+            expSlider = this.FindChildComponentByName<Slider>("expSlider");
+            expValue = this.FindChildComponentByName<TextMeshProUGUI>("expValue");
         }
         
         private void Start()
@@ -182,6 +188,7 @@ namespace Game.GUI.OutGame
             if (mpSlider != null)
                 mpSlider.SetValue(state.Mp, state.MaxMp);
 
+            RenderExp(state);
             RenderBuffs(state.Buffs);
         }
 
@@ -208,6 +215,21 @@ namespace Game.GUI.OutGame
 
             dungeonClearView.SetReward(rewardExp);
             dungeonClearView.gameObject.SetActive(true);
+        }
+
+        /// <summary>진행(레벨/Exp) → exp 게이지 + 텍스트. 서버 권위 GetProgression 중계값(InGameModel). 만렙이면 MAX.</summary>
+        private void RenderExp(InGameState state)
+        {
+            bool isMax = state.ExpToNext <= 0;
+            if (expSlider != null)
+            {
+                // 표시 전용 게이지 — SetValueWithoutNotify 로 onValueChanged 발동을 막는다.
+                // (값을 받아 텍스트를 쓰는 용도라 콜백 불필요. 프리팹에 잘못 연결된 리스너가 있어도 안전.)
+                float fill = isMax ? 1f : Mathf.Clamp01((float)((double)state.Exp / state.ExpToNext));
+                expSlider.SetValueWithoutNotify(fill);
+            }
+            if (expValue != null)
+                expValue.text = isMax ? "MAX" : $"{state.Exp}/{state.ExpToNext}";
         }
 
         /// <summary>활성 버프 목록을 슬롯 풀에 바인딩. 부족하면 prefab으로 확장, 남으면 숨김.</summary>

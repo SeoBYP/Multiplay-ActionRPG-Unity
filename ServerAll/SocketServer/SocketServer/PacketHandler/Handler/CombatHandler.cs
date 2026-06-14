@@ -103,14 +103,40 @@ public static class CombatHandler
     }
 
     /// <summary>
+    /// 스킬 on-hit 효과의 Health 데미지를 스탯으로 스케일한다(2.4). 순수 — 단위 테스트 대상.
+    /// Health 감소(데미지) 모디파이어만 `StatCombatMath.MeleeDamage(base, attackPower, defense)` 로 재계산하고,
+    /// 그 외 모디파이어(회복·버프 등)는 그대로 둔다.
+    /// </summary>
+    public static List<GameplayAttributeModifier> ScaleDamageByStats(SkillTimeline skill, int attackPower, int defense)
+    {
+        var mods = new List<GameplayAttributeModifier>();
+        foreach (var effectId in skill.OnHitEffectIds)
+        {
+            foreach (var m in CombatEffectCatalog.Resolve(effectId))
+            {
+                if (m.AttributeType == EGameplayAttribute.Health && m.ModifierType == EModifierType.Additive && m.Amount < 0)
+                {
+                    int finalDamage = StatCombatMath.MeleeDamage(-m.Amount, attackPower, defense);
+                    mods.Add(GameplayAttributeModifier.Create(EGameplayAttribute.Health, -finalDamage, EModifierType.Additive));
+                }
+                else
+                {
+                    mods.Add(m);
+                }
+            }
+        }
+        return mods;
+    }
+
+    /// <summary>
     /// 시전자 hitbox 와 겹치는 몬스터에 on-hit 효과를 GAS Health 모디파이어로 적용(서버 권위).
     /// 사망 시 S_MonsterDead, 생존 시 갱신된 HP 를 S_MonsterState 로 즉시 브로드캐스트.
     /// </summary>
     private static void ApplyAttackToMonsters(Session session, global::Server.Room.Room room, SkillTimeline skill, PlayerState attacker)
     {
-        var mods = new List<GameplayAttributeModifier>();
-        foreach (var effectId in skill.OnHitEffectIds)
-            mods.AddRange(CombatEffectCatalog.Resolve(effectId));
+        // 스탯 기반 데미지(2.4): 카탈로그의 Health 감소량을 base 로 보고 attacker.AttackPower 로 스케일.
+        // 몬스터 defense=0(몬스터 방어 스탯은 미도입) — 몬스터→플레이어 Defense 는 증분3.
+        var mods = ScaleDamageByStats(skill, attacker.AttackPower, defense: 0);
         if (mods.Count == 0)
             return;
 

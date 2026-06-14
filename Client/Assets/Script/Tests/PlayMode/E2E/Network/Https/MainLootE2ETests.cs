@@ -2,6 +2,7 @@ using System.Collections;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using GameServer.Grpc.Inventory;
+using GameServer.Grpc.Progression;
 using NUnit.Framework;
 using UnityEngine.TestTools;
 
@@ -60,6 +61,25 @@ namespace Game.Tests.PlayMode.E2E
             var after2 = (await InventoryService.GetInventoryAsync(new GetInventoryRequest(), Timeout()))
                 .Items.First(i => i.ItemId == "potion_hp_small").Quantity;
             Assert.AreEqual(after1, after2, "쿨다운 내 재청구로 수량이 늘면 무한 파밍 가능");
+        });
+
+        [UnityTest]
+        public IEnumerator Main_킬_즉시_ClaimMonsterExp로_경험치가_진행에_반영된다() => UniTask.ToCoroutine(async () =>
+        {
+            await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
+
+            // 킬 즉시 exp 청구(줍기와 독립). slime(MonsterCatalog expReward=20) → 20 < Lv1 임계(100) → Lv1/Exp20.
+            var exp = await InventoryService.ClaimMonsterExpAsync(
+                new ClaimMonsterExpRequest { MapId = MainMap, SlotId = 3 }, Timeout());
+
+            Assert.IsTrue(exp.Result.Success, exp.Result.Message);
+            Assert.AreEqual(20, exp.ExpGained, "ClaimMonsterExp 응답에 획득 exp");
+
+            // 진실원 = 서버 DB (GetProgression).
+            var prog = await ProgressionService.GetProgressionAsync(new GetProgressionRequest(), Timeout());
+            Assert.IsTrue(prog.Result.Success, prog.Result.Message);
+            Assert.AreEqual(1, prog.Level);
+            Assert.AreEqual(20, prog.Exp, "Main 킬 exp 가 진행에 적립되지 않았다");
         });
 
         [UnityTest]

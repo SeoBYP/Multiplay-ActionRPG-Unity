@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using GameServer.Application.Domains.Progression.Interfaces;
 using GameServer.Domain.Entities.User;
+using GameServer.Infrastructure.Domains.Progression;
 
 namespace GameServer.Tests.Infrastructure.Fakes.Repositories;
 
@@ -17,7 +18,7 @@ public class FakeProgressionRepository : IProgressionRepository
     public Task<UserProgression> AddExpAsync(long userId, long amount, CancellationToken ct = default)
     {
         var progression = _store.GetOrAdd(userId, UserProgression.Create);
-        progression.AddExp(amount);
+        progression.AddExp(amount, LevelTableCurve.Instance);
         return Task.FromResult(progression);
     }
 }

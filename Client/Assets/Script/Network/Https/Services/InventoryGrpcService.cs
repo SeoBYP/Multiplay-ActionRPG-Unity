@@ -38,6 +38,13 @@ namespace Game.Network.Https.Services
             return await call.ResponseAsync;
         }
 
+        public async UniTask<ClaimMonsterExpResponse> ClaimMonsterExpAsync(ClaimMonsterExpRequest request, CancellationToken ct = default)
+        {
+            var client = CreateClient();
+            var call = client.ClaimMonsterExpAsync(request, cancellationToken: ct);
+            return await call.ResponseAsync;
+        }
+
         public async UniTask<ConsumeItemResponse> ConsumeItemAsync(ConsumeItemRequest request, CancellationToken ct = default)
         {
             var client = CreateClient();
