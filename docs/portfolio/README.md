@@ -25,6 +25,7 @@ Claude와의 대화를 통해 배운 내용, 틀렸던 부분, 수정 이력을 
 | [챕터 14](./chapter-14-dungeon-clear-loop.md) | 던전 클리어 루프 + Exp 보상 (Interlocked outcome · 멱등 지급 · MVI 결과) | ✅ 기록 완료 |
 | [챕터 15](./chapter-15-loot-drop-inventory.md) | 루트/드랍 + 인벤토리 (roll/grant 책임 분리 · 줍기 서버권위 · 컨테이너/Content 슬롯) | ✅ 기록 완료 |
 | [챕터 16](./chapter-16-main-loot-path.md) | Main 싱글 루트 — 클라 시뮬·렌더 + **서버 검증 B-lite**(GrantItem 파밍 핵 → ClaimKill 슬롯/쿨다운 검증·권위 roll) · 데이터 진실원 교리(SO→bake) · 공유 roll DLL | ✅ 기록 완료 |
+| [챕터 17](./chapter-17-equipment-system.md) | 장비 시스템 — 정의/소유/착용 3분리 · EquipmentType 공통 enum(proto 1:1) · GetStatsAsync 단일 합산 합류 · 착용=표시 필터 + OnChanged 크로스 갱신 · ItemActionPanel 공용화 | ✅ 기록 완료 |
 
 ---
 
