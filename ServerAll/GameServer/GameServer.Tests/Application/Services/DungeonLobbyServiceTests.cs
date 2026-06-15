@@ -25,7 +25,7 @@ public class DungeonLobbyServiceTests
     private readonly Mock<IDungeonLobbySubscriptionService> _mockDungeonLobbySubscriptionService = new();
     private readonly Mock<IOutboxRepository> _mockOutboxRepository = new();
     // 실제 ProgressionService(Fake 저장소) — StartGame 이 GetStatsAsync 로 레벨 스탯을 메시지에 채운다(Lv1 기본).
-    private readonly ProgressionService _progressionService = new(new FakeProgressionRepository());
+    private readonly ProgressionService _progressionService = new(new FakeProgressionRepository(), new Infrastructure.Fakes.Services.FakeEquipmentService());
     private readonly DungeonLobbyService _service;
 
     public DungeonLobbyServiceTests()

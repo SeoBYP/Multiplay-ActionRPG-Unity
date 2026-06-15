@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Game.System.Equipment;
+using Game.System.Input;
 using Game.System.Inventory;
 using R3;
 
@@ -16,6 +18,8 @@ namespace Game.Presentation.Inventory
     public sealed class InventoryModel : IDisposable
     {
         private readonly IInventoryService _service;
+        private readonly IEquipmentService _equipment;
+        private readonly IInputContext _inputContext;
         private readonly ItemDisplayCatalog _catalog;
         private readonly CancellationTokenSource _cts = new();
 
@@ -33,11 +37,25 @@ namespace Game.Presentation.Inventory
         /// <summary>일회성 토스트 메시지(사용/실패) — View 가 표시, 사이클 종료.</summary>
         public Observable<string> OnToast => _onToast;
 
-        public InventoryModel(IInventoryService service, ItemDisplayCatalog catalog = null)
+        public InventoryModel(IInventoryService service, IEquipmentService equipment = null,
+            IInputContext inputContext = null, ItemDisplayCatalog catalog = null)
         {
             _service = service;
+            _equipment = equipment;
+            _inputContext = inputContext;
             _catalog = catalog;
+
+            // 장착/해제 성공 시 인벤토리도 갱신 → 착용분 숨김/복원이 즉시 반영(EquipmentModel 과 동시).
+            if (_equipment != null)
+                _equipment.OnChanged += OnEquipmentChanged;
         }
+
+        private void OnEquipmentChanged() => RefreshAsync().Forget();
+
+        // 창이 열린 동안 게임플레이(Player) 입력 점유 — View의 UiInputCaptureBehaviour가 활성/비활성 시 호출.
+        // 실제 토글은 IInputContext(refcount)가 담당. GUI는 System을 직접 모르고 이 Model 메서드만 넘긴다.
+        public void BeginUiCapture() => _inputContext?.EnterUi();
+        public void EndUiCapture() => _inputContext?.ExitUi();
 
         public void Accept(InventoryIntent intent)
         {
@@ -52,6 +70,34 @@ namespace Game.Presentation.Inventory
                 case InventoryIntent.UseItem use:
                     UseItemAsync(use.ItemId).Forget();
                     break;
+                case InventoryIntent.EquipItem equip:
+                    EquipItemAsync(equip.ItemId).Forget();
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 장비 장착: IEquipmentService.EquipAsync(서버 권위, 슬롯은 서버 결정) → 성공 시 토스트.
+        /// 장비창 갱신은 IEquipmentService.OnChanged 가 EquipmentModel 에 통지(여기서 직접 안 건드림).
+        /// </summary>
+        private async UniTaskVoid EquipItemAsync(string itemId)
+        {
+            if (_equipment == null)
+            {
+                _onToast.OnNext("장비 시스템이 없습니다");
+                return;
+            }
+
+            try
+            {
+                var (result, _) = await _equipment.EquipAsync(itemId, _cts.Token);
+                _onToast.OnNext(result == EquipmentResult.Success
+                    ? $"{DisplayName(itemId)} 장착"
+                    : "장착할 수 없습니다");
+            }
+            catch (OperationCanceledException)
+            {
+                // 창 닫힘/씬 전환 — 정상 취소
             }
         }
 
@@ -83,6 +129,20 @@ namespace Game.Presentation.Inventory
         private string DisplayName(string itemId)
             => (_catalog != null ? _catalog.Get(itemId)?.displayName : null) ?? itemId;
 
+        /// <summary>현재 착용 중인 itemId 집합(없거나 장비 시스템 미주입이면 빈 집합).</summary>
+        private async UniTask<HashSet<string>> GetEquippedIdsAsync()
+        {
+            var ids = new HashSet<string>();
+            if (_equipment == null)
+                return ids;
+
+            var (result, equipped) = await _equipment.GetEquippedAsync(_cts.Token);
+            if (result == EquipmentResult.Success)
+                foreach (var e in equipped)
+                    ids.Add(e.ItemId);
+            return ids;
+        }
+
         private async UniTaskVoid RefreshAsync()
         {
             _state.Value = _state.Value.WithLoading();
@@ -95,9 +155,15 @@ namespace Game.Presentation.Inventory
                     return;
                 }
 
+                // 착용 중인 아이템은 인벤토리 표시에서 제외(장비창에 나타남). 장비=스택1이라 itemId 매칭으로 충분.
+                var equippedIds = await GetEquippedIdsAsync();
+
                 var models = new List<InventoryItemModel>(items.Count);
                 foreach (var data in items)
                 {
+                    if (equippedIds.Contains(data.ItemId))
+                        continue;
+
                     var entry = _catalog != null ? _catalog.Get(data.ItemId) : null;
                     models.Add(new InventoryItemModel(
                         data.ItemId,
@@ -117,6 +183,8 @@ namespace Game.Presentation.Inventory
 
         public void Dispose()
         {
+            if (_equipment != null)
+                _equipment.OnChanged -= OnEquipmentChanged;
             _cts.Cancel();
             _cts.Dispose();
             _state.Dispose();

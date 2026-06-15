@@ -48,6 +48,29 @@ namespace Game.Tests.PlayMode.Inventory
             }
         }
 
+        /// <summary>착용 세트를 미리 세팅한 Fake 장비 서비스(필터링 검증용).</summary>
+        private sealed class FakeEquipmentService : Game.System.Equipment.IEquipmentService
+        {
+            private readonly List<Game.System.Equipment.EquippedItemData> _equipped = new();
+#pragma warning disable CS0067
+            public event Action OnChanged;
+#pragma warning restore CS0067
+            public FakeEquipmentService(params string[] equippedItemIds)
+            {
+                foreach (var id in equippedItemIds)
+                    _equipped.Add(new Game.System.Equipment.EquippedItemData(Shared.Gameplay.Equipment.EquipmentType.Weapon, id));
+            }
+
+            public UniTask<(Game.System.Equipment.EquipmentResult Result, IReadOnlyList<Game.System.Equipment.EquippedItemData> Items)> GetEquippedAsync(CancellationToken ct = default)
+                => UniTask.FromResult((Game.System.Equipment.EquipmentResult.Success, (IReadOnlyList<Game.System.Equipment.EquippedItemData>)_equipped));
+
+            public UniTask<(Game.System.Equipment.EquipmentResult Result, Shared.Gameplay.Equipment.EquipmentType Slot)> EquipAsync(string itemId, CancellationToken ct = default)
+                => UniTask.FromResult((Game.System.Equipment.EquipmentResult.Success, Shared.Gameplay.Equipment.EquipmentType.Weapon));
+
+            public UniTask<Game.System.Equipment.EquipmentResult> UnequipAsync(Shared.Gameplay.Equipment.EquipmentType slot, CancellationToken ct = default)
+                => UniTask.FromResult(Game.System.Equipment.EquipmentResult.Success);
+        }
+
         [UnityTest]
         public IEnumerator Refresh_하면_서비스_아이템이_State에_반영된다() => UniTask.ToCoroutine(async () =>
         {
@@ -71,6 +94,34 @@ namespace Game.Tests.PlayMode.Inventory
             // 카탈로그 없음 → 폴백: 이름=itemId, 분류=Etc.
             Assert.AreEqual("potion_hp_small", latest.Items[0].DisplayName);
             Assert.AreEqual(ItemCategory.Etc, latest.Items[0].Category);
+
+            model.Dispose();
+        });
+
+        [UnityTest]
+        public IEnumerator Refresh_시_착용중인_아이템은_인벤토리에서_제외된다() => UniTask.ToCoroutine(async () =>
+        {
+            // sword_basic 은 장착 중 → 인벤토리 표시에서 제외(장비창에 나타남). potion 만 남는다.
+            var items = new List<InventoryItemData>
+            {
+                new InventoryItemData("potion_hp_small", 3),
+                new InventoryItemData("sword_basic", 1),
+            };
+            var model = new InventoryModel(
+                new FakeInventoryService(InventoryResult.Success, items),
+                new FakeEquipmentService("sword_basic"),
+                inputContext: null, catalog: null);
+
+            InventoryState latest = null;
+            using var sub = model.State.Subscribe(s => latest = s);
+
+            model.Accept(InventoryIntent.Refresh.Instance);
+            await UniTask.Yield();
+            await UniTask.Yield();
+            await UniTask.Yield();
+
+            Assert.AreEqual(1, latest.Items.Count);
+            Assert.AreEqual("potion_hp_small", latest.Items[0].ItemId);
 
             model.Dispose();
         });

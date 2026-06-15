@@ -41,6 +41,10 @@ namespace Game.Presentation.InGame
         private readonly Subject<Unit> _toggleInventory = new Subject<Unit>();
         public Observable<Unit> OnToggleInventory => _toggleInventory;
 
+        // K키가 장비창 단독 토글을 요청하는 신호. EquipmentViewController가 구독.
+        private readonly Subject<Unit> _toggleEquipment = new Subject<Unit>();
+        public Observable<Unit> OnToggleEquipment => _toggleEquipment;
+
         private AbilitySystemComponent _asc;
         private bool _isProcessing;
 
@@ -214,6 +218,12 @@ namespace Game.Presentation.InGame
             if (intent is InGameIntent.ToggleInventory)
             {
                 _toggleInventory.OnNext(Unit.Default);
+                return;
+            }
+
+            if (intent is InGameIntent.ToggleEquipment)
+            {
+                _toggleEquipment.OnNext(Unit.Default);
                 return;
             }
 

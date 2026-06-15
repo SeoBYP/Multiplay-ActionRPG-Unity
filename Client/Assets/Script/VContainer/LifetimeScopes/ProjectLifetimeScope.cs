@@ -29,6 +29,7 @@ namespace Game.Installers
             builder.Install(new DungeonLobbyInstaller());
             builder.Install(new GameSessionInstaller());
             builder.Install(new InventoryInstaller());
+            builder.Install(new EquipmentInstaller());
             builder.Install(new ProgressionInstaller());
 
             builder.Register<IGameSceneManager, GameSceneManager>(Lifetime.Singleton);

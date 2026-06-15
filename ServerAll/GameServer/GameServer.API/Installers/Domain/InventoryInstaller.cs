@@ -1,7 +1,10 @@
+using GameServer.Application.Domains.Equipment;
+using GameServer.Application.Domains.Equipment.Interfaces;
 using GameServer.Application.Domains.Inventory;
 using GameServer.Application.Domains.Inventory.Interfaces;
 using GameServer.Infrastructure.Common.Consumer;
 using GameServer.Infrastructure.Common.MessageQueue;
+using GameServer.Infrastructure.Domains.Equipment;
 using GameServer.Infrastructure.Domains.Inventory;
 using Shared.Infrastructure.MessageQueue;
 using Shared.Infrastructure.Messages;
@@ -17,6 +20,10 @@ public class InventoryInstaller : IServiceInstaller
     {
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IInventoryService, InventoryService>();
+
+        // 장비(3.2): 착용 상태 영속(Cache-Aside) + 장착/해제/스탯합산. 소유는 IInventoryService 위임.
+        services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+        services.AddScoped<IEquipmentService, EquipmentService>();
 
         // Main 획득 서버 검증(B-lite): ClaimKill — 슬롯/쿨다운 검증 + 서버 roll + 지급. main-spawn-claim.md.
         services.AddScoped<IMainSpawnClaimService, MainSpawnClaimService>();

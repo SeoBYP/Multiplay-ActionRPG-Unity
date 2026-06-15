@@ -25,6 +25,54 @@
                     "chance": 0.20000000298023225,
                     "minQty": 1,
                     "maxQty": 3
+                },
+                {
+                    "itemId": "sword_basic",
+                    "chance": 0.30000001192092898,
+                    "minQty": 1,
+                    "maxQty": 1
+                },
+                {
+                    "itemId": "armor_leather",
+                    "chance": 0.30000001192092898,
+                    "minQty": 1,
+                    "maxQty": 1
+                },
+                {
+                    "itemId": "helmet_iron",
+                    "chance": 0.25,
+                    "minQty": 1,
+                    "maxQty": 1
+                },
+                {
+                    "itemId": "boots_leather",
+                    "chance": 0.25,
+                    "minQty": 1,
+                    "maxQty": 1
+                },
+                {
+                    "itemId": "gloves_leather",
+                    "chance": 0.25,
+                    "minQty": 1,
+                    "maxQty": 1
+                },
+                {
+                    "itemId": "shield_wooden",
+                    "chance": 0.20000000298023225,
+                    "minQty": 1,
+                    "maxQty": 1
+                },
+                {
+                    "itemId": "ring_power",
+                    "chance": 0.15000000596046449,
+                    "minQty": 1,
+                    "maxQty": 1
+                },
+                {
+                    "itemId": "necklace_vitality",
+                    "chance": 0.15000000596046449,
+                    "minQty": 1,
+                    "maxQty": 1
                 }
             ]
         }

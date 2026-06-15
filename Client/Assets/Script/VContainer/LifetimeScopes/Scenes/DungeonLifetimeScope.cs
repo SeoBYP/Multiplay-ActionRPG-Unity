@@ -53,6 +53,11 @@ public class DungeonLifetimeScope : LifetimeScope
         builder.Register<InventoryModel>(Lifetime.Scoped).AsSelf();
         builder.RegisterEntryPoint<InventoryViewController>(Lifetime.Scoped);
 
+        // 장비 MVI(3.2/7.2) — Model + 창 컨트롤러. ItemDisplayCatalog는 인벤토리와 공유(위에서 등록).
+        // EquipmentViewController는 InventoryViewController가 쌍 토글로 참조(Show/Hide).
+        builder.Register<Game.Presentation.Equipment.EquipmentModel>(Lifetime.Scoped).AsSelf();
+        builder.RegisterEntryPoint<Game.GUI.OutGame.EquipmentViewController>(Lifetime.Scoped).AsSelf();
+
         // 진행/스탯창(7.3) MVI — 서버 권위 pull(GetProgression). View(스탯창)는 Model만 주입받는다.
         builder.Register<ProgressionModel>(Lifetime.Scoped).AsSelf();
 

@@ -16,6 +16,9 @@ public static class RedisKeys
 
     // Inventory (소유 아이템 — Hash: field=itemId, value=quantity)
     public static string UserInventory(long userId) => $"{Prefix}:user:inventory:{userId}";
+
+    // Equipment (착용 상태 — Hash: field=(int)slot, value=itemId)
+    public static string UserEquipment(long userId) => $"{Prefix}:user:equipment:{userId}";
     
     // UserCredential
     public static string UserCredential(long userId) => $"{Prefix}:user:credential:{userId}";

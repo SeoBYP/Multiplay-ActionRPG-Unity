@@ -25,3 +25,35 @@ MonoBehaviour:
     displayName: "\uACE8\uB4DC \uC8FC\uBA38\uB2C8"
     icon: {fileID: 21300000, guid: d2540639e3c96f141ba2fcccebd3011f, type: 3}
     category: 4
+  - itemId: sword_basic
+    displayName: "\uAE30\uBCF8 \uAC80"
+    icon: {fileID: 21300000, guid: 096b7612cf58371479d83df3c357ba26, type: 3}
+    category: 0
+  - itemId: armor_leather
+    displayName: "\uAC00\uC8FD \uAC11\uC637"
+    icon: {fileID: 21300000, guid: 5236511f86e716d45af9fc52fc6cfa08, type: 3}
+    category: 0
+  - itemId: helmet_iron
+    displayName: "\uCCA0 \uD22C\uAD6C"
+    icon: {fileID: 21300000, guid: 20bc7fb7dc490db4a942c4316689f8a8, type: 3}
+    category: 0
+  - itemId: boots_leather
+    displayName: "\uAC00\uC8FD \uBD80\uCE20"
+    icon: {fileID: 21300000, guid: f40d6d5bf7d0eac47bd135de003008e3, type: 3}
+    category: 0
+  - itemId: gloves_leather
+    displayName: "\uAC00\uC8FD \uC7A5\uAC11"
+    icon: {fileID: 21300000, guid: 703c5ca9cc5560941ade9874770e590f, type: 3}
+    category: 0
+  - itemId: shield_wooden
+    displayName: "\uB098\uBB34 \uBC29\uD328"
+    icon: {fileID: 21300000, guid: cbe2728c62612cf419cf95a3b59dd841, type: 3}
+    category: 0
+  - itemId: ring_power
+    displayName: "\uD798\uC758 \uBC18\uC9C0"
+    icon: {fileID: 21300000, guid: 1782f761a728c1b4ca122487fcf43af0, type: 3}
+    category: 0
+  - itemId: necklace_vitality
+    displayName: "\uD65C\uB825\uC758 \uBAA9\uAC78\uC774"
+    icon: {fileID: 21300000, guid: 94a253c6219cb5841b614e71b6b657fa, type: 3}
+    category: 0

@@ -18,7 +18,7 @@ public class MainSpawnClaimServiceTests
 
     private readonly FakeInventoryRepository _repository = new();
     private readonly FakeClaimCooldownStore _cooldown = new();
-    private readonly ProgressionService _progression = new(new FakeProgressionRepository());
+    private readonly ProgressionService _progression = new(new FakeProgressionRepository(), new Infrastructure.Fakes.Services.FakeEquipmentService());
     private readonly MainSpawnClaimService _service;
 
     public MainSpawnClaimServiceTests()

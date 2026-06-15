@@ -95,6 +95,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d2783c5aba7dce64ebcb73ce6242d1c7
+    m_Address: Assets/Prefabs/GUI/Equipment/Equipment.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ee7d113f24cff8f4193acc91ec6b9ef6
     m_Address: Assets/Prefabs/GUI/Inventory/Inventory.prefab
     m_ReadOnly: 0

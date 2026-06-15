@@ -22,7 +22,9 @@ public class ProgressionGrpcServiceTests
 
     public ProgressionGrpcServiceTests()
     {
-        _service = new ProgressionGrpcService(new AppProgressionService(_repository), NullLogger<ProgressionGrpcService>.Instance);
+        _service = new ProgressionGrpcService(
+            new AppProgressionService(_repository, new Infrastructure.Fakes.Services.FakeEquipmentService()),
+            NullLogger<ProgressionGrpcService>.Instance);
     }
 
     [Fact]

@@ -23,5 +23,12 @@ namespace Game.Presentation.Inventory
             public readonly string ItemId;
             public UseItem(string itemId) { ItemId = itemId; }
         }
+
+        /// <summary>장비 장착(서버 권위). 슬롯은 서버가 결정. 성공 시 토스트 + 장비창 자동 갱신(IEquipmentService.OnChanged).</summary>
+        public sealed class EquipItem : InventoryIntent
+        {
+            public readonly string ItemId;
+            public EquipItem(string itemId) { ItemId = itemId; }
+        }
     }
 }

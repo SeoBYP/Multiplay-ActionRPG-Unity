@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+import "common.proto";
+
+package gameserver.equipment.v1;
+
+option csharp_namespace = "GameServer.Grpc.Equipment";
+
+// 장비 착용(3.2). 소유는 inventory 도메인, 여기선 "무엇을 어느 슬롯에 꼈는지"만.
+// 스탯 반영은 서버 GetStatsAsync 합산(클라에 별도 노출 불필요) — 클라는 착용 표시/장착 의도만.
+service EquipmentService {
+  // 아이템을 장착. 슬롯은 서버가 카탈로그로 결정(클라 지정 불가). 장비 아님/미보유면 실패.
+  rpc Equip(EquipRequest) returns (EquipResponse);
+
+  // 슬롯의 장비를 해제(멱등 — 비어 있어도 성공). 아이템은 인벤토리에 잔존.
+  rpc Unequip(UnequipRequest) returns (UnequipResponse);
+
+  // 현재 착용 세트 조회(슬롯→itemId). 정의는 클라가 itemId 로 자기 카탈로그 룩업.
+  rpc GetEquipment(GetEquipmentRequest) returns (GetEquipmentResponse);
+}
+
+// 장비 슬롯(타입). 공통 Shared.Gameplay.EquipmentType 과 정수값 1:1 대응. 0 = 미지정(proto3 default 가드).
+// 오늘 카탈로그가 채우는 슬롯 = Weapon/Armor. 나머지는 GUI 표시·미래 확장용.
+enum EquipmentType {
+  EQUIPMENT_TYPE_UNSPECIFIED = 0;
+  EQUIPMENT_TYPE_HEADER = 1;
+  EQUIPMENT_TYPE_ARMOR = 2;
+  EQUIPMENT_TYPE_SHOOSE = 3;
+  EQUIPMENT_TYPE_GLOVE = 4;
+  EQUIPMENT_TYPE_SHIELD = 5;
+  EQUIPMENT_TYPE_WEAPON = 6;
+  EQUIPMENT_TYPE_RING = 7;
+  EQUIPMENT_TYPE_NECKLACE = 8;
+}
+
+message EquipRequest {
+  string item_id = 1;  // 슬롯은 서버가 결정
+}
+
+message EquipResponse {
+  gameserver.common.Result result = 1;
+  EquipmentType slot = 2;    // 장착된 슬롯(서버 결정)
+  string item_id = 3;
+}
+
+message UnequipRequest {
+  EquipmentType slot = 1;  // 해제할 슬롯
+}
+
+message UnequipResponse {
+  gameserver.common.Result result = 1;
+  EquipmentType slot = 2;
+}
+
+message GetEquipmentRequest {}
+
+message GetEquipmentResponse {
+  gameserver.common.Result result = 1;
+  repeated EquippedItem items = 2;
+}
+
+// 한 슬롯의 착용 아이템.
+message EquippedItem {
+  EquipmentType slot = 1;
+  string item_id = 2;
+}

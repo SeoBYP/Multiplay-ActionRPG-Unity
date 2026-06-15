@@ -33,6 +33,7 @@ namespace Game.Network.Https
             builder.Register<IChatGrpcService, ChatGrpcService>(Lifetime.Singleton);
             builder.Register<IDungeonLobbyGrpcService, DungeonLobbyGrpcService>(Lifetime.Singleton);
             builder.Register<IInventoryGrpcService, InventoryGrpcService>(Lifetime.Singleton);
+            builder.Register<IEquipmentGrpcService, EquipmentGrpcService>(Lifetime.Singleton);
             builder.Register<IProgressionGrpcService, ProgressionGrpcService>(Lifetime.Singleton);
         }
     }

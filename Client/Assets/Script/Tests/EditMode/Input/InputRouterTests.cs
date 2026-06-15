@@ -35,6 +35,10 @@ namespace Game.Tests.EditMode.Input
             _actions = new PlayerInputActions();
             _router  = new InputRouter(_actions);
             _router.Initialize();
+
+            // InputRouter.Initialize 는 맵을 켜지 않는다(전역 GlobalInputInitializer 가 소유).
+            // 유닛 테스트엔 그 초기화가 없으므로 게임플레이 기본 상태로 직접 Player 맵을 켠다(InputContextTests 와 동일).
+            _actions.Player.Enable();
         }
 
         public override void TearDown()

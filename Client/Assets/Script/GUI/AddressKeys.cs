@@ -13,6 +13,7 @@ namespace Game.GUI
             public const string RoomDetailView   = "Assets/Prefabs/GUI/DungeonLobby/DungeonRoomDetail.prefab";
             public const string GameHud          = "Assets/Prefabs/GUI/HUD/GameHud.prefab";
             public const string Inventory        = "Assets/Prefabs/GUI/Inventory/Inventory.prefab";
+            public const string Equipment        = "Assets/Prefabs/GUI/Equipment/Equipment.prefab";
             public const string ItemActionPanel  = "Assets/Prefabs/GUI/Inventory/ItemActionPanel.prefab";
 
             // 인벤토리 슬롯(동적 생성용 prefab — Addressable 로드).

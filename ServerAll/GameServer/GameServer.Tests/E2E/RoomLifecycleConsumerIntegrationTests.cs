@@ -54,6 +54,8 @@ public class RoomLifecycleConsumerIntegrationTests
         services.AddSingleton<IMessageQueue<PlayerLeftRoomMessage>>(queue);
         services.AddSingleton<IProgressionRepository>(new FakeProgressionRepository());
         services.AddScoped<IProgressionService, ProgressionService>();
+        // 장비 합산(3.2) 의존 — 이 테스트는 장비 무관이라 스텁(0 modifier) 등록.
+        services.AddScoped<GameServer.Application.Domains.Equipment.Interfaces.IEquipmentService, Infrastructure.Fakes.Services.FakeEquipmentService>();
         services.AddScoped<IDungeonLobbyService, DungeonLobbyService>();
         services.AddSingleton<RoomLifecycleConsumer>();
 

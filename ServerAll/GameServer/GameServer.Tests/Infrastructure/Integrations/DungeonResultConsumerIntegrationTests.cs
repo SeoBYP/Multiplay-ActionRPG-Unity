@@ -1,7 +1,13 @@
+using GameServer.Application.Domains.Equipment;
+using GameServer.Application.Domains.Equipment.Interfaces;
+using GameServer.Application.Domains.Inventory;
+using GameServer.Application.Domains.Inventory.Interfaces;
 using GameServer.Application.Domains.Progression;
 using GameServer.Application.Domains.Progression.Interfaces;
 using GameServer.Infrastructure.Common.Consumer;
 using GameServer.Infrastructure.Domains;
+using GameServer.Infrastructure.Domains.Equipment;
+using GameServer.Infrastructure.Domains.Inventory;
 using GameServer.Infrastructure.Domains.Progression;
 using GameServer.Infrastructure.Persistence;
 using GameServer.Tests.Infrastructure.Fakes.MessageQueue;
@@ -51,6 +57,11 @@ public class DungeonResultConsumerIntegrationTests
         services.AddDbContext<GameServerDbContext>(o => o.UseNpgsql(_fixture.DbConnectionString));
         services.AddScoped<IProgressionRepository, ProgressionRepository>();
         services.AddScoped<IProgressionService, ProgressionService>();
+        // ProgressionService.GetStatsAsync 가 장비 합산(3.2)을 위임 → 생성자 의존 체인 등록(보상=AddExp 만 쓰지만 DI 해석 필요).
+        services.AddScoped<IInventoryRepository, InventoryRepository>();
+        services.AddScoped<IInventoryService, InventoryService>();
+        services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+        services.AddScoped<IEquipmentService, EquipmentService>();
         services.AddSingleton<IMessageQueue<DungeonClearMessage>>(queue);
         services.AddSingleton<DungeonResultConsumer>();
 

@@ -111,6 +111,27 @@ namespace GameServer.Infrastructure.Persistence.Migrations
                     b.ToTable("dungeon_room_players", (string)null);
                 });
 
+            modelBuilder.Entity("GameServer.Domain.Entities.Equipment.UserEquipment", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Slot")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ItemId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId", "Slot");
+
+                    b.ToTable("user_equipments", (string)null);
+                });
+
             modelBuilder.Entity("GameServer.Domain.Entities.GameSession.GameSession", b =>
                 {
                     b.Property<long>("GameSessionId")

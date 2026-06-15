@@ -74,8 +74,7 @@ namespace Game.GUI.Inventory
         private IDisposable _toastSubscription;
 
         private Canvas _canvas;
-        private ItemActionPanel _activePanel;
-        private BackDropButton _activeBackdrop;
+        private readonly ItemActionPanelController _actionPanel = new ItemActionPanelController();
 
         [InspectorButton("Quick Setting")]
         private void QuickSetting()
@@ -143,6 +142,12 @@ namespace Game.GUI.Inventory
             if (closeButton != null)
                 closeButton.onClick.AddListener(Close);
 
+            // 창이 활성인 동안 게임플레이(Player) 입력 점유 → WASD 이동·단축키 차단(DungeonRoomLobbyView와 동일).
+            // OnDisable(SetActive(false)/Destroy)에서 자동 해제. 토글로 다시 켜지면 OnEnable이 재점유.
+            if (_model != null)
+                gameObject.AddComponent<UiInputCaptureBehaviour>()
+                          .Bind(_model.BeginUiCapture, _model.EndUiCapture);
+
             // 탭 토글 → SelectTab 인텐트 (All 은 SelectedCategory == null).
             if (itemTabs != null)
             {
@@ -184,7 +189,7 @@ namespace Game.GUI.Inventory
             _stateSubscription = null;
             _toastSubscription?.Dispose();
             _toastSubscription = null;
-            CloseActionPanel();
+            _actionPanel.Close();
             if (_slotHandle.IsValid()) Addressables.Release(_slotHandle);
             if (_contentHandle.IsValid()) Addressables.Release(_contentHandle);
         }
@@ -198,7 +203,7 @@ namespace Game.GUI.Inventory
 
         private void Close()
         {
-            CloseActionPanel();
+            _actionPanel.Close();
             gameObject.SetActive(false);
         }
 
@@ -214,7 +219,7 @@ namespace Game.GUI.Inventory
                     var content = activeSlots[i].EnsureContent(_itemContentsPrefab);
                     var item = filtered[i];
                     var slotRect = (RectTransform)activeSlots[i].transform;
-                    content?.Bind(item.ItemId, item.Icon, item.Quantity, id => OpenActionPanel(id, slotRect).Forget());
+                    content?.Bind(item.ItemId, item.Icon, item.Quantity, _ => OpenActionPanel(item, slotRect).Forget());
                 }
                 else
                 {
@@ -234,78 +239,19 @@ namespace Game.GUI.Inventory
         /// 클릭한 슬롯 오른쪽에 ItemActionPanel 을 Canvas 직속으로 생성. 뒤에 백드롭(클릭 시 닫힘)을 깐다.
         /// 팝업은 클릭 시에만 필요하므로 **온디맨드 Addressable 로드**(필드로 들고 있지 않음). 닫을 때 ReleaseInstance.
         /// </summary>
-        private async UniTask OpenActionPanel(string itemId, RectTransform slotRect)
+        private async UniTask OpenActionPanel(InventoryItemModel item, RectTransform slotRect)
         {
-            CloseActionPanel(); // 기존 열린 팝업 정리(한 번에 하나)
-
-            var canvas = ResolveCanvas();
-            if (canvas == null)
-            {
-                Debug.LogWarning("[Inventory] Canvas 없음 — 액션 패널 생략");
-                return;
-            }
-
-            // 백드롭 먼저(즉시 뒤 화면 차단) → 패널을 그 위(SetAsLastSibling). 둘 다 Canvas 직속.
-            _activeBackdrop = BackDropButton.Create(canvas.transform);
-            _activeBackdrop.Clicked += CloseActionPanel;
-            var openedBackdrop = _activeBackdrop; // 로드 중 재진입 감지용
-
-            GameObject go;
-            try
-            {
-                go = await Addressables.InstantiateAsync(AddressKeys.UI.ItemActionPanel, canvas.transform).Task.AsUniTask();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[Inventory] ItemActionPanel Addressable 로드 실패: {e.Message}");
-                CloseActionPanel();
-                return;
-            }
-
-            // 로드 중 다른 슬롯 클릭/닫힘이 끼어들었으면 이 인스턴스는 폐기(현재 백드롭이 바뀜).
-            if (_activeBackdrop != openedBackdrop)
-            {
-                Addressables.ReleaseInstance(go);
-                return;
-            }
-
-            _activePanel = go.GetComponent<ItemActionPanel>();
-            if (_activePanel == null)
-            {
-                Debug.LogError("[Inventory] ItemActionPanel 컴포넌트 없음 (prefab 확인)");
-                Addressables.ReleaseInstance(go);
-                CloseActionPanel();
-                return;
-            }
-
-            var panelRt = (RectTransform)_activePanel.transform;
-            panelRt.SetAsLastSibling();
-
-            // 슬롯 오른쪽 변 중앙에 패널 왼쪽-중앙 pivot 을 맞춘다(자식 아님 — 월드 좌표 계산).
-            var corners = new Vector3[4];
-            slotRect.GetWorldCorners(corners); // 0 BL, 1 TL, 2 TR, 3 BR
-            panelRt.pivot = new Vector2(0f, 0.5f);
-            panelRt.position = (corners[2] + corners[3]) * 0.5f;
-
-            _activePanel.OnCloseRequested += CloseActionPanel;
-            _activePanel.Bind(itemId, id => _model.Accept(new InventoryIntent.UseItem(id)));
-        }
-
-        /// <summary>열린 액션 패널 + 백드롭을 파괴한다(useButton 사용·백드롭 클릭·창 닫기/파괴 시).</summary>
-        private void CloseActionPanel()
-        {
-            if (_activePanel != null)
-            {
-                _activePanel.OnCloseRequested -= CloseActionPanel;
-                Addressables.ReleaseInstance(_activePanel.gameObject); // InstantiateAsync 짝
-                _activePanel = null;
-            }
-            if (_activeBackdrop != null)
-            {
-                _activeBackdrop.Clicked -= CloseActionPanel;
-                Destroy(_activeBackdrop.gameObject);
-                _activeBackdrop = null;
-            }
+            // 분류에 따라 버튼 노출: 소모품=사용, 장비=장착. 그 외엔 둘 다 비활성. (해제는 장비창에서만)
+            bool canUse = item.Category == ItemCategory.Consumable;
+            bool canEquip = item.Category == ItemCategory.Equipment;
+            await _actionPanel.OpenAsync(ResolveCanvas(), slotRect, panel => panel.Bind(
+                item.ItemId,
+                id => _model.Accept(new InventoryIntent.UseItem(id)),
+                id => _model.Accept(new InventoryIntent.EquipItem(id)),
+                null,
+                canUse,
+                canEquip,
+                canUnequip: false));
         }
 
         private Canvas ResolveCanvas()

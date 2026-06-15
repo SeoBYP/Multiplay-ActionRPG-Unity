@@ -18,6 +18,7 @@ namespace Game.Tests.PlayMode.E2E
         protected IDungeonLobbyGrpcService LobbyService;
         protected IChatGrpcService ChatService;
         protected IInventoryGrpcService InventoryService;
+        protected IEquipmentGrpcService EquipmentService;
         protected IProgressionGrpcService ProgressionService;
 
         protected string AccessToken;
@@ -31,6 +32,12 @@ namespace Game.Tests.PlayMode.E2E
         [SetUp]
         public void SetUp()
         {
+            // 각 테스트는 미인증 상태에서 시작한다. 리셋하지 않으면 같은 픽스처의 앞선 테스트가
+            // 로그인해 둔 토큰이 누수돼, "미인증 거부" 테스트가 인증 상태로 실행되는 순서 의존 버그가 생긴다.
+            AccessToken = null;
+            RefreshToken = null;
+            SessionId = null;
+
             ChannelProvider = new GrpcChannelProvider(ServerConfig.GameServerGrpcAddress);
             ChannelProvider.AccessTokenProvider = () => AccessToken;
 
@@ -39,6 +46,7 @@ namespace Game.Tests.PlayMode.E2E
             LobbyService = new DungeonLobbyGrpcService(ChannelProvider);
             ChatService = new ChatGrpcService(ChannelProvider);
             InventoryService = new InventoryGrpcService(ChannelProvider);
+            EquipmentService = new EquipmentGrpcService(ChannelProvider);
             ProgressionService = new ProgressionGrpcService(ChannelProvider);
         }
 

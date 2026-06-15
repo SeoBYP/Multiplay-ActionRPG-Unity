@@ -49,8 +49,9 @@ public class DropTableCatalogTests
     [Fact]
     public void Roll은_카탈로그_조회후_DropTableRoll에_위임한다()
     {
-        // slime: potion(보장 1.0) 통과, gold(0.2) 탈락(0.9).
-        var rng = new StubRandom(doubles: [0.0, 0.9], ints: []);
+        // slime 드랍 = potion(보장 1.0) + gold + 장비 8종. potion 만 통과(0.0<1.0), 나머지 9개는 0.9 로 전부 탈락.
+        // (drops 순서대로 후보당 NextDouble 1회 소비 → 10개 제공.)
+        var rng = new StubRandom(doubles: [0.0, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9], ints: []);
         var drops = DropTableCatalog.Roll("slime", rng);
 
         Assert.Single(drops);

@@ -130,8 +130,14 @@ namespace Game.GUI.OutGame
             // I키 인벤토리 토글 — .inputactions 의 Inventory 액션 C# 래퍼가 아직 미생성이라
             // 임시로 Keyboard 를 직접 폴링(HUD 버튼과 동일 funnel). 래퍼 재생성 후 InputRouter 경로로 이관 예정.
             var kb = UnityEngine.InputSystem.Keyboard.current;
-            if (_model != null && kb != null && kb.iKey.wasPressedThisFrame)
+            if (_model == null || kb == null)
+                return;
+
+            // I키 = 인벤토리+장비 쌍 토글, K키 = 장비창 단독 토글(.inputactions Equipment=K). 임시 폴링(래퍼 이관 예정).
+            if (kb.iKey.wasPressedThisFrame)
                 _model.Accept(InGameIntent.ToggleInventory.Instance);
+            if (kb.kKey.wasPressedThisFrame)
+                _model.Accept(InGameIntent.ToggleEquipment.Instance);
         }
 
         private void OnClickReturnToLobby()

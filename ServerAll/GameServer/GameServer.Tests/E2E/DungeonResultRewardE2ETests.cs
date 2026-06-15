@@ -1,8 +1,14 @@
 using System.Text.Json;
+using GameServer.Application.Domains.Equipment;
+using GameServer.Application.Domains.Equipment.Interfaces;
+using GameServer.Application.Domains.Inventory;
+using GameServer.Application.Domains.Inventory.Interfaces;
 using GameServer.Application.Domains.Progression;
 using GameServer.Application.Domains.Progression.Interfaces;
 using GameServer.Infrastructure.Common.Consumer;
 using GameServer.Infrastructure.Common.MessageQueue;
+using GameServer.Infrastructure.Domains.Equipment;
+using GameServer.Infrastructure.Domains.Inventory;
 using GameServer.Infrastructure.Domains.Progression;
 using GameServer.Infrastructure.Persistence;
 using GameServer.Tests.Infrastructure.Integrations;
@@ -45,6 +51,11 @@ public class DungeonResultRewardE2ETests
         services.AddDbContext<GameServerDbContext>(o => o.UseNpgsql(_fixture.DbConnectionString));
         services.AddScoped<IProgressionRepository, ProgressionRepository>();
         services.AddScoped<IProgressionService, ProgressionService>();
+        // ProgressionService 가 GetStatsAsync 로 장비 합산(3.2)을 위임 → 생성자 의존 체인 등록.
+        services.AddScoped<IInventoryRepository, InventoryRepository>();
+        services.AddScoped<IInventoryService, InventoryService>();
+        services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+        services.AddScoped<IEquipmentService, EquipmentService>();
 
         var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
         var queue = new DungeonClearMessageQueue(_fixture.RedisConnection, NullLogger<DungeonClearMessageQueue>.Instance);

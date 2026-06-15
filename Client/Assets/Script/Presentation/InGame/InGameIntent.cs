@@ -21,5 +21,12 @@ namespace Game.Presentation.InGame
             public static readonly ToggleInventory Instance = new ToggleInventory();
             private ToggleInventory() { }
         }
+
+        /// <summary>장비 창 단독 토글(K키 전용). 실제 창 로드/토글은 EquipmentViewController가 담당.</summary>
+        public sealed class ToggleEquipment : InGameIntent
+        {
+            public static readonly ToggleEquipment Instance = new ToggleEquipment();
+            private ToggleEquipment() { }
+        }
     }
 }
