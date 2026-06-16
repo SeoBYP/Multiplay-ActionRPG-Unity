@@ -62,8 +62,8 @@ public static class RoomJoinLeaveHandler
             return;
         }
 
-        // 재접속: 끊김 유예 동안 보존된 상태였다면 마킹을 해제해 다시 활성화(보존 위치/상태로 즉시 복귀).
-        room.MarkReconnected(session.UserId);
+        // 입장/재접속 활성화: HasJoined=true(이제부터 몬스터 AI 타깃) + 끊김 유예 보존 상태면 마킹 해제(즉시 복귀).
+        room.MarkJoined(session.UserId);
 
         var joinedPacket = ToJoinedPacket(playerState, room.MapId);
 

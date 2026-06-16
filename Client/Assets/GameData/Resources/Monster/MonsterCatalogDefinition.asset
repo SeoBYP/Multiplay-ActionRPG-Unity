@@ -27,5 +27,5 @@ MonoBehaviour:
     aggroRange: 1000
     attackRange: 1000
     attackCooldownMs: 50
-    attackDamage: 5
+    attackDamage: 9999
     expReward: 0

@@ -203,10 +203,11 @@ public class Room
     }
 
     /// <summary>
-    /// 재접속 시 호출 — 끊김 마킹(DisconnectedAtMs)을 해제해 보존 상태를 다시 활성화한다.
-    /// 반환 false = 보존된 상태가 없음(유예 만료/명시 퇴장 후 → 재접속 불가).
+    /// 입장/재접속 시 호출(C_PlayerJoin 성공) — 플레이어를 라이브 상태로 활성화한다:
+    /// HasJoined=true 로 표시(이제부터 몬스터 AI 타깃)하고, 끊김 유예 중이었다면 DisconnectedAtMs
+    /// 마킹을 해제해 보존 상태로 즉시 복귀시킨다. 반환 false = 보존된 상태가 없음(유예 만료/명시 퇴장 후 → 재입장 불가).
     /// </summary>
-    public bool MarkReconnected(long userId)
+    public bool MarkJoined(long userId)
     {
         lock (_playerStates)
         {
@@ -214,6 +215,7 @@ public class Room
                 return false;
 
             state.DisconnectedAtMs = null;
+            state.HasJoined = true;
             return true;
         }
     }
@@ -489,9 +491,10 @@ public class Room
         List<PlayerState> players;
         lock (_playerStates)
         {
-            // 끊김(재접속 유예 중)·다운 플레이어는 제외 — 마지막 위치에 멈춘 유령/시체를 몬스터가 쫓지 않도록.
+            // 타깃 자격: 미입장(HasJoined=false, GameStart 로 상태만 초기화·소켓 미입장)·끊김(재접속 유예 중)·
+            // 다운 플레이어는 제외. 미입장 제외가 없으면 입장 전에 몬스터가 죽여 S_PlayerDead 가 빈 방에 유실된다.
             players = _playerStates.Values
-                .Where(p => p.DisconnectedAtMs is null && !downed.Contains(p.UserId))
+                .Where(p => p.HasJoined && p.DisconnectedAtMs is null && !downed.Contains(p.UserId))
                 .ToList();
         }
 

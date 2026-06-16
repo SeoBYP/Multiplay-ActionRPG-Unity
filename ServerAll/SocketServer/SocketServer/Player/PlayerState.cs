@@ -50,6 +50,14 @@ public class PlayerState
     public long? DisconnectedAtMs { get; set; }
 
     /// <summary>
+    /// 소켓 세션이 실제로 입장(C_PlayerJoin 성공)했는가. false = GameStart 가 PlayerState 만 미리
+    /// 초기화하고 아직 소켓 미입장(로딩 중)인 상태. 몬스터 AI 타깃에서 제외한다(TickMonsters) —
+    /// 아직 들어오지도 않은 플레이어가 맞아 죽으면 S_PlayerDead 가 빈 방에 발행돼 유실되기 때문.
+    /// <see cref="Server.Room.Room.MarkJoined"/> 가 입장/재접속 시 true 로 세팅한다.
+    /// </summary>
+    public bool HasJoined { get; set; }
+
+    /// <summary>
     /// 스킬 발동 게이트(서버 권위 쿨다운). 쿨다운이 지났으면 마지막 발동 시각을 기록하고 true,
     /// 아직이면 false(발동 거부 → 데미지 0). C_Attack 연사=폭딜 치팅을 서버에서 차단한다.
     /// </summary>

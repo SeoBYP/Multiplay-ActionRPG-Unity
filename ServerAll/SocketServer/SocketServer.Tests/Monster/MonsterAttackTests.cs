@@ -21,6 +21,7 @@ public class MonsterAttackTests
     {
         var room = NewRoom();
         room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f); // 플레이어를 몬스터(0,0,0) 사거리 안에
+        room.MarkJoined(100);                                // 입장 완료 = 라이브 타깃
         room.SpawnMonsters(
             new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 40f, 40f));
@@ -48,6 +49,7 @@ public class MonsterAttackTests
         var room = NewRoom();
         // slime AttackDamage=5, 플레이어 Defense=2 → 데미지 = max(1, 5-2) = 3
         room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f, attackPower: 0, defense: 2);
+        room.MarkJoined(100);
         room.SpawnMonsters(
             new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 40f, 40f));
@@ -66,6 +68,7 @@ public class MonsterAttackTests
         var room = NewRoom();
         // slime AttackDamage=5, 플레이어 Defense=10 → max(1, 5-10) = 1 (무피해 방지)
         room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f, attackPower: 0, defense: 10);
+        room.MarkJoined(100);
         room.SpawnMonsters(
             new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 40f, 40f));
@@ -80,6 +83,7 @@ public class MonsterAttackTests
     {
         var room = NewRoom();
         room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f); // 사거리 안
+        room.MarkJoined(100);
         room.SpawnMonsters(
             new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 40f, 40f));
@@ -97,6 +101,7 @@ public class MonsterAttackTests
     {
         var room = NewRoom();
         room.InitPlayerState(100, "A", 0, 100f, 0f, 0f, 0f); // 멀리(aggro 밖)
+        room.MarkJoined(100);                                // 입장은 했지만 사거리 밖
         room.SpawnMonsters(
             new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 400f, 400f));

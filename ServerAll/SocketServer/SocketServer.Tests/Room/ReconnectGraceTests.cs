@@ -78,7 +78,7 @@ public class ReconnectGraceTests
         _roomManager.LeaveRoom(sessions[0], graceful: true);   // 크래시
         Assert.NotNull(room.GetPlayerState(100)!.DisconnectedAtMs);
 
-        var reconnected = room.MarkReconnected(100);           // 재접속(유예 내)
+        var reconnected = room.MarkJoined(100);                // 재접속(유예 내)
 
         Assert.True(reconnected);
         var state = room.GetPlayerState(100)!;

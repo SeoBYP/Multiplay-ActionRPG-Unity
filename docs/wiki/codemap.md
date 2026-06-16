@@ -113,6 +113,13 @@
 - **위치**: `Gameplay/Character/LocalMonster.cs`(`_progression` 주입 + `TryAttack`/`BuildAttackEffect`). ⚠️ 플레이 육안(Main slime 피격 `[LocalMonster] 공격 dmg=N` 로그·Defense만큼 덜 깎임)은 사용자.
 - slime expReward=20(SO 조정 가능). 신규 클라 .cs `.meta` `git add -f`([[unity-meta-gitignored]]).
 
+#### 2.26c 미입장 플레이어 AI 타깃 제외 — 입장 전 사망 레이스 수정 (2026-06-17)
+- **결함**: 몬스터는 `_playerStates`(GameStart 시 `InitPlayerState`로 초기화) 기준으로 공격하며 **소켓 join 여부를 안 봄**. 강한 몬스터가 (스폰 위치=플레이어 스폰과 겹치면) 플레이어가 입장하기 전 첫 틱에 죽여 `S_PlayerDead`가 빈 방에 발행→**유실**. 사망 E2E(`SocketE2ETests.RawSocket_몬스터에게_죽으면…`)가 test_brute 9999 즉사로 이 잠복 결함을 표면화(약한 데미지일 땐 입장 후 죽어 우연히 가려졌음).
+- **수정**: `PlayerState.HasJoined`(기본 false) 추가 → `C_PlayerJoin` 성공 시 `Room.MarkJoined(userId)`(구 `MarkReconnected` 개명, `_playerStates` 락 내 `HasJoined=true` + `DisconnectedAtMs=null`)가 true. `Room.TickMonsters` 타깃 필터 = `HasJoined && DisconnectedAtMs is null && !downed`. 입장/재접속 활성화 단일 진입점 = `RoomJoinLeaveHandler.HandlePlayerJoin`.
+- **위치**: `SocketServer/Player/PlayerState.cs`(HasJoined) · `Room/Room.cs`(MarkJoined·TickMonsters 필터) · `PacketHandler/Handler/RoomJoinLeaveHandler.cs`(MarkJoined 호출).
+- **테스트 영향**: `InitPlayerState` 후 곧장 `TickMonsters`로 공격을 기대하던 단위(MonsterAttackTests 5·PlayerHpServerAuthorityTests 몬스터데미지 1)는 `room.MarkJoined(userId)` 보정. `ReconnectGraceTests`는 호출 개명만.
+- **검증**: SocketServer 단위 **103/103** + 서버 빌드 0오류 + socketserver 리빌드·재배포 후 PlayMode **SocketE2ETests 21/21**(사망·재접속 포함). test_brute 9999 유지(입장 후 결정론 즉사 = 픽스처 의도).
+
 ### 2.23 스탯 산식 — 크로스서버 스탯 전파 + 스탯 기반 데미지 (2.4 증분1·2, 2026-06-14)
 - **무엇**: 던전 전투 데미지를 고정값(`CombatEffectCatalog`) → **플레이어 AttackPower 스탯 기반**으로 승격(서버 권위 재계산). 스탯은 GameServer(progression), 전투는 SocketServer 라 **크로스서버 전파** 동반.
 - **핵심 경계 결정(= authority-model §4c)**: SocketServer 는 **DB 직접 접근 안 함**(EF/Npgsql 참조 0). GameServer 가 progression+레벨테이블로 **합산 결과**를 계산해 게임시작 메시지로 스냅샷 전달 → SocketServer 는 그 결과만 적용. 근거 2개: ① 데이터 소유/스키마 결합 회피(SocketServer=인터넷 엣지, DB 자격증명 부여 회피) ② **최종 스탯=다단계 합산(레벨+장비+버프)이라 권위가 하나여야 함** → "입력 말고 답을 넘긴다". 함정: 지금은 레벨뿐이라 SocketServer 가 `LevelTable.StatsAt` 직접 호출 가능해 보이나 3.2 장비 들어오면 깨짐 → 처음부터 GameServer 합산.
