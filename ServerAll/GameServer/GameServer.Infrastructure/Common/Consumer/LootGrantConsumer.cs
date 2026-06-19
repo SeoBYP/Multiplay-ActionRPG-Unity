@@ -1,4 +1,6 @@
 using GameServer.Application.Domains.Inventory.Interfaces;
+using GameServer.Application.Domains.Wallet.Interfaces;
+using GameServer.Domain;
 using GameServer.Infrastructure.Domains;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -54,6 +56,18 @@ public sealed class LootGrantConsumer(
         await _redis.KeyExpireAsync(RedisKeys.LootPickupProcessed(), ProcessedTtl);
 
         using var scope = scopeFactory.CreateScope();
+
+        // 골드는 통화 — 인벤토리가 아니라 지갑 잔액으로 적립(3.4). 그 외는 인벤토리 영속 지급.
+        if (Currencies.IsCurrency(message.ItemId))
+        {
+            var walletService = scope.ServiceProvider.GetRequiredService<IWalletService>();
+            var balance = await walletService.AddAsync(message.UserId, message.Qty, ct);
+            logger.LogInformation(
+                "[LootGrant] 골드 적립 UserId={UserId} +{Qty} → 잔액 {Balance} (PickupId={PickupId})",
+                message.UserId, message.Qty, balance, message.PickupId);
+            return;
+        }
+
         var inventoryService = scope.ServiceProvider.GetRequiredService<IInventoryService>();
 
         var result = await inventoryService.GrantItemAsync(message.UserId, message.ItemId, message.Qty, ct);

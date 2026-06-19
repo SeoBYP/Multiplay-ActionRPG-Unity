@@ -21,7 +21,7 @@
                     "maxQty": 1
                 },
                 {
-                    "itemId": "gold_pouch",
+                    "itemId": "gold",
                     "chance": 0.20000000298023225,
                     "minQty": 1,
                     "maxQty": 3

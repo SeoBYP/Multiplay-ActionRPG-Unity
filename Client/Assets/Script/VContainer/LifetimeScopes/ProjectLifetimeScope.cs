@@ -31,6 +31,7 @@ namespace Game.Installers
             builder.Install(new InventoryInstaller());
             builder.Install(new EquipmentInstaller());
             builder.Install(new ProgressionInstaller());
+            builder.Install(new WalletInstaller());
 
             builder.Register<IGameSceneManager, GameSceneManager>(Lifetime.Singleton);
 

@@ -4,6 +4,7 @@ using GameServer.Infrastructure.Domains.Inventory;
 using GameServer.Tests.Infrastructure.Fakes.Repositories;
 using Microsoft.Extensions.Logging.Abstractions;
 using AppInventoryService = GameServer.Application.Domains.Inventory.InventoryService;
+using AppWalletService = GameServer.Application.Domains.Wallet.WalletService;
 
 namespace GameServer.Tests.Domains.Inventory;
 
@@ -17,6 +18,7 @@ public class MainSpawnClaimServiceTests
     private const string MainMap = "main_field_01";
 
     private readonly FakeInventoryRepository _repository = new();
+    private readonly FakeWalletRepository _walletRepository = new();
     private readonly FakeClaimCooldownStore _cooldown = new();
     private readonly ProgressionService _progression = new(new FakeProgressionRepository(), new Infrastructure.Fakes.Services.FakeEquipmentService());
     private readonly MainSpawnClaimService _service;
@@ -25,6 +27,7 @@ public class MainSpawnClaimServiceTests
     {
         _service = new MainSpawnClaimService(
             new AppInventoryService(_repository),
+            new AppWalletService(_walletRepository),
             _progression,
             _cooldown,
             NullLogger<MainSpawnClaimService>.Instance);

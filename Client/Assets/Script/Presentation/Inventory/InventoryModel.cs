@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using Game.System.Equipment;
 using Game.System.Input;
 using Game.System.Inventory;
+using Game.System.Wallet;
 using R3;
 
 namespace Game.Presentation.Inventory
@@ -19,6 +20,7 @@ namespace Game.Presentation.Inventory
     {
         private readonly IInventoryService _service;
         private readonly IEquipmentService _equipment;
+        private readonly IWalletService _wallet;
         private readonly IInputContext _inputContext;
         private readonly ItemDisplayCatalog _catalog;
         private readonly CancellationTokenSource _cts = new();
@@ -38,10 +40,11 @@ namespace Game.Presentation.Inventory
         public Observable<string> OnToast => _onToast;
 
         public InventoryModel(IInventoryService service, IEquipmentService equipment = null,
-            IInputContext inputContext = null, ItemDisplayCatalog catalog = null)
+            IInputContext inputContext = null, ItemDisplayCatalog catalog = null, IWalletService wallet = null)
         {
             _service = service;
             _equipment = equipment;
+            _wallet = wallet;
             _inputContext = inputContext;
             _catalog = catalog;
 
@@ -129,6 +132,16 @@ namespace Game.Presentation.Inventory
         private string DisplayName(string itemId)
             => (_catalog != null ? _catalog.Get(itemId)?.displayName : null) ?? itemId;
 
+        /// <summary>현재 골드 잔액(지갑 미주입이면 기존 상태값 유지 — null-safe).</summary>
+        private async UniTask<long> GetGoldAsync()
+        {
+            if (_wallet == null)
+                return _state.Value.Gold;
+
+            var (result, gold) = await _wallet.GetWalletAsync(_cts.Token);
+            return result == WalletResult.Success ? gold : _state.Value.Gold;
+        }
+
         /// <summary>현재 착용 중인 itemId 집합(없거나 장비 시스템 미주입이면 빈 집합).</summary>
         private async UniTask<HashSet<string>> GetEquippedIdsAsync()
         {
@@ -173,7 +186,10 @@ namespace Game.Presentation.Inventory
                         entry?.category ?? ItemCategory.Etc));
                 }
 
-                _state.Value = _state.Value.WithItems(models);
+                // 골드 잔액(지갑)도 함께 로드 — 인벤토리 화면에 표시. 지갑 미주입 시 기존값 유지(null-safe).
+                var gold = await GetGoldAsync();
+
+                _state.Value = _state.Value.WithItems(models).WithGold(gold);
             }
             catch (OperationCanceledException)
             {

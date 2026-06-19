@@ -26,7 +26,7 @@ public class DropTableCatalogTests
 
         Assert.Contains(entries, e => e.ItemId == "potion_hp_small" && e.Chance == 1.0 && e.MinQty == 1 && e.MaxQty == 1);
         // chance 는 SO(float) → JSON 직렬화로 0.2f→0.20000000298.. 의 부동소수 아티팩트가 끼므로 근사 비교한다.
-        Assert.Contains(entries, e => e.ItemId == "gold_pouch" && Math.Abs(e.Chance - 0.2) < 1e-6 && e.MinQty == 1 && e.MaxQty == 3);
+        Assert.Contains(entries, e => e.ItemId == "gold" && Math.Abs(e.Chance - 0.2) < 1e-6 && e.MinQty == 1 && e.MaxQty == 3);
     }
 
     [Fact]

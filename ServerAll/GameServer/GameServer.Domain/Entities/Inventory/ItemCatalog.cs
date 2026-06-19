@@ -11,7 +11,7 @@ public static class ItemCatalog
     {
         ["potion_hp_small"] = new ItemDef("potion_hp_small", "소형 체력 물약", ItemGrade.Common, Stackable: true, MaxStack: 99, "icon_potion_hp_s"),
         ["potion_mp_small"] = new ItemDef("potion_mp_small", "소형 마나 물약", ItemGrade.Common, Stackable: true, MaxStack: 99, "icon_potion_mp_s"),
-        ["gold_pouch"]      = new ItemDef("gold_pouch", "골드 주머니", ItemGrade.Rare, Stackable: true, MaxStack: 999, "icon_gold_pouch"),
+        // 골드(Currencies.Gold)는 더 이상 인벤토리 아이템이 아니다 — 통화(UserWallet 잔액)로 적립(3.4).
 
         // 장비(3.2) — 개별 인스턴스 없이 스택형 소유(qty=1). 슬롯·스탯 정의는 EquipmentCatalog. 8슬롯 1종씩.
         ["sword_basic"]       = new ItemDef("sword_basic", "기본 검", ItemGrade.Common, Stackable: false, MaxStack: 1, "icon_sword_basic"),

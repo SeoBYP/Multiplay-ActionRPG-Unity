@@ -83,7 +83,9 @@ OUT_DIR="C:/Users/user/Github/Multiplay-ActionRPG-Unity/Client/Assets/Script/Net
   "$PROTO_DIR/lobby.proto" \
   "$PROTO_DIR/chat.proto" \
   "$PROTO_DIR/inventory.proto" \
-  "$PROTO_DIR/equipment.proto"
+  "$PROTO_DIR/equipment.proto" \
+  "$PROTO_DIR/progression.proto" \
+  "$PROTO_DIR/wallet.proto"
 ```
 
 변경한 proto만 재생성해도 되지만, 의존 관계(import)가 있는 경우 함께 재생성한다.

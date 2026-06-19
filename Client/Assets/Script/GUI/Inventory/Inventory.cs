@@ -7,6 +7,7 @@ using Game.GUI.Common;
 using Game.Presentation.Inventory;
 using Script.GUI.Inventory;
 using R3;
+using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -57,6 +58,9 @@ namespace Game.GUI.Inventory
         [Tooltip("총 슬롯(컨테이너) 개수 — 고정.")]
         [SerializeField] private int slotCount = 30;
 
+        [Header("Gold")]
+        [SerializeField] private TextMeshProUGUI _goldText;
+        
         // 슬롯 prefab은 Addressable로 로드(UniversalSlot / ItemContentsSlot) — Inspector 할당 불요.
         private UniversalSlot _universalSlotPrefab;
         private ItemContentsSlot _itemContentsPrefab;
@@ -209,6 +213,10 @@ namespace Game.GUI.Inventory
 
         private void Render(InventoryState state)
         {
+            // 골드(지갑) 잔액 표시 — InventoryModel 이 새로고침 시 함께 로드(서버 권위).
+            if (_goldText != null)
+                _goldText.text = state.Gold.ToString("N0");
+
             var filtered = Filter(state.Items, state.SelectedCategory);
 
             for (int i = 0; i < activeSlots.Count; i++)

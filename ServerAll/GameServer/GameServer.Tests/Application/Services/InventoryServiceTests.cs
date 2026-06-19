@@ -107,13 +107,13 @@ public class InventoryServiceTests
     public async Task GetInventory는_유저의_보유_목록을_반환한다()
     {
         await _service.GrantItemAsync(1L, "potion_hp_small", 2);
-        await _service.GrantItemAsync(1L, "gold_pouch", 5);
+        await _service.GrantItemAsync(1L, "potion_mp_small", 5);
         await _service.GrantItemAsync(2L, "potion_mp_small", 1); // 다른 유저
 
         var inventory = await _service.GetInventoryAsync(1L);
 
         Assert.Equal(2, inventory.Count);
         Assert.Contains(inventory, i => i.ItemId == "potion_hp_small" && i.Quantity == 2);
-        Assert.Contains(inventory, i => i.ItemId == "gold_pouch" && i.Quantity == 5);
+        Assert.Contains(inventory, i => i.ItemId == "potion_mp_small" && i.Quantity == 5);
     }
 }

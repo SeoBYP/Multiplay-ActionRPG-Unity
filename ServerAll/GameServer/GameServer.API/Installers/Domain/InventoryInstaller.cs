@@ -2,10 +2,13 @@ using GameServer.Application.Domains.Equipment;
 using GameServer.Application.Domains.Equipment.Interfaces;
 using GameServer.Application.Domains.Inventory;
 using GameServer.Application.Domains.Inventory.Interfaces;
+using GameServer.Application.Domains.Wallet;
+using GameServer.Application.Domains.Wallet.Interfaces;
 using GameServer.Infrastructure.Common.Consumer;
 using GameServer.Infrastructure.Common.MessageQueue;
 using GameServer.Infrastructure.Domains.Equipment;
 using GameServer.Infrastructure.Domains.Inventory;
+using GameServer.Infrastructure.Domains.Wallet;
 using Shared.Infrastructure.MessageQueue;
 using Shared.Infrastructure.Messages;
 
@@ -24,6 +27,10 @@ public class InventoryInstaller : IServiceInstaller
         // 장비(3.2): 착용 상태 영속(Cache-Aside) + 장착/해제/스탯합산. 소유는 IInventoryService 위임.
         services.AddScoped<IEquipmentRepository, EquipmentRepository>();
         services.AddScoped<IEquipmentService, EquipmentService>();
+
+        // 재화/골드(3.4): 잔액 영속(Cache-Aside) + 증감(서버 권위). 골드=통화(인벤토리와 분리). 상점(3.5) 전제.
+        services.AddScoped<IWalletRepository, WalletRepository>();
+        services.AddScoped<IWalletService, WalletService>();
 
         // Main 획득 서버 검증(B-lite): ClaimKill — 슬롯/쿨다운 검증 + 서버 roll + 지급. main-spawn-claim.md.
         services.AddScoped<IMainSpawnClaimService, MainSpawnClaimService>();

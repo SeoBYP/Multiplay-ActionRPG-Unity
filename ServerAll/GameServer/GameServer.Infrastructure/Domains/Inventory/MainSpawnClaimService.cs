@@ -1,6 +1,8 @@
 using GameServer.Application.Domains.Inventory;
 using GameServer.Application.Domains.Inventory.Interfaces;
 using GameServer.Application.Domains.Progression.Interfaces;
+using GameServer.Application.Domains.Wallet.Interfaces;
+using GameServer.Domain;
 using Microsoft.Extensions.Logging;
 using Shared.Infrastructure.Loot;
 using Shared.Infrastructure.Monsters;
@@ -25,17 +27,20 @@ public sealed class MainSpawnClaimService : IMainSpawnClaimService
     private const string ExpKeyPrefix = "mainexp";    // 경험치 킬 쿨다운(아이템과 독립)
 
     private readonly IInventoryService _inventory;
+    private readonly IWalletService _wallet;
     private readonly IProgressionService _progression;
     private readonly IClaimCooldownStore _cooldown;
     private readonly ILogger<MainSpawnClaimService> _logger;
 
     public MainSpawnClaimService(
         IInventoryService inventory,
+        IWalletService wallet,
         IProgressionService progression,
         IClaimCooldownStore cooldown,
         ILogger<MainSpawnClaimService> logger)
     {
         _inventory = inventory;
+        _wallet = wallet;
         _progression = progression;
         _cooldown = cooldown;
         _logger = logger;
@@ -59,6 +64,14 @@ public sealed class MainSpawnClaimService : IMainSpawnClaimService
         var granted = new List<GrantedItem>();
         foreach (var d in drops)
         {
+            // 골드는 통화 — 지갑 잔액으로 적립(NewQuantity = 잔액). 그 외는 인벤토리 지급(3.4).
+            if (Currencies.IsCurrency(d.ItemId))
+            {
+                var balance = await _wallet.AddAsync(userId, d.Qty, ct);
+                granted.Add(new GrantedItem(d.ItemId, d.Qty, (int)balance));
+                continue;
+            }
+
             var g = await _inventory.GrantItemAsync(userId, d.ItemId, d.Qty, ct);
             if (g.Success)
                 granted.Add(new GrantedItem(d.ItemId, d.Qty, g.NewQuantity));

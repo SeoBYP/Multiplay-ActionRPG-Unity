@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+import "common.proto";
+
+package gameserver.wallet.v1;
+
+option csharp_namespace = "GameServer.Grpc.Wallet";
+
+// 재화(골드) — 서버 권위 잔액. 골드는 통화(인벤토리 아이템 아님). 증감은 서버(루트/킬/상점)만.
+// 클라는 조회·표시만(잔액 진실원=서버). 3.4 Wallet.
+service WalletService {
+  // 현재 유저(토큰)의 골드 잔액 조회. userId 는 서버가 JWT 에서 추출.
+  rpc GetWallet(GetWalletRequest) returns (GetWalletResponse);
+}
+
+message GetWalletRequest {}
+
+message GetWalletResponse {
+  gameserver.common.Result result = 1;
+  int64 balance = 2;  // 현재 골드 잔액(서버 권위). 지갑 없으면 0.
+}

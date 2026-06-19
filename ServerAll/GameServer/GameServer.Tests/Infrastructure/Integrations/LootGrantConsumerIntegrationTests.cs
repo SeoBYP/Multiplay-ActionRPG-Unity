@@ -1,8 +1,11 @@
 using GameServer.Application.Domains.Inventory;
 using GameServer.Application.Domains.Inventory.Interfaces;
+using GameServer.Application.Domains.Wallet;
+using GameServer.Application.Domains.Wallet.Interfaces;
 using GameServer.Infrastructure.Common.Consumer;
 using GameServer.Infrastructure.Domains.Inventory;
 using GameServer.Infrastructure.Domains.User;
+using GameServer.Infrastructure.Domains.Wallet;
 using GameServer.Infrastructure.Persistence;
 using GameServer.Tests.Infrastructure.Fakes.MessageQueue;
 using Microsoft.EntityFrameworkCore;
@@ -50,6 +53,8 @@ public class LootGrantConsumerIntegrationTests
         services.AddDbContext<GameServerDbContext>(o => o.UseNpgsql(_fixture.DbConnectionString));
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IInventoryService, InventoryService>();
+        services.AddScoped<IWalletRepository, WalletRepository>();
+        services.AddScoped<IWalletService, WalletService>();
         services.AddSingleton<IMessageQueue<ItemPickedUpMessage>>(queue);
         services.AddSingleton<LootGrantConsumer>();
 
@@ -76,6 +81,14 @@ public class LootGrantConsumerIntegrationTests
         var row = await ctx.InventoryItems.AsNoTracking()
             .SingleOrDefaultAsync(i => i.UserId == userId && i.ItemId == itemId);
         return row?.Quantity;
+    }
+
+    private async Task<long> GetWalletBalanceAsync(long userId)
+    {
+        using var ctx = _fixture.CreateDbContext();
+        var row = await ctx.UserWallets.AsNoTracking()
+            .SingleOrDefaultAsync(w => w.UserId == userId);
+        return row?.Balance ?? 0;
     }
 
     private static async Task WaitUntilAsync(Func<Task<bool>> condition, CancellationToken ct)
@@ -113,7 +126,7 @@ public class LootGrantConsumerIntegrationTests
     }
 
     [Fact]
-    public async Task 같은_PickupId_재전달이면_이중지급하지_않는다()
+    public async Task 골드_줍기는_인벤토리가_아니라_지갑잔액으로_적립되고_PickupId_멱등이다()
     {
         await using var h = BuildHarness();
         long userId = await CreateUserAsync();
@@ -124,18 +137,19 @@ public class LootGrantConsumerIntegrationTests
         var msg = new ItemPickedUpMessage
         {
             UserId = userId,
-            ItemId = "gold_pouch",
+            ItemId = "gold", // 통화 → WalletService 로 라우팅(3.4)
             Qty = 2,
             PickupId = "9101:1",
         };
         await h.Queue.EnqueueAsync(msg);
-        await WaitUntilAsync(async () => await GetQuantityAsync(userId, "gold_pouch") == 2, cts.Token);
+        await WaitUntilAsync(async () => await GetWalletBalanceAsync(userId) == 2, cts.Token);
 
-        // 동일 PickupId 재전달 — 멱등이라 추가 지급 없어야 함.
+        // 동일 PickupId 재전달 — 멱등이라 추가 적립 없어야 함.
         await h.Queue.EnqueueAsync(msg);
         await Task.Delay(300, cts.Token); // 처리 기회를 준 뒤
 
-        Assert.Equal(2, await GetQuantityAsync(userId, "gold_pouch"));
+        Assert.Equal(2, await GetWalletBalanceAsync(userId));
+        Assert.Null(await GetQuantityAsync(userId, "gold")); // 인벤토리엔 안 들어간다
 
         await h.Consumer.StopAsync(CancellationToken.None);
     }

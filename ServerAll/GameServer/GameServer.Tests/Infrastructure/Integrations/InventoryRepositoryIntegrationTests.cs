@@ -90,13 +90,13 @@ public class InventoryRepositoryIntegrationTests
         var userId = await CreateUserAsync();
         var repository = CreateRepository();
 
-        await repository.AddQuantityAsync(userId, "gold_pouch", 5, maxStack: 999);
+        await repository.AddQuantityAsync(userId, "potion_mp_small", 5, maxStack: 99);
         await repository.GetAllAsync(userId); // 캐시 적재
 
         // DB row 삭제 — 캐시에서 와야 함
         using (var ctx = _fixture.CreateDbContext())
         {
-            var row = await ctx.InventoryItems.FindAsync(userId, "gold_pouch");
+            var row = await ctx.InventoryItems.FindAsync(userId, "potion_mp_small");
             ctx.InventoryItems.Remove(row!);
             await ctx.SaveChangesAsync();
         }

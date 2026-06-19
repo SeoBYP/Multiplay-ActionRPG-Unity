@@ -27,7 +27,7 @@ public class LootRoomTests
         var room = NewRoom(100);
 
         var a = room.SpawnGroundItem("potion_hp_small", 1, 0f, 0f, 0f);
-        var b = room.SpawnGroundItem("gold_pouch", 3, 0f, 0f, 0f);
+        var b = room.SpawnGroundItem("gold", 3, 0f, 0f, 0f);
 
         Assert.Equal(1, a.GroundId);
         Assert.Equal(2, b.GroundId);
@@ -51,7 +51,7 @@ public class LootRoomTests
     public void 동시_줍기는_한_명만_성공한다_경쟁중재()
     {
         var room = NewRoom(100);
-        var ground = room.SpawnGroundItem("gold_pouch", 3, 0f, 0f, 0f);
+        var ground = room.SpawnGroundItem("gold", 3, 0f, 0f, 0f);
 
         var first = room.TryPickup(100, ground.GroundId);
         var second = room.TryPickup(100, ground.GroundId); // 이미 제거됨 = 경쟁 패배

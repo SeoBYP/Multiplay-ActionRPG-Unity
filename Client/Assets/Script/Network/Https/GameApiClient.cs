@@ -35,6 +35,7 @@ namespace Game.Network.Https
             builder.Register<IInventoryGrpcService, InventoryGrpcService>(Lifetime.Singleton);
             builder.Register<IEquipmentGrpcService, EquipmentGrpcService>(Lifetime.Singleton);
             builder.Register<IProgressionGrpcService, ProgressionGrpcService>(Lifetime.Singleton);
+            builder.Register<IWalletGrpcService, WalletGrpcService>(Lifetime.Singleton);
         }
     }
 }

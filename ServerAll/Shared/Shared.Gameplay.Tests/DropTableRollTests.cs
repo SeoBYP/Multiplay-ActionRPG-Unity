@@ -18,22 +18,22 @@ public class DropTableRollTests
         public override int Next(int minValue, int maxValue) => ints[_ii++];
     }
 
-    // slime 후보: potion_hp_small(보장 1.0), gold_pouch(0.2, 1~3)
+    // slime 후보: potion_hp_small(보장 1.0), gold(0.2, 1~3)
     private static readonly List<DropEntry> Slime = new()
     {
         new DropEntry("potion_hp_small", 1.0, 1, 1),
-        new DropEntry("gold_pouch", 0.2, 1, 3),
+        new DropEntry("gold", 0.2, 1, 3),
     };
 
     [Fact]
     public void 확률을_모두_통과하면_모든_후보가_드랍된다()
     {
-        var rng = new StubRandom(doubles: [0.0, 0.0], ints: [3]); // gold_pouch 수량 3
+        var rng = new StubRandom(doubles: [0.0, 0.0], ints: [3]); // gold 수량 3
         var drops = DropTableRoll.Roll(Slime, rng);
 
         Assert.Equal(2, drops.Count);
         Assert.Contains(drops, d => d.ItemId == "potion_hp_small" && d.Qty == 1);
-        Assert.Contains(drops, d => d.ItemId == "gold_pouch" && d.Qty == 3);
+        Assert.Contains(drops, d => d.ItemId == "gold" && d.Qty == 3);
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public class DropTableRollTests
         var drops = DropTableRoll.Roll(Slime, rng);
 
         Assert.Contains(drops, d => d.ItemId == "potion_hp_small" && d.Qty == 1);
-        Assert.DoesNotContain(drops, d => d.ItemId == "gold_pouch");
+        Assert.DoesNotContain(drops, d => d.ItemId == "gold");
     }
 
     [Fact]

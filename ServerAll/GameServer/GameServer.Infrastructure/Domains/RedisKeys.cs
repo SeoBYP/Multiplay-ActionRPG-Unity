@@ -19,7 +19,10 @@ public static class RedisKeys
 
     // Equipment (착용 상태 — Hash: field=(int)slot, value=itemId)
     public static string UserEquipment(long userId) => $"{Prefix}:user:equipment:{userId}";
-    
+
+    // Wallet (재화/골드 잔액 — String: 정수 잔액)
+    public static string UserWallet(long userId) => $"{Prefix}:user:wallet:{userId}";
+
     // UserCredential
     public static string UserCredential(long userId) => $"{Prefix}:user:credential:{userId}";
     public static string UserCredentialEmailMapping(string email) => $"{Prefix}:user:credential:email:{email}";
