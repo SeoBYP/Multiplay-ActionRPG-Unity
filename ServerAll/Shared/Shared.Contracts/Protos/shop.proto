@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+import "common.proto";
+
+package gameserver.shop.v1;
+
+option csharp_namespace = "GameServer.Grpc.Shop";
+
+// 상점 — 서버 권위. 가격(ShopCatalog)은 서버만 안다. 구매=지갑차감→인벤지급, 판매=인벤차감→지갑적립.
+// 클라는 진열 조회 + 구매/판매 의도만. userId 는 서버가 JWT 에서 추출. 3.5 Shop.
+service ShopService {
+  // 상점 진열 조회(정적 카탈로그 + 가격 + 장비 스탯 미리보기).
+  rpc GetShop(GetShopRequest) returns (GetShopResponse);
+
+  // 구매: 골드 차감(부족 시 거부) → 아이템 지급. 가격·수량은 서버가 검증(클라 위조 차단).
+  rpc Buy(BuyRequest) returns (BuyResponse);
+
+  // 판매: 아이템 차감(미보유/부족 시 거부) → 골드 적립.
+  rpc Sell(SellRequest) returns (SellResponse);
+}
+
+enum ShopCategory {
+  SHOP_CATEGORY_UNSPECIFIED = 0;
+  SHOP_CATEGORY_WEAPON = 1;
+  SHOP_CATEGORY_ARMOR = 2;
+  SHOP_CATEGORY_ACCESSORY = 3;
+  SHOP_CATEGORY_POTION = 4;
+}
+
+message GetShopRequest {}
+
+message GetShopResponse {
+  gameserver.common.Result result = 1;
+  repeated ShopItemInfo items = 2;
+}
+
+// 진열 한 항목. 이름·아이콘은 클라가 itemId 로 자기 카탈로그에서 룩업(인벤토리와 동일).
+message ShopItemInfo {
+  string item_id = 1;
+  int64 buy_price = 2;
+  int64 sell_price = 3;
+  ShopCategory category = 4;
+  repeated StatPreview stats = 5; // 장비면 스탯 미리보기(서버 EquipmentCatalog 파생), 소모품이면 빈 목록
+}
+
+// 진열 스탯 미리보기 한 줄(공개 정보 — 권위 전투 스탯과 별개). 클라 SelectedShopItemStatusSlot 채움.
+message StatPreview {
+  string stat = 1;   // 스탯 키(AttackPower/Defense/MaxHealth/MaxMana/Strength/Dexterity/Intelligence)
+  int32 amount = 2;
+}
+
+message BuyRequest {
+  string item_id = 1;
+  int32 qty = 2;
+}
+
+message BuyResponse {
+  gameserver.common.Result result = 1;
+  int64 gold = 2;          // 구매 후 골드 잔액(서버 권위)
+  int32 new_quantity = 3;  // 구매 후 보유 수량
+}
+
+message SellRequest {
+  string item_id = 1;
+  int32 qty = 2;
+}
+
+message SellResponse {
+  gameserver.common.Result result = 1;
+  int64 gold = 2;               // 판매 후 골드 잔액(서버 권위)
+  int32 remaining_quantity = 3; // 판매 후 남은 수량(전량 판매면 0)
+}

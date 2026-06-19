@@ -55,6 +55,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4f39a9707f246da4191531c2501dedc6
+    m_Address: Assets/Prefabs/GUI/Shop/Shop_Item.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 5b96864f9c019d44784274d95efba9bd
     m_Address: Assets/Prefabs/Enviroment/Plane.prefab
     m_ReadOnly: 0
@@ -70,8 +75,18 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 69b0858c6b0111b49a3ff6f42d6b4964
+    m_Address: Assets/Prefabs/GUI/Shop/Shop.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 70ed2ac96b962464db251a764f03a169
     m_Address: Assets/Prefabs/GUI/Inventory/ItemActionPanel.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 74b4ef230d83efc4bb55972a277acae8
+    m_Address: Assets/Prefabs/GUI/Shop/Status_Slot.prefab
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -97,6 +112,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: d2783c5aba7dce64ebcb73ce6242d1c7
     m_Address: Assets/Prefabs/GUI/Equipment/Equipment.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e6ee151fed6a80044b5e657183b5232a
+    m_Address: Assets/Prefabs/GUI/Shop/Shop_Tab.prefab
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

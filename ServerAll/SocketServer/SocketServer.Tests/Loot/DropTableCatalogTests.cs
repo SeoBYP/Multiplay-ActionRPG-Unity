@@ -25,8 +25,8 @@ public class DropTableCatalogTests
         var entries = DropTableCatalog.Get("slime");
 
         Assert.Contains(entries, e => e.ItemId == "potion_hp_small" && e.Chance == 1.0 && e.MinQty == 1 && e.MaxQty == 1);
-        // chance 는 SO(float) → JSON 직렬화로 0.2f→0.20000000298.. 의 부동소수 아티팩트가 끼므로 근사 비교한다.
-        Assert.Contains(entries, e => e.ItemId == "gold" && Math.Abs(e.Chance - 0.2) < 1e-6 && e.MinQty == 1 && e.MaxQty == 3);
+        // 골드는 통화 — 항상 드랍(확률 1.0) + 의미 있는 수량(10~30).
+        Assert.Contains(entries, e => e.ItemId == "gold" && e.Chance == 1.0 && e.MinQty == 10 && e.MaxQty == 30);
     }
 
     [Fact]
@@ -49,13 +49,14 @@ public class DropTableCatalogTests
     [Fact]
     public void Roll은_카탈로그_조회후_DropTableRoll에_위임한다()
     {
-        // slime 드랍 = potion(보장 1.0) + gold + 장비 8종. potion 만 통과(0.0<1.0), 나머지 9개는 0.9 로 전부 탈락.
-        // (drops 순서대로 후보당 NextDouble 1회 소비 → 10개 제공.)
-        var rng = new StubRandom(doubles: [0.0, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9], ints: []);
+        // slime 드랍 = potion(보장 1.0) + gold(보장 1.0) + 장비 8종. potion·gold 통과(<1.0), 장비 8개는 0.9 로 전부 탈락.
+        // (drops 순서대로 후보당 NextDouble 1회 소비 → 10개 제공. gold 수량(10≠30) 만 Next 1회 소비.)
+        var rng = new StubRandom(doubles: [0.0, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9], ints: [20]);
         var drops = DropTableCatalog.Roll("slime", rng);
 
-        Assert.Single(drops);
-        Assert.Equal("potion_hp_small", drops[0].ItemId);
+        Assert.Equal(2, drops.Count);
+        Assert.Contains(drops, d => d.ItemId == "potion_hp_small");
+        Assert.Contains(drops, d => d.ItemId == "gold" && d.Qty == 20);
     }
 
     [Fact]

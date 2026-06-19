@@ -28,5 +28,11 @@ namespace Game.Presentation.InGame
             public static readonly ToggleEquipment Instance = new ToggleEquipment();
             private ToggleEquipment() { }
         }
+
+        public sealed class ToggleShop : InGameIntent
+        {
+            public static readonly ToggleShop Instance = new ToggleShop();
+            private ToggleShop() { }
+        }
     }
 }

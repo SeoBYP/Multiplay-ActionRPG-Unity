@@ -45,6 +45,10 @@ namespace Game.Presentation.InGame
         private readonly Subject<Unit> _toggleEquipment = new Subject<Unit>();
         public Observable<Unit> OnToggleEquipment => _toggleEquipment;
 
+        // S키/상점버튼이 상점창 단독 토글을 요청하는 신호. ShopViewController가 구독.
+        private readonly Subject<Unit> _toggleShop = new Subject<Unit>();
+        public Observable<Unit> OnToggleShop => _toggleShop;
+
         private AbilitySystemComponent _asc;
         private bool _isProcessing;
 
@@ -227,6 +231,12 @@ namespace Game.Presentation.InGame
                 return;
             }
 
+            if (intent is InGameIntent.ToggleShop)
+            {
+                _toggleShop.OnNext(Unit.Default);
+                return;
+            }
+
             if (_isProcessing)
             {
                 Debug.LogWarning($"[InGameModel] {intent.GetType().Name} 무시됨 — 처리 중");
@@ -299,6 +309,8 @@ namespace Game.Presentation.InGame
             _cts.Dispose();
             _state.Dispose();
             _toggleInventory.Dispose();
+            _toggleEquipment.Dispose();
+            _toggleShop.Dispose();
         }
     }
 }

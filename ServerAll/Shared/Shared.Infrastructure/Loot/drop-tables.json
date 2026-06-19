@@ -22,9 +22,9 @@
                 },
                 {
                     "itemId": "gold",
-                    "chance": 0.20000000298023225,
-                    "minQty": 1,
-                    "maxQty": 3
+                    "chance": 1.0,
+                    "minQty": 10,
+                    "maxQty": 30
                 },
                 {
                     "itemId": "sword_basic",

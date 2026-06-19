@@ -65,6 +65,10 @@ namespace Game.Installers.Scenes
             builder.Register<Game.Presentation.Equipment.EquipmentModel>(Lifetime.Scoped).AsSelf();
             builder.RegisterEntryPoint<Game.GUI.OutGame.EquipmentViewController>(Lifetime.Scoped).AsSelf();
 
+            // 상점 MVI(3.5/7.6) — S키/HUD 상점버튼 단독 토글. Main 전용(던전 미등록 = 던전에선 S키 무반응).
+            builder.Register<Game.Presentation.Shop.ShopModel>(Lifetime.Scoped).AsSelf();
+            builder.RegisterEntryPoint<Game.GUI.OutGame.ShopViewController>(Lifetime.Scoped).AsSelf();
+
             // 진행/스탯창(7.3) MVI — 서버 권위 pull(GetProgression). View(스탯창)는 Model만 주입받는다.
             builder.Register<ProgressionModel>(Lifetime.Scoped).AsSelf();
 
