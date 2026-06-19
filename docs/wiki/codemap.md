@@ -272,6 +272,12 @@
 - **잔여(Unity/후속)**: **3개 prefab을 Unity Addressable로 마킹**(주소 = 코드 키와 정확히 일치: `Assets/Prefabs/GUI/Shop/Shop.prefab`·`Shop_Item.prefab`·`Status_Slot.prefab`) — 코드 키만 추가됐고 Inspector Address 지정은 사람 / QuickSetting 실행·`CloseButton`/`btn_Shop`/**`ToastText`(구매 결과 표시용 TMP — 미할당 시 로그 폴백)** 확인 / 골드 표시 필드(상점 prefab엔 없음) / 판매 UI. (양서버 Docker 리빌드는 완료, S키 제거 완료.)
 - **E2E(3.2)**: `EquipmentE2ETests`(PlayMode, Docker GameServer 대상) 6 — 미보유거부/미인증거부/빈조회/멱등해제/미지정거부. happy-path(보유 장착)는 공개 API로 장비 소유 경로가 없어 서버 단위가 담당. `E2ETestBase.SetUp`이 토큰 리셋(미인증 테스트 순서 의존 버그 방지) — 전 Https E2E 공통.
 
+### 2.30 캐릭터 진행 영속 합류 (6.1, 2026-06-17)
+- **무엇**: 레벨·인벤토리·장비·지갑이 로그아웃→재로그인에 보존되는지 합류 검증. **영속 레이어는 이미 완비** — 네 도메인 전부 DB 테이블 + cache-aside(MISS→DB), 로그인은 토큰만 반환·클라가 도메인별 pull 로 DB 복원. 새 구현 없음 = **검증 작업**.
+- **재접속 E2E**: `CharacterPersistenceE2ETests`(PlayMode, Docker) — register → `ClaimMonsterExp`(exp)+`ClaimKill`(potion 보장·gold 항상) 으로 진행 변경 → 스냅샷 → `Logout` → 재`Login`(새 토큰/세션) → GetProgression/GetInventory/GetWallet 가 스냅샷과 **동일**(=DB 복원). 1/1 그린. `E2ETestBase` 에 `WalletService` 추가(기존 미노출).
+- **장비 제외 이유**: E2E 에서 장비 아이템을 결정적으로 획득하는 공개 경로가 없음(드랍=랜덤, 상점=골드 누적+쿨다운). 장비 영속은 동일 cache-aside 라 `EquipmentRepositoryIntegrationTests`(MISS→DB) 가 직접 증명. 각 도메인 개별 영속도 Repository 통합테스트(Wallet 9·Inventory·Equipment 8·Progression)로 기존 검증 — 6.1 은 그 위에 "재접속 전체 흐름"을 얹은 것.
+- **위치**: `Client/.../Tests/PlayMode/E2E/Network/Https/CharacterPersistenceE2ETests.cs` · `E2ETestBase.cs`(WalletService).
+
 #### 2.27a 장비 GUI 연동 + EquipmentType 공통화 (7.2, 2026-06-16)
 - **공통 enum 통일(핵심)**: 서버 도메인 `EquipmentSlot`(Weapon/Armor 2값) → **`Shared.Gameplay.Equipment.EquipmentType`**(8값: None/Header/Armor/Shoose/Glove/Shield/Weapon/Ring/Necklace) 단일 소스. 클라(GUI)·서버 도메인이 같은 enum 사용. proto enum도 `EquipmentType`(9값)로 확장 — **정수값 1:1**이라 경계 매핑이 캐스팅(`(ProtoType)(int)x`)으로 단순화. 카탈로그는 Weapon/Armor만 채움(나머지 6 = GUI 표시·미래 확장 빈슬롯). `GameServer.Domain`이 `Shared.Gameplay` 참조 추가. user_equipments 테이블 비어 마이그레이션 영향 없음(Slot 열=int, 값 의미만 변경).
 - **클라 동기화**: ClientCodegen 재실행(stub `Equipment.cs`·래퍼 `EquipmentGrpcService`) + `Shared.Gameplay.dll` → `Client/Assets/Plugins/Shared.Gameplay/` 재배치(서버 빌드 산출물 복사).

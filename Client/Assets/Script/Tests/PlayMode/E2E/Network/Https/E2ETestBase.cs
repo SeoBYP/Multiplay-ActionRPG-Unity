@@ -20,6 +20,7 @@ namespace Game.Tests.PlayMode.E2E
         protected IInventoryGrpcService InventoryService;
         protected IEquipmentGrpcService EquipmentService;
         protected IProgressionGrpcService ProgressionService;
+        protected IWalletGrpcService WalletService;
 
         protected string AccessToken;
         protected string RefreshToken;
@@ -48,6 +49,7 @@ namespace Game.Tests.PlayMode.E2E
             InventoryService = new InventoryGrpcService(ChannelProvider);
             EquipmentService = new EquipmentGrpcService(ChannelProvider);
             ProgressionService = new ProgressionGrpcService(ChannelProvider);
+            WalletService = new WalletGrpcService(ChannelProvider);
         }
 
         [TearDown]
