@@ -114,8 +114,8 @@
   - **4.2.3** GameServer `DungeonResultConsumer` → 보상 산정(경험치) — ✅ | T1 | 🟢 (Shared 카탈로그 expReward → 참가자 전원 Exp 지급·RoomId 멱등. 아이템은 범위 제외)
   - **4.2.4** 보상 지급 — 2.3 Progression.AddExp 호출(RoomId 멱등 Redis SET, at-most-once) — ✅ | T1 | 🟢 (Inventory·Outbox는 범위 제외, Exp 전용)
 - **4.3** 던전 메타 — `DungeonRoom.DungeonId` 추가(=9.2 부채) — ⬜ | T1 | 🟢
-- **4.4** 퀘스트(Quest) — 수주/진행/완료·보상 (`Quest` 신규) — ⬜ | T2 | ⚪
-- **4.5** NPC/대화(Dialogue) — 상호작용·대화 트리 (`Npc` 신규) — ⬜ | T2 | ⚪
+- **4.4** 퀘스트(Quest) — 수주/진행/완료·보상 (`Quest` 신규) — ⬜ | T2 | 🟢 (**설계 확정·미착수 2026-06-17 — 나중에 구현**. MVP 목표=KillMonster("슬라임 N마리") 1종(`QuestObjectiveType` enum은 CollectItem/TalkToNpc 확장 여지만). **서버 권위 진행** — 클라 보고 아님, 킬 클레임 경로(`MainSpawnClaimService.ClaimExpAsync`)에서 서버가 progress++(위조 불가). 조합 도메인 — 보상(exp/gold/item)은 Progression+Wallet+Inventory 조합(Shop 동형). 구성: `QuestCatalog`(코드 정적, ItemCatalog 동형) + `QuestDef`(목표타입/대상/필요수/보상) + `UserQuest`(영속, `user_quests` (UserId,QuestId)→Status{Accepted/Claimed}+Progress, 완료=progress≥required 파생) + `IQuestService`/`QuestService`(GetQuests/Accept/ReportKill/ClaimReward) + `IQuestRepository`(**DB-only** — read-rare/write-heavy라 Redis 캐싱 부적합, AsNoTracking) + EF 마이그레이션 `AddUserQuests`(raw SQL 멱등) + DI(`InventoryInstaller`) + gRPC `quest.proto`(GetQuests/AcceptQuest/ClaimQuestReward) + `QuestGrpcService`. 클라 MVI(System/Presentation/View) + UI(7.4)까지. 보상 수령=Claimed 먼저 마킹 후 지급(중복 수령 차단). **NPC 수주/턴인은 4.5 합류 시**(지금은 직접 수주).)
+- **4.5** NPC/대화(Dialogue) — 상호작용·대화 트리 (`Npc` 신규) — ⬜ | T2 | 🟢 (**4.4 퀘스트와 연계 예정**(사용자 결정 2026-06-17): NPC가 퀘스트 **수주/턴인** 창구 — 대화 트리 선택지로 AcceptQuest/ClaimReward 호출. 또한 퀘스트 목표 타입 `TalkToNpc` 합류 지점. `Npc` 신규 도메인 + 대화 트리 데이터. 4.4 완료 후 착수.)
 - **4.6 월드/존(World)** — 오픈월드 PVE 맛보기 (`World` 신규) — ⬜ | T2 | ⚪ (**Main 몬스터의 전제**: 현재 Main은 소켓 미연결이라 서버 권위 몬스터 없음 → Main에 몬스터를 내려면 **Main이 네트워크 World 세션**이어야 함. SocketServer `Room`→`World` 일반화 시 드랍/줍기(3.3)가 그대로 적용. 상세 = [loot-drop.md](loot-drop.md) §6)
   - **4.6.1** 존 맵·존 전환·포탈 — ⬜ | T2 | ⚪
   - **4.6.2** 텔레포트/패스트트래블 — ⬜ | T2 | ⚪
@@ -148,7 +148,7 @@
 - **7.3** 캐릭터 정보/스탯창 (대응 2.3/2.4) — ⬜ | T2 | ⚪
 - **7.4** 퀘스트 UI/추적 HUD (대응 4.4) — ⬜ | T2 | ⚪
 - **7.5** 대화 UI (대응 4.5) — ⬜ | T2 | ⚪
-- **7.6** 상점 UI (대응 3.5) — ⬜ | T2 | ⚪
+- **7.6** 상점 UI (대응 3.5) — 🔄 | T2 | 🟢 (**구매 UI 완료 2026-06-17**: Shop View MVI 배선(탭/리스트/선택패널/수량/구매) + 동적 Addressable 슬롯(Shop_Item/Status_Slot) + 구매결과 토스트(성공/실패 색) + HUD 상점버튼 열기·이동차단. ShopModelTests 7/7. 상세 codemap §2.29. **잔여**: 판매(Sell) UI · 골드 표시 필드 · 프리팹 인스펙터 잔여 할당)
 - **7.7** 미니맵 HUD (대응 4.6) — ⬜ | T2 | ⚪
 - **7.8** 설정 메뉴 (대응 6.3) — ⬜ | T2 | ⚪
 
