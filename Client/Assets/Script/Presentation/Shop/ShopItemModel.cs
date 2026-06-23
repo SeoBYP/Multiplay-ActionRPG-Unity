@@ -8,22 +8,26 @@ namespace Game.Presentation.Shop
     {
         public string ItemId { get; }
         public string DisplayName { get; }
+        public string Description { get; }
         public Sprite Icon { get; }
         public long BuyPrice { get; }
         public long SellPrice { get; }
         public ShopCategory Category { get; }
         public IReadOnlyList<ShopStatLine> Stats { get; }
+        public Sprite GradeBackground { get; } // 등급 배경(Model이 GradeSpriteCatalog로 해석). null이면 배경 없음.
 
         public ShopItemModel(string itemId, string displayName, Sprite icon, long buyPrice, long sellPrice,
-            ShopCategory category, IReadOnlyList<ShopStatLine> stats)
+            ShopCategory category, IReadOnlyList<ShopStatLine> stats, Sprite gradeBackground = null, string description = null)
         {
             ItemId = itemId;
             DisplayName = displayName;
+            Description = description ?? string.Empty;
             Icon = icon;
             BuyPrice = buyPrice;
             SellPrice = sellPrice;
             Category = category;
             Stats = stats;
+            GradeBackground = gradeBackground;
         }
     }
 

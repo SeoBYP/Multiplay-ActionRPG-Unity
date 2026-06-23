@@ -44,6 +44,9 @@ public class LootGrantRewardE2ETests
         services.AddDbContext<GameServerDbContext>(o => o.UseNpgsql(_fixture.DbConnectionString));
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IInventoryService, InventoryService>();
+        // 도감(3.7): InventoryService.GrantItemAsync 가 ICodexService 의존 → DI 해석 위해 등록.
+        services.AddScoped<GameServer.Application.Domains.Codex.Interfaces.ICodexRepository, GameServer.Infrastructure.Domains.Codex.CodexRepository>();
+        services.AddScoped<GameServer.Application.Domains.Codex.Interfaces.ICodexService, GameServer.Application.Domains.Codex.CodexService>();
 
         var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
         var queue = new LootPickupMessageQueue(_fixture.RedisConnection, NullLogger<LootPickupMessageQueue>.Instance);

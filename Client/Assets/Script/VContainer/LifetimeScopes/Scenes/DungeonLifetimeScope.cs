@@ -50,6 +50,9 @@ public class DungeonLifetimeScope : LifetimeScope
             ? itemDisplayCatalog
             : Resources.Load<ItemDisplayCatalog>("ItemDisplayCatalog")
               ?? ScriptableObject.CreateInstance<ItemDisplayCatalog>());
+        // 등급 배경 스프라이트 카탈로그(3.7) — 인벤/장비 슬롯 공유. Resources 폴백(미할당이면 빈 SO=배경 없음).
+        builder.RegisterInstance(Resources.Load<GradeSpriteCatalog>("GradeSpriteCatalog")
+                                 ?? ScriptableObject.CreateInstance<GradeSpriteCatalog>());
         builder.Register<InventoryModel>(Lifetime.Scoped).AsSelf();
         builder.RegisterEntryPoint<InventoryViewController>(Lifetime.Scoped);
 

@@ -1,3 +1,4 @@
+using GameServer.Application.Domains.Codex;
 using GameServer.Application.Domains.Equipment;
 using GameServer.Application.Domains.Inventory;
 using GameServer.Domain.Entities.Equipment;
@@ -15,7 +16,7 @@ public class EquipmentServiceTests
     {
         var invRepo = new FakeInventoryRepository();
         var equipRepo = new FakeEquipmentRepository();
-        var inventory = new InventoryService(invRepo);
+        var inventory = new InventoryService(invRepo, new CodexService(new FakeCodexRepository()));
         var svc = new EquipmentService(equipRepo, inventory);
         return (svc, invRepo);
     }

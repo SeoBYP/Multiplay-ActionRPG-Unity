@@ -49,6 +49,10 @@ namespace Game.Presentation.InGame
         private readonly Subject<Unit> _toggleShop = new Subject<Unit>();
         public Observable<Unit> OnToggleShop => _toggleShop;
 
+        // HUD 퀘스트버튼이 퀘스트창 단독 토글을 요청하는 신호. QuestViewController가 구독.
+        private readonly Subject<Unit> _toggleQuest = new Subject<Unit>();
+        public Observable<Unit> OnToggleQuest => _toggleQuest;
+
         private AbilitySystemComponent _asc;
         private bool _isProcessing;
 
@@ -234,6 +238,12 @@ namespace Game.Presentation.InGame
             if (intent is InGameIntent.ToggleShop)
             {
                 _toggleShop.OnNext(Unit.Default);
+                return;
+            }
+
+            if (intent is InGameIntent.ToggleQuest)
+            {
+                _toggleQuest.OnNext(Unit.Default);
                 return;
             }
 

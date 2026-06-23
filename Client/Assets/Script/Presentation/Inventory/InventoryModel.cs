@@ -23,6 +23,7 @@ namespace Game.Presentation.Inventory
         private readonly IWalletService _wallet;
         private readonly IInputContext _inputContext;
         private readonly ItemDisplayCatalog _catalog;
+        private readonly GradeSpriteCatalog _gradeCatalog;
         private readonly CancellationTokenSource _cts = new();
 
         private readonly ReactiveProperty<InventoryState> _state = new(InventoryState.Initial);
@@ -40,13 +41,15 @@ namespace Game.Presentation.Inventory
         public Observable<string> OnToast => _onToast;
 
         public InventoryModel(IInventoryService service, IEquipmentService equipment = null,
-            IInputContext inputContext = null, ItemDisplayCatalog catalog = null, IWalletService wallet = null)
+            IInputContext inputContext = null, ItemDisplayCatalog catalog = null, IWalletService wallet = null,
+            GradeSpriteCatalog gradeCatalog = null)
         {
             _service = service;
             _equipment = equipment;
             _wallet = wallet;
             _inputContext = inputContext;
             _catalog = catalog;
+            _gradeCatalog = gradeCatalog;
 
             // 장착/해제 성공 시 인벤토리도 갱신 → 착용분 숨김/복원이 즉시 반영(EquipmentModel 과 동시).
             if (_equipment != null)
@@ -178,12 +181,15 @@ namespace Game.Presentation.Inventory
                         continue;
 
                     var entry = _catalog != null ? _catalog.Get(data.ItemId) : null;
+                    var grade = entry?.grade ?? ItemGrade.Common;
                     models.Add(new InventoryItemModel(
                         data.ItemId,
                         data.Quantity,
                         entry?.displayName ?? data.ItemId,
                         entry?.icon,
-                        entry?.category ?? ItemCategory.Etc));
+                        entry?.category ?? ItemCategory.Etc,
+                        grade,
+                        _gradeCatalog != null ? _gradeCatalog.Get(grade) : null));
                 }
 
                 // 골드 잔액(지갑)도 함께 로드 — 인벤토리 화면에 표시. 지갑 미주입 시 기존값 유지(null-safe).

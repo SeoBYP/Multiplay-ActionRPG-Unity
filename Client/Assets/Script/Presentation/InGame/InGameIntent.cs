@@ -34,5 +34,12 @@ namespace Game.Presentation.InGame
             public static readonly ToggleShop Instance = new ToggleShop();
             private ToggleShop() { }
         }
+
+        /// <summary>퀘스트 창 단독 토글(HUD 퀘스트버튼). 실제 창 로드/토글은 QuestViewController가 담당.</summary>
+        public sealed class ToggleQuest : InGameIntent
+        {
+            public static readonly ToggleQuest Instance = new ToggleQuest();
+            private ToggleQuest() { }
+        }
     }
 }

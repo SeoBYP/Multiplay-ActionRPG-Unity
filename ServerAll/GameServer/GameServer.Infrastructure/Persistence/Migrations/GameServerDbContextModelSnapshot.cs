@@ -64,6 +64,23 @@ namespace GameServer.Infrastructure.Persistence.Migrations
                     b.ToTable("chat_messages", (string)null);
                 });
 
+            modelBuilder.Entity("GameServer.Domain.Entities.Codex.UserCodexEntry", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ItemId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("DiscoveredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId", "ItemId");
+
+                    b.ToTable("user_codex", (string)null);
+                });
+
             modelBuilder.Entity("GameServer.Domain.Entities.DungeonRoom", b =>
                 {
                     b.Property<long>("RoomId")
@@ -233,6 +250,29 @@ namespace GameServer.Infrastructure.Persistence.Migrations
                     b.HasIndex("ProcessedAt");
 
                     b.ToTable("outbox_messages", (string)null);
+                });
+
+            modelBuilder.Entity("GameServer.Domain.Entities.Quest.UserQuest", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("QuestId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("Progress")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId", "QuestId");
+
+                    b.ToTable("user_quests", (string)null);
                 });
 
             modelBuilder.Entity("GameServer.Domain.Entities.User.User", b =>

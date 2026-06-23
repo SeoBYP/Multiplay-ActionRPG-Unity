@@ -7,6 +7,7 @@ using Game.Network.Socket;
 using Game.Network.Socket.Packets;
 using Game.Presentation.InGame;
 using Game.System.Player;
+using Game.System.Progression;
 using NUnit.Framework;
 using Script.System.GamePlayAbilitySystem;
 using UnityEngine;
@@ -91,6 +92,9 @@ namespace Game.Tests.PlayMode.InGame
             builder.RegisterInstance<ISocketPacketState>(new SocketPacketState());
             builder.RegisterInstance(new GameplayEffectCatalog());
             builder.RegisterInstance(ScriptableObject.CreateInstance<EffectIconCatalog>());
+            // InGameModel ctor의 PlayerProgressionHolder는 C# 기본값이지만 VContainer는 기본값을 무시하므로
+            // 명시 등록이 필요하다. Exp 게이지는 이 테스트 관심사가 아니라 미갱신(default) 홀더로 충분.
+            builder.RegisterInstance(new PlayerProgressionHolder(new FakeProgressionService()));
             builder.Register<InGameModel>(Lifetime.Singleton).AsSelf();
             _resolver = builder.Build();
             return localPlayer;
@@ -137,6 +141,12 @@ namespace Game.Tests.PlayMode.InGame
             public UniTask SendMoveAsync(C_Move packet, CancellationToken ct) => UniTask.CompletedTask;
             public UniTask SendAsync(Packet packet, CancellationToken ct) => UniTask.CompletedTask;
             public UniTask DisconnectAsync(CancellationToken ct) => UniTask.CompletedTask;
+        }
+
+        private sealed class FakeProgressionService : IProgressionService
+        {
+            public UniTask<(ProgressionResult Result, ProgressionData Data)> GetProgressionAsync(CancellationToken ct = default)
+                => UniTask.FromResult((ProgressionResult.Success, default(ProgressionData)));
         }
     }
 }

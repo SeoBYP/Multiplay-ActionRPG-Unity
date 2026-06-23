@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Core;
+using Game.GUI.Common;
 using Game.Presentation.Shop;
 using R3;
 using TMPro;
@@ -51,6 +52,7 @@ namespace Game.GUI.Shop
         [SerializeField] private TextMeshProUGUI SelectedShopItemName;
         [SerializeField] private TextMeshProUGUI SelectedShopItemDesc;
         [SerializeField] private Image SelectedShopItemIcon;
+        [SerializeField] private Image SelectedShopItemGradeBackground; // 선택 아이템 슬롯 프레임 = 등급 배경
 
         [SerializeField] private GridLayoutGroup SelectedShopItemStatusSlotParent;
 
@@ -73,13 +75,14 @@ namespace Game.GUI.Shop
         [Inject] private ShopModel _model;
 
         // 동적 슬롯 prefab(Addressable). 인스펙터 할당 불요 — 인벤토리와 동일 패턴.
-        private ShopItemSlotView _itemPrefab;
+        // 리스트 슬롯 = 공통 ItemContentsSlot(인벤토리와 통합) — icon+name+등급배경.
+        private ItemContentsSlot _itemPrefab;
         private ShopItemStatusSlot _statusPrefab;
         private AsyncOperationHandle<GameObject> _itemHandle;
         private AsyncOperationHandle<GameObject> _statusHandle;
         private bool _prefabsLoaded;
 
-        private readonly List<ShopItemSlotView> _itemRows = new();
+        private readonly List<ItemContentsSlot> _itemRows = new();
         private readonly List<ShopItemStatusSlot> _statusRows = new();
 
         private IDisposable _stateSub;
@@ -139,17 +142,17 @@ namespace Game.GUI.Shop
                 return;
             }
 
-            _itemPrefab = _itemHandle.Result != null ? _itemHandle.Result.GetComponent<ShopItemSlotView>() : null;
+            _itemPrefab = _itemHandle.Result != null ? _itemHandle.Result.GetComponent<ItemContentsSlot>() : null;
             _statusPrefab = _statusHandle.Result != null ? _statusHandle.Result.GetComponent<ShopItemStatusSlot>() : null;
 
             if (_itemPrefab == null)
-                Debug.LogError("[Shop] Shop_Item prefab 로드 실패/컴포넌트 없음 (Addressable 주소 확인)");
+                Debug.LogError("[Shop] Shop_Item prefab 로드 실패/ItemContentsSlot 컴포넌트 없음 (Addressable 주소·컴포넌트 확인)");
             if (_statusPrefab == null)
                 Debug.LogError("[Shop] Status_Slot prefab 로드 실패/컴포넌트 없음 (Addressable 주소 확인)");
 
             // 프리팹에 미리 박힌 슬롯은 정리(동적 생성과 중복 방지) — 인벤토리 BuildSlots 와 동일.
             if (shopItemListContent != null)
-                foreach (var existing in shopItemListContent.GetComponentsInChildren<ShopItemSlotView>(true))
+                foreach (var existing in shopItemListContent.GetComponentsInChildren<ItemContentsSlot>(true))
                     Destroy(existing.gameObject);
             if (SelectedShopItemStatusSlotParent != null)
                 foreach (var existing in SelectedShopItemStatusSlotParent.GetComponentsInChildren<ShopItemStatusSlot>(true))
@@ -264,8 +267,10 @@ namespace Game.GUI.Shop
                 {
                     var item = filtered[i];
                     slot.gameObject.SetActive(true);
-                    slot.Bind(item.ItemId, item.Icon, item.DisplayName,
-                        () => _model.Accept(new ShopIntent.SelectItem(item.ItemId)));
+                    // 공통 슬롯: 상점 리스트는 수량 미표시(count=0) + 이름·등급배경 표시.
+                    slot.Bind(item.ItemId, item.Icon, 0,
+                        _ => _model.Accept(new ShopIntent.SelectItem(item.ItemId)),
+                        item.GradeBackground, item.DisplayName);
                 }
                 else
                 {
@@ -286,11 +291,17 @@ namespace Game.GUI.Shop
             if (!hasSel) return;
 
             if (SelectedShopItemName != null) SelectedShopItemName.text = sel.DisplayName;
-            if (SelectedShopItemDesc != null) SelectedShopItemDesc.text = string.Empty; // 설명 데이터 없음(카탈로그 확장 시)
+            if (SelectedShopItemDesc != null) SelectedShopItemDesc.text = sel.Description; // ItemDisplayCatalog.description
             if (SelectedShopItemIcon != null)
             {
                 SelectedShopItemIcon.sprite = sel.Icon;
                 SelectedShopItemIcon.enabled = sel.Icon != null;
+            }
+            // 선택 아이템 등급 배경(슬롯 프레임) — 리스트 슬롯과 동일한 등급 스프라이트.
+            if (SelectedShopItemGradeBackground != null)
+            {
+                SelectedShopItemGradeBackground.sprite = sel.GradeBackground;
+                SelectedShopItemGradeBackground.enabled = sel.GradeBackground != null;
             }
             if (SelectedShopItemAmount != null) SelectedShopItemAmount.text = state.Quantity.ToString();
             if (SelectedShopItemPrice != null) SelectedShopItemPrice.text = (sel.BuyPrice * state.Quantity).ToString("N0");
@@ -372,6 +383,7 @@ namespace Game.GUI.Shop
             SelectedShopItemName = SelectedShopItem.FindChildComponentByName<TextMeshProUGUI>("SelectedShopItemName");
             SelectedShopItemDesc = SelectedShopItem.FindChildComponentByName<TextMeshProUGUI>("SelectedShopItemDesc");
             SelectedShopItemIcon = SelectedShopItem.FindChildComponentByName<Image>("SelectedShopItemIcon");
+            SelectedShopItemGradeBackground = SelectedShopItem.FindChildComponentByName<Image>("item_slot");
 
             SelectedShopItemStatusSlotParent = SelectedShopItem.FindChildComponentByName<GridLayoutGroup>("SelectedShopItemStatusSlotParent");
 

@@ -2984,6 +2984,7 @@ MonoBehaviour:
   SelectedShopItemName: {fileID: 1623128266658065796}
   SelectedShopItemDesc: {fileID: 4397213673972045079}
   SelectedShopItemIcon: {fileID: 3673919588825078542}
+  SelectedShopItemGradeBackground: {fileID: 7665543173645985088}
   SelectedShopItemStatusSlotParent: {fileID: 5030359909612994317}
   SelectedShopItemAmount: {fileID: 2774662215820165338}
   PlusButton: {fileID: 1545934906076451278}
@@ -2991,6 +2992,8 @@ MonoBehaviour:
   BuyButton: {fileID: 7021539982495232899}
   SelectedShopItemPrice: {fileID: 3072935208492353738}
   closeButton: {fileID: 8239884831076737593}
+  toastText: {fileID: 0}
+  toastSeconds: 2
 --- !u!1 &3887355809687091952
 GameObject:
   m_ObjectHideFlags: 0
@@ -7778,7 +7781,7 @@ PrefabInstance:
     - target: {fileID: 1994380920535236820, guid: e6ee151fed6a80044b5e657183b5232a, type: 3}
       propertyPath: m_Group
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 5209694602159835477}
     - target: {fileID: 2491886937542984391, guid: e6ee151fed6a80044b5e657183b5232a, type: 3}
       propertyPath: m_Name
       value: tab_Weapon_Name

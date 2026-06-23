@@ -106,6 +106,7 @@ namespace Game.GUI.OutGame
             // 버튼 클릭 → InGameModel 토글 신호 → InventoryViewController가 창 로드/토글(I키와 동일 funnel).
             BindSideButton(SideButtonType.Inventory, () => _model.Accept(InGameIntent.ToggleInventory.Instance));
             BindSideButton(SideButtonType.Shop, () => _model.Accept(InGameIntent.ToggleShop.Instance));
+            BindSideButton(SideButtonType.Quest, () => _model.Accept(InGameIntent.ToggleQuest.Instance));
 
             InitBuffPool();
 
@@ -134,12 +135,14 @@ namespace Game.GUI.OutGame
             if (_model == null || kb == null)
                 return;
 
-            // I키 = 인벤토리+장비 쌍 토글, K키 = 장비창 단독 토글. 임시 폴링(래퍼 이관 예정).
-            // 상점은 키 없이 HUD 상점버튼으로만 연다(S는 WASD 후진과 충돌해 제외).
+            // I키 = 인벤토리+장비 쌍 토글, K키 = 장비창 단독 토글, Q키 = 퀘스트창 단독 토글. 임시 폴링(래퍼 이관 예정).
+            // 상점은 키 없이 HUD 상점버튼으로만 연다(S는 WASD 후진과 충돌해 제외). 창 열림 시 이동 차단은 UiInputCaptureBehaviour가 처리.
             if (kb.iKey.wasPressedThisFrame)
                 _model.Accept(InGameIntent.ToggleInventory.Instance);
             if (kb.kKey.wasPressedThisFrame)
                 _model.Accept(InGameIntent.ToggleEquipment.Instance);
+            if (kb.qKey.wasPressedThisFrame)
+                _model.Accept(InGameIntent.ToggleQuest.Instance);
         }
 
         private void OnClickReturnToLobby()

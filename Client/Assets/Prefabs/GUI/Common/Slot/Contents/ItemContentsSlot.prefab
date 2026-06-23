@@ -93,7 +93,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.GUI::Game.GUI.Common.ItemContentsSlot
   itemIcon: {fileID: 8133993797309964565}
   itemCount: {fileID: 1439082481593900947}
+  itemName: {fileID: 0}
   itemButton: {fileID: 3340039426190687006}
+  gradeBackground: {fileID: 5142909528105301590}
 --- !u!1 &5077417899922375621
 GameObject:
   m_ObjectHideFlags: 0

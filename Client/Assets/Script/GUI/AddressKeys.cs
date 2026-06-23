@@ -16,10 +16,18 @@ namespace Game.GUI
             public const string Equipment        = "Assets/Prefabs/GUI/Equipment/Equipment.prefab";
             public const string ItemActionPanel  = "Assets/Prefabs/GUI/Inventory/ItemActionPanel.prefab";
             public const string Shop             = "Assets/Prefabs/GUI/Shop/Shop.prefab";
+            public const string Quest = "Assets/Prefabs/GUI/Quest/Quest.prefab";
+            public const string Dialogue         = "Assets/Prefabs/GUI/Dialogue/Dialogue.prefab";
+            
             // 상점 슬롯(동적 생성용 prefab — Addressable 로드).
             public const string ShopItem         = "Assets/Prefabs/GUI/Shop/Shop_Item.prefab";
             public const string ShopStatusSlot   = "Assets/Prefabs/GUI/Shop/Status_Slot.prefab";
 
+            // 퀘스트 슬롯(동적 생성용 prefab — Addressable 로드).
+            public const string QUEST_SLOT_KEY = "Assets/Prefabs/GUI/Quest/Quest_Slot.prefab";
+            public const string QUEST_CONDITION_SLOT_KEY = "Assets/Prefabs/GUI/Quest/Quest_Condition_Slot.prefab";
+            public const string QUEST_REWARD_SLOT_KEY = "Assets/Prefabs/GUI/Quest/Quest_Reward_Slot.prefab";
+            
             // 인벤토리 슬롯(동적 생성용 prefab — Addressable 로드).
             public const string UniversalSlot    = "Assets/Prefabs/GUI/Common/Slot/UniversalSlot.prefab";
             public const string ItemContentsSlot = "Assets/Prefabs/GUI/Common/Slot/Contents/ItemContentsSlot.prefab";

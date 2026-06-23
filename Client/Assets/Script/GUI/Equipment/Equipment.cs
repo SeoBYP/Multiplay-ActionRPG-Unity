@@ -38,6 +38,9 @@ namespace Game.GUI.Equipment
         private IDisposable _stateSubscription;
         private EquipmentState _latestState;
 
+        // 슬롯별 기본 배경 스프라이트(빈 슬롯 모양) — 해제 시 등급 배경에서 복원하기 위해 Start 에서 캐시.
+        private readonly System.Collections.Generic.Dictionary<EquipmentType, Sprite> _defaultSlotSprites = new();
+
         private Canvas _canvas;
         private readonly ItemActionPanelController _actionPanel = new ItemActionPanelController();
 
@@ -47,11 +50,15 @@ namespace Game.GUI.Equipment
                 btn_close.onClick.AddListener(Close);
 
             // 슬롯 버튼 클릭 → 해당 슬롯의 액션 패널(해제). 슬롯은 고정이므로 1회 배선.
+            // 동시에 슬롯 기본 배경 스프라이트를 캐시(등급 배경 적용 후 해제 시 복원용).
             if (_equipmentSlots != null)
             {
                 foreach (var slotView in _equipmentSlots)
                 {
-                    if (slotView?.Button == null) continue;
+                    if (slotView == null) continue;
+                    if (slotView.Slot != null)
+                        _defaultSlotSprites[slotView.type] = slotView.Slot.sprite;
+                    if (slotView.Button == null) continue;
                     var captured = slotView;
                     captured.Button.onClick.AddListener(() => OnSlotClicked(captured));
                 }
@@ -109,6 +116,15 @@ namespace Game.GUI.Equipment
                 }
                 if (slotView.Button != null)
                     slotView.Button.gameObject.SetActive(isEquipped);
+
+                // 등급 배경: 착용=등급 스프라이트 / 미착용=기본 배경 복원(Start 에서 캐시한 값).
+                if (slotView.Slot != null)
+                {
+                    if (isEquipped && equipped.GradeBackground != null)
+                        slotView.Slot.sprite = equipped.GradeBackground;
+                    else if (_defaultSlotSprites.TryGetValue(slotView.type, out var def))
+                        slotView.Slot.sprite = def;
+                }
             }
         }
 

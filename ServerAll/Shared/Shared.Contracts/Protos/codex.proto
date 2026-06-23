@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+import "common.proto";
+
+package gameserver.codex.v1;
+
+option csharp_namespace = "GameServer.Grpc.Codex";
+
+// 도감(컬렉션) — "한 번이라도 획득한 아이템" 서버 권위 기록. 3.7 아이템 등급/레어도 + 도감.
+// 발견은 아이템 지급 funnel(서버)에서만 기록 — 클라가 임의 발견 보고 불가(치팅 차단).
+// 전체 목록·등급·아이콘은 클라 카탈로그(ItemDisplayCatalog)가 소유 — 서버는 "발견한 itemId 집합"만 보낸다.
+service CodexService {
+  // 현재 유저(토큰)가 발견한 itemId 집합. userId 는 서버가 JWT 에서 추출.
+  rpc GetCodex(GetCodexRequest) returns (GetCodexResponse);
+}
+
+message GetCodexRequest {}
+
+message GetCodexResponse {
+  gameserver.common.Result result = 1;
+  repeated string discovered_item_ids = 2;  // 발견(획득)한 itemId 목록(서버 권위). 클라가 자기 카탈로그와 대조해 완성도 산출.
+}

@@ -13,13 +13,16 @@ namespace Game.Presentation.Equipment
         public string ItemId { get; }
         public string DisplayName { get; }
         public Sprite Icon { get; }
+        public Sprite GradeBackground { get; } // 등급 배경(Model이 GradeSpriteCatalog로 해석). null이면 배경 없음.
 
-        public EquipmentSlotModel(EquipmentType slot, string itemId, string displayName, Sprite icon)
+        public EquipmentSlotModel(EquipmentType slot, string itemId, string displayName, Sprite icon,
+            Sprite gradeBackground = null)
         {
             Slot = slot;
             ItemId = itemId;
             DisplayName = displayName;
             Icon = icon;
+            GradeBackground = gradeBackground;
         }
     }
 }

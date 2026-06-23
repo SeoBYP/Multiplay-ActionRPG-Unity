@@ -3,7 +3,8 @@
     "rootNamespace": "Game.Gameplay.Editor",
     "references": [
         "Game.Gameplay",
-        "Game.Presentation"
+        "Game.Presentation",
+        "Game.System"
     ],
     "includePlatforms": [
         "Editor"

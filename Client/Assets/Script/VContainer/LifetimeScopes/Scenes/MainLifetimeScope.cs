@@ -58,6 +58,9 @@ namespace Game.Installers.Scenes
             // ItemDisplayCatalog는 Resources 기본본 폴백(인스펙터 할당 불요).
             builder.RegisterInstance(Resources.Load<ItemDisplayCatalog>("ItemDisplayCatalog")
                                      ?? ScriptableObject.CreateInstance<ItemDisplayCatalog>());
+            // 등급 배경 스프라이트 카탈로그(3.7) — 인벤/상점/장비 슬롯 공유. Resources 폴백(미할당이면 빈 SO=배경 없음).
+            builder.RegisterInstance(Resources.Load<GradeSpriteCatalog>("GradeSpriteCatalog")
+                                     ?? ScriptableObject.CreateInstance<GradeSpriteCatalog>());
             builder.Register<InventoryModel>(Lifetime.Scoped).AsSelf();
             builder.RegisterEntryPoint<InventoryViewController>(Lifetime.Scoped);
 
@@ -67,7 +70,28 @@ namespace Game.Installers.Scenes
 
             // 상점 MVI(3.5/7.6) — S키/HUD 상점버튼 단독 토글. Main 전용(던전 미등록 = 던전에선 S키 무반응).
             builder.Register<Game.Presentation.Shop.ShopModel>(Lifetime.Scoped).AsSelf();
-            builder.RegisterEntryPoint<Game.GUI.OutGame.ShopViewController>(Lifetime.Scoped).AsSelf();
+            builder.RegisterEntryPoint<Game.GUI.Shop.ShopViewController>(Lifetime.Scoped).AsSelf();
+
+            // 퀘스트 MVI(4.4) — HUD 퀘스트버튼 단독 토글. 진행 저널(목록). 수주/보상은 NPC 대화로 일원화.
+            // QuestNotifier=수락/완료/보상 알림 단일 소스(QuestModel·DialogueModel 공유) → Presenter 가 AlertPopup 표시.
+            builder.Register<Game.Presentation.Quest.QuestNotifier>(Lifetime.Scoped).AsSelf();
+            builder.Register<Game.Presentation.Quest.QuestModel>(Lifetime.Scoped).AsSelf();
+            builder.RegisterEntryPoint<Game.GUI.OutGame.QuestViewController>(Lifetime.Scoped).AsSelf();
+            builder.RegisterEntryPoint<Game.GUI.Quest.QuestNotificationPresenter>(Lifetime.Scoped);
+
+            // 대화/NPC(4.5 A1) — NPC(IInteractable) E 상호작용 → IDialogueLauncher.Open(npcId) → 대화창.
+            // 콘텐츠=DialogueCatalog(SO, Resources 폴백). DialogueViewController=IDialogueLauncher 구현(창 로드+Start).
+            // NPCDialogueBinder=씬 NPC 일괄 바인딩. 서버 0(A1).
+            builder.RegisterInstance(Resources.Load<Game.Presentation.Dialogue.DialogueCatalog>("DialogueCatalog")
+                                     ?? ScriptableObject.CreateInstance<Game.Presentation.Dialogue.DialogueCatalog>());
+            // 대화 카메라(A3) — 씬의 DialogueCameraController(전용 vcam Priority 승격)를 IDialogueCamera 로 노출.
+            // 씬에 컨트롤러가 있어야 DialogueModel/NPCBinder 의 IDialogueCamera 가 해소됨(없으면 주입 실패).
+            builder.RegisterComponentInHierarchy<Game.Gameplay.Camera.DialogueCameraController>()
+                   .As<Game.System.Dialogue.IDialogueCamera>();
+            builder.Register<Game.Presentation.Dialogue.DialogueModel>(Lifetime.Scoped)
+                   .As<Game.System.Dialogue.IDialogueLauncher>().AsSelf();
+            builder.RegisterEntryPoint<Game.GUI.Dialogue.DialogueViewController>(Lifetime.Scoped);
+            builder.RegisterEntryPoint<Game.Gameplay.Character.NPCDialogueBinder>(Lifetime.Scoped);
 
             // 진행/스탯창(7.3) MVI — 서버 권위 pull(GetProgression). View(스탯창)는 Model만 주입받는다.
             builder.Register<ProgressionModel>(Lifetime.Scoped).AsSelf();

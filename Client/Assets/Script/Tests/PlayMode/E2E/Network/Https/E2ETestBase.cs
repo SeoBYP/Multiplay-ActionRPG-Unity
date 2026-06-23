@@ -21,6 +21,7 @@ namespace Game.Tests.PlayMode.E2E
         protected IEquipmentGrpcService EquipmentService;
         protected IProgressionGrpcService ProgressionService;
         protected IWalletGrpcService WalletService;
+        protected IQuestGrpcService QuestService;
 
         protected string AccessToken;
         protected string RefreshToken;
@@ -50,6 +51,7 @@ namespace Game.Tests.PlayMode.E2E
             EquipmentService = new EquipmentGrpcService(ChannelProvider);
             ProgressionService = new ProgressionGrpcService(ChannelProvider);
             WalletService = new WalletGrpcService(ChannelProvider);
+            QuestService = new QuestGrpcService(ChannelProvider);
         }
 
         [TearDown]

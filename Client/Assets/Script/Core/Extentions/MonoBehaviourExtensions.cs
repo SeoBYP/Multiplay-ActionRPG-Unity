@@ -37,6 +37,18 @@ namespace Game.Core
             return component;
         }
 
+        public static GameObject FindChildComponentByName(
+            this MonoBehaviour behaviour,
+            string objectName,
+            bool includeInactive = true,
+            bool ignoreCase = false)
+        {
+            return behaviour == null
+                ? null
+                : behaviour.gameObject.FindChildComponentByName<Transform>(objectName, includeInactive, ignoreCase).gameObject;
+        }
+
+        
         public static T FindChildComponentByName<T>(
             this MonoBehaviour behaviour,
             string objectName,

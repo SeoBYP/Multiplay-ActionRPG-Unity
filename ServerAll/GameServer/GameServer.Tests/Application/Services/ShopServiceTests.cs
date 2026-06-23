@@ -27,7 +27,7 @@ public class ShopServiceTests
     public ShopServiceTests()
     {
         _wallet = new AppWalletService(_walletRepo);
-        _inventory = new AppInventoryService(_invRepo);
+        _inventory = new AppInventoryService(_invRepo, new GameServer.Application.Domains.Codex.CodexService(new FakeCodexRepository()));
         _shop = new ShopService(_wallet, _inventory);
     }
 

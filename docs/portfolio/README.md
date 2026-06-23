@@ -26,6 +26,8 @@ Claude와의 대화를 통해 배운 내용, 틀렸던 부분, 수정 이력을 
 | [챕터 15](./chapter-15-loot-drop-inventory.md) | 루트/드랍 + 인벤토리 (roll/grant 책임 분리 · 줍기 서버권위 · 컨테이너/Content 슬롯) | ✅ 기록 완료 |
 | [챕터 16](./chapter-16-main-loot-path.md) | Main 싱글 루트 — 클라 시뮬·렌더 + **서버 검증 B-lite**(GrantItem 파밍 핵 → ClaimKill 슬롯/쿨다운 검증·권위 roll) · 데이터 진실원 교리(SO→bake) · 공유 roll DLL | ✅ 기록 완료 |
 | [챕터 17](./chapter-17-equipment-system.md) | 장비 시스템 — 정의/소유/착용 3분리 · EquipmentType 공통 enum(proto 1:1) · GetStatsAsync 단일 합산 합류 · 착용=표시 필터 + OnChanged 크로스 갱신 · ItemActionPanel 공용화 | ✅ 기록 완료 |
+| [챕터 18](./chapter-18-wallet-shop.md) | 재화(Wallet) + 상점(Shop) — 골드=통화 승격(영속 경계 1곳 라우팅) · 지갑=인벤 단일값 미러 · gRPC 조회 전용(증감 RPC 없음) · 상점=지갑·인벤 조합(자기 영속 없음) | ✅ 기록 완료 |
+| [챕터 19](./chapter-19-quest-system.md) | 퀘스트 시스템 — 진행=서버 권위(킬 클레임 funnel에 훅, 클라 보고 없음) · 완료=파생 상태 · 보상=조합+Claimed 선마킹(at-most-once) · GetQuests 카탈로그×상태 병합(클라 미러 없음) · DB-only · 블래스트 반경 1곳(CollectItem 훅 보류) | ✅ 기록 완료 |
 
 ---
 

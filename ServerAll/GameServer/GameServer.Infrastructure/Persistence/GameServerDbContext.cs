@@ -1,9 +1,11 @@
 ﻿using GameServer.Domain.Entities;
 using GameServer.Domain.Entities.Chat;
+using GameServer.Domain.Entities.Codex;
 using GameServer.Domain.Entities.Equipment;
 using GameServer.Domain.Entities.GameSession;
 using GameServer.Domain.Entities.Inventory;
 using GameServer.Domain.Entities.Outbox;
+using GameServer.Domain.Entities.Quest;
 using GameServer.Domain.Entities.User;
 using GameServer.Domain.Entities.Wallet;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +25,10 @@ public class GameServerDbContext(DbContextOptions<GameServerDbContext> options) 
     public DbSet<UserEquipment> UserEquipments { get; set; }
 
     public DbSet<UserWallet> UserWallets { get; set; }
+
+    public DbSet<UserCodexEntry> UserCodexEntries { get; set; }
+
+    public DbSet<UserQuest> UserQuests { get; set; }
 
     public DbSet<DungeonRoom> DungeonRooms { get; set; }
     public DbSet<DungeonRoomPlayer> DungeonRoomPlayers { get; set; }

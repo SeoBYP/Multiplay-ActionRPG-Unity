@@ -17,13 +17,21 @@ namespace Game.Presentation.Inventory
         {
             public string itemId;
             public string displayName;
+            [TextArea(2, 4)] public string description; // 상점 선택 패널 등 표시용 설명(플레이버/용도). 비우면 빈 문자열.
             public Sprite icon;
             public ItemCategory category;
+
+            // 등급(레어도) — 표시 색/도감 정렬용 미러. 디자이너가 서버 ItemDef.Grade 와 맞춰 인스펙터에서 지정.
+            // 기본 Common(미지정 안전값). 게임플레이 무효과(현재 표시 전용).
+            public ItemGrade grade = ItemGrade.Common;
         }
 
         [SerializeField] private Entry[] entries = Array.Empty<Entry>();
 
         private Dictionary<string, Entry> _byId;
+
+        /// <summary>전체 정의(도감 — 미발견 포함 전체 목록·완성도 산출용).</summary>
+        public IReadOnlyList<Entry> All => entries;
 
         public Entry Get(string itemId)
         {

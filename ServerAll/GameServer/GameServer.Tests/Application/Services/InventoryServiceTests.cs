@@ -1,3 +1,4 @@
+using GameServer.Application.Domains.Codex;
 using GameServer.Application.Domains.Inventory;
 using GameServer.Tests.Infrastructure.Fakes.Repositories;
 
@@ -6,11 +7,12 @@ namespace GameServer.Tests.Application.Services;
 public class InventoryServiceTests
 {
     private readonly FakeInventoryRepository _repository = new();
+    private readonly FakeCodexRepository _codexRepository = new();
     private readonly InventoryService _service;
 
     public InventoryServiceTests()
     {
-        _service = new InventoryService(_repository);
+        _service = new InventoryService(_repository, new CodexService(_codexRepository));
     }
 
     [Fact]
@@ -115,5 +117,22 @@ public class InventoryServiceTests
         Assert.Equal(2, inventory.Count);
         Assert.Contains(inventory, i => i.ItemId == "potion_hp_small" && i.Quantity == 2);
         Assert.Contains(inventory, i => i.ItemId == "potion_mp_small" && i.Quantity == 5);
+    }
+
+    [Fact]
+    public async Task 지급은_도감에_발견을_기록한다()
+    {
+        await _service.GrantItemAsync(1L, "potion_hp_small", 1);
+
+        var discovered = await _codexRepository.GetDiscoveredItemIdsAsync(1L);
+        Assert.Contains("potion_hp_small", discovered);
+    }
+
+    [Fact]
+    public async Task 지급_실패시에는_도감에_기록되지_않는다()
+    {
+        await _service.GrantItemAsync(1L, "unknown_item", 1); // 카탈로그 없음 → 실패
+
+        Assert.Empty(await _codexRepository.GetDiscoveredItemIdsAsync(1L));
     }
 }

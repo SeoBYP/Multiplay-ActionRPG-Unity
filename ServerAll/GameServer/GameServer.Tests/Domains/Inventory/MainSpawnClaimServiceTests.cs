@@ -21,16 +21,37 @@ public class MainSpawnClaimServiceTests
     private readonly FakeWalletRepository _walletRepository = new();
     private readonly FakeClaimCooldownStore _cooldown = new();
     private readonly ProgressionService _progression = new(new FakeProgressionRepository(), new Infrastructure.Fakes.Services.FakeEquipmentService());
+    private readonly Infrastructure.Fakes.Services.FakeQuestService _quest = new();
     private readonly MainSpawnClaimService _service;
 
     public MainSpawnClaimServiceTests()
     {
         _service = new MainSpawnClaimService(
-            new AppInventoryService(_repository),
+            new AppInventoryService(_repository, new GameServer.Application.Domains.Codex.CodexService(new FakeCodexRepository())),
             new AppWalletService(_walletRepository),
             _progression,
+            _quest,
             _cooldown,
             NullLogger<MainSpawnClaimService>.Instance);
+    }
+
+    [Fact]
+    public async Task ClaimExp_성공시_퀘스트에_킬을_보고한다()
+    {
+        await _service.ClaimExpAsync(7L, MainMap, 1); // slot 1 = slime
+
+        Assert.Contains((7L, "slime"), _quest.ReportedKills);
+    }
+
+    [Fact]
+    public async Task ClaimExp_쿨다운중이면_킬을_보고하지_않는다()
+    {
+        await _service.ClaimExpAsync(7L, MainMap, 1); // 1회차 점유
+        _quest.ReportedKills.Clear();
+
+        await _service.ClaimExpAsync(7L, MainMap, 1); // 쿨다운 중 → exp/킬보고 없음
+
+        Assert.Empty(_quest.ReportedKills);
     }
 
     [Fact]

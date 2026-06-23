@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using GameServer.API.Services;
+using GameServer.Application.Domains.Codex;
 using GameServer.Application.Domains.Inventory;
 using GameServer.Application.Domains.Inventory.Interfaces;
 using GameServer.Grpc.Inventory;
@@ -28,7 +29,7 @@ public class InventoryGrpcServiceTests
 
     public InventoryGrpcServiceTests()
     {
-        _inventory = new AppInventoryService(_repository);
+        _inventory = new AppInventoryService(_repository, new CodexService(new FakeCodexRepository()));
         _service = new InventoryGrpcService(_inventory, _claim, _consumeQueue, NullLogger<InventoryGrpcService>.Instance);
     }
 

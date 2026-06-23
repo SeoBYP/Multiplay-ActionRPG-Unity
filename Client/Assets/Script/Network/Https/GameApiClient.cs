@@ -37,6 +37,7 @@ namespace Game.Network.Https
             builder.Register<IProgressionGrpcService, ProgressionGrpcService>(Lifetime.Singleton);
             builder.Register<IWalletGrpcService, WalletGrpcService>(Lifetime.Singleton);
             builder.Register<IShopGrpcService, ShopGrpcService>(Lifetime.Singleton);
+            builder.Register<IQuestGrpcService, QuestGrpcService>(Lifetime.Singleton);
         }
     }
 }

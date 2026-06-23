@@ -19,16 +19,19 @@ namespace Game.Presentation.Equipment
         private readonly IEquipmentService _service;
         private readonly IInputContext _inputContext;
         private readonly ItemDisplayCatalog _catalog;
+        private readonly GradeSpriteCatalog _gradeCatalog;
         private readonly CancellationTokenSource _cts = new();
 
         private readonly ReactiveProperty<EquipmentState> _state = new(EquipmentState.Initial);
         public ReadOnlyReactiveProperty<EquipmentState> State => _state.ToReadOnlyReactiveProperty();
 
-        public EquipmentModel(IEquipmentService service, IInputContext inputContext = null, ItemDisplayCatalog catalog = null)
+        public EquipmentModel(IEquipmentService service, IInputContext inputContext = null, ItemDisplayCatalog catalog = null,
+            GradeSpriteCatalog gradeCatalog = null)
         {
             _service = service;
             _inputContext = inputContext;
             _catalog = catalog;
+            _gradeCatalog = gradeCatalog;
             _service.OnChanged += OnServiceChanged;
         }
 
@@ -77,11 +80,13 @@ namespace Game.Presentation.Equipment
                 foreach (var data in items)
                 {
                     var entry = _catalog != null ? _catalog.Get(data.ItemId) : null;
+                    var gradeBg = _gradeCatalog != null && entry != null ? _gradeCatalog.Get(entry.grade) : null;
                     models.Add(new EquipmentSlotModel(
                         data.Slot,
                         data.ItemId,
                         entry?.displayName ?? data.ItemId,
-                        entry?.icon));
+                        entry?.icon,
+                        gradeBg));
                 }
 
                 _state.Value = _state.Value.WithEquipped(models);

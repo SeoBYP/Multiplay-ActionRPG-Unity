@@ -774,12 +774,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 7775912175086350698}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 043c4456ea3e4695b2421de809a9a932, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Game.GUI::Game.GUI.Shop.ShopItemSlotView
-  icon: {fileID: 7912799393986479907}
-  nameText: {fileID: 8761868592529525335}
-  sellectButton: {fileID: 163855393680874666}
+  m_Script: {fileID: 11500000, guid: 1406b0e1c19347608709c66b0e1f425a, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Game.GUI::Game.GUI.Common.ItemContentsSlot
+  itemIcon: {fileID: 7912799393986479907}
+  itemCount: {fileID: 0}
+  itemName: {fileID: 8761868592529525335}
+  itemButton: {fileID: 163855393680874666}
+  gradeBackground: {fileID: 2705280956254623983}
 --- !u!1 &8641003751492929893
 GameObject:
   m_ObjectHideFlags: 0

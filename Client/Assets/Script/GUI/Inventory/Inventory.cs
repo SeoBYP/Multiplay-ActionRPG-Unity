@@ -227,7 +227,8 @@ namespace Game.GUI.Inventory
                     var content = activeSlots[i].EnsureContent(_itemContentsPrefab);
                     var item = filtered[i];
                     var slotRect = (RectTransform)activeSlots[i].transform;
-                    content?.Bind(item.ItemId, item.Icon, item.Quantity, _ => OpenActionPanel(item, slotRect).Forget());
+                    content?.Bind(item.ItemId, item.Icon, item.Quantity, _ => OpenActionPanel(item, slotRect).Forget(),
+                        item.GradeBackground);
                 }
                 else
                 {

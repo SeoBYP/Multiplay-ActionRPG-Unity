@@ -43,5 +43,7 @@ public class MiddlewareInstaller : IMiddlewareInstaller
         app.MapGrpcService<ProgressionGrpcService>();
         app.MapGrpcService<WalletGrpcService>();
         app.MapGrpcService<ShopGrpcService>();
+        app.MapGrpcService<CodexGrpcService>();
+        app.MapGrpcService<QuestGrpcService>();
     }
 }

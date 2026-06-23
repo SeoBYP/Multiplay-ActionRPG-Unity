@@ -53,6 +53,9 @@ public class LootGrantConsumerIntegrationTests
         services.AddDbContext<GameServerDbContext>(o => o.UseNpgsql(_fixture.DbConnectionString));
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IInventoryService, InventoryService>();
+        // 도감(3.7): InventoryService 가 GrantItemAsync 에서 ICodexService 의존 → 미등록 시 consumer DI 해소 실패.
+        services.AddScoped<GameServer.Application.Domains.Codex.Interfaces.ICodexRepository, GameServer.Infrastructure.Domains.Codex.CodexRepository>();
+        services.AddScoped<GameServer.Application.Domains.Codex.Interfaces.ICodexService, GameServer.Application.Domains.Codex.CodexService>();
         services.AddScoped<IWalletRepository, WalletRepository>();
         services.AddScoped<IWalletService, WalletService>();
         services.AddSingleton<IMessageQueue<ItemPickedUpMessage>>(queue);

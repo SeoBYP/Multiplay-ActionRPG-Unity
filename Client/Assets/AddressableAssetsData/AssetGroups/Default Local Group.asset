@@ -25,8 +25,18 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 116343216bba3ce458390daf7f679275
+    m_Address: Assets/Prefabs/GUI/Dialogue/Dialogue.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 179f4e7a1670d2e4994fd40e2106e53b
     m_Address: Assets/Prefabs/GUI/Dungeon/DungeonClear.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 19fa1017423ee724488791943fe96bf9
+    m_Address: Assets/Prefabs/GUI/Quest/Quest_Slot.prefab
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -112,6 +122,16 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: d2783c5aba7dce64ebcb73ce6242d1c7
     m_Address: Assets/Prefabs/GUI/Equipment/Equipment.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: deba644c7666fdb4792f0264177730d8
+    m_Address: Assets/Prefabs/GUI/Quest/Quest.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: dfc07a7992d5eca4dbaa1c263ccd5e65
+    m_Address: Assets/Prefabs/GUI/Quest/Quest_Reward_Slot.prefab
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

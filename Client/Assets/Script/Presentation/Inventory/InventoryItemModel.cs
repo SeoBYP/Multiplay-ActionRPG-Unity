@@ -13,14 +13,19 @@ namespace Game.Presentation.Inventory
         public string DisplayName { get; }
         public Sprite Icon { get; }
         public ItemCategory Category { get; }
+        public ItemGrade Grade { get; }
+        public Sprite GradeBackground { get; } // 등급 배경 스프라이트(Model이 GradeSpriteCatalog로 해석). null이면 배경 없음.
 
-        public InventoryItemModel(string itemId, int quantity, string displayName, Sprite icon, ItemCategory category)
+        public InventoryItemModel(string itemId, int quantity, string displayName, Sprite icon,
+            ItemCategory category, ItemGrade grade = ItemGrade.Common, Sprite gradeBackground = null)
         {
             ItemId = itemId;
             Quantity = quantity;
             DisplayName = displayName;
             Icon = icon;
             Category = category;
+            Grade = grade;
+            GradeBackground = gradeBackground;
         }
     }
 }

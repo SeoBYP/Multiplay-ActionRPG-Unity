@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+import "common.proto";
+
+package gameserver.quest.v1;
+
+option csharp_namespace = "GameServer.Grpc.Quest";
+
+// 퀘스트(4.4) — 수주/진행/보상. 진행은 서버 권위(킬 클레임 경로에서만 +1, 클라 보고 아님).
+// GetQuests 는 카탈로그 전체 × 유저 상태 병합(미수주 포함) → 클라 퀘스트 카탈로그 미러 불필요.
+service QuestService {
+  // 현재 유저(토큰)의 퀘스트 목록(전체 카탈로그 + 상태). userId 는 서버가 JWT 에서 추출.
+  rpc GetQuests(GetQuestsRequest) returns (GetQuestsResponse);
+
+  // 퀘스트 수주(직접 수주 — NPC 수주는 4.5). 미존재·이미수주면 실패.
+  rpc AcceptQuest(AcceptQuestRequest) returns (AcceptQuestResponse);
+
+  // 완료 퀘스트 보상 수령. 미완료·미수주·이미수령이면 실패. 성공 시 보상 지급(exp/gold/item).
+  rpc ClaimQuestReward(ClaimQuestRewardRequest) returns (ClaimQuestRewardResponse);
+
+  // NPC 대화 보고(4.5 Phase C — 클라 대화 시작 시). 해당 npcId 목표 TalkToNpc 퀘스트 진행 +1.
+  // 잘못된 npcId=무진행, RequiredCount=1+상한으로 반복 멱등. 진짜 위치 검증은 4.6 World 세션 합류 시 승격.
+  rpc ReportTalk(ReportTalkRequest) returns (ReportTalkResponse);
+}
+
+enum QuestObjective {
+  KILL_MONSTER = 0;
+  COLLECT_ITEM = 1;
+  TALK_TO_NPC = 2;
+}
+
+enum QuestProgressStatus {
+  NOT_ACCEPTED = 0;
+  ACCEPTED = 1;   // 진행 중(미완료)
+  COMPLETED = 2;  // 완료(보상 수령 가능)
+  CLAIMED = 3;    // 보상 수령 완료
+}
+
+message QuestReward {
+  int64 exp = 1;
+  int64 gold = 2;
+  string item_id = 3;   // 빈 문자열이면 아이템 보상 없음
+  int32 item_qty = 4;
+}
+
+message QuestInfo {
+  string quest_id = 1;
+  string name = 2;
+  string description = 3;
+  QuestObjective objective_type = 4;
+  string target_id = 5;
+  int32 required_count = 6;
+  int32 current_progress = 7;
+  QuestProgressStatus status = 8;
+  QuestReward reward = 9;
+}
+
+message GetQuestsRequest {}
+message GetQuestsResponse {
+  gameserver.common.Result result = 1;
+  repeated QuestInfo quests = 2;
+}
+
+message AcceptQuestRequest { string quest_id = 1; }
+message AcceptQuestResponse { gameserver.common.Result result = 1; }
+
+message ClaimQuestRewardRequest { string quest_id = 1; }
+message ClaimQuestRewardResponse {
+  gameserver.common.Result result = 1;
+  QuestReward reward = 2;  // 지급된 보상(성공 시)
+}
+
+message ReportTalkRequest { string npc_id = 1; }
+message ReportTalkResponse {
+  gameserver.common.Result result = 1;
+  int32 advanced = 2;  // 이번 대화로 진행된 TalkToNpc 퀘스트 수(0 가능)
+}

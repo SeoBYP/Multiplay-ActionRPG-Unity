@@ -22,6 +22,7 @@ namespace Game.Presentation.Shop
         private readonly IWalletService _wallet;
         private readonly IInputContext _inputContext;
         private readonly ItemDisplayCatalog _catalog;
+        private readonly GradeSpriteCatalog _gradeCatalog;
         private readonly CancellationTokenSource _cts = new();
 
         private readonly ReactiveProperty<ShopState> _state = new(ShopState.Initial);
@@ -32,12 +33,14 @@ namespace Game.Presentation.Shop
         public Observable<ShopToastMessage> OnToast => _onToast;
 
         public ShopModel(IShopService shop, IWalletService wallet = null,
-            IInputContext inputContext = null, ItemDisplayCatalog catalog = null)
+            IInputContext inputContext = null, ItemDisplayCatalog catalog = null,
+            GradeSpriteCatalog gradeCatalog = null)
         {
             _shop = shop;
             _wallet = wallet;
             _inputContext = inputContext;
             _catalog = catalog;
+            _gradeCatalog = gradeCatalog;
         }
 
         // 창이 열린 동안 게임플레이 입력 점유(InventoryModel 과 동일 — IInputContext refcount).
@@ -86,6 +89,7 @@ namespace Game.Presentation.Shop
                     foreach (var s in data.Stats)
                         stats.Add(new ShopStatLine(s.Stat, s.Amount));
 
+                    var gradeBg = _gradeCatalog != null && entry != null ? _gradeCatalog.Get(entry.grade) : null;
                     models.Add(new ShopItemModel(
                         data.ItemId,
                         entry?.displayName ?? data.ItemId,
@@ -93,7 +97,9 @@ namespace Game.Presentation.Shop
                         data.BuyPrice,
                         data.SellPrice,
                         ToCategory(data.Category),
-                        stats));
+                        stats,
+                        gradeBg,
+                        entry?.description));
                 }
 
                 long gold = await GetGoldAsync();

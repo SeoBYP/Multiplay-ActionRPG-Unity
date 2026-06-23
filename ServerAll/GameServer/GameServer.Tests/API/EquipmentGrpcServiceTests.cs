@@ -25,7 +25,7 @@ public class EquipmentGrpcServiceTests
 
     public EquipmentGrpcServiceTests()
     {
-        var inventory = new AppInventoryService(_inventoryRepo);
+        var inventory = new AppInventoryService(_inventoryRepo, new GameServer.Application.Domains.Codex.CodexService(new FakeCodexRepository()));
         var equipment = new AppEquipmentService(_equipmentRepo, inventory);
         _service = new EquipmentGrpcService(equipment, NullLogger<EquipmentGrpcService>.Instance);
     }

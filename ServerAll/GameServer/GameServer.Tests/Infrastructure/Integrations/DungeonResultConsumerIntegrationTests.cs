@@ -60,6 +60,9 @@ public class DungeonResultConsumerIntegrationTests
         // ProgressionService.GetStatsAsync 가 장비 합산(3.2)을 위임 → 생성자 의존 체인 등록(보상=AddExp 만 쓰지만 DI 해석 필요).
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IInventoryService, InventoryService>();
+        // 도감(3.7): InventoryService.GrantItemAsync 가 ICodexService 의존 → DI 해석 위해 등록.
+        services.AddScoped<GameServer.Application.Domains.Codex.Interfaces.ICodexRepository, GameServer.Infrastructure.Domains.Codex.CodexRepository>();
+        services.AddScoped<GameServer.Application.Domains.Codex.Interfaces.ICodexService, GameServer.Application.Domains.Codex.CodexService>();
         services.AddScoped<IEquipmentRepository, EquipmentRepository>();
         services.AddScoped<IEquipmentService, EquipmentService>();
         services.AddSingleton<IMessageQueue<DungeonClearMessage>>(queue);

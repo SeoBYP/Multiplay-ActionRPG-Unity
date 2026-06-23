@@ -1,5 +1,31 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__UnityMCP__run_tests",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "& '.claude/hooks/check-stale-server-image.ps1'",
+            "shell": "powershell",
+            "timeout": 30,
+            "statusMessage": "stale-image 가드 검사 중..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "try{ $f=([Console]::In.ReadToEnd()|ConvertFrom-Json).tool_input.file_path; if($f -match '\\.proto$'){ @{systemMessage='[proto 가드] proto 변경 감지 — 클라이언트 Generated 재생성 필요'; hookSpecificOutput=@{hookEventName='PostToolUse'; additionalContext='[proto 가드] .proto가 변경됐다. CLAUDE.md의 protoc 명령으로 Client/Assets/Script/Network/Https/Generated/ 를 즉시 재생성하라. 누락 시 클라가 새 필드를 인식하지 못한다.'}} | ConvertTo-Json -Compress -Depth 6 } }catch{}",
+            "shell": "powershell"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
@@ -7,6 +33,28 @@
             "type": "command",
             "command": "Write-Output '{\"hookSpecificOutput\": {\"hookEventName\": \"Stop\", \"additionalContext\": \"[필수 체크] 이번 턴에서 코드 작업을 했다면: (1) plan.md 체크박스 갱신했는가? (2) 무엇을 했는지/왜 이렇게 설계했는지/파일 위치/연결 지점을 설명했는가? 완료됐다고만 하고 설명 없이 끝내지 않는다.\"}}'",
             "shell": "powershell"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "& '.claude/hooks/check-server-tests-tdd.ps1'",
+            "shell": "powershell",
+            "timeout": 15,
+            "statusMessage": "server-TDD 가드 검사 중..."
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "& '.claude/hooks/check-codemap-freshness.ps1'",
+            "shell": "powershell",
+            "timeout": 15,
+            "statusMessage": "codemap 신선도 검사 중..."
           }
         ]
       }

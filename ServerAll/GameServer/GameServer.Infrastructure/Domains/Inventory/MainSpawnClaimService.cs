@@ -1,6 +1,7 @@
 using GameServer.Application.Domains.Inventory;
 using GameServer.Application.Domains.Inventory.Interfaces;
 using GameServer.Application.Domains.Progression.Interfaces;
+using GameServer.Application.Domains.Quest.Interfaces;
 using GameServer.Application.Domains.Wallet.Interfaces;
 using GameServer.Domain;
 using Microsoft.Extensions.Logging;
@@ -29,6 +30,7 @@ public sealed class MainSpawnClaimService : IMainSpawnClaimService
     private readonly IInventoryService _inventory;
     private readonly IWalletService _wallet;
     private readonly IProgressionService _progression;
+    private readonly IQuestService _quest;
     private readonly IClaimCooldownStore _cooldown;
     private readonly ILogger<MainSpawnClaimService> _logger;
 
@@ -36,12 +38,14 @@ public sealed class MainSpawnClaimService : IMainSpawnClaimService
         IInventoryService inventory,
         IWalletService wallet,
         IProgressionService progression,
+        IQuestService quest,
         IClaimCooldownStore cooldown,
         ILogger<MainSpawnClaimService> logger)
     {
         _inventory = inventory;
         _wallet = wallet;
         _progression = progression;
+        _quest = quest;
         _cooldown = cooldown;
         _logger = logger;
     }
@@ -101,6 +105,9 @@ public sealed class MainSpawnClaimService : IMainSpawnClaimService
         long expReward = MonsterCatalog.Get(slot.MonsterId).ExpReward;
         if (expReward > 0)
             await _progression.AddExpAsync(userId, expReward, ct);
+
+        // 퀘스트 진행(4.4) — 쿨다운 통과 = 진짜 킬 1회. KillMonster 퀘스트 서버 권위 +1(위조 불가).
+        await _quest.ReportKillAsync(userId, slot.MonsterId, ct);
 
         _logger.LogInformation("ClaimMonsterExp +{Exp} exp: user {User} map {Map} slot {Slot} monster {Monster}",
             expReward, userId, mapId, slotId, slot.MonsterId);
