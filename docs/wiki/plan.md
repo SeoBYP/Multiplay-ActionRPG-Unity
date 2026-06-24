@@ -156,7 +156,7 @@
 - **7.3** 캐릭터 정보/스탯창 (대응 2.3/2.4) — ⬜ | T2 | ⚪
 - **7.4** 퀘스트 UI/추적 HUD (대응 4.4) — ⬜ | T2 | ⚪
 - **7.5** 대화 UI (대응 4.5) — ⬜ | T2 | ⚪
-- **7.6** 상점 UI (대응 3.5) — 🔄 | T2 | 🟢 (**구매 UI 완료 2026-06-17**: Shop View MVI 배선(탭/리스트/선택패널/수량/구매) + 동적 Addressable 슬롯(Shop_Item/Status_Slot) + 구매결과 토스트(성공/실패 색) + HUD 상점버튼 열기·이동차단. ShopModelTests 7/7. 상세 codemap §2.29. **잔여**: 판매(Sell) UI · 골드 표시 필드 · 프리팹 인스펙터 잔여 할당)
+- **7.6** 상점 UI (대응 3.5) — ✅ | T2 | 🟢 (**구매 UI 완료 2026-06-17** + **판매(Sell) UI 완료 2026-06-23**. 구매: Shop View MVI(탭/리스트/선택패널/수량/구매) + 동적 Addressable 슬롯 + 결과 토스트 + HUD 상점버튼 열기·이동차단. 골드 표시는 인벤토리 화면(InventoryModel WithGold)에 이미 반영. **판매**: 인벤토리 비장착 아이템 클릭 → ItemActionPanel 판매버튼 → 가격(서버 sell_price) 확인 ConfirmPopup → 확인 시 IShopService.Sell(서버 권위 인벤차감→골드적립)·취소 시 닫힘. 장착품은 인벤 표시에서 이미 제외(판매버튼 안 뜸). 상세 codemap §2.29·§2.42. **검증**: 클라 컴파일0 + InventoryModelTests 8(판매가 룩업·SellItem 위임 2 신규)·ShopModelTests 7 그린. 잔여: 스택 수량 선택(현재 1개/확인), 프리팹 인스펙터 sellButton 할당(사용자 완료))
 - **7.7** 미니맵 HUD (대응 4.6) — ⬜ | T2 | ⚪
 - **7.8** 설정 메뉴 (대응 6.3) — ⬜ | T2 | ⚪
 

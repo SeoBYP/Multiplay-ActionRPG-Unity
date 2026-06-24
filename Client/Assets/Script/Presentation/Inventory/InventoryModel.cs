@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using Game.System.Equipment;
 using Game.System.Input;
 using Game.System.Inventory;
+using Game.System.Shop;
 using Game.System.Wallet;
 using R3;
 
@@ -21,10 +22,14 @@ namespace Game.Presentation.Inventory
         private readonly IInventoryService _service;
         private readonly IEquipmentService _equipment;
         private readonly IWalletService _wallet;
+        private readonly IShopService _shop;
         private readonly IInputContext _inputContext;
         private readonly ItemDisplayCatalog _catalog;
         private readonly GradeSpriteCatalog _gradeCatalog;
         private readonly CancellationTokenSource _cts = new();
+
+        // 판매가 캐시(itemId→sell_price). 서버 GetShop 1회 결과를 보관 — 확인 팝업에 표시. null=미조회.
+        private Dictionary<string, long> _sellPrices;
 
         private readonly ReactiveProperty<InventoryState> _state = new(InventoryState.Initial);
         public ReadOnlyReactiveProperty<InventoryState> State => _state.ToReadOnlyReactiveProperty();
@@ -42,11 +47,12 @@ namespace Game.Presentation.Inventory
 
         public InventoryModel(IInventoryService service, IEquipmentService equipment = null,
             IInputContext inputContext = null, ItemDisplayCatalog catalog = null, IWalletService wallet = null,
-            GradeSpriteCatalog gradeCatalog = null)
+            GradeSpriteCatalog gradeCatalog = null, IShopService shop = null)
         {
             _service = service;
             _equipment = equipment;
             _wallet = wallet;
+            _shop = shop;
             _inputContext = inputContext;
             _catalog = catalog;
             _gradeCatalog = gradeCatalog;
@@ -79,6 +85,51 @@ namespace Game.Presentation.Inventory
                 case InventoryIntent.EquipItem equip:
                     EquipItemAsync(equip.ItemId).Forget();
                     break;
+                case InventoryIntent.SellItem sell:
+                    SellItemAsync(sell.ItemId).Forget();
+                    break;
+            }
+        }
+
+        /// <summary>판매가(서버 sell_price) 조회 — 확인 팝업 표시용. GetShop 1회 캐시 후 룩업. 미주입/미조회면 0.</summary>
+        public async UniTask<long> GetSellPriceAsync(string itemId)
+        {
+            if (_shop == null) return 0;
+            if (_sellPrices == null)
+            {
+                var (result, items) = await _shop.GetShopAsync(_cts.Token);
+                _sellPrices = new Dictionary<string, long>();
+                if (result == ShopResult.Success)
+                    foreach (var it in items)
+                        _sellPrices[it.ItemId] = it.SellPrice;
+            }
+            return _sellPrices != null && _sellPrices.TryGetValue(itemId, out var price) ? price : 0;
+        }
+
+        /// <summary>판매(서버 권위, 1개): Sell → 성공 시 인벤/골드 갱신 + 토스트. 가격 확인은 View 가 먼저 처리.</summary>
+        private async UniTaskVoid SellItemAsync(string itemId)
+        {
+            if (_shop == null)
+            {
+                _onToast.OnNext("판매할 수 없습니다");
+                return;
+            }
+
+            try
+            {
+                var (result, _, _) = await _shop.SellAsync(itemId, 1, _cts.Token);
+                if (result != ShopResult.Success)
+                {
+                    _onToast.OnNext("판매할 수 없습니다");
+                    return;
+                }
+
+                _onToast.OnNext($"{DisplayName(itemId)} 판매");
+                RefreshAsync().Forget(); // 남은 수량 + 골드 갱신
+            }
+            catch (OperationCanceledException)
+            {
+                // 창 닫힘/씬 전환 — 정상 취소
             }
         }
 

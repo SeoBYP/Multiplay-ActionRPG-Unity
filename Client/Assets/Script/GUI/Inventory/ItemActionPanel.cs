@@ -17,11 +17,13 @@ namespace Script.GUI.Inventory
         [SerializeField] private Button useButton;
         [SerializeField] private Button equipButton;
         [SerializeField] private Button unEquipButton;
+        [SerializeField] private Button sellButton;
 
         private string _itemId;
         private Action<string> _onUse;
         private Action<string> _onEquip;
         private Action<string> _onUnequip;
+        private Action<string> _onSell;
 
         /// <summary>닫기 요청(버튼 사용 후). View 가 구독해 팝업+백드롭을 파괴한다.</summary>
         public event Action OnCloseRequested;
@@ -32,17 +34,19 @@ namespace Script.GUI.Inventory
         /// 클릭 → 콜백(itemId) + 닫기 요청.
         /// </summary>
         public void Bind(string itemId,
-            Action<string> onUse, Action<string> onEquip, Action<string> onUnequip,
-            bool canUse, bool canEquip, bool canUnequip)
+            Action<string> onUse, Action<string> onEquip, Action<string> onUnequip, Action<string> onSell,
+            bool canUse, bool canEquip, bool canUnequip, bool canSell)
         {
             _itemId = itemId;
             _onUse = onUse;
             _onEquip = onEquip;
             _onUnequip = onUnequip;
+            _onSell = onSell;
 
             WireButton(useButton, canUse, () => _onUse?.Invoke(_itemId));
             WireButton(equipButton, canEquip, () => _onEquip?.Invoke(_itemId));
             WireButton(unEquipButton, canUnequip, () => _onUnequip?.Invoke(_itemId));
+            WireButton(sellButton, canSell, () => _onSell?.Invoke(_itemId));
         }
 
         private void WireButton(Button button, bool active, Action onClick)

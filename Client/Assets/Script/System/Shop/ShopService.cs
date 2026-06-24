@@ -71,6 +71,26 @@ namespace Game.System.Shop
             }
         }
 
+        public async UniTask<(ShopResult Result, long Gold, int RemainingQuantity)> SellAsync(string itemId, int qty, CancellationToken ct = default)
+        {
+            try
+            {
+                var res = await _grpc.SellAsync(new SellRequest { ItemId = itemId, Qty = qty }, ct);
+                if (!res.Result.Success)
+                {
+                    Debug.LogWarning($"[ShopService] Sell 실패: {itemId} x{qty} code={res.Result.ErrorCode}");
+                    return (ShopResult.Failed, 0, 0);
+                }
+
+                return (ShopResult.Success, res.Gold, res.RemainingQuantity);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[ShopService] Sell 예외: {e.Message}");
+                return (ShopResult.Failed, 0, 0);
+            }
+        }
+
         private static ShopCategory ToCategory(ProtoShopCategory c) => c switch
         {
             ProtoShopCategory.Weapon => ShopCategory.Weapon,

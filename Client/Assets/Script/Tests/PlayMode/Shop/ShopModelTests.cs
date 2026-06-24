@@ -51,6 +51,9 @@ namespace Game.Tests.PlayMode.Shop
                 LastBoughtItemId = itemId;
                 return UniTask.FromResult((_buyResult, _buyGold, _buyQty));
             }
+
+            public UniTask<(ShopResult Result, long Gold, int RemainingQuantity)> SellAsync(string itemId, int qty, CancellationToken ct = default)
+                => UniTask.FromResult((ShopResult.Success, 0L, 0));
         }
 
         private static List<ShopItemData> Sample() => new()

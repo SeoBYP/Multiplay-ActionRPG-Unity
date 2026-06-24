@@ -250,7 +250,8 @@ namespace Game.GUI.Inventory
         /// </summary>
         private async UniTask OpenActionPanel(InventoryItemModel item, RectTransform slotRect)
         {
-            // 분류에 따라 버튼 노출: 소모품=사용, 장비=장착. 그 외엔 둘 다 비활성. (해제는 장비창에서만)
+            // 분류에 따라 버튼 노출: 소모품=사용, 장비=장착. 판매는 인벤토리의 모든 항목(장착품은 표시에서 이미 제외).
+            // (해제는 장비창에서만 — canUnequip=false / canSell=false)
             bool canUse = item.Category == ItemCategory.Consumable;
             bool canEquip = item.Category == ItemCategory.Equipment;
             await _actionPanel.OpenAsync(ResolveCanvas(), slotRect, panel => panel.Bind(
@@ -258,9 +259,34 @@ namespace Game.GUI.Inventory
                 id => _model.Accept(new InventoryIntent.UseItem(id)),
                 id => _model.Accept(new InventoryIntent.EquipItem(id)),
                 null,
+                _ => ShowSellConfirmAsync(item).Forget(),
                 canUse,
                 canEquip,
-                canUnequip: false));
+                canUnequip: false,
+                canSell: true));
+        }
+
+        /// <summary>판매 버튼 → 가격(서버 sell_price) 확인 팝업. 확인=판매 인텐트, 취소=닫힘. ConfirmPopup(Addressable).</summary>
+        private async UniTaskVoid ShowSellConfirmAsync(InventoryItemModel item)
+        {
+            long price = await _model.GetSellPriceAsync(item.ItemId);
+
+            var canvas = ResolveCanvas();
+            if (canvas == null) return;
+
+            var inst = await AddressableLoader.LoadAndInstantiateAsync(
+                AddressKeys.UI.ConfirmPopup, canvas.transform, destroyCancellationToken);
+            if (inst == null) return;
+
+            var popup = inst.GameObject.GetComponent<ConfirmPopup>();
+            if (popup == null) { inst.Dispose(); return; }
+
+            popup.SetAddressableOwner(inst);
+            popup.Setup("판매",
+                $"{item.DisplayName}을(를) {price} 골드에 판매하시겠습니까?",
+                onConfirm: () => _model.Accept(new InventoryIntent.SellItem(item.ItemId)),
+                onCancel: null,
+                glow: PopupGlowType.Warning);
         }
 
         private Canvas ResolveCanvas()

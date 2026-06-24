@@ -145,9 +145,11 @@ namespace Game.GUI.Equipment
                 onUse: null,
                 onEquip: null,
                 onUnequip: _ => _model.Accept(new EquipmentIntent.Unequip(slot)),
+                onSell: null,
                 canUse: false,
                 canEquip: false,
-                canUnequip: true));
+                canUnequip: true,
+                canSell: false));
         }
 
         private Canvas ResolveCanvas()

@@ -64,6 +64,15 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.42 상점 판매(Sell) UI — 인벤토리 판매 (7.6) (2026-06-23)
+- **무엇**: 인벤토리에서 비장착 아이템 판매. 서버 Sell(인벤 차감→골드 적립)은 기존 완비(proto `Sell`·`ShopService.SellAsync`·`ShopSellResult`) — 이번엔 클라 배선만.
+- **흐름**: 인벤 아이템 클릭 → `ItemActionPanel`(use/equip/**sell**) → Sell 버튼 → `Inventory.ShowSellConfirmAsync`(가격 = `InventoryModel.GetSellPriceAsync` = 서버 GetShop `sell_price` 1회 캐시) → `ConfirmPopup`("…{price}골드에 판매?", 확인/취소) → 확인 시 `Accept(InventoryIntent.SellItem)` → `InventoryModel.SellItemAsync` → `IShopService.SellAsync(itemId,1)`(서버 권위) → 성공 시 `RefreshAsync`(아이템+골드 갱신)+토스트. 취소=팝업만 닫힘.
+- **장착품 제외**: `InventoryModel.RefreshAsync` 가 착용 itemId 를 표시에서 이미 제외(§2.27 ⑨) → 판매 버튼이 애초에 안 뜸(추가 작업 0).
+- **결정**: 가격=서버 `sell_price`(표시용, SellResponse gold 가 최종 권위) · **1개/확인**(스택 수량 선택은 후속) · `ItemActionPanel.Bind` 에 onSell/canSell 추가 → 인벤 canSell=true / 장비창 canSell=false. 가격 룩업은 `InventoryModel` 의 public 쿼리(View 가 팝업에 표시) — 실제 차감은 Intent 경유(MVI 유지).
+- **DI**: `IShopService` 는 ProjectLifetimeScope Singleton(ShopInstaller) → InventoryModel(Main·던전)이 모두 해소. InventoryModel ctor 에 `IShopService shop=null` 옵셔널 추가(테스트 하네스 무영향).
+- **위치**: `System/Shop/{IShopService,ShopService}.cs`(SellAsync) · `Presentation/Inventory/{InventoryModel(GetSellPriceAsync/SellItemAsync),InventoryIntent(SellItem)}.cs` · `GUI/Inventory/{ItemActionPanel(Bind+sellButton),Inventory(ShowSellConfirmAsync)}.cs` · `GUI/Equipment/Equipment.cs`(Bind canSell=false).
+- **검증**: 클라 컴파일0 + PlayMode `InventoryModelTests` 8(판매가 룩업·SellItem 위임 2 신규) + `ShopModelTests` 7 그린. 잔여: 인게임 플레이 검증(프리팹 sellButton 사용자 할당).
+
 ### 2.41 클라 ASC HP 기준선 = 서버 레벨 스탯 동기화 (2026-06-23)
 - **무엇**: 로컬 플레이어 ASC 의 Health(Max/Current)를 서버 권위 레벨 MaxHealth 로 정렬. Main·던전 공통.
 - **증상**: 레벨업한 캐릭터가 던전에서 **다운된 뒤에도 몬스터가 한참 더 공격**. `[로컬 다운]`(클라 HP≤0 즉발 입력게이트)과 `[S_PlayerDead 수신]`(서버 HP≤0) 사이 큰 간격.

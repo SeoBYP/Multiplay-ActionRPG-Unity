@@ -30,5 +30,12 @@ namespace Game.Presentation.Inventory
             public readonly string ItemId;
             public EquipItem(string itemId) { ItemId = itemId; }
         }
+
+        /// <summary>판매(서버 권위, 1개). 인벤 차감→골드 적립. 가격 확인 팝업은 View 책임, 확인 시 이 인텐트 발행.</summary>
+        public sealed class SellItem : InventoryIntent
+        {
+            public readonly string ItemId;
+            public SellItem(string itemId) { ItemId = itemId; }
+        }
     }
 }
