@@ -55,6 +55,10 @@ namespace Game.Presentation.InGame
         private readonly Subject<Unit> _toggleQuest = new Subject<Unit>();
         public Observable<Unit> OnToggleQuest => _toggleQuest;
 
+        // HUD Ability버튼/G키가 스탯창 단독 토글을 요청하는 신호. StatViewController가 구독.
+        private readonly Subject<Unit> _toggleAbility = new Subject<Unit>();
+        public Observable<Unit> OnToggleAbility => _toggleAbility;
+
         // 비정상 연결 끊김 1회 신호(OnToast 동형 side-channel). GameHud가 구독해 끊김 팝업 표시.
         private readonly Subject<Unit> _connectionLost = new Subject<Unit>();
         public Observable<Unit> OnConnectionLost => _connectionLost;
@@ -272,6 +276,12 @@ namespace Game.Presentation.InGame
             if (intent is InGameIntent.ToggleQuest)
             {
                 _toggleQuest.OnNext(Unit.Default);
+                return;
+            }
+
+            if (intent is InGameIntent.ToggleAbility)
+            {
+                _toggleAbility.OnNext(Unit.Default);
                 return;
             }
 

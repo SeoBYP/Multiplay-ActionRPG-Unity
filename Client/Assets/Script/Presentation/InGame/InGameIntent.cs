@@ -41,5 +41,12 @@ namespace Game.Presentation.InGame
             public static readonly ToggleQuest Instance = new ToggleQuest();
             private ToggleQuest() { }
         }
+
+        /// <summary>캐릭터 정보/스탯창 단독 토글(HUD Ability버튼·G키). 실제 창 로드/토글은 StatViewController가 담당.</summary>
+        public sealed class ToggleAbility : InGameIntent
+        {
+            public static readonly ToggleAbility Instance = new ToggleAbility();
+            private ToggleAbility() { }
+        }
     }
 }

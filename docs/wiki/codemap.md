@@ -64,6 +64,16 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.44 캐릭터 정보/스탯창 (7.3) (2026-06-25)
+- **무엇**: 중앙 모달 패널 — 레벨/경험치 + 스탯7(체력·마나·공격력·방어력·힘·민첩·지능) = **9개 라인**(라벨:값). 열기 시 서버 권위 GetProgression pull.
+- **열기 경로(Quest 창 100% 동형)**: GameHud `btn_Ability`·**G키** → `InGameModel.Accept(ToggleAbility)` → `OnToggleAbility` → `StatViewController`(POCO, IInitializable)가 최초 1회 `StatWindow.prefab` Addressable 로드·Inject → 이후 SetActive 토글.
+- **View(`StatWindow`)**: `ProgressionModel` 주입 → Start/OnEnable 시 `Refresh()` + `State` 구독 → `State.Lines` 를 rowTemplate(라벨 TMP + 값 TMP) 복제로 렌더. 닫기=자기 SetActive(false). 창 활성 중 `UiInputCaptureBehaviour`(ProgressionModel.Begin/EndUiCapture) 로 이동 차단.
+- **레이어 변환**: GUI 는 System(`ProgressionData`/`ProgressionStats`) 비참조 → Presentation `ProgressionViewState.Loaded` 가 **`StatLine`(string 라벨/값) 목록**으로 변환해 노출(QuestTracker 가 bool 헬퍼 쓴 것과 같은 이유). 색상은 프리팹 TMP 에(라벨=흐림/값=금색).
+- **DI**: `ProgressionModel`(Scoped) + `StatViewController`(EntryPoint) = **MainLifetimeScope 등록**(IProgressionService 는 ProjectScope Singleton). `ProgressionModel` 에 `IInputContext` 옵셔널 추가(입력 점유).
+- **위치**: `GUI/Stat/{StatWindow,StatViewController}.cs` · `Presentation/Progression/{ProgressionModel,ProgressionViewState,StatLine}.cs` · 프리팹 `Assets/Prefabs/GUI/Stat/StatWindow.prefab`(Addressable) · `GUI/AddressKeys.cs`(UI.StatWindow) · `InGameModel`/`InGameIntent`(ToggleAbility).
+- **한계(후속)**: Main 전용(던전 미등록 — 던전 스탯창 원하면 DungeonLifetimeScope 에 ProgressionModel+StatViewController 등록). 프리팹 색/여백 다듬기는 Unity.
+- **검증**: 컴파일0 + PlayMode `ProgressionViewStateTests` 3 + `GameHud(Buff)IntegrationTests` 2 + EditMode `InGameModelTests` 4 그린.
+
 ### 2.43 퀘스트 추적 HUD (7.4) (2026-06-25)
 - **무엇**: GameHud 우상단 `QuestTracker` 패널이 진행 중 퀘스트(이름 + 조건 "slime 처치 2/3")를 표시. 0개면 패널 숨김.
 - **흐름**: `QuestTrackerView`(GUI, GameHud 루트에 부착) → Start 시 QuestModel 구독 + `Accept(Refresh)` → `State.Quests` 중 진행중만 추려 행(TMP) 동적 풀 렌더.

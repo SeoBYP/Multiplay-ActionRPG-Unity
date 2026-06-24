@@ -108,6 +108,7 @@ namespace Game.GUI.OutGame
             BindSideButton(SideButtonType.Inventory, () => _model.Accept(InGameIntent.ToggleInventory.Instance));
             BindSideButton(SideButtonType.Shop, () => _model.Accept(InGameIntent.ToggleShop.Instance));
             BindSideButton(SideButtonType.Quest, () => _model.Accept(InGameIntent.ToggleQuest.Instance));
+            BindSideButton(SideButtonType.Ability, () => _model.Accept(InGameIntent.ToggleAbility.Instance));
 
             InitBuffPool();
 
@@ -149,6 +150,8 @@ namespace Game.GUI.OutGame
                 _model.Accept(InGameIntent.ToggleEquipment.Instance);
             if (kb.qKey.wasPressedThisFrame)
                 _model.Accept(InGameIntent.ToggleQuest.Instance);
+            if (kb.gKey.wasPressedThisFrame)
+                _model.Accept(InGameIntent.ToggleAbility.Instance);
         }
 
         private void OnClickReturnToLobby()

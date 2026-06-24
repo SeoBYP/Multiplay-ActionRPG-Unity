@@ -140,6 +140,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ee0136b69a856044d9a6f71cc338ee1a
+    m_Address: Assets/Prefabs/GUI/Stat/StatWindow.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ee7d113f24cff8f4193acc91ec6b9ef6
     m_Address: Assets/Prefabs/GUI/Inventory/Inventory.prefab
     m_ReadOnly: 0

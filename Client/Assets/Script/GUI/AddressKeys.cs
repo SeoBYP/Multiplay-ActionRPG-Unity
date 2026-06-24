@@ -17,6 +17,7 @@ namespace Game.GUI
             public const string ItemActionPanel  = "Assets/Prefabs/GUI/Inventory/ItemActionPanel.prefab";
             public const string Shop             = "Assets/Prefabs/GUI/Shop/Shop.prefab";
             public const string Quest = "Assets/Prefabs/GUI/Quest/Quest.prefab";
+            public const string StatWindow       = "Assets/Prefabs/GUI/Stat/StatWindow.prefab";
             public const string Dialogue         = "Assets/Prefabs/GUI/Dialogue/Dialogue.prefab";
             
             // 상점 슬롯(동적 생성용 prefab — Addressable 로드).

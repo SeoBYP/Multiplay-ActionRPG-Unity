@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Game.System.Input;
 using Game.System.Progression;
 using R3;
 
@@ -14,15 +15,21 @@ namespace Game.Presentation.Progression
     public sealed class ProgressionModel : IDisposable
     {
         private readonly IProgressionService _service;
+        private readonly IInputContext _inputContext;
         private readonly CancellationTokenSource _cts = new();
 
         private readonly ReactiveProperty<ProgressionViewState> _state = new(ProgressionViewState.Initial);
         public ReadOnlyReactiveProperty<ProgressionViewState> State => _state.ToReadOnlyReactiveProperty();
 
-        public ProgressionModel(IProgressionService service)
+        public ProgressionModel(IProgressionService service, IInputContext inputContext = null)
         {
             _service = service;
+            _inputContext = inputContext;
         }
+
+        // 창 활성 동안 게임플레이 입력 점유(인벤/퀘스트 동일, refcount). StatWindow 가 UiInputCaptureBehaviour 로 바인드.
+        public void BeginUiCapture() => _inputContext?.EnterUi();
+        public void EndUiCapture() => _inputContext?.ExitUi();
 
         /// <summary>서버에서 진행/스탯을 다시 읽어 State 로 발행한다(스탯창 열기/갱신 시).</summary>
         public void Refresh() => RefreshAsync().Forget();

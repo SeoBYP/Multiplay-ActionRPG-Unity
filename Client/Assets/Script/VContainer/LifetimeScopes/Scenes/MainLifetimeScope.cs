@@ -79,6 +79,10 @@ namespace Game.Installers.Scenes
             builder.RegisterEntryPoint<Game.GUI.OutGame.QuestViewController>(Lifetime.Scoped).AsSelf();
             builder.RegisterEntryPoint<Game.GUI.Quest.QuestNotificationPresenter>(Lifetime.Scoped);
 
+            // 캐릭터 정보/스탯창(7.3) — HUD Ability버튼·G키 단독 토글. 서버 권위 GetProgression pull.
+            builder.Register<Game.Presentation.Progression.ProgressionModel>(Lifetime.Scoped).AsSelf();
+            builder.RegisterEntryPoint<Game.GUI.Stat.StatViewController>(Lifetime.Scoped).AsSelf();
+
             // 대화/NPC(4.5 A1) — NPC(IInteractable) E 상호작용 → IDialogueLauncher.Open(npcId) → 대화창.
             // 콘텐츠=DialogueCatalog(SO, Resources 폴백). DialogueViewController=IDialogueLauncher 구현(창 로드+Start).
             // NPCDialogueBinder=씬 NPC 일괄 바인딩. 서버 0(A1).
