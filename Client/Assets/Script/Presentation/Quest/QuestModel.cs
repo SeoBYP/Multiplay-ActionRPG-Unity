@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.System.Input;
+using Game.System.Progression;
 using Game.System.Quest;
 using R3;
 
@@ -18,6 +19,7 @@ namespace Game.Presentation.Quest
         private readonly IQuestService _service;
         private readonly IInputContext _inputContext;
         private readonly QuestNotifier _notifier;
+        private readonly PlayerProgressionHolder _progression;
         private readonly CancellationTokenSource _cts = new();
 
         private readonly ReactiveProperty<QuestState> _state = new(QuestState.Initial);
@@ -27,12 +29,21 @@ namespace Game.Presentation.Quest
         /// <summary>일회성 토스트(수주/수령 결과) — View 표시 후 종료.</summary>
         public Observable<string> OnToast => _onToast;
 
-        public QuestModel(IQuestService service, IInputContext inputContext = null, QuestNotifier notifier = null)
+        public QuestModel(IQuestService service, IInputContext inputContext = null, QuestNotifier notifier = null,
+            PlayerProgressionHolder progression = null)
         {
             _service = service;
             _inputContext = inputContext;
             _notifier = notifier;
+
+            // 킬 진행도 실시간 반영: 킬→서버 진행 갱신(ReportKill 서버내부) 직후 MainMonsterSpawner 가 진행/스탯 RefreshAsync
+            // → holder.OnChanged 발화. 이를 구독해 퀘스트 목록을 재조회 → 진행 카운트(2/3→3/3)·완료 전이 즉시 반영.
+            _progression = progression;
+            if (_progression != null)
+                _progression.OnChanged += OnProgressionChanged;
         }
+
+        private void OnProgressionChanged() => RefreshAsync().Forget();
 
         public void BeginUiCapture() => _inputContext?.EnterUi();
         public void EndUiCapture() => _inputContext?.ExitUi();
@@ -146,6 +157,8 @@ namespace Game.Presentation.Quest
 
         public void Dispose()
         {
+            if (_progression != null)
+                _progression.OnChanged -= OnProgressionChanged;
             _cts.Cancel();
             _cts.Dispose();
             _state.Dispose();

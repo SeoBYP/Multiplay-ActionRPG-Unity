@@ -64,6 +64,17 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.43 퀘스트 추적 HUD (7.4) (2026-06-25)
+- **무엇**: GameHud 우상단 `QuestTracker` 패널이 진행 중 퀘스트(이름 + 조건 "slime 처치 2/3")를 표시. 0개면 패널 숨김.
+- **흐름**: `QuestTrackerView`(GUI, GameHud 루트에 부착) → Start 시 QuestModel 구독 + `Accept(Refresh)` → `State.Quests` 중 진행중만 추려 행(TMP) 동적 풀 렌더.
+- **수락/보상 즉시 반영**: NPC 대화 수락/완료/보상은 `DialogueModel` 이 `IQuestService` 를 **직접** 호출 → QuestModel.State 미갱신(트래커가 안 뜸). 그래서 두 경로의 **단일 알림 소스 `QuestNotifier.OnNotice`** 를 트래커가 추가 구독해 알림마다 `QuestModel.Accept(Refresh)` → 즉시 갱신(수락=등장, 보상=사라짐). QuestNotifier 도 Main 전용이라 동일 TryResolve.
+- **킬 진행도 즉시 반영**: 진행(ReportKill)은 서버 내부라 클라 RPC·신호 없음. 단, 킬 직후 `MainMonsterSpawner` 가 exp/스탯을 `PlayerProgressionHolder.RefreshAsync` → `OnChanged` 발화. 이를 **QuestModel 이 옵셔널 주입받아 구독 → self `RefreshAsync`** → 진행 카운트(2/3→3/3)·완료 전이가 트래커/퀘스트창에 즉시 반영. 레이어: PlayerProgressionHolder=System → **QuestModel(Presentation)이 구독**(GUI 트래커는 System 비참조라 불가). holder 는 Main·던전 모두 Scoped 등록이라 Main QuestModel 이 해소.
+- **진행중 판정**: GUI 는 System 타입(`QuestProgressState`) 비참조 → QuestEntryModel **bool 헬퍼**로 판정 = `!CanAccept && !IsClaimed`(미수주·수령완료 제외 = Accepted/Completed). 순수함수 `QuestTrackerView.InProgress` 로 분리(테스트).
+- **DI 핵심**: `QuestModel` 은 **MainLifetimeScope 전용** 등록(ctor 가 Main 전용 `QuestNotifier` 요구 → 던전 등록 시 cascade). GameHud 는 Main·던전 공용이라 하드 [Inject] 시 **던전 GameHud 가 깨진다** → `[Inject] IObjectResolver` + `TryResolve(typeof(QuestModel))` 로 **선택 주입**: Main=구독 / 던전=root.SetActive(false) 숨김. (PlayerStatApplier §2.40 과 동일한 "GameHud 공용 + Main 전용 의존" 회피 패턴.)
+- **위치**: `Client/Assets/Script/GUI/Hud/QuestTrackerView.cs` · 프리팹 `Assets/Prefabs/GUI/HUD/GameHud.prefab`(QuestTracker 패널 + Row 템플릿, QuestTrackerView 는 GameHud 루트).
+- **한계(후속)**: exp 쿨다운 중 킬은 `OnChanged` 미발화(ExpGained=0 가드) → 그 킬의 진행 카운트는 다음 갱신 때 반영(드문 엣지). 던전 내 추적은 QuestModel·QuestNotifier 던전 스코프 등록 필요(현재 Main 전용).
+- **검증**: 컴파일0 + PlayMode `QuestTrackerViewTests` 2 + `GameHud(Buff)IntegrationTests` 2(프리팹 변경 회귀 없음) 그린.
+
 ### 2.42 상점 판매(Sell) UI — 인벤토리 판매 (7.6) (2026-06-23)
 - **무엇**: 인벤토리에서 비장착 아이템 판매. 서버 Sell(인벤 차감→골드 적립)은 기존 완비(proto `Sell`·`ShopService.SellAsync`·`ShopSellResult`) — 이번엔 클라 배선만.
 - **흐름**: 인벤 아이템 클릭 → `ItemActionPanel`(use/equip/**sell**) → Sell 버튼 → `Inventory.ShowSellConfirmAsync`(가격 = `InventoryModel.GetSellPriceAsync` = 서버 GetShop `sell_price` 1회 캐시) → `ConfirmPopup`("…{price}골드에 판매?", 확인/취소) → 확인 시 `Accept(InventoryIntent.SellItem)` → `InventoryModel.SellItemAsync` → `IShopService.SellAsync(itemId,1)`(서버 권위) → 성공 시 `RefreshAsync`(아이템+골드 갱신)+토스트. 취소=팝업만 닫힘.
