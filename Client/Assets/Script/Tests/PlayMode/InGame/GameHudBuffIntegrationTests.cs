@@ -81,6 +81,8 @@ namespace Game.Tests.PlayMode.InGame
             // InGameModel ctor의 PlayerProgressionHolder는 C# 기본값이지만 VContainer는 기본값을 무시하므로
             // 명시 등록이 필요하다. Exp 게이지는 이 테스트 관심사가 아니라 미갱신(default) 홀더로 충분.
             builder.RegisterInstance(new PlayerProgressionHolder(new FakeProgressionService()));
+            // InGameModel ctor의 IInputContext(C# 기본값이지만 VContainer가 무시) — no-op 으로 충족.
+            builder.RegisterInstance<Game.System.Input.IInputContext>(new NoopInputContext());
             builder.Register<InGameModel>(Lifetime.Singleton).AsSelf();
             _resolver = builder.Build();
             return localPlayer;
@@ -109,9 +111,17 @@ namespace Game.Tests.PlayMode.InGame
             return count;
         }
 
+        private sealed class NoopInputContext : Game.System.Input.IInputContext
+        {
+            public void EnterUi() { }
+            public void ExitUi() { }
+            public bool IsUiActive => false;
+        }
+
         private sealed class FakeSocketSession : ISocketSession
         {
             public SocketSessionState State => default;
+            public event global::System.Action OnDisconnected { add { } remove { } }
             public UniTask ConnectAsync(SocketConnectionInfo connectionInfo, CancellationToken ct) => UniTask.CompletedTask;
             public UniTask JoinRoomAsync(CancellationToken ct) => UniTask.CompletedTask;
             public UniTask LeaveRoomAsync(CancellationToken ct) => UniTask.CompletedTask;

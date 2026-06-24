@@ -45,6 +45,7 @@ namespace Game.Tests.PlayMode.InGame
             private SocketSessionState _currentState = SocketSessionState.Idle;
 
             public SocketSessionState State => _currentState;
+            public event global::System.Action OnDisconnected { add { } remove { } }
             public int ConnectCallCount { get; private set; }
             public int JoinCallCount    { get; private set; }
 

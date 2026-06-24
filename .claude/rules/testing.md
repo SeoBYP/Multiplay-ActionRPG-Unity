@@ -51,3 +51,25 @@ namespace Game.Tests.System.Combat { }
 // 허용
 namespace Game.Tests.Combat { }
 ```
+
+## 연결 처리(소켓) E2E 커버리지 정책 (필수)
+
+**연결/세션 생명주기 동작은 전부 테스트가 있어야 한다.** 해피패스(입장·이동·전투·클리어)만 E2E하고 *liveness/실패모드*를 빠뜨린 탓에, 클라 하트비트 누락(무이동 60s → 서버 유휴 타임아웃으로 끊김)이 조용히 새어 플레이 중에야 발견됐다. 같은 일이 재발하지 않도록 아래를 지킨다.
+
+**연결 처리 소스를 바꾸면 반드시 대응 테스트를 함께 추가/갱신한다:**
+- 소스 = `Client/Assets/Script/Network/Socket/**`, `ServerAll/SocketServer/SocketServer/**`, 패킷 정의(`Shared.Packet`, 클라 `Network/Socket/Packets`).
+- 테스트 = PlayMode E2E `Tests/PlayMode/E2E/Network/Socket/`(Docker 대상) 또는 빠른 단위 `Tests/PlayMode/Network/Socket/`(Fake 커넥터) 또는 `SocketServer.Tests`.
+
+**반드시 커버해야 하는 연결 불변식(체크리스트):**
+- 세션 검증/거부 — 배정 없는 UserId·방 불일치·상태 없음 입장 거부
+- keep-alive — 무이동 유휴에도 하트비트로 연결 유지(서버 타임아웃 회피)
+- 서버발 끊김 감지 — 서버가 끊으면 클라 `State=Disconnected` + `OnDisconnected` 발화
+- 재접속/유예 — 강제끊김 후 재접속·크래시 유예 보존·명시퇴장/전원끊김/유예만료 거부
+- 브로드캐스트 — 입장/이동/퇴장 상호 수신
+
+**시간 기반(느린) 테스트 작성법:**
+- 서버 타임아웃 상수(방 60s·로비 30s)는 실시간이라 그 이상 대기하는 E2E엔 `[Timeout(180000)]` 부여 + `UniTask.Delay(..., ignoreTimeScale: true)`.
+- 세션을 오래 살려야 하면 `ConnectJoinedSessionAsync(..., CancellationToken.None)` — 짧은 `Timeout()` 토큰을 세션 수명에 넘기면 그 토큰이 세션을 조기 종료시킨다(연결 끊김 오관측).
+- 빠른 단위(하트비트 송신 등)는 Fake `ISocketConnector` + 짧은 `HeartbeatInterval` 주입으로 60s 대기 없이 검증.
+
+> Stop 훅 `.claude/hooks/check-network-e2e-coverage.ps1` 이 연결 소스 변경 시 소켓 테스트 동반 변경이 없으면 경고한다(누락 방지). 경고가 뜨면 테스트를 추가하거나, 정말 불필요하면(순수 리팩터) 그 이유를 말하고 끝낸다.

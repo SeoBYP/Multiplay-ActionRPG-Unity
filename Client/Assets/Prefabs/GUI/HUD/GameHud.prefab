@@ -11104,6 +11104,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4010276333032196606}
     m_Modifications:
+    - target: {fileID: 4628961689579006368, guid: 2dfb4c9749719cb40b134b59556b9d24, type: 3}
+      propertyPath: m_text
+      value: Dungeon Failed
+      objectReference: {fileID: 0}
     - target: {fileID: 4796873994359577262, guid: 2dfb4c9749719cb40b134b59556b9d24, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -11130,7 +11134,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4796873994359577262, guid: 2dfb4c9749719cb40b134b59556b9d24, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 0
+      value: 0.000030517578
       objectReference: {fileID: 0}
     - target: {fileID: 4796873994359577262, guid: 2dfb4c9749719cb40b134b59556b9d24, type: 3}
       propertyPath: m_SizeDelta.y
@@ -11166,11 +11170,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4796873994359577262, guid: 2dfb4c9749719cb40b134b59556b9d24, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 51.086975
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4796873994359577262, guid: 2dfb4c9749719cb40b134b59556b9d24, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -419.01093
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4796873994359577262, guid: 2dfb4c9749719cb40b134b59556b9d24, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -11186,11 +11190,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9221675749809065496, guid: 2dfb4c9749719cb40b134b59556b9d24, type: 3}
       propertyPath: m_Name
-      value: DungeonFaild
+      value: DungeonFailed
       objectReference: {fileID: 0}
     - target: {fileID: 9221675749809065496, guid: 2dfb4c9749719cb40b134b59556b9d24, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

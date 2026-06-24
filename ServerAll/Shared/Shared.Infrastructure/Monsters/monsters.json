@@ -7,7 +7,7 @@
             "aggroRange": 6.0,
             "attackRange": 1.2,
             "attackCooldownMs": 1500.0,
-            "attackDamage": 5,
+            "attackDamage": 15,
             "expReward": 20
         },
         {

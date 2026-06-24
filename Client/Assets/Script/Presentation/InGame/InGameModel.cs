@@ -4,6 +4,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Network.Socket;
 using Game.Network.Socket.Packets;
+using Game.System.Input;
 using Game.System.Player;
 using Game.System.Progression;
 using R3;
@@ -32,6 +33,7 @@ namespace Game.Presentation.InGame
         private readonly EffectIconCatalog _iconCatalog;
         private readonly ISocketPacketState _packetState;
         private readonly PlayerProgressionHolder _progression; // 레벨/Exp 중계(없으면 exp 게이지 미갱신)
+        private readonly IInputContext _inputContext;          // 끊김 시 입력/이동 정지(없으면 정지만 생략)
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
         private readonly ReactiveProperty<InGameState> _state
@@ -53,6 +55,12 @@ namespace Game.Presentation.InGame
         private readonly Subject<Unit> _toggleQuest = new Subject<Unit>();
         public Observable<Unit> OnToggleQuest => _toggleQuest;
 
+        // 비정상 연결 끊김 1회 신호(OnToast 동형 side-channel). GameHud가 구독해 끊김 팝업 표시.
+        private readonly Subject<Unit> _connectionLost = new Subject<Unit>();
+        public Observable<Unit> OnConnectionLost => _connectionLost;
+        private bool _connectionLostHandled;
+        private bool _uiCaptured;
+
         private AbilitySystemComponent _asc;
         private bool _isProcessing;
 
@@ -65,7 +73,8 @@ namespace Game.Presentation.InGame
             GameplayEffectCatalog effectCatalog = null,
             EffectIconCatalog iconCatalog = null,
             ISocketPacketState packetState = null,
-            PlayerProgressionHolder progression = null)
+            PlayerProgressionHolder progression = null,
+            IInputContext inputContext = null)
         {
             _socketSession = socketSession;
             _localPlayer   = localPlayer;
@@ -73,6 +82,7 @@ namespace Game.Presentation.InGame
             _iconCatalog   = iconCatalog;
             _packetState   = packetState;
             _progression   = progression;
+            _inputContext  = inputContext;
         }
 
         public void Initialize()
@@ -90,6 +100,9 @@ namespace Game.Presentation.InGame
                 _packetState.OnDungeonFailed += OnDungeonFailed;
             }
 
+            // 비정상 소켓 끊김 → 입력 정지 + 끊김 알림(메인 스레드).
+            _socketSession.OnDisconnected += OnSocketDisconnected;
+
             // 진행(레벨/Exp) → exp 게이지 중계. holder.StartAsync(IAsyncStartable)는 Initialize 이후 실행되므로
             // 여기서 먼저 구독하면 로그인 직후 첫 pull 의 OnChanged 를 놓치지 않는다. 현재값도 즉시 1회 반영.
             if (_progression != null)
@@ -103,6 +116,21 @@ namespace Game.Presentation.InGame
         {
             var p = _progression.Current;
             Dispatch(new InGameResult.ExpChanged(p.Level, p.Exp, p.ExpToNext));
+        }
+
+        // 이벤트는 메인 스레드에서 오지만(SocketSession이 SwitchToMainThread 후 발화), 방어적으로 한 번 더 보장.
+        private void OnSocketDisconnected() => HandleConnectionLostAsync().Forget();
+
+        private async UniTaskVoid HandleConnectionLostAsync()
+        {
+            await UniTask.SwitchToMainThread();
+            if (_connectionLostHandled) return;   // 1회만
+            _connectionLostHandled = true;
+
+            _inputContext?.EnterUi();             // 입력/이동 정지(Player 맵 비활성) — ReturnToLobby 시 Dispose 에서 ExitUi 로 균형
+            _uiCaptured = true;
+            Debug.LogWarning("[InGameModel] 소켓 연결 끊김 감지 — 입력 정지 + 끊김 알림 발행");
+            _connectionLost.OnNext(Unit.Default);
         }
 
         private void OnDungeonReady()
@@ -307,6 +335,9 @@ namespace Game.Presentation.InGame
                 _packetState.OnDungeonCleared -= OnDungeonCleared;
                 _packetState.OnDungeonFailed -= OnDungeonFailed;
             }
+
+            _socketSession.OnDisconnected -= OnSocketDisconnected;
+            if (_uiCaptured) _inputContext?.ExitUi(); // 끊김 때 잡은 입력 점유 해제(전역 Singleton 누수 방지)
             if (_progression != null)
                 _progression.OnChanged -= PushProgression;
             if (_asc != null)
@@ -321,6 +352,7 @@ namespace Game.Presentation.InGame
             _toggleInventory.Dispose();
             _toggleEquipment.Dispose();
             _toggleShop.Dispose();
+            _connectionLost.Dispose();
         }
     }
 }

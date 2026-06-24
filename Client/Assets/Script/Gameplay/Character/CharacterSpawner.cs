@@ -100,6 +100,12 @@ namespace Game.Gameplay.Character
             else
                 Debug.LogError("[CharacterSpawner] 로컬 프리팹에 AbilitySystemComponent가 없습니다.");
 
+            // 서버 권위 레벨 MaxHealth 를 ASC 에 정렬(prefab 100 ↔ 서버 레벨값 desync 해소). Main·던전 공통.
+            // 홀더가 스코프에 있으면 연결(Main/던전), 없으면(미등록 테스트 하네스) 생략 — 스폰은 정상 진행.
+            var statApplier = go.AddComponent<PlayerStatApplier>();
+            if (_container.TryResolve(typeof(Game.System.Progression.PlayerProgressionHolder), out var holderObj))
+                statApplier.Bind((Game.System.Progression.PlayerProgressionHolder)holderObj);
+
             Debug.Log($"[CharacterSpawner] 로컬 캐릭터 스폰 완료 — pos={spawnPos} prefab={prefab.name}");
         }
 

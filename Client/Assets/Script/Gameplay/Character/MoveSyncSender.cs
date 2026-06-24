@@ -31,6 +31,9 @@ namespace Game.Gameplay.Character
 
         private void FixedUpdate()
         {
+            // Joined 상태가 아니면(끊김/복귀 중) 송신을 건너뛴다 — SendMoveAsync 예외 스팸 방지.
+            if (_session == null || _session.State != SocketSessionState.Joined) return;
+
             var pos  = transform.position;
             var rotY = transform.eulerAngles.y;
 

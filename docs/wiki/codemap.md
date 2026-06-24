@@ -64,6 +64,35 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.41 클라 ASC HP 기준선 = 서버 레벨 스탯 동기화 (2026-06-23)
+- **무엇**: 로컬 플레이어 ASC 의 Health(Max/Current)를 서버 권위 레벨 MaxHealth 로 정렬. Main·던전 공통.
+- **증상**: 레벨업한 캐릭터가 던전에서 **다운된 뒤에도 몬스터가 한참 더 공격**. `[로컬 다운]`(클라 HP≤0 즉발 입력게이트)과 `[S_PlayerDead 수신]`(서버 HP≤0) 사이 큰 간격.
+- **원인**: 클라 ASC HP = **prefab 고정 100**, 서버 던전 HP = **레벨 maxHealth**(level-table: Lv1 100/Lv2 120/Lv3 140…, `RoomManager.CreateRoom`→`InitPlayerState(playerInfo.MaxHealth)`). 둘 다 같은 `S_ApplyEffect(-1)` 적용하지만 **기준선이 달라** 클라(100)가 먼저 0 → 로컬 다운, 서버(140)는 잔여 HP만큼 계속 공격 → 그 차이×쿨다운이 그 "Delay". `S_PlayerJoined` 엔 HP 필드 없음.
+- **왜 누락됐나**: 전투 HP=서버권위라 클라는 HP를 *계산 안 하고* `S_ApplyEffect` 델타로 *렌더만* → ASC HP 기준선을 prefab 100 그대로 방치. "즉발 손맛"용 로컬 사망 *예측*만 클라 ASC HP 를 직접 읽어 desync 가 표면화. **스탯 동기화 자체는 이미 존재**(서버 `GetProgression`→`StatBlock`, 클라 `PlayerProgressionHolder.Stats`(MaxHealth/Def/Atk), Main `LocalCombat`이 Def/Atk 사용) — **마지막 한 칸(동기화된 MaxHealth→ASC 적용)만** 빠졌던 것.
+- **수정(클라 전용, 패킷 변경 0)**: `GameplayAttribute.SetMax(int)` 추가 + `PlayerStatApplier`(MonoBehaviour) — 로컬 스폰 시 `CharacterSpawner.SpawnLocalAsync` 에서 부착. 홀더는 **하드 `[Inject]` 아닌 `Bind(holder)`** + `CharacterSpawner` 가 `_container.TryResolve(PlayerProgressionHolder)` 로 **있으면 연결/없으면 생략**(미등록 테스트 하네스도 스폰 정상 — "주입 의존 추가→DI호스트 파손" 재발 방지). 스폰 시 `holder.Stats.MaxHealth` 로 Max 정렬+풀피, `OnChanged`(레벨업) 시 재적용(MaxHealth 실제 변화 시만 — 킬마다 풀힐 방지). 서버 던전 HP 도 같은 level-table maxHealth 라 클라==서버 → 로컬다운==S_PlayerDead(간격 0). (앞서 검토한 S_PlayerJoined 에 HP 추가 안은 철회 — 데이터는 이미 클라에 있음.)
+- **위치**: `System/GameplayAbilitySystem/Attribute/GameplayAttribute.cs`(SetMax) · `Gameplay/Character/PlayerStatApplier.cs`(신규) · `Gameplay/Character/CharacterSpawner.cs`(부착) · 테스트 `Tests/PlayMode/Character/PlayerStatApplierTests.cs`.
+- **검증**: 클라 컴파일0 + PlayMode `PlayerStatApplierTests` 3/3(정렬+풀피 / 무변화 재적용 풀힐금지 / 0 미갱신 prefab유지). 죽음→DungeonFailed 흐름 자체는 기존 `SocketE2ETests` E2E 가 커버. (레벨업+던전 사망 타이밍 풀 E2E 는 150초+ 라 비추가 — 단위테스트로 기준선 가드.)
+- **밸런스(적용 2026-06-23)**: 슬라임 `attackDamage` 5→**15**(`monsters.json`) — vs Def5 = 10뎀/타 → HP100을 ~10타(쿨다운 1.5s = 약 15초)에 사망. 기존 5는 max(1,5−5)=1뎀 → 100타(150초)로 패배가 비현실적으로 느렸던 것 보정(사용자 ~10타 선택). socketserver 리빌드·재배포 반영. 위 HP-sync 와 결합해 로컬다운==S_PlayerDead==패배 화면이 ~10타에 일관 발생.
+
+### 2.40 클라 하트비트 + 연결처리 E2E 커버리지 + 재발방지 가드 (2026-06-23)
+- **무엇**: ① 클라 keep-alive 하트비트(근본 원인 수정) ② 누락됐던 연결 생존성 E2E 추가 ③ 연결 소스 변경 시 테스트 누락을 경고하는 Stop 훅 + 커버리지 정책.
+- **근본 원인**: 서버 `HeartBeatService`는 방 플레이어가 60s 무패킷이면 퇴장(`LastRecvAt` 기준, 수신 패킷마다 갱신). 클라는 **이동 시에만 C_Move** 송신 → 제자리 전투/대화/AFK 60s = 무패킷 → 서버가 끊음. 프로토콜·서버·DummyClient엔 핑 루프가 있었으나 **Unity 클라만 C_Ping 송신부 미구현**(S_Pong 핸들러도 없음 — dispatcher가 미등록 패킷 무시라 무해).
+- **수정**: `SocketSession`에 `HeartbeatInterval`(기본 15s, **프로퍼티** — ctor 주입 시 VContainer가 TimeSpan 미해소로 DI 깨짐) + `RunHeartbeatLoopAsync`(Connected~Joined 동안 `C_Ping{IsHealthy=true}` 주기 송신, 세션 토큰 취소 시 종료). 서버는 어떤 수신이든 `LastRecvAt` 갱신 → 유휴여도 생존.
+- **테스트(누락 메움)**: ⓐ 빠른 단위 `Tests/PlayMode/Network/Socket/SocketSessionHeartbeatTests`(Fake 커넥터, 짧은 인터벌 — Joined 동안 C_Ping 송신·끊김 후 중단, Docker/60s 불필요) 2/2. ⓑ E2E `SocketE2ETests`: `세션배정_없는_UserId로_입장하면_거부된다`(C_PlayerJoin Redis 검증=소켓 인증, C_Auth 패킷 없음) + `유휴시_핑있으면_연결유지_핑없으면_서버가_끊고_OnDisconnected가_발화한다`(~80s, `[Timeout]`+`ignoreTimeScale`, 세션 수명 토큰=`CancellationToken.None`. 핑 호스트 생존 / 핑off 게스트 서버 퇴장+OnDisconnected). ⓒ EditMode `InGameModelTests` 끊김 단위(직전 §2.39).
+- **재발 방지**: Stop 훅 `.claude/hooks/check-network-e2e-coverage.ps1` — 연결 소스(`Network/Socket`, `SocketServer`, 패킷) 변경 시 소켓 E2E/`SocketServer.Tests` 동반 변경 없으면 경고(settings.json Stop 등록). + `.claude/rules/testing.md` "연결 처리(소켓) E2E 커버리지 정책"(체크리스트 + 느린/시간기반 테스트 작성법). **교훈**: E2E가 해피패스만 덮고 liveness/실패모드 카테고리가 비어 하트비트 누락이 새어나감.
+- **위치**: `Network/Socket/Session/SocketSession.cs`(HeartbeatInterval+RunHeartbeatLoopAsync) · `Tests/PlayMode/Network/Socket/SocketSessionHeartbeatTests.cs`(신규) · `Tests/PlayMode/E2E/Network/Socket/SocketE2ETests.cs`(+2 E2E, ConnectJoinedSessionAsync 에 heartbeatInterval 옵셔널) · `.claude/hooks/check-network-e2e-coverage.ps1` · `.claude/settings.json` · `.claude/rules/testing.md`.
+- **검증**: 클라 컴파일0 + 단위 2/2 + 신규 E2E 통과(거부 + 유휴 생존/끊김 81.8s) + 기존 SocketE2E 회귀 확인.
+
+### 2.39 던전 중 비정상 끊김 처리 (6.4) (2026-06-23)
+
+### 2.39 던전 중 비정상 끊김 처리 (6.4) (2026-06-23)
+- **무엇**: 던전 플레이 중 소켓이 비정상으로 끊기면(서버 다운/네트워크 절단) 입력 정지 + "연결 끊김" 팝업 → 확인 시 Main 복귀. 그 전엔 끊겨도 클라가 던전에 갇혀 `MoveSyncSender`가 "not joined" 예외를 매 프레임 던졌음(실사례: DB 초기화로 서버 재기동 → 진행 중 연결 끊김).
+- **이벤트(의도/비의도 구분)**: `ISocketSession.OnDisconnected`(event Action) 신설. `SocketSession`은 `_intentionalDisconnect` 플래그로 구분 — `DisconnectAsync`(정상 퇴장)에서 true 세팅 → 수신 루프 종료 시 발화 안 함. 서버/네트워크 절단으로 수신 루프가 EOF/예외로 끝나면 false → `RunReceiveLoopAsync` finally에서 **`UniTask.SwitchToMainThread()` 후** OnDisconnected 발화(구독자 Unity 작업 안전). `ConnectAsync`가 새 세션마다 false로 리셋.
+- **MVI 배선**: GUI는 Network 직접참조 불가 → `InGameModel`(Presentation→Network ✓)이 OnDisconnected 구독, 핸들러(1회 가드)에서 ⓐ `IInputContext.EnterUi()` 입력 정지 ⓑ R3 `OnConnectionLost` side-channel 발행(QuestModel.OnToast 동형). `GameHud`(GUI)가 OnConnectionLost 구독 → `AlertPopup`(Danger, onOk=ReturnToLobby) 표시. **EnterUi 균형**: IInputContext는 루트 Singleton(씬 넘어 유지)이라 누수 시 Main 입력이 막힘 → `InGameModel.Dispose`(던전 스코프 해제=Main 로드 시)에서 `_uiCaptured`면 ExitUi.
+- **부수**: `MoveSyncSender.FixedUpdate`가 `State != Joined`면 송신 skip(예외 스팸 제거, 끊김/복귀 전이 구간 방어).
+- **위치**: `Network/Socket/Session/{ISocketSession,SocketSession}.cs`(OnDisconnected) · `Gameplay/Character/MoveSyncSender.cs`(가드) · `Presentation/InGame/InGameModel.cs`(구독+EnterUi+OnConnectionLost) · `GUI/Hud/GameHud.cs`(AlertPopup) · 테스트 Fake 9곳 `event global::System.Action OnDisconnected`(System 섀도잉 회피).
+- **검증**: 클라 컴파일0 + EditMode `InGameModelTests` 4/4(신규 "비정상끊김시_입력정지하고_OnConnectionLost가_발행된다": 끊김→EnterUi+신호·중복끊김 무시·Dispose ExitUi 균형) + 기존 InGame relay 15/15 유지. **잔여**: 방 자체 유예·자동 재접속 시도(현재 로비 복귀).
+
 ### 2.38 퀘스트 보상=NPC 대화 일원화 · 팝업 알림(QuestNotifier) (2026-06-23)
 - **무엇**: ① Quest 창의 **수락·보상 버튼 폐지** → 창은 저널(목록+진행) 전용. 수주/보상 수령은 NPC 대화(`DialogueModel`)로만. ② 수락/완료/보상을 **AlertPopup**으로 피드백(기존 `Quest.ShowToast`는 `Debug.Log`뿐이라 화면 피드백 0 = "완료됐는지 확인 불가" 문제 해소).
 - **왜 QuestNotifier(단일 소스)**: 수락·보상은 대화에서, 완료 전이는 GetQuests 시점(저널 열기·대화 시작)에서 발생 — 두 모델(QuestModel·DialogueModel)이 같은 알림을 내야 함. 각자 감지하면 완료 알림 **이중 발화** 위험 → 공유 `QuestNotifier`(Presentation)에 last-seen 상태 캐시를 두고 **Completed 로 전이할 때만 1회** 발화(스팸 방지). 응집↑(원칙4), 과추상화 아님(2개 소비자 공유).

@@ -57,6 +57,17 @@
             "statusMessage": "codemap 신선도 검사 중..."
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "& '.claude/hooks/check-network-e2e-coverage.ps1'",
+            "shell": "powershell",
+            "timeout": 15,
+            "statusMessage": "network-e2e 커버리지 가드 검사 중..."
+          }
+        ]
       }
     ]
   },

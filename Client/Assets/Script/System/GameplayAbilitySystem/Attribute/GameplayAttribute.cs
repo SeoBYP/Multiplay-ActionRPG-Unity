@@ -48,6 +48,18 @@ namespace Script.System.GamePlayAbilitySystem
             OnChanged?.Invoke();
         }
 
+        /// <summary>
+        /// 권위 스탯(레벨 파생 MaxHealth 등)으로 Base/Max 를 재설정한다.
+        /// Current 는 새 Max 로 클램프만(초과분 제거) — 풀충전이 필요하면 호출 측이 SetCurrent(max) 를 잇는다.
+        /// 클라 prefab 기준선(예 HP 100)을 서버 권위값으로 정렬할 때 사용.
+        /// </summary>
+        public void SetMax(int maxValue)
+        {
+            _maxValue = Mathf.Max(0, maxValue);
+            _baseValue = Mathf.Clamp(_baseValue, 0, _maxValue);
+            SetCurrent(Mathf.Min(_currentValue, _maxValue)); // 초과 클램프 + 실제 변화 시 OnChanged
+        }
+
         public void ApplyModifier(GameplayAttributeModifier modifier)
         {
             // 현재 값은 항상 0~MaxValue 범위 안에 머물도록 clamp한다.

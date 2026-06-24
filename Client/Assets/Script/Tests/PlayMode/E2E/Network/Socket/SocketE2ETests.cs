@@ -803,6 +803,63 @@ namespace Game.Tests.PlayMode.E2E
             }
         });
 
+        // ─────────────────────────────────────────────────────────────
+        // 연결 생존성/거부 (liveness) — 하트비트·유휴 타임아웃·세션 검증
+        // ─────────────────────────────────────────────────────────────
+
+        [UnityTest]
+        public IEnumerator 세션배정_없는_UserId로_입장하면_거부된다() => UniTask.ToCoroutine(async () =>
+        {
+            // 게임 세션(gamesession:player:{id})에 배정된 적 없는 임의 UserId/RoomId → 서버가 입장 거부.
+            // 소켓에는 별도 C_Auth 가 없고 C_PlayerJoin 의 Redis 검증이 인증을 대신한다 — 그 불변식을 고정.
+            var collector = await ConnectAndSendJoinAsync(999_999_001L, 999_999_002L, Timeout());
+            try
+            {
+                var resp = await collector.WaitForPacketAsync<S_PlayerJoined>(_ => true, Timeout());
+                Assert.IsFalse(resp.Success, "세션 배정 없는 입장은 거부되어야 한다");
+            }
+            finally
+            {
+                await collector.DisposeAsync();
+            }
+        });
+
+        /// <summary>
+        /// 서버 유휴 타임아웃(HeartBeatService RoomPlayerTimeout=60s) 생존성 E2E.
+        /// 핑 보내는 세션은 무이동 80s 후에도 Joined 유지(하트비트가 LastRecvAt 갱신),
+        /// 핑 끈 세션은 서버가 끊고 → 클라가 OnDisconnected 로 감지. (~80s, 느린 liveness 테스트.)
+        /// </summary>
+        [UnityTest]
+        [Timeout(180000)]
+        public IEnumerator 유휴시_핑있으면_연결유지_핑없으면_서버가_끊고_OnDisconnected가_발화한다() => UniTask.ToCoroutine(async () =>
+        {
+            var room = await CreateStartedTwoPlayerRoomAsync();
+
+            // 호스트=기본 핑(15s)으로 생존, 게스트=핑 사실상 off → 60s 무패킷으로 서버가 퇴장.
+            // ⚠️ 세션 수명 토큰은 CancellationToken.None — Timeout()(~짧은 토큰)을 넘기면 그 토큰이 세션을
+            //    조기 종료시켜(연결 끊김) 80s 유휴를 관측할 수 없다. 연결 단계는 헬퍼 내부 deadline 으로 별도 보장.
+            var host = await ConnectJoinedSessionAsync(room.RoomId, room.HostUserId, CancellationToken.None);
+            var guest = await ConnectJoinedSessionAsync(room.RoomId, room.GuestUserId, CancellationToken.None, TimeSpan.FromHours(1));
+
+            var guestDisconnected = false;
+            guest.Session.OnDisconnected += () => guestDisconnected = true;
+
+            try
+            {
+                // 서버 RoomPlayerTimeout(60s) + 체크주기(15s) 여유까지 무이동 유휴.
+                await UniTask.Delay(TimeSpan.FromSeconds(80), ignoreTimeScale: true);
+
+                Assert.IsTrue(guestDisconnected, "핑 없는 세션은 서버 유휴 타임아웃으로 끊겨 OnDisconnected 가 발화해야 한다");
+                Assert.AreEqual(SocketSessionState.Disconnected, guest.Session.State, "끊긴 세션 상태=Disconnected");
+                Assert.AreEqual(SocketSessionState.Joined, host.Session.State, "핑 보내는 세션은 Joined 유지(하트비트 생존)");
+            }
+            finally
+            {
+                await host.Session.DisconnectAsync(CancellationToken.None);
+                await guest.Session.DisconnectAsync(CancellationToken.None);
+            }
+        });
+
         /// <summary>
         /// 원시 재접속 시도 — 연결 후 C_PlayerJoin 만 보낸 컬렉터를 반환한다(성공/실패 응답을 호출자가 검사).
         /// ConnectAndJoinCollectorAsync 와 달리 실패 응답에 재시도하지 않는다 — 거부(RED) 케이스 검증용.
@@ -940,7 +997,7 @@ namespace Game.Tests.PlayMode.E2E
             }
         }
 
-        private static async UniTask<SocketClientContext> ConnectJoinedSessionAsync(long roomId, long userId, CancellationToken ct)
+        private static async UniTask<SocketClientContext> ConnectJoinedSessionAsync(long roomId, long userId, CancellationToken ct, TimeSpan? heartbeatInterval = null)
         {
             Exception lastError = null;
             var deadline = DateTime.UtcNow.AddSeconds(ServerConfig.TimeoutSeconds);
@@ -955,6 +1012,7 @@ namespace Game.Tests.PlayMode.E2E
                     new MovePacketHandler(state)
                 });
                 var session = new SocketSession(connector, dispatcher);
+                if (heartbeatInterval.HasValue) session.HeartbeatInterval = heartbeatInterval.Value;
 
                 try
                 {

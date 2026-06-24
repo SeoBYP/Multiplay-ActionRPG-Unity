@@ -111,6 +111,7 @@ namespace Game.Tests.EditMode.InGame
         {
             public readonly List<Packet> SentPackets = new();
             public SocketSessionState State => default;
+            public event global::System.Action OnDisconnected { add { } remove { } }
             public UniTask ConnectAsync(SocketConnectionInfo connectionInfo, CancellationToken ct) => UniTask.CompletedTask;
             public UniTask JoinRoomAsync(CancellationToken ct) => UniTask.CompletedTask;
             public UniTask LeaveRoomAsync(CancellationToken ct) => UniTask.CompletedTask;

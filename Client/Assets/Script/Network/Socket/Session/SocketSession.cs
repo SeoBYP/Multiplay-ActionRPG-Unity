@@ -19,7 +19,20 @@ namespace Game.Network.Socket
         private SocketConnectionInfo _connectionInfo;
         private CancellationTokenSource _sessionCts;
 
+        // true 면 의도적 종료(DisconnectAsync) — 수신 루프 종료 시 OnDisconnected 를 발화하지 않는다.
+        private bool _intentionalDisconnect;
+
         public SocketSessionState State { get; private set; } = SocketSessionState.Idle;
+
+        /// <inheritdoc/>
+        public event Action OnDisconnected;
+
+        /// <summary>
+        /// keep-alive 핑 주기. 서버 유휴 타임아웃(방 60s·로비 30s, HeartBeatService)보다 충분히 짧아야 한다.
+        /// 클라가 움직이지 않으면 C_Move 가 안 나가 서버가 무응답으로 퇴장시키므로, 이 핑이 연결을 유지한다.
+        /// DI(ctor)로 주입하지 않는다(VContainer 가 TimeSpan 미해소) — 테스트는 이 프로퍼티를 직접 설정.
+        /// </summary>
+        public TimeSpan HeartbeatInterval { get; set; } = TimeSpan.FromSeconds(15);
 
         public SocketSession(
             ISocketConnector connector,
@@ -49,6 +62,7 @@ namespace Game.Network.Socket
                 _sessionCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
                 State = SocketSessionState.Connecting;
+                _intentionalDisconnect = false; // 새 세션 — 비정상 끊김 발화 가능 상태로 리셋
 
                 await _connector.ConnectAsync(connectionInfo.Host, connectionInfo.Port, _sessionCts.Token);
 
@@ -62,6 +76,9 @@ namespace Game.Network.Socket
                         Debug.LogException(ex);
                     }
                 });
+
+                // keep-alive 핑 루프 — 무이동 상태에서도 주기적으로 C_Ping 을 보내 서버 유휴 타임아웃을 방지.
+                RunHeartbeatLoopAsync().Forget();
             }
             catch (OperationCanceledException)
             {
@@ -113,7 +130,38 @@ namespace Game.Network.Socket
                 // 수신 루프 종료 시 커넥터와 세션 토큰을 모두 정리한다.
                 await _connector.DisconnectAsync(CancellationToken.None);
                 CancelAndDisposeSessionToken();
+
+                // 의도적 종료(퇴장)가 아니면 = 비정상 끊김 → 메인 스레드에서 1회 통지.
+                if (!_intentionalDisconnect)
+                {
+                    await UniTask.SwitchToMainThread();
+                    OnDisconnected?.Invoke();
+                }
             }
+        }
+
+        /// <summary>
+        /// keep-alive 핑 루프 — Connected~Joined 동안 HeartbeatInterval 마다 C_Ping 송신.
+        /// 세션 토큰 취소(끊김/퇴장) 시 종료. 송신 실패는 무시(수신 루프가 끊김을 처리).
+        /// </summary>
+        private async UniTaskVoid RunHeartbeatLoopAsync()
+        {
+            try
+            {
+                while (true)
+                {
+                    await UniTask.Delay(HeartbeatInterval, ignoreTimeScale: true, cancellationToken: _sessionCts.Token);
+
+                    if (State == SocketSessionState.Connected ||
+                        State == SocketSessionState.Joining ||
+                        State == SocketSessionState.Joined)
+                    {
+                        await _connector.SendAsync(new C_Ping { IsHealthy = true }, _sessionCts.Token);
+                    }
+                }
+            }
+            catch (OperationCanceledException) { /* 세션 종료 — 정상 */ }
+            catch (Exception) { /* 끊김 중 송신 실패 — 수신 루프가 끊김을 처리하므로 무시 */ }
         }
 
         /// <summary>
@@ -222,6 +270,8 @@ namespace Game.Network.Socket
         /// </summary>
         public async UniTask DisconnectAsync(CancellationToken ct)
         {
+            _intentionalDisconnect = true; // 의도적 종료 — 수신 루프 종료가 OnDisconnected 를 발화하지 않게 한다.
+
             if (State == SocketSessionState.Disconnected)
             {
                 return;

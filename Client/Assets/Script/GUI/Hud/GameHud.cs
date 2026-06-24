@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Core;
+using Game.GUI.Common;
 using Game.Presentation.InGame;
 using R3;
 using TMPro;
@@ -113,6 +114,11 @@ namespace Game.GUI.OutGame
             _model.State
                 .Subscribe(Render)
                 .AddTo(destroyCancellationToken);
+
+            // 비정상 연결 끊김 → 끊김 팝업(확인 시 로비 복귀).
+            _model.OnConnectionLost
+                .Subscribe(_ => ShowDisconnectPopupAsync().Forget())
+                .AddTo(destroyCancellationToken);
         }
 
         /// <summary>컨테이너에 미리 배치된 슬롯이 있으면 풀로 흡수하고 모두 숨긴다.</summary>
@@ -148,6 +154,28 @@ namespace Game.GUI.OutGame
         private void OnClickReturnToLobby()
         {
             _model.Accept(InGameIntent.ReturnToLobby.Instance);
+        }
+
+        private bool _disconnectPopupShown;
+
+        /// <summary>비정상 연결 끊김 알림 팝업. 확인 시 로비(Main)로 복귀. 팝업 로드 실패 시 즉시 복귀.</summary>
+        private async UniTaskVoid ShowDisconnectPopupAsync()
+        {
+            if (_disconnectPopupShown) return;
+            _disconnectPopupShown = true;
+
+            if (GUIRoot.Instance == null) { OnClickReturnToLobby(); return; }
+
+            var inst = await AddressableLoader.LoadAndInstantiateAsync(
+                AddressKeys.UI.AlertPopup, GUIRoot.Instance.transform, destroyCancellationToken);
+            if (inst == null) { OnClickReturnToLobby(); return; }
+
+            var popup = inst.GameObject.GetComponent<AlertPopup>();
+            if (popup == null) { inst.Dispose(); OnClickReturnToLobby(); return; }
+
+            popup.SetAddressableOwner(inst);
+            popup.Setup("연결 끊김", "서버와의 연결이 끊겼습니다.\n로비로 돌아갑니다.",
+                OnClickReturnToLobby, PopupGlowType.Danger);
         }
 
         /// <summary>sideButtons 배열에서 해당 타입의 버튼을 찾아 클릭 핸들러를 연결한다.</summary>
