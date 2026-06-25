@@ -24,6 +24,8 @@ namespace Game.Presentation.DungeonLobby
         public int    MaxPlayers => Info.MaxPlayers;
         public int    PlayerCount => Players.Count;
         public RoomStatus Status => MapStatus(Info.Status);
+        /// <summary>이 방의 던전 식별자(spawn-layouts.json 키). 표시이름 변환은 DungeonCatalog 사용.</summary>
+        public string MapId      => Info.MapId;
         public IReadOnlyList<RoomPlayerInfo> Players { get; }
 
         public DungeonRoomModel(RoomInfo info)

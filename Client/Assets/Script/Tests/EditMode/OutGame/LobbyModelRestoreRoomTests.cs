@@ -42,8 +42,14 @@ namespace Game.Tests.EditMode.OutGame
             public UniTask<(DungeonLobbyResult, IReadOnlyList<RoomInfo>)> GetRoomsAsync(CancellationToken ct = default)
                 => UniTask.FromResult((DungeonLobbyResult.Success, (IReadOnlyList<RoomInfo>)new List<RoomInfo>()));
 
-            public UniTask<DungeonLobbyResult> CreateRoomAsync(string roomName, int maxPlayers, CancellationToken ct = default)
-                => UniTask.FromResult(DungeonLobbyResult.Success);
+            /// <summary>마지막 CreateRoom 호출에 전달된 mapId(던전 선택 전파 검증용).</summary>
+            public string LastCreateMapId { get; private set; }
+
+            public UniTask<DungeonLobbyResult> CreateRoomAsync(string roomName, int maxPlayers, string mapId = "", CancellationToken ct = default)
+            {
+                LastCreateMapId = mapId;
+                return UniTask.FromResult(DungeonLobbyResult.Success);
+            }
 
             public UniTask<DungeonLobbyResult> JoinRoomAsync(long roomId, CancellationToken ct = default)
                 => UniTask.FromResult(DungeonLobbyResult.Success);
@@ -104,6 +110,23 @@ namespace Game.Tests.EditMode.OutGame
             Assert.IsFalse(navigated, "Closed 방은 RoomDetail로 네비게이트되면 안 된다");
             Assert.IsFalse(model.State.CurrentValue.IsInRoom);
             Assert.IsNotNull(model.State.CurrentValue.ErrorMessage);
+
+            model.Dispose();
+        }
+
+        [Test]
+        public void CreateRoom_인텐트의_선택한_MapId가_서비스로_전달된다()
+        {
+            var service = new FakeDungeonLobbyService
+            {
+                CurrentRoom = new RoomInfo { RoomId = 9, RoomName = "r", MaxPlayers = 4, Status = RoomStatusType.Waiting, MapId = "dungeon_01" }
+            };
+            var model = BuildModel(service);
+
+            model.Accept(new LobbyIntent.CreateRoom("r", 2, "dungeon_01"));
+
+            Assert.AreEqual("dungeon_01", service.LastCreateMapId,
+                "방 생성 시 선택한 던전 mapId 가 Intent→Model→Repository→Service 로 전파돼야 한다");
 
             model.Dispose();
         }

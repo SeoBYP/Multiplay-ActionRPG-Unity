@@ -19,6 +19,9 @@ namespace Game.Gameplay.Spawn
         [Tooltip("spawn-layouts.json 키 / 서버 MapId 와 정확히 일치해야 한다 (예: dungeon_01).")]
         public string mapId = "dungeon_01";
 
+        [Tooltip("던전 클리어 시 참가자에게 지급할 경험치(서버 권위). 0=보상 없음(Main/아레나 등). spawn-layouts.json 의 expReward 로 bake 되어 서버가 읽는다.")]
+        public long expReward;
+
         [Tooltip("맵 배경 모델 프리팹(클라 전용). 던전 진입 시 MapLoader 가 인스턴스화. 서버는 사용 안 함(JSON에 미포함).")]
         public GameObject visualPrefab;
 

@@ -8,7 +8,8 @@ namespace Game.Gameplay.Loot
     /// 드랍 테이블 저작(authoring) 진실원. 디자이너가 이 SO를 Inspector 에서 편집한다.
     /// (실무는 Excel, 개인 프로젝트는 SO로 간편화 — MapDefinition 과 동일 컨벤션.)
     ///
-    /// - 클라(Main 로컬 드랍)는 이 SO를 런타임에 직접 읽는다(Resources.Load).
+    /// - **저작 전용 SO**(런타임 미로드). 클라·서버 모두 bake된 drop-tables.json(Shared.Infrastructure.DropTableCatalog)을 읽는다.
+    ///   → 이 SO는 Resources 밖(Assets/GameData/Loot)이며 빌드에 포함되지 않는다.
     /// - 서버(던전 드랍)는 UnityEngine 의존이 0이라 SO를 못 읽으므로, Export 툴
     ///   (Tools/Loot/Export Drop Tables)이 이 SO를 drop-tables.json 으로 bake → 서버 임베디드 파싱
     ///   (Shared.Infrastructure.DropTableCatalog). roll 로직은 양쪽 Shared.Gameplay.DropTableRoll 공유.

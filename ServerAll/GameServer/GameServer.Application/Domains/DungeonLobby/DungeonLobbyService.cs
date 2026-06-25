@@ -8,6 +8,7 @@ using GameServer.Domain.Entities;
 using GameServer.Domain.Entities.Outbox;
 using Microsoft.Extensions.Logging;
 using Shared.Infrastructure.Messages;
+using Shared.Infrastructure.Spawn;
 
 namespace GameServer.Application.Domains.DungeonLobby;
 
@@ -22,10 +23,15 @@ public class DungeonLobbyService(
     IProgressionService progressionService,
     ILogger<DungeonLobbyService> logger) : IDungeonLobbyService
 {
-    public async Task<Result<DungeonRoom>> CreateDungeonRoomAsync(string sessionId, string roomName, int maxPlayers, CancellationToken ct = default)
+    public async Task<Result<DungeonRoom>> CreateDungeonRoomAsync(string sessionId, string roomName, int maxPlayers, string mapId = "", CancellationToken ct = default)
     {
         try
         {
+            // 던전 선택값 정규화·검증(서버 권위): 비우면 기본 맵, 알 수 없는 맵이면 거부.
+            var effectiveMapId = string.IsNullOrEmpty(mapId) ? MapIds.Default : mapId;
+            if (!SpawnLayoutTable.IsKnown(effectiveMapId))
+                return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+
             var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
             if (userSession is null)
                 return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
@@ -34,7 +40,7 @@ public class DungeonLobbyService(
             if (existingRoomPlayer is not null)
                 return Result<DungeonRoom>.Failure(ErrorCodes.AlreadyInRoom, ErrorMessages.AlreadyInRoom);
 
-            var newRoom = await dungeonRoomRepository.CreateAsync(userSession.UserId, roomName, maxPlayers, ct);
+            var newRoom = await dungeonRoomRepository.CreateAsync(userSession.UserId, roomName, maxPlayers, effectiveMapId, ct);
             if (newRoom is null)
                 return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
 
@@ -222,10 +228,6 @@ public class DungeonLobbyService(
 
     public async Task<Result<DungeonRoom>> StartGameAsync(string sessionId, long roomId, string traceId, string mapId = "", CancellationToken ct = default)
     {
-        // 비우면 기본 맵. 특정 맵 강제(테스트/향후 던전 선택)는 mapId 로 GameStartRequested.MapId 에 실린다.
-        var effectiveMapId = string.IsNullOrEmpty(mapId)
-            ? Shared.Infrastructure.Spawn.MapIds.Default
-            : mapId;
         try
         {
             var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
@@ -235,6 +237,12 @@ public class DungeonLobbyService(
             var room = await dungeonRoomRepository.GetByIdAsync(roomId, ct);
             if (room is null)
                 return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
+
+            // 진실의 원천 = 방에 영속된 MapId(생성 시 결정). 명시 mapId(StartRoomRequest.map_id, E2E override)가 오면 우선.
+            // 둘 다 비면 기본 맵으로 폴백(구버전 캐시·미설정 방어).
+            var effectiveMapId = !string.IsNullOrEmpty(mapId) ? mapId
+                : !string.IsNullOrEmpty(room.MapId) ? room.MapId
+                : MapIds.Default;
 
             if (!room.IsHost(userSession.UserId))
                 return Result<DungeonRoom>.Failure(ErrorCodes.NotRoomHost, ErrorMessages.NotRoomHost);

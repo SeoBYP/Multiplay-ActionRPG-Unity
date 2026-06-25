@@ -24,7 +24,7 @@ namespace Game.System.DungeonLobby
         event Action<string, int, long> OnGameSessionReady;
 
         UniTask<(DungeonLobbyResult, IReadOnlyList<RoomInfo>)> GetRoomsAsync(CancellationToken ct = default);
-        UniTask<DungeonLobbyResult> CreateRoomAsync(string roomName, int maxPlayers, CancellationToken ct = default);
+        UniTask<DungeonLobbyResult> CreateRoomAsync(string roomName, int maxPlayers, string mapId = "", CancellationToken ct = default);
         UniTask<DungeonLobbyResult> JoinRoomAsync(long roomId, CancellationToken ct = default);
         UniTask<DungeonLobbyResult> LeaveRoomAsync(CancellationToken ct = default);
         UniTask<DungeonLobbyResult> StartGameAsync(CancellationToken ct = default);

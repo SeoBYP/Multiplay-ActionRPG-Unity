@@ -20,7 +20,7 @@ namespace Game.Gameplay.Editor
     public static class MonsterCatalogExporter
     {
         private const string ServerJsonRelative = "ServerAll/Shared/Shared.Infrastructure/Monsters/monsters.json"; // repo 루트 기준
-        private const string AssetDir = "Assets/GameData/Resources/Monster"; // Resources.Load<MonsterCatalogDefinition>("Monster/MonsterCatalogDefinition")
+        private const string AssetDir = "Assets/GameData/Monster"; // 저작 전용 SO(런타임 미로드, JSON bake만). Resources 밖.
         private const string AssetName = "MonsterCatalogDefinition";
 
         [MenuItem("Tools/Monster/Export Monster Catalog (SO → JSON)")]

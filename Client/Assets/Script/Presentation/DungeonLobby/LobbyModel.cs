@@ -187,10 +187,10 @@ namespace Game.Presentation.DungeonLobby
         {
             _isProcessing = true;
             Dispatch(LobbyResult.Loading.Instance);
-            Debug.Log($"[LobbyModel] 방 생성 요청 name={intent.Name} maxPlayers={intent.MaxPlayers}");
+            Debug.Log($"[LobbyModel] 방 생성 요청 name={intent.Name} maxPlayers={intent.MaxPlayers} mapId={intent.MapId}");
             try
             {
-                var res = await _repository.CreateRoomAsync(intent.Name, intent.MaxPlayers, _cts.Token);
+                var res = await _repository.CreateRoomAsync(intent.Name, intent.MaxPlayers, intent.MapId, _cts.Token);
                 if (!res.IsSuccess)
                 {
                     Debug.LogWarning($"[LobbyModel] 방 생성 실패: {res.Error}");

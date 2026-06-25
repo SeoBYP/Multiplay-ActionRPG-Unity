@@ -30,6 +30,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 153b9ca0a7044b046bd78cfdc46d1405
+    m_Address: Assets/GameData/Item/ItemDisplayCatalog.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 179f4e7a1670d2e4994fd40e2106e53b
     m_Address: Assets/Prefabs/GUI/Dungeon/DungeonClear.prefab
     m_ReadOnly: 0
@@ -45,8 +50,18 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 280d5db4d85aa7e49b500e1f0120e7f2
+    m_Address: Assets/GameData/Maps/dungeon_01.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 2dfb4c9749719cb40b134b59556b9d24
     m_Address: Assets/Prefabs/GUI/Dungeon/DungeonFaild.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 31a6d65ae5e703c4988b16dd8723173e
+    m_Address: Assets/GameData/Maps/main_field_01.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -62,6 +77,16 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 3b9553bdfed50e4489f17428aa445aff
     m_Address: Assets/Prefabs/GUI/Common/Loading/LoadingCanvas.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 44ae99f50970be14e88e10758dd480a5
+    m_Address: Assets/GameData/Consumable/ConsumableCatalog.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4781009c1b181004396075affbc9f89d
+    m_Address: Assets/GameData/Maps/dungeon_02.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -105,6 +130,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 774f635f9f8c9234dab86b331e496fe5
+    m_Address: Assets/GameData/Effects/EffectIconCatalog.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 88a2d3e045580174c8c7173b08b8ac6f
     m_Address: Assets/Prefabs/GUI/Common/FaderCanvas.prefab
     m_ReadOnly: 0
@@ -122,6 +152,16 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: d2783c5aba7dce64ebcb73ce6242d1c7
     m_Address: Assets/Prefabs/GUI/Equipment/Equipment.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d67388a60f7d38f4d9f8f8b140d4cbd1
+    m_Address: Assets/GameData/Dialogue/DialogueCatalog.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d9a16d60e24b75940be07528e812cad8
+    m_Address: Assets/GameData/Maps/test_arena.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -162,6 +202,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ef44db8af37d39242a3cfc85900373af
     m_Address: Assets/Prefabs/GUI/Common/Slot/Contents/ItemContentsSlot.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f37ffc9ff230810429b01392c6d75d83
+    m_Address: Assets/GameData/Item/GradeSpriteCatalog.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

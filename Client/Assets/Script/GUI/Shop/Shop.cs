@@ -65,11 +65,10 @@ namespace Game.GUI.Shop
         [Header("Window")]
         [SerializeField] private Button closeButton;
 
-        [Header("Toast (구매 결과 — 성공/실패)")]
+        [Header("Toast (구매 성공 — 인-윈도우)")]
         [SerializeField] private TextMeshProUGUI toastText;   // 없으면 로그로 폴백
         [SerializeField] private float toastSeconds = 2f;
         private static readonly Color ToastSuccess = new Color(0.30f, 0.80f, 0.36f);
-        private static readonly Color ToastFail = new Color(0.86f, 0.28f, 0.28f);
         private CancellationTokenSource _toastCts;
 
         [Inject] private ShopModel _model;
@@ -215,23 +214,52 @@ namespace Game.GUI.Shop
 
         private void Close() => gameObject.SetActive(false);
 
-        /// <summary>구매 결과 토스트 — 성공=초록/실패=빨강으로 띄우고 toastSeconds 후 숨김. 필드 미할당 시 로그 폴백.</summary>
+        /// <summary>
+        /// 구매 결과 피드백. 실패=AlertPopup(명시적·prefab 자체로드라 필드배선 불요), 성공=인-윈도우 토스트(초록).
+        /// 토스트는 toastText 미할당 시 안 보이는 한계가 있어, 사용자가 놓치면 안 되는 실패는 팝업으로 띄운다.
+        /// </summary>
         private void ShowToast(ShopToastMessage toast)
         {
+            if (!toast.Success)
+            {
+                ShowFailPopupAsync(toast.Message).Forget();
+                return;
+            }
+
             if (toastText == null)
             {
-                Debug.Log($"[Shop] {(toast.Success ? "성공" : "실패")}: {toast.Message}");
+                Debug.Log($"[Shop] 성공: {toast.Message}");
                 return;
             }
 
             toastText.text = toast.Message;
-            toastText.color = toast.Success ? ToastSuccess : ToastFail;
+            toastText.color = ToastSuccess;
             toastText.gameObject.SetActive(true);
 
             _toastCts?.Cancel();
             _toastCts?.Dispose();
             _toastCts = new CancellationTokenSource();
             HideToastAfterDelay(_toastCts.Token).Forget();
+        }
+
+        /// <summary>상점 실패 알림 = AlertPopup(QuestNotificationPresenter·LobbyViewController 와 동일 로드 패턴).</summary>
+        private async UniTaskVoid ShowFailPopupAsync(string message)
+        {
+            if (GUIRoot.Instance == null)
+            {
+                Debug.LogWarning($"[Shop] 실패: {message}");
+                return;
+            }
+
+            var inst = await AddressableLoader.LoadAndInstantiateAsync(
+                AddressKeys.UI.AlertPopup, GUIRoot.Instance.transform, destroyCancellationToken);
+            if (inst == null) return;
+
+            var popup = inst.GameObject.GetComponent<AlertPopup>();
+            if (popup == null) { inst.Dispose(); return; }
+
+            popup.SetAddressableOwner(inst);
+            popup.Setup("상점", message, glow: PopupGlowType.Warning);
         }
 
         private async UniTaskVoid HideToastAfterDelay(CancellationToken ct)

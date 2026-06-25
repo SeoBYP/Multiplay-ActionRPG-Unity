@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Game.Presentation.DungeonLobby;
 using TMPro;
 using UnityEngine;
@@ -18,6 +19,12 @@ namespace Game.GUI.OutGame.Lobby
         [SerializeField] private Button     minusPlayerButton;
         [SerializeField] private InputField maxPlayersInput;
 
+        [Header("던전 선택")]
+        [Tooltip("선택지 메타(mapId→표시이름). 미할당이면 던전 선택 없이 서버 기본 맵으로 생성.")]
+        [SerializeField] private DungeonCatalog  dungeonCatalog;
+        [Tooltip("던전 선택 드롭다운. 미할당이면 기본 맵 사용(하위호환).")]
+        [SerializeField] private TMP_Dropdown    dungeonDropdown;
+
         [Header("버튼")]
         [SerializeField] private Button confirmButton;
         [SerializeField] private Button cancelButton;
@@ -36,6 +43,7 @@ namespace Game.GUI.OutGame.Lobby
             _onClose = onClose;
 
             UpdateMaxPlayersDisplay();
+            PopulateDungeonDropdown();
 
             plusPlayerButton.onClick.AddListener(OnPlusClicked);
             minusPlayerButton.onClick.AddListener(OnMinusClicked);
@@ -52,8 +60,33 @@ namespace Game.GUI.OutGame.Lobby
             var roomName = roomNameInput.text.Trim();
             if (string.IsNullOrEmpty(roomName)) return;
 
-            _model.Accept(new LobbyIntent.CreateRoom(roomName, _maxPlayers));
+            _model.Accept(new LobbyIntent.CreateRoom(roomName, _maxPlayers, SelectedMapId()));
             Close();
+        }
+
+        // ── 던전 선택 ────────────────────────────────
+
+        /// <summary>카탈로그의 표시이름으로 드롭다운을 채운다. 카탈로그/드롭다운 미할당이면 아무것도 안 함(기본 맵).</summary>
+        private void PopulateDungeonDropdown()
+        {
+            if (dungeonDropdown == null || dungeonCatalog == null) return;
+
+            dungeonDropdown.ClearOptions();
+            var labels = new List<string>(dungeonCatalog.Dungeons.Count);
+            foreach (var d in dungeonCatalog.Dungeons)
+                labels.Add(d.DisplayName);
+            dungeonDropdown.AddOptions(labels);
+            dungeonDropdown.value = 0;
+            dungeonDropdown.RefreshShownValue();
+        }
+
+        /// <summary>선택된 던전의 mapId. 드롭다운/카탈로그 미할당 또는 선택 없음이면 ""(서버 기본 맵).</summary>
+        private string SelectedMapId()
+        {
+            if (dungeonDropdown == null || dungeonCatalog == null) return "";
+            int i = dungeonDropdown.value;
+            if (i < 0 || i >= dungeonCatalog.Dungeons.Count) return "";
+            return dungeonCatalog.Dungeons[i].MapId ?? "";
         }
 
         private void OnCancelClicked() => Close();

@@ -18,11 +18,14 @@ namespace Game.Presentation.DungeonLobby
         {
             public readonly string Name;
             public readonly int MaxPlayers;
+            /// <summary>플레이할 던전(spawn-layouts.json 키). 빈 문자열이면 서버가 기본 맵으로 영속.</summary>
+            public readonly string MapId;
 
-            public CreateRoom(string name, int maxPlayers)
+            public CreateRoom(string name, int maxPlayers, string mapId = "")
             {
                 Name       = name;
                 MaxPlayers = maxPlayers;
+                MapId      = mapId ?? "";
             }
         }
 

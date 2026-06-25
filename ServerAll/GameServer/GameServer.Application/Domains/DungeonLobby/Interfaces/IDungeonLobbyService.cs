@@ -11,8 +11,9 @@ public interface IDungeonLobbyService
     /// <param name="userId">방장의 UserId</param>
     /// <param name="roomName">방 이름</param>
     /// <param name="maxPlayers">최대 플레이어 수 (기본 4명)</param>
+    /// <param name="mapId">플레이할 던전(spawn-layouts.json 키). 비우면 MapIds.Default. 알 수 없는 맵이면 실패.</param>
     /// <returns>생성된 방 정보</returns>
-    Task<Result<DungeonRoom>> CreateDungeonRoomAsync(string sessionId, string roomName, int maxPlayers, CancellationToken ct = default);
+    Task<Result<DungeonRoom>> CreateDungeonRoomAsync(string sessionId, string roomName, int maxPlayers, string mapId = "", CancellationToken ct = default);
 
     /// <summary>
     /// 활성 방 목록을 조회합니다

@@ -25,6 +25,9 @@ public static class SpawnLayoutTable
         throw new KeyNotFoundException($"Spawn layout for mapId '{mapId}' not found in spawn-layouts.json");
     }
 
+    /// <summary>해당 mapId 의 스폰 레이아웃이 존재하는지. 방 생성 시 던전 선택값 검증에 쓴다.</summary>
+    public static bool IsKnown(string mapId) => Layouts.Value.ContainsKey(mapId);
+
     private static IReadOnlyDictionary<string, MapSpawnLayout> LoadEmbedded()
     {
         var assembly = Assembly.GetExecutingAssembly();

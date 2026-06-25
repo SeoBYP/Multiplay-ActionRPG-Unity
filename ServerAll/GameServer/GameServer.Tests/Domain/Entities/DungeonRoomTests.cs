@@ -15,6 +15,34 @@ public class DungeonRoomTests
         Assert.Equal(RoomStatus.Waiting, room.Status);
     }
 
+    [Fact]
+    public void Create_는_mapId를_방에_보관한다()
+    {
+        var room = DungeonRoom.Create("testRoom", 1, 4, "dungeon_01");
+
+        Assert.Equal("dungeon_01", room.MapId);
+    }
+
+    [Fact]
+    public void Clone_은_MapId를_보존한다()
+    {
+        var room = DungeonRoom.Create("testRoom", 1, 4, "dungeon_01");
+
+        var clone = room.Clone();
+
+        Assert.Equal("dungeon_01", clone.MapId);
+    }
+
+    [Fact]
+    public void FromRedis_는_MapId를_복원한다()
+    {
+        var room = DungeonRoom.FromRedis(
+            roomId: 7, roomName: "r", hostUserId: 1, maxPlayers: 4,
+            mapId: "dungeon_01", status: RoomStatus.Waiting, createdAt: DateTime.UnixEpoch);
+
+        Assert.Equal("dungeon_01", room.MapId);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]

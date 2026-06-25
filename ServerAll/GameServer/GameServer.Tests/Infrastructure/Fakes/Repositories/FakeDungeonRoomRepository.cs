@@ -10,9 +10,9 @@ public class FakeDungeonRoomRepository : IDungeonRoomRepository
     private readonly ConcurrentDictionary<long, DungeonRoom> _rooms = new();
     private long _nextRoomId = 1;
 
-    public Task<DungeonRoom?> CreateAsync(long hostId, string roomName, int maxPlayers = 4, CancellationToken ct = default)
+    public Task<DungeonRoom?> CreateAsync(long hostId, string roomName, int maxPlayers = 4, string mapId = "", CancellationToken ct = default)
     {
-        var room = DungeonRoom.Create(roomName, hostId, maxPlayers);
+        var room = DungeonRoom.Create(roomName, hostId, maxPlayers, mapId);
         var roomId = Interlocked.Increment(ref _nextRoomId);
         room.GetType().GetProperty("RoomId")?.SetValue(room, roomId);
         _rooms[roomId] = room;

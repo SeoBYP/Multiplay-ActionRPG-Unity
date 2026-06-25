@@ -11,7 +11,8 @@ namespace Game.Gameplay.Progression
     /// 한 행 = 레벨 L 의 { 다음 레벨까지 Exp + 스탯 }. 스탯은 레벨에서 결정론 룩업 —
     /// DB 에는 Level/Exp 만 영속하고 스탯은 항상 이 테이블에서 파생한다(단일소스, 2.4 스탯합산의 base).
     ///
-    /// - 클라(스탯창)는 이 SO를 직접 읽는다(Resources.Load).
+    /// - **저작 전용 SO**(런타임 미로드). 클라·서버 모두 bake된 level-table.json(Shared.Infrastructure.Progression.LevelTable)을 읽는다.
+    ///   → 이 SO는 Resources 밖(Assets/GameData/Progression)이며 빌드에 포함되지 않는다.
     /// - 서버(레벨업 루프·gRPC 스탯 응답)는 UnityEngine 의존이 0이라 SO를 못 읽으므로, Export 툴
     ///   (Tools/Progression/Export)이 이 SO를 level-table.json 으로 bake → 서버 임베디드 파싱
     ///   (Shared.Infrastructure.Progression.LevelTable).

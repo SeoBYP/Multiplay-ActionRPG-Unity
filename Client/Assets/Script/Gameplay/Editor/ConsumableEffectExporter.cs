@@ -19,7 +19,7 @@ namespace Game.Gameplay.Editor
     public static class ConsumableEffectExporter
     {
         private const string ServerJsonRelative = "ServerAll/Shared/Shared.Infrastructure/Consumables/consumable-effects.json";
-        private const string AssetDir = "Assets/GameData/Resources"; // Resources.Load<ConsumableCatalog>("ConsumableCatalog")
+        private const string AssetDir = "Assets/GameData/Consumable"; // 런타임은 Addressables(address=asset path)로 로드. Resources 밖.
         private const string AssetName = "ConsumableCatalog";
 
         [MenuItem("Tools/Consumables/Export (SO -> JSON)")]

@@ -59,12 +59,13 @@ namespace Game.System.DungeonLobby
             return (DungeonLobbyResult.Success, res.RoomInfos);
         }
 
-        public async UniTask<DungeonLobbyResult> CreateRoomAsync(string roomName, int maxPlayers, CancellationToken ct = default)
+        public async UniTask<DungeonLobbyResult> CreateRoomAsync(string roomName, int maxPlayers, string mapId = "", CancellationToken ct = default)
         {
             var res = await _grpc.CreateRoomAsync(new CreateRoomRequest
             {
                 RoomName   = roomName,
-                MaxPlayers = maxPlayers
+                MaxPlayers = maxPlayers,
+                MapId      = mapId ?? ""   // 비우면 서버가 기본 맵(dungeon_01)으로 영속
             }, ct);
 
             if (!res.Result.Success)

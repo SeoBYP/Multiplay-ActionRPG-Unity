@@ -23,12 +23,12 @@ public class DungeonRoomRepository(
     /// 새로운 던전 방을 생성하고 DB와 Redis에 저장합니다.
     /// </summary>
     public async Task<Domain.Entities.DungeonRoom?> CreateAsync(long hostId, string roomName, int maxPlayers = 4,
-        CancellationToken ct = default)
+        string mapId = "", CancellationToken ct = default)
     {
         try
         {
-            // 1. 도메인 모델 생성
-            var room = Domain.Entities.DungeonRoom.Create(roomName, hostId, maxPlayers);
+            // 1. 도메인 모델 생성 (mapId 정규화·검증은 Application 책임 — 여기선 받은 값을 그대로 보관)
+            var room = Domain.Entities.DungeonRoom.Create(roomName, hostId, maxPlayers, mapId);
 
             // 2. DB 저장
             var entry = await context.DungeonRooms.AddAsync(room, ct);
@@ -235,6 +235,7 @@ public class DungeonRoomRepository(
             new HashEntry("RoomName", room.RoomName),
             new HashEntry("HostUserId", room.HostUserId),
             new HashEntry("MaxPlayers", room.MaxPlayers),
+            new HashEntry("MapId", room.MapId),
             new HashEntry("Status", room.Status.ToString()),
             new HashEntry("CreatedAt", room.CreatedAt.ToString("O")),
         ]);
@@ -333,13 +334,19 @@ public class DungeonRoomRepository(
             return null;
         }
 
+        // MapId 는 필수 검증에서 제외: 4.3 이전에 캐시된 방엔 없을 수 있어 기본 맵으로 폴백한다(거부하지 않음).
+        var mapId = dict.TryGetValue("MapId", out var mapIdStr) && !string.IsNullOrEmpty(mapIdStr)
+            ? mapIdStr
+            : Shared.Infrastructure.Spawn.MapIds.Default;
+
         // 4. FromRedis로 DungeonRoom 재구성
         return Domain.Entities.DungeonRoom.FromRedis(
-            id, 
-            roomName, 
-            hostUserId, 
-            maxPlayers, 
-            status, 
+            id,
+            roomName,
+            hostUserId,
+            maxPlayers,
+            mapId,
+            status,
             createdAt);
     }
 }

@@ -8,7 +8,7 @@ public interface IDungeonRoomRepository
     /// <summary>
     /// 던전 방 생성
     /// </summary>
-    Task<Domain.Entities.DungeonRoom?> CreateAsync(long hostId, string roomName, int maxPlayers, CancellationToken ct = default);
+    Task<Domain.Entities.DungeonRoom?> CreateAsync(long hostId, string roomName, int maxPlayers, string mapId = "", CancellationToken ct = default);
 
     /// <summary>
     /// ID로 방 조회

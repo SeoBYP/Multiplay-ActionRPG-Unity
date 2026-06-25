@@ -25,72 +25,73 @@ namespace GameServer.Grpc.DungeonLobby {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "Cgtsb2JieS5wcm90bxITZ2FtZXNlcnZlci5sb2JieS52MRoMY29tbW9uLnBy",
-            "b3RvGgphdXRoLnByb3RvGgp1c2VyLnByb3RvIjsKEUNyZWF0ZVJvb21SZXF1",
-            "ZXN0EhEKCXJvb21fbmFtZRgBIAEoCRITCgttYXhfcGxheWVycxgCIAEoBSKF",
-            "AQoSQ3JlYXRlUm9vbVJlc3BvbnNlEikKBnJlc3VsdBgBIAEoCzIZLmdhbWVz",
-            "ZXJ2ZXIuY29tbW9uLlJlc3VsdBIwCglyb29tX2luZm8YAiABKAsyHS5nYW1l",
-            "c2VydmVyLmxvYmJ5LnYxLlJvb21JbmZvEhIKCmNyZWF0ZWRfYXQYAyABKAMi",
-            "IgoPSm9pblJvb21SZXF1ZXN0Eg8KB3Jvb21faWQYASABKAMibwoQSm9pblJv",
-            "b21SZXNwb25zZRIpCgZyZXN1bHQYASABKAsyGS5nYW1lc2VydmVyLmNvbW1v",
-            "bi5SZXN1bHQSMAoJcm9vbV9pbmZvGAIgASgLMh0uZ2FtZXNlcnZlci5sb2Ji",
-            "eS52MS5Sb29tSW5mbyIjChBMZWF2ZVJvb21SZXF1ZXN0Eg8KB3Jvb21faWQY",
-            "ASABKAMiPgoRTGVhdmVSb29tUmVzcG9uc2USKQoGcmVzdWx0GAEgASgLMhku",
-            "Z2FtZXNlcnZlci5jb21tb24uUmVzdWx0IiEKDkdldFJvb21SZXF1ZXN0Eg8K",
-            "B3Jvb21faWQYASABKAMibgoPR2V0Um9vbVJlc3BvbnNlEikKBnJlc3VsdBgB",
-            "IAEoCzIZLmdhbWVzZXJ2ZXIuY29tbW9uLlJlc3VsdBIwCglyb29tX2luZm8Y",
-            "AiABKAsyHS5nYW1lc2VydmVyLmxvYmJ5LnYxLlJvb21JbmZvIiUKD0dldFJv",
-            "b21zUmVxdWVzdBISCgpyb29tX2NvdW50GAEgASgFInAKEEdldFJvb21zUmVz",
-            "cG9uc2USKQoGcmVzdWx0GAEgASgLMhkuZ2FtZXNlcnZlci5jb21tb24uUmVz",
-            "dWx0EjEKCnJvb21faW5mb3MYAiADKAsyHS5nYW1lc2VydmVyLmxvYmJ5LnYx",
-            "LlJvb21JbmZvIjMKEFN0YXJ0Um9vbVJlcXVlc3QSDwoHcm9vbV9pZBgBIAEo",
-            "AxIOCgZtYXBfaWQYAiABKAkicAoRU3RhcnRSb29tUmVzcG9uc2USKQoGcmVz",
-            "dWx0GAEgASgLMhkuZ2FtZXNlcnZlci5jb21tb24uUmVzdWx0EjAKCXJvb21f",
-            "aW5mbxgCIAEoCzIdLmdhbWVzZXJ2ZXIubG9iYnkudjEuUm9vbUluZm8iTAoR",
-            "VXBkYXRlUm9vbVJlcXVlc3QSDwoHcm9vbV9pZBgBIAEoAxIRCglyb29tX25h",
-            "bWUYAiABKAkSEwoLbWF4X3BsYXllcnMYAyABKAUicQoSVXBkYXRlUm9vbVJl",
-            "c3BvbnNlEikKBnJlc3VsdBgBIAEoCzIZLmdhbWVzZXJ2ZXIuY29tbW9uLlJl",
-            "c3VsdBIwCglyb29tX2luZm8YAiABKAsyHS5nYW1lc2VydmVyLmxvYmJ5LnYx",
-            "LlJvb21JbmZvIicKFFN1YnNjcmliZVJvb21SZXF1ZXN0Eg8KB3Jvb21faWQY",
-            "ASABKAMi6QEKFVN1YnNjcmliZVJvb21SZXNwb25zZRI9Cgx1cGRhdGVfZXZl",
-            "bnQYASABKAsyJS5nYW1lc2VydmVyLmxvYmJ5LnYxLlJvb21VcGRhdGVkRXZl",
-            "bnRIABI8CgtzdGFydF9ldmVudBgCIAEoCzIlLmdhbWVzZXJ2ZXIubG9iYnku",
-            "djEuR2FtZVN0YXJ0ZWRFdmVudEgAEkgKEmdhbWVfc2Vzc2lvbl9ldmVudBgD",
-            "IAEoCzIqLmdhbWVzZXJ2ZXIubG9iYnkudjEuR2FtZVNlc3Npb25SZWFkeUV2",
-            "ZW50SABCCQoHcGF5bG9hZCJEChBSb29tVXBkYXRlZEV2ZW50EjAKCXJvb21f",
-            "aW5mbxgBIAEoCzIdLmdhbWVzZXJ2ZXIubG9iYnkudjEuUm9vbUluZm8iRAoQ",
-            "R2FtZVN0YXJ0ZWRFdmVudBIwCglyb29tX2luZm8YASABKAsyHS5nYW1lc2Vy",
-            "dmVyLmxvYmJ5LnYxLlJvb21JbmZvIjEKFUdhbWVTZXNzaW9uUmVhZHlFdmVu",
-            "dBIKCgJpcBgBIAEoCRIMCgRwb3J0GAIgASgFIsUBCghSb29tSW5mbxIPCgdy",
-            "b29tX2lkGAEgASgDEhEKCXJvb21fbmFtZRgCIAEoCRIUCgxob3N0X3VzZXJf",
-            "aWQYAyABKAMSNQoPY3VycmVudF9wbGF5ZXJzGAQgAygLMhwuZ2FtZXNlcnZl",
-            "ci51c2VyLnYxLlVzZXJJbmZvEhMKC21heF9wbGF5ZXJzGAUgASgFEjMKBnN0",
-            "YXR1cxgGIAEoDjIjLmdhbWVzZXJ2ZXIubG9iYnkudjEuUm9vbVN0YXR1c1R5",
-            "cGUqqgEKDlJvb21TdGF0dXNUeXBlEiAKHFJPT01fU1RBVFVTX1RZUEVfVU5T",
-            "UEVDSUZJRUQQABIcChhST09NX1NUQVRVU19UWVBFX1dBSVRJTkcQARIdChlS",
-            "T09NX1NUQVRVU19UWVBFX1NUQVJUSU5HEAISHAoYUk9PTV9TVEFUVVNfVFlQ",
-            "RV9QTEFZSU5HEAMSGwoXUk9PTV9TVEFUVVNfVFlQRV9DTE9TRUQQBDL9BQoT",
-            "RHVuZ2VvbkxvYmJ5U2VydmljZRJdCgpDcmVhdGVSb29tEiYuZ2FtZXNlcnZl",
-            "ci5sb2JieS52MS5DcmVhdGVSb29tUmVxdWVzdBonLmdhbWVzZXJ2ZXIubG9i",
-            "YnkudjEuQ3JlYXRlUm9vbVJlc3BvbnNlElQKB0dldFJvb20SIy5nYW1lc2Vy",
-            "dmVyLmxvYmJ5LnYxLkdldFJvb21SZXF1ZXN0GiQuZ2FtZXNlcnZlci5sb2Ji",
-            "eS52MS5HZXRSb29tUmVzcG9uc2USVwoIR2V0Um9vbXMSJC5nYW1lc2VydmVy",
-            "LmxvYmJ5LnYxLkdldFJvb21zUmVxdWVzdBolLmdhbWVzZXJ2ZXIubG9iYnku",
-            "djEuR2V0Um9vbXNSZXNwb25zZRJdCgpVcGRhdGVSb29tEiYuZ2FtZXNlcnZl",
-            "ci5sb2JieS52MS5VcGRhdGVSb29tUmVxdWVzdBonLmdhbWVzZXJ2ZXIubG9i",
-            "YnkudjEuVXBkYXRlUm9vbVJlc3BvbnNlElcKCEpvaW5Sb29tEiQuZ2FtZXNl",
-            "cnZlci5sb2JieS52MS5Kb2luUm9vbVJlcXVlc3QaJS5nYW1lc2VydmVyLmxv",
-            "YmJ5LnYxLkpvaW5Sb29tUmVzcG9uc2USWgoJTGVhdmVSb29tEiUuZ2FtZXNl",
-            "cnZlci5sb2JieS52MS5MZWF2ZVJvb21SZXF1ZXN0GiYuZ2FtZXNlcnZlci5s",
-            "b2JieS52MS5MZWF2ZVJvb21SZXNwb25zZRJaCglTdGFydFJvb20SJS5nYW1l",
-            "c2VydmVyLmxvYmJ5LnYxLlN0YXJ0Um9vbVJlcXVlc3QaJi5nYW1lc2VydmVy",
-            "LmxvYmJ5LnYxLlN0YXJ0Um9vbVJlc3BvbnNlEmgKDVN1YnNjcmliZVJvb20S",
-            "KS5nYW1lc2VydmVyLmxvYmJ5LnYxLlN1YnNjcmliZVJvb21SZXF1ZXN0Giou",
-            "Z2FtZXNlcnZlci5sb2JieS52MS5TdWJzY3JpYmVSb29tUmVzcG9uc2UwAUIf",
-            "qgIcR2FtZVNlcnZlci5HcnBjLkR1bmdlb25Mb2JieWIGcHJvdG8z"));
+            "b3RvGgphdXRoLnByb3RvGgp1c2VyLnByb3RvIksKEUNyZWF0ZVJvb21SZXF1",
+            "ZXN0EhEKCXJvb21fbmFtZRgBIAEoCRITCgttYXhfcGxheWVycxgCIAEoBRIO",
+            "CgZtYXBfaWQYAyABKAkihQEKEkNyZWF0ZVJvb21SZXNwb25zZRIpCgZyZXN1",
+            "bHQYASABKAsyGS5nYW1lc2VydmVyLmNvbW1vbi5SZXN1bHQSMAoJcm9vbV9p",
+            "bmZvGAIgASgLMh0uZ2FtZXNlcnZlci5sb2JieS52MS5Sb29tSW5mbxISCgpj",
+            "cmVhdGVkX2F0GAMgASgDIiIKD0pvaW5Sb29tUmVxdWVzdBIPCgdyb29tX2lk",
+            "GAEgASgDIm8KEEpvaW5Sb29tUmVzcG9uc2USKQoGcmVzdWx0GAEgASgLMhku",
+            "Z2FtZXNlcnZlci5jb21tb24uUmVzdWx0EjAKCXJvb21faW5mbxgCIAEoCzId",
+            "LmdhbWVzZXJ2ZXIubG9iYnkudjEuUm9vbUluZm8iIwoQTGVhdmVSb29tUmVx",
+            "dWVzdBIPCgdyb29tX2lkGAEgASgDIj4KEUxlYXZlUm9vbVJlc3BvbnNlEikK",
+            "BnJlc3VsdBgBIAEoCzIZLmdhbWVzZXJ2ZXIuY29tbW9uLlJlc3VsdCIhCg5H",
+            "ZXRSb29tUmVxdWVzdBIPCgdyb29tX2lkGAEgASgDIm4KD0dldFJvb21SZXNw",
+            "b25zZRIpCgZyZXN1bHQYASABKAsyGS5nYW1lc2VydmVyLmNvbW1vbi5SZXN1",
+            "bHQSMAoJcm9vbV9pbmZvGAIgASgLMh0uZ2FtZXNlcnZlci5sb2JieS52MS5S",
+            "b29tSW5mbyIlCg9HZXRSb29tc1JlcXVlc3QSEgoKcm9vbV9jb3VudBgBIAEo",
+            "BSJwChBHZXRSb29tc1Jlc3BvbnNlEikKBnJlc3VsdBgBIAEoCzIZLmdhbWVz",
+            "ZXJ2ZXIuY29tbW9uLlJlc3VsdBIxCgpyb29tX2luZm9zGAIgAygLMh0uZ2Ft",
+            "ZXNlcnZlci5sb2JieS52MS5Sb29tSW5mbyIzChBTdGFydFJvb21SZXF1ZXN0",
+            "Eg8KB3Jvb21faWQYASABKAMSDgoGbWFwX2lkGAIgASgJInAKEVN0YXJ0Um9v",
+            "bVJlc3BvbnNlEikKBnJlc3VsdBgBIAEoCzIZLmdhbWVzZXJ2ZXIuY29tbW9u",
+            "LlJlc3VsdBIwCglyb29tX2luZm8YAiABKAsyHS5nYW1lc2VydmVyLmxvYmJ5",
+            "LnYxLlJvb21JbmZvIkwKEVVwZGF0ZVJvb21SZXF1ZXN0Eg8KB3Jvb21faWQY",
+            "ASABKAMSEQoJcm9vbV9uYW1lGAIgASgJEhMKC21heF9wbGF5ZXJzGAMgASgF",
+            "InEKElVwZGF0ZVJvb21SZXNwb25zZRIpCgZyZXN1bHQYASABKAsyGS5nYW1l",
+            "c2VydmVyLmNvbW1vbi5SZXN1bHQSMAoJcm9vbV9pbmZvGAIgASgLMh0uZ2Ft",
+            "ZXNlcnZlci5sb2JieS52MS5Sb29tSW5mbyInChRTdWJzY3JpYmVSb29tUmVx",
+            "dWVzdBIPCgdyb29tX2lkGAEgASgDIukBChVTdWJzY3JpYmVSb29tUmVzcG9u",
+            "c2USPQoMdXBkYXRlX2V2ZW50GAEgASgLMiUuZ2FtZXNlcnZlci5sb2JieS52",
+            "MS5Sb29tVXBkYXRlZEV2ZW50SAASPAoLc3RhcnRfZXZlbnQYAiABKAsyJS5n",
+            "YW1lc2VydmVyLmxvYmJ5LnYxLkdhbWVTdGFydGVkRXZlbnRIABJIChJnYW1l",
+            "X3Nlc3Npb25fZXZlbnQYAyABKAsyKi5nYW1lc2VydmVyLmxvYmJ5LnYxLkdh",
+            "bWVTZXNzaW9uUmVhZHlFdmVudEgAQgkKB3BheWxvYWQiRAoQUm9vbVVwZGF0",
+            "ZWRFdmVudBIwCglyb29tX2luZm8YASABKAsyHS5nYW1lc2VydmVyLmxvYmJ5",
+            "LnYxLlJvb21JbmZvIkQKEEdhbWVTdGFydGVkRXZlbnQSMAoJcm9vbV9pbmZv",
+            "GAEgASgLMh0uZ2FtZXNlcnZlci5sb2JieS52MS5Sb29tSW5mbyIxChVHYW1l",
+            "U2Vzc2lvblJlYWR5RXZlbnQSCgoCaXAYASABKAkSDAoEcG9ydBgCIAEoBSLV",
+            "AQoIUm9vbUluZm8SDwoHcm9vbV9pZBgBIAEoAxIRCglyb29tX25hbWUYAiAB",
+            "KAkSFAoMaG9zdF91c2VyX2lkGAMgASgDEjUKD2N1cnJlbnRfcGxheWVycxgE",
+            "IAMoCzIcLmdhbWVzZXJ2ZXIudXNlci52MS5Vc2VySW5mbxITCgttYXhfcGxh",
+            "eWVycxgFIAEoBRIzCgZzdGF0dXMYBiABKA4yIy5nYW1lc2VydmVyLmxvYmJ5",
+            "LnYxLlJvb21TdGF0dXNUeXBlEg4KBm1hcF9pZBgHIAEoCSqqAQoOUm9vbVN0",
+            "YXR1c1R5cGUSIAocUk9PTV9TVEFUVVNfVFlQRV9VTlNQRUNJRklFRBAAEhwK",
+            "GFJPT01fU1RBVFVTX1RZUEVfV0FJVElORxABEh0KGVJPT01fU1RBVFVTX1RZ",
+            "UEVfU1RBUlRJTkcQAhIcChhST09NX1NUQVRVU19UWVBFX1BMQVlJTkcQAxIb",
+            "ChdST09NX1NUQVRVU19UWVBFX0NMT1NFRBAEMv0FChNEdW5nZW9uTG9iYnlT",
+            "ZXJ2aWNlEl0KCkNyZWF0ZVJvb20SJi5nYW1lc2VydmVyLmxvYmJ5LnYxLkNy",
+            "ZWF0ZVJvb21SZXF1ZXN0GicuZ2FtZXNlcnZlci5sb2JieS52MS5DcmVhdGVS",
+            "b29tUmVzcG9uc2USVAoHR2V0Um9vbRIjLmdhbWVzZXJ2ZXIubG9iYnkudjEu",
+            "R2V0Um9vbVJlcXVlc3QaJC5nYW1lc2VydmVyLmxvYmJ5LnYxLkdldFJvb21S",
+            "ZXNwb25zZRJXCghHZXRSb29tcxIkLmdhbWVzZXJ2ZXIubG9iYnkudjEuR2V0",
+            "Um9vbXNSZXF1ZXN0GiUuZ2FtZXNlcnZlci5sb2JieS52MS5HZXRSb29tc1Jl",
+            "c3BvbnNlEl0KClVwZGF0ZVJvb20SJi5nYW1lc2VydmVyLmxvYmJ5LnYxLlVw",
+            "ZGF0ZVJvb21SZXF1ZXN0GicuZ2FtZXNlcnZlci5sb2JieS52MS5VcGRhdGVS",
+            "b29tUmVzcG9uc2USVwoISm9pblJvb20SJC5nYW1lc2VydmVyLmxvYmJ5LnYx",
+            "LkpvaW5Sb29tUmVxdWVzdBolLmdhbWVzZXJ2ZXIubG9iYnkudjEuSm9pblJv",
+            "b21SZXNwb25zZRJaCglMZWF2ZVJvb20SJS5nYW1lc2VydmVyLmxvYmJ5LnYx",
+            "LkxlYXZlUm9vbVJlcXVlc3QaJi5nYW1lc2VydmVyLmxvYmJ5LnYxLkxlYXZl",
+            "Um9vbVJlc3BvbnNlEloKCVN0YXJ0Um9vbRIlLmdhbWVzZXJ2ZXIubG9iYnku",
+            "djEuU3RhcnRSb29tUmVxdWVzdBomLmdhbWVzZXJ2ZXIubG9iYnkudjEuU3Rh",
+            "cnRSb29tUmVzcG9uc2USaAoNU3Vic2NyaWJlUm9vbRIpLmdhbWVzZXJ2ZXIu",
+            "bG9iYnkudjEuU3Vic2NyaWJlUm9vbVJlcXVlc3QaKi5nYW1lc2VydmVyLmxv",
+            "YmJ5LnYxLlN1YnNjcmliZVJvb21SZXNwb25zZTABQh+qAhxHYW1lU2VydmVy",
+            "LkdycGMuRHVuZ2VvbkxvYmJ5YgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::GameServer.Grpc.Common.CommonReflection.Descriptor, global::GameServer.Grpc.Auth.AuthReflection.Descriptor, global::GameServer.Grpc.User.UserReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::GameServer.Grpc.DungeonLobby.RoomStatusType), }, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.CreateRoomRequest), global::GameServer.Grpc.DungeonLobby.CreateRoomRequest.Parser, new[]{ "RoomName", "MaxPlayers" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.CreateRoomRequest), global::GameServer.Grpc.DungeonLobby.CreateRoomRequest.Parser, new[]{ "RoomName", "MaxPlayers", "MapId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.CreateRoomResponse), global::GameServer.Grpc.DungeonLobby.CreateRoomResponse.Parser, new[]{ "Result", "RoomInfo", "CreatedAt" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.JoinRoomRequest), global::GameServer.Grpc.DungeonLobby.JoinRoomRequest.Parser, new[]{ "RoomId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.JoinRoomResponse), global::GameServer.Grpc.DungeonLobby.JoinRoomResponse.Parser, new[]{ "Result", "RoomInfo" }, null, null, null, null),
@@ -109,7 +110,7 @@ namespace GameServer.Grpc.DungeonLobby {
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.RoomUpdatedEvent), global::GameServer.Grpc.DungeonLobby.RoomUpdatedEvent.Parser, new[]{ "RoomInfo" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.GameStartedEvent), global::GameServer.Grpc.DungeonLobby.GameStartedEvent.Parser, new[]{ "RoomInfo" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.GameSessionReadyEvent), global::GameServer.Grpc.DungeonLobby.GameSessionReadyEvent.Parser, new[]{ "Ip", "Port" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.RoomInfo), global::GameServer.Grpc.DungeonLobby.RoomInfo.Parser, new[]{ "RoomId", "RoomName", "HostUserId", "CurrentPlayers", "MaxPlayers", "Status" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.RoomInfo), global::GameServer.Grpc.DungeonLobby.RoomInfo.Parser, new[]{ "RoomId", "RoomName", "HostUserId", "CurrentPlayers", "MaxPlayers", "Status", "MapId" }, null, null, null, null)
           }));
     }
     #endregion
@@ -164,6 +165,7 @@ namespace GameServer.Grpc.DungeonLobby {
     public CreateRoomRequest(CreateRoomRequest other) : this() {
       roomName_ = other.roomName_;
       maxPlayers_ = other.maxPlayers_;
+      mapId_ = other.mapId_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -197,6 +199,22 @@ namespace GameServer.Grpc.DungeonLobby {
       }
     }
 
+    /// <summary>Field number for the "map_id" field.</summary>
+    public const int MapIdFieldNumber = 3;
+    private string mapId_ = "";
+    /// <summary>
+    /// 플레이할 던전(스폰 레이아웃 키, spawn-layouts.json). 비우면 서버 기본 맵(MapIds.Default=dungeon_01).
+    /// 방 생성 시 던전이 결정·영속되며, StartRoom 은 이 값을 기본 맵으로 사용한다(4.3).
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string MapId {
+      get { return mapId_; }
+      set {
+        mapId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -214,6 +232,7 @@ namespace GameServer.Grpc.DungeonLobby {
       }
       if (RoomName != other.RoomName) return false;
       if (MaxPlayers != other.MaxPlayers) return false;
+      if (MapId != other.MapId) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -223,6 +242,7 @@ namespace GameServer.Grpc.DungeonLobby {
       int hash = 1;
       if (RoomName.Length != 0) hash ^= RoomName.GetHashCode();
       if (MaxPlayers != 0) hash ^= MaxPlayers.GetHashCode();
+      if (MapId.Length != 0) hash ^= MapId.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -249,6 +269,10 @@ namespace GameServer.Grpc.DungeonLobby {
         output.WriteRawTag(16);
         output.WriteInt32(MaxPlayers);
       }
+      if (MapId.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(MapId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -267,6 +291,10 @@ namespace GameServer.Grpc.DungeonLobby {
         output.WriteRawTag(16);
         output.WriteInt32(MaxPlayers);
       }
+      if (MapId.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(MapId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -282,6 +310,9 @@ namespace GameServer.Grpc.DungeonLobby {
       }
       if (MaxPlayers != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(MaxPlayers);
+      }
+      if (MapId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(MapId);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -300,6 +331,9 @@ namespace GameServer.Grpc.DungeonLobby {
       }
       if (other.MaxPlayers != 0) {
         MaxPlayers = other.MaxPlayers;
+      }
+      if (other.MapId.Length != 0) {
+        MapId = other.MapId;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -328,6 +362,10 @@ namespace GameServer.Grpc.DungeonLobby {
             MaxPlayers = input.ReadInt32();
             break;
           }
+          case 26: {
+            MapId = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -353,6 +391,10 @@ namespace GameServer.Grpc.DungeonLobby {
           }
           case 16: {
             MaxPlayers = input.ReadInt32();
+            break;
+          }
+          case 26: {
+            MapId = input.ReadString();
             break;
           }
         }
@@ -4648,6 +4690,7 @@ namespace GameServer.Grpc.DungeonLobby {
       currentPlayers_ = other.currentPlayers_.Clone();
       maxPlayers_ = other.maxPlayers_;
       status_ = other.status_;
+      mapId_ = other.mapId_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -4728,6 +4771,21 @@ namespace GameServer.Grpc.DungeonLobby {
       }
     }
 
+    /// <summary>Field number for the "map_id" field.</summary>
+    public const int MapIdFieldNumber = 7;
+    private string mapId_ = "";
+    /// <summary>
+    /// 이 방이 플레이할 던전(spawn-layouts.json 키). 방 생성 시 결정·영속(4.3). 로비 목록/상세 표시용.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string MapId {
+      get { return mapId_; }
+      set {
+        mapId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -4749,6 +4807,7 @@ namespace GameServer.Grpc.DungeonLobby {
       if(!currentPlayers_.Equals(other.currentPlayers_)) return false;
       if (MaxPlayers != other.MaxPlayers) return false;
       if (Status != other.Status) return false;
+      if (MapId != other.MapId) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -4762,6 +4821,7 @@ namespace GameServer.Grpc.DungeonLobby {
       hash ^= currentPlayers_.GetHashCode();
       if (MaxPlayers != 0) hash ^= MaxPlayers.GetHashCode();
       if (Status != global::GameServer.Grpc.DungeonLobby.RoomStatusType.Unspecified) hash ^= Status.GetHashCode();
+      if (MapId.Length != 0) hash ^= MapId.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -4801,6 +4861,10 @@ namespace GameServer.Grpc.DungeonLobby {
         output.WriteRawTag(48);
         output.WriteEnum((int) Status);
       }
+      if (MapId.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(MapId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -4832,6 +4896,10 @@ namespace GameServer.Grpc.DungeonLobby {
         output.WriteRawTag(48);
         output.WriteEnum((int) Status);
       }
+      if (MapId.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(MapId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -4857,6 +4925,9 @@ namespace GameServer.Grpc.DungeonLobby {
       }
       if (Status != global::GameServer.Grpc.DungeonLobby.RoomStatusType.Unspecified) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Status);
+      }
+      if (MapId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(MapId);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -4885,6 +4956,9 @@ namespace GameServer.Grpc.DungeonLobby {
       }
       if (other.Status != global::GameServer.Grpc.DungeonLobby.RoomStatusType.Unspecified) {
         Status = other.Status;
+      }
+      if (other.MapId.Length != 0) {
+        MapId = other.MapId;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -4929,6 +5003,10 @@ namespace GameServer.Grpc.DungeonLobby {
             Status = (global::GameServer.Grpc.DungeonLobby.RoomStatusType) input.ReadEnum();
             break;
           }
+          case 58: {
+            MapId = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -4970,6 +5048,10 @@ namespace GameServer.Grpc.DungeonLobby {
           }
           case 48: {
             Status = (global::GameServer.Grpc.DungeonLobby.RoomStatusType) input.ReadEnum();
+            break;
+          }
+          case 58: {
+            MapId = input.ReadString();
             break;
           }
         }

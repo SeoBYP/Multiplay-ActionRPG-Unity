@@ -67,6 +67,39 @@ public class DungeonLobbyServiceTests
     }
 
     [Fact]
+    public async Task CreateRoom_mapId를_비우면_기본_맵으로_방에_영속된다()
+    {
+        var session = await _sessionRepository.CreateSessionAsync(1);
+
+        var result = await _service.CreateDungeonRoomAsync(session!.SessionId, "Room", 4, mapId: "");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(Shared.Infrastructure.Spawn.MapIds.Default, result.Value!.MapId);
+    }
+
+    [Fact]
+    public async Task CreateRoom_지정한_mapId가_방에_영속된다()
+    {
+        var session = await _sessionRepository.CreateSessionAsync(1);
+
+        var result = await _service.CreateDungeonRoomAsync(session!.SessionId, "Room", 4, mapId: "dungeon_01");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("dungeon_01", result.Value!.MapId);
+    }
+
+    [Fact]
+    public async Task CreateRoom_알수없는_mapId면_거부된다()
+    {
+        var session = await _sessionRepository.CreateSessionAsync(1);
+
+        var result = await _service.CreateDungeonRoomAsync(session!.SessionId, "Room", 4, mapId: "does_not_exist");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.InvalidRequest, result.InternalErrorCode);
+    }
+
+    [Fact]
     public async Task JoinRoom_입장_성공()
     {
         var hostSession = await _sessionRepository.CreateSessionAsync(1);
@@ -519,5 +552,29 @@ public class DungeonLobbyServiceTests
         Assert.Equal(120, host.MaxHealth);  // Lv2: 100 + 1*20
         Assert.Equal(13, host.AttackPower); // Lv2: 10 + 1*3
         Assert.Equal(7, host.Defense);      // Lv2: 5  + 1*2
+    }
+
+    // ── 던전 메타(4.3): 방에 영속된 MapId 가 게임 시작 메시지에 실린다 ──
+    // 명시 mapId 없이 StartGame 하면 방의 MapId(생성 시 결정)가 진실의 원천으로 쓰여야 한다.
+
+    [Fact]
+    public async Task StartGame_메시지의_MapId는_방에_영속된_MapId를_따른다()
+    {
+        var hostSession = await _sessionRepository.CreateSessionAsync(1);
+        var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4, mapId: "dungeon_01");
+        var roomId = created.Value!.RoomId;
+
+        OutboxMessage? captured = null;
+        _mockOutboxRepository
+            .Setup(r => r.AddWithRoomUpdateAsync(It.IsAny<DungeonRoom>(), It.IsAny<OutboxMessage>(), It.IsAny<CancellationToken>()))
+            .Callback<DungeonRoom, OutboxMessage, CancellationToken>((_, m, _) => captured = m)
+            .Returns(Task.CompletedTask);
+
+        // mapId 인자를 비워도 방의 MapId 가 메시지에 실려야 한다.
+        var result = await _service.StartGameAsync(hostSession.SessionId, roomId, "trace");
+
+        Assert.True(result.IsSuccess);
+        var message = JsonSerializer.Deserialize<GameStartRequestedMessage>(captured!.Payload)!;
+        Assert.Equal("dungeon_01", message.MapId);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Shared.Infrastructure.Spawn;
 
 namespace GameServer.Infrastructure.Persistence.Configurations.DungeonRoom;
 using DungeonRoom = Domain.Entities.DungeonRoom;
@@ -20,6 +21,11 @@ public class DungeonRoomConfiguration : IEntityTypeConfiguration<DungeonRoom>
             .IsRequired();
         builder.Property(dr => dr.MaxPlayers)
             .IsRequired();
+        // 던전 식별자(spawn-layouts.json 키). 기존 행은 마이그레이션 시 기본 맵으로 백필.
+        builder.Property(dr => dr.MapId)
+            .IsRequired()
+            .HasMaxLength(64)
+            .HasDefaultValue(MapIds.Default);
         builder.Property(dr => dr.Status)
             .HasConversion<int>()
             .IsRequired();

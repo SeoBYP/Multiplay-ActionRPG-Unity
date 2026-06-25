@@ -48,6 +48,33 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
     }
 
     [Fact]
+    public async Task MapId_ShouldRoundTripThroughDbRedisAndCacheMiss()
+    {
+        // Arrange
+        using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var host = await userRepo.CreateAsync();
+
+        var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
+
+        // Act
+        var room = await repository.CreateAsync(host.UserId, "Map Room", 4, "dungeon_01");
+
+        // Assert: DB 컬럼
+        var dbRoom = await context.DungeonRooms.AsNoTracking().SingleAsync(r => r.RoomId == room!.RoomId);
+        Assert.Equal("dungeon_01", dbRoom.MapId);
+
+        // Assert: Redis Hash 필드(ToHashEntry)
+        var entries = await _fixture.RedisConnection.GetDatabase().HashGetAllAsync(RedisKeys.DungeonRoom(room!.RoomId));
+        Assert.Equal("dungeon_01", entries.First(e => e.Name == "MapId").Value.ToString());
+
+        // Assert: 캐시 MISS → DB 재구성 시에도 MapId 복원(ParseFromRedis 경로 제외, DB→FromRedis)
+        await _fixture.RedisConnection.GetDatabase().KeyDeleteAsync(RedisKeys.DungeonRoom(room.RoomId));
+        var reloaded = await repository.GetByIdAsync(room.RoomId);
+        Assert.Equal("dungeon_01", reloaded!.MapId);
+    }
+
+    [Fact]
     public async Task Read_HIT_ShouldReturnFromCacheWithoutDbQuery()
     {
         // Arrange

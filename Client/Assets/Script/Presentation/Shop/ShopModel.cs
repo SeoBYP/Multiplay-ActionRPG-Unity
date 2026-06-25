@@ -126,7 +126,8 @@ namespace Game.Presentation.Shop
                 var (result, gold, _) = await _shop.BuyAsync(selected.ItemId, state.Quantity, _cts.Token);
                 if (result != ShopResult.Success)
                 {
-                    _onToast.OnNext(new ShopToastMessage("구매 실패 — 골드가 부족합니다", false));
+                    // 실패 사유는 서버 권위(골드 부족·구매 불가 등). 클라가 단정하지 않고 일반 메시지로 안내.
+                    _onToast.OnNext(new ShopToastMessage("구매에 실패했습니다. 골드 또는 구매 조건을 확인하세요.", false));
                     return;
                 }
 

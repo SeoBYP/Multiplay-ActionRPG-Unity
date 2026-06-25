@@ -37,5 +37,18 @@ namespace Game.GUI
             public const string ConfirmPopup     = "Assets/Prefabs/GUI/Common/Popups/ConfirmPopup.prefab";
             public const string WarningPopup     = "Assets/Prefabs/GUI/Common/Popups/WarningPopup.prefab";
         }
+
+        /// <summary>
+        /// 게임 데이터 SO Addressable 주소(= 에셋 경로). Resources 폐기 후 Addressables 로드용.
+        /// LifetimeScope 가 동기 등록 시 LoadAssetAsync(...).WaitForCompletion() 으로 읽는다(로컬 번들).
+        /// </summary>
+        public static class Data
+        {
+            public const string EffectIconCatalog  = "Assets/GameData/Effects/EffectIconCatalog.asset";
+            public const string ItemDisplayCatalog = "Assets/GameData/Item/ItemDisplayCatalog.asset";
+            public const string GradeSpriteCatalog = "Assets/GameData/Item/GradeSpriteCatalog.asset";
+            public const string ConsumableCatalog  = "Assets/GameData/Consumable/ConsumableCatalog.asset";
+            public const string DialogueCatalog    = "Assets/GameData/Dialogue/DialogueCatalog.asset";
+        }
     }
 }

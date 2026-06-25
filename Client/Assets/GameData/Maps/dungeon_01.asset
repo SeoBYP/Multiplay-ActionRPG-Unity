@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: dungeon_01
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Spawn.MapDefinition
   mapId: dungeon_01
+  expReward: 100
   visualPrefab: {fileID: 395377278721909691, guid: 5b96864f9c019d44784274d95efba9bd, type: 3}
   playerSpawns:
   - position: {x: 0, y: 0, z: 0}

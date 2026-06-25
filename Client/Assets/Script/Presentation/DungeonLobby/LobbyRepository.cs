@@ -32,10 +32,10 @@ namespace Game.Presentation.DungeonLobby
         }
 
         public async UniTask<(bool IsSuccess, RoomInfo Room, string Error)>
-            CreateRoomAsync(string name, int maxPlayers, CancellationToken ct = default)
+            CreateRoomAsync(string name, int maxPlayers, string mapId = "", CancellationToken ct = default)
         {
-            Debug.Log($"[LobbyRepository] CreateRoom 요청 name={name} maxPlayers={maxPlayers}");
-            var result = await _service.CreateRoomAsync(name, maxPlayers, ct);
+            Debug.Log($"[LobbyRepository] CreateRoom 요청 name={name} maxPlayers={maxPlayers} mapId={mapId}");
+            var result = await _service.CreateRoomAsync(name, maxPlayers, mapId, ct);
             Debug.Log($"[LobbyRepository] CreateRoom 응답: {result}");
             return result == DungeonLobbyResult.Success
                 ? (true, _service.CurrentRoom, null)

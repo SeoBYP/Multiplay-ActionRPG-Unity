@@ -23,7 +23,7 @@ namespace Game.Gameplay.Editor
     {
         private const string ClientJsonRelative = "Script/Gameplay/Resources/spawn-layouts.json"; // Assets 기준
         private const string ServerJsonRelative = "ServerAll/Shared/Shared.Infrastructure/Spawn/spawn-layouts.json"; // repo 루트 기준
-        private const string MapAssetDir = "Assets/GameData/Resources/Maps"; // 런타임 Resources.Load<MapDefinition>("Maps/{id}")
+        private const string MapAssetDir = "Assets/GameData/Maps"; // 런타임은 Addressables(address=asset path)로 로드. Resources 밖.
 
         [MenuItem("Tools/Spawn/Export Map Data (SO → JSON)")]
         public static void Export()
@@ -78,6 +78,7 @@ namespace Game.Gameplay.Editor
                     .Select(d => new MapDto
                     {
                         mapId = d.mapId,
+                        expReward = d.expReward,
                         bounds = ToBoundsDto(d.bounds),
                         points = (d.playerSpawns ?? new List<MapSpawnPoint>())
                             .Select(p => new PointDto
@@ -147,6 +148,7 @@ namespace Game.Gameplay.Editor
                 if (isNew) def = ScriptableObject.CreateInstance<MapDefinition>();
 
                 def.mapId = map.mapId;
+                def.expReward = map.expReward;
                 def.playerSpawns = (map.points ?? new List<PointDto>())
                     .Select(p => new MapSpawnPoint
                     {
@@ -238,7 +240,7 @@ namespace Game.Gameplay.Editor
 
         // ── JSON DTO (런타임 로더와 동일 형식) ──
         [Serializable] private sealed class FileDto { public List<MapDto> maps = new(); }
-        [Serializable] private sealed class MapDto { public string mapId; public BoundsDto bounds = new(); public List<PointDto> points = new(); public List<MonsterDto> monsters = new(); }
+        [Serializable] private sealed class MapDto { public string mapId; public long expReward; public BoundsDto bounds = new(); public List<PointDto> points = new(); public List<MonsterDto> monsters = new(); }
         [Serializable] private sealed class PointDto { public float x, y, z, rotY; }
         [Serializable] private sealed class MonsterDto { public string monsterId; public float x, y, z, rotY; public int count = 1; public int wave; public int slotId; public int respawnCooldownMs; public List<PatrolDto> patrol = new(); }
         [Serializable] private sealed class PatrolDto { public float x, z; }

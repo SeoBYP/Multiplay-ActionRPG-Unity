@@ -34,6 +34,9 @@ service DungeonLobbyService{
 message CreateRoomRequest{
   string room_name = 1;
   int32 max_players = 2;
+  // 플레이할 던전(스폰 레이아웃 키, spawn-layouts.json). 비우면 서버 기본 맵(MapIds.Default=dungeon_01).
+  // 방 생성 시 던전이 결정·영속되며, StartRoom 은 이 값을 기본 맵으로 사용한다(4.3).
+  string map_id = 3;
 }
 
 message CreateRoomResponse{
@@ -135,6 +138,8 @@ message RoomInfo{
   repeated gameserver.user.v1.UserInfo current_players = 4;
   int32 max_players = 5;
   RoomStatusType status = 6;
+  // 이 방이 플레이할 던전(spawn-layouts.json 키). 방 생성 시 결정·영속(4.3). 로비 목록/상세 표시용.
+  string map_id = 7;
 }
 
 enum RoomStatusType{

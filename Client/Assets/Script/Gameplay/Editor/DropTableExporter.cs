@@ -22,7 +22,7 @@ namespace Game.Gameplay.Editor
     public static class DropTableExporter
     {
         private const string ServerJsonRelative = "ServerAll/Shared/Shared.Infrastructure/Loot/drop-tables.json"; // repo 루트 기준
-        private const string AssetDir = "Assets/GameData/Resources/Loot"; // 런타임 Resources.Load<DropTableDefinition>("Loot/DropTableDefinition")
+        private const string AssetDir = "Assets/GameData/Loot"; // 저작 전용 SO(런타임 미로드, JSON bake만). Resources 밖.
         private const string AssetName = "DropTableDefinition";
 
         [MenuItem("Tools/Loot/Export Drop Tables (SO → JSON)")]

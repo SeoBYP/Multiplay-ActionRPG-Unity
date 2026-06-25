@@ -39,7 +39,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         }
 
         logger.LogInformation("CreateRoom request received for session {SessionId}", sessionId);
-        var result = await dungeonLobbyService.CreateDungeonRoomAsync(sessionId, request.RoomName, request.MaxPlayers, context.CancellationToken);
+        var result = await dungeonLobbyService.CreateDungeonRoomAsync(sessionId, request.RoomName, request.MaxPlayers, request.MapId, context.CancellationToken);
         if (!result.IsSuccess || result.Value is null)
         {
             logger.LogWarning("CreateRoom failed for session {SessionId} with code {ErrorCode}", sessionId, result.InternalErrorCode);

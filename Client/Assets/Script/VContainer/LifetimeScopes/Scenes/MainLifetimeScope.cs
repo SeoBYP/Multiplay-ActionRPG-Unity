@@ -10,13 +10,20 @@ using Game.System.Player;
 using Game.System.Progression;
 using Script.System.GamePlayAbilitySystem;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using VContainer;
 using VContainer.Unity;
+using Game.GUI;
 
 namespace Game.Installers.Scenes
 {
     public class MainLifetimeScope : LifetimeScope
     {
+        // 게임 데이터 SO를 Addressables(로컬 번들)에서 동기 로드. Resources 폐기 — 빌드 항상포함 회피.
+        // 씬 수명 카탈로그라 핸들 의도적 보존. 미등록 주소면 null → 호출부가 빈 SO 폴백.
+        private static T LoadData<T>(string address) where T : Object
+            => Addressables.LoadAssetAsync<T>(address).WaitForCompletion();
+
         [SerializeField] private Canvas uiCanvas;
         [SerializeField] private GameObject localPlayerPrefab;
 
@@ -47,19 +54,19 @@ namespace Game.Installers.Scenes
 
             // GameHud(HP/MP/버프)를 Main 씬에서도 표시. 던전 구성과 동일하되,
             // EffectReceiver(서버 권위 수신)는 던전 전용이라 제외(Main은 미연결).
-            // EffectIconCatalog는 Resources 기본본 폴백(인스펙터 할당 불요).
+            // EffectIconCatalog는 Addressables 로드(인스펙터 할당 불요).
             builder.Register<GameplayEffectCatalog>(Lifetime.Scoped).AsSelf();
-            builder.RegisterInstance(Resources.Load<EffectIconCatalog>("Effects/EffectIconCatalog")
+            builder.RegisterInstance(LoadData<EffectIconCatalog>(AddressKeys.Data.EffectIconCatalog)
                                      ?? ScriptableObject.CreateInstance<EffectIconCatalog>());
             builder.Register<InGameModel>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
             builder.RegisterEntryPoint<GameHudController>(Lifetime.Scoped);
 
             // 인벤토리 MVI — Main(로비)에서도 인벤토리 창 사용(I키·HUD 버튼). 던전 구성과 동일.
             // ItemDisplayCatalog는 Resources 기본본 폴백(인스펙터 할당 불요).
-            builder.RegisterInstance(Resources.Load<ItemDisplayCatalog>("ItemDisplayCatalog")
+            builder.RegisterInstance(LoadData<ItemDisplayCatalog>(AddressKeys.Data.ItemDisplayCatalog)
                                      ?? ScriptableObject.CreateInstance<ItemDisplayCatalog>());
-            // 등급 배경 스프라이트 카탈로그(3.7) — 인벤/상점/장비 슬롯 공유. Resources 폴백(미할당이면 빈 SO=배경 없음).
-            builder.RegisterInstance(Resources.Load<GradeSpriteCatalog>("GradeSpriteCatalog")
+            // 등급 배경 스프라이트 카탈로그(3.7) — 인벤/상점/장비 슬롯 공유. Addressables(미등록이면 빈 SO=배경 없음).
+            builder.RegisterInstance(LoadData<GradeSpriteCatalog>(AddressKeys.Data.GradeSpriteCatalog)
                                      ?? ScriptableObject.CreateInstance<GradeSpriteCatalog>());
             builder.Register<InventoryModel>(Lifetime.Scoped).AsSelf();
             builder.RegisterEntryPoint<InventoryViewController>(Lifetime.Scoped);
@@ -86,7 +93,7 @@ namespace Game.Installers.Scenes
             // 대화/NPC(4.5 A1) — NPC(IInteractable) E 상호작용 → IDialogueLauncher.Open(npcId) → 대화창.
             // 콘텐츠=DialogueCatalog(SO, Resources 폴백). DialogueViewController=IDialogueLauncher 구현(창 로드+Start).
             // NPCDialogueBinder=씬 NPC 일괄 바인딩. 서버 0(A1).
-            builder.RegisterInstance(Resources.Load<Game.Presentation.Dialogue.DialogueCatalog>("DialogueCatalog")
+            builder.RegisterInstance(LoadData<Game.Presentation.Dialogue.DialogueCatalog>(AddressKeys.Data.DialogueCatalog)
                                      ?? ScriptableObject.CreateInstance<Game.Presentation.Dialogue.DialogueCatalog>());
             // 대화 카메라(A3) — 씬의 DialogueCameraController(전용 vcam Priority 승격)를 IDialogueCamera 로 노출.
             // 씬에 컨트롤러가 있어야 DialogueModel/NPCBinder 의 IDialogueCamera 가 해소됨(없으면 주입 실패).
@@ -105,7 +112,7 @@ namespace Game.Installers.Scenes
             builder.RegisterEntryPoint<PlayerProgressionHolder>(Lifetime.Scoped).AsSelf();
 
             // 소모품(3.8) — 효과 데이터(클라 SO) + Side Effect 핸들러(OnConsumableUsed→GAS). 미존재 시 빈 SO 폴백.
-            builder.RegisterInstance(Resources.Load<ConsumableCatalog>("ConsumableCatalog")
+            builder.RegisterInstance(LoadData<ConsumableCatalog>(AddressKeys.Data.ConsumableCatalog)
                                      ?? ScriptableObject.CreateInstance<ConsumableCatalog>());
             // 소모품 회복 effect 를 GameplayEffectCatalog 에 등록(SO→카탈로그, 교리 gas-architecture §2.5).
             builder.RegisterEntryPoint<ConsumableCatalogSeeder>(Lifetime.Scoped);

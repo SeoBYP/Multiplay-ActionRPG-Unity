@@ -8,9 +8,11 @@ using Game.System.Player;
 using Game.System.Progression;
 using Script.System.GamePlayAbilitySystem;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using VContainer;
 using VContainer.Unity;
 using Game.Gameplay.Input;
+using Game.GUI;
 
 public class DungeonLifetimeScope : LifetimeScope
 {
@@ -20,6 +22,11 @@ public class DungeonLifetimeScope : LifetimeScope
     [SerializeField] private GameObject groundItemPrefab; // 3.3 서버 권위 드랍(바닥 아이템)
     [SerializeField] private EffectIconCatalog effectIconCatalog; // 버프 표시 매핑(표시 전용)
     [SerializeField] private ItemDisplayCatalog itemDisplayCatalog; // 인벤토리 아이템 표시 매핑(itemId→이름·아이콘·분류)
+
+    // 게임 데이터 SO를 Addressables(로컬 번들)에서 동기 로드. Resources 폐기 — 빌드 항상포함 회피.
+    // 씬 수명 카탈로그라 핸들은 의도적으로 보존(앱 내내 필요). 미등록 주소면 null → 호출부가 빈 SO 폴백.
+    private static T LoadData<T>(string address) where T : Object
+        => Addressables.LoadAssetAsync<T>(address).WaitForCompletion();
 
     protected override void Configure(IContainerBuilder builder)
     {
@@ -31,7 +38,7 @@ public class DungeonLifetimeScope : LifetimeScope
         builder.Register<GameplayEffectCatalog>(Lifetime.Scoped).AsSelf();
         builder.RegisterInstance(effectIconCatalog != null
             ? effectIconCatalog
-            : Resources.Load<EffectIconCatalog>("Effects/EffectIconCatalog")
+            : LoadData<EffectIconCatalog>(AddressKeys.Data.EffectIconCatalog)
               ?? ScriptableObject.CreateInstance<EffectIconCatalog>());
 
         // InGame MVI Model
@@ -48,10 +55,10 @@ public class DungeonLifetimeScope : LifetimeScope
         // 인벤토리 MVI — Model + 표시 카탈로그(인스펙터 → Resources 폴백 → 빈 인스턴스) + 창 컨트롤러.
         builder.RegisterInstance(itemDisplayCatalog != null
             ? itemDisplayCatalog
-            : Resources.Load<ItemDisplayCatalog>("ItemDisplayCatalog")
+            : LoadData<ItemDisplayCatalog>(AddressKeys.Data.ItemDisplayCatalog)
               ?? ScriptableObject.CreateInstance<ItemDisplayCatalog>());
         // 등급 배경 스프라이트 카탈로그(3.7) — 인벤/장비 슬롯 공유. Resources 폴백(미할당이면 빈 SO=배경 없음).
-        builder.RegisterInstance(Resources.Load<GradeSpriteCatalog>("GradeSpriteCatalog")
+        builder.RegisterInstance(LoadData<GradeSpriteCatalog>(AddressKeys.Data.GradeSpriteCatalog)
                                  ?? ScriptableObject.CreateInstance<GradeSpriteCatalog>());
         builder.Register<InventoryModel>(Lifetime.Scoped).AsSelf();
         builder.RegisterEntryPoint<InventoryViewController>(Lifetime.Scoped);
@@ -69,7 +76,7 @@ public class DungeonLifetimeScope : LifetimeScope
         builder.RegisterEntryPoint<PlayerProgressionHolder>(Lifetime.Scoped).AsSelf();
 
         // 소모품(3.8) — 효과 데이터(클라 SO, 토스트/표시용). 미존재 시 빈 SO 폴백.
-        builder.RegisterInstance(Resources.Load<ConsumableCatalog>("ConsumableCatalog")
+        builder.RegisterInstance(LoadData<ConsumableCatalog>(AddressKeys.Data.ConsumableCatalog)
                                  ?? ScriptableObject.CreateInstance<ConsumableCatalog>());
         // 소모품 회복 effect 를 GameplayEffectCatalog 에 등록(SO→카탈로그) → EffectReceiver 회복 미러가 effectId 로 조회 가능.
         // 데이터 진실원 교리 = gas-architecture §2.5(소모품 수치는 코드 시드 아닌 SO 저작).

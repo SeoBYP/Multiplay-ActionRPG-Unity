@@ -20,6 +20,7 @@ public static class DungeonRoomExtensions
             HostUserId = room.HostUserId,
             MaxPlayers = room.MaxPlayers,
             Status = room.Status.ToGrpc(),
+            MapId = room.MapId,
         };
 
         var players = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(room.RoomId);
@@ -42,6 +43,7 @@ public static class DungeonRoomExtensions
             HostUserId = room.HostUserId,
             MaxPlayers = room.MaxPlayers,
             Status = room.Status.ToGrpc(),
+            MapId = room.MapId,
         };
 
         foreach (var user in playersInRoom)

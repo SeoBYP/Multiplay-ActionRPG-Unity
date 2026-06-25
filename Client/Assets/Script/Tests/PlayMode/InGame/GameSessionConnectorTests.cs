@@ -98,7 +98,7 @@ namespace Game.Tests.PlayMode.InGame
             public UniTask<(DungeonLobbyResult, IReadOnlyList<RoomInfo>)> GetRoomsAsync(CancellationToken ct = default)
                 => UniTask.FromResult<(DungeonLobbyResult, IReadOnlyList<RoomInfo>)>((DungeonLobbyResult.Success, Array.Empty<RoomInfo>()));
 
-            public UniTask<DungeonLobbyResult> CreateRoomAsync(string roomName, int maxPlayers, CancellationToken ct = default)
+            public UniTask<DungeonLobbyResult> CreateRoomAsync(string roomName, int maxPlayers, string mapId = "", CancellationToken ct = default)
                 => UniTask.FromResult(DungeonLobbyResult.Success);
             public UniTask<DungeonLobbyResult> JoinRoomAsync(long roomId, CancellationToken ct = default)
                 => UniTask.FromResult(DungeonLobbyResult.Success);

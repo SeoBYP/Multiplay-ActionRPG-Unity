@@ -21,7 +21,7 @@ namespace Game.Gameplay.Editor
     public static class LevelTableExporter
     {
         private const string ServerJsonRelative = "ServerAll/Shared/Shared.Infrastructure/Progression/level-table.json"; // repo 루트 기준
-        private const string AssetDir = "Assets/GameData/Resources/Progression"; // Resources.Load<LevelTableDefinition>("Progression/LevelTableDefinition")
+        private const string AssetDir = "Assets/GameData/Progression"; // 저작 전용 SO(런타임 미로드, JSON bake만). Resources 밖.
         private const string AssetName = "LevelTableDefinition";
         private const int MaxLevel = 60;
 

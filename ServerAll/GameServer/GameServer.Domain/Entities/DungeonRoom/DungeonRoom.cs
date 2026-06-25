@@ -17,14 +17,20 @@ public class DungeonRoom
     public RoomStatus Status { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
+    /// <summary>
+    /// 이 방이 플레이할 던전(스폰 레이아웃 키, spawn-layouts.json). 방 생성 시 결정·영속.
+    /// 값의 유효성/기본값 정규화는 Application 레이어(MapIds·SpawnLayoutTable) 책임 — Domain 은 받은 값을 보관만 한다.
+    /// </summary>
+    public string MapId { get; private set; } = string.Empty;
+
     private DungeonRoom()
     {
     }
 
     public DungeonRoom Clone()
-        => FromRedis(RoomId, RoomName, HostUserId, MaxPlayers, Status, CreatedAt);
+        => FromRedis(RoomId, RoomName, HostUserId, MaxPlayers, MapId, Status, CreatedAt);
 
-    public static DungeonRoom Create(string roomName, long hostUserId, int maxPlayers)
+    public static DungeonRoom Create(string roomName, long hostUserId, int maxPlayers, string mapId = "")
     {
         if (string.IsNullOrWhiteSpace(roomName))
             throw new ArgumentException("Room name cannot be null or whitespace", nameof(roomName));
@@ -40,6 +46,7 @@ public class DungeonRoom
             RoomName = roomName,
             HostUserId = hostUserId,
             MaxPlayers = maxPlayers,
+            MapId = mapId,
             Status = RoomStatus.Waiting,
             CreatedAt = DateTime.UtcNow
         };
@@ -50,6 +57,7 @@ public class DungeonRoom
         string roomName,
         long hostUserId,
         int maxPlayers,
+        string mapId,
         RoomStatus status,
         DateTime createdAt)
     {
@@ -59,6 +67,7 @@ public class DungeonRoom
             RoomName = roomName,
             HostUserId = hostUserId,
             MaxPlayers = maxPlayers,
+            MapId = mapId,
             Status = status,
             CreatedAt = createdAt
         };
