@@ -41,8 +41,6 @@ namespace Game.GUI.OutGame
         
         [Inject] private InGameModel _model;
 
-        [SerializeField] private Button returnToLobbyButton;
-
         [Header("Dungeon Result")]
         [Tooltip("던전 클리어(몬스터 전멸) 결과 패널. 미할당이어도 동작은 무해(토글만 생략).")]
         [SerializeField] private DungeonClear dungeonClearView;
@@ -97,8 +95,6 @@ namespace Game.GUI.OutGame
         
         private void Start()
         {
-            returnToLobbyButton.onClick.AddListener(OnClickReturnToLobby);
-
             // 결과 패널의 자체 return 버튼도 같은 복귀 흐름으로 연결.
             if (dungeonClearView != null) dungeonClearView.Bind(OnClickReturnToLobby);
             if (dungeonFailedView != null) dungeonFailedView.Bind(OnClickReturnToLobby);
@@ -197,9 +193,6 @@ namespace Game.GUI.OutGame
 
         private void Render(InGameState state)
         {
-            // 복귀 처리 중에는 버튼 비활성화 (중복 클릭 방지)
-            returnToLobbyButton.interactable = !state.IsReturning;
-
             // 던전 클리어(몬스터 전멸) → 결과 패널을 '지연' 표시(그 사이 막타 드랍 줍기 가능, 입력은 안 막음).
             // 상태(IsDungeonCleared)는 즉시 true지만 패널 SetActive만 dungeonClearPanelDelaySeconds 만큼 늦춘다.
             if (dungeonClearView != null)

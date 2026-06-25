@@ -180,11 +180,41 @@ namespace Game.GUI.Inventory
             // IDisposable을 직접 보관해 OnDestroy에서 해제한다.
             _stateSubscription = _model.State.Subscribe(Render);
 
-            // Side Effect: 토스트(사용/실패). 정식 위젯은 7.x — 현재는 로그.
-            _toastSubscription = _model.OnToast.Subscribe(msg => Debug.Log($"[Inventory] 토스트: {msg}"));
+            // Side Effect: 토스트. 실패는 AlertPopup(명시적), 성공은 로그(정식 토스트 위젯은 7.x).
+            _toastSubscription = _model.OnToast.Subscribe(ShowToast);
 
             // 슬롯 준비 후 1회 갱신.
             _model.Accept(InventoryIntent.Refresh.Instance);
+        }
+
+        private void ShowToast(InventoryToast toast)
+        {
+            if (!toast.Success)
+            {
+                ShowFailPopupAsync(toast.Message).Forget();
+                return;
+            }
+            Debug.Log($"[Inventory] {toast.Message}");
+        }
+
+        /// <summary>인벤토리 실패 알림 = AlertPopup(Shop 과 동일 로드 패턴).</summary>
+        private async UniTaskVoid ShowFailPopupAsync(string message)
+        {
+            if (GUIRoot.Instance == null)
+            {
+                Debug.LogWarning($"[Inventory] 실패: {message}");
+                return;
+            }
+
+            var inst = await AddressableLoader.LoadAndInstantiateAsync(
+                AddressKeys.UI.AlertPopup, GUIRoot.Instance.transform, destroyCancellationToken);
+            if (inst == null) return;
+
+            var popup = inst.GameObject.GetComponent<AlertPopup>();
+            if (popup == null) { inst.Dispose(); return; }
+
+            popup.SetAddressableOwner(inst);
+            popup.Setup("인벤토리", message, glow: PopupGlowType.Warning);
         }
 
         private void OnDestroy()

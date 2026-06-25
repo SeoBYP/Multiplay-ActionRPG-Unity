@@ -152,7 +152,7 @@ namespace Game.Tests.PlayMode.Inventory
                 catalog: null, shop: shop);
 
             string toast = null;
-            using var t = model.OnToast.Subscribe(m => toast = m);
+            using var t = model.OnToast.Subscribe(m => toast = m.Message);
 
             model.Accept(new InventoryIntent.SellItem("sword_iron"));
             await UniTask.Yield();
@@ -240,7 +240,7 @@ namespace Game.Tests.PlayMode.Inventory
             string used = null;
             string toast = null;
             using var u = model.OnConsumableUsed.Subscribe(id => used = id);
-            using var t = model.OnToast.Subscribe(msg => toast = msg);
+            using var t = model.OnToast.Subscribe(msg => toast = msg.Message);
 
             model.Accept(new InventoryIntent.UseItem("potion_hp_small"));
             await UniTask.Yield();
@@ -263,7 +263,7 @@ namespace Game.Tests.PlayMode.Inventory
             bool usedFired = false;
             string toast = null;
             using var u = model.OnConsumableUsed.Subscribe(_ => usedFired = true);
-            using var t = model.OnToast.Subscribe(msg => toast = msg);
+            using var t = model.OnToast.Subscribe(msg => toast = msg.Message);
 
             model.Accept(new InventoryIntent.UseItem("potion_hp_small"));
             await UniTask.Yield();

@@ -11,6 +11,14 @@ using R3;
 
 namespace Game.Presentation.Inventory
 {
+    /// <summary>일회성 인벤토리 토스트(성공/실패). 실패는 View 가 팝업으로 띄운다(Shop 의 ShopToastMessage 동형).</summary>
+    public readonly struct InventoryToast
+    {
+        public readonly string Message;
+        public readonly bool Success;
+        public InventoryToast(string message, bool success) { Message = message; Success = success; }
+    }
+
     /// <summary>
     /// 인벤토리 화면의 MVI Model.
     ///   View는 Accept(Intent)만 호출하고, Model은 State만 발행한다.
@@ -37,13 +45,13 @@ namespace Game.Presentation.Inventory
         // ── Side Effect 채널 (State 아님 — 일회성 외부 효과) ──
         // 차감 성공 후에만 발행. LobbyModel.NavigateToRoom 과 동일 패턴(Subject→Observable, 구독자가 처리).
         private readonly Subject<string> _onConsumableUsed = new(); // itemId → 회복 핸들러가 GAS 적용
-        private readonly Subject<string> _onToast = new();          // 토스트 메시지 → View 표시 후 종료
+        private readonly Subject<InventoryToast> _onToast = new();   // 토스트(성공/실패) → View 표시(실패=팝업)
 
         /// <summary>소모품 사용 확정(차감 성공) — 구독자가 회복 효과를 ASC 에 적용(클라 권위).</summary>
         public Observable<string> OnConsumableUsed => _onConsumableUsed;
 
-        /// <summary>일회성 토스트 메시지(사용/실패) — View 가 표시, 사이클 종료.</summary>
-        public Observable<string> OnToast => _onToast;
+        /// <summary>일회성 토스트(성공/실패) — View 가 표시(실패는 팝업), 사이클 종료.</summary>
+        public Observable<InventoryToast> OnToast => _onToast;
 
         public InventoryModel(IInventoryService service, IEquipmentService equipment = null,
             IInputContext inputContext = null, ItemDisplayCatalog catalog = null, IWalletService wallet = null,
@@ -111,7 +119,7 @@ namespace Game.Presentation.Inventory
         {
             if (_shop == null)
             {
-                _onToast.OnNext("판매할 수 없습니다");
+                _onToast.OnNext(new InventoryToast("판매할 수 없습니다", false));
                 return;
             }
 
@@ -120,11 +128,11 @@ namespace Game.Presentation.Inventory
                 var (result, _, _) = await _shop.SellAsync(itemId, 1, _cts.Token);
                 if (result != ShopResult.Success)
                 {
-                    _onToast.OnNext("판매할 수 없습니다");
+                    _onToast.OnNext(new InventoryToast("판매에 실패했습니다", false));
                     return;
                 }
 
-                _onToast.OnNext($"{DisplayName(itemId)} 판매");
+                _onToast.OnNext(new InventoryToast($"{DisplayName(itemId)} 판매", true));
                 RefreshAsync().Forget(); // 남은 수량 + 골드 갱신
             }
             catch (OperationCanceledException)
@@ -141,7 +149,7 @@ namespace Game.Presentation.Inventory
         {
             if (_equipment == null)
             {
-                _onToast.OnNext("장비 시스템이 없습니다");
+                _onToast.OnNext(new InventoryToast("장비 시스템이 없습니다", false));
                 return;
             }
 
@@ -149,8 +157,8 @@ namespace Game.Presentation.Inventory
             {
                 var (result, _) = await _equipment.EquipAsync(itemId, _cts.Token);
                 _onToast.OnNext(result == EquipmentResult.Success
-                    ? $"{DisplayName(itemId)} 장착"
-                    : "장착할 수 없습니다");
+                    ? new InventoryToast($"{DisplayName(itemId)} 장착", true)
+                    : new InventoryToast("장착할 수 없습니다", false));
             }
             catch (OperationCanceledException)
             {
@@ -169,12 +177,12 @@ namespace Game.Presentation.Inventory
                 var (result, _) = await _service.ConsumeItemAsync(itemId, 1, _cts.Token);
                 if (result != InventoryResult.Success)
                 {
-                    _onToast.OnNext("사용할 수 없습니다");   // Side Effect (실패 토스트) — 회복 안 함
+                    _onToast.OnNext(new InventoryToast("사용할 수 없습니다", false));   // 실패 — 회복 안 함
                     return;
                 }
 
                 _onConsumableUsed.OnNext(itemId);            // Side Effect A: 회복 적용 트리거(구독자→GAS)
-                _onToast.OnNext($"{DisplayName(itemId)} 사용"); // Side Effect B: 토스트
+                _onToast.OnNext(new InventoryToast($"{DisplayName(itemId)} 사용", true)); // Side Effect B: 토스트
                 RefreshAsync().Forget();                     // State: 남은 수량 갱신(비동기)
             }
             catch (OperationCanceledException)
