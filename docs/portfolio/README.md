@@ -28,6 +28,9 @@ Claude와의 대화를 통해 배운 내용, 틀렸던 부분, 수정 이력을 
 | [챕터 17](./chapter-17-equipment-system.md) | 장비 시스템 — 정의/소유/착용 3분리 · EquipmentType 공통 enum(proto 1:1) · GetStatsAsync 단일 합산 합류 · 착용=표시 필터 + OnChanged 크로스 갱신 · ItemActionPanel 공용화 | ✅ 기록 완료 |
 | [챕터 18](./chapter-18-wallet-shop.md) | 재화(Wallet) + 상점(Shop) — 골드=통화 승격(영속 경계 1곳 라우팅) · 지갑=인벤 단일값 미러 · gRPC 조회 전용(증감 RPC 없음) · 상점=지갑·인벤 조합(자기 영속 없음) | ✅ 기록 완료 |
 | [챕터 19](./chapter-19-quest-system.md) | 퀘스트 시스템 — 진행=서버 권위(킬 클레임 funnel에 훅, 클라 보고 없음) · 완료=파생 상태 · 보상=조합+Claimed 선마킹(at-most-once) · GetQuests 카탈로그×상태 병합(클라 미러 없음) · DB-only · 블래스트 반경 1곳(CollectItem 훅 보류) | ✅ 기록 완료 |
+| [챕터 20](./chapter-20-content-pipeline-addressables.md) | 던전 메타 + Addressables 데이터 파이프라인 — `MapId` 식별자 통일(서버권위 영속) · 검증=Application(DIP) · 던전 선택 UI(proto+MVI) · expReward export 왕복 결함 · Resources 폐기→자산성격별 도구(async / WaitForCompletion / 이동만) · root-relative key · 인증 레이스 게이트 · 실패 사유 클라 추론+피드백 일관화 | ✅ 기록 완료 |
+| [챕터 21](./chapter-21-connection-liveness-hp-authority.md) | 연결 생존성 & HP 서버 권위 — 하트비트(설계 존재 ≠ 클라 사용) · ASC HP 베이스라인 desync(동기화됨 ≠ 적용됨, 마지막 1마일) · 연결 불변식 E2E 커버리지 가드(Stop 훅) | ✅ 기록 완료 |
+| [챕터 22](./chapter-22-hud-windows-mvi.md) | HUD 창 MVI 확장(스탯·퀘스트추적·판매) — 공용 GameHud + Main 전용 의존 = 선택 주입(TryResolve) · GUI↔System 레이어 변환(StatLine/bool 헬퍼) · 신호 구독은 받을 수 있는 레이어에 · 단일 토글 funnel | ✅ 기록 완료 |
 
 ---
 
