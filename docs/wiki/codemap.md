@@ -48,6 +48,7 @@
 | **공유 결정론 코어(전투 수식·히트박스·스킬)** | `ServerAll/Shared/Shared.Gameplay/`(서버 ProjectReference) + 클라 `Client/Assets/Plugins/Shared.Gameplay.dll`(동일 ns, 단일 소스) | [authority-model.md](authority-model.md) §2, §2.6 |
 | **전투 흐름(입력→판정→데미지→연출)** | 클라 `Gameplay/Character/`(`PlayerCharacterAgent`·`CombatSyncSender`) → 서버 `SocketServer/.../Handler/CombatHandler` → `Room.DamageMonster` | [authority-model.md](authority-model.md), §2.7 |
 | **회피(Dodge) — 대시+무적프레임** | 클라 `Gameplay/Character/{DodgeDriver,DodgeSyncSender}`·`PlayerCharacterAgent.HandleDodgeInput` → 서버 `SocketServer/.../Handler/DodgeHandler`·`PlayerState.TryBeginDodge`·`Room.TickMonsters`(iframe 게이트). 수치=`Shared.Gameplay/Combat/DodgeConfig`. 아래 §2.47 | [authority-model.md](authority-model.md) |
+| **스킬 데이터(SkillTimeline)** | 저작=클라 `Gameplay/Abilities/{SkillDefinition,SkillCatalogDefinition,SkillCatalogProvider}` + `Editor/SkillCatalogExporter` → bake `Shared.Infrastructure/Skills/skills.json` → 서버 `Shared.Infrastructure.Skills.SkillCatalog` → `CombatHandler.ResolveSkill`. 자산 `Assets/GameData/Skill/`. 아래 §2.49 | gas-architecture §2.5 |
 | **상태이상(CC) — 스턴·슬로우·넉백** | 정의=`Shared.Gameplay` `GameplayTags.Stun/Slow`+`GameplayEffectCatalog`(stun_1_5s/slow_3s,GrantedTags)+`Combat/CcConfig`. 게이트=클라 `PlayerCharacterAgent`(스턴)·`GroundState`(슬로우). 부여=던전 `monsters.json onHitEffectId`→`Room.TickMonsters` S_ApplyEffect / Main `LocalMonster.onHitCcId`. **넉백**=`Gameplay/Character/KnockbackDriver`+`PlayerCharacterAgent.ApplyKnockback`(public, Ability 융합용). 아래 §2.48 | [authority-model.md](authority-model.md) |
 | **게임플레이 카메라(3인칭 Follow)** | `Gameplay/Camera/{GameplayCameraRig,CharacterCameraFollow}` — rig가 `LocalPlayerContext.OnSet`→vcam.Follow 런타임 바인딩. 아래 §2.47 | — |
 | SocketServer(TCP/방/세션) | `ServerAll/SocketServer/SocketServer/{Room,Session,PacketHandler}` | [socketserver.md](socketserver.md) |
@@ -66,6 +67,19 @@
 ---
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
+
+### 2.49 스킬 데이터 자산화 — SO 저작→bake→서버 (2.2, 2026-06-26)
+
+**교리: 스킬을 클라 SO 로 저작 → Export bake → 서버가 임베디드 JSON 으로 검증** (gas-architecture §2.5, DropTable/Monster/Consumable 과 동일 패턴). 기존 하드코딩 `Shared.Gameplay.SkillCatalog`(코드 시드) → 데이터 주도.
+
+- **서버(권위)**: `Shared.Infrastructure/Skills/skills.json`(임베디드) + `Skills/SkillCatalog.cs`(로드→`SkillTimeline`, Shared.Gameplay 순수 타입) + .csproj `EmbeddedResource`. `CombatHandler.ResolveSkill(int skillId)` 가 이 카탈로그 사용 + 패킷 int→문자열 매핑(0=basic_swing, 1=heavy_swing — C_Attack 계약 보존).
+- **클라(저작·런타임)**: `Gameplay/Abilities/SkillDefinition`(스킬당 SO, CreateAssetMenu — id·타임라인·hitbox·onHitEffectIds, `ToTimeline()`) · `SkillCatalogDefinition`(SkillDefinition 참조 목록 = "각 스킬별 Asset") · `SkillCatalogProvider`(런타임 id→SkillTimeline, DI) · `Editor/SkillCatalogExporter`(Tools/Skill/Export, 카탈로그→skills.json, hitboxShape=enum 이름 문자열). `LocalCombat`(Main) 가 코드시드 대신 Provider 로 hitbox 조회. `MainLifetimeScope` 에 Provider 등록(`AddressKeys.Data.SkillCatalog`).
+- **자산**: `Assets/GameData/Skill/{Skill_BasicSwing, Skill_HeavySwing, SkillCatalogDefinition}.asset`(카탈로그 Addressable, address=path). heavy_swing=넓은 hitbox·느린 타이밍(멀티스킬 입증).
+- **CC 융합**: `onHitEffectIds[]` 가 이미 효과 id 를 담으므로 스킬에 stun/slow CC 부착은 **데이터 경로 준비됨**. 단 player→monster CC 는 몬스터가 스턴 태그를 honoring 안 함(별도 사안). 몬스터→플레이어 CC 는 `monsters.json onHitEffectId` 로 이미 작동(§2.48).
+- **멀티스킬 입력(2026-06-26)**: `HeavyAttack`(우클릭) 입력 신설로 heavy_swing 인게임 트리거. `.inputactions` 액션 추가 + **입력래퍼 `.meta` 생성경로 정정**(stale `Assets/Script/Input/`·Game.Input → 실사용 `Assets/Script/Gameplay/Input/`·Game.Gameplay.Input — `PlayerInputComponent` 이 쓰는 래퍼가 재생성되게). 입력 계약 확장: `CharacterInputFrame.HeavyAttackPressed` + `ICharacterInputWriter.PressHeavyAttack` + `ICharacterInputSource.ConsumeHeavyAttackPressed` + `CharacterInputBuffer` + `PlayerInputComponent.OnHeavyAttack`. `PlayerCharacterAgent.OnAttackPerformed` → `Action<int skillId>`(0=좌/basic·1=우/heavy) → 던전 `CombatSyncSender` C_Attack{SkillId} 가변 / Main `LocalCombat.PerformHit(skillId)` 가 스킬 hitbox 해석(`SkillName(int)`=ResolveSkill 동일 규약). **발동권위는 무변경 확보**(서버 SkillTimeline.CooldownMs 게이트가 heavy 1200ms 강제).
+- **클라 쿨다운 예측(2026-06-26)**: `PlayerCharacterAgent`(`SkillCatalogProvider` 주입, Main/Dungeon) `_lastCastTime[skillId]` → `FireSkill`/`SkillCooldownReady`(skill.CooldownMs) 클라 게이트. dodge=`DodgeDriver.CanBegin` 기존.
+- **마나 데이터(2026-06-26)**: `SkillTimeline.ManaCost` + skills.json `manaCost`(basic0/heavy20, 자산↔JSON↔서버 정렬) + Infra 파서 + 클라 `SkillDefinition.manaCost`/Exporter + `DodgeConfig.ManaCost=15` + 프리팹 ASC `Mana(100,100)`. **미완(코드 미작성)**: 클라 마나 게이트/차감/리젠(ASC.Mana+skill.ManaCost) · 서버 마나(`PlayerState.Mana`+MaxMana·C_Attack/C_Dodge 검증·차감·RoomTick 리젠·동기화).
+- **검증**: SocketServer.Tests 110/110(`SkillCatalogTests` 4) + EditMode `SkillCatalogProviderTests` 2 + 멀티입력/쿨다운 무회귀 EditMode 3 + 양 빌드0 + manaCost 서버 파싱(SkillCatalog 4/4). **잔여**: 위 마나 미완 3항 + 코드시드 `Shared.Gameplay.SkillCatalog` 폐기.
 
 ### 2.48 상태이상/CC — 스턴·슬로우 (2.6.2, 2026-06-26)
 

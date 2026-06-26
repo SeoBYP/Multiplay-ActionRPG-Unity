@@ -11,9 +11,10 @@ namespace Game.Gameplay.Character.Input
         public bool DodgePressed { get; }
         public bool InteractPressed { get; }
         public bool AttackPressed { get; }
+        public bool HeavyAttackPressed { get; }
 
         public CharacterInputFrame(Vector2 move, Vector2 look, bool sprintHeld, bool jumpPressed, bool dodgePressed,
-            bool interactPressed, bool attackPressed)
+            bool interactPressed, bool attackPressed, bool heavyAttackPressed)
         {
             Move = move;
             Look = look;
@@ -22,29 +23,33 @@ namespace Game.Gameplay.Character.Input
             DodgePressed = dodgePressed;
             InteractPressed = interactPressed;
             AttackPressed = attackPressed;
+            HeavyAttackPressed = heavyAttackPressed;
         }
-        
+
         public CharacterInputFrame WithMove(Vector2 move) =>
-            new(move, Look, SprintHeld, JumpPressed, DodgePressed, InteractPressed, AttackPressed);
+            new(move, Look, SprintHeld, JumpPressed, DodgePressed, InteractPressed, AttackPressed, HeavyAttackPressed);
 
         public CharacterInputFrame WithLook(Vector2 lockDirection) =>
-            new(Move, lockDirection, SprintHeld, JumpPressed, DodgePressed, InteractPressed, AttackPressed);
-        
+            new(Move, lockDirection, SprintHeld, JumpPressed, DodgePressed, InteractPressed, AttackPressed, HeavyAttackPressed);
+
         public CharacterInputFrame WithSprint(bool sprintHeld) =>
-            new(Move, Look, sprintHeld, JumpPressed, DodgePressed, InteractPressed, AttackPressed);
-        
+            new(Move, Look, sprintHeld, JumpPressed, DodgePressed, InteractPressed, AttackPressed, HeavyAttackPressed);
+
         public CharacterInputFrame WithJump(bool jumpPressed) =>
-            new(Move, Look, SprintHeld, jumpPressed, DodgePressed, InteractPressed, AttackPressed);
-        
+            new(Move, Look, SprintHeld, jumpPressed, DodgePressed, InteractPressed, AttackPressed, HeavyAttackPressed);
+
         public CharacterInputFrame WithDodge(bool dodgePressed) =>
-            new(Move, Look, SprintHeld, JumpPressed, dodgePressed, InteractPressed, AttackPressed);
-        
+            new(Move, Look, SprintHeld, JumpPressed, dodgePressed, InteractPressed, AttackPressed, HeavyAttackPressed);
+
         public CharacterInputFrame WithInteract(bool interactPressed) =>
-            new(Move, Look, SprintHeld, JumpPressed, DodgePressed, interactPressed, AttackPressed);
+            new(Move, Look, SprintHeld, JumpPressed, DodgePressed, interactPressed, AttackPressed, HeavyAttackPressed);
 
         public CharacterInputFrame WithAttack(bool attackPressed) =>
-            new(Move, Look, SprintHeld, JumpPressed, DodgePressed, InteractPressed, attackPressed);
-        
-        public static CharacterInputFrame Empty => new CharacterInputFrame(Vector2.zero, Vector2.zero, false, false, false, false, false);
+            new(Move, Look, SprintHeld, JumpPressed, DodgePressed, InteractPressed, attackPressed, HeavyAttackPressed);
+
+        public CharacterInputFrame WithHeavyAttack(bool heavyAttackPressed) =>
+            new(Move, Look, SprintHeld, JumpPressed, DodgePressed, InteractPressed, AttackPressed, heavyAttackPressed);
+
+        public static CharacterInputFrame Empty => new CharacterInputFrame(Vector2.zero, Vector2.zero, false, false, false, false, false, false);
     }
 }

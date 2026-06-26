@@ -52,6 +52,7 @@ namespace Game.Tests.EditMode.Gameplay
             public bool ConsumeDodgePressed() => false;
             public bool ConsumeInteractPressed() => false;
             public bool ConsumeAttackPressed() => false;
+            public bool ConsumeHeavyAttackPressed() => false;
         }
     }
 }

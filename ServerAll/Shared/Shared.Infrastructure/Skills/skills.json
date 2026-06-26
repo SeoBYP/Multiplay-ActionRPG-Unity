@@ -1,0 +1,40 @@
+{
+    "skills": [
+        {
+            "id": "basic_swing",
+            "startupMs": 200,
+            "activeMs": 100,
+            "recoveryMs": 150,
+            "cooldownMs": 400,
+            "manaCost": 0,
+            "hitboxShape": "Box",
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 1.0,
+            "halfX": 0.6000000238418579,
+            "halfY": 0.6000000238418579,
+            "halfZ": 0.699999988079071,
+            "onHitEffectIds": [
+                "basic_attack_dmg"
+            ]
+        },
+        {
+            "id": "heavy_swing",
+            "startupMs": 400,
+            "activeMs": 150,
+            "recoveryMs": 300,
+            "cooldownMs": 1200,
+            "manaCost": 20,
+            "hitboxShape": "Box",
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "offsetZ": 1.2999999523162842,
+            "halfX": 1.100000023841858,
+            "halfY": 0.800000011920929,
+            "halfZ": 1.0,
+            "onHitEffectIds": [
+                "basic_attack_dmg"
+            ]
+        }
+    ]
+}

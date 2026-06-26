@@ -93,6 +93,11 @@ public class DungeonLifetimeScope : LifetimeScope
         builder.Register<IStateFactory, StateFactory>(Lifetime.Scoped);
         builder.Register<IStateMachineBuilder, StateMachineBuilder>(Lifetime.Scoped);
 
+        // 스킬 데이터(2.2) — PlayerCharacterAgent 클라 쿨다운 예측용(서버 권위와 동일 skills.json 소스).
+        builder.RegisterInstance(new Game.Gameplay.Abilities.SkillCatalogProvider(
+            LoadData<Game.Gameplay.Abilities.SkillCatalogDefinition>(AddressKeys.Data.SkillCatalog)
+            ?? ScriptableObject.CreateInstance<Game.Gameplay.Abilities.SkillCatalogDefinition>()));
+
         // Dungeon 씬은 로컬 + 원격 플레이어 + 몬스터 + 바닥 아이템(드랍) 스폰.
         builder.RegisterInstance(new CharacterPrefabSettings(localPlayerPrefab, remotePlayerPrefab, monsterPrefab, groundItemPrefab));
         // 결정론 스폰 레이아웃 제공자 (spawn-layouts.json 로드).

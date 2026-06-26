@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 645bc9a9a08bcf7429dfdd37edd69020, type: 3}
+  m_Name: Skill_HeavySwing
+  m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Abilities.SkillDefinition
+  id: heavy_swing
+  startupMs: 400
+  activeMs: 150
+  recoveryMs: 300
+  cooldownMs: 1200
+  manaCost: 20
+  hitboxShape: 0
+  hitboxOffset: {x: 0, y: 0, z: 1.3}
+  hitboxHalfExtents: {x: 1.1, y: 0.8, z: 1}
+  onHitEffectIds:
+  - basic_attack_dmg

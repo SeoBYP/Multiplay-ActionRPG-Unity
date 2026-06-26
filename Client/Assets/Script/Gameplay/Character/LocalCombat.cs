@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Gameplay.Abilities;
 using Game.System.Progression;
 using Script.System.GamePlayAbilitySystem;
 using UnityEngine;
@@ -18,24 +19,28 @@ namespace Game.Gameplay.Character
     /// </summary>
     public sealed class LocalCombat : MonoBehaviour
     {
-        private const string SkillId = "basic_swing";
         private const int BaseDamage = 10;      // 스킬 기본값. 던전 GameplayEffectCatalog "basic_attack_dmg"(Instant Health -10)과 정렬
         private const float QueryRadius = 3f;   // 광역 1차 수집 반경(정밀 판정은 HitboxMath)
 
         private PlayerCharacterAgent _agent;
-        private HitboxSpec _hitbox;
+        private SkillCatalogProvider _skills;   // skillId→hitbox 데이터 진실원(서버 CombatHandler 와 동일 skills.json)
         private PlayerProgressionHolder _progression; // Main 클라 스탯 캐시(AttackPower). 동적 부착이라 method 주입.
         private readonly HashSet<LocalMonster> _hitThisSwing = new();
 
+        /// <summary>skillId(int 패킷) → 스킬 데이터 키. 서버 CombatHandler.ResolveSkill 과 동일 규약.</summary>
+        private static string SkillName(int skillId) => skillId switch { 1 => "heavy_swing", _ => "basic_swing" };
+
         // CharacterSpawner.AttachLocalCombat 에서 AddComponent 후 _container.Inject 로 주입.
         [Inject]
-        public void Construct(PlayerProgressionHolder progression) => _progression = progression;
+        public void Construct(PlayerProgressionHolder progression, SkillCatalogProvider skills)
+        {
+            _progression = progression;
+            _skills = skills;
+        }
 
         private void Awake()
         {
             _agent = GetComponent<PlayerCharacterAgent>();
-            var skill = new SkillCatalog().Get(SkillId);
-            if (skill != null) _hitbox = skill.Hitbox;
         }
 
         private void OnEnable()
@@ -48,8 +53,12 @@ namespace Game.Gameplay.Character
             if (_agent != null) _agent.OnAttackPerformed -= PerformHit;
         }
 
-        private void PerformHit()
+        private void PerformHit(int skillId)
         {
+            var skill = _skills?.Get(SkillName(skillId));
+            if (skill == null) return; // 데이터 미로드 — 판정 스킵
+            var hitbox = skill.Hitbox; // 스킬별 hitbox(basic=정면 박스 / heavy=넓은 박스)
+
             var pos = transform.position;
             float yaw = transform.eulerAngles.y;
             var attackerPos = new NVector3(pos.x, pos.y, pos.z);
@@ -68,7 +77,7 @@ namespace Game.Gameplay.Character
 
                 var mp = monster.transform.position;
                 var targetPos = new NVector3(mp.x, mp.y, mp.z);
-                if (HitboxMath.Overlaps(attackerPos, yaw, _hitbox, targetPos, monster.TargetRadius))
+                if (HitboxMath.Overlaps(attackerPos, yaw, hitbox, targetPos, monster.TargetRadius))
                     monster.TakeDamage(damage);
             }
         }

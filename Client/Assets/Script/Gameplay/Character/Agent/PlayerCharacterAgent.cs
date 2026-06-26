@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using Game.Core;
+using Game.Gameplay.Abilities;
 using Game.Gameplay.Character.Input;
 using Script.System.GamePlayAbilitySystem;
 using UnityEngine;
+using VContainer;
 
 namespace Game.Gameplay.Character
 {
@@ -17,8 +20,19 @@ namespace Game.Gameplay.Character
         private DodgeDriver _dodge;
         private KnockbackDriver _knockback;
 
-        /// <summary>공격 입력으로 스윙이 발동될 때 발행. 던전 전용 `CombatSyncSender`가 구독해 C_Attack을 송신한다.</summary>
-        public event Action OnAttackPerformed;
+        // 스킬 데이터(쿨다운) 조회 — 클라 쿨다운 예측용. DI 미주입(테스트) 시 null → 게이트 없음.
+        private SkillCatalogProvider _skills;
+        private readonly Dictionary<int, float> _lastCastTime = new();
+
+        /// <summary>skillId(int) → 스킬 데이터 키. 서버 CombatHandler.ResolveSkill 동일 규약(0=basic·1=heavy).</summary>
+        private static string SkillName(int skillId) => skillId switch { 1 => "heavy_swing", _ => "basic_swing" };
+
+        [Inject]
+        public void ConstructAbilities(SkillCatalogProvider skills) => _skills = skills;
+
+        /// <summary>공격 입력으로 스윙이 발동될 때 발행(인자=skillId: 0=기본/좌클릭, 1=강공격/우클릭).
+        /// 던전 `CombatSyncSender`가 C_Attack{SkillId} 송신, Main `LocalCombat`가 그 스킬 hitbox 로 판정.</summary>
+        public event Action<int> OnAttackPerformed;
 
         /// <summary>회피가 발동될 때 발행. 던전 전용 `DodgeSyncSender`가 구독해 C_Dodge(서버 무적창)를 송신한다.</summary>
         public event Action OnDodgePerformed;
@@ -110,6 +124,7 @@ namespace Game.Gameplay.Character
             if (HandleDodgeInput()) // 회피 시작 프레임엔 다른 Action/Locomotion 을 스킵(대시가 전담).
                 return;
             HandleAttackInput();
+            HandleHeavyAttackInput();
             HandleInteractInput();
             base.Update();
         }
@@ -172,9 +187,40 @@ namespace Game.Gameplay.Character
         {
             if (InputSource == null || !InputSource.ConsumeAttackPressed())
                 return;
+            FireSkill(0); // 기본 공격(basic_swing)
+        }
 
+        /// <summary>강공격(우클릭) = skillId 1(heavy_swing).</summary>
+        private void HandleHeavyAttackInput()
+        {
+            if (InputSource == null || !InputSource.ConsumeHeavyAttackPressed())
+                return;
+            FireSkill(1); // 강공격(heavy_swing)
+        }
+
+        /// <summary>스킬 발동 — 클라 쿨다운 예측 게이트 통과 시 애니+OnAttackPerformed. 서버 SkillTimeline 게이트가 최종 권위.</summary>
+        private void FireSkill(int skillId)
+        {
+            if (!SkillCooldownReady(skillId))
+                return;
             AgentAnimations?.SetTrigger(AnimationTriggerType.Attack);
-            OnAttackPerformed?.Invoke();
+            OnAttackPerformed?.Invoke(skillId);
+        }
+
+        /// <summary>스킬 쿨다운 경과 여부(클라 예측). 통과 시 마지막 발동시각 갱신. 데이터 미주입(테스트)이면 항상 true.</summary>
+        private bool SkillCooldownReady(int skillId)
+        {
+            var skill = _skills?.Get(SkillName(skillId));
+            if (skill == null)
+                return true;
+
+            float cd = skill.CooldownMs / 1000f;
+            float now = Time.time;
+            if (_lastCastTime.TryGetValue(skillId, out var last) && now - last < cd)
+                return false;
+
+            _lastCastTime[skillId] = now;
+            return true;
         }
 
         /// <summary>

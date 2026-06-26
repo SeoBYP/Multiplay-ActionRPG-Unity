@@ -34,13 +34,13 @@ namespace Game.Gameplay.Character
                 _agent.OnAttackPerformed -= SendAttack;
         }
 
-        private void SendAttack()
+        private void SendAttack(int skillId)
         {
             // 주입 전(AddComponent 직후 OnEnable)·미접속 시 무시.
             if (_session == null || _session.State != SocketSessionState.Joined)
                 return;
 
-            _session.SendAsync(new C_Attack { SkillId = 0 }, destroyCancellationToken).Forget();
+            _session.SendAsync(new C_Attack { SkillId = skillId }, destroyCancellationToken).Forget();
         }
     }
 }

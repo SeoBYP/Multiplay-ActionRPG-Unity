@@ -42,6 +42,15 @@ namespace Game.Gameplay.Character.Input
             return true;
         }
 
+        public bool ConsumeHeavyAttackPressed()
+        {
+            if (!Current.HeavyAttackPressed)
+                return false;
+
+            Current = Current.WithHeavyAttack(false);
+            return true;
+        }
+
         public void SetMove(Vector2 move)
         {
             Current = Current.WithMove(move);
@@ -75,6 +84,11 @@ namespace Game.Gameplay.Character.Input
         public void PressAttack()
         {
             Current = Current.WithAttack(true);
+        }
+
+        public void PressHeavyAttack()
+        {
+            Current = Current.WithHeavyAttack(true);
         }
     }
 }

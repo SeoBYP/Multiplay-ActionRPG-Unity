@@ -23,10 +23,19 @@ public static class CombatHandler
     /// <summary>플레이어 피격 반경(캡슐 근사). 추후 캐릭터 데이터화.</summary>
     public const float TargetRadius = 0.5f;
 
-    private static readonly SkillCatalog _skills = new();
-
-    /// <summary>SkillId → SkillTimeline. v1은 기본 스윙 고정(SkillId 매핑은 SkillTimeline 데이터화 시 확장).</summary>
-    public static SkillTimeline? ResolveSkill(int skillId) => _skills.Get("basic_swing");
+    /// <summary>
+    /// SkillId(패킷 int) → SkillTimeline. 데이터=임베디드 skills.json(클라 SkillDefinition SO 저작→bake, §2.5).
+    /// int→문자열 id 매핑(패킷 계약 보존): 0=basic_swing, 1=heavy_swing …
+    /// </summary>
+    public static SkillTimeline? ResolveSkill(int skillId)
+    {
+        string id = skillId switch
+        {
+            1 => "heavy_swing",
+            _ => "basic_swing",
+        };
+        return Shared.Infrastructure.Skills.SkillCatalog.Get(id);
+    }
 
     /// <summary>
     /// 순수 적중 판정 — 시전자 위치/yaw 기준 hitbox와 겹치는 대상 userId 목록.

@@ -33,7 +33,7 @@ namespace Game.Tests.PlayMode.InGame
             var (agent, input, asc) = BuildAgent();
 
             bool attacked = false;
-            agent.OnAttackPerformed += () => attacked = true;
+            agent.OnAttackPerformed += _ => attacked = true;
 
             // 스턴 부여 — Duration 1500ms, GrantedTags=[State.Stun] (modifier 없음 = 순수 상태태그).
             asc.ApplyEffect(new GameplayEffectDefinition(
@@ -92,6 +92,7 @@ namespace Game.Tests.PlayMode.InGame
                 AttackPressed = false;
                 return v;
             }
+            public bool ConsumeHeavyAttackPressed() => false;
         }
     }
 }

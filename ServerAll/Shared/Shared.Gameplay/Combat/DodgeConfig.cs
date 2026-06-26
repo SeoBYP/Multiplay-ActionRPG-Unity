@@ -16,5 +16,8 @@ namespace Script.System.GamePlayAbilitySystem
 
         /// <summary>회피 쿨다운(ms). 직전 발동에서 이 시간이 지나야 다시 회피 가능(서버 권위 게이트).</summary>
         public const int CooldownMs = 1000;
+
+        /// <summary>회피 마나 코스트(클라 게이트 / 서버 검증·차감). 0 = 무료.</summary>
+        public const int ManaCost = 15;
     }
 }

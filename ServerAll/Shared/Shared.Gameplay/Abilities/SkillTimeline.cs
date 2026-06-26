@@ -16,6 +16,9 @@ namespace Script.System.GamePlayAbilitySystem
         public int CooldownMs { get; }
         public HitboxSpec Hitbox { get; }
 
+        /// <summary>발동 마나 코스트(서버 검증·차감 / 클라 게이트). 0 = 무료.</summary>
+        public int ManaCost { get; }
+
         /// <summary>적중 시 대상에 적용할 GameplayEffectCatalog 키들(데미지=Instant Health, 디버프=Duration 등).</summary>
         public IReadOnlyList<string> OnHitEffectIds { get; }
 
@@ -26,7 +29,8 @@ namespace Script.System.GamePlayAbilitySystem
             int recoveryMs,
             int cooldownMs,
             HitboxSpec hitbox,
-            IReadOnlyList<string> onHitEffectIds)
+            IReadOnlyList<string> onHitEffectIds,
+            int manaCost = 0)
         {
             Id = id;
             StartupMs = startupMs;
@@ -35,6 +39,7 @@ namespace Script.System.GamePlayAbilitySystem
             CooldownMs = cooldownMs;
             Hitbox = hitbox;
             OnHitEffectIds = onHitEffectIds ?? new string[0];
+            ManaCost = manaCost;
         }
 
         public int ActiveStartMs => StartupMs;

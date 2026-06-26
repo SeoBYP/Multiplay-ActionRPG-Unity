@@ -307,6 +307,7 @@ MonoBehaviour:
   m_animationInteractTrigger: Interact
   m_animationAttackTrigger: Attack
   m_animationDeathTrigger: 
+  m_animationDodgeTrigger: 
 --- !u!114 &2017590699258750573
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -350,7 +351,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e61c464a9e3a53a479d5c18be289a4e2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.System::Script.System.GamePlayAbilitySystem.AbilitySystemComponent
-  Attributes: []
+  Attributes:
+  - _attributeType: 0
+    _kind: 0
+    _baseValue: 100
+    _maxValue: 100
+    _currentValue: 100
+  - _attributeType: 2
+    _kind: 0
+    _baseValue: 100
+    _maxValue: 100
+    _currentValue: 100
 --- !u!114 &8907706458393213720
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -376,6 +387,8 @@ MonoBehaviour:
     SpeedChangeRate: 10
     InteractInvokeDelay: 0.3
     InteractReturnDelay: 0.3
+    DodgeSpeed: 8
+    DodgeDuration: 0.5
   <CurrentStateKind>k__BackingField: 0
 --- !u!114 &6779707700611208475
 MonoBehaviour:

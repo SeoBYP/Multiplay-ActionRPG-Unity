@@ -8,5 +8,6 @@ namespace Game.Gameplay.Character.Input
         bool ConsumeDodgePressed();
         bool ConsumeInteractPressed();
         bool ConsumeAttackPressed();
+        bool ConsumeHeavyAttackPressed();
     }
 }

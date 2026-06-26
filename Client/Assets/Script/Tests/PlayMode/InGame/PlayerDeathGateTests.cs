@@ -35,7 +35,7 @@ namespace Game.Tests.PlayMode.InGame
             var (agent, input, _) = BuildAgent();
 
             bool attacked = false;
-            agent.OnAttackPerformed += () => attacked = true;
+            agent.OnAttackPerformed += _ => attacked = true;
 
             input.AttackPressed = true;
             agent.DriveUpdate();
@@ -50,7 +50,7 @@ namespace Game.Tests.PlayMode.InGame
             var (agent, input, asc) = BuildAgent();
 
             bool attacked = false;
-            agent.OnAttackPerformed += () => attacked = true;
+            agent.OnAttackPerformed += _ => attacked = true;
 
             // 치명타 → HP 0 → 에이전트가 ASC.OnAttributeChanged 로 State.Dead 를 세운다.
             asc.ApplyEffect(new GameplayEffectDefinition(
@@ -105,6 +105,7 @@ namespace Game.Tests.PlayMode.InGame
                 AttackPressed = false;
                 return v;
             }
+            public bool ConsumeHeavyAttackPressed() => false;
         }
     }
 }

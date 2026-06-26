@@ -118,6 +118,12 @@ namespace Game.Installers.Scenes
             builder.RegisterEntryPoint<ConsumableCatalogSeeder>(Lifetime.Scoped);
             builder.RegisterEntryPoint<ConsumableEffectHandler>(Lifetime.Scoped);
 
+            // 스킬 데이터(2.2) — SkillDefinition SO 카탈로그 → SkillCatalogProvider(id→SkillTimeline).
+            // LocalCombat(Main hitbox)이 사용. 서버는 같은 데이터를 bake skills.json 으로 읽음(데이터 진실원=SO, §2.5).
+            builder.RegisterInstance(new Game.Gameplay.Abilities.SkillCatalogProvider(
+                LoadData<Game.Gameplay.Abilities.SkillCatalogDefinition>(AddressKeys.Data.SkillCatalog)
+                ?? ScriptableObject.CreateInstance<Game.Gameplay.Abilities.SkillCatalogDefinition>()));
+
             // Main 씬은 로컬 플레이어만 스폰. RemotePlayerPrefab 없음.
             builder.RegisterInstance(new CharacterPrefabSettings(localPlayerPrefab));
             builder.RegisterEntryPoint<CharacterSpawner>(Lifetime.Scoped);
