@@ -54,6 +54,41 @@ namespace Game.Gameplay.Character
             m_controller.Move(CurrentVelocity);
         }
 
+        /// <summary>
+        /// 회피(Dodge) 대시 — 고정 월드 방향으로 일정 속도 이동(입력/카메라 무관). 회피 시작 시 방향을 락한 채
+        /// 매 프레임 호출한다. 즉시 그 방향을 바라보고(전환 스무딩 없음), 중력만 아래로 적용해 지면에 붙인다.
+        /// 일반 이동(Move)과 달리 가속 램프·회전 스무딩을 거치지 않는다(짧고 빠른 임펄스).
+        /// </summary>
+        public void Dash(Vector3 worldDir, float speed, bool faceDirection = true)
+        {
+            worldDir.y = 0f;
+            if (worldDir.sqrMagnitude > 0.0001f)
+            {
+                worldDir.Normalize();
+                DesiredMoveDirection = worldDir;
+                // 회피=진행 방향을 바라봄. 넉백=밀려나는 거라 회전하지 않는다(faceDirection=false).
+                if (faceDirection)
+                    transform.rotation = Quaternion.LookRotation(worldDir);
+            }
+
+            float gravity = _settings != null ? _settings.Gravity : -15f;
+            Vector3 displacement = worldDir * (speed * Time.deltaTime);
+            displacement.y = gravity * Time.deltaTime;
+            CurrentVelocity = displacement;
+            m_controller.Move(displacement);
+        }
+
+        /// <summary>
+        /// 입력 벡터를 현재 회전 전략(플레이어=카메라 기준)으로 변환한 <b>월드 이동 방향</b>. 입력 0이면 Vector3.zero.
+        /// 회피 방향 결정에 쓴다(입력 있으면 그 방향, 없으면 호출부가 정면으로 폴백).
+        /// </summary>
+        public Vector3 ResolveWorldMoveDirection(Vector2 horizontalInput)
+        {
+            if (m_rotationStrategy != null)
+                return m_rotationStrategy.MovementDirectionCalculation(horizontalInput, transform);
+            return transform.TransformDirection(new Vector3(horizontalInput.x, 0f, horizontalInput.y)).normalized;
+        }
+
         private void CharacterMovementCalculation(Vector2 horizontalInput, float targetSpeed)
         {
             if (horizontalInput == Vector2.zero)

@@ -122,6 +122,10 @@ namespace Game.Installers.Scenes
             builder.RegisterInstance(new CharacterPrefabSettings(localPlayerPrefab));
             builder.RegisterEntryPoint<CharacterSpawner>(Lifetime.Scoped);
 
+            // 3인칭 카메라 Follow 런타임 바인딩 — 씬의 GameplayCameraRig 가 LocalPlayerContext.OnSet 구독 →
+            // 스폰된 로컬 플레이어 CameraFollowTarget 으로 vcam.Follow 세팅. 씬에 컴포넌트가 있어야 주입 해소됨.
+            builder.RegisterComponentInHierarchy<Game.Gameplay.Camera.GameplayCameraRig>();
+
             // Main 로컬 몬스터(B-lite) — 슬롯 기반 클라 스폰·렌더. 드랍 roll·정원·쿨다운은 서버(ClaimKill).
             // 스폰 위치/슬롯은 SpawnLayoutProvider(spawn-layouts.json mainMapId 맵)에서 읽는다. 프리팹 미할당이면 무해.
             builder.RegisterInstance(new MainMonsterSettings(localMonsterPrefab, mainMapId, localGroundItemPrefab));

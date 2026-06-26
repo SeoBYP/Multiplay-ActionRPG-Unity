@@ -70,4 +70,28 @@ public class PlayerState
         _lastSkillCastMs[skillId] = nowMs;
         return true;
     }
+
+    // 회피(Dodge) 무적 — 이 시각(Unix ms)까지 피해를 무시한다. 0 = 무적 아님.
+    public long InvulnerableUntilMs { get; set; }
+
+    // 회피 쿨다운 게이트용 — 마지막 회피 발동 시각(Unix ms). 0 = 미발동.
+    private long _lastDodgeMs;
+
+    /// <summary>
+    /// 회피 발동 게이트(서버 권위 쿨다운). 쿨다운(<see cref="DodgeConfig.CooldownMs"/>)이 지났으면
+    /// 무적 창(<see cref="DodgeConfig.IframeMs"/>)을 부여하고 true, 아직이면 false.
+    /// C_Dodge 연사로 영구 무적을 만드는 치팅을 서버가 차단한다.
+    /// </summary>
+    public bool TryBeginDodge(long nowMs)
+    {
+        if (_lastDodgeMs != 0 && nowMs - _lastDodgeMs < DodgeConfig.CooldownMs)
+            return false;
+
+        _lastDodgeMs = nowMs;
+        InvulnerableUntilMs = nowMs + DodgeConfig.IframeMs;
+        return true;
+    }
+
+    /// <summary>주어진 시각에 회피 무적(i-frame)인가.</summary>
+    public bool IsInvulnerableAt(long nowMs) => nowMs < InvulnerableUntilMs;
 }

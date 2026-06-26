@@ -16,7 +16,7 @@ public class MonsterCatalogTests
         var slime = MonsterCatalog.Get("slime");
 
         Assert.Equal(30, slime.MaxHp);
-        Assert.Equal(5, slime.AttackDamage);
+        Assert.Equal(15, slime.AttackDamage); // 밸런스(899aa114): slime AD 5→15
         Assert.Equal(20, slime.ExpReward); // Main 킬 보상
     }
 

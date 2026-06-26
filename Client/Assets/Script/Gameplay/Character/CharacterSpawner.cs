@@ -68,6 +68,7 @@ namespace Game.Gameplay.Character
 
             AttachMoveSyncSender();
             AttachCombatSyncSender();
+            AttachDodgeSyncSender();
             // 구독을 먼저 한다 — 구독과 초기 스폰 사이에 도착하는 로스터 패킷 유실 방지.
             // 중복은 SpawnRemote의 _remotes.ContainsKey 가드로 흡수된다.
             SubscribeNetworkEvents();
@@ -160,6 +161,14 @@ namespace Game.Gameplay.Character
             var sender = _localCharacterGo.AddComponent<CombatSyncSender>();
             _container.Inject(sender);
             Debug.Log("[CharacterSpawner] CombatSyncSender 부착 완료 — C_Attack 송신 활성화");
+        }
+
+        private void AttachDodgeSyncSender()
+        {
+            if (_localCharacterGo == null) return;
+            var sender = _localCharacterGo.AddComponent<DodgeSyncSender>();
+            _container.Inject(sender);
+            Debug.Log("[CharacterSpawner] DodgeSyncSender 부착 완료 — C_Dodge 송신 활성화");
         }
 
         /// <summary>Main(비네트워크): 로컬 캐릭터에 LocalCombat 부착 → 클라 권위 히트 판정(서버 미관여).</summary>

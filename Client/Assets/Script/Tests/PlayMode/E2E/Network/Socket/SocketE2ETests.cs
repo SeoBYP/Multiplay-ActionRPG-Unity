@@ -247,6 +247,35 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
+        public IEnumerator RawSocket_몬스터_공격은_슬로우_CC도_함께_브로드캐스트한다() => UniTask.ToCoroutine(async () =>
+        {
+            // 2.6.2 던전 CC: slime(monsters.json onHitEffectId=slow_3s) 공격 시 서버 TickMonsters 가
+            // 데미지(monster_attack_dmg)와 함께 CC(slow_3s, Amount=0) S_ApplyEffect 를 브로드캐스트 →
+            // 클라 EffectReceiver 가 적용 → GrantedTags(State.Slow) 게이트. (서버 권위 CC 경로 검증)
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+            try
+            {
+                await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "slime", Timeout());
+
+                await host.SendAsync(new C_Move { PosX = 8, PosY = 0, PosZ = 8, RotY = 0 }, Timeout());
+
+                var cc = await host.WaitForPacketAsync<S_ApplyEffect>(
+                    p => p.EffectId == "slow_3s" && p.TargetId == room.HostUserId,
+                    Timeout());
+
+                Assert.AreEqual("slow_3s", cc.EffectId);
+                Assert.AreEqual(room.HostUserId, cc.TargetId);
+                Assert.AreEqual(0, cc.Amount, "CC 는 HP 변경 없는 상태태그(Amount=0)여야 한다");
+            }
+            finally
+            {
+                await host.DisposeAsync();
+            }
+        });
+
+        [UnityTest]
         public IEnumerator RawSocket_몬스터_전멸하면_양쪽_S_DungeonClear_수신() => UniTask.ToCoroutine(async () =>
         {
             // M4 A 트랙 ③: dungeon_01 시드 = 슬라임 1마리. 그 1마리를 처치하면 전멸 →

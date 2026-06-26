@@ -530,6 +530,11 @@ public class Room
                     var target = players[targetIdx];
                     long targetUserId = target.UserId;
 
+                    // 회피 무적(i-frame): 무적 창 안이면 이 공격은 빗나간다(피해/effect 없음).
+                    // 쿨다운은 이미 소모(m.LastAttackAt 갱신) — 몬스터가 헛스윙한 것. 던전=서버 권위 게이트.
+                    if (target.IsInvulnerableAt(nowMs))
+                        continue;
+
                     // 데미지 = 몬스터 AttackDamage − 플레이어 Defense (Shared 결정론, 플레이어→몬스터와 동일 산식).
                     // 스탯 의존이라 클라가 자체계산 불가 → 서버가 권위 수치를 Amount 로 전달하고, HP 도 같은 값으로 차감.
                     int finalDamage = StatCombatMath.MeleeDamage(stats.AttackDamage, 0, target.Defense);
@@ -548,6 +553,22 @@ public class Room
                         Stacks = 1,
                         Amount = -finalDamage, // 서버 권위 Health 델타(클라가 그대로 적용)
                     });
+
+                    // CC(상태이상): 몬스터에 OnHitEffectId 가 설정돼 있으면 데미지와 함께 상태효과를 브로드캐스트.
+                    // Amount=0 = HP 변경 없는 상태태그(Duration+GrantedTags) → 클라 EffectReceiver 가 적용 → 입력/이동 게이트.
+                    if (!string.IsNullOrEmpty(stats.OnHitEffectId))
+                    {
+                        outPackets.Add(new S_ApplyEffect
+                        {
+                            InstanceId = NextEffectInstanceId(),
+                            EffectId = stats.OnHitEffectId,
+                            TargetId = targetUserId,
+                            SourceId = 0,
+                            StartTick = nowMs,
+                            Stacks = 1,
+                            Amount = 0,
+                        });
+                    }
 
                     // 서버 권위 HP 누적 + 사망 직접 감지(클라 보고에 의존 안 함 → 불사 핵 차단).
                     var (_, newlyDowned, failClaimed) = ApplyPlayerEffect(targetUserId, dmgMods);

@@ -80,6 +80,27 @@ namespace Script.System.GamePlayAbilitySystem
                     GameplayAttributeModifier.Create(EGameplayAttribute.Health, -5, EModifierType.Additive),
                 }));
 
+            // 2.6.2 상태이상(CC) — Duration 효과가 GrantedTags 로 상태 태그를 부여한다(modifier 없음).
+            //   HasTag 가 활성 효과 GrantedTags 를 동적 합산 → 게이트(입력/이동)가 폴링 → Tick 자동 만료.
+            //   부여 경로: 던전=서버 S_ApplyEffect(EffectId) → EffectReceiver / Main=LocalMonster 로컬 적용. 새 패킷 없음.
+            Register(new GameplayEffectDefinition(
+                id: "stun_1_5s",
+                category: EEffectCategory.Defense, // 디버프(표시 색 판정용). modifier 없음 = 순수 상태태그.
+                policy: EDurationPolicy.Duration,
+                durationMs: 1500,
+                modifiers: new List<GameplayAttributeModifier>(),
+                stack: EStackPolicy.Refresh,
+                grantedTags: new GameplayTag[] { GameplayTags.Stun }));
+
+            Register(new GameplayEffectDefinition(
+                id: "slow_3s",
+                category: EEffectCategory.Defense,
+                policy: EDurationPolicy.Duration,
+                durationMs: 3000,
+                modifiers: new List<GameplayAttributeModifier>(),
+                stack: EStackPolicy.Refresh,
+                grantedTags: new GameplayTag[] { GameplayTags.Slow }));
+
             // 소모품 회복(potion_*)은 이 코드 시드에 두지 않는다 — 단일소스 = 클라 `ConsumableCatalog` SO.
             //   서버: Export 툴이 bake 한 임베디드 JSON(`ConsumableEffectCatalog`)을 `CombatEffectCatalog` static ctor 가 Register 로 흡수.
             //   클라: `ConsumableCatalogSeeder` 가 같은 SO 를 이 카탈로그에 Register(던전 EffectReceiver 미러용).

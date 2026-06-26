@@ -50,6 +50,13 @@ MonoBehaviour:
   targetRadius: 0.5
   chaseRange: 6
   moveSpeed: 2
+  attackRange: 1.5
+  attackDamage: 10
+  attackCooldownSec: 1.5
+  onHitCcId: 
+  knockbackOnHit: 1
+  knockbackDistance: 3
+  knockbackDuration: 0.2
 --- !u!1 &5016849270236211871
 GameObject:
   m_ObjectHideFlags: 0

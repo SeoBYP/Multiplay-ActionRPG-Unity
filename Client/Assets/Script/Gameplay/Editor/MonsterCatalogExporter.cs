@@ -88,6 +88,7 @@ namespace Game.Gameplay.Editor
                         attackCooldownMs = m.attackCooldownMs,
                         attackDamage = m.attackDamage,
                         expReward = m.expReward,
+                        onHitEffectId = m.onHitEffectId,
                     })
                     .ToList()
             };
@@ -135,6 +136,7 @@ namespace Game.Gameplay.Editor
                     attackCooldownMs = m.attackCooldownMs,
                     attackDamage = m.attackDamage,
                     expReward = m.expReward,
+                    onHitEffectId = m.onHitEffectId,
                 })
                 .ToList();
 
@@ -186,6 +188,7 @@ namespace Game.Gameplay.Editor
             public float attackCooldownMs = 1500f;
             public int attackDamage = 5;
             public int expReward = 20;
+            public string onHitEffectId = "";
         }
     }
 }

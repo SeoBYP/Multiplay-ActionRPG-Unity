@@ -43,6 +43,9 @@ namespace Game.Gameplay.Monster
         public float attackCooldownMs = 1500f;
         public int attackDamage = 5;
 
+        [Tooltip("적중 시 부여할 CC 효과 id(GameplayEffectCatalog). 비우면 없음. 예: slow_3s · stun_1_5s")]
+        public string onHitEffectId = "";
+
         [Header("보상")]
         [Tooltip("처치 시 획득 경험치(Main 킬 보상). 던전은 맵 클리어 단위라 미사용 가능.")]
         public int expReward = 20;

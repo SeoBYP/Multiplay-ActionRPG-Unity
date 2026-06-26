@@ -29,8 +29,8 @@ public class MonsterAttackTests
         const long t0 = 1_000_000; // LastAttackAt=0 이므로 첫 틱은 즉시 공격
 
         var p1 = room.TickMonsters(0.1f, t0);
-        var atk1 = Assert.Single(p1.OfType<S_ApplyEffect>());
-        Assert.Equal("monster_attack_dmg", atk1.EffectId);
+        // slime 은 데미지(monster_attack_dmg) + CC(slow_3s) 두 효과를 낸다 — 데미지 패킷만 특정.
+        var atk1 = p1.OfType<S_ApplyEffect>().Single(e => e.EffectId == "monster_attack_dmg");
         Assert.Equal(100, atk1.TargetId);
         Assert.Equal(0, atk1.SourceId); // 0 = 몬스터/환경
 
@@ -38,44 +38,62 @@ public class MonsterAttackTests
         var p2 = room.TickMonsters(0.1f, t0 + 100);
         Assert.Empty(p2.OfType<S_ApplyEffect>());
 
-        // 쿨다운 경과 후 → 다시 공격
+        // 쿨다운 경과 후 → 다시 공격(데미지 패킷 1개)
         var p3 = room.TickMonsters(0.1f, t0 + 2000);
-        Assert.Single(p3.OfType<S_ApplyEffect>());
+        Assert.Single(p3.OfType<S_ApplyEffect>().Where(e => e.EffectId == "monster_attack_dmg"));
     }
 
     [Fact]
     public void 몬스터_공격은_플레이어_Defense를_빼고_데미지를_적용한다()
     {
         var room = NewRoom();
-        // slime AttackDamage=5, 플레이어 Defense=2 → 데미지 = max(1, 5-2) = 3
+        // slime AttackDamage=15, 플레이어 Defense=2 → 데미지 = max(1, 15-2) = 13
         room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f, attackPower: 0, defense: 2);
         room.MarkJoined(100);
         room.SpawnMonsters(
             new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 40f, 40f));
 
-        var atk = Assert.Single(room.TickMonsters(0.1f, 1_000_000).OfType<S_ApplyEffect>());
-        Assert.Equal(-3, atk.Amount); // 서버 권위 Health 델타(Defense 반영)
+        var atk = room.TickMonsters(0.1f, 1_000_000).OfType<S_ApplyEffect>().Single(e => e.EffectId == "monster_attack_dmg");
+        Assert.Equal(-13, atk.Amount); // 서버 권위 Health 델타(Defense 반영)
 
         // 서버 HP 도 같은 값으로 차감(클라 표시값 == 서버 권위).
         var hp = room.GetAllPlayerStates().Single().Hp;
-        Assert.Equal(global::Server.Room.Room.DefaultMaxHp - 3, hp);
+        Assert.Equal(global::Server.Room.Room.DefaultMaxHp - 13, hp);
     }
 
     [Fact]
     public void Defense가_공격력보다_커도_최소_1_데미지는_들어간다()
     {
         var room = NewRoom();
-        // slime AttackDamage=5, 플레이어 Defense=10 → max(1, 5-10) = 1 (무피해 방지)
-        room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f, attackPower: 0, defense: 10);
+        // slime AttackDamage=15, 플레이어 Defense=20 → max(1, 15-20) = 1 (무피해 방지)
+        room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f, attackPower: 0, defense: 20);
         room.MarkJoined(100);
         room.SpawnMonsters(
             new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 40f, 40f));
 
-        var atk = Assert.Single(room.TickMonsters(0.1f, 1_000_000).OfType<S_ApplyEffect>());
+        var atk = room.TickMonsters(0.1f, 1_000_000).OfType<S_ApplyEffect>().Single(e => e.EffectId == "monster_attack_dmg");
         Assert.Equal(-1, atk.Amount);
         Assert.Equal(global::Server.Room.Room.DefaultMaxHp - 1, room.GetAllPlayerStates().Single().Hp);
+    }
+
+    [Fact]
+    public void 슬라임_공격은_슬로우_CC를_함께_브로드캐스트한다()
+    {
+        var room = NewRoom();
+        room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f); // 사거리 안
+        room.MarkJoined(100);
+        room.SpawnMonsters(
+            new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
+            new MapBounds(0f, 0f, 40f, 40f));
+
+        var effects = room.TickMonsters(0.1f, 1_000_000).OfType<S_ApplyEffect>().ToList();
+
+        // 데미지 + CC(slow_3s, monsters.json) 두 효과를 함께 브로드캐스트.
+        var cc = effects.Single(e => e.EffectId == "slow_3s");
+        Assert.Equal(100, cc.TargetId);
+        Assert.Equal(0, cc.Amount); // CC = HP 변경 없는 상태태그(GrantedTags)
     }
 
     [Fact]
@@ -88,8 +106,8 @@ public class MonsterAttackTests
             new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 40f, 40f));
 
-        // 살아있을 때: 공격 발생
-        Assert.Single(room.TickMonsters(0.1f, 1_000_000).OfType<S_ApplyEffect>());
+        // 살아있을 때: 공격 발생(데미지 패킷)
+        Assert.Single(room.TickMonsters(0.1f, 1_000_000).OfType<S_ApplyEffect>().Where(e => e.EffectId == "monster_attack_dmg"));
 
         // 다운(HP 0 보고) 처리 → 더 이상 타깃 아님 → 쿨다운 지나도 공격 없음
         room.TryMarkFailed(100);

@@ -1,5 +1,6 @@
 using Game.Gameplay.Character.Input;
 using Game.Gameplay;
+using Script.System.GamePlayAbilitySystem;
 using UnityEngine;
 
 namespace Game.Gameplay.Character
@@ -12,6 +13,7 @@ namespace Game.Gameplay.Character
         private readonly ICharacterInputSource   _inputSource;
         private readonly LocomotionSettings      _settings;
         private readonly IMotionMatchingDriver   _motionMatching; // null이면 기존 Animator 방식
+        private readonly AbilitySystemComponent  _abilitySystem;  // null이면 CC(슬로우) 미적용
 
         private float   _verticalVelocity;
         private float   _animationMovementSpeed;
@@ -22,7 +24,8 @@ namespace Game.Gameplay.Character
             CharacterAgentAnimations animations,
             ICharacterInputSource inputSource,
             LocomotionSettings settings,
-            IMotionMatchingDriver motionMatching = null)
+            IMotionMatchingDriver motionMatching = null,
+            AbilitySystemComponent abilitySystem = null)
         {
             _motor           = motor;
             _groundedDetector = groundedDetector;
@@ -30,6 +33,7 @@ namespace Game.Gameplay.Character
             _inputSource     = inputSource;
             _settings        = settings;
             _motionMatching  = motionMatching;
+            _abilitySystem   = abilitySystem;
         }
 
         public override void Enter()
@@ -48,6 +52,10 @@ namespace Game.Gameplay.Character
             float targetSpeed = _inputSource.Current.SprintHeld
                 ? _settings.SprintSpeed
                 : _settings.MoveSpeed;
+
+            // CC: 슬로우 태그가 있으면 이동 속도를 감속(이후 모든 사용처 — Move·MM·애니 — 에 반영).
+            if (_abilitySystem != null && _abilitySystem.HasTag(GameplayTags.Slow))
+                targetSpeed *= CcConfig.SlowMultiplier;
 
             _motor.Move(
                 new Vector3(_inputSource.Current.Move.x, _verticalVelocity, _inputSource.Current.Move.y),

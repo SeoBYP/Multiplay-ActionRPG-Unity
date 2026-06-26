@@ -38,7 +38,18 @@ namespace Game.Gameplay.Character
         [SerializeField] private int attackDamage = 10;
         [SerializeField] private float attackCooldownSec = 1.5f;
 
+        [Header("상태이상(CC) — 적중 시 부여")]
+        [Tooltip("적중 시 부여할 CC 효과 id(GameplayEffectCatalog). 비우면 없음. 예: slow_3s · stun_1_5s")]
+        [SerializeField] private string onHitCcId = "";
+
+        [Header("넉백 — 적중 시 밀어냄(테스트용, 추후 Ability 융합)")]
+        [SerializeField] private bool knockbackOnHit = false;
+        [SerializeField] private float knockbackDistance = 2f;
+        [SerializeField] private float knockbackDuration = 0.2f;
+
         [Inject] private readonly LocalPlayerContext _localPlayer = null;
+        // CC 효과 정의 조회(Main 클라 권위). 던전은 서버 S_ApplyEffect 경로. 미주입 시 CC 미적용(데미지만).
+        [Inject] private readonly GameplayEffectCatalog _effectCatalog = null;
         // Main 클라 스탯 캐시(서버 권위 GetProgression). 플레이어 Defense 를 공격 데미지에서 차감하는 데 쓴다.
         // 던전(서버권위)의 Room.TickMonsters Defense 반영과 동일 산식의 Main(클라권위) 대응판. 미주입 시 Defense=0 폴백.
         [Inject] private readonly PlayerProgressionHolder _progression = null;
@@ -105,11 +116,30 @@ namespace Game.Gameplay.Character
             if (Time.time < _nextAttackTime) return;
             _nextAttackTime = Time.time + attackCooldownSec;
 
+            // 회피 무적(i-frame): 무적 중이면 이 공격은 빗나간다(쿨다운은 소모 = 헛스윙). Main 클라 권위 게이트.
+            // 던전(서버 권위)은 서버 TickMonsters 가 동일하게 막는다(authority-model 정합).
+            if (target.HasTag(GameplayTags.Invulnerable)) return;
+
             // 데미지 = attackDamage − 플레이어 Defense (던전 Room.TickMonsters 와 동일 Shared 산식, 최소1).
             // 홀더 미주입/미갱신 시 Defense=0 → attackDamage 그대로(하위호환).
             int dmg = StatCombatMath.MeleeDamage(attackDamage, 0, _progression?.Defense ?? 0);
             target.ApplyEffect(BuildAttackEffect(dmg));
-            Debug.Log($"[LocalMonster] 공격 dmg={dmg} (attackDamage {attackDamage} − Defense {_progression?.Defense ?? 0})");
+
+            // CC 부여(Main 클라 권위) — 던전의 서버 S_ApplyEffect 경로와 동일 효과(같은 카탈로그 id).
+            if (!string.IsNullOrEmpty(onHitCcId) && _effectCatalog != null)
+            {
+                var cc = _effectCatalog.Get(onHitCcId);
+                if (cc != null) target.ApplyEffect(cc);
+            }
+
+            // 넉백(테스트 배선) — 플레이어를 몬스터 반대 방향으로 밀어낸다. 추후 Ability 가 ApplyKnockback 으로 대체.
+            if (knockbackOnHit)
+            {
+                var agent = target.GetComponent<PlayerCharacterAgent>();
+                if (agent != null) agent.ApplyKnockback(transform.position, knockbackDistance, knockbackDuration);
+            }
+
+            Debug.Log($"[LocalMonster] 공격 dmg={dmg} (attackDamage {attackDamage} − Defense {_progression?.Defense ?? 0}){(string.IsNullOrEmpty(onHitCcId) ? "" : $" +CC {onHitCcId}")}");
         }
 
         /// <summary>즉발 Health 피해 effect 생성(클라 로컬 권위, Main 솔로). 던전 플레이어 피해는 서버 권위라 무관.</summary>

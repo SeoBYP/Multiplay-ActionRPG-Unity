@@ -47,6 +47,9 @@
 | 패킷/Union | `ServerAll/Shared/Shared.Packet/Packets/`, `Packet.cs` | [packets.md](packets.md), `.claude/rules/networking.md` |
 | **공유 결정론 코어(전투 수식·히트박스·스킬)** | `ServerAll/Shared/Shared.Gameplay/`(서버 ProjectReference) + 클라 `Client/Assets/Plugins/Shared.Gameplay.dll`(동일 ns, 단일 소스) | [authority-model.md](authority-model.md) §2, §2.6 |
 | **전투 흐름(입력→판정→데미지→연출)** | 클라 `Gameplay/Character/`(`PlayerCharacterAgent`·`CombatSyncSender`) → 서버 `SocketServer/.../Handler/CombatHandler` → `Room.DamageMonster` | [authority-model.md](authority-model.md), §2.7 |
+| **회피(Dodge) — 대시+무적프레임** | 클라 `Gameplay/Character/{DodgeDriver,DodgeSyncSender}`·`PlayerCharacterAgent.HandleDodgeInput` → 서버 `SocketServer/.../Handler/DodgeHandler`·`PlayerState.TryBeginDodge`·`Room.TickMonsters`(iframe 게이트). 수치=`Shared.Gameplay/Combat/DodgeConfig`. 아래 §2.47 | [authority-model.md](authority-model.md) |
+| **상태이상(CC) — 스턴·슬로우·넉백** | 정의=`Shared.Gameplay` `GameplayTags.Stun/Slow`+`GameplayEffectCatalog`(stun_1_5s/slow_3s,GrantedTags)+`Combat/CcConfig`. 게이트=클라 `PlayerCharacterAgent`(스턴)·`GroundState`(슬로우). 부여=던전 `monsters.json onHitEffectId`→`Room.TickMonsters` S_ApplyEffect / Main `LocalMonster.onHitCcId`. **넉백**=`Gameplay/Character/KnockbackDriver`+`PlayerCharacterAgent.ApplyKnockback`(public, Ability 융합용). 아래 §2.48 | [authority-model.md](authority-model.md) |
+| **게임플레이 카메라(3인칭 Follow)** | `Gameplay/Camera/{GameplayCameraRig,CharacterCameraFollow}` — rig가 `LocalPlayerContext.OnSet`→vcam.Follow 런타임 바인딩. 아래 §2.47 | — |
 | SocketServer(TCP/방/세션) | `ServerAll/SocketServer/SocketServer/{Room,Session,PacketHandler}` | [socketserver.md](socketserver.md) |
 | Redis 스트림/큐 | `Shared/Shared.Infrastructure/MessageQueue/`, `Messages/` | [redis.md](redis.md) |
 | **루트/드랍(던전 경로)** | 드랍/줍기 = `SocketServer/Loot/`(DropTable·GroundItem)·`Handler/{CombatHandler.SpawnDrops,LootHandler}`·`Room`(GroundItem·TryPickup) / 지급 = `GameServer.Infrastructure/Common/{Consumer/LootGrantConsumer,MessageQueue/LootPickupMessageQueue}` → `IInventoryService.GrantItemAsync`. 아래 §2.16. **Main(싱글) 경로 지급 = `GameServer.API/Services/InventoryGrpcService.GrantItem`(gRPC+가드, §2.18)** | [loot-drop.md](loot-drop.md) |
@@ -63,6 +66,31 @@
 ---
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
+
+### 2.48 상태이상/CC — 스턴·슬로우 (2.6.2, 2026-06-26)
+
+**핵심: 기존 GAS 머신러리 완전 재사용 — 새 패킷 0.** CC = "GrantedTags 를 부여하는 Duration 효과" + "그 태그를 폴링하는 게이트". `GameplayEffectDefinition.GrantedTags`·`ASC.HasTag`(활성효과 동적 합산)·`ASC.Tick`(자동 만료)가 이미 존재 → 정의+게이트만 추가.
+
+- **Shared(DLL 1회 편집으로 클라·서버)**: `GameplayTags.Stun/Slow` + `GameplayEffectCatalog.SeedDefaults` 에 `stun_1_5s`(Dur1500,Granted=[Stun])·`slow_3s`(Dur3000,Granted=[Slow], modifier 없음=순수 상태태그) + `Shared.Gameplay/Combat/CcConfig.cs`(SlowMultiplier=0.5). 서버 `CombatEffectCatalog` 가 같은 catalog 위임 → 자동 합류.
+- **클라 게이트**: `PlayerCharacterAgent.Update` Stun 게이트(입력/이동 정지 + 진행중 `_dodge.Cancel`, 사망과 달리 ASC.Tick 으로 자동 만료→해제) · `GroundState.StateUpdate` Slow(`HasTag(Slow)`→targetSpeed×SlowMultiplier, `StateFactory` 가 `context.AbilitySystem` 주입).
+- **소스(부여)**: 던전(서버권위)=`monsters.json onHitEffectId`(slime=slow_3s) → `MonsterDef`/`MonsterStats` 운반 → `Room.TickMonsters` 가 데미지 `S_ApplyEffect` 와 함께 `S_ApplyEffect{EffectId=cc, Amount=0}` 브로드캐스트 → **기존 `EffectReceiver`→`ApplyEffectAuthoritative` 경로 그대로**. Main(클라권위)=`LocalMonster.onHitCcId`(slow_3s) + 주입된 `GameplayEffectCatalog` 로 로컬 `ApplyEffect`. bake 파이프라인 전체 반영(`MonsterCatalogDefinition` SO 필드 + `MonsterCatalogExporter` + monsters.json).
+- **권위 주의**: 스턴/슬로우 게이트는 본질적으로 클라(자기 입력 제어). 서버는 효과 브로드캐스트만, 클라가 준수. 자기 CC 무시 치팅은 PvE 저위험 → dodge 처럼 서버 입력 거부 하드닝은 후속.
+- **넉백(2026-06-26)**: CC 와 별 메커니즘(태그 아닌 위치 임펄스). `Gameplay/Character/KnockbackDriver.cs`(순수C#, DodgeDriver 형제) — `CharacterMotor.Dash(worldDir,speed,faceDirection:false)`(회전 없이 밀림) 으로 distance/duration 강제 변위. `PlayerCharacterAgent.ApplyKnockback(sourcePos,distance,duration)` **public API**(방향=공격자→피격자, 추후 GameplayEffect/Ability 가 이 진입점으로 융합) + Update 게이트(`_knockback.IsActive` → 스턴보다 우선, 밀려나는 중 입력 차단). 테스트 배선=`LocalMonster.knockbackOnHit`(토글+거리/시간). **스턴 이동정지 견고화**: 게이트가 `base.Update()` 전 return → Motor 이동은 이미 정지(플레이어 이동 경로=Motor.Move 단일). 추가로 애니 `Speed=0`(걷기 클립/루트모션 정지, 애니 캐릭터 대비). 검증: PlayMode `DodgeDriverTests` 4(넉백 2 신규). Main 슬라임 데모=stun_1_5s+knockback / 던전=slow_3s.
+- **검증**: SocketServer.Tests 106/106(CC 브로드캐스트 1 신규 + slime 이 2효과화돼 깨진 데미지패킷 단정 4곳을 `EffectId=="monster_attack_dmg"` 특정으로 정정) + PlayMode `CcGateTests` 1(스턴 억제·만료 재개) + `DodgeDriverTests` 4(넉백 2) + **던전 CC E2E `SocketE2ETests.RawSocket_몬스터_공격은_슬로우_CC도_함께_브로드캐스트한다` 1/1**(신선 Docker — 슬라임 공격→서버 `slow_3s` S_ApplyEffect) + 양 빌드0 + Unity 컴파일0. 스턴(Main)·넉백(Main)·슬로우(던전) 플레이 검증 완료(사용자). **잔여**: 넉백의 던전(서버권위) 경로 = **Ability 융합 단계로 연기**(현재 Main 클라 전용) · CC 입력거부 서버 하드닝.
+
+### 2.47 회피(Dodge) + 3인칭 카메라 Follow 수정 (2.6.1, 2026-06-26)
+
+**① 회피(Dodge)** — Action 축 임펄스(FSM 상태 아님 — CA-1). 입력(LeftCtrl)은 기존 배선, **발동 소비자만 추가**.
+- 코어: `Gameplay/Character/DodgeDriver.cs`(순수 C#) — 고정 월드방향 대시(`CharacterMotor.Dash` 신규)+`State.Invulnerable` i-frame 태그+애니 트리거(`AnimationTriggerType.Dodge`). 소유=`PlayerCharacterAgent`(폴링 `HandleDodgeInput`, 활성 동안 FSM·다른 Action 게이트). 방향=입력시 카메라기준(`Motor.ResolveWorldMoveDirection`)/무입력시 정면.
+- **무적 권위 정합**(authority-model): Main(클라권위)=`LocalMonster.TryAttack`가 `target.HasTag(Invulnerable)` 게이트 / 던전(서버권위)=`OnDodgePerformed`→`DodgeSyncSender`→`C_Dodge`(Union 1602)→`SocketServer/.../Handler/DodgeHandler`→`PlayerState.TryBeginDodge`(서버 쿨다운 검증=**C_Dodge 연사 영구무적 치팅 차단**)→`Room.TickMonsters`가 `IsInvulnerableAt` 동안 피해 무시(헛스윙).
+- **수치 단일소스** = `Shared.Gameplay/Combat/DodgeConfig.cs`(IframeMs 500·CooldownMs 1000, 클라·서버 공유). 대시 속도/지속(연출)만 클라 `LocomotionSettings`. 태그=`GameplayTags.Invulnerable`("State.Invulnerable").
+- 검증: SocketServer.Tests `Combat/DodgeIframeTests` 2 + PlayMode `DodgeDriverTests` 2. **잔여**: Animator dodge 클립/파라미터 배선(미배선=조용히 스킵)·플레이검증·던전 dodge E2E.
+
+**② 3인칭 카메라** — 원인=씬 와이어링(vcam `Follow`=NULL → 런타임 스폰 플레이어 미추적). 코드는 이미 3인칭(`PlayerRotationStrategy` 카메라기준 이동·`CharacterCameraFollow` Look 회전).
+- `Gameplay/Camera/GameplayCameraRig.cs`(신규): `LocalPlayerContext.OnSet` 구독→vcam.Follow=플레이어 `CameraFollowTarget`. Main/Dungeon LifetimeScope에 `RegisterComponentInHierarchy`. CharacterSpawner 무변경(랑데부 재사용, `DialogueCameraController` 패턴).
+- 씬: Main=`Third Person Aim Camera`에 rig 부착·`CinemachineThirdPersonAim` 제거·`PlayerCharacter` 프리팹 `CameraFollowTarget` Y 0→1.5. Dungeon=Cinemachine 부재라 리그 신설(Brain+CinemachineCamera+ThirdPersonFollow+rig).
+
+**부수**: slime AttackDamage 5→15 밸런스(커밋 `899aa114`)에 안 따라온 스테일 테스트 3개(`MonsterCatalogTests`·`MonsterAttackTests` Defense 2) 기대값 정정.
 
 ### 2.46 상점 구매 실패 = AlertPopup 가시화 (2026-06-25)
 - **무엇**: 구매(Buy) 실패가 `Shop.cs ShowToast`의 인-윈도우 토스트로만 처리됐는데, **`toastText` 미할당이면 `Debug.Log` 폴백**이라 인게임에 안 보임(콘솔에서만). → 실패는 **`AlertPopup`**(prefab 자체 Addressable 로드라 필드배선 불요, 명시적)로 띄움. 성공은 인-윈도우 토스트 유지.

@@ -16,5 +16,9 @@ namespace Game.Gameplay.Character
         public float SpeedChangeRate = 10f;
         public float InteractInvokeDelay = 0.3f;
         public float InteractReturnDelay = 0.3f;
+
+        // 회피(Dodge) — 대시 연출·이동 감각(클라 전용). 무적창/쿨다운은 Shared DodgeConfig(서버 권위).
+        public float DodgeSpeed = 8f;
+        public float DodgeDuration = 0.5f; // 대시(=입력 잠금) 지속(초). DodgeConfig.IframeMs(0.5s)와 맞춤.
     }
 }

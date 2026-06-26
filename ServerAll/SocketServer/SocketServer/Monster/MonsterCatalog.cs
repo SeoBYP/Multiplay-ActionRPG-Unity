@@ -9,7 +9,8 @@ public sealed record MonsterStats(
     float AggroRange,       // 추격 시작 거리
     float AttackRange,      // 정지·공격 거리
     float AttackCooldownMs, // 공격 간격
-    int AttackDamage);
+    int AttackDamage,
+    string OnHitEffectId = ""); // CC: 적중 시 부여할 효과 id(빈 문자열=없음)
 
 /// <summary>
 /// monsterId → MonsterStats. 데이터 진실원 = Shared `MonsterCatalog`(SO 저작 → bake monsters.json).
@@ -23,6 +24,6 @@ public static class MonsterCatalog
         var def = SharedMonsters.MonsterCatalog.Get(monsterId);
         return new MonsterStats(
             def.MaxHp, def.MoveSpeed, def.AggroRange,
-            def.AttackRange, def.AttackCooldownMs, def.AttackDamage);
+            def.AttackRange, def.AttackCooldownMs, def.AttackDamage, def.OnHitEffectId);
     }
 }

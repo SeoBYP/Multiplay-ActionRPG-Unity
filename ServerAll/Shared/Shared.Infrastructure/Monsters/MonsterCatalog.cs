@@ -18,7 +18,7 @@ public static class MonsterCatalog
     /// <summary>미등록 타입 폴백 — 데이터 누락에도 동작(보상 0, 약한 기본 스탯).</summary>
     public static readonly MonsterDef Default = new(
         MonsterId: "", MaxHp: 30, MoveSpeed: 2.0f, AggroRange: 6f,
-        AttackRange: 1.2f, AttackCooldownMs: 1500f, AttackDamage: 5, ExpReward: 0);
+        AttackRange: 1.2f, AttackCooldownMs: 1500f, AttackDamage: 5, ExpReward: 0, OnHitEffectId: "");
 
     private static readonly Lazy<IReadOnlyDictionary<string, MonsterDef>> Table = new(LoadEmbedded);
 
@@ -47,7 +47,7 @@ public static class MonsterCatalog
         {
             result[m.MonsterId] = new MonsterDef(
                 m.MonsterId, m.MaxHp, m.MoveSpeed, m.AggroRange,
-                m.AttackRange, m.AttackCooldownMs, m.AttackDamage, m.ExpReward);
+                m.AttackRange, m.AttackCooldownMs, m.AttackDamage, m.ExpReward, m.OnHitEffectId ?? "");
         }
         return result;
     }
@@ -67,6 +67,7 @@ public static class MonsterCatalog
         public float AttackCooldownMs { get; set; } = 1500f;
         public int AttackDamage { get; set; } = 5;
         public int ExpReward { get; set; }
+        public string OnHitEffectId { get; set; } = ""; // CC: 적중 시 부여할 효과 id(빈 문자열=없음).
     }
 }
 
@@ -79,4 +80,5 @@ public sealed record MonsterDef(
     float AttackRange,
     float AttackCooldownMs,
     int AttackDamage,
-    int ExpReward);
+    int ExpReward,
+    string OnHitEffectId = ""); // CC: 적중 시 부여할 효과 id(빈 문자열=없음). 던전 TickMonsters 가 S_ApplyEffect 로 브로드캐스트.
