@@ -31,6 +31,7 @@ Claude와의 대화를 통해 배운 내용, 틀렸던 부분, 수정 이력을 
 | [챕터 20](./chapter-20-content-pipeline-addressables.md) | 던전 메타 + Addressables 데이터 파이프라인 — `MapId` 식별자 통일(서버권위 영속) · 검증=Application(DIP) · 던전 선택 UI(proto+MVI) · expReward export 왕복 결함 · Resources 폐기→자산성격별 도구(async / WaitForCompletion / 이동만) · root-relative key · 인증 레이스 게이트 · 실패 사유 클라 추론+피드백 일관화 | ✅ 기록 완료 |
 | [챕터 21](./chapter-21-connection-liveness-hp-authority.md) | 연결 생존성 & HP 서버 권위 — 하트비트(설계 존재 ≠ 클라 사용) · ASC HP 베이스라인 desync(동기화됨 ≠ 적용됨, 마지막 1마일) · 연결 불변식 E2E 커버리지 가드(Stop 훅) | ✅ 기록 완료 |
 | [챕터 22](./chapter-22-hud-windows-mvi.md) | HUD 창 MVI 확장(스탯·퀘스트추적·판매) — 공용 GameHud + Main 전용 의존 = 선택 주입(TryResolve) · GUI↔System 레이어 변환(StatLine/bool 헬퍼) · 신호 구독은 받을 수 있는 레이어에 · 단일 토글 funnel | ✅ 기록 완료 |
+| [챕터 23](./chapter-23-mana-resource-authority-ability.md) | 전투 자원(마나) 서버 권위 + GameplayAbility 식별 — 자원 권위의 목적 구분(HP=사망감지 vs 마나=발동게이트) · 예측 수렴(리젠은 동기화 안 함, 단일소스 상수) · 원자 게이트(TryBeginDodge) · 베이스라인 일치(입장 1회 정정) · YAGNI(Ability=엔진 신설 아닌 경량 식별+로그) · 만들기 전에 존재 확인(HUD 마나바 이미 완비) | ✅ 기록 완료 |
 
 ---
 
