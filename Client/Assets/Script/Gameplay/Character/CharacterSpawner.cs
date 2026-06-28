@@ -69,6 +69,7 @@ namespace Game.Gameplay.Character
             AttachMoveSyncSender();
             AttachCombatSyncSender();
             AttachDodgeSyncSender();
+            AttachReviveInteractor();
             // 구독을 먼저 한다 — 구독과 초기 스폰 사이에 도착하는 로스터 패킷 유실 방지.
             // 중복은 SpawnRemote의 _remotes.ContainsKey 가드로 흡수된다.
             SubscribeNetworkEvents();
@@ -171,6 +172,16 @@ namespace Game.Gameplay.Character
             Debug.Log("[CharacterSpawner] DodgeSyncSender 부착 완료 — C_Dodge 송신 활성화");
         }
 
+        /// <summary>던전(서버 권위): 로컬 캐릭터에 ReviveInteractor 부착 → 다운 아군 부활 시전(C_Revive).</summary>
+        private void AttachReviveInteractor()
+        {
+            if (_localCharacterGo == null) return;
+            var interactor = _localCharacterGo.AddComponent<ReviveInteractor>();
+            // 입력은 ReviveInteractor 가 GetComponent(같은 GO) — 세션만 주입.
+            interactor.Configure(_socketSession);
+            Debug.Log("[CharacterSpawner] ReviveInteractor 부착 완료 — Co-op 부활 시전 활성화");
+        }
+
         /// <summary>Main(비네트워크): 로컬 캐릭터에 LocalCombat 부착 → 클라 권위 히트 판정(서버 미관여).</summary>
         private void AttachLocalCombat()
         {
@@ -193,9 +204,10 @@ namespace Game.Gameplay.Character
 
         private void SubscribeNetworkEvents()
         {
-            _packetState.OnPlayerJoined += HandlePlayerJoined;
-            _packetState.OnPlayerLeft   += HandlePlayerLeft;
-            _packetState.OnPlayerDead   += HandlePlayerDead;
+            _packetState.OnPlayerJoined  += HandlePlayerJoined;
+            _packetState.OnPlayerLeft    += HandlePlayerLeft;
+            _packetState.OnPlayerDead    += HandlePlayerDead;
+            _packetState.OnPlayerRevived += HandlePlayerRevived;
         }
 
         private void HandlePlayerJoined(SocketPlayerSnapshot snapshot)
@@ -207,10 +219,11 @@ namespace Game.Gameplay.Character
         private void HandlePlayerLeft(long userId) => DespawnRemote(userId);
 
         /// <summary>
-        /// 2.5.1 ⓔ-2: 한 플레이어의 다운(S_PlayerDead) 처리. **현재는 로그+Destroy(다운 포즈 후속)**.
-        /// 원격: 해당 캐릭터를 디스폰(다른 플레이어가 다운을 봄 = 이 기능의 핵심).
-        /// 로컬: 자기 캐릭터는 destroy 하지 않는다 — 이미 State.Dead 게이트(ⓔ-1)로 입력이 정지됐고,
-        ///       자기 GO 를 지우면 카메라 타깃/HUD 가 깨진다. 로그만 남긴다(다운 포즈 도입 시 교체).
+        /// 한 플레이어의 다운(S_PlayerDead) 처리.
+        /// 로컬: 자기 캐릭터는 destroy 하지 않는다 — State.Dead 게이트(2.5.1 ⓔ-1)로 입력이 정지됐고,
+        ///       자기 GO 를 지우면 카메라 타깃/HUD 가 깨진다. 로그만(다운 포즈 도입 시 교체).
+        /// 원격(2.5.2 변경): **Destroy 하지 않고 다운 보존** — DownedAllyMarker 를 부착해 부활 대상으로 남긴다.
+        ///       (기존엔 DespawnRemote 였으나 부활하려면 다운 아군이 상호작용 대상으로 살아 있어야 함.)
         /// </summary>
         private void HandlePlayerDead(long userId)
         {
@@ -220,8 +233,39 @@ namespace Game.Gameplay.Character
                 return;
             }
 
-            Debug.Log($"[CharacterSpawner] 원격 플레이어 다운 — UserId={userId} (로그+Destroy)");
-            DespawnRemote(userId);
+            if (!_remotes.TryGetValue(userId, out var driver) || driver == null)
+            {
+                Debug.LogWarning($"[CharacterSpawner] 다운된 원격 캐릭터를 찾지 못함 — UserId={userId}");
+                return;
+            }
+
+            var go = driver.gameObject;
+            if (go.GetComponent<DownedAllyMarker>() == null)
+                go.AddComponent<DownedAllyMarker>().Setup(userId);
+            Debug.Log($"[CharacterSpawner] 원격 플레이어 다운 — UserId={userId} (다운 보존, 부활 대상)");
+        }
+
+        /// <summary>
+        /// Co-op 부활(2.5.2) 확정(S_PlayerRevived) 처리.
+        /// 로컬: PlayerCharacterAgent.ReviveInPlace(hp) — State.Dead 해제 + 서버 권위 HP, 제자리(텔레포트 X).
+        /// 원격: DownedAllyMarker 제거 → 정상 캐릭터로 복귀(부활 대상에서 빠짐).
+        /// </summary>
+        private void HandlePlayerRevived(long userId, int hp)
+        {
+            if (userId == _authSession.UserId)
+            {
+                var agent = _localCharacterGo != null ? _localCharacterGo.GetComponent<PlayerCharacterAgent>() : null;
+                agent?.ReviveInPlace(hp);
+                Debug.Log($"[CharacterSpawner] 로컬 플레이어 부활 — UserId={userId} Hp={hp}");
+                return;
+            }
+
+            if (_remotes.TryGetValue(userId, out var driver) && driver != null)
+            {
+                var marker = driver.gameObject.GetComponent<DownedAllyMarker>();
+                if (marker != null) UnityEngine.Object.Destroy(marker);
+            }
+            Debug.Log($"[CharacterSpawner] 원격 플레이어 부활 — UserId={userId} (다운 보존 해제)");
         }
 
         private void SpawnRemote(SocketPlayerSnapshot snapshot)
@@ -267,9 +311,10 @@ namespace Game.Gameplay.Character
         public void Dispose()
         {
             _localPlayer.Clear();
-            _packetState.OnPlayerJoined -= HandlePlayerJoined;
-            _packetState.OnPlayerLeft   -= HandlePlayerLeft;
-            _packetState.OnPlayerDead   -= HandlePlayerDead;
+            _packetState.OnPlayerJoined  -= HandlePlayerJoined;
+            _packetState.OnPlayerLeft    -= HandlePlayerLeft;
+            _packetState.OnPlayerDead    -= HandlePlayerDead;
+            _packetState.OnPlayerRevived -= HandlePlayerRevived;
 
             foreach (var driver in _remotes.Values)
             {

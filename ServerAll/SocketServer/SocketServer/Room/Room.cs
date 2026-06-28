@@ -419,6 +419,55 @@ public class Room
     /// <summary>하위호환: 전원 다운 시 실패 claim 여부만 반환(기존 C_PlayerDead 핸들러·테스트).</summary>
     public bool TryMarkFailed(long userId) => MarkPlayerDowned(userId).FailClaimed;
 
+    /// <summary>
+    /// Co-op 부활(2.5.2, 서버 권위). 시전자가 다운된 아군을 살린다. 검증:
+    ///   ① 자기 자신 아님 ② 던전 미실패(_outcome≠Failed) ③ 시전자 생존·입장 ④ 대상 다운 상태
+    ///   ⑤ 평면 거리 ≤ <see cref="ReviveConfig.RangeMeters"/>.
+    /// 통과 시 대상을 _downed 에서 제거하고 HP 를 <see cref="ReviveConfig.RestorePercent"/>% 로 복구.
+    /// 홀드 시간은 클라 UX(시전 채널) — 서버는 게임의미 불변식만 본다(사용자 결정).
+    /// 반환: (성공, 복구된 HP). 멱등 — 이미 부활/미다운이면 (false,0).
+    /// </summary>
+    public (bool Ok, int NewHp) TryRevive(long reviverId, long targetId)
+    {
+        if (reviverId == targetId)
+            return (false, 0);
+        if (System.Threading.Volatile.Read(ref _outcome) == 2) // 전원 다운(실패) 확정 후엔 부활 불가
+            return (false, 0);
+
+        float rx, rz, tx, tz;
+        int targetMaxHp;
+        lock (_playerStates)
+        {
+            if (!_playerStates.TryGetValue(reviverId, out var reviver)
+                || !reviver.HasJoined || reviver.IsDowned || reviver.DisconnectedAtMs is not null)
+                return (false, 0); // 시전자 미입장/다운/끊김 → 부활 불가
+            if (!_playerStates.TryGetValue(targetId, out var target))
+                return (false, 0);
+            rx = reviver.PosX; rz = reviver.PosZ;
+            tx = target.PosX; tz = target.PosZ;
+            targetMaxHp = target.MaxHp;
+        }
+
+        float dx = rx - tx, dz = rz - tz;
+        if (dx * dx + dz * dz > ReviveConfig.RangeMeters * ReviveConfig.RangeMeters)
+            return (false, 0); // 거리 밖
+
+        // 대상이 실제 다운 상태여야 부활. _downed 에서 제거되면 멱등(중복 C_Revive 차단).
+        lock (_downed)
+        {
+            if (!_downed.Remove(targetId))
+                return (false, 0);
+        }
+
+        int hp = System.Math.Max(1, targetMaxHp * ReviveConfig.RestorePercent / 100);
+        lock (_playerStates)
+        {
+            if (_playerStates.TryGetValue(targetId, out var target))
+                target.Hp = hp;
+        }
+        return (true, hp);
+    }
+
     public IReadOnlyList<MonsterState> GetAllMonsters()
     {
         lock (_monsters)

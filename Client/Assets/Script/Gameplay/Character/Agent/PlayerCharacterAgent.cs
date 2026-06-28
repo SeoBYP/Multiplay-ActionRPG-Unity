@@ -178,6 +178,24 @@ namespace Game.Gameplay.Character
             Debug.Log($"[PlayerCharacterAgent] 부활 — State.Dead 해제, HP 만피, 스폰 {spawnPos} 텔레포트. ※부활 애니는 미배선(로그 대체)");
         }
 
+        /// <summary>
+        /// Co-op 부활(2.5.2, 던전) — 다른 플레이어가 살려줄 때 서버 S_PlayerRevived 로 호출.
+        /// State.Dead 해제 + 서버 권위 HP 적용(부분복구) + 다운 트리거 리셋. <b>텔레포트 없음</b>(제자리 부활).
+        /// </summary>
+        public void ReviveInPlace(int hp)
+        {
+            if (AbilitySystem == null) return;
+
+            _dodge?.Cancel();
+            _knockback?.Cancel();
+            AbilitySystem.RemoveTag(DeadTag);
+            var health = AbilitySystem.GetAttribute(EGameplayAttribute.Health);
+            health?.SetCurrent(hp);
+            AgentAnimations?.ResetTrigger(AnimationTriggerType.Dead);
+
+            Debug.Log($"[PlayerCharacterAgent] Co-op 부활 — State.Dead 해제, HP={hp} (제자리). ※부활 애니 미배선(로그)");
+        }
+
         private void OnDestroy()
         {
             if (AbilitySystem != null)

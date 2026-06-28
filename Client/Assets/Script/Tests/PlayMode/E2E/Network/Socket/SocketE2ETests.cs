@@ -597,6 +597,46 @@ namespace Game.Tests.PlayMode.E2E
             }
         });
 
+        [UnityTest]
+        public IEnumerator RawSocket_다운된_아군을_부활하면_양쪽_S_PlayerRevived_수신() => UniTask.ToCoroutine(async () =>
+        {
+            // 2.5.2 Co-op 부활: 게스트 다운(C_PlayerDead → 서버 _downed 집계) → 호스트가 사거리(2.5m) 안에서
+            // C_Revive → 서버 Room.TryRevive 검증(거리·다운상태·미실패) → S_PlayerRevived{게스트,Hp} 방 브로드캐스트.
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+            var guest = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
+
+            try
+            {
+                // 호스트·게스트를 부활 사거리 안 + 슬라임 aggro 밖(원점 근처)에 배치.
+                await guest.SendAsync(new C_Move { PosX = 2, PosY = 0, PosZ = 2, RotY = 0 }, Timeout());
+                await host.SendAsync(new C_Move { PosX = 2, PosY = 0, PosZ = 3, RotY = 0 }, Timeout());
+                await UniTask.Delay(TimeSpan.FromMilliseconds(300)); // 서버 위치 갱신 대기
+
+                // 게스트 다운(서버 _downed 집계). 호스트 생존 → 전원다운(실패) 아님.
+                await guest.SendAsync(new C_PlayerDead(), Timeout());
+                await guest.WaitForPacketAsync<S_PlayerDead>(p => p.UserId == room.GuestUserId, Timeout());
+
+                // 호스트가 게스트 부활 요청(홀드는 클라 UX이므로 E2E는 완료 신호 C_Revive 만 송신).
+                await host.SendAsync(new C_Revive { TargetUserId = room.GuestUserId }, Timeout());
+
+                // 양쪽 모두 부활 브로드캐스트 수신(원격 가시성). HP 부분복구(>0).
+                var guestRevived = await guest.WaitForPacketAsync<S_PlayerRevived>(
+                    p => p.UserId == room.GuestUserId, Timeout());
+                Assert.AreEqual(room.GuestUserId, guestRevived.UserId);
+                Assert.Greater(guestRevived.Hp, 0, "부활 시 HP가 부분복구돼야 한다");
+
+                var hostSaw = await host.WaitForPacketAsync<S_PlayerRevived>(
+                    p => p.UserId == room.GuestUserId, Timeout());
+                Assert.AreEqual(room.GuestUserId, hostSaw.UserId, "시전자도 부활 브로드캐스트를 본다");
+            }
+            finally
+            {
+                await host.DisposeAsync();
+                await guest.DisposeAsync();
+            }
+        });
+
         // ── 재연결 / Disconnected 상태 시나리오 ────────────────────────
 
         /// <summary>
