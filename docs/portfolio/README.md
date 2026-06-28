@@ -32,6 +32,7 @@ Claude와의 대화를 통해 배운 내용, 틀렸던 부분, 수정 이력을 
 | [챕터 21](./chapter-21-connection-liveness-hp-authority.md) | 연결 생존성 & HP 서버 권위 — 하트비트(설계 존재 ≠ 클라 사용) · ASC HP 베이스라인 desync(동기화됨 ≠ 적용됨, 마지막 1마일) · 연결 불변식 E2E 커버리지 가드(Stop 훅) | ✅ 기록 완료 |
 | [챕터 22](./chapter-22-hud-windows-mvi.md) | HUD 창 MVI 확장(스탯·퀘스트추적·판매) — 공용 GameHud + Main 전용 의존 = 선택 주입(TryResolve) · GUI↔System 레이어 변환(StatLine/bool 헬퍼) · 신호 구독은 받을 수 있는 레이어에 · 단일 토글 funnel | ✅ 기록 완료 |
 | [챕터 23](./chapter-23-mana-resource-authority-ability.md) | 전투 자원(마나) 서버 권위 + GameplayAbility 식별 — 자원 권위의 목적 구분(HP=사망감지 vs 마나=발동게이트) · 예측 수렴(리젠은 동기화 안 함, 단일소스 상수) · 원자 게이트(TryBeginDodge) · 베이스라인 일치(입장 1회 정정) · YAGNI(Ability=엔진 신설 아닌 경량 식별+로그) · 만들기 전에 존재 확인(HUD 마나바 이미 완비) | ✅ 기록 완료 |
+| [챕터 24](./chapter-24-coop-revive.md) | Co-op 부활 — 서버 권위 골격 재사용(입력→검증→브로드캐스트) · 원자적 멱등 검증(중복 C_Revive 거부) · 한 기능이 과거 결정 뒤집기(원격 다운 Destroy→보존) · **DI vs 컴포넌트**("아예 안 되던" 진짜 원인: 입력은 DI 아닌 GetComponent) · 전체 PlayMode가 인접 스폰 테스트 DI 회귀 포착 | ✅ 기록 완료 |
 
 ---
 
