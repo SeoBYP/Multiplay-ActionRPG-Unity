@@ -262,6 +262,7 @@ public class DungeonLobbyService(
                     Nickname = profile?.NickName ?? $"Player_{player.UserId}",
                     SpawnIndex = i,
                     MaxHealth = stats.MaxHealth,
+                    MaxMana = stats.MaxMana,
                     AttackPower = stats.AttackPower,
                     Defense = stats.Defense,
                 });

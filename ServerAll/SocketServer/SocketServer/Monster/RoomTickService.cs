@@ -50,6 +50,9 @@ public class RoomTickService(
             var packets = room.TickMonsters(Dt, nowMs);
             foreach (var packet in packets)
                 room.Broadcast(packet);
+
+            // 마나 자연 회복(서버 권위). 동기화 패킷 없음 — 클라가 동일 rate 로 예측해 수렴.
+            room.RegenAllPlayerMana(Dt);
         }
 
         // 재접속 유예 만료된 끊김 플레이어 정리(영구 퇴장 확정 + association 정리).

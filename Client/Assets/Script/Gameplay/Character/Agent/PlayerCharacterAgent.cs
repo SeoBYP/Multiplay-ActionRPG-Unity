@@ -20,9 +20,12 @@ namespace Game.Gameplay.Character
         private DodgeDriver _dodge;
         private KnockbackDriver _knockback;
 
-        // 스킬 데이터(쿨다운) 조회 — 클라 쿨다운 예측용. DI 미주입(테스트) 시 null → 게이트 없음.
+        // 스킬 데이터(쿨다운·마나) 조회 — 클라 예측용. DI 미주입(테스트) 시 null → 게이트 없음.
         private SkillCatalogProvider _skills;
         private readonly Dictionary<int, float> _lastCastTime = new();
+
+        // 마나 리젠 소수부 누적(프레임 dt 비례 회복을 정수 Mana 로 환산). 서버 _manaRegenAccum 과 동일 방식.
+        private float _manaRegenAccum;
 
         /// <summary>skillId(int) → 스킬 데이터 키. 서버 CombatHandler.ResolveSkill 동일 규약(0=basic·1=heavy).</summary>
         private static string SkillName(int skillId) => skillId switch { 1 => "heavy_swing", _ => "basic_swing" };
@@ -94,6 +97,9 @@ namespace Game.Gameplay.Character
             // Locomotion(이동) 정지. 던전 내 부활(2.5.2) 또는 씬 복귀 전까지 다운-잠금 유지.
             if (IsDead)
                 return;
+
+            // 마나 자연 회복(클라 예측). 서버 RegenMana 와 동일 rate → 만마에서 수렴. 스턴/회피 중에도 진행.
+            RegenMana(Time.deltaTime);
 
             // 넉백(강제 변위): 스턴보다 우선 — 맞아서 밀려나는 중엔 stun 이어도 임펄스가 이동을 전담한다.
             if (_knockback.IsActive)
@@ -198,13 +204,58 @@ namespace Game.Gameplay.Character
             FireSkill(1); // 강공격(heavy_swing)
         }
 
-        /// <summary>스킬 발동 — 클라 쿨다운 예측 게이트 통과 시 애니+OnAttackPerformed. 서버 SkillTimeline 게이트가 최종 권위.</summary>
+        /// <summary>스킬 발동 — 클라 마나+쿨다운 예측 게이트 통과 시 애니+OnAttackPerformed. 서버 게이트가 최종 권위.</summary>
         private void FireSkill(int skillId)
         {
-            if (!SkillCooldownReady(skillId))
+            var skill = _skills?.Get(SkillName(skillId));
+            int manaCost = skill?.ManaCost ?? 0;
+            if (!HasMana(manaCost))            // 마나 부족 → 발동/송신 안 함(서버도 동일 거부)
                 return;
+            if (!SkillCooldownReady(skillId))  // 쿨다운(통과 시 발동시각 커밋)
+                return;
+            SpendMana(manaCost);               // 예측 차감 — 서버가 S_PlayerMana 로 정정
+
+            // 발동한 GameplayAbility(스킬) 식별 로그 — "지금 어떤 어빌리티로 공격하는가".
+            string abilityId = skill?.Id ?? SkillName(skillId);
+            Debug.Log($"[GameplayAbility] 발동: '{abilityId}' (mana {manaCost}, cd {skill?.CooldownMs ?? 0}ms)");
+
             AgentAnimations?.SetTrigger(AnimationTriggerType.Attack);
             OnAttackPerformed?.Invoke(skillId);
+        }
+
+        /// <summary>마나 보유 확인(차감 X). 마나 속성 없는 캐릭터/테스트는 무료(true). cost &lt;= 0 도 true.</summary>
+        private bool HasMana(int cost)
+        {
+            if (cost <= 0) return true;
+            var mana = AbilitySystem?.GetAttribute(EGameplayAttribute.Mana);
+            return mana == null || mana.CurrentValue >= cost;
+        }
+
+        /// <summary>마나 예측 차감. 서버가 권위로 검증·차감하고 S_PlayerMana 로 정정한다(되돌림 가능).</summary>
+        private void SpendMana(int cost)
+        {
+            if (cost <= 0) return;
+            var mana = AbilitySystem?.GetAttribute(EGameplayAttribute.Mana);
+            mana?.ApplyModifier(GameplayAttributeModifier.Create(EGameplayAttribute.Mana, -cost, EModifierType.Additive));
+        }
+
+        /// <summary>시간 비례 마나 자연 회복(예측). <see cref="ManaConfig.RegenPerSecond"/> 누적 → 정수 단위 가산, Max 클램프.</summary>
+        private void RegenMana(float dt)
+        {
+            var mana = AbilitySystem?.GetAttribute(EGameplayAttribute.Mana);
+            if (mana == null || mana.CurrentValue >= mana.MaxValue)
+            {
+                _manaRegenAccum = 0f;
+                return;
+            }
+
+            _manaRegenAccum += ManaConfig.RegenPerSecond * dt;
+            int whole = (int)_manaRegenAccum;
+            if (whole <= 0)
+                return;
+
+            _manaRegenAccum -= whole;
+            mana.ApplyModifier(GameplayAttributeModifier.Create(EGameplayAttribute.Mana, whole, EModifierType.Additive));
         }
 
         /// <summary>스킬 쿨다운 경과 여부(클라 예측). 통과 시 마지막 발동시각 갱신. 데이터 미주입(테스트)이면 항상 true.</summary>
@@ -234,11 +285,14 @@ namespace Game.Gameplay.Character
                 return false;
             if (!_dodge.CanBegin(Time.time))
                 return false;
+            if (!HasMana(DodgeConfig.ManaCost)) // 마나 부족 → 회피 발동/송신 안 함(서버도 동일 거부)
+                return false;
 
             Vector3 dir = Motor != null ? Motor.ResolveWorldMoveDirection(InputSource.Current.Move) : Vector3.zero;
             if (dir.sqrMagnitude < 0.0001f)
                 dir = transform.forward; // 무입력 = 정면 구르기
 
+            SpendMana(DodgeConfig.ManaCost); // 예측 차감 — 서버가 S_PlayerMana 로 정정
             _dodge.Begin(dir, Time.time);
             OnDodgePerformed?.Invoke();
             return true;

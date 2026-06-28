@@ -26,6 +26,8 @@ namespace Game.Network.Socket
             // EF-2d: 서버 권위 Effect(버프/디버프) 수신.
             builder.Register<IPacketHandler, EffectApplyPacketHandler>(Lifetime.Singleton);
             builder.Register<IPacketHandler, EffectRemovePacketHandler>(Lifetime.Singleton);
+            // 마나 동기화(서버 권위 정정, owner-only).
+            builder.Register<IPacketHandler, ManaPacketHandler>(Lifetime.Singleton);
             // M3 ⑥: 서버 권위 몬스터 스폰/상태/사망 수신.
             builder.Register<IPacketHandler, SpawnMonsterPacketHandler>(Lifetime.Singleton);
             builder.Register<IPacketHandler, MonsterStatePacketHandler>(Lifetime.Singleton);
@@ -80,6 +82,11 @@ namespace Game.Network.Socket
         event Action<int> OnEffectRemoved;
         void ApplyEffect(SocketEffectApply data);
         void RemoveEffect(int instanceId);
+
+        // ── 마나 동기화(서버 권위 S_PlayerMana, owner-only) ──
+        /// <summary>S_PlayerMana 수신 시 발행(userId, mana, maxMana). 상위 EffectReceiver 가 로컬 ASC 에 정정 적용.</summary>
+        event Action<long, int, int> OnManaUpdated;
+        void UpdateMana(long userId, int mana, int maxMana);
 
         // ── 전원 입장(서버 S_GameStatus InProgress) = 던전 준비 완료 ──
         /// <summary>전원 입장 시 발행. Presentation(InGameModel)이 인게임 UI 전환에 사용.</summary>
@@ -146,6 +153,7 @@ namespace Game.Network.Socket
         public event Action<SocketPlayerSnapshot> OnPlayerMoved;
         public event Action<SocketEffectApply>    OnEffectApplied;
         public event Action<int>                  OnEffectRemoved;
+        public event Action<long, int, int>       OnManaUpdated;
         public event Action                       OnDungeonReady;
         public event Action<long>                 OnDungeonCleared;
         public event Action                       OnDungeonFailed;
@@ -171,6 +179,9 @@ namespace Game.Network.Socket
         {
             OnEffectRemoved?.Invoke(instanceId);
         }
+
+        public void UpdateMana(long userId, int mana, int maxMana)
+            => OnManaUpdated?.Invoke(userId, mana, maxMana);
 
         public void UpsertPlayer(long userId, string nickname, int spawnIndex, string mapId, float posX, float posY, float posZ, float rotY, long timeStamp = 0)
         {

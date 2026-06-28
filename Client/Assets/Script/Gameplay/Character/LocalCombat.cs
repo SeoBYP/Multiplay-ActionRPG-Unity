@@ -68,6 +68,7 @@ namespace Game.Gameplay.Character
             int damage = StatCombatMath.MeleeDamage(BaseDamage, _progression?.AttackPower ?? 0, 0);
 
             _hitThisSwing.Clear();
+            int hitCount = 0;
             var cols = Physics.OverlapSphere(pos, QueryRadius);
             foreach (var col in cols)
             {
@@ -78,8 +79,14 @@ namespace Game.Gameplay.Character
                 var mp = monster.transform.position;
                 var targetPos = new NVector3(mp.x, mp.y, mp.z);
                 if (HitboxMath.Overlaps(attackerPos, yaw, hitbox, targetPos, monster.TargetRadius))
+                {
                     monster.TakeDamage(damage);
+                    hitCount++;
+                }
             }
+
+            // 스윙 결과 — 적중 수(0=헛스윙)로 "데미지가 들어갔는가"를 즉시 확인.
+            Debug.Log($"[Combat] '{skill.Id}' 스윙 → {hitCount}마리 적중 (dmg {damage})");
         }
     }
 }

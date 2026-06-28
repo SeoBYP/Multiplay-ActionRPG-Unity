@@ -69,6 +69,15 @@ public static class RoomJoinLeaveHandler
 
         // 1) 본인에게 자기 입장 응답(MapId+SpawnIndex 포함 → 클라가 결정론으로 스폰).
         await session.SendPacketAsync(joinedPacket, ct);
+
+        // 1b) 본인에게 초기 권위 마나 동기화 — 클라 prefab 기준선(Mana 100)을 서버 권위 MaxMana(레벨테이블,
+        //     예: Lv1=50)로 정렬한다. 이후 차감/거부 시점에만 S_PlayerMana 로 정정(리젠은 클라 예측).
+        await session.SendPacketAsync(new Shared.Packet.Packets.S_PlayerMana
+        {
+            UserId = playerState.UserId,
+            Mana = playerState.Mana,
+            MaxMana = playerState.MaxMana,
+        }, ct);
         // 2) 기존 입장자들에게 신규 플레이어 통보.
         room.Broadcast(joinedPacket, session.SessionId);
 

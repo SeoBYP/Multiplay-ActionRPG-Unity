@@ -56,6 +56,9 @@ public class Room
     /// <summary>플레이어 기본 최대 HP(서버 권위). 후속에 Progression/스탯에서 주입. 클라 prefab ASC(100)와 정렬.</summary>
     public const int DefaultMaxHp = 100;
 
+    /// <summary>스탯 미설정(테스트/레거시) 시 마나 상한 폴백. 클라 prefab Mana(100) 기준선과 정렬.</summary>
+    public const int DefaultMaxMana = 100;
+
     /// <summary>맵 경계 — 몬스터 이동 clamp 기준(RoomTickService 사용).</summary>
     public MapBounds Bounds => _bounds;
 
@@ -246,12 +249,13 @@ public class Room
     private static readonly List<long> EmptyUserIds = new();
 
     public void InitPlayerState(long userId, string nickname, int spawnIndex, float spawnX, float spawnY, float spawnZ, float rotY,
-        int attackPower = 0, int defense = 0, int maxHealth = 0)
+        int attackPower = 0, int defense = 0, int maxHealth = 0, int maxMana = 0)
     {
         lock (_playerStates)
         {
-            // MaxHp = GameServer 가 보낸 스탯(권위). 0(미설정)이면 상수 폴백(테스트·레거시 경로 호환).
+            // MaxHp/MaxMana = GameServer 가 보낸 스탯(권위). 0(미설정)이면 상수 폴백(테스트·레거시 경로 호환).
             int hp = maxHealth > 0 ? maxHealth : DefaultMaxHp;
+            int mana = maxMana > 0 ? maxMana : DefaultMaxMana;
             var playerState = new PlayerState
             {
                 UserId = userId,
@@ -262,9 +266,11 @@ public class Room
                 PosZ = spawnZ,
                 RotY = rotY,
                 LastMovedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                // 서버 권위 HP — 입장 시 만피로 초기화. MaxHp 는 GameServer 합산 스탯(authority-model §4c).
+                // 서버 권위 HP/마나 — 입장 시 만피/만마로 초기화. 상한은 GameServer 합산 스탯(authority-model §4c).
                 Hp = hp,
                 MaxHp = hp,
+                Mana = mana,
+                MaxMana = mana,
                 AttackPower = attackPower,
                 Defense = defense,
             };
@@ -307,6 +313,19 @@ public class Room
         lock (_playerStates)
         {
             return _playerStates.Values.ToList();
+        }
+    }
+
+    /// <summary>
+    /// 모든 플레이어 마나를 시간 비례 자연 회복(서버 권위). RoomTickService 가 매 틱 호출한다.
+    /// 동기화 패킷은 발행하지 않는다 — 클라가 같은 rate(<see cref="ManaConfig.RegenPerSecond"/>)로 예측해 수렴.
+    /// </summary>
+    public void RegenAllPlayerMana(float dt)
+    {
+        lock (_playerStates)
+        {
+            foreach (var p in _playerStates.Values)
+                p.RegenMana(dt);
         }
     }
 
@@ -529,6 +548,11 @@ public class Room
                     m.LastAttackAt = nowMs;
                     var target = players[targetIdx];
                     long targetUserId = target.UserId;
+
+                    // 몬스터 공격 = 이름있는 GameplayAbility('{monsterId}_attack'). 발동(쿨다운 소모) 시점 로그.
+                    // (i-frame 으로 빗나가도 어빌리티는 발동된 것 — 헛스윙.)
+                    _logger.LogInformation("[GameplayAbility] monster {MonsterId} 발동: '{AbilityId}' → user {UserId}",
+                        m.MonsterId, $"{m.MonsterId}_attack", targetUserId);
 
                     // 회피 무적(i-frame): 무적 창 안이면 이 공격은 빗나간다(피해/effect 없음).
                     // 쿨다운은 이미 소모(m.LastAttackAt 갱신) — 몬스터가 헛스윙한 것. 던전=서버 권위 게이트.

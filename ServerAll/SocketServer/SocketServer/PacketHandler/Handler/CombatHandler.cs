@@ -61,31 +61,46 @@ public static class CombatHandler
     }
 
     [PacketHandler(typeof(C_Attack))]
-    public static ValueTask HandleAttack(Session session, C_Attack packet, CancellationToken ct)
+    public static async ValueTask HandleAttack(Session session, C_Attack packet, CancellationToken ct)
     {
         if (session.UserId <= 0)
-            return ValueTask.CompletedTask;
+            return;
 
         var room = session.Room;
         if (room is null)
-            return ValueTask.CompletedTask;
+            return;
 
         var skill = ResolveSkill(packet.SkillId);
         if (skill is null)
-            return ValueTask.CompletedTask;
+            return;
 
         var states = room.GetAllPlayerStates();
         PlayerState? attacker = null;
         foreach (var s in states)
             if (s.UserId == session.UserId) { attacker = s; break; }
         if (attacker is null)
-            return ValueTask.CompletedTask;
+            return;
 
-        // 0) 서버 발동 게이트(권위 쿨다운). 쿨다운 중이면 발동 거부 → 데미지 0.
-        //    클라가 C_Attack 을 연사해도 서버가 cadence 를 강제해 폭딜 치팅을 막는다.
+        // 0a) 마나 게이트(권위). 부족하면 발동 거부 + owner 에게 현재 마나 정정(클라 예측 차감 되돌림).
+        //     쿨다운보다 먼저 본다 — 마나 부족으로 거부될 발동이 쿨다운 슬롯을 소모하지 않게.
+        if (attacker.Mana < skill.ManaCost)
+        {
+            await SendManaAsync(session, attacker, ct);
+            return;
+        }
+
+        // 0b) 서버 발동 게이트(권위 쿨다운). 쿨다운 중이면 발동 거부 → 데미지 0.
+        //     클라가 C_Attack 을 연사해도 서버가 cadence 를 강제해 폭딜 치팅을 막는다.
         long startTick = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         if (!attacker.TryBeginSkill(packet.SkillId, skill.CooldownMs, startTick))
-            return ValueTask.CompletedTask;
+            return;
+
+        // 0c) 마나 차감(권위) + owner 정정. 무료 스킬(basic_swing, cost 0)은 차감/정정 패킷 모두 생략.
+        if (skill.ManaCost > 0)
+        {
+            attacker.TrySpendMana(skill.ManaCost);
+            await SendManaAsync(session, attacker, ct);
+        }
 
         // 1) 플레이어 피격 → S_ApplyEffect (HP 는 클라가 공유 카탈로그로 결정론 계산) — 기존
         var hits = SelectHitTargets(skill, attacker, states, TargetRadius);
@@ -107,9 +122,16 @@ public static class CombatHandler
 
         // 2) 몬스터 피격 → 서버 권위 HP 차감(GAS) → S_MonsterState / S_MonsterDead — 신규(⑤)
         ApplyAttackToMonsters(session, room, skill, attacker);
-
-        return ValueTask.CompletedTask;
     }
+
+    /// <summary>owner(시전 세션)에게 현재 권위 마나를 정정 전송(차감/거부 시점). 리젠은 보내지 않는다.</summary>
+    private static Task SendManaAsync(Session session, PlayerState state, CancellationToken ct)
+        => session.SendPacketAsync(new S_PlayerMana
+        {
+            UserId = state.UserId,
+            Mana = state.Mana,
+            MaxMana = state.MaxMana,
+        }, ct);
 
     /// <summary>
     /// 스킬 on-hit 효과의 Health 데미지를 스탯으로 스케일한다(2.4). 순수 — 단위 테스트 대상.

@@ -21,6 +21,7 @@ public sealed class PlayerInfo
     /// 기본 0(미설정) — SocketServer 는 0 이면 MaxHealth 를 상수로 폴백.
     /// </summary>
     public int MaxHealth { get; init; }
+    public int MaxMana { get; init; }
     public int AttackPower { get; init; }
     public int Defense { get; init; }
 }

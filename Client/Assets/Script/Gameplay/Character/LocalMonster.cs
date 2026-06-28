@@ -27,6 +27,8 @@ namespace Game.Gameplay.Character
         [SerializeField] private int maxHp = 30;
         [Tooltip("HitboxMath 적중 판정용 타겟 반경(구).")]
         [SerializeField] private float targetRadius = 0.5f;
+        [Tooltip("이 몬스터 공격의 GameplayAbility id(발동 로그·식별). 비우면 '{monsterId}_attack' 자동.")]
+        [SerializeField] private string attackAbilityId = "slime_attack";
 
         [Header("간단 AI")]
         [SerializeField] private float chaseRange = 6f;
@@ -63,6 +65,9 @@ namespace Game.Gameplay.Character
         public string MonsterId => monsterId;
         public float TargetRadius => targetRadius;
         public bool IsDead { get; private set; }
+
+        /// <summary>이 몬스터 공격의 GameplayAbility id. 인스펙터 미설정 시 '{monsterId}_attack' 규약.</summary>
+        private string AttackAbilityId => string.IsNullOrEmpty(attackAbilityId) ? $"{monsterId}_attack" : attackAbilityId;
 
         /// <summary>스폰 레이아웃 슬롯(B-lite). 줍기 시 이 슬롯으로 ClaimKill → 서버 검증·roll. 0=미설정.</summary>
         public int SlotId { get; private set; }
@@ -139,7 +144,7 @@ namespace Game.Gameplay.Character
                 if (agent != null) agent.ApplyKnockback(transform.position, knockbackDistance, knockbackDuration);
             }
 
-            Debug.Log($"[LocalMonster] 공격 dmg={dmg} (attackDamage {attackDamage} − Defense {_progression?.Defense ?? 0}){(string.IsNullOrEmpty(onHitCcId) ? "" : $" +CC {onHitCcId}")}");
+            Debug.Log($"[GameplayAbility] {monsterId} 발동: '{AttackAbilityId}' → dmg={dmg} (attackDamage {attackDamage} − Defense {_progression?.Defense ?? 0}){(string.IsNullOrEmpty(onHitCcId) ? "" : $" +CC {onHitCcId}")}");
         }
 
         /// <summary>즉발 Health 피해 effect 생성(클라 로컬 권위, Main 솔로). 던전 플레이어 피해는 서버 권위라 무관.</summary>
@@ -159,10 +164,13 @@ namespace Game.Gameplay.Character
         {
             if (IsDead || amount <= 0) return;
 
+            int before = _hp;
             _hp -= amount;
+            Debug.Log($"[Combat] {monsterId} 피격 dmg={amount} HP {before}→{Mathf.Max(0, _hp)}/{maxHp}");
             if (_hp > 0) return;
 
             IsDead = true;
+            Debug.Log($"[Combat] {monsterId} 사망");
             OnDied?.Invoke(this);
             Destroy(gameObject);
         }

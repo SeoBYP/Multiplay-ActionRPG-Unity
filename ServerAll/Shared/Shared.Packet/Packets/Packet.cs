@@ -20,6 +20,8 @@ namespace Shared.Packet.Packets;
 // 전투 - Effect(버프/디버프) 동기화
 [MemoryPackUnion(1640,typeof(S_ApplyEffect))]
 [MemoryPackUnion(1641,typeof(S_RemoveEffect))]
+// 전투 - 마나 동기화(owner-only 정정)
+[MemoryPackUnion(1642,typeof(S_PlayerMana))]
 // 게임 라이프사이클
 [MemoryPackUnion(1701,typeof(S_GameStatus))]
 // 던전 이벤트 - 몬스터

@@ -21,6 +21,17 @@ public class PlayerState
     public int MaxHp { get; set; }
 
     /// <summary>
+    /// 서버 권위 마나(던전 코옵). 스킬/회피 발동 코스트를 여기서 검증·차감해 클라 위조(무한 시전)를 차단한다.
+    /// 클라는 같은 코스트로 즉시 차감(예측)하고, 서버가 S_PlayerMana 로 차감/거부를 owner 에게 정정한다.
+    /// 자연 회복은 RoomTickService 가 <see cref="RegenMana"/> 로 매 틱 진행(클라는 동일 rate 예측 → 수렴).
+    /// </summary>
+    public int Mana { get; set; }
+    public int MaxMana { get; set; }
+
+    // 리젠 소수부 누적(서버 틱 dt 비례 회복을 정수 Mana 로 환산). 클라 _manaRegenAccum 과 동일 방식.
+    private double _manaRegenAccum;
+
+    /// <summary>
     /// 합산 전투 스탯(서버 권위). GameServer 가 게임시작 메시지로 채워 보낸 값(authority-model §4c) —
     /// SocketServer 는 계산 안 하고 받아서 데미지 산식 입력으로만 쓴다. 0 = 미설정(스탯 보너스 없음).
     /// </summary>
@@ -71,6 +82,42 @@ public class PlayerState
         return true;
     }
 
+    /// <summary>
+    /// 마나 차감(권위). 코스트 이상 보유 시 차감하고 true, 부족하면 변경 없이 false.
+    /// cost &lt;= 0 은 무료 스킬(항상 true). 호출부(CombatHandler)가 false 면 발동을 거부한다.
+    /// </summary>
+    public bool TrySpendMana(int cost)
+    {
+        if (cost <= 0)
+            return true;
+        if (Mana < cost)
+            return false;
+        Mana -= cost;
+        return true;
+    }
+
+    /// <summary>
+    /// 시간 비례 마나 자연 회복(서버 권위). <see cref="ManaConfig.RegenPerSecond"/> 를 dt 만큼 누적해
+    /// 정수 단위로 Mana 에 더하고 MaxMana 로 클램프한다. 클라 예측과 같은 rate → 만피에서 수렴.
+    /// 동기화 패킷은 보내지 않는다(리젠은 클라가 동일 예측).
+    /// </summary>
+    public void RegenMana(float dt)
+    {
+        if (MaxMana <= 0 || Mana >= MaxMana)
+        {
+            _manaRegenAccum = 0;
+            return;
+        }
+
+        _manaRegenAccum += ManaConfig.RegenPerSecond * dt;
+        int whole = (int)_manaRegenAccum;
+        if (whole <= 0)
+            return;
+
+        _manaRegenAccum -= whole;
+        Mana = System.Math.Min(MaxMana, Mana + whole);
+    }
+
     // 회피(Dodge) 무적 — 이 시각(Unix ms)까지 피해를 무시한다. 0 = 무적 아님.
     public long InvulnerableUntilMs { get; set; }
 
@@ -78,15 +125,20 @@ public class PlayerState
     private long _lastDodgeMs;
 
     /// <summary>
-    /// 회피 발동 게이트(서버 권위 쿨다운). 쿨다운(<see cref="DodgeConfig.CooldownMs"/>)이 지났으면
-    /// 무적 창(<see cref="DodgeConfig.IframeMs"/>)을 부여하고 true, 아직이면 false.
-    /// C_Dodge 연사로 영구 무적을 만드는 치팅을 서버가 차단한다.
+    /// 회피 발동 게이트(서버 권위 쿨다운 + 마나). 쿨다운(<see cref="DodgeConfig.CooldownMs"/>)이 지났고
+    /// 마나가 코스트 이상이면 마나를 차감하고 무적 창(<see cref="DodgeConfig.IframeMs"/>)을 부여하고 true.
+    /// 쿨다운/마나 어느 하나라도 모자라면 <b>아무것도 소모하지 않고</b> false(원자적).
+    /// C_Dodge 연사로 영구 무적/무한 회피를 만드는 치팅을 서버가 차단한다.
     /// </summary>
-    public bool TryBeginDodge(long nowMs)
+    public bool TryBeginDodge(long nowMs, int manaCost = 0)
     {
         if (_lastDodgeMs != 0 && nowMs - _lastDodgeMs < DodgeConfig.CooldownMs)
             return false;
+        if (Mana < manaCost) // 마나 부족 → 쿨다운/무적 미소모 거부
+            return false;
 
+        if (manaCost > 0)
+            Mana -= manaCost;
         _lastDodgeMs = nowMs;
         InvulnerableUntilMs = nowMs + DodgeConfig.IframeMs;
         return true;

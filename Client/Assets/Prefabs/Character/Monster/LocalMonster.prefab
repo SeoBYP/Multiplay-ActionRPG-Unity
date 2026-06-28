@@ -53,8 +53,8 @@ MonoBehaviour:
   attackRange: 1.5
   attackDamage: 10
   attackCooldownSec: 1.5
-  onHitCcId: 
-  knockbackOnHit: 1
+  onHitCcId: slow_3s
+  knockbackOnHit: 0
   knockbackDistance: 3
   knockbackDuration: 0.2
 --- !u!1 &5016849270236211871

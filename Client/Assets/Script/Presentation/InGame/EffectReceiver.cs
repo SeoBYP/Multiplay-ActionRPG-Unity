@@ -39,6 +39,7 @@ namespace Game.Presentation.InGame
         {
             _state.OnEffectApplied += OnEffectApplied;
             _state.OnEffectRemoved += OnEffectRemoved;
+            _state.OnManaUpdated += OnManaUpdated;
         }
 
         private void OnEffectApplied(SocketEffectApply data)
@@ -68,6 +69,25 @@ namespace Game.Presentation.InGame
             _localPlayer.AbilitySystem?.RemoveEffect(instanceId);
         }
 
+        /// <summary>
+        /// 서버 권위 마나 정정(차감/거부/입장 초기화). 로컬 플레이어 것이면 ASC.Mana 를 서버 값으로 덮어쓴다.
+        /// MaxMana(레벨테이블 권위)로 상한을 먼저 맞추고(클라 prefab 기준선 정렬) Current 를 정정한다.
+        /// 리젠은 PlayerCharacterAgent 가 동일 rate 로 예측 — 이 정정은 발동 순간에만 도착한다.
+        /// </summary>
+        private void OnManaUpdated(long userId, int mana, int maxMana)
+        {
+            if (_authSession == null || userId != _authSession.UserId)
+                return; // owner-only 패킷이지만 방어적으로 대상 확인.
+
+            var attr = _localPlayer.AbilitySystem?.GetAttribute(EGameplayAttribute.Mana);
+            if (attr == null)
+                return;
+
+            if (maxMana > 0 && maxMana != attr.MaxValue)
+                attr.SetMax(maxMana);
+            attr.SetCurrent(mana);
+        }
+
         private AbilitySystemComponent ResolveTarget(long targetId)
         {
             if (_authSession != null && targetId == _authSession.UserId)
@@ -79,6 +99,7 @@ namespace Game.Presentation.InGame
         {
             _state.OnEffectApplied -= OnEffectApplied;
             _state.OnEffectRemoved -= OnEffectRemoved;
+            _state.OnManaUpdated -= OnManaUpdated;
         }
     }
 }

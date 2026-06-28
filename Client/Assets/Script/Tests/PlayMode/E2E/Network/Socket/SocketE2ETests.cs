@@ -17,6 +17,7 @@ using GameServer.Grpc.DungeonLobby;
 using GameServer.Grpc.Inventory;
 using GameServer.Grpc.User;
 using NUnit.Framework;
+using Script.System.GamePlayAbilitySystem;
 using UnityEngine.TestTools;
 
 namespace Game.Tests.PlayMode.E2E
@@ -268,6 +269,64 @@ namespace Game.Tests.PlayMode.E2E
                 Assert.AreEqual("slow_3s", cc.EffectId);
                 Assert.AreEqual(room.HostUserId, cc.TargetId);
                 Assert.AreEqual(0, cc.Amount, "CC 는 HP 변경 없는 상태태그(Amount=0)여야 한다");
+            }
+            finally
+            {
+                await host.DisposeAsync();
+            }
+        });
+
+        // ── 2.2 마나(서버 권위 검증·차감·동기화) ───────────────────────
+
+        [UnityTest]
+        public IEnumerator RawSocket_입장하면_초기_마나_S_PlayerMana_수신() => UniTask.ToCoroutine(async () =>
+        {
+            // 입장 시 RoomJoinLeaveHandler 가 owner 에게 초기 S_PlayerMana 송신 —
+            // 클라 prefab 기준선(100)을 서버 권위 MaxMana(레벨테이블, Lv1=50)로 정렬. 만마(Mana==MaxMana)로 시작.
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+            try
+            {
+                var mana = await host.WaitForPacketAsync<S_PlayerMana>(
+                    p => p.UserId == room.HostUserId, Timeout());
+
+                Assert.AreEqual(room.HostUserId, mana.UserId);
+                Assert.Greater(mana.MaxMana, 0, "서버 권위 MaxMana(레벨테이블)가 실려야 한다");
+                Assert.AreEqual(mana.MaxMana, mana.Mana, "입장 시 만마로 초기화돼야 한다");
+            }
+            finally
+            {
+                await host.DisposeAsync();
+            }
+        });
+
+        [UnityTest]
+        public IEnumerator RawSocket_회피하면_서버가_마나를_차감해_S_PlayerMana_정정한다() => UniTask.ToCoroutine(async () =>
+        {
+            // 서버 권위 마나: C_Dodge → DodgeHandler 가 쿨다운+마나(DodgeConfig.ManaCost=15) 게이트 통과 시
+            // 차감하고 owner 에게 S_PlayerMana 정정 송신(클라 예측 차감과 정합 = 무한 회피 치팅 차단).
+            // 리젠은 동기화 패킷을 안 보내므로(클라 동일예측 수렴) 입장 후 유일한 추가 S_PlayerMana = 이 차감 정정.
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+            try
+            {
+                // 입장 초기 동기화로 권위 MaxMana 확보(만마 시작).
+                var initial = await host.WaitForPacketAsync<S_PlayerMana>(
+                    p => p.UserId == room.HostUserId, Timeout());
+                int maxMana = initial.MaxMana;
+                Assert.GreaterOrEqual(maxMana, DodgeConfig.ManaCost, "Lv1 마나가 회피 코스트 이상이어야 한다");
+
+                await host.SendAsync(new C_Dodge(), Timeout());
+
+                // 차감 정정 = 만마 − 회피 코스트.
+                var afterDodge = await host.WaitForPacketAsync<S_PlayerMana>(
+                    p => p.UserId == room.HostUserId && p.Mana < maxMana, Timeout());
+
+                Assert.AreEqual(maxMana - DodgeConfig.ManaCost, afterDodge.Mana,
+                    "회피 발동 시 서버가 DodgeConfig.ManaCost 만큼 차감해야 한다");
+                Assert.AreEqual(maxMana, afterDodge.MaxMana, "MaxMana 는 변하지 않는다");
             }
             finally
             {

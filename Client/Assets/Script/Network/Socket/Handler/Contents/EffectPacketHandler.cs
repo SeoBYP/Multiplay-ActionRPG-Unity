@@ -46,4 +46,24 @@ namespace Game.Network.Socket
             return UniTask.CompletedTask;
         }
     }
+
+    /// <summary>
+    /// S_PlayerMana(owner-only) 수신 → 상태 저장소에 마나 정정 이벤트 발행. 상위 EffectReceiver 가 로컬 ASC 에 적용.
+    /// (네트워크 레이어는 ASC 를 모른다 — Effect 동기화와 동일한 state 경유 패턴)
+    /// </summary>
+    public class ManaPacketHandler : PacketHandlerBase<S_PlayerMana>
+    {
+        private readonly ISocketPacketState _state;
+
+        public ManaPacketHandler(ISocketPacketState state)
+        {
+            _state = state;
+        }
+
+        public override UniTask HandleAsync(S_PlayerMana packet)
+        {
+            _state.UpdateMana(packet.UserId, packet.Mana, packet.MaxMana);
+            return UniTask.CompletedTask;
+        }
+    }
 }
