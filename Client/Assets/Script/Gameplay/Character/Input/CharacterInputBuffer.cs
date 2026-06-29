@@ -90,5 +90,19 @@ namespace Game.Gameplay.Character.Input
         {
             Current = Current.WithHeavyAttack(true);
         }
+
+        public bool ConsumeLockOnPressed()
+        {
+            if (!Current.LockOnPressed)
+                return false;
+
+            Current = Current.WithLockOn(false);
+            return true;
+        }
+
+        public void PressLockOn()
+        {
+            Current = Current.WithLockOn(true);
+        }
     }
 }

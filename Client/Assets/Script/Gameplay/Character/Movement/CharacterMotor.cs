@@ -17,6 +17,13 @@ namespace Game.Gameplay.Character
         public Vector3 DesiredMoveDirection { get; private set; }
         public Vector3 DesiredFacingDirection { get; private set; }
 
+        /// <summary>
+        /// 락온(2.6.3) 등 외부가 바라볼 방향을 강제할 때 세팅하는 facing 오버라이드(평면 월드 방향).
+        /// 값이 있으면 회전 전략(카메라 기준) 대신 이 방향으로 바라본다. null 이면 기존 전략 사용.
+        /// 이동(DesiredMoveDirection)은 영향받지 않는다 — 락온 중에도 이동은 카메라 기준(스트레이프).
+        /// </summary>
+        public Vector3? FacingOverride { get; set; }
+
         [Inject]
         public void Construct(LocomotionSettings settings)
         {
@@ -43,9 +50,13 @@ namespace Game.Gameplay.Character
                 ? m_rotationStrategy.MovementDirectionCalculation(horizontalInput, transform)
                 : transform.TransformDirection(new Vector3(input.x, 0.0f, input.z)).normalized;
             DesiredMoveDirection = targetDirection;
-            DesiredFacingDirection = m_rotationStrategy != null
-                ? m_rotationStrategy.FacingDirectionCalculation(horizontalInput, transform)
-                : transform.forward;
+            // 락온 중이면 facing 을 타겟 방향으로 강제(이동은 위 targetDirection 그대로 = 스트레이프).
+            if (FacingOverride.HasValue)
+                DesiredFacingDirection = FacingOverride.Value;
+            else
+                DesiredFacingDirection = m_rotationStrategy != null
+                    ? m_rotationStrategy.FacingDirectionCalculation(horizontalInput, transform)
+                    : transform.forward;
             ApplyFacingDirection();
 
             CurrentVelocity = targetDirection * horizontalInput.normalized.magnitude * (m_speed * Time.deltaTime) +

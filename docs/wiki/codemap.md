@@ -68,6 +68,18 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.51 타겟팅/락온 — 락온 시 카메라/공격 방향 고정 (2.6.3, 2026-06-30)
+
+**교리: 락온은 순수 클라 조준 보조 — 패킷·서버·Shared 변경 0.** 공격 적중은 이미 "플레이어 facing/위치" 기반이고, facing 은 `MoveSyncSender`(던전)가 rotY 를 **정지 중에도** 송신한다. 따라서 락온이 플레이어를 타겟으로 **회전시키기만 하면** 던전 서버 hitbox(`CombatHandler`)가 자동 정렬되고, Main 은 `LocalCombat`가 같은 facing 으로 판정한다. → 새 패킷/서버 게이트 불필요.
+
+- **결정(사용자)**: 키=**Tab**(`.inputactions` 신규 액션 — 처음 Q였으나 E는 Interact 충돌이라 Tab으로 확정) · 타겟선정=**화면중앙 최근접**(뷰포트 중심 거리) · 범위=**Main+던전 동시**.
+- **마커(레지스트리)**: `Gameplay/Character/LockOnTarget.cs` — `DownedAllyMarker` 패턴(정적 `_active` 리스트, OnEnable/OnDisable 등록). `FindBest(camera, playerPos, maxRange)` = 화면 안 + 카메라 앞 + 평면거리≤range 중 **뷰포트 중심(0.5,0.5) 최근접**(`WorldToViewportPoint`). 던전 `MonsterEntity`·Main `LocalMonster` 는 다른 클래스지만 이 마커 하나로 통일(물리 레이어 무의존). **프리팹 부착**: `Monster.prefab`(던전)·`LocalMonster.prefab`(Main).
+- **드라이버**: `Gameplay/Character/LockOnDriver.cs`(순수 C#, `DodgeDriver`/`KnockbackDriver` 형제, `PlayerCharacterAgent` 소유). `Toggle()`=락 중이면 해제·아니면 `FindBest` 획득. `Tick()`=매 프레임 유효성(파괴/비활성/사거리+3m 히스테리시스 이탈→자동 해제) 후 `Motor.FacingOverride`=타겟방향 + `CameraFollow.LockTarget`=타겟. `ForceUnlock()`=사망/씬종료 시 원복. **버그 수정**: `Tick` 첫 가드를 `_target==null`(Unity fake-null)로 두면 **파괴된 락 대상도 조기 반환** → 죽은 몬스터에 카메라가 영구 잠긴다. `ReferenceEquals(_target,null)`로 "미락(C# null)"과 "락 중 대상 파괴(fake-null)"를 구분 → 후자는 유효성검사로 내려가 정리(LockOnDriverTests 가 포착).
+- **연결점(2개, 최소 침습)**: ① `CharacterMotor.FacingOverride`(nullable Vector3) — 값 있으면 회전전략(카메라기준) 대신 그 방향을 바라봄. **이동(DesiredMoveDirection)은 무영향** = 락온 중에도 이동은 카메라기준 스트레이프. ② `CharacterCameraFollow.LockTarget`(Transform) — 값 있으면 마우스 Look 대신 피벗을 타겟 방향 yaw/pitch 로 수렴(`lockOnTurnSpeed`). 락 중에도 yaw/pitch 캐시 갱신 → 해제 시 마우스가 현재 각도에서 자연 연속.
+- **입력**: `LockOn` one-shot 신설 — `.inputactions`(Tab, `<Keyboard>/tab`) + 래퍼 재생성(`manage_asset import`) + 계약5: `CharacterInputFrame.LockOnPressed`·`ICharacterInputWriter.PressLockOn`·`ICharacterInputSource.ConsumeLockOnPressed`·`CharacterInputBuffer`·`PlayerInputComponent.OnLockOn`. 테스트 Fake 3곳도 `ConsumeLockOnPressed` 추가.
+- **에이전트 배선**: `PlayerCharacterAgent` — `lockOnRange`(SerializeField 15m) + Awake 에서 `GetAroundComponent<CharacterCameraFollow>()`로 `LockOnDriver` 생성. Update 정상 흐름: dodge 게이트 옆 `HandleLockOnInput()`(토글 폴링) → `_lockOn.Tick()`(facing 적용을 `base.Update()`→`Motor.Move` 전에) → `base.Update()`. 사망 게이트 진입 시 `_lockOn.ForceUnlock()`.
+- **검증**: PlayMode `LockOnDriverTests` 4/4(화면중앙 선정·토글 잠금/해제·사거리밖 거부·소실 자동언락) + **PlayMode 전체 160/160**(E2E Docker 포함, 입력계약 확장 무회귀) + **EditMode 152/152** + Unity 컴파일0. 네트워크/소켓 소스 무변경 → Docker E2E 불요(연결-커버리지 훅 무관). 신규 `.cs.meta` 3개 `git add -f`([[unity-meta-gitignored]]). **잔여(선택)**: 락온 표시 UI(타겟 위 마커)·타겟 전환(다음 적) 입력·Animator strafe 블렌드.
+
 ### 2.49 스킬 데이터 자산화 — SO 저작→bake→서버 (2.2, 2026-06-26)
 
 **교리: 스킬을 클라 SO 로 저작 → Export bake → 서버가 임베디드 JSON 으로 검증** (gas-architecture §2.5, DropTable/Monster/Consumable 과 동일 패턴). 기존 하드코딩 `Shared.Gameplay.SkillCatalog`(코드 시드) → 데이터 주도.

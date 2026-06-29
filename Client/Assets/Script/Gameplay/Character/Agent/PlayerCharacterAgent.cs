@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Game.Core;
 using Game.Gameplay.Abilities;
+using Game.Gameplay.Camera;
 using Game.Gameplay.Character.Input;
 using Script.System.GamePlayAbilitySystem;
 using UnityEngine;
@@ -16,9 +17,14 @@ namespace Game.Gameplay.Character
         // 스턴(CC) 태그. Duration 효과가 부여→자동 만료. 켜진 동안 입력/이동 정지(사망과 달리 시간 후 자동 해제).
         private static readonly GameplayTag StunTag = GameplayTags.Stun;
 
+        [Header("락온(2.6.3)")]
+        [Tooltip("락온 가능 최대 평면 사거리(m). 화면 안 + 이 거리 내 대상만 잡힌다.")]
+        [SerializeField] private float lockOnRange = 15f;
+
         private InteractionDetector _interactionDetector;
         private DodgeDriver _dodge;
         private KnockbackDriver _knockback;
+        private LockOnDriver _lockOn;
 
         // 스킬 데이터(쿨다운·마나) 조회 — 클라 예측용. DI 미주입(테스트) 시 null → 게이트 없음.
         private SkillCatalogProvider _skills;
@@ -71,6 +77,10 @@ namespace Game.Gameplay.Character
 
             _dodge = new DodgeDriver(Motor, AbilitySystem, AgentAnimations, settings);
             _knockback = new KnockbackDriver(Motor);
+
+            // 락온 = 순수 클라 조준 보조. 카메라 Follow(피벗 회전 소유)와 Motor(facing) 에 매 프레임 push.
+            var cameraFollow = this.GetAroundComponent<CharacterCameraFollow>();
+            _lockOn = new LockOnDriver(transform, Motor, cameraFollow, lockOnRange);
         }
 
         /// <summary>
@@ -96,7 +106,10 @@ namespace Game.Gameplay.Character
             // 사망(다운) 시 두 축 모두 게이트: Action(공격/상호작용) 무시 + base.Update() 미호출로
             // Locomotion(이동) 정지. 던전 내 부활(2.5.2) 또는 씬 복귀 전까지 다운-잠금 유지.
             if (IsDead)
+            {
+                _lockOn?.ForceUnlock(); // 다운되면 락 해제(facing/카메라 원복)
                 return;
+            }
 
             // 마나 자연 회복(클라 예측). 서버 RegenMana 와 동일 rate → 만마에서 수렴. 스턴/회피 중에도 진행.
             RegenMana(Time.deltaTime);
@@ -129,9 +142,12 @@ namespace Game.Gameplay.Character
             _interactionDetector?.DetectInteractable();
             if (HandleDodgeInput()) // 회피 시작 프레임엔 다른 Action/Locomotion 을 스킵(대시가 전담).
                 return;
+            HandleLockOnInput();
             HandleAttackInput();
             HandleHeavyAttackInput();
             HandleInteractInput();
+            // facing 강제(타겟 향하기)를 base.Update()→Motor.Move 전에 적용. 유효성 이탈 시 자동 해제.
+            _lockOn?.Tick();
             base.Update();
         }
 
@@ -212,6 +228,14 @@ namespace Game.Gameplay.Character
             if (InputSource == null || !InputSource.ConsumeAttackPressed())
                 return;
             FireSkill(0); // 기본 공격(basic_swing)
+        }
+
+        /// <summary>락온 토글(Q) = Action 축 조준 보조. 토글 시 화면 중앙 대상 획득/해제(LockOnDriver 가 소유).</summary>
+        private void HandleLockOnInput()
+        {
+            if (InputSource == null || !InputSource.ConsumeLockOnPressed())
+                return;
+            _lockOn?.Toggle();
         }
 
         /// <summary>강공격(우클릭) = skillId 1(heavy_swing).</summary>

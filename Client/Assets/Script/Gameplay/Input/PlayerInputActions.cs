@@ -228,6 +228,15 @@ namespace Game.Gameplay.Input
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""LockOn"",
+                    ""type"": ""Button"",
+                    ""id"": ""c6d7e8f9-0a1b-2c3d-4e5f-60718293a4b5"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -679,6 +688,17 @@ namespace Game.Gameplay.Input
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""HeavyAttack"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e7f8091a-2b3c-4d5e-6f70-8192a3b4c5d6"",
+                    ""path"": ""<Keyboard>/tab"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""LockOn"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1281,6 +1301,7 @@ namespace Game.Gameplay.Input
             m_Player_Pause = m_Player.FindAction("Pause", throwIfNotFound: true);
             m_Player_Equipment = m_Player.FindAction("Equipment", throwIfNotFound: true);
             m_Player_HeavyAttack = m_Player.FindAction("HeavyAttack", throwIfNotFound: true);
+            m_Player_LockOn = m_Player.FindAction("LockOn", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
             m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -1389,6 +1410,7 @@ namespace Game.Gameplay.Input
         private readonly InputAction m_Player_Pause;
         private readonly InputAction m_Player_Equipment;
         private readonly InputAction m_Player_HeavyAttack;
+        private readonly InputAction m_Player_LockOn;
         /// <summary>
         /// Provides access to input actions defined in input action map "Player".
         /// </summary>
@@ -1461,6 +1483,10 @@ namespace Game.Gameplay.Input
             /// </summary>
             public InputAction @HeavyAttack => m_Wrapper.m_Player_HeavyAttack;
             /// <summary>
+            /// Provides access to the underlying input action "Player/LockOn".
+            /// </summary>
+            public InputAction @LockOn => m_Wrapper.m_Player_LockOn;
+            /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
             public InputActionMap Get() { return m_Wrapper.m_Player; }
@@ -1531,6 +1557,9 @@ namespace Game.Gameplay.Input
                 @HeavyAttack.started += instance.OnHeavyAttack;
                 @HeavyAttack.performed += instance.OnHeavyAttack;
                 @HeavyAttack.canceled += instance.OnHeavyAttack;
+                @LockOn.started += instance.OnLockOn;
+                @LockOn.performed += instance.OnLockOn;
+                @LockOn.canceled += instance.OnLockOn;
             }
 
             /// <summary>
@@ -1587,6 +1616,9 @@ namespace Game.Gameplay.Input
                 @HeavyAttack.started -= instance.OnHeavyAttack;
                 @HeavyAttack.performed -= instance.OnHeavyAttack;
                 @HeavyAttack.canceled -= instance.OnHeavyAttack;
+                @LockOn.started -= instance.OnLockOn;
+                @LockOn.performed -= instance.OnLockOn;
+                @LockOn.canceled -= instance.OnLockOn;
             }
 
             /// <summary>
@@ -1992,6 +2024,13 @@ namespace Game.Gameplay.Input
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnHeavyAttack(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "LockOn" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnLockOn(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.

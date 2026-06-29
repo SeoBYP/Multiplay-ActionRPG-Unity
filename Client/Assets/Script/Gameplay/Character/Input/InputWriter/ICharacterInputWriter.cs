@@ -12,5 +12,6 @@ namespace Game.Gameplay.Character.Input
         void PressInteract();
         void PressAttack();
         void PressHeavyAttack();
+        void PressLockOn();
     }
 }

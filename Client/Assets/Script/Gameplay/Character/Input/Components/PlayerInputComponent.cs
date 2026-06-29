@@ -54,6 +54,8 @@ namespace Game.Gameplay.Character.Input
             _inputActions.Player.Interact.canceled += OnInteract;
             _inputActions.Player.Dodge.performed += OnDodge;
             _inputActions.Player.Dodge.canceled += OnDodge;
+            _inputActions.Player.LockOn.performed += OnLockOn;
+            _inputActions.Player.LockOn.canceled += OnLockOn;
 
 
             _subscribed = true;
@@ -87,6 +89,8 @@ namespace Game.Gameplay.Character.Input
             _inputActions.Player.Interact.canceled -= OnInteract;
             _inputActions.Player.Dodge.performed -= OnDodge;
             _inputActions.Player.Dodge.canceled -= OnDodge;
+            _inputActions.Player.LockOn.performed -= OnLockOn;
+            _inputActions.Player.LockOn.canceled -= OnLockOn;
             _subscribed = false;
         }
 
@@ -134,6 +138,12 @@ namespace Game.Gameplay.Character.Input
         {
             if (context.performed)
                 _inputWriter.PressDodge();
+        }
+
+        private void OnLockOn(InputAction.CallbackContext context)
+        {
+            if (context.performed)
+                _inputWriter.PressLockOn();
         }
     }
 }

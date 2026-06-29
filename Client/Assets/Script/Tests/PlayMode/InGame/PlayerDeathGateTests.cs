@@ -106,6 +106,7 @@ namespace Game.Tests.PlayMode.InGame
                 return v;
             }
             public bool ConsumeHeavyAttackPressed() => false;
+            public bool ConsumeLockOnPressed() => false;
         }
     }
 }
