@@ -14,6 +14,11 @@ namespace Game.Gameplay.Character
         public float RotationSmoothTime = 0.12f;
         public float JumpToFallDelay = 0.2f;
         public float SpeedChangeRate = 10f;
+
+        // 이동 가감속 (m/s²). 즉시 최고속이 아니라 짧은 램프로 출발/정지를 부드럽게.
+        // 가속 5 = 0→2m/s 0.4s, 감속 8 = 2→0m/s 0.25s.
+        public float MoveAcceleration = 5f;
+        public float MoveDeceleration = 8f;
         public float InteractInvokeDelay = 0.3f;
         public float InteractReturnDelay = 0.3f;
 

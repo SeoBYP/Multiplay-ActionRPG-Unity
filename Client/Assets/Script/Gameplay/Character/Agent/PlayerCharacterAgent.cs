@@ -61,9 +61,6 @@ namespace Game.Gameplay.Character
             if (AbilitySystem != null)
                 AbilitySystem.OnAttributeChanged += OnAttributeChanged;
 
-            // MotionMatchingDriver가 붙어 있으면 MM 연동, 없으면 기존 Animator 방식
-            var motionMatching = this.GetAroundComponent<IMotionMatchingDriver>();
-
             Context = new CharacterStateContext
             {
                 Motor                = Motor,
@@ -72,7 +69,6 @@ namespace Game.Gameplay.Character
                 InputSource          = InputSource,
                 AbilitySystem        = AbilitySystem,
                 LocomotionSettings   = settings,
-                MotionMatching       = motionMatching,
             };
 
             _dodge = new DodgeDriver(Motor, AbilitySystem, AgentAnimations, settings);

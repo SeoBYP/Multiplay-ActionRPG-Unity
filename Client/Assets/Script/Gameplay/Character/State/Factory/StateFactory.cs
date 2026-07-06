@@ -14,7 +14,6 @@ namespace Game.Gameplay.Character
                     context.Animations,
                     context.InputSource,
                     context.LocomotionSettings,
-                    context.MotionMatching,
                     context.AbilitySystem),
 
                 StateKind.Jump => new JumpState(
