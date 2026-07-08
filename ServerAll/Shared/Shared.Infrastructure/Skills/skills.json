@@ -9,10 +9,10 @@
             "manaCost": 0,
             "hitboxShape": "Box",
             "offsetX": 0.0,
-            "offsetY": 0.0,
+            "offsetY": 0.5,
             "offsetZ": 1.0,
             "halfX": 0.6000000238418579,
-            "halfY": 0.6000000238418579,
+            "halfY": 1.0,
             "halfZ": 0.699999988079071,
             "onHitEffectIds": [
                 "basic_attack_dmg"
@@ -27,10 +27,10 @@
             "manaCost": 20,
             "hitboxShape": "Box",
             "offsetX": 0.0,
-            "offsetY": 0.0,
-            "offsetZ": 1.2999999523162842,
+            "offsetY": 0.5,
+            "offsetZ": 1.2000000476837159,
             "halfX": 1.100000023841858,
-            "halfY": 0.800000011920929,
+            "halfY": 1.100000023841858,
             "halfZ": 1.0,
             "onHitEffectIds": [
                 "basic_attack_dmg"

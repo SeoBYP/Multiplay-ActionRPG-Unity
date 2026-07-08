@@ -17,8 +17,9 @@ MonoBehaviour:
   activeMs: 100
   recoveryMs: 150
   cooldownMs: 400
+  manaCost: 0
   hitboxShape: 0
-  hitboxOffset: {x: 0, y: 0, z: 1}
-  hitboxHalfExtents: {x: 0.6, y: 0.6, z: 0.7}
+  hitboxOffset: {x: 0, y: 0.5, z: 1}
+  hitboxHalfExtents: {x: 0.6, y: 1, z: 0.7}
   onHitEffectIds:
   - basic_attack_dmg

@@ -48,6 +48,18 @@ namespace Game.Gameplay.Character
                 ? 0f
                 : _verticalVelocity + _settings.Gravity * deltaTime;
 
+            // Action 이동잠금(Rooted): 공격/상호작용 발동 중엔 수평 이동을 막는다(중력·회전·락온 facing 은 유지).
+            // FSM 전이가 아니라 태그 기반 이동 제약(CA-1). 기존 Slow 태그 게이트와 동일 폴링 패턴.
+            if (_abilitySystem != null && _abilitySystem.HasTag(ActionTags.Rooted))
+            {
+                _currentMoveSpeed = 0f;
+                _lastMoveInput = Vector3.zero;
+                _motor.Move(new Vector3(0f, _verticalVelocity, 0f), 0f); // 중력만 적용, 수평 0
+                _animationMovementSpeed = 0f;
+                _animations.SetFloat(AnimationFloatType.Speed, 0f);
+                return;
+            }
+
             float targetSpeed = _inputSource.Current.SprintHeld
                 ? _settings.SprintSpeed
                 : _settings.MoveSpeed;

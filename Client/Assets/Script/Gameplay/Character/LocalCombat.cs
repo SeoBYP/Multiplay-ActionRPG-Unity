@@ -27,6 +27,11 @@ namespace Game.Gameplay.Character
         private PlayerProgressionHolder _progression; // Main 클라 스탯 캐시(AttackPower). 동적 부착이라 method 주입.
         private readonly HashSet<LocalMonster> _hitThisSwing = new();
 
+        // 무기 콜라이더 기반 판정(있으면 이걸 우선). 없으면 아래 레거시 OverlapSphere 폴백.
+        private WeaponHitbox _weapon;
+        private int _swingDamage;      // 이번 스윙 데미지(OnAttackPerformed 에서 확정 → 활성 구간 히트에 적용)
+        private string _swingSkillId;  // 로그용
+
         /// <summary>skillId(int 패킷) → 스킬 데이터 키. 서버 CombatHandler.ResolveSkill 과 동일 규약.</summary>
         private static string SkillName(int skillId) => skillId switch { 1 => "heavy_swing", _ => "basic_swing" };
 
@@ -41,31 +46,44 @@ namespace Game.Gameplay.Character
         private void Awake()
         {
             _agent = GetComponent<PlayerCharacterAgent>();
+            _weapon = GetComponentInChildren<WeaponHitbox>(true); // 손 본에 부착된 무기 프롭
         }
 
         private void OnEnable()
         {
             if (_agent != null) _agent.OnAttackPerformed += PerformHit;
+            if (_weapon != null) _weapon.OnHit += ApplyWeaponHit;
         }
 
         private void OnDisable()
         {
             if (_agent != null) _agent.OnAttackPerformed -= PerformHit;
+            if (_weapon != null) _weapon.OnHit -= ApplyWeaponHit;
         }
 
         private void PerformHit(int skillId)
         {
             var skill = _skills?.Get(SkillName(skillId));
             if (skill == null) return; // 데이터 미로드 — 판정 스킵
-            var hitbox = skill.Hitbox; // 스킬별 hitbox(basic=정면 박스 / heavy=넓은 박스)
-
-            var pos = transform.position;
-            float yaw = transform.eulerAngles.y;
-            var attackerPos = new NVector3(pos.x, pos.y, pos.z);
 
             // 데미지 = 던전(서버 권위)과 동일 산식. 레벨업으로 AttackPower 오르면 다음 스윙부터 강해진다.
             // 홀더 미갱신(default) 시 AttackPower=0 → BaseDamage 그대로(하위호환).
             int damage = StatCombatMath.MeleeDamage(BaseDamage, _progression?.AttackPower ?? 0, 0);
+
+            // 무기 콜라이더가 있으면: 입력 순간이 아니라 "휘두르는 활성 구간"에 무기가 닿을 때 판정.
+            // 데미지만 이번 스윙용으로 확정해 두고, 실제 적중은 WeaponHitbox.OnHit → ApplyWeaponHit 에서 처리.
+            if (_weapon != null)
+            {
+                _swingDamage = damage;
+                _swingSkillId = skill.Id;
+                return;
+            }
+
+            // 폴백(무기 미부착): 기존 입력순간 OverlapSphere + HitboxMath 즉발 판정.
+            var hitbox = skill.Hitbox; // 스킬별 hitbox(basic=정면 박스 / heavy=넓은 박스)
+            var pos = transform.position;
+            float yaw = transform.eulerAngles.y;
+            var attackerPos = new NVector3(pos.x, pos.y, pos.z);
 
             _hitThisSwing.Clear();
             int hitCount = 0;
@@ -87,6 +105,14 @@ namespace Game.Gameplay.Character
 
             // 스윙 결과 — 적중 수(0=헛스윙)로 "데미지가 들어갔는가"를 즉시 확인.
             Debug.Log($"[Combat] '{skill.Id}' 스윙 → {hitCount}마리 적중 (dmg {damage})");
+        }
+
+        /// <summary>무기 콜라이더가 활성 구간에 LocalMonster 에 닿으면 호출(스윙당 대상 1회). 확정된 스윙 데미지 적용.</summary>
+        private void ApplyWeaponHit(LocalMonster monster)
+        {
+            if (monster == null || monster.IsDead) return;
+            monster.TakeDamage(_swingDamage);
+            Debug.Log($"[Combat] '{_swingSkillId}' 무기 적중 → {monster.MonsterId} (dmg {_swingDamage})");
         }
     }
 }

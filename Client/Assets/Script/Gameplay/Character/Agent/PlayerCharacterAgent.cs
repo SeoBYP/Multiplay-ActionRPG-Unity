@@ -99,6 +99,13 @@ namespace Game.Gameplay.Character
 
         protected override void Update()
         {
+            // Action 이동잠금(Rooted) 만료 — 공격/줍기 지속 경과 시 자동 해제(사망/스턴 게이트보다 먼저 처리해 확실히 만료).
+            if (_rootedUntil > 0f && Time.time >= _rootedUntil)
+            {
+                AbilitySystem?.RemoveTag(ActionTags.Rooted);
+                _rootedUntil = 0f;
+            }
+
             // 사망(다운) 시 두 축 모두 게이트: Action(공격/상호작용) 무시 + base.Update() 미호출로
             // Locomotion(이동) 정지. 던전 내 부활(2.5.2) 또는 씬 복귀 전까지 다운-잠금 유지.
             if (IsDead)
@@ -259,6 +266,23 @@ namespace Game.Gameplay.Character
 
             AgentAnimations?.SetTrigger(AnimationTriggerType.Attack);
             OnAttackPerformed?.Invoke(skillId);
+
+            // 공격 발동 = Action 이동잠금. 스킬 타임라인(startup+active+recovery) 동안 수평 이동 금지(GroundState 폴링).
+            float attackRootSec = skill != null ? (skill.StartupMs + skill.ActiveMs + skill.RecoveryMs) / 1000f : 0.4f;
+            ApplyRoot(attackRootSec);
+        }
+
+        // 공격/상호작용 이동잠금(Rooted) 만료 시각(Time.time 기준). 0 = 잠금 없음.
+        private float _rootedUntil;
+        // 상호작용(줍기 등) 이동잠금 지속(초). 스킬과 달리 데이터 타임라인이 없어 고정값(튜닝 대상).
+        private const float InteractRootSeconds = 0.6f;
+
+        /// <summary>Action(공격·상호작용) 발동 시 <see cref="ActionTags.Rooted"/> 를 지속시간만큼 부여. Update 가 만료 시 해제.</summary>
+        private void ApplyRoot(float seconds)
+        {
+            if (AbilitySystem == null || seconds <= 0f) return;
+            AbilitySystem.AddTag(ActionTags.Rooted);
+            _rootedUntil = Mathf.Max(_rootedUntil, Time.time + seconds);
         }
 
         /// <summary>마나 보유 확인(차감 X). 마나 속성 없는 캐릭터/테스트는 무료(true). cost &lt;= 0 도 true.</summary>
@@ -352,6 +376,7 @@ namespace Game.Gameplay.Character
 
             AgentAnimations?.SetTrigger(AnimationTriggerType.Interact);
             target.Interact(gameObject);
+            ApplyRoot(InteractRootSeconds); // 줍기/상호작용 동안 이동 잠금(Action 축 — 전이 아님)
         }
     }
 }

@@ -68,6 +68,26 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.53 Action 이동잠금(Rooted) — 공격·상호작용 중 이동 금지 (2026-07-09)
+
+**교리(CA-1): Action 이동제약은 FSM 전이가 아니라 태그로.** `PlayerCharacterAgent.HandleInteractInput` 주석이 예고한 대로 구현.
+- **태그**: `Gameplay/Character/ActionTags.Rooted`("State.Rooted") — **클라 전용**(서버 미사용, `Shared.Gameplay/GameplayTags` 와 분리). 이동=클라권위(C_Move)라 잠긴 동안 C_Move 미송신 → 원격도 정지로 봄.
+- **부여**: `PlayerCharacterAgent.ApplyRoot(sec)` — 공격 `FireSkill`(skill startup+active+recovery=basic 450ms) / 상호작용 `HandleInteractInput`(고정 `InteractRootSeconds`=0.6s). `Update` 최상단이 `_rootedUntil` 경과 시 자동 `RemoveTag`.
+- **소비**: `GroundState.StateUpdate` 가 `HasTag(Rooted)` 폴링 → 수평이동·Speed 0, `Move((0,verticalVel,0),0)`(중력·회전·락온 facing 유지). 기존 Slow 태그 게이트와 동일 패턴.
+- **검증**: PlayMode `ActionRootTests`(공격→Rooted 부여→만료 해제) · EditMode 152/152. 신규 `.cs` = `ActionTags.cs`·`ActionRootTests.cs`(`.meta` `git add -f`).
+
+### 2.52 플레이어 애니메이션 배선 + 무기 프롭·무기콜라이더 판정 (2026-07-09)
+
+정식 문서 [player-animation-setup.md](player-animation-setup.md). MotionMatching 외부화 후 **플레이어 프리팹이 회색 캡슐(모델·Animator 없음)** + 컨트롤러 클립참조 깨짐이라 애니가 전혀 안 돌던 것을 배선.
+
+- **기반**: `SK_Protof-Actor.fbx`(PROTOFACTOR, Generic 스켈레톤·**아바타 0개=리타겟 불필요, avatar=null 경로매칭**) + Animator를 `PlayerCharacter.prefab` 자식으로. `PlayerController.controller` 6상태 모션을 1Handed Melee **non-`_RM`(in-place)** 클립으로 재지정(이동=코드 `CharacterMotor`, 루트모션 미사용) + 고아 `MM_*` 삭제. Dead(AnyState 홀드)·Dodge(AnyState→복귀) 상태/파라미터 추가 + 프리팹 트리거 문자열.
+- **LoopTime**: 순환 클립(Idle/Walk/Run/Falling)만 ON, 원샷은 OFF(Death=마지막프레임 홀드).
+- **무기 프롭**: `SM_BludgeonProp` → `humanoid_ R Hand/WeaponProp`(로컬 identity=손 본 로컬공간 정합).
+- **무기 콜라이더 판정(Main 클라권위 전용)**: `Gameplay/Character/{WeaponHitbox,WeaponAnimationEventRelay}` 신규. `AttackA1hMelee` 클립 Animation Event(0.35s ON/0.62s OFF)→Relay(Animator GO)→`WeaponHitbox`(WeaponProp: CapsuleCollider trigger+Kinematic RB) 활성구간→`OnTriggerEnter(LocalMonster)`→`OnHit`→`LocalCombat.ApplyWeaponHit`. `LocalCombat`=무기 있으면 콜라이더 판정, 없으면 기존 OverlapSphere 폴백. **던전은 무관**(서버가 클라 콜라이더 모름 → `C_Attack`→서버 HitboxMath 유지).
+- **히트박스 무기리치 정합(서버·클라 공유)**: 무기 스윙이 몸통~머리(측정 y0.4~1.9)인데 박스가 발높이라 어긋남 → `Skill_BasicSwing/HeavySwing.asset` offsetY/halfY 수직확장(XZ 리치는 유지=테스트 안전) → bake `skills.json`. ⚠️ bake는 `SkillCatalogExporter.BakeAll()` 직접호출(메뉴 `Export()`는 `DisplayDialog` 모달→MCP 프리즈).
+- **검증**: 서버 전투단위 28/28 · Docker SocketE2E 27/27 · 무기콜라이더 체인 플레이모드 마커 · EditMode 152/152.
+- **잔여**: 부활 복귀 애니 갭(`Revive`가 `ResetTrigger(Dead)`만 → Dead 홀드 탈출 신호 없음, §2.5.1 death-respawn). 무기 스윕 서버권위화·콤보 A→B→C·RemotePlayer/NPC 애니는 미착수.
+
 ### 2.51 타겟팅/락온 — 락온 시 카메라/공격 방향 고정 (2.6.3, 2026-06-30)
 
 **교리: 락온은 순수 클라 조준 보조 — 패킷·서버·Shared 변경 0.** 공격 적중은 이미 "플레이어 facing/위치" 기반이고, facing 은 `MoveSyncSender`(던전)가 rotY 를 **정지 중에도** 송신한다. 따라서 락온이 플레이어를 타겟으로 **회전시키기만 하면** 던전 서버 hitbox(`CombatHandler`)가 자동 정렬되고, Main 은 `LocalCombat`가 같은 facing 으로 판정한다. → 새 패킷/서버 게이트 불필요.
