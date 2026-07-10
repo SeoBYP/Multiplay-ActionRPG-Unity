@@ -41,6 +41,25 @@ public class HitboxMathTests
         Assert.True(hit);
     }
 
+    // Unity yaw θ: forward=(sinθ,0,cosθ). 임의 yaw 에서 "정면 1유닛" 타겟은 항상 적중, "후방"은 항상 빗나가야 한다.
+    // (기존 테스트가 yaw 0/180=sin0 만 봐서 X/Z 교차항 부호 오류가 90/270 등 측면에서 새어나갔다.)
+    [Theory]
+    [InlineData(45f)]
+    [InlineData(90f)]   // 정동(+X)
+    [InlineData(135f)]
+    [InlineData(270f)]  // 정서(-X)
+    [InlineData(315f)]
+    public void 임의_yaw에서_정면_타겟은_적중하고_후방은_빗나간다(float yawDeg)
+    {
+        double rad = yawDeg * System.Math.PI / 180.0;
+        var forward = new Vector3((float)System.Math.Sin(rad), 0f, (float)System.Math.Cos(rad));
+
+        Assert.True(HitboxMath.Overlaps(Vector3.Zero, yawDeg, FrontBox, forward * 1f, 0.5f),
+            $"yaw={yawDeg}: 정면(forward) 타겟은 적중해야 한다");
+        Assert.False(HitboxMath.Overlaps(Vector3.Zero, yawDeg, FrontBox, forward * -1f, 0.5f),
+            $"yaw={yawDeg}: 후방 타겟은 빗나가야 한다");
+    }
+
     [Fact]
     public void 구형_hitbox는_반경합_거리로_판정한다()
     {

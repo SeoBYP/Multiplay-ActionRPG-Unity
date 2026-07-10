@@ -15,8 +15,10 @@ namespace Script.System.GamePlayAbilitySystem
             Vector3 attackerPos, float attackerYawDeg, HitboxSpec hitbox,
             Vector3 targetPos, float targetRadius)
         {
-            // 월드 타겟을 시전자 로컬로: 시전자 회전의 역(-yaw)을 적용.
-            double yawRad = -attackerYawDeg * Math.PI / 180.0;
+            // 월드 타겟을 시전자 로컬로 변환. Unity 좌표(왼손, Y-up)에서 yaw θ 의 forward=(sinθ,0,cosθ) 이고,
+            // 로컬→월드 회전의 역행렬(월드→로컬)은 아래와 같다. (과거 -yaw 를 써서 X/Z 교차항 부호가 뒤집혀
+            //  정북/정남(yaw 0/180, sin0)에서만 맞고 측면(90/270 등)에서 히트박스가 반대쪽으로 가던 버그를 교정.)
+            double yawRad = attackerYawDeg * Math.PI / 180.0;
             float cos = (float)Math.Cos(yawRad);
             float sin = (float)Math.Sin(yawRad);
 

@@ -14,6 +14,13 @@ namespace Game.Gameplay.Character
 
         public int InstanceId { get; private set; }
 
+        /// <summary>서버 권위 HP/MaxHp. S_MonsterState(→OnMonsterMoved) 로 갱신된다. 체력바가 구독한다.</summary>
+        public int Hp { get; private set; }
+        public int MaxHp { get; private set; }
+
+        /// <summary>HP 변경 시 발행(초기 seed 포함). <see cref="MonsterHealthBar"/> 가 구독해 fill 을 갱신.</summary>
+        public event Action<MonsterEntity> HpChanged;
+
         private Vector3 _targetPos;
         private float   _targetRotY;
         private ISocketPacketState _state;
@@ -25,6 +32,14 @@ namespace Game.Gameplay.Character
             _targetPos  = transform.position;
             _targetRotY = transform.eulerAngles.y;
 
+            // 스폰 스냅샷(MaxHp 포함)으로 초기 HP seed → 체력바 최초 표시.
+            if (_state.TryGetMonster(instanceId, out var snap))
+            {
+                Hp = snap.Hp;
+                MaxHp = snap.MaxHp;
+                HpChanged?.Invoke(this);
+            }
+
             _state.OnMonsterMoved += HandleMoved;
         }
 
@@ -33,6 +48,14 @@ namespace Game.Gameplay.Character
             if (snapshot.InstanceId != InstanceId) return;
             _targetPos  = new Vector3(snapshot.PosX, snapshot.PosY, snapshot.PosZ);
             _targetRotY = snapshot.RotY;
+
+            // S_MonsterState 는 위치+HP 를 함께 실어온다(WithState). HP 가 바뀌면 체력바 갱신 통지.
+            if (snapshot.Hp != Hp || snapshot.MaxHp != MaxHp)
+            {
+                Hp = snapshot.Hp;
+                MaxHp = snapshot.MaxHp;
+                HpChanged?.Invoke(this);
+            }
         }
 
         private void Update()

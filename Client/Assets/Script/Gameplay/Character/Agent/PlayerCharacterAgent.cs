@@ -375,8 +375,9 @@ namespace Game.Gameplay.Character
                 return;
 
             AgentAnimations?.SetTrigger(AnimationTriggerType.Interact);
+            // 이동잠금은 위임 **전에** 건다 — 대상의 Interact 가 조기반환/예외여도 잠금은 걸려야 한다(Action 축, 전이 아님).
+            ApplyRoot(InteractRootSeconds);
             target.Interact(gameObject);
-            ApplyRoot(InteractRootSeconds); // 줍기/상호작용 동안 이동 잠금(Action 축 — 전이 아님)
         }
     }
 }

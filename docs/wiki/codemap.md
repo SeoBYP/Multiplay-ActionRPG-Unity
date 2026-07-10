@@ -68,13 +68,35 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.55 HitboxMath yaw 부호 버그 수정 + 몬스터 체력바 + 공격 진단로그 (2026-07-11)
+
+- **HitboxMath 방향 버그(중대·서버권위 공유)** — `ServerAll/Shared/Shared.Gameplay/Combat/HitboxMath.cs` 의 월드→로컬 회전이 `yawRad = -yaw` 로 X/Z 교차항 부호가 뒤집혀 있었다. **yaw 0/180(정북·정남, sin0)에서만 맞고 90/270/대각에선 히트박스가 반대쪽**으로 갔다("전방 안 맞음"). 수정 = 부호 제거(`yawRad = yaw`). Unity 좌표 forward=(sinθ,0,cosθ)의 올바른 역회전.
+  - **파급**: `HitboxMath` 는 서버 권위 전 판정 공유(플레이어→몬스터, 몬스터→플레이어, PvP). 던전의 비정면 공격/피격이 전부 어긋났었다.
+  - **사각지대 원인**: 기존 `HitboxMathTests`·`CombatHandlerTests` 가 yaw 0/180 만 검증. → TDD 회귀 `임의_yaw에서_정면_타겟은_적중하고_후방은_빗나간다`(45/90/135/270/315) 추가(수정 전 red 5개 확인).
+  - **반영 경로**: 소스는 `ServerAll` 이지만 **클라는 `Client/Assets/Plugins/Shared.Gameplay/Shared.Gameplay.dll`(netstandard2.1, tracked) 로 참조** → 수정 후 **DLL 재빌드+복사 필수**(클라 예측·Main LocalCombat 폴백). 서버 권위는 Docker socketserver 리빌드.
+  - 검증: Shared.Gameplay 39/39 · SocketServer 전투 28/28 · 클라 DLL 반영 후 8 yaw 전부 정면HIT/후방MISS · EditMode 153/153.
+- **몬스터 체력바** — `Monster.prefab` 머리 위 월드공간 Canvas(BG+Fill Filled Horizontal), `MonsterHealthBar`(신규)가 부모 `MonsterEntity.HpChanged` 구독→fillAmount, 카메라 빌보드. `MonsterEntity` 에 `Hp/MaxHp` + `HpChanged` 추가(스폰 seed + S_MonsterState→OnMonsterMoved 갱신). HP 진실원=서버, 표시 전용.
+- **⚠ 임시 진단로그(원인 확정 후 제거)** — 비방장 공격 미동작 추적용 `[DIAG-Attack]`(클라 `CombatSyncSender`, 서버 `CombatHandler` docker stdout) + 기존 `[DIAG-Interact]`(줍기 이동잠금). `TODO(diag)` 표시.
+
+### 2.54 원격 플레이어 애니(RemotePlayerCharacter) — 서로 보이기 + 공격 연출 (2026-07-11)
+
+로컬 플레이어(§2.52)에 이어 **원격 플레이어도 실제 캐릭터로 보이게**. 두 파트:
+
+- **R1 (네트워크 변경 0)** — `RemotePlayerCharacter.prefab` 에 `SK_Protof-Actor` 모델+Animator(PlayerController, avatar=null, rootMotion=false)+무기(**메시 전용**)+캡슐숨김. `RemoteDriver` 가 애니 구동: 수신 스냅샷의 **보간 수평변위→Speed**(블렌드 0/2/6), `OnPlayerDead→Dead`, `OnPlayerRevived→Dead 해제`, Grounded 상시 true(점프/낙하 미동기화=지상 가정). `CharacterAgentAnimations` 은 Speed/Grounded/Attack/Dead 만 배선(나머지 빈값=미구동).
+- **R2 (서버 포함)** — 서버 `CombatHandler.HandleAttack` 가 **마나·쿨다운 게이트 통과 시에만** `S_Attack{AttackerId,SkillId}` 를 방에 Broadcast(연사 치팅이 원격 애니로 안 샘). 클라 `AttackPacketHandler`(신규)→`ISocketPacketState.OnPlayerAttacked`→`RemoteDriver` 스윙 애니. **S_Attack=연출 전용**, 적중=서버 권위(S_ApplyEffect/S_MonsterState) 유지. `S_Dodge` 패킷 부재 → 원격 회피 애니는 범위 밖.
+
+**서버 권위 불변식(중대)**: 원격 프리팹엔 `WeaponHitbox`/`Rigidbody`/`Collider` **절대 금지**(넣으면 원격이 로컬에서 몬스터 타격 → 권위 붕괴). 검증에서 colliders=0·rigidbodies=0 확인.
+**검증**: 서버 118/118 · 클라 EditMode 153/153(`S_Attack→OnPlayerAttacked` 신규) · Docker SocketE2E 27/27 + `RawSocket_공격하면_S_Attack_연출_브로드캐스트를_수신한다` 신규. 손댄 파일: `RemoteDriver.cs`·`AttackPacketHandler.cs`(신규)·`SocketApiClient.cs`·`CombatHandler.cs`·`RemotePlayerCharacter.prefab`.
+
 ### 2.53 Action 이동잠금(Rooted) — 공격·상호작용 중 이동 금지 (2026-07-09)
 
 **교리(CA-1): Action 이동제약은 FSM 전이가 아니라 태그로.** `PlayerCharacterAgent.HandleInteractInput` 주석이 예고한 대로 구현.
 - **태그**: `Gameplay/Character/ActionTags.Rooted`("State.Rooted") — **클라 전용**(서버 미사용, `Shared.Gameplay/GameplayTags` 와 분리). 이동=클라권위(C_Move)라 잠긴 동안 C_Move 미송신 → 원격도 정지로 봄.
 - **부여**: `PlayerCharacterAgent.ApplyRoot(sec)` — 공격 `FireSkill`(skill startup+active+recovery=basic 450ms) / 상호작용 `HandleInteractInput`(고정 `InteractRootSeconds`=0.6s). `Update` 최상단이 `_rootedUntil` 경과 시 자동 `RemoveTag`.
 - **소비**: `GroundState.StateUpdate` 가 `HasTag(Rooted)` 폴링 → 수평이동·Speed 0, `Move((0,verticalVel,0),0)`(중력·회전·락온 facing 유지). 기존 Slow 태그 게이트와 동일 패턴.
-- **검증**: PlayMode `ActionRootTests`(공격→Rooted 부여→만료 해제) · EditMode 152/152. 신규 `.cs` = `ActionTags.cs`·`ActionRootTests.cs`(`.meta` `git add -f`).
+- **순서 규칙**: `HandleInteractInput` 은 `ApplyRoot` 를 `target.Interact()` **앞에서** 호출한다 — 대상의 `Interact()` 가 조기반환(세션 없음·인벤 미주입)하거나 예외를 던져도 이동잠금은 걸려야 하기 때문. (뒤에 두면 조용히 스킵됨.)
+- **검증**: PlayMode `ActionRootTests` 3종 — ①공격→부여→만료해제 ②실제 `InteractionDetector` 감지→`Interact()`→부여 ③Rooted 시 GroundState 수평변위≈0(없으면 이동). EditMode 152/152. 신규 `.cs` = `ActionTags.cs`·`ActionRootTests.cs`(`.meta` `git add -f`).
+- **미해결**: 실게임 아이템 줍기에서 "안 멈춤" 보고 — 위 3종이 사슬 전체를 증명하므로 줍기가 `HandleInteractInput` 을 안 타는 경로 의심(2순위 소비자 `ReviveInteractor.Update` 가 `ConsumeInteractPressed()` 폴링). 원인 확정 후 합의된 `IInteractable.RootSeconds`(대상별 지속시간) 도입 예정.
 
 ### 2.52 플레이어 애니메이션 배선 + 무기 프롭·무기콜라이더 판정 (2026-07-09)
 

@@ -221,6 +221,31 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
+        public IEnumerator RawSocket_공격하면_S_Attack_연출_브로드캐스트를_수신한다() => UniTask.ToCoroutine(async () =>
+        {
+            // 원격 공격 애니: 서버 게이트(마나·쿨다운)를 통과한 스윙만 S_Attack{AttackerId,SkillId} 를 방에 브로드캐스트.
+            // room.Broadcast 는 방 전원 발신이라 시전자 자신도 수신 → RemoteDriver 가 타 플레이어 스윙 애니 재생.
+            // 적중·데미지는 별도(S_ApplyEffect/S_MonsterState, 서버 권위) — 이 패킷은 연출 전용이라 여기서 판정하지 않는다.
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+            try
+            {
+                // basic_swing(SkillId=0): 마나 0(무료) + 첫 발동은 쿨다운 통과 → 브로드캐스트돼야 한다.
+                await host.SendAsync(new C_Attack { SkillId = 0 }, Timeout());
+
+                var atk = await host.WaitForPacketAsync<S_Attack>(p => p.AttackerId == room.HostUserId, Timeout());
+
+                Assert.AreEqual(room.HostUserId, atk.AttackerId, "S_Attack 의 AttackerId 가 시전자여야 한다");
+                Assert.AreEqual(0, atk.SkillId, "SkillId(basic_swing=0)가 그대로 전달돼야 한다");
+            }
+            finally
+            {
+                await host.DisposeAsync();
+            }
+        });
+
+        [UnityTest]
         public IEnumerator RawSocket_몬스터_사거리_안이면_S_ApplyEffect_monster_attack_dmg_수신() => UniTask.ToCoroutine(async () =>
         {
             // 몬스터→플레이어: 패트롤 사각형(6,6)~(10,10) 중심(8,8)으로 가면 슬라임이 항상 aggro 범위 →

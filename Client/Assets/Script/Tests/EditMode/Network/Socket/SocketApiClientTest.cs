@@ -37,6 +37,26 @@ namespace Game.Tests.EditMode.Socket
             Assert.IsNotNull(_container.Resolve<ISocketSession>());
         }
 
+        /// <summary>
+        /// 원격 공격 연출: 서버가 S_Attack{AttackerId,SkillId} 를 브로드캐스트하면 OnPlayerAttacked 로 발행된다.
+        /// RemoteDriver 가 이 신호로 해당 UserId 의 스윙 애니를 재생한다(적중·데미지는 서버 권위 S_ApplyEffect).
+        /// </summary>
+        [Test]
+        public async Task S_Attack_Dispatch_하면_OnPlayerAttacked_가_발행된다()
+        {
+            var dispatcher = _container.Resolve<ISocketPacketDispatcher>();
+            var state = _container.Resolve<ISocketPacketState>();
+
+            long gotAttacker = 0;
+            int gotSkill = -1;
+            state.OnPlayerAttacked += (attackerId, skillId) => { gotAttacker = attackerId; gotSkill = skillId; };
+
+            await dispatcher.DispatchAsync(new S_Attack { AttackerId = 777, SkillId = 1 });
+
+            Assert.AreEqual(777, gotAttacker, "AttackerId 가 그대로 전달돼야 한다.");
+            Assert.AreEqual(1, gotSkill, "SkillId 가 그대로 전달돼야 한다.");
+        }
+
         [Test]
         public async Task PlayerJoined_후_Move_Dispatch_플레이어_상태_갱신()
         {

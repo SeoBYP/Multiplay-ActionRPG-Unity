@@ -102,6 +102,15 @@ public static class CombatHandler
             await SendManaAsync(session, attacker, ct);
         }
 
+        // 0d) 원격 연출 브로드캐스트 — 서버 게이트(마나·쿨다운)를 통과한 스윙만 알린다.
+        //     연사 치팅이 원격 애니로 새지 않는다. 적중/데미지는 아래 S_ApplyEffect·S_MonsterState 가 담당하며
+        //     이 패킷은 **연출 전용**이다(TargetId/Damage 는 미사용 — 대상이 여럿일 수 있음).
+        room.Broadcast(new S_Attack
+        {
+            AttackerId = session.UserId,
+            SkillId = packet.SkillId,
+        });
+
         // 1) 플레이어 피격 → S_ApplyEffect (HP 는 클라가 공유 카탈로그로 결정론 계산) — 기존
         var hits = SelectHitTargets(skill, attacker, states, TargetRadius);
         foreach (var targetId in hits)
