@@ -112,6 +112,33 @@ namespace Game.Tests.PlayMode.InGame
         });
 
         [UnityTest]
+        public IEnumerator 원격_스폰시_서버_HP기준선으로_ASC가_초기화된다() => UniTask.ToCoroutine(async () =>
+        {
+            // 파티 HP HUD 정확도: 원격 ASC 를 prefab 기본값(100)이 아닌 서버 권위 HP(S_PlayerJoined Hp/MaxHp)로 정렬.
+            // 이렇게 해야 이후 S_ApplyEffect 델타가 정확한 기준선 위에 얹혀 파티창 HP 가 실제와 일치한다.
+            var state = new SocketPacketState();
+            state.UpsertPlayer(SelfId, "me", 0, MapId, 0, 0, 0, 0);
+            // 원격: 레벨업 캐릭터(MaxHp 140) 가 이미 30 피해(현재 110) 상태로 늦게 입장.
+            state.UpsertPlayer(401, "r", 1, MapId, 3f, 0f, 0f, 0f, timeStamp: 0, hp: 110, maxHp: 140);
+
+            var spawner = BuildSpawner(state, remoteHasAsc: true);
+            await spawner.StartAsync(CancellationToken.None);
+            await UniTask.DelayFrame(2);
+
+            var remoteAsc = NonTemplate(Object.FindObjectsByType<RemoteDriver>(FindObjectsSortMode.None)
+                    .Select(c => c.gameObject))
+                .Select(g => g.GetComponent<AbilitySystemComponent>())
+                .Single(a => a != null);
+            var hp = remoteAsc.GetAttribute(EGameplayAttribute.Health);
+            Assert.AreEqual(140, hp.MaxValue, "원격 MaxHp 는 서버 권위값(140)이어야 한다(prefab 100 아님).");
+            Assert.AreEqual(110, hp.CurrentValue, "원격 현재 HP 는 서버 권위값(110)이어야 한다.");
+
+            // 레지스트리에도 같은 ASC 가 등록돼 EffectReceiver/PartyModel 이 델타를 얹을 수 있어야 한다.
+            var registry = _container.Resolve<PartyAscRegistry>();
+            Assert.IsTrue(registry.TryGet(401, out var reg) && reg == remoteAsc, "원격 ASC 가 파티 레지스트리에 등록돼야 한다.");
+        });
+
+        [UnityTest]
         public IEnumerator MapLoader가_visualPrefab을_인스턴스화한다() => UniTask.ToCoroutine(async () =>
         {
             var state = new SocketPacketState();
@@ -126,9 +153,9 @@ namespace Game.Tests.PlayMode.InGame
 
         // ── 빌드 헬퍼 ─────────────────────────────────────────────────
 
-        private CharacterSpawner BuildSpawner(ISocketPacketState state)
+        private CharacterSpawner BuildSpawner(ISocketPacketState state, bool remoteHasAsc = false)
         {
-            var builder = ConfigureCommon(state);
+            var builder = ConfigureCommon(state, remoteHasAsc);
             builder.Register<CharacterSpawner>(Lifetime.Scoped).AsSelf();
             _container = builder.Build();
             return _container.Resolve<CharacterSpawner>();
@@ -142,10 +169,10 @@ namespace Game.Tests.PlayMode.InGame
             return _container.Resolve<MapLoader>();
         }
 
-        private ContainerBuilder ConfigureCommon(ISocketPacketState state)
+        private ContainerBuilder ConfigureCommon(ISocketPacketState state, bool remoteHasAsc = false)
         {
             var localTemplate  = MakeTemplate("LocalTemplate",  withAsc: true);
-            var remoteTemplate = MakeTemplate("RemoteTemplate", withAsc: false, withRemoteDriver: true);
+            var remoteTemplate = MakeTemplate("RemoteTemplate", withAsc: remoteHasAsc, withRemoteDriver: true);
 
             var builder = new ContainerBuilder();
             builder.RegisterInstance<ISocketSession>(new FakeJoinedSocketSession());
@@ -153,6 +180,8 @@ namespace Game.Tests.PlayMode.InGame
             builder.RegisterInstance(MakeAuthSession(SelfId));
             builder.RegisterInstance(new CharacterPrefabSettings(localTemplate, remoteTemplate));
             builder.Register<LocalPlayerContext>(Lifetime.Scoped).AsSelf();
+            // CharacterSpawner 가 로컬/원격 ASC 를 파티 레지스트리에 등록하므로 필수 의존.
+            builder.Register<PartyAscRegistry>(Lifetime.Scoped).AsSelf();
             builder.Register<SpawnLayoutProvider>(Lifetime.Scoped).AsSelf();
             return builder;
         }

@@ -99,6 +99,35 @@ namespace Game.Tests.EditMode.Socket
         }
 
         [Test]
+        public async Task PlayerJoined_HP기준선이_스냅샷에_실리고_Move후에도_보존된다()
+        {
+            // 파티 HP HUD: S_PlayerJoined 의 Hp/MaxHp(서버 권위) → 스냅샷 → 원격 ASC 초기화 기준선.
+            var dispatcher = _container.Resolve<ISocketPacketDispatcher>();
+            var state = _container.Resolve<ISocketPacketState>();
+
+            await dispatcher.DispatchAsync(new S_PlayerJoined
+            {
+                Success = true,
+                UserId = 202,
+                Nickname = "bravo",
+                SpawnIndex = 2,
+                Hp = 110,
+                MaxHp = 140
+            });
+
+            Assert.IsTrue(state.TryGetPlayer(202, out var joined));
+            Assert.AreEqual(110, joined.Hp, "S_PlayerJoined.Hp 가 스냅샷에 실려야 한다.");
+            Assert.AreEqual(140, joined.MaxHp, "S_PlayerJoined.MaxHp 가 스냅샷에 실려야 한다.");
+
+            // 이동 후에도 HP 기준선은 유지돼야 한다(WithTransform 이 Hp/MaxHp 보존).
+            await dispatcher.DispatchAsync(new S_Move { UserId = 202, PosX = 1f, PosY = 0f, PosZ = 1f, RotY = 0f, TimeStamp = 5 });
+
+            Assert.IsTrue(state.TryGetPlayer(202, out var moved));
+            Assert.AreEqual(110, moved.Hp, "이동 후에도 Hp 기준선이 보존돼야 한다.");
+            Assert.AreEqual(140, moved.MaxHp, "이동 후에도 MaxHp 기준선이 보존돼야 한다.");
+        }
+
+        [Test]
         public async Task PlayerJoined_실패시_플레이어_추가되지_않음()
         {
             var dispatcher = _container.Resolve<ISocketPacketDispatcher>();

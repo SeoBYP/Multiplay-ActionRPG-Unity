@@ -38,7 +38,10 @@ namespace Game.Network.Socket
                 packet.PosX,
                 packet.PosY,
                 packet.PosZ,
-                packet.RotY);
+                packet.RotY,
+                timeStamp: 0,
+                hp: packet.Hp,
+                maxHp: packet.MaxHp);
             return UniTask.CompletedTask;
         }
     }

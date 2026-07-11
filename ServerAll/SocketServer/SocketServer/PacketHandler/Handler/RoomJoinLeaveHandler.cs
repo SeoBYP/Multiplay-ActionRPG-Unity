@@ -1,11 +1,15 @@
+using System.Runtime.CompilerServices;
 using Server.Player;
 using Shared.Packet.Packets;
+
+[assembly: InternalsVisibleTo("SocketServer.Tests")]
 
 namespace Server.PacketHandler.Handler;
 
 public static class RoomJoinLeaveHandler
 {
-    private static S_PlayerJoined ToJoinedPacket(PlayerState state, string mapId) => new()
+    // internal = SocketServer.Tests 단위 검증용 시임(순수 매핑). 파티 HP HUD 가 이 Hp/MaxHp 로 원격 기준선을 맞춘다.
+    internal static S_PlayerJoined ToJoinedPacket(PlayerState state, string mapId) => new()
     {
         Success = true,
         Message = "",
@@ -16,7 +20,10 @@ public static class RoomJoinLeaveHandler
         PosZ = state.PosZ,
         RotY = state.RotY,
         MapId = mapId,
-        SpawnIndex = state.SpawnIndex
+        SpawnIndex = state.SpawnIndex,
+        // 서버 권위 HP 기준선 — 본인응답/타인브로드캐스트/늦은입장 로스터 3곳 모두 이 헬퍼 경유라 한 번에 반영.
+        Hp = state.Hp,
+        MaxHp = state.MaxHp
     };
 
     [PacketHandler(typeof(C_PlayerJoin))]

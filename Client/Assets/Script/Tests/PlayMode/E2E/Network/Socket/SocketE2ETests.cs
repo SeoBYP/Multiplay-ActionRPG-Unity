@@ -37,10 +37,15 @@ namespace Game.Tests.PlayMode.E2E
                 Assert.AreEqual(SocketSessionState.Joined, hostClient.Session.State);
                 Assert.IsTrue(hostClient.State.TryGetPlayer(room.HostUserId, out var hostPlayer));
                 Assert.AreEqual(room.HostNickname, hostPlayer.Nickname);
-                
+                // 파티 HP HUD: S_PlayerJoined 가 서버 권위 HP 기준선을 실어야 한다(원격 ASC 초기화 소스).
+                Assert.Greater(hostPlayer.MaxHp, 0, "S_PlayerJoined 에 서버 권위 MaxHp(레벨 MaxHealth)가 실려야 한다");
+                Assert.AreEqual(hostPlayer.MaxHp, hostPlayer.Hp, "입장 시 만피(Hp==MaxHp)로 실려야 한다");
+
                 Assert.AreEqual(SocketSessionState.Joined, guestClient.Session.State);
                 Assert.IsTrue(guestClient.State.TryGetPlayer(room.GuestUserId, out var guestPlayer));
                 Assert.AreEqual(room.GuestNickname, guestPlayer.Nickname);
+                Assert.Greater(guestPlayer.MaxHp, 0, "게스트 S_PlayerJoined 에도 서버 권위 MaxHp 가 실려야 한다");
+                Assert.AreEqual(guestPlayer.MaxHp, guestPlayer.Hp, "게스트도 입장 시 만피로 실려야 한다");
             }
             finally
             {

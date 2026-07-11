@@ -26,6 +26,9 @@ namespace Game.Network.Socket.Packets
         // 결정론적 스폰 입력. 클라가 MapId 레이아웃 + SpawnIndex 로 자기 스폰 위치를 직접 계산한다.
         public string MapId { get; set; } = "";
         public int SpawnIndex { get; set; }
+        // 서버 권위 HP 기준선(레벨 MaxHealth). 원격 파티원 HP HUD 가 정확한 기준선에서 델타를 얹도록 함.
+        public int Hp { get; set; }
+        public int MaxHp { get; set; }
     }
 
     [MemoryPackable]

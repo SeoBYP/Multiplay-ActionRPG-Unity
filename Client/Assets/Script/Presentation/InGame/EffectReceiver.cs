@@ -22,17 +22,20 @@ namespace Game.Presentation.InGame
         private readonly GameplayEffectCatalog _catalog;
         private readonly LocalPlayerContext _localPlayer;
         private readonly AuthSession _authSession;
+        private readonly PartyAscRegistry _partyRegistry;
 
         public EffectReceiver(
             ISocketPacketState state,
             GameplayEffectCatalog catalog,
             LocalPlayerContext localPlayer,
-            AuthSession authSession)
+            AuthSession authSession,
+            PartyAscRegistry partyRegistry)
         {
             _state = state;
             _catalog = catalog;
             _localPlayer = localPlayer;
             _authSession = authSession;
+            _partyRegistry = partyRegistry;
         }
 
         public void Initialize()
@@ -90,6 +93,10 @@ namespace Game.Presentation.InGame
 
         private AbilitySystemComponent ResolveTarget(long targetId)
         {
+            // 파티 레지스트리로 로컬·원격 모두 라우팅(CharacterSpawner 가 스폰 시 등록). 파티 HP HUD 가 이 경로로 GAS HP 추적.
+            if (_partyRegistry != null && _partyRegistry.TryGet(targetId, out var asc))
+                return asc;
+            // 폴백(레지스트리 미등록 타이밍): 로컬은 LocalPlayerContext 로.
             if (_authSession != null && targetId == _authSession.UserId)
                 return _localPlayer.AbilitySystem;
             return null;

@@ -64,7 +64,7 @@ namespace Game.Network.Socket
         /// <summary>현재 플레이 중인 맵 식별자. S_PlayerJoined 수신 시 세팅. 결정론 스폰 레이아웃 선택에 사용.</summary>
         string MapId { get; }
 
-        void UpsertPlayer(long userId, string nickname, int spawnIndex, string mapId, float posX, float posY, float posZ, float rotY, long timeStamp = 0);
+        void UpsertPlayer(long userId, string nickname, int spawnIndex, string mapId, float posX, float posY, float posZ, float rotY, long timeStamp = 0, int hp = 0, int maxHp = 0);
         void UpdatePlayerTransform(long userId, float posX, float posY, float posZ, float rotY, long timeStamp);
         bool TryGetPlayer(long userId, out SocketPlayerSnapshot snapshot);
         /// <summary>방에서 나간 플레이어를 상태에서 제거한다.</summary>
@@ -201,13 +201,13 @@ namespace Game.Network.Socket
         public void UpdateMana(long userId, int mana, int maxMana)
             => OnManaUpdated?.Invoke(userId, mana, maxMana);
 
-        public void UpsertPlayer(long userId, string nickname, int spawnIndex, string mapId, float posX, float posY, float posZ, float rotY, long timeStamp = 0)
+        public void UpsertPlayer(long userId, string nickname, int spawnIndex, string mapId, float posX, float posY, float posZ, float rotY, long timeStamp = 0, int hp = 0, int maxHp = 0)
         {
             SocketPlayerSnapshot snapshot;
             lock (_sync)
             {
                 if (!string.IsNullOrEmpty(mapId)) MapId = mapId;
-                snapshot = new SocketPlayerSnapshot(userId, nickname ?? string.Empty, spawnIndex, posX, posY, posZ, rotY, timeStamp);
+                snapshot = new SocketPlayerSnapshot(userId, nickname ?? string.Empty, spawnIndex, posX, posY, posZ, rotY, timeStamp, hp, maxHp);
                 _players[userId] = snapshot;
             }
             OnPlayerJoined?.Invoke(snapshot);
@@ -226,9 +226,9 @@ namespace Game.Network.Socket
                 else
                 {
                     // S_Move가 S_PlayerJoined보다 먼저 도달한 경우 — 최소 스냅샷으로 보관만 한다.
-                    // SpawnIndex는 아직 모름(-1). S_PlayerJoined 수신 시 Upsert로 교정된다.
+                    // SpawnIndex는 아직 모름(-1), HP 기준선도 미상(0). S_PlayerJoined 수신 시 Upsert로 교정된다.
                     // OnPlayerMoved는 발행하지 않는다 (아직 RemoteDriver가 없음).
-                    _players[userId] = new SocketPlayerSnapshot(userId, string.Empty, -1, posX, posY, posZ, rotY, timeStamp);
+                    _players[userId] = new SocketPlayerSnapshot(userId, string.Empty, -1, posX, posY, posZ, rotY, timeStamp, 0, 0);
                 }
             }
             if (updated != null) OnPlayerMoved?.Invoke(updated);
@@ -425,8 +425,11 @@ namespace Game.Network.Socket
         public float PosZ { get; }
         public float RotY { get; }
         public long TimeStamp { get; }
+        /// <summary>서버 권위 HP 기준선(S_PlayerJoined). 원격 파티원 ASC 초기화에 사용. 미상이면 0.</summary>
+        public int Hp { get; }
+        public int MaxHp { get; }
 
-        public SocketPlayerSnapshot(long userId, string nickname, int spawnIndex, float posX, float posY, float posZ, float rotY, long timeStamp)
+        public SocketPlayerSnapshot(long userId, string nickname, int spawnIndex, float posX, float posY, float posZ, float rotY, long timeStamp, int hp = 0, int maxHp = 0)
         {
             UserId = userId;
             Nickname = nickname ?? string.Empty;
@@ -436,14 +439,16 @@ namespace Game.Network.Socket
             PosZ = posZ;
             RotY = rotY;
             TimeStamp = timeStamp;
+            Hp = hp;
+            MaxHp = maxHp;
         }
 
         /// <summary>
-        /// 플레이어 식별 정보(SpawnIndex 포함)는 유지하고 transform 정보만 갱신한 새 스냅샷을 만든다.
+        /// 플레이어 식별 정보(SpawnIndex·HP 기준선 포함)는 유지하고 transform 정보만 갱신한 새 스냅샷을 만든다.
         /// </summary>
         public SocketPlayerSnapshot WithTransform(float posX, float posY, float posZ, float rotY, long timeStamp)
         {
-            return new SocketPlayerSnapshot(UserId, Nickname, SpawnIndex, posX, posY, posZ, rotY, timeStamp);
+            return new SocketPlayerSnapshot(UserId, Nickname, SpawnIndex, posX, posY, posZ, rotY, timeStamp, Hp, MaxHp);
         }
 
         /// <summary>
@@ -451,7 +456,7 @@ namespace Game.Network.Socket
         /// </summary>
         public SocketPlayerSnapshot Clone()
         {
-            return new SocketPlayerSnapshot(UserId, Nickname, SpawnIndex, PosX, PosY, PosZ, RotY, TimeStamp);
+            return new SocketPlayerSnapshot(UserId, Nickname, SpawnIndex, PosX, PosY, PosZ, RotY, TimeStamp, Hp, MaxHp);
         }
     }
 

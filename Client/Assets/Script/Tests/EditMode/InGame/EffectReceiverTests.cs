@@ -97,11 +97,31 @@ namespace Game.Tests.EditMode.InGame
             Assert.AreEqual(0, asc.ActiveEffects.Count, "즉발 피해는 ActiveEffect로 추적되지 않는다");
         }
 
+        [Test]
+        public void 원격_대상_Effect는_레지스트리의_해당_ASC에_적용된다()
+        {
+            // 파티 HP HUD 경로: EffectReceiver 가 PartyAscRegistry 로 TargetId 를 라우팅해 원격 ASC 에 적용.
+            var state = new SocketPacketState();
+            var localAsc = CreateAsc();
+            var localPlayer = new LocalPlayerContext();
+            localPlayer.Set(localAsc);
+
+            var remoteAsc = CreateAsc();
+            var registry = new PartyAscRegistry();
+            registry.Register(999, remoteAsc);
+            _receiver = Build(state, localPlayer, registry);
+
+            state.ApplyEffect(new SocketEffectApply("basic_attack_dmg", instanceId: 5, targetId: 999, sourceId: 200, startTick: 0, stacks: 1));
+
+            Assert.AreEqual(90, remoteAsc.GetAttribute(EGameplayAttribute.Health).CurrentValue, "원격 대상 효과는 레지스트리의 원격 ASC 에 적용돼야 한다.");
+            Assert.AreEqual(100, localAsc.GetAttribute(EGameplayAttribute.Health).CurrentValue, "원격 대상 효과가 로컬 ASC 에 새면 안 된다.");
+        }
+
         // ── 헬퍼 ────────────────────────────────────────
 
-        private EffectReceiver Build(SocketPacketState state, LocalPlayerContext localPlayer)
+        private EffectReceiver Build(SocketPacketState state, LocalPlayerContext localPlayer, PartyAscRegistry registry = null)
         {
-            var receiver = new EffectReceiver(state, new GameplayEffectCatalog(), localPlayer, MakeAuth(LocalUserId));
+            var receiver = new EffectReceiver(state, new GameplayEffectCatalog(), localPlayer, MakeAuth(LocalUserId), registry ?? new PartyAscRegistry());
             receiver.Initialize();
             return receiver;
         }

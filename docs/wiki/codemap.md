@@ -68,6 +68,34 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.58 던전 파티 HP HUD — 원격 ASC 레지스트리 재사용(신규 패킷 0) (2026-07-12)
+
+애니 폴리시 백로그 ★ 항목. 던전 좌상단에 파티원(로컬+원격) HP 바를 표시.
+- **교리: 신규 패킷 0.** HP 진실원은 이미 서버 권위 GAS(`S_ApplyEffect`가 **방 전체 브로드캐스트**)다. 원격 플레이어의 피해/회복도 이미 클라에 도착하고 있으나, 여태 `EffectReceiver`가 로컬(TargetId==내 UserId)만 라우팅하고 버려서 원격 HP를 몰랐을 뿐. → 원격 캐릭터에 ASC를 얹고 TargetId로 라우팅하면 별도 동기화 패킷 없이 파티 HP가 따라온다.
+- **데이터 경로**:
+  `S_ApplyEffect(방 브로드캐스트)` → `SocketPacketState.OnEffectApplied`
+  → `EffectReceiver.ResolveTarget(TargetId)` → **`PartyAscRegistry.TryGet`** (로컬+원격 모두)
+  → 해당 ASC `ApplyEffectAuthoritative` → `GameplayAttribute.OnChanged`
+  → `PartyModel`(각 ASC.OnAttributeChanged 구독) `Changed` → `PartyHpView` 재렌더.
+- **컴포넌트**:
+  - `Client/Assets/Script/System/Player/PartyAscRegistry.cs` (신규) — UserId→ASC 딕셔너리(`LocalPlayerContext`의 파티 확장). 생산=CharacterSpawner, 소비=EffectReceiver(라우팅)·PartyModel(집계). Gameplay↔Presentation 형제라 공통 하위 `Game.System.Player`에 둠.
+  - `CharacterSpawner` — 로컬 스폰 시 `Register(authUserId, asc)`, 원격 스폰 시 `Register(snapshot.UserId, go.GetComponent<ASC>())`, 디스폰 `Unregister`, Dispose `Clear`.
+  - `RemotePlayerCharacter.prefab` — **ASC(Health 100/100) 추가**(기존엔 없었음). 스폰 시 서버 권위 기준선으로 덮어씀(아래 HP 기준선 동기화).
+  - `EffectReceiver.ResolveTarget` — 레지스트리 우선 → 미등록 폴백(로컬 LocalPlayerContext). `OnEffectRemoved`는 여전히 로컬만(S_RemoveEffect에 TargetId 없음 → 버프 제거는 대상 식별 불가; 파티 HP는 즉발 델타라 무관).
+  - `Presentation/InGame/PartyModel.cs` (신규) — 레지스트리+로스터(닉네임)+ASC Health 집계 → `IReadOnlyList<PartyMemberInfo>`. 구성/HP 변경 시 Changed.
+  - `GUI/Hud/PartyHpView.cs` (신규) — MVI View(오직 PartyModel 주입). **코드로 자체 Overlay Canvas+행 풀 생성**(프리팹 수술 0). 좌상단, 로컬=하늘색+`<b>`, 아군=연두, 사망=회색. GameHud와 분리한 이유: GameHud는 InGameModel 전용(뷰=모델 1개 규칙).
+  - DI: `DungeonLifetimeScope`(PartyAscRegistry+PartyModel+PartyHpView), `MainLifetimeScope`(PartyAscRegistry만 — CharacterSpawner가 로컬 등록하므로 필요, 파티 HUD는 미표시).
+
+#### 2.58b 원격 HP 기준선 동기화 — S_PlayerJoined 에 Hp/MaxHp (2026-07-12, 실플레이 후속 수정)
+- **증상(실 2인 플레이)**: 파티창 아군이 `70/100`인데 그 아군 본인 화면은 `110/140` — MaxHp·현재HP 둘 다 어긋남. 로컬 본인은 정확.
+- **원인**: 로컬 HP 기준선은 **owner-only**(`PlayerProgressionHolder.GetProgression`→`PlayerStatApplier`, §2.41)라 남의 MaxHealth를 클라가 모른다. 원격 ASC가 prefab 100/100 에서 출발 → 서버 델타(정확히 수신, −30)는 얹히나 **기준선이 100이라** 결과가 40씩 어긋남(현재 70/최대 100). 몬스터는 `S_SpawnMonster`에 Hp/MaxHp가 있어 정확했지만 `S_PlayerJoined`엔 없었다.
+- **수정(몬스터와 동일 패턴)**: `S_PlayerJoined` += `Hp,MaxHp`(서버 `PlayerState`가 이미 보유, `InitPlayerState(maxHealth)`). `ToJoinedPacket` 한 곳만 채우면 **3 전송지점(본인응답·타인브로드캐스트·늦은입장 로스터)** 모두 반영. 클라 `SocketPlayerSnapshot`+`UpsertPlayer`(선택적 hp/maxHp)+핸들러 전달 → `CharacterSpawner.SpawnRemote`가 원격 ASC `Health.SetMax/SetCurrent`로 기준선 교정 후 등록. 이후 델타가 **정확한 기준선** 위에 얹혀 파티 HP 일치. (로컬은 PlayerStatApplier 그대로.)
+- **계약**: `S_PlayerJoined` 직렬화 필드 2개 append(MemoryPack 순서 보존, 서버+클라 미러 동시). gRPC 아님 → Generated 재생성 불요. 서버 리빌드+Docker 재배포 필요.
+- **파일**: `Shared.Packet/RoomPackets.cs`·`SocketServer/PacketHandler/Handler/RoomJoinLeaveHandler.cs`(ToJoinedPacket) / 클라 `Network/Socket/Packets/RoomPackets.cs`·`SocketApiClient.cs`(snapshot+Upsert)·`Handler/Contents/PlayerJoinedPacketHandler.cs`·`Gameplay/Character/CharacterSpawner.cs`.
+- **PartyHpView 글씨색**: 흰색→**검은색**(사용자 요청).
+- **검증**: 서버 build0 · **SocketServer.Tests 5**(신규 `ToJoinedPacket은_PlayerState의_HP기준선을_S_PlayerJoined에_싣는다` — `ToJoinedPacket` internal+`InternalsVisibleTo("SocketServer.Tests")` 시임) · 클라 컴파일0 · EditMode **157**(신규 `PlayerJoined_HP기준선이_스냅샷에_실리고_Move후에도_보존된다`) · PlayMode 7(신규 `원격_스폰시_서버_HP기준선으로_ASC가_초기화된다` + `PartyModelTests` 3) · **E2E `SocketE2ETests` 28/28**(신규: `두_클라이언트_입장` 이 S_PlayerJoined MaxHp>0·Hp==MaxHp 검증, Docker 리빌드 후 201s).
+- **잔여 한계**: MaxHp는 입장 시점값(던전 중 레벨업 미반영 — 던전 내 레벨업 없음 YAGNI). 최초 구현(§2.58)의 "prefab 근사" 한계는 이 수정으로 해소.
+
 ### 2.57 NPC 애니 + 락온 strafe(8방향) + 락온 UI 마커 (2026-07-12)
 
 애니 폴리시 백로그(animation-combat-polish-backlog.md) #1·#6.

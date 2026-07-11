@@ -52,6 +52,24 @@ public class PlayerStatSeedTests
     }
 
     [Fact]
+    public void ToJoinedPacket은_PlayerState의_HP기준선을_S_PlayerJoined에_싣는다()
+    {
+        // 파티 HP HUD(§2.58b): 원격 클라가 S_PlayerJoined 의 Hp/MaxHp 로 원격 ASC 기준선을 맞춘다.
+        // 늦은 입장 로스터는 '현재' Hp(이미 피해분 반영)를 실어야 하므로 Hp 와 MaxHp 를 독립 검증한다.
+        var room = NewRoom();
+        room.InitPlayerState(100, "A", 0, 0f, 0f, 0f, 0f, maxHealth: 140);
+
+        var state = room.GetAllPlayerStates().Single();
+        state.Hp = 110; // 피해로 현재 HP 가 줄어든 상황
+
+        var packet = global::Server.PacketHandler.Handler.RoomJoinLeaveHandler.ToJoinedPacket(state, "dungeon_01");
+
+        Assert.Equal(140, packet.MaxHp);
+        Assert.Equal(110, packet.Hp);   // 현재 HP(≠MaxHp)가 그대로 실려야 한다
+        Assert.Equal("dungeon_01", packet.MapId);
+    }
+
+    [Fact]
     public void CreateRoom은_게임시작_메시지의_PlayerInfo_스탯을_PlayerState로_전파한다()
     {
         // 실제 production 경로(RoomManager.CreateRoom → InitPlayerState) — 던전에 스탯이 들어가는지.

@@ -31,6 +31,7 @@ namespace Game.Gameplay.Character
         private readonly CharacterPrefabSettings _prefabs;
         private readonly LocalPlayerContext     _localPlayer;
         private readonly SpawnLayoutProvider    _spawnLayouts;
+        private readonly PartyAscRegistry       _partyRegistry;
 
         private GameObject _localCharacterGo;
         private readonly Dictionary<long, RemoteDriver> _remotes = new Dictionary<long, RemoteDriver>();
@@ -42,7 +43,8 @@ namespace Game.Gameplay.Character
             IObjectResolver         container,
             CharacterPrefabSettings prefabs,
             LocalPlayerContext      localPlayer,
-            SpawnLayoutProvider     spawnLayouts)
+            SpawnLayoutProvider     spawnLayouts,
+            PartyAscRegistry        partyRegistry)
         {
             _socketSession = socketSession;
             _packetState   = packetState;
@@ -51,6 +53,7 @@ namespace Game.Gameplay.Character
             _prefabs       = prefabs;
             _localPlayer   = localPlayer;
             _spawnLayouts  = spawnLayouts;
+            _partyRegistry = partyRegistry;
         }
 
         public async UniTask StartAsync(CancellationToken ct)
@@ -98,7 +101,10 @@ namespace Game.Gameplay.Character
             // 로컬 ASC를 공유 컨텍스트에 등록 → InGameModel이 HUD로 스탯을 중계한다.
             var asc = go.GetComponent<AbilitySystemComponent>();
             if (asc != null)
+            {
                 _localPlayer.Set(asc);
+                _partyRegistry.Register(_authSession.UserId, asc); // 파티 HP HUD 용 로컬 등록
+            }
             else
                 Debug.LogError("[CharacterSpawner] 로컬 프리팹에 AbilitySystemComponent가 없습니다.");
 
@@ -294,6 +300,24 @@ namespace Game.Gameplay.Character
             driver.Initialize(snapshot.UserId, _packetState);
             _remotes[snapshot.UserId] = driver;
 
+            // 파티 HP HUD 용 원격 ASC 등록(S_ApplyEffect 를 TargetId 로 라우팅해 HP 추적).
+            // 서버 권위 HP 기준선(S_PlayerJoined Hp/MaxHp)으로 정렬 — 이후 델타가 정확한 기준선 위에 얹힌다.
+            // MaxHp==0 이면 서버 미전송(레거시/테스트) → prefab 기본값(100) 유지.
+            var remoteAsc = go.GetComponent<AbilitySystemComponent>();
+            if (remoteAsc != null)
+            {
+                if (snapshot.MaxHp > 0)
+                {
+                    var hpAttr = remoteAsc.GetAttribute(EGameplayAttribute.Health);
+                    if (hpAttr != null)
+                    {
+                        hpAttr.SetMax(snapshot.MaxHp);
+                        hpAttr.SetCurrent(snapshot.Hp);
+                    }
+                }
+                _partyRegistry.Register(snapshot.UserId, remoteAsc);
+            }
+
             Debug.Log($"[CharacterSpawner] 원격 캐릭터 스폰 — UserId={snapshot.UserId} Nickname={snapshot.Nickname}");
         }
 
@@ -301,6 +325,7 @@ namespace Game.Gameplay.Character
         {
             if (!_remotes.TryGetValue(userId, out var driver)) return;
             _remotes.Remove(userId);
+            _partyRegistry.Unregister(userId);
             driver.Dispose();
             if (driver != null) UnityEngine.Object.Destroy(driver.gameObject);
             Debug.Log($"[CharacterSpawner] 원격 캐릭터 디스폰 — UserId={userId}");
@@ -311,6 +336,7 @@ namespace Game.Gameplay.Character
         public void Dispose()
         {
             _localPlayer.Clear();
+            _partyRegistry.Clear();
             _packetState.OnPlayerJoined  -= HandlePlayerJoined;
             _packetState.OnPlayerLeft    -= HandlePlayerLeft;
             _packetState.OnPlayerDead    -= HandlePlayerDead;

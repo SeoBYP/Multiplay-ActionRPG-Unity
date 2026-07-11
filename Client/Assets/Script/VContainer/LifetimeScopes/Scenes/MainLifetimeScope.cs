@@ -50,6 +50,8 @@ namespace Game.Installers.Scenes
             // Main 씬은 네트워크 미연결(SocketState != Joined)이라 SpawnLayoutProvider는
             // 생성자 충족용으로만 필요하고 런타임에 Get()이 호출되지는 않는다.
             builder.Register<LocalPlayerContext>(Lifetime.Scoped).AsSelf();
+            // CharacterSpawner 가 로컬 ASC 를 등록하므로 레지스트리도 필요(Main 은 파티 HUD 미표시 — 소비자 없음).
+            builder.Register<PartyAscRegistry>(Lifetime.Scoped).AsSelf();
             builder.Register<SpawnLayoutProvider>(Lifetime.Scoped).AsSelf();
 
             // GameHud(HP/MP/버프)를 Main 씬에서도 표시. 던전 구성과 동일하되,

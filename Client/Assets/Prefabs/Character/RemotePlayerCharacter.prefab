@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 7324038672831623654}
   - component: {fileID: 1153816351040471676}
   - component: {fileID: 6613219363061763924}
+  - component: {fileID: 611105127618183077}
   m_Layer: 0
   m_Name: RemotePlayerCharacter
   m_TagString: Untagged
@@ -62,7 +63,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.CharacterAgentAnimations
   m_animationSpeedFloat: Speed
+  m_animationMoveXFloat: 
+  m_animationMoveYFloat: 
   m_animationGroundedBool: Grounded
+  m_animationStrafeBool: 
   m_animationFallTrigger: 
   m_animationJumpTrigger: 
   m_animationLandTrigger: 
@@ -71,6 +75,24 @@ MonoBehaviour:
   m_animationDeathTrigger: Dead
   m_animationDodgeTrigger: 
   m_animationReviveTrigger: Revive
+--- !u!114 &611105127618183077
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2620101429799267180}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e61c464a9e3a53a479d5c18be289a4e2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.System::Script.System.GamePlayAbilitySystem.AbilitySystemComponent
+  Attributes:
+  - _attributeType: 0
+    _kind: 0
+    _baseValue: 100
+    _maxValue: 100
+    _currentValue: 100
 --- !u!1 &8006493718595968665
 GameObject:
   m_ObjectHideFlags: 0

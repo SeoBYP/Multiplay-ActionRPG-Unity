@@ -33,6 +33,9 @@ public class DungeonLifetimeScope : LifetimeScope
         // 로컬 플레이어 ASC 공유 컨텍스트 — CharacterSpawner(생산)·InGameModel(소비)이 동일 인스턴스 공유.
         builder.Register<LocalPlayerContext>(Lifetime.Scoped).AsSelf();
 
+        // 파티(로컬+원격) ASC 레지스트리 — CharacterSpawner(생산) · EffectReceiver(타겟 라우팅) · PartyModel(집계)이 공유.
+        builder.Register<PartyAscRegistry>(Lifetime.Scoped).AsSelf();
+
         // Effect/버프 — 정의 카탈로그(GAS) + 표시 카탈로그.
         // 표시 카탈로그: 인스펙터 할당 우선 → Resources 기본본 → 빈 인스턴스 순으로 폴백.
         builder.Register<GameplayEffectCatalog>(Lifetime.Scoped).AsSelf();
@@ -51,6 +54,11 @@ public class DungeonLifetimeScope : LifetimeScope
 
         // GameHud는 씬에 미리 배치하지 않고 Addressable로 로드·생성한다.
         builder.RegisterEntryPoint<GameHudController>(Lifetime.Scoped);
+
+        // 파티 HP HUD(좌상단) — Model(레지스트리+로스터 집계) + View(코드로 Canvas 생성).
+        // 신규 패킷 없음: 기존 S_ApplyEffect 방 브로드캐스트 + 원격 ASC 레지스트리로 HP 추적.
+        builder.RegisterEntryPoint<PartyModel>(Lifetime.Scoped).AsSelf();
+        builder.RegisterEntryPoint<PartyHpView>(Lifetime.Scoped);
 
         // 인벤토리 MVI — Model + 표시 카탈로그(인스펙터 → Resources 폴백 → 빈 인스턴스) + 창 컨트롤러.
         builder.RegisterInstance(itemDisplayCatalog != null

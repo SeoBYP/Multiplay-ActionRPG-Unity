@@ -28,7 +28,7 @@
 | 7 | Attack 콤보 A→B→C | 대 | 서버 게이트 재검토 | 4 |
 | 8 | Interact 이동잠금 지속 = IInteractable 노출 | 소 | 없음 | 필요 시 |
 | 9 | FBX `.meta` 클론 안전성 | 결정 | 레포 관행 | 상시 유의 |
-| ★ | **던전 파티 HP HUD** (신규 요청) — 원격 ASC 레지스트리 + EffectReceiver TargetId 라우팅(신규 패킷 X, GAS 재사용) + 좌측 파티 패널 | 중 | 없음(클라) | **다음** |
+| ★ | ✅ **던전 파티 HP HUD** — 2026-07-12 완료(codemap §2.58). 원격 ASC 레지스트리 + EffectReceiver TargetId 라우팅(신규 패킷 X, GAS 재사용) + 좌상단 파티 패널 | 중 | 없음(클라) | — |
 
 ---
 
