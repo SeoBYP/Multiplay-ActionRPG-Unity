@@ -96,6 +96,32 @@ namespace Game.Gameplay.Character
                 _animationMovementSpeed = 0f;
 
             _animations.SetFloat(AnimationFloatType.Speed, _animationMovementSpeed);
+
+            DriveStrafeAnimation();
+        }
+
+        /// <summary>
+        /// 락온(<see cref="CharacterMotor.FacingOverride"/> 설정) 중에는 몸이 타겟을 향한 채 카메라기준 스트레이프로
+        /// 이동한다 — 1D Speed(전진 블렌드)로는 옆/뒤 이동이 어색하므로, 이동방향을 facing 프레임으로 분해해
+        /// MoveX(좌−/우+)·MoveY(후−/전+)로 2D 방향 블렌드를 구동한다. 비락온이면 Strafe=false(기존 1D).
+        /// </summary>
+        private void DriveStrafeAnimation()
+        {
+            bool strafing = _motor.FacingOverride.HasValue;
+            _animations.SetBool(AnimationBoolType.Strafe, strafing);
+            if (!strafing) return;
+
+            Vector3 fwd = _motor.FacingOverride.Value; fwd.y = 0f;
+            if (fwd.sqrMagnitude < 0.0001f) return;
+            fwd.Normalize();
+            Vector3 right = Vector3.Cross(Vector3.up, fwd);
+
+            // 크기(0~1) = 현재 이동속도/스프린트속도. 정지=중앙(idle), 최고속=가장자리(run).
+            float mag = Mathf.Clamp01(_currentMoveSpeed / Mathf.Max(0.01f, _settings.SprintSpeed));
+            Vector3 worldMove = _motor.ResolveWorldMoveDirection(_inputSource.Current.Move);
+
+            _animations.SetFloat(AnimationFloatType.MoveX, Vector3.Dot(worldMove, right) * mag);
+            _animations.SetFloat(AnimationFloatType.MoveY, Vector3.Dot(worldMove, fwd) * mag);
         }
 
         public override void Exit() { }

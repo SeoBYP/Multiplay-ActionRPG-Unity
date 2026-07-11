@@ -68,6 +68,16 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.57 NPC 애니 + 락온 strafe(8방향) + 락온 UI 마커 (2026-07-12)
+
+애니 폴리시 백로그(animation-combat-polish-backlog.md) #1·#6.
+- **NPC 애니**: `NPCController` 가 파라미터만 있고 states=0(빈 컨트롤러)이었다. Locomotion 블렌드(IdleUnarmed/WalkForwardUnarmed/RunForwardUnarmed, Speed 0/2/6) 생성+기본상태. Main 씬 NPC(씬 배치, 프리팹 아님)에 `SK_Protof-Actor`+Animator 부착·캡슐 렌더 숨김. `NpcCharacterAgent`가 플레이어처럼 FSM+CharacterAgentAnimations 를 써서 모델+Animator만 붙으면 자동 애니. ⚠ NPC 는 씬에서 active=False.
+- **락온 strafe(8방향)**: 락온 중(`CharacterMotor.FacingOverride`) 몸은 타겟 향하고 이동은 카메라기준 스트레이프인데 1D Speed(전진)만 있어 옆/뒤가 어색했다. → 계약 `CharacterAgentAnimations`에 `MoveX`/`MoveY`(float)·`Strafe`(bool) + SetFloat/SetBool 빈값 가드(원격/NPC 미배선 경고 방지). `GroundState.DriveStrafeAnimation`이 락온 시 이동방향을 facing 프레임으로 분해(MoveX=우dot, MoveY=전dot, ×속도비율)해 공급. `PlayerController` Locomotion 서브SM에 `Strafe` 2D FreeformDirectional 블렌드(9클립=idle+8방향 Run 1hMelee) + `Idle Walk Run Blend↔Strafe`(Strafe bool) 전이. 검증: 런타임 Animator Strafe=true→Strafe 상태·MoveX=-1→RunLeft·MoveY=1→RunForward.
+- **락온 UI 마커**: `LockOnMarker`(월드공간 Canvas 빌보드, MonsterHealthBar 패턴). `LockOnDriver`가 락온 시 `Show(target)`·해제 시 `Hide()`, 지연 생성·재사용. 아이콘 = **절차적 링 스프라이트 런타임 생성**(빌트인 `UI/Skin/Knob.psd`는 플레이어 빌드에 없어 로드 실패 → Texture2D→Sprite 1회 캐시).
+- **플레이 버그 2건 수정**: ① 락온 중(=Strafe 상태) 공격 무동작 — Attack 전이가 `Idle Walk Run Blend` 상태 전용이라 Strafe 엔 없었다 → `Strafe→RightHand1Combat`(Attack)·`Strafe→Interact`(Interact) 직접 전이 추가(Jump/Fall 은 Locomotion AnyState 라 무관). ② 마커 스프라이트 런타임 오류(위).
+- **NPC 2종**: `NPC`(NpcCharacterAgent, 씬 비활성이라 활성화) + `NPC_Elder`(NPCDialogueInteractable, agent 없는 대화 캡슐 — 모델+Animator 부착, 루트 y=1 캡슐중심이라 모델 −1 오프셋). `NPC (1~7)`/`window_npc` 는 화면 UI(대화 초상화)라 무관.
+- 검증: EditMode 155/155 + 런타임 Animator(strafe·Strafe중 Attack). **미검증(플레이)**: strafe 손맛·마커 위치는 사용자 확인("잘된다").
+
 ### 2.56 Rooted 공중 상태 확장 + 부활 복귀 애니 (2026-07-11)
 
 이전 세션 잔여 버그 2건 정리(plan A "벌인 것 닫기").

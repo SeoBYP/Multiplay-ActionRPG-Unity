@@ -19,13 +19,16 @@ namespace Game.Gameplay.Character
     public enum AnimationFloatType
     {
         None,
-        Speed
+        Speed,
+        MoveX, // 락온 strafe — facing 기준 좌(-)/우(+) 이동 성분
+        MoveY  // 락온 strafe — facing 기준 후(-)/전(+) 이동 성분
     }
 
     public enum AnimationBoolType
     {
         None,
-        Grounded
+        Grounded,
+        Strafe // 락온 중 = true → 2D 방향 블렌드로 전환
     }
 
     public class CharacterAgentAnimations : MonoBehaviour
@@ -35,7 +38,11 @@ namespace Game.Gameplay.Character
         [Header("Animations")] [SerializeField]
         private string m_animationSpeedFloat;
 
+        [SerializeField] private string m_animationMoveXFloat;
+        [SerializeField] private string m_animationMoveYFloat;
+
         [SerializeField] private string m_animationGroundedBool;
+        [SerializeField] private string m_animationStrafeBool;
         [SerializeField] private string m_animationFallTrigger;
         [SerializeField] private string m_animationJumpTrigger;
         [SerializeField] private string m_animationLandTrigger;
@@ -61,11 +68,14 @@ namespace Game.Gameplay.Character
             floatParameters = new Dictionary<AnimationFloatType, string>
             {
                 { AnimationFloatType.Speed, m_animationSpeedFloat },
+                { AnimationFloatType.MoveX, m_animationMoveXFloat },
+                { AnimationFloatType.MoveY, m_animationMoveYFloat },
                 // Add more mappings here
             };
             boolParameters = new Dictionary<AnimationBoolType, string>
             {
                 { AnimationBoolType.Grounded, m_animationGroundedBool },
+                { AnimationBoolType.Strafe, m_animationStrafeBool },
                 // Add more mappings here
             };
             triggerParameters = new Dictionary<AnimationTriggerType, string>
@@ -85,7 +95,8 @@ namespace Game.Gameplay.Character
         public void SetFloat(AnimationFloatType floatType, float value)
         {
             if(!m_animator) return;
-            if (floatParameters.TryGetValue(floatType, out string paramName))
+            // 파라미터명이 비어있으면(미배선 — 예: 원격/NPC 의 MoveX) 조용히 스킵. Animator 경고 방지.
+            if (floatParameters.TryGetValue(floatType, out string paramName) && !string.IsNullOrEmpty(paramName))
             {
                 m_animator.SetFloat(paramName, value);
                 return;
@@ -95,7 +106,7 @@ namespace Game.Gameplay.Character
         public void SetBool(AnimationBoolType boolType, bool value)
         {
             if(!m_animator) return;
-            if (boolParameters.TryGetValue(boolType, out string paramName))
+            if (boolParameters.TryGetValue(boolType, out string paramName) && !string.IsNullOrEmpty(paramName))
             {
                 m_animator.SetBool(paramName, value);
                 return;

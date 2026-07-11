@@ -302,7 +302,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Main::Game.Main.Character.CharacterAgentAnimations
   m_animationSpeedFloat: Speed
+  m_animationMoveXFloat: MoveX
+  m_animationMoveYFloat: MoveY
   m_animationGroundedBool: Grounded
+  m_animationStrafeBool: Strafe
   m_animationFallTrigger: Fall
   m_animationJumpTrigger: Jump
   m_animationLandTrigger: Land

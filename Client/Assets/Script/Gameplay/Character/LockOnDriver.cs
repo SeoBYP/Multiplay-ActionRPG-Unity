@@ -21,6 +21,7 @@ namespace Game.Gameplay.Character
 
         private LockOnTarget _target;
         private UnityEngine.Camera _camera;
+        private LockOnMarker _marker; // 락온 대상 위 표식(지연 생성·재사용)
 
         public bool IsLocked => _target != null;
         public LockOnTarget CurrentTarget => _target;
@@ -57,6 +58,8 @@ namespace Game.Gameplay.Character
             }
             _target = best;
             if (_cameraFollow != null) _cameraFollow.LockTarget = best.transform;
+            if (_marker == null) _marker = LockOnMarker.Create();
+            _marker.Show(best.transform);
             Debug.Log($"[LockOn] 락온 → {best.name}");
         }
 
@@ -97,6 +100,7 @@ namespace Game.Gameplay.Character
             _target = null;
             if (_motor != null) _motor.FacingOverride = null;
             if (_cameraFollow != null) _cameraFollow.LockTarget = null;
+            if (_marker != null) _marker.Hide();
         }
 
         private UnityEngine.Camera ResolveCamera()
