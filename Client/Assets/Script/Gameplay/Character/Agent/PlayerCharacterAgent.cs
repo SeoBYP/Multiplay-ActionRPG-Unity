@@ -160,6 +160,7 @@ namespace Game.Gameplay.Character
             if (type == EGameplayAttribute.Health && current <= 0 && AbilitySystem != null && !IsDead)
             {
                 AbilitySystem.AddTag(DeadTag);
+                AgentAnimations?.ResetTrigger(AnimationTriggerType.Revive); // 이전 부활 트리거 잔재 제거(즉시 Dead 탈출 방지)
                 AgentAnimations?.SetTrigger(AnimationTriggerType.Dead); // 다운 포즈(Animator "Dead" 클립 배선은 클라 발전 시).
                 Debug.Log("[PlayerCharacterAgent] 로컬 다운 — HP≤0 → State.Dead (입력 게이트). ※다운 애니는 미배선(로그 대체)");
             }
@@ -180,6 +181,7 @@ namespace Game.Gameplay.Character
             hp?.SetCurrent(hp.MaxValue);
 
             AgentAnimations?.ResetTrigger(AnimationTriggerType.Dead);
+            AgentAnimations?.SetTrigger(AnimationTriggerType.Revive); // Dead 포즈 → 로코모션 복귀(양성 신호)
 
             // CharacterController 텔레포트 — 비활성화 후 위치 설정해야 내부 위치와 어긋나지 않는다.
             var cc = GetComponent<CharacterController>();
@@ -211,6 +213,7 @@ namespace Game.Gameplay.Character
             var health = AbilitySystem.GetAttribute(EGameplayAttribute.Health);
             health?.SetCurrent(hp);
             AgentAnimations?.ResetTrigger(AnimationTriggerType.Dead);
+            AgentAnimations?.SetTrigger(AnimationTriggerType.Revive); // Dead 포즈 → 로코모션 복귀(양성 신호)
 
             Debug.Log($"[PlayerCharacterAgent] Co-op 부활 — State.Dead 해제, HP={hp} (제자리). ※부활 애니 미배선(로그)");
         }

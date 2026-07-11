@@ -13,6 +13,7 @@ namespace Game.Gameplay.Character
         Attack,
         Dead, // 사망(다운) 포즈. HP≤0 시 PlayerCharacterAgent 가 트리거. 리스폰 시 ResetTrigger.
         Dodge, // 회피/구르기. 입력 시 DodgeDriver 가 트리거(클립 미배선이면 조용히 스킵).
+        Revive, // 부활 — Dead 포즈에서 로코모션으로 복귀. 부활 시 트리거(Dead 는 나가는 전이가 없어 양성 신호 필요).
     }
 
     public enum AnimationFloatType
@@ -42,6 +43,7 @@ namespace Game.Gameplay.Character
         [SerializeField] private string m_animationAttackTrigger;
         [SerializeField] private string m_animationDeathTrigger;
         [SerializeField] private string m_animationDodgeTrigger;
+        [SerializeField] private string m_animationReviveTrigger;
 
         // Mapping enums to animator parameter names
         private Dictionary<AnimationFloatType, string> floatParameters;
@@ -74,7 +76,8 @@ namespace Game.Gameplay.Character
                 { AnimationTriggerType.Interact, m_animationInteractTrigger },
                 { AnimationTriggerType.Attack , m_animationAttackTrigger},
                 { AnimationTriggerType.Dead , m_animationDeathTrigger},
-                { AnimationTriggerType.Dodge , m_animationDodgeTrigger}
+                { AnimationTriggerType.Dodge , m_animationDodgeTrigger},
+                { AnimationTriggerType.Revive , m_animationReviveTrigger}
                 // Add more mappings here
             };
         }

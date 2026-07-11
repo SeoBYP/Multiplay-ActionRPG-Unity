@@ -1,4 +1,5 @@
 using Game.Gameplay.Character.Input;
+using Script.System.GamePlayAbilitySystem;
 using UnityEngine;
 
 namespace Game.Gameplay.Character
@@ -9,6 +10,7 @@ namespace Game.Gameplay.Character
         private readonly CharacterAgentAnimations _animations;
         private readonly ICharacterInputSource _inputSource;
         private readonly LocomotionSettings _settings;
+        private readonly AbilitySystemComponent _abilitySystem; // null이면 Rooted 미적용
 
         private float _verticalVelocity;
         private float _fallTimeoutRemaining;
@@ -18,12 +20,14 @@ namespace Game.Gameplay.Character
             CharacterMotor motor,
             CharacterAgentAnimations animations,
             ICharacterInputSource inputSource,
-            LocomotionSettings settings)
+            LocomotionSettings settings,
+            AbilitySystemComponent abilitySystem = null)
         {
             _motor = motor;
             _animations = animations;
             _inputSource = inputSource;
             _settings = settings;
+            _abilitySystem = abilitySystem;
         }
 
         public override void Enter()
@@ -45,13 +49,21 @@ namespace Game.Gameplay.Character
                 }
             }
 
+            _verticalVelocity += _settings.Gravity * deltaTime;
+
+            // Action 이동잠금(Rooted): 공중에서도 수평 에어컨트롤을 막는다(중력만 적용). GroundState 와 동일 규약.
+            if (_abilitySystem != null && _abilitySystem.HasTag(ActionTags.Rooted))
+            {
+                _motor.Move(new Vector3(0f, _verticalVelocity, 0f), 0f);
+                _animations.SetFloat(AnimationFloatType.Speed, 0f);
+                return;
+            }
+
             float targetSpeed = _inputSource.Current.SprintHeld
                 ? _settings.SprintSpeed
                 : _settings.MoveSpeed;
 
             targetSpeed = _inputSource.Current.Move == Vector2.zero ? 0f : targetSpeed;
-
-            _verticalVelocity += _settings.Gravity * deltaTime;
 
             _motor.Move(
                 new Vector3(_inputSource.Current.Move.x, _verticalVelocity, _inputSource.Current.Move.y),

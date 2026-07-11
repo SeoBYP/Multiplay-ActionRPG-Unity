@@ -105,6 +105,85 @@ namespace Game.Tests.PlayMode.InGame
             Assert.Less(rootedHoriz, 0.001f, $"Rooted 중에는 수평 이동이 없어야 한다(실측 {rootedHoriz:F4}m).");
         }
 
+        [UnityTest]
+        public IEnumerator Rooted_태그가_있으면_공중_FallState도_수평이동을_막는다()
+        {
+            var go = new GameObject("RootedAirAgent");
+            go.SetActive(false);
+            _objects.Add(go);
+            var cc = go.AddComponent<CharacterController>();
+            cc.height = 2f; cc.radius = 0.5f; cc.center = new Vector3(0f, 1f, 0f);
+            var motor = go.AddComponent<CharacterMotor>();
+            var anims = go.AddComponent<CharacterAgentAnimations>();
+            var asc   = go.AddComponent<AbilitySystemComponent>();
+            asc.Attributes = new List<GameplayAttribute> { new(EGameplayAttribute.Health, 100, 100) };
+            go.SetActive(true);
+            go.transform.position = new Vector3(0f, 5f, 0f); // 공중
+
+            var settings = new LocomotionSettings();
+            motor.Construct(settings);
+            var input = new FakeMoveSource(new Vector2(1f, 0f)); // 우측 에어컨트롤 입력
+            var fall = new FallState(motor, anims, input, settings, asc);
+            fall.Enter();
+
+            // Rooted 부여 → 낙하(수직)는 되지만 수평(X/Z)은 0 이어야 한다.
+            asc.AddTag(ActionTags.Rooted);
+            var before = go.transform.position;
+            for (int i = 0; i < 20; i++) { fall.Update(0.02f); yield return null; }
+            var after = go.transform.position;
+
+            float horiz = new Vector2(after.x - before.x, after.z - before.z).magnitude;
+            Assert.Less(horiz, 0.001f, $"Rooted 중엔 공중에서도 수평 이동이 없어야 한다(실측 {horiz:F4}m).");
+            Assert.Less(after.y, before.y - 0.05f, "중력에 의한 낙하(수직 이동)는 유지돼야 한다.");
+        }
+
+        [UnityTest]
+        public IEnumerator 사망하면_Dead_애니_부활하면_로코모션으로_복귀한다()
+        {
+            var go = new GameObject("ReviveAnimAgent");
+            go.SetActive(false);
+            _objects.Add(go);
+            go.AddComponent<FakeInput>();
+
+            // Animator 자식(실제 PlayerController) — CharacterAgentAnimations 가 GetComponentInChildren 로 찾는다.
+            var model = new GameObject("Model");
+            model.transform.SetParent(go.transform, false);
+            var animator = model.AddComponent<Animator>();
+#if UNITY_EDITOR
+            animator.runtimeAnimatorController = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.RuntimeAnimatorController>(
+                "Assets/GameResources/Animations/Player/PlayerController.controller");
+#endif
+            animator.avatar = null;
+
+            var agent = go.AddComponent<TestableAgent>();
+            var asc = go.GetComponent<AbilitySystemComponent>();
+            asc.Attributes = new List<GameplayAttribute> { new(EGameplayAttribute.Health, 100, 100) };
+
+            // CharacterAgentAnimations 트리거명(런타임 AddComponent 라 프리팹값 없음) — Awake 전에 세팅.
+            var caa = go.GetComponent<CharacterAgentAnimations>();
+            void SetName(string field, string val) => typeof(CharacterAgentAnimations)
+                .GetField(field, BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(caa, val);
+            SetName("m_animationDeathTrigger", "Dead");
+            SetName("m_animationReviveTrigger", "Revive");
+
+            go.SetActive(true); // Awake: CAA 애니 캐시 + agent OnAttributeChanged 구독
+            animator.Rebind();
+            animator.Update(0f);
+            Assume.That(animator.runtimeAnimatorController, Is.Not.Null, "PlayerController 로드 실패(에디터 외 실행)");
+
+            // 사망: HP→0 → OnAttributeChanged → SetTrigger(Dead) → AnyState→Dead
+            asc.GetAttribute(EGameplayAttribute.Health).SetCurrent(0);
+            for (int i = 0; i < 12; i++) { animator.Update(0.1f); yield return null; }
+            Assert.IsTrue(asc.HasTag(GameplayTags.Dead), "HP0 이면 State.Dead 태그가 서야 한다.");
+            Assert.IsTrue(animator.GetCurrentAnimatorStateInfo(0).IsName("Dead"), "사망 시 Animator 가 Dead 상태여야 한다.");
+
+            // 부활: agent.Revive → SetTrigger(Revive) → Dead→로코모션
+            agent.Revive(Vector3.zero);
+            for (int i = 0; i < 12; i++) { animator.Update(0.1f); yield return null; }
+            Assert.IsFalse(asc.HasTag(GameplayTags.Dead), "부활 후 State.Dead 태그가 해제돼야 한다.");
+            Assert.IsFalse(animator.GetCurrentAnimatorStateInfo(0).IsName("Dead"), "부활 후 Animator 가 Dead 를 벗어나야 한다.");
+        }
+
         // ── 리그 (CcGateTests 와 동일 구조) ──────────────
 
         private (TestableAgent agent, FakeInput input, AbilitySystemComponent asc) BuildAgent(bool withDetector = false)

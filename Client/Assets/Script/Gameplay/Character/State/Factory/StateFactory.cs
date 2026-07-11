@@ -20,13 +20,15 @@ namespace Game.Gameplay.Character
                     context.Motor,
                     context.Animations,
                     context.InputSource,
-                    context.LocomotionSettings),
+                    context.LocomotionSettings,
+                    context.AbilitySystem),
 
                 StateKind.Fall => new FallState(
                     context.Motor,
                     context.Animations,
                     context.InputSource,
-                    context.LocomotionSettings),
+                    context.LocomotionSettings,
+                    context.AbilitySystem),
 
                 StateKind.Land => new LandState(context.Animations),
 

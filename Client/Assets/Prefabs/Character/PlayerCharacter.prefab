@@ -310,6 +310,7 @@ MonoBehaviour:
   m_animationAttackTrigger: Attack
   m_animationDeathTrigger: Dead
   m_animationDodgeTrigger: Dodge
+  m_animationReviveTrigger: Revive
 --- !u!114 &2017590699258750573
 MonoBehaviour:
   m_ObjectHideFlags: 0

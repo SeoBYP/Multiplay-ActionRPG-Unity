@@ -68,6 +68,12 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.56 Rooted 공중 상태 확장 + 부활 복귀 애니 (2026-07-11)
+
+이전 세션 잔여 버그 2건 정리(plan A "벌인 것 닫기").
+- **Fall/Jump 이동잠금 누락**: `Rooted` 체크가 `GroundState` 에만 있어 공중 공격/줍기 시 에어컨트롤이 안 잠겼다. → `FallState`·`JumpState` 에 `AbilitySystemComponent`(선택 인자) 주입 + `HasTag(Rooted)` 시 수평 0·중력 유지(GroundState 동일 규약). `StateFactory` 가 `context.AbilitySystem` 전달. `LandState` 는 no-op 이라 제외. 테스트 `Rooted_태그가_있으면_공중_FallState도_수평이동을_막는다`.
+- **부활 복귀 애니**: Dead 상태(AnyState→Dead, 홀드)에 나가는 전이가 없어 `ResetTrigger(Dead)` 만으론 부활해도 사망 포즈에 갇혔다. → 양성 `Revive` 트리거 신설(`AnimationTriggerType.Revive` + `m_animationReviveTrigger`), 컨트롤러 `Dead→Idle Walk Run Blend`(Revive) 전이. `PlayerCharacterAgent.Revive/ReviveInPlace`·`RemoteDriver.HandlePlayerRevived` 가 발화, 사망 시 `ResetTrigger(Revive)` 위생. 프리팹(Player/Remote) 문자열 "Revive". 검증: 런타임 Animator 구동 Dead→Revive→로코모션 복귀 + EditMode 153/153.
+
 ### 2.55 HitboxMath yaw 부호 버그 수정 + 몬스터 체력바 + 공격 진단로그 (2026-07-11)
 
 - **HitboxMath 방향 버그(중대·서버권위 공유)** — `ServerAll/Shared/Shared.Gameplay/Combat/HitboxMath.cs` 의 월드→로컬 회전이 `yawRad = -yaw` 로 X/Z 교차항 부호가 뒤집혀 있었다. **yaw 0/180(정북·정남, sin0)에서만 맞고 90/270/대각에선 히트박스가 반대쪽**으로 갔다("전방 안 맞음"). 수정 = 부호 제거(`yawRad = yaw`). Unity 좌표 forward=(sinθ,0,cosθ)의 올바른 역회전.

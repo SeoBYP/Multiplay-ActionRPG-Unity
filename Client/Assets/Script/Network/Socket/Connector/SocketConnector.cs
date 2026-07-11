@@ -65,8 +65,18 @@ namespace Game.Network.Socket
 
             try
             {
-                await _stream.WriteAsync(lengthBytes, 0, 4, ct);
-                await _stream.WriteAsync(payload, 0, payload.Length, ct);
+                // 락 대기 중 DisconnectAsync 가 _stream 을 null 로 정리했을 수 있다(송신↔종료 레이스).
+                // IsConnected 를 통과(위)했어도 여기서 끊길 수 있으므로 로컬로 캡처해 널·이후 교체에 안전하게.
+                var stream = _stream;
+                if (stream == null)
+                    return; // 끊김은 정상 경로 — 조용히 무시
+
+                await stream.WriteAsync(lengthBytes, 0, 4, ct);
+                await stream.WriteAsync(payload, 0, payload.Length, ct);
+            }
+            catch (Exception e) when (IsExpectedDisconnect(e, ct))
+            {
+                // 송신 중 연결이 끊기거나 스트림이 해제된 경우 — 예상 종료로 간주(로그·throw 안 함).
             }
             catch (Exception e)
             {

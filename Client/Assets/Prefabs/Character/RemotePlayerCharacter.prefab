@@ -70,6 +70,7 @@ MonoBehaviour:
   m_animationAttackTrigger: Attack
   m_animationDeathTrigger: Dead
   m_animationDodgeTrigger: 
+  m_animationReviveTrigger: Revive
 --- !u!1 &8006493718595968665
 GameObject:
   m_ObjectHideFlags: 0

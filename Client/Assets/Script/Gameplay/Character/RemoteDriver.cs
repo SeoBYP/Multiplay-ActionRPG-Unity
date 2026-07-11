@@ -62,14 +62,16 @@ namespace Game.Gameplay.Character
         private void HandlePlayerDead(long userId)
         {
             if (userId != UserId) return;
+            _animations?.ResetTrigger(AnimationTriggerType.Revive); // 이전 부활 트리거 잔재 제거
             _animations?.SetTrigger(AnimationTriggerType.Dead);
         }
 
-        /// <summary>부활 — 다운 트리거 해제(로컬 ReviveInPlace 와 동일 규약).</summary>
+        /// <summary>부활 — Dead 포즈에서 로코모션 복귀(로컬 ReviveInPlace 와 동일 규약).</summary>
         private void HandlePlayerRevived(long userId, int hp)
         {
             if (userId != UserId) return;
             _animations?.ResetTrigger(AnimationTriggerType.Dead);
+            _animations?.SetTrigger(AnimationTriggerType.Revive);
         }
 
         /// <summary>원격 공격 스윙(연출 전용). 적중·데미지는 서버 권위 — 여기선 애니만 재생한다.</summary>
