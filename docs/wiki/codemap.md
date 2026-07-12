@@ -68,6 +68,16 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.59 부활 기상(GetUp) 애니 + 아이템 줍기 = 애니 없이 토스트 (2026-07-12)
+
+애니 폴리시 백로그 #3(GetUp)·#4(Interact 클립). PROTOFACTOR 컬렉션 실사 후 결정.
+- **부활 기상(#3, 컨트롤러만·코드 무변경)**: 기존 부활은 `Dead ──Revive──▶ Idle Walk Run` 직결(즉시 스냅, §2.56). 1hMelee 셋에 **전용 기상 클립 `Humanoid@GetBackUpFront`(2.67s, DeathFront 사망포즈와 짝)** 발견 → `GetUp` 상태 신설해 `Dead ──Revive──▶ GetUp(GetBackUpFront) ──▶ Idle Walk Run`으로 재배선. GetUp→Loco 전이 2개: (a) `hasExitTime 0.75`(자연 완료) (b) `Speed>0.1`(이동 입력 시 즉시 인터럽트=반응성). **`PlayerCharacter`·`RemotePlayerCharacter`가 같은 `PlayerController` 공유 → 로컬·원격 동시 적용.** 코드(`PlayerCharacterAgent.Revive/ReviveInPlace`·`RemoteDriver`)는 이미 `Revive` 트리거를 쏘므로 무변경.
+- **아이템 줍기 = 애니 없이 토스트(#4)**: PROTOFACTOR 에 전용 "줍기" 클립이 없음(DrawWeapon 플레이스홀더뿐) → 사용자 결정 = **줍기 애니 제거 + 획득 토스트로 대체**. ① `PlayerCharacterAgent.HandleInteractInput` 에서 `SetTrigger(Interact)` 제거(이동잠금 `ApplyRoot` 는 이전 요청대로 유지 — §2.53). ② **`ShopToastMessage` 패턴 채택**(사용자 지시): 모델 계층 타입 메시지 `ItemToastMessage`(struct) 신설 → `InGameModel.OnItemPickup`(`Observable<ItemToastMessage>`, 이름=`ItemDisplayCatalog` 선택 주입, 없으면 itemId) → `GameHud` 가 표시. GameHud 는 **serialized `itemToastText`(프리팹 배치 가능) + 미할당 시 코드로 하단 중앙 TMP 생성**(Shop 은 미할당 시 로그 폴백이지만 획득은 놓치면 안 돼 코드 폴백으로 항상 표시). 색/타이머/`HideAfterDelay(CTS)` 동형. `GroundItemSpawner.HandlePickedUp` 은 진단 로그로 격하.
+- **던전·Main 양쪽 병합(사용자 지적: Main 에서 안 뜸)**: 줍기 소스가 둘 — **던전=소켓 `S_ItemPickedUp`**(`ISocketPacketState.OnItemPickedUp`), **Main=로컬 `LocalGroundItem→ClaimKill`(gRPC, 비네트워크)**. Main 을 소켓 상태로 위장하지 않으려고 소스 무관 허브 **`ItemPickupNotifier`**(`Game.System.Player`, `PartyAscRegistry` 와 동일 위치·패턴) 신설: `LocalGroundItem` 이 `ClaimKill` 성공 시 `granted` 별로 `Notify` → `InGameModel` 이 소켓·허브 **양쪽을 같은 핸들러로 구독**해 동일 토스트로 병합. DI: `ItemPickupNotifier`(Scoped) Main·Dungeon 둘 다 등록(InGameModel 주입 충족).
+- **한글 폰트 폴백(사용자 지적: 토스트 한글 안 나옴)**: **근본 원인 = TMP 기본 폰트 `LiberationSans SDF`(라틴, Static)에 한글 글리프·폴백 0** → 코드로 만든 TMP(토스트·`PartyHpView` 등, `TMP_Settings.defaultFontAsset` 사용)가 한글을 못 그림(프리팹 TMP 는 Chiron 직접 참조라 정상이었음). 수정 = `Assets/Art/Fonts/ChironSungHK-SemiBold SDF`(Dynamic, 한글 보유)를 **`TMP Settings.asset` 전역 폴백**(`fallbackFontAssets`)에 등록 → 모든 코드 생성 TMP 가 한글을 폴백 렌더(라틴은 LiberationSans 유지). 검증: 기본폰트 TMP 에 "아이템 획득" → 한글 5자 전부 `ChironSungHK-SemiBold SDF`·vis=True 확인. **파티 HP 한글 닉네임(§2.58)도 동시 해소.**
+- **파일**: `GameResources/Animations/Player/PlayerController.controller`(GetUp) / `Gameplay/Character/Agent/PlayerCharacterAgent.cs`(Interact 제거) / `Presentation/InGame/ItemToastMessage.cs`·`InGameModel.cs` / `GUI/Hud/GameHud.cs` / `System/Player/ItemPickupNotifier.cs`(신규) · `Gameplay/Character/LocalGroundItem.cs`(Notify) · `VContainer/.../{Main,Dungeon}LifetimeScope.cs`(등록) / `Gameplay/Character/GroundItemSpawner.cs`(주석).
+- **검증**: 클라 컴파일0 · EditMode **159**(신규 `아이템_획득시_OnItemPickup_토스트_메시지가_발행된다`[던전] + `Main_로컬줍기_통지시_OnItemPickup_토스트가_발행된다`[Main]) · PlayMode `ActionRootTests` **5/5**(강화: 부활 후 `GetUp` 진입→기상 재생→로코모션 복귀; 상호작용 Rooted 유지). 순수 클라 → 서버/E2E 불요. 실 육안(기상·던전/Main 획득 토스트)=MPPM 수동.
+
 ### 2.58 던전 파티 HP HUD — 원격 ASC 레지스트리 재사용(신규 패킷 0) (2026-07-12)
 
 애니 폴리시 백로그 ★ 항목. 던전 좌상단에 파티원(로컬+원격) HP 바를 표시.

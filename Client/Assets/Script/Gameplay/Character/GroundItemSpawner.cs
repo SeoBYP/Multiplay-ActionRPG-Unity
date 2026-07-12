@@ -13,7 +13,7 @@ namespace Game.Gameplay.Character
     ///
     /// - OnGroundItemSpawned → GroundItemPrefab 인스턴스화 + GroundItemEntity 초기화
     /// - OnGroundItemRemoved → 디스폰(누군가 주웠거나 만료)
-    /// - OnItemPickedUp      → 획득 토스트(현재 로그 — 정식 토스트 위젯은 7.x UI 후속)
+    /// - OnItemPickedUp      → 진단 로그. 획득 토스트(화면 표시)는 InGameModel.OnItemPickup → GameHud 가 담당(MVI 경로).
     /// 구독 전 이미 도착한 바닥 아이템은 GetAllGroundItems() 로 초기 스폰(늦은 입장 로스터 유실 방지).
     /// </summary>
     public class GroundItemSpawner : IAsyncStartable, IDisposable
@@ -59,7 +59,7 @@ namespace Game.Gameplay.Character
 
         private void HandlePickedUp(string itemId, int qty)
         {
-            // 정식 획득 토스트 위젯은 7.x UI 후속. 현재는 검증용 로그.
+            // 진단 로그만. 화면 획득 토스트는 InGameModel.OnItemPickup → GameHud(MVI, 이름 표시 포함).
             Debug.Log($"[GroundItemSpawner] 아이템 획득 — ItemId={itemId} x{qty}");
         }
 

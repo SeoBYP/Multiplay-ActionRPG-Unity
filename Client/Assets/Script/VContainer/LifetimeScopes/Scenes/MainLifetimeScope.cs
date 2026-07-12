@@ -52,6 +52,8 @@ namespace Game.Installers.Scenes
             builder.Register<LocalPlayerContext>(Lifetime.Scoped).AsSelf();
             // CharacterSpawner 가 로컬 ASC 를 등록하므로 레지스트리도 필요(Main 은 파티 HUD 미표시 — 소비자 없음).
             builder.Register<PartyAscRegistry>(Lifetime.Scoped).AsSelf();
+            // Main 로컬 줍기(LocalGroundItem) → InGameModel 획득 토스트 통지 허브.
+            builder.Register<ItemPickupNotifier>(Lifetime.Scoped).AsSelf();
             builder.Register<SpawnLayoutProvider>(Lifetime.Scoped).AsSelf();
 
             // GameHud(HP/MP/버프)를 Main 씬에서도 표시. 던전 구성과 동일하되,

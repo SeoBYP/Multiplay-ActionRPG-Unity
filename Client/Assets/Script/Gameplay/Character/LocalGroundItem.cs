@@ -1,6 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Game.Network.Https.Interfaces;
+using Game.System.Player;
 using GameServer.Grpc.Inventory;
 using UnityEngine;
 using VContainer;
@@ -22,6 +23,7 @@ namespace Game.Gameplay.Character
         private const float SpawnYOffset = 0.7f;
 
         [Inject] private readonly IInventoryGrpcService _inventory = null;
+        [Inject] private readonly ItemPickupNotifier _pickupNotifier = null; // 획득 토스트(GameHud) 통지
 
         private string _mapId = string.Empty;
         private int _slotId;
@@ -52,10 +54,13 @@ namespace Game.Gameplay.Character
 
                 if (res.Result.Success)
                 {
-                    // 서버가 roll 한 실제 보상(쿨다운이면 빈 목록 = 이미 클레임됨). TODO(7.x): 정식 획득 토스트.
+                    // 서버가 roll 한 실제 보상(쿨다운이면 빈 목록 = 이미 클레임됨).
                     // 경험치는 줍기가 아니라 킬 즉시(MainMonsterSpawner→ClaimMonsterExp)로 별도 지급.
                     foreach (var g in res.Granted)
+                    {
                         Debug.Log($"[LocalGroundItem] 획득 — {g.ItemId} x{g.Qty} (보유 {g.NewQuantity})");
+                        _pickupNotifier?.Notify(g.ItemId, g.Qty); // 던전 소켓 경로와 동일 획득 토스트(GameHud)
+                    }
                     if (res.Granted.Count == 0)
                         Debug.Log($"[LocalGroundItem] 보상 없음(쿨다운/드랍없음) — map {_mapId} slot {_slotId}");
                     Destroy(gameObject); // 클레임 처리됨 → 오브 소멸

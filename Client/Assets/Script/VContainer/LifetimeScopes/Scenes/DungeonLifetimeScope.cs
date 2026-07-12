@@ -36,6 +36,9 @@ public class DungeonLifetimeScope : LifetimeScope
         // 파티(로컬+원격) ASC 레지스트리 — CharacterSpawner(생산) · EffectReceiver(타겟 라우팅) · PartyModel(집계)이 공유.
         builder.Register<PartyAscRegistry>(Lifetime.Scoped).AsSelf();
 
+        // 아이템 획득 알림 허브 — 던전은 소켓 경로라 미사용이나 InGameModel 주입 충족용(Main 과 동일 구성).
+        builder.Register<ItemPickupNotifier>(Lifetime.Scoped).AsSelf();
+
         // Effect/버프 — 정의 카탈로그(GAS) + 표시 카탈로그.
         // 표시 카탈로그: 인스펙터 할당 우선 → Resources 기본본 → 빈 인스턴스 순으로 폴백.
         builder.Register<GameplayEffectCatalog>(Lifetime.Scoped).AsSelf();

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Core;
 using Game.GUI.Common;
@@ -68,6 +69,15 @@ namespace Game.GUI.OutGame
         [SerializeField] private SliderBall mpSlider;
         [SerializeField] private Slider expSlider;
         [SerializeField] private TextMeshProUGUI expValue; // {현재 경험치}/{다음 레벨업에 필요한 경험치}
+
+        [Header("Item Pickup Toast (ShopToastMessage 패턴)")]
+        [Tooltip("획득 토스트 TMP. 프리팹에 배치하면 그걸 쓰고, 미할당이면 코드로 생성(하단 중앙).")]
+        [SerializeField] private TextMeshProUGUI itemToastText;
+        [Tooltip("아이템 획득 토스트 표시 시간(초). 줍기 애니 대신 이 토스트로 획득 피드백.")]
+        [SerializeField] private float itemToastSeconds = 2f;
+        private static readonly Color ItemToastColor = new Color(1f, 0.92f, 0.55f); // 옅은 금색(획득감)
+        private TextMeshProUGUI _pickupToast;          // 실제 사용 TMP(serialized 또는 코드 생성) 캐시
+        private CancellationTokenSource _pickupToastCts;
         
         [InspectorButton("Quick Setting")]
         private void QuickSetting()
@@ -91,6 +101,9 @@ namespace Game.GUI.OutGame
             
             expSlider = this.FindChildComponentByName<Slider>("expSlider");
             expValue = this.FindChildComponentByName<TextMeshProUGUI>("expValue");
+
+            // 획득 토스트 TMP(있으면 사용, 없으면 런타임에 코드로 생성). Shop 의 ToastText 배선과 동형.
+            itemToastText = this.FindChildComponentByName<TextMeshProUGUI>("ItemToastText");
         }
         
         private void Start()
@@ -116,6 +129,60 @@ namespace Game.GUI.OutGame
             _model.OnConnectionLost
                 .Subscribe(_ => ShowDisconnectPopupAsync().Forget())
                 .AddTo(destroyCancellationToken);
+
+            // 아이템 획득(서버 S_ItemPickedUp) → 하단 중앙 토스트(줍기 애니 대체).
+            _model.OnItemPickup
+                .Subscribe(ShowPickupToast)
+                .AddTo(destroyCancellationToken);
+        }
+
+        /// <summary>
+        /// 서버 획득 확정 시 뜨는 획득 토스트(ShopToastMessage 패턴). Shop 은 미할당 시 로그 폴백이지만,
+        /// 획득은 놓치면 안 되는 피드백이라 미할당 시 코드로 TMP 를 생성해 항상 보이게 한다(프리팹 무변경).
+        /// </summary>
+        private void ShowPickupToast(ItemToastMessage toast)
+        {
+            if (_pickupToast == null)
+                _pickupToast = itemToastText != null ? itemToastText : CreatePickupToast();
+
+            _pickupToast.text = toast.Message;
+            _pickupToast.color = ItemToastColor;
+            _pickupToast.gameObject.SetActive(true);
+
+            _pickupToastCts?.Cancel();
+            _pickupToastCts?.Dispose();
+            _pickupToastCts = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
+            HidePickupToastAfterDelay(_pickupToastCts.Token).Forget();
+        }
+
+        private TextMeshProUGUI CreatePickupToast()
+        {
+            var go = new GameObject("ItemPickupToast", typeof(RectTransform));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(transform, false);
+            rt.anchorMin = new Vector2(0.5f, 0f);
+            rt.anchorMax = new Vector2(0.5f, 0f);
+            rt.pivot = new Vector2(0.5f, 0f);
+            rt.anchoredPosition = new Vector2(0f, 180f); // 액션바 위
+            rt.sizeDelta = new Vector2(700f, 44f);
+
+            var tmp = go.AddComponent<TextMeshProUGUI>();
+            tmp.font = TMP_Settings.defaultFontAsset;
+            tmp.fontSize = 26f;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.raycastTarget = false; // 색은 ShowPickupToast 가 ItemToastColor 로 설정
+            return tmp;
+        }
+
+        private async UniTaskVoid HidePickupToastAfterDelay(CancellationToken ct)
+        {
+            try
+            {
+                await UniTask.Delay(TimeSpan.FromSeconds(itemToastSeconds), cancellationToken: ct);
+                if (_pickupToast != null)
+                    _pickupToast.gameObject.SetActive(false);
+            }
+            catch (OperationCanceledException) { }
         }
 
         /// <summary>컨테이너에 미리 배치된 슬롯이 있으면 풀로 흡수하고 모두 숨긴다.</summary>

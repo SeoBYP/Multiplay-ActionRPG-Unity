@@ -377,7 +377,8 @@ namespace Game.Gameplay.Character
             if (target == null)
                 return;
 
-            AgentAnimations?.SetTrigger(AnimationTriggerType.Interact);
+            // 상호작용 애니는 재생하지 않는다 — 전용 클립이 없고(플레이스홀더 DrawWeapon뿐),
+            // 아이템 줍기 피드백은 애니 대신 GameHud 획득 토스트(InGameModel.OnItemPickup)로 대체(사용자 결정).
             // 이동잠금은 위임 **전에** 건다 — 대상의 Interact 가 조기반환/예외여도 잠금은 걸려야 한다(Action 축, 전이 아님).
             ApplyRoot(InteractRootSeconds);
             target.Interact(gameObject);

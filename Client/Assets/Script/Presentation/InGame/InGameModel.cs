@@ -4,6 +4,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Network.Socket;
 using Game.Network.Socket.Packets;
+using Game.Presentation.Inventory;
 using Game.System.Input;
 using Game.System.Player;
 using Game.System.Progression;
@@ -34,6 +35,8 @@ namespace Game.Presentation.InGame
         private readonly ISocketPacketState _packetState;
         private readonly PlayerProgressionHolder _progression; // 레벨/Exp 중계(없으면 exp 게이지 미갱신)
         private readonly IInputContext _inputContext;          // 끊김 시 입력/이동 정지(없으면 정지만 생략)
+        private readonly ItemDisplayCatalog _itemDisplay;      // 아이템 이름 표시(없으면 itemId 폴백)
+        private readonly ItemPickupNotifier _pickupNotifier;   // Main 로컬 줍기 통지(던전은 소켓 경로)
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
         private readonly ReactiveProperty<InGameState> _state
@@ -59,6 +62,11 @@ namespace Game.Presentation.InGame
         private readonly Subject<Unit> _toggleAbility = new Subject<Unit>();
         public Observable<Unit> OnToggleAbility => _toggleAbility;
 
+        // 아이템 획득 토스트 신호(ShopToastMessage 패턴 — 타입 메시지). GameHud가 구독해 하단 토스트 표시.
+        // 줍기 애니를 없애고(전용 클립 없음) 이 토스트로 피드백 대체(사용자 결정). 진실원 = 서버 S_ItemPickedUp.
+        private readonly Subject<ItemToastMessage> _itemPickup = new Subject<ItemToastMessage>();
+        public Observable<ItemToastMessage> OnItemPickup => _itemPickup;
+
         // 비정상 연결 끊김 1회 신호(OnToast 동형 side-channel). GameHud가 구독해 끊김 팝업 표시.
         private readonly Subject<Unit> _connectionLost = new Subject<Unit>();
         public Observable<Unit> OnConnectionLost => _connectionLost;
@@ -78,15 +86,19 @@ namespace Game.Presentation.InGame
             EffectIconCatalog iconCatalog = null,
             ISocketPacketState packetState = null,
             PlayerProgressionHolder progression = null,
-            IInputContext inputContext = null)
+            IInputContext inputContext = null,
+            ItemDisplayCatalog itemDisplay = null,
+            ItemPickupNotifier pickupNotifier = null)
         {
-            _socketSession = socketSession;
-            _localPlayer   = localPlayer;
-            _effectCatalog = effectCatalog;
-            _iconCatalog   = iconCatalog;
-            _packetState   = packetState;
-            _progression   = progression;
-            _inputContext  = inputContext;
+            _socketSession  = socketSession;
+            _localPlayer    = localPlayer;
+            _effectCatalog  = effectCatalog;
+            _iconCatalog    = iconCatalog;
+            _packetState    = packetState;
+            _progression    = progression;
+            _inputContext   = inputContext;
+            _itemDisplay    = itemDisplay;
+            _pickupNotifier = pickupNotifier;
         }
 
         public void Initialize()
@@ -102,7 +114,12 @@ namespace Game.Presentation.InGame
                 _packetState.OnDungeonReady += OnDungeonReady;
                 _packetState.OnDungeonCleared += OnDungeonCleared;
                 _packetState.OnDungeonFailed += OnDungeonFailed;
+                _packetState.OnItemPickedUp += OnItemPickedUp; // 던전(소켓) 줍기
             }
+
+            // Main 로컬 줍기(LocalGroundItem→ClaimKill) → 던전과 동일 획득 토스트로 병합.
+            if (_pickupNotifier != null)
+                _pickupNotifier.OnPickup += OnItemPickedUp;
 
             // 비정상 소켓 끊김 → 입력 정지 + 끊김 알림(메인 스레드).
             _socketSession.OnDisconnected += OnSocketDisconnected;
@@ -153,6 +170,15 @@ namespace Game.Presentation.InGame
         {
             Debug.Log("[InGameModel] 던전 실패 — IsDungeonFailed=true 로 전환");
             Dispatch(InGameResult.DungeonFailed.Instance);
+        }
+
+        /// <summary>서버 권위 획득 확정(S_ItemPickedUp) → 획득 토스트 메시지 발행. 이름은 표시 카탈로그, 없으면 itemId.</summary>
+        private void OnItemPickedUp(string itemId, int qty)
+        {
+            string name = _itemDisplay?.Get(itemId)?.displayName;
+            if (string.IsNullOrEmpty(name)) name = itemId;
+            string text = qty > 1 ? $"{name} x{qty} 획득" : $"{name} 획득";
+            _itemPickup.OnNext(new ItemToastMessage(text));
         }
 
         // ── 로컬 플레이어 ASC ↔ State 중계 ────────────
@@ -344,7 +370,10 @@ namespace Game.Presentation.InGame
                 _packetState.OnDungeonReady -= OnDungeonReady;
                 _packetState.OnDungeonCleared -= OnDungeonCleared;
                 _packetState.OnDungeonFailed -= OnDungeonFailed;
+                _packetState.OnItemPickedUp -= OnItemPickedUp;
             }
+            if (_pickupNotifier != null)
+                _pickupNotifier.OnPickup -= OnItemPickedUp;
 
             _socketSession.OnDisconnected -= OnSocketDisconnected;
             if (_uiCaptured) _inputContext?.ExitUi(); // 끊김 때 잡은 입력 점유 해제(전역 Singleton 누수 방지)
@@ -362,6 +391,7 @@ namespace Game.Presentation.InGame
             _toggleInventory.Dispose();
             _toggleEquipment.Dispose();
             _toggleShop.Dispose();
+            _itemPickup.Dispose();
             _connectionLost.Dispose();
         }
     }

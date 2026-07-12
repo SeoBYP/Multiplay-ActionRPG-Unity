@@ -110,6 +110,45 @@ namespace Game.Tests.EditMode.InGame
         }
 
         [Test]
+        public void 아이템_획득시_OnItemPickup_토스트_메시지가_발행된다()
+        {
+            // 줍기 애니 대체: 서버 S_ItemPickedUp → InGameModel.OnItemPickup(메시지) → GameHud 토스트.
+            var fake = new FakeSocketSession();
+            var state = new SocketPacketState();
+            var model = new InGameModel(fake, new LocalPlayerContext(), packetState: state);
+            model.Initialize();
+
+            string msg = null;
+            using var sub = model.OnItemPickup.Subscribe(m => msg = m.Message);
+
+            state.NotifyItemPickedUp("potion_hp_small", 2);
+            Assert.AreEqual("potion_hp_small x2 획득", msg, "복수 획득은 수량을 표기해야 한다(표시명 카탈로그 없으면 itemId).");
+
+            state.NotifyItemPickedUp("sword_iron", 1);
+            Assert.AreEqual("sword_iron 획득", msg, "단일 획득은 수량을 생략해야 한다.");
+
+            model.Dispose();
+        }
+
+        [Test]
+        public void Main_로컬줍기_통지시_OnItemPickup_토스트가_발행된다()
+        {
+            // Main(비네트워크) 줍기: LocalGroundItem → ItemPickupNotifier → InGameModel(던전 소켓과 동일 토스트 병합).
+            var fake = new FakeSocketSession();
+            var notifier = new ItemPickupNotifier();
+            var model = new InGameModel(fake, new LocalPlayerContext(), pickupNotifier: notifier);
+            model.Initialize();
+
+            string msg = null;
+            using var sub = model.OnItemPickup.Subscribe(m => msg = m.Message);
+
+            notifier.Notify("gold_coin", 3);
+            Assert.AreEqual("gold_coin x3 획득", msg, "Main 로컬 줍기도 동일 획득 토스트로 병합돼야 한다.");
+
+            model.Dispose();
+        }
+
+        [Test]
         public void ReturnToLobby_인텐트시_IsReturning_상태가_true가_된다()
         {
             var fake = new FakeSocketSession();

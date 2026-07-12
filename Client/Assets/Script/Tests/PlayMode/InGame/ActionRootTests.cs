@@ -177,10 +177,15 @@ namespace Game.Tests.PlayMode.InGame
             Assert.IsTrue(asc.HasTag(GameplayTags.Dead), "HP0 이면 State.Dead 태그가 서야 한다.");
             Assert.IsTrue(animator.GetCurrentAnimatorStateInfo(0).IsName("Dead"), "사망 시 Animator 가 Dead 상태여야 한다.");
 
-            // 부활: agent.Revive → SetTrigger(Revive) → Dead→로코모션
+            // 부활: agent.Revive → SetTrigger(Revive) → Dead→GetUp(기상) → 재생 후 로코모션
             agent.Revive(Vector3.zero);
-            for (int i = 0; i < 12; i++) { animator.Update(0.1f); yield return null; }
+            for (int i = 0; i < 4; i++) { animator.Update(0.1f); yield return null; }
             Assert.IsFalse(asc.HasTag(GameplayTags.Dead), "부활 후 State.Dead 태그가 해제돼야 한다.");
+            Assert.IsTrue(animator.GetCurrentAnimatorStateInfo(0).IsName("GetUp"), "부활 직후 기상(GetUp) 애니가 재생돼야 한다.");
+
+            // 기상 클립(2.67s) 재생 후 로코모션(Idle Walk Run)으로 복귀.
+            for (int i = 0; i < 40; i++) { animator.Update(0.1f); yield return null; }
+            Assert.IsFalse(animator.GetCurrentAnimatorStateInfo(0).IsName("GetUp"), "기상 후 GetUp 을 벗어나 로코모션으로 복귀해야 한다.");
             Assert.IsFalse(animator.GetCurrentAnimatorStateInfo(0).IsName("Dead"), "부활 후 Animator 가 Dead 를 벗어나야 한다.");
         }
 
