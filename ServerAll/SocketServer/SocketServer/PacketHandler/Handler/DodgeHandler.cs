@@ -32,12 +32,16 @@ public static class DodgeHandler
         long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         // 쿨다운+마나 통과 시 무적 창 부여 + 마나 차감(거부돼도 무해). 결과와 무관하게 owner 에게 권위 마나 정정:
         // 성공이면 차감 후 값, 거부(쿨다운/마나)면 현재 값 → 클라가 예측으로 미리 깎은 마나를 되돌린다.
-        state.TryBeginDodge(nowMs, DodgeConfig.ManaCost);
+        bool began = state.TryBeginDodge(nowMs, DodgeConfig.ManaCost);
         await session.SendPacketAsync(new S_PlayerMana
         {
             UserId = state.UserId,
             Mana = state.Mana,
             MaxMana = state.MaxMana,
         }, ct);
+
+        // 검증 통과분만 방에 브로드캐스트 → 다른 클라 RemoteDriver 가 회피 애니 재생(연출 전용, S_Attack 패턴).
+        if (began)
+            room.Broadcast(new S_Dodge { UserId = session.UserId });
     }
 }

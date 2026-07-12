@@ -57,6 +57,24 @@ namespace Game.Tests.EditMode.Socket
             Assert.AreEqual(1, gotSkill, "SkillId 가 그대로 전달돼야 한다.");
         }
 
+        /// <summary>
+        /// 원격 회피 연출: 서버가 S_Dodge{UserId} 를 브로드캐스트하면 OnPlayerDodged 로 발행된다.
+        /// RemoteDriver 가 이 신호로 해당 UserId 의 회피(구르기) 애니를 재생한다(무적은 서버 권위).
+        /// </summary>
+        [Test]
+        public async Task S_Dodge_Dispatch_하면_OnPlayerDodged_가_발행된다()
+        {
+            var dispatcher = _container.Resolve<ISocketPacketDispatcher>();
+            var state = _container.Resolve<ISocketPacketState>();
+
+            long gotUser = 0;
+            state.OnPlayerDodged += userId => gotUser = userId;
+
+            await dispatcher.DispatchAsync(new S_Dodge { UserId = 888 });
+
+            Assert.AreEqual(888, gotUser, "S_Dodge.UserId 가 OnPlayerDodged 로 그대로 전달돼야 한다.");
+        }
+
         [Test]
         public async Task PlayerJoined_후_Move_Dispatch_플레이어_상태_갱신()
         {

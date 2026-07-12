@@ -44,6 +44,8 @@ namespace Game.Network.Socket
             builder.Register<IPacketHandler, RevivePacketHandler>(Lifetime.Singleton);
             // 원격 공격 연출: S_Attack 브로드캐스트 → RemoteDriver 스윙 애니(적중은 서버 권위).
             builder.Register<IPacketHandler, AttackPacketHandler>(Lifetime.Singleton);
+            // 원격 회피 연출: S_Dodge 브로드캐스트 → RemoteDriver 구르기 애니(무적은 서버 권위).
+            builder.Register<IPacketHandler, DodgePacketHandler>(Lifetime.Singleton);
             // 3.3 루트/드랍: 바닥 아이템 스폰/제거 + 줍기 토스트.
             builder.Register<IPacketHandler, SpawnGroundItemPacketHandler>(Lifetime.Singleton);
             builder.Register<IPacketHandler, GroundItemRemovedPacketHandler>(Lifetime.Singleton);
@@ -117,6 +119,11 @@ namespace Game.Network.Socket
         event Action<long, int> OnPlayerAttacked;
         void NotifyPlayerAttacked(long attackerId, int skillId);
 
+        // ── 원격 회피 연출(S_Dodge 브로드캐스트) ──
+        /// <summary>S_Dodge 수신 시 발행(userId). RemoteDriver 가 회피(구르기) 애니만 재생한다(무적=서버 권위).</summary>
+        event Action<long> OnPlayerDodged;
+        void NotifyPlayerDodged(long userId);
+
         // ── Co-op 부활(서버 권위 S_PlayerRevived) ──
         /// <summary>S_PlayerRevived 수신 시 발행(userId, hp). CharacterSpawner가 로컬=제자리부활/원격=다운보존 해제.</summary>
         event Action<long, int> OnPlayerRevived;
@@ -173,6 +180,7 @@ namespace Game.Network.Socket
         public event Action                       OnDungeonFailed;
         public event Action<long>                 OnPlayerDead;
         public event Action<long, int>            OnPlayerAttacked;
+        public event Action<long>                 OnPlayerDodged;
         public event Action<long, int>            OnPlayerRevived;
         public event Action<SocketMonsterSnapshot> OnMonsterSpawned;
         public event Action<SocketMonsterSnapshot> OnMonsterMoved;
@@ -186,6 +194,7 @@ namespace Game.Network.Socket
         public void MarkDungeonFailed() => OnDungeonFailed?.Invoke();
         public void NotifyPlayerDead(long userId) => OnPlayerDead?.Invoke(userId);
         public void NotifyPlayerAttacked(long attackerId, int skillId) => OnPlayerAttacked?.Invoke(attackerId, skillId);
+        public void NotifyPlayerDodged(long userId) => OnPlayerDodged?.Invoke(userId);
         public void NotifyPlayerRevived(long userId, int hp) => OnPlayerRevived?.Invoke(userId, hp);
 
         public void ApplyEffect(SocketEffectApply data)

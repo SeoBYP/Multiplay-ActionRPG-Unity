@@ -19,6 +19,7 @@ namespace Game.Network.Socket.Packets
     [MemoryPackUnion(1600,typeof(C_Attack))]
     [MemoryPackUnion(1601,typeof(S_Attack))]
     [MemoryPackUnion(1602,typeof(C_Dodge))]
+    [MemoryPackUnion(1603,typeof(S_Dodge))]
     // 전투 - Effect(버프/디버프) 동기화
     [MemoryPackUnion(1640,typeof(S_ApplyEffect))]
     [MemoryPackUnion(1641,typeof(S_RemoveEffect))]

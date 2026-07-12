@@ -46,6 +46,7 @@ namespace Game.Gameplay.Character
             _state.OnPlayerDead     += HandlePlayerDead;
             _state.OnPlayerRevived  += HandlePlayerRevived;
             _state.OnPlayerAttacked += HandlePlayerAttacked;
+            _state.OnPlayerDodged   += HandlePlayerDodged;
 
             // 점프/낙하 미동기화 → 지상 가정. Locomotion 이 블렌드에 머물게 한다.
             _animations?.SetBool(AnimationBoolType.Grounded, true);
@@ -79,6 +80,13 @@ namespace Game.Gameplay.Character
         {
             if (attackerId != UserId) return;
             _animations?.SetTrigger(AnimationTriggerType.Attack);
+        }
+
+        /// <summary>원격 회피 구르기(연출 전용). 무적 창/피해 무시는 서버 권위 — 여기선 애니만 재생한다.</summary>
+        private void HandlePlayerDodged(long userId)
+        {
+            if (userId != UserId) return;
+            _animations?.SetTrigger(AnimationTriggerType.Dodge);
         }
 
         private void Update()
@@ -116,6 +124,7 @@ namespace Game.Gameplay.Character
             _state.OnPlayerDead     -= HandlePlayerDead;
             _state.OnPlayerRevived  -= HandlePlayerRevived;
             _state.OnPlayerAttacked -= HandlePlayerAttacked;
+            _state.OnPlayerDodged   -= HandlePlayerDodged;
         }
 
         private void OnDestroy() => Dispose();

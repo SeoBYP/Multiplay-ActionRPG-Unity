@@ -11,3 +11,14 @@ namespace Shared.Packet.Packets;
 public partial class C_Dodge : Packet
 {
 }
+
+/// <summary>
+/// 회피 발동 브로드캐스트(서버→방 전원). 서버가 C_Dodge 를 쿨다운·마나 검증한 뒤 통과분만 방에 발행.
+/// 다른 클라의 RemoteDriver 가 해당 UserId 캐릭터의 회피(구르기) 애니를 재생한다(연출 전용 — 무적/판정은 서버 권위).
+/// S_Attack 과 동일 패턴.
+/// </summary>
+[MemoryPackable]
+public partial class S_Dodge : Packet
+{
+    public long UserId { get; set; }
+}

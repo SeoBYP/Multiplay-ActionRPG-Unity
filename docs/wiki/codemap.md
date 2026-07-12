@@ -68,6 +68,17 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.60 원격 회피 애니 — S_Dodge 브로드캐스트 (2026-07-12)
+
+애니 폴리시 백로그 #5. 다른 플레이어의 회피(구르기)가 안 보이던 것 해소.
+- **문제**: 던전 회피는 `DodgeSyncSender→C_Dodge`로 서버가 무적 창만 부여하고 **다른 클라에 브로드캐스트를 안 해** 원격이 회피 애니를 못 봤다. (로컬 회피 애니는 `DodgeDriver.Begin→SetTrigger(Dodge)`로 Main·Dungeon 둘 다 이미 재생.)
+- **수정(S_Attack 패턴 그대로)**: `S_Dodge{UserId}` 신설(Union **1603**). 서버 `DodgeHandler`가 `TryBeginDodge` **성공분만** `room.Broadcast(S_Dodge)` → 클라 `DodgePacketHandler` → `ISocketPacketState.OnPlayerDodged` → `RemoteDriver.HandlePlayerDodged`가 `SetTrigger(Dodge)`. 무적 창/피해 무시는 서버 권위 그대로 — 이 패킷은 **연출 전용**.
+- **Main**: 솔로(원격 없음, `RemoteDriver`는 던전 전용) → 브로드캐스트 대상 0. 로컬 회피 애니만 확인(이미 동작, 사용자 확인 범위). 원격 회피는 던전 전용 기능.
+- **계약**: 패킷 `S_Dodge` 1개 추가(Union 1603, MemoryPack). gRPC 아님 → Generated 불요. 서버 리빌드+Docker 재배포. GameServer 는 Shared.Packet 코드 미참조(gRPC) → 무영향.
+- **⚠ 프리팹 배선 함정(실플레이 후 발견)**: E2E 통과(패킷 수신)했는데도 원격 회피 애니가 **안 보였다**. 원인 = `RemotePlayerCharacter.prefab` 의 `CharacterAgentAnimations.m_animationDodgeTrigger` 가 **빈 문자열**(원격 CAA 는 Speed/Grounded/Attack/Dead/Revive 만 채워졌고 Dodge 누락) → `SetTrigger(Dodge)` 가 빈 파라미터명 가드로 조용히 스킵. 수정 = 프리팹에 `"Dodge"` 채움(컨트롤러엔 Dodge 상태·파라미터 이미 존재). **교훈: E2E 는 패킷 수신까지만 봐 애니 재생을 못 잡는다** → 실제 프리팹을 로드해 Animator 전이를 확인하는 PlayMode 가드(`RemoteDriverAnimTests`) 추가.
+- **파일**: `Shared.Packet/Domains/DodgePacket.cs`(S_Dodge)·`Packet.cs`(Union 1603) / `SocketServer/PacketHandler/Handler/DodgeHandler.cs`(브로드캐스트) / 클라 `Network/Socket/Packets/DodgePacket.cs`·`Packet.cs`·`Handler/Contents/DodgePacketHandler.cs`(신규)·`SocketApiClient.cs`(OnPlayerDodged/NotifyPlayerDodged/등록)·`Gameplay/Character/RemoteDriver.cs`(HandlePlayerDodged)·**`Prefabs/Character/RemotePlayerCharacter.prefab`(Dodge 트리거명)**.
+- **검증**: 서버 build0 · 클라 컴파일0 · EditMode **160**(신규 `S_Dodge_Dispatch...OnPlayerDodged`) · PlayMode **`RemoteDriverAnimTests`**(실 프리팹 S_Dodge→Animator Dodge 전이, 수정 전엔 실패할 가드) · Docker E2E **`SocketE2ETests` 29/29**(신규 회피 브로드캐스트 + 기존 28 회귀, 실서버). 실 2인 던전 육안=MPPM 수동.
+
 ### 2.59 부활 기상(GetUp) 애니 + 아이템 줍기 = 애니 없이 토스트 (2026-07-12)
 
 애니 폴리시 백로그 #3(GetUp)·#4(Interact 클립). PROTOFACTOR 컬렉션 실사 후 결정.

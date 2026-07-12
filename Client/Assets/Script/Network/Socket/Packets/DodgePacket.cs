@@ -13,4 +13,14 @@ namespace Game.Network.Socket.Packets
     public partial class C_Dodge : Packet
     {
     }
+
+    /// <summary>
+    /// 회피 발동 브로드캐스트(서버→방 전원). RemoteDriver 가 해당 UserId 캐릭터의 회피(구르기) 애니 재생.
+    /// 연출 전용 — 무적/판정은 서버 권위. S_Attack 과 동일 패턴.
+    /// </summary>
+    [MemoryPackable]
+    public partial class S_Dodge : Packet
+    {
+        public long UserId { get; set; }
+    }
 }

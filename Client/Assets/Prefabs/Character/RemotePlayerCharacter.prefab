@@ -73,7 +73,7 @@ MonoBehaviour:
   m_animationInteractTrigger: 
   m_animationAttackTrigger: Attack
   m_animationDeathTrigger: Dead
-  m_animationDodgeTrigger: 
+  m_animationDodgeTrigger: Dodge
   m_animationReviveTrigger: Revive
 --- !u!114 &611105127618183077
 MonoBehaviour:

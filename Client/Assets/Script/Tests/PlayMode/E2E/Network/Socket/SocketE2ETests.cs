@@ -251,6 +251,29 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
+        public IEnumerator RawSocket_회피하면_S_Dodge_연출_브로드캐스트를_수신한다() => UniTask.ToCoroutine(async () =>
+        {
+            // 원격 회피 애니: 서버 게이트(쿨다운·마나)를 통과한 회피만 S_Dodge{UserId} 를 방에 브로드캐스트.
+            // room.Broadcast 는 방 전원 발신이라 시전자 자신도 수신 → 다른 클라 RemoteDriver 가 회피(구르기) 애니 재생.
+            // 무적 창/피해 무시는 별도(서버 권위) — 이 패킷은 연출 전용이라 여기서 판정하지 않는다.
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+            try
+            {
+                // 첫 회피 = 쿨다운 통과 + Lv1 마나(≥DodgeConfig.ManaCost) → 브로드캐스트돼야 한다.
+                await host.SendAsync(new C_Dodge(), Timeout());
+
+                var dodge = await host.WaitForPacketAsync<S_Dodge>(p => p.UserId == room.HostUserId, Timeout());
+                Assert.AreEqual(room.HostUserId, dodge.UserId, "S_Dodge 의 UserId 가 시전자여야 한다");
+            }
+            finally
+            {
+                await host.DisposeAsync();
+            }
+        });
+
+        [UnityTest]
         public IEnumerator RawSocket_몬스터_사거리_안이면_S_ApplyEffect_monster_attack_dmg_수신() => UniTask.ToCoroutine(async () =>
         {
             // 몬스터→플레이어: 패트롤 사각형(6,6)~(10,10) 중심(8,8)으로 가면 슬라임이 항상 aggro 범위 →
