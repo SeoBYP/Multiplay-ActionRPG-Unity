@@ -24,6 +24,7 @@ namespace Game.Gameplay.Character
 
         private PlayerCharacterAgent _agent;
         private SkillCatalogProvider _skills;   // skillId→hitbox 데이터 진실원(서버 CombatHandler 와 동일 skills.json)
+        private GameplayEffectCatalog _effects; // 스킬 OnHitEffect → 데미지 수치(콤보 단계별 상승, 던전과 동일 단일소스)
         private PlayerProgressionHolder _progression; // Main 클라 스탯 캐시(AttackPower). 동적 부착이라 method 주입.
         private readonly HashSet<LocalMonster> _hitThisSwing = new();
 
@@ -32,15 +33,36 @@ namespace Game.Gameplay.Character
         private int _swingDamage;      // 이번 스윙 데미지(OnAttackPerformed 에서 확정 → 활성 구간 히트에 적용)
         private string _swingSkillId;  // 로그용
 
-        /// <summary>skillId(int 패킷) → 스킬 데이터 키. 서버 CombatHandler.ResolveSkill 과 동일 규약.</summary>
-        private static string SkillName(int skillId) => skillId switch { 1 => "heavy_swing", _ => "basic_swing" };
+        /// <summary>skillId(int 패킷) → 스킬 데이터 키. 서버 CombatHandler.ResolveSkill 과 동일 규약(0=basic·1=heavy·2/3/4=combo).</summary>
+        private static string SkillName(int skillId) => skillId switch
+        {
+            1 => "heavy_swing",
+            2 => "combo_a",
+            3 => "combo_b",
+            4 => "combo_c",
+            _ => "basic_swing",
+        };
 
         // CharacterSpawner.AttachLocalCombat 에서 AddComponent 후 _container.Inject 로 주입.
         [Inject]
-        public void Construct(PlayerProgressionHolder progression, SkillCatalogProvider skills)
+        public void Construct(PlayerProgressionHolder progression, SkillCatalogProvider skills, GameplayEffectCatalog effects = null)
         {
             _progression = progression;
             _skills = skills;
+            _effects = effects;
+        }
+
+        /// <summary>스킬의 OnHitEffect(첫 항목)에서 Health 감소량을 데미지 기준값으로 읽는다(콤보 단계별 상승 = 이펙트 단일소스).
+        /// 카탈로그/이펙트 미해석 시 <see cref="BaseDamage"/> 폴백(하위호환).</summary>
+        private int SkillBaseDamage(SkillTimeline skill)
+        {
+            if (_effects != null && skill.OnHitEffectIds != null)
+                foreach (var effId in skill.OnHitEffectIds)
+                    if (_effects.TryGet(effId, out var def) && def != null)
+                        foreach (var m in def.Modifiers)
+                            if (m.AttributeType == EGameplayAttribute.Health && m.Amount < 0)
+                                return -m.Amount; // 음수 델타 → 양수 데미지
+            return BaseDamage;
         }
 
         private void Awake()
@@ -66,9 +88,9 @@ namespace Game.Gameplay.Character
             var skill = _skills?.Get(SkillName(skillId));
             if (skill == null) return; // 데이터 미로드 — 판정 스킵
 
-            // 데미지 = 던전(서버 권위)과 동일 산식. 레벨업으로 AttackPower 오르면 다음 스윙부터 강해진다.
-            // 홀더 미갱신(default) 시 AttackPower=0 → BaseDamage 그대로(하위호환).
-            int damage = StatCombatMath.MeleeDamage(BaseDamage, _progression?.AttackPower ?? 0, 0);
+            // 데미지 = 던전(서버 권위)과 동일 산식. 스킬 기준 데미지는 OnHitEffect(콤보 단계별 상승)에서 읽는다.
+            // 레벨업으로 AttackPower 오르면 다음 스윙부터 강해진다. 홀더 미갱신(default) 시 AttackPower=0 → 기준값 그대로.
+            int damage = StatCombatMath.MeleeDamage(SkillBaseDamage(skill), _progression?.AttackPower ?? 0, 0);
 
             // 무기 콜라이더가 있으면: 입력 순간이 아니라 "휘두르는 활성 구간"에 무기가 닿을 때 판정.
             // 데미지만 이번 스윙용으로 확정해 두고, 실제 적중은 WeaponHitbox.OnHit → ApplyWeaponHit 에서 처리.

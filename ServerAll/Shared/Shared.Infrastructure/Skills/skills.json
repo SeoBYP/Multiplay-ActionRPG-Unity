@@ -16,7 +16,69 @@
             "halfZ": 0.699999988079071,
             "onHitEffectIds": [
                 "basic_attack_dmg"
-            ]
+            ],
+            "comboChainMs": 0,
+            "comboWindowMs": 0
+        },
+        {
+            "id": "combo_a",
+            "startupMs": 150,
+            "activeMs": 100,
+            "recoveryMs": 130,
+            "cooldownMs": 350,
+            "manaCost": 0,
+            "hitboxShape": "Box",
+            "offsetX": 0.0,
+            "offsetY": 0.5,
+            "offsetZ": 0.8999999761581421,
+            "halfX": 0.550000011920929,
+            "halfY": 1.0,
+            "halfZ": 0.6499999761581421,
+            "onHitEffectIds": [
+                "combo_a_dmg"
+            ],
+            "comboChainMs": 800,
+            "comboWindowMs": 900
+        },
+        {
+            "id": "combo_b",
+            "startupMs": 130,
+            "activeMs": 100,
+            "recoveryMs": 140,
+            "cooldownMs": 400,
+            "manaCost": 0,
+            "hitboxShape": "Box",
+            "offsetX": 0.0,
+            "offsetY": 0.5,
+            "offsetZ": 1.0,
+            "halfX": 0.6499999761581421,
+            "halfY": 1.0,
+            "halfZ": 0.75,
+            "onHitEffectIds": [
+                "combo_b_dmg"
+            ],
+            "comboChainMs": 800,
+            "comboWindowMs": 900
+        },
+        {
+            "id": "combo_c",
+            "startupMs": 180,
+            "activeMs": 140,
+            "recoveryMs": 250,
+            "cooldownMs": 800,
+            "manaCost": 0,
+            "hitboxShape": "Box",
+            "offsetX": 0.0,
+            "offsetY": 0.5,
+            "offsetZ": 1.2000000476837159,
+            "halfX": 0.8999999761581421,
+            "halfY": 1.100000023841858,
+            "halfZ": 0.949999988079071,
+            "onHitEffectIds": [
+                "combo_c_dmg"
+            ],
+            "comboChainMs": 900,
+            "comboWindowMs": 1000
         },
         {
             "id": "heavy_swing",
@@ -34,7 +96,9 @@
             "halfZ": 1.0,
             "onHitEffectIds": [
                 "basic_attack_dmg"
-            ]
+            ],
+            "comboChainMs": 0,
+            "comboWindowMs": 0
         }
     ]
 }

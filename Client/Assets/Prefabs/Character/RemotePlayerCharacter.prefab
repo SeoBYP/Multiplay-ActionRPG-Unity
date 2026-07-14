@@ -65,6 +65,7 @@ MonoBehaviour:
   m_animationSpeedFloat: Speed
   m_animationMoveXFloat: 
   m_animationMoveYFloat: 
+  m_animationComboStepInt: ComboStep
   m_animationGroundedBool: Grounded
   m_animationStrafeBool: 
   m_animationFallTrigger: 

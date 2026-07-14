@@ -75,10 +75,13 @@ namespace Game.Gameplay.Character
             _animations?.SetTrigger(AnimationTriggerType.Revive);
         }
 
-        /// <summary>원격 공격 스윙(연출 전용). 적중·데미지는 서버 권위 — 여기선 애니만 재생한다.</summary>
+        /// <summary>원격 공격 스윙(연출 전용). 적중·데미지는 서버 권위 — 여기선 애니만 재생한다.
+        /// skillId(서버 CombatHandler.ResolveSkill 규약)로 콤보 단계 선택: 3=B/4=C, 그 외(0/1/2)=A.</summary>
         private void HandlePlayerAttacked(long attackerId, int skillId)
         {
             if (attackerId != UserId) return;
+            int comboStep = skillId switch { 3 => 1, 4 => 2, _ => 0 };
+            _animations?.SetInt(AnimationIntType.ComboStep, comboStep);
             _animations?.SetTrigger(AnimationTriggerType.Attack);
         }
 

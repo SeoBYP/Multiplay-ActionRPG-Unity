@@ -69,6 +69,36 @@ namespace Script.System.GamePlayAbilitySystem
                     GameplayAttributeModifier.Create(EGameplayAttribute.Health, -10, EModifierType.Additive),
                 }));
 
+            // #7 Attack 콤보 A→B→C — 단계별 상승 즉발 피해(basic_attack_dmg 와 동형, Health 감소만 커짐).
+            //   combo_a/b/c 스킬(skills.json)의 OnHitEffectIds 가 각각 참조. 서버 권위 적중 → S_ApplyEffect(effectId) → 클라 미러.
+            Register(new GameplayEffectDefinition(
+                id: "combo_a_dmg",
+                category: EEffectCategory.AttackPower,
+                policy: EDurationPolicy.Instant,
+                durationMs: 0,
+                modifiers: new[]
+                {
+                    GameplayAttributeModifier.Create(EGameplayAttribute.Health, -10, EModifierType.Additive),
+                }));
+            Register(new GameplayEffectDefinition(
+                id: "combo_b_dmg",
+                category: EEffectCategory.AttackPower,
+                policy: EDurationPolicy.Instant,
+                durationMs: 0,
+                modifiers: new[]
+                {
+                    GameplayAttributeModifier.Create(EGameplayAttribute.Health, -15, EModifierType.Additive),
+                }));
+            Register(new GameplayEffectDefinition(
+                id: "combo_c_dmg",
+                category: EEffectCategory.AttackPower,
+                policy: EDurationPolicy.Instant,
+                durationMs: 0,
+                modifiers: new[]
+                {
+                    GameplayAttributeModifier.Create(EGameplayAttribute.Health, -25, EModifierType.Additive),
+                }));
+
             // M3 ⑤b: 몬스터가 사거리 안 플레이어를 공격 시 서버가 S_ApplyEffect로 부여하는 즉발 피해.
             Register(new GameplayEffectDefinition(
                 id: "monster_attack_dmg",

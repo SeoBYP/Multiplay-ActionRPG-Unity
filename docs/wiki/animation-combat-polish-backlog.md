@@ -2,7 +2,7 @@
 
 > 상태: **살아있는 백로그** (착수 시 해당 항목에 커밋/codemap 링크 추가, 완료 시 ✅)
 > 맥락: MotionMatching 외부화 후 클라는 **단순 PROTOFACTOR Animator**로 복원됨. 2026-07 세션에서 플레이어·원격 플레이어 애니 기반 + 무기 판정 + HitboxMath 방향 버그 + 이동잠금 + 부활 애니(§2.52~2.56) → **NPC 애니 · 락온 8방향 strafe · 파티 HP HUD(+원격 HP 기준선 동기화)**(§2.57·§2.58·§2.58b, 2026-07-12)까지 세움. 이 문서는 **그 위에 남은 폴리시 항목**을 실행 가능하게 목록화한다.
-> 진행: #1 NPC ✅ · #3 부활 기상 ✅ · #4 Interact(토스트) ✅ · #5 원격 회피(S_Dodge) ✅ · #6 락온 strafe/마커 ✅ · ★ 파티 HP HUD ✅ (2026-07-12). **남은 것 = #2 몬스터 모델·애니**(메시 결정 필요)·**#7 Attack 콤보 A→B→C**.
+> 진행: #1 NPC ✅ · #3 부활 기상 ✅ · #4 Interact(토스트) ✅ · #5 원격 회피 ✅ · #6 락온 ✅ · #7 Attack 콤보 A→B→C ✅ · ★ 파티 HP HUD ✅ (2026-07-12). **남은 것 = #2 몬스터 모델·애니**(메시 결정 필요) — 애니 폴리시 백로그 사실상 소진(#8·#9는 소소/상시).
 > 관련: [codemap.md](codemap.md) §2.52~2.58b · [plan.md](plan.md) · [.claude/rules/unity-gameplay-state.md](../../.claude/rules/unity-gameplay-state.md)
 
 ## 재사용할 확립된 패턴 (착수 전 참고)
@@ -26,7 +26,7 @@
 | 4 | ✅ Interact 클립 — 2026-07-12 결정(§2.59): 전용 줍기 클립 없음 → **애니 제거 + 획득 토스트(GameHud)로 대체**(사용자 결정) | 소 | 없음 | — |
 | 5 | ✅ 원격 회피 애니 (S_Dodge) — 2026-07-12 완료(codemap §2.60). Union 1603 S_Dodge 브로드캐스트 → RemoteDriver 구르기 애니. Main=솔로라 던전 전용 | 중 | **공개계약**(Union 1603) | — |
 | 6 | ✅ 락온 strafe(8방향) 블렌드 + UI 마커 — 2026-07-12 완료(codemap §2.57) | 중 | 없음(클라) | — |
-| 7 | Attack 콤보 A→B→C | 대 | 서버 게이트 재검토 | 4 |
+| 7 | ✅ Attack 콤보 A→B→C — 2026-07-12 완료(codemap §2.61). ComboDriver + 컨트롤러 ComboA/B/C + skillId 2/3/4(패킷 신설0) + 단계별 데미지(combo_*_dmg) | 대 | 없음(SkillId 재사용) | — |
 | 8 | Interact 이동잠금 지속 = IInteractable 노출 | 소 | 없음 | 필요 시 |
 | 9 | FBX `.meta` 클론 안전성 | 결정 | 레포 관행 | 상시 유의 |
 | ★ | ✅ **던전 파티 HP HUD** — 2026-07-12 완료(codemap §2.58). 원격 ASC 레지스트리 + EffectReceiver TargetId 라우팅(신규 패킷 X, GAS 재사용) + 좌상단 파티 패널 | 중 | 없음(클라) | — |

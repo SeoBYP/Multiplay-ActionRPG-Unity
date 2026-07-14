@@ -68,6 +68,33 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.61 Attack 콤보 A→B→C — 단계별 상승, 패킷 신설 0 (2026-07-12)
+
+애니 폴리시 백로그 #7. 기본공격 반복(좌클릭)으로 A→B→C 진행, 단계별 데미지·리치 상승.
+- **교리: 패킷 신설 0.** `C_Attack`/`S_Attack` 이 이미 `SkillId(int)` 를 나른다 → **콤보 단계를 skillId 로 표현**(2=combo_a/3=combo_b/4=combo_c). 서버 `CombatHandler.ResolveSkill` 에 매핑만 추가. 원격도 `S_Attack{SkillId}` 그대로 → RemoteDriver 가 단계 선택.
+- **⭐ 콤보 타이밍의 진실원 = SkillTimeline(공유 데이터)**: 체인 지점·콤보 창을 **프리팹 매직넘버가 아니라 스킬 데이터**로 옮겼다 — `SkillDefinition` SO(`comboChainMs`/`comboWindowMs`) → bake → `skills.json` → `SkillTimeline.ComboChainMs/ComboWindowMs`. **서버 cadence 게이트와 클라 ComboDriver 가 같은 값을 본다** → "서버 권위 vs 애니" 가 어긋나지 않는다. 단계별로 다른 값 가능(저작 = `combo_a/b` 800/900ms, `combo_c` 900/1000ms).
+  - `ComboChainMs`: 이 스킬 발동 후 **다음 공격이 나갈 수 있는 최소 시점**(= 애니 체인 지점).
+  - `ComboWindowMs`: 이 시점까지 입력 없으면 콤보가 끊겨 A 부터.
+  - **불변식**(exporter 가 chain≤window 를 bake 시 검증): `ComboChainMs ≤ ComboWindowMs < 애니 콤보상태 유지시간(클립 × 복귀 exitTime)`. 창이 애니 유지시간보다 길면 클라는 다음 단계로 갔는데 Animator 는 이미 Locomotion 이라 (AnyState 진입은 ComboA 뿐) **애니가 아예 안 나온다**.
+- **입력→발동 = 선입력(버퍼링) 모델**: `ComboDriver`(순수 로직, `TimingResolver` 주입 — 데이터 접근은 Agent 담당). `PlayerCharacterAgent.HandleAttackInput` 이 입력을 `OnAttackPressed` 로 **접수만** 하고, 매 프레임 `TryFire(now)` 가 "지금 나갈 시점"을 알려줄 때 `FireSkill(skillId, step)` → `CAA.SetInt(ComboStep, step)` + `SetTrigger(Attack)` + `OnAttackPerformed(skillId)`.
+  - **첫 타(A)**: 입력 즉시. **이후**: 직전 스윙의 `ComboChainMs` 가 지나야 발동 — **그 전 입력은 버려지지 않고 버퍼**됐다가 그 시점에 자동 발동(= 자연스러운 이어치기).
+  - 데미지·네트워크 송신도 애니 체인과 **같은 시점**에 나가 어긋나지 않는다(입력 순간에 데미지가 먼저 들어가지 않음).
+- **서버 권위 cadence(버스트 차단, 데이터 주도)**: 콤보는 단계마다 skillId 가 달라 **개별 쿨다운으론 연타를 못 막는다**(각자 첫 발동이라 쿨다운이 비어 있음) → 치팅 클라가 C_Attack{2,3,4} 를 즉시 연사하면 합산 폭딜(10+15+25). → `PlayerState.TryBeginComboAttack` 이 **직전 콤보 스윙의 `ComboChainMs`** 가 지나기 전의 다음 콤보를 거부. 데이터가 0(저작 누락)이면 `CombatHandler.ComboMinIntervalMs`(300ms)로 **폴백**해 구멍이 열리지 않게 한다. 개별 스킬 쿨다운은 그대로 추가 적용.
+- **애니(컨트롤러 — [Attack] 서브SM 체인)**: int 파라미터 `ComboStep` + **[Attack] 서브 스테이트머신**에 `ComboA(AttackA1hMelee)`·`ComboB(AttackB1hMelee)`·`ComboC(AttackC1hMelee)`. **진입 = AnyState→ComboA (Attack && ComboStep==0)** 뿐이고, **체인 = 상태→상태 전이**(`ComboA→ComboB` cond Attack&&ComboStep==1, `ComboB→ComboC` cond ==2) — "콤보는 이전 공격에서 이어서" 교리. 각 ComboX→Locomotion(무조건 복귀). CAA 계약: `AnimationIntType.ComboStep` + `SetInt`(로컬·원격 프리팹에 `m_animationComboStepInt="ComboStep"` 배선 — **빈 값이면 항상 A 재생**하므로 필수).
+  - **⚠ 함정 1 — 체인 전이가 도달 불가**: 무조건 복귀(exitTime 0.75)가 체인(exitTime 0.80)보다 **먼저** 걸려 A→B 가 영원히 안 됐다. 복귀는 **체인보다 늦게**(exitTime 1.0) 둬야 한다.
+  - **⚠ 함정 2 — 트리거+hasExitTime 조합(중요)**: 체인 전이에 `hasExitTime=true`(예: exitTime 0.80)를 걸면 Attack **트리거가 exitTime 도달 전에 소실**돼 전이를 놓친다(실측 — 0.45s 에 쏜 트리거가 0.80 까지 못 버팀). **exitTime 을 애니메이터에 두는 한 선입력은 절대 보존되지 않는다.**
+    → **체인 전이는 반드시 `hasExitTime=false`**(코드가 트리거를 쏘는 순간 전이). **체인 타이밍(0.8s)은 코드**(`comboChainDelaySeconds`)가 소유한다. 결과는 exitTime 0.80 과 동일(스윙 80% 지점 체인)이면서 선입력이 보존되고, 데미지·송신도 같은 시점에 나간다.
+    <br>※ 인스펙터에서 체인 전이의 Has Exit Time 을 다시 켜면 콤보가 조용히 깨진다 — PlayMode `RemoteDriverAnimTests` 가 이를 잡는다.
+  - `AnyState→ComboA` 는 `canTransitionToSelf=true` (창 만료 후 A 재시작이 ComboA 중에도 먹히도록).
+  - **⚠ 함정 3 — 테스트가 블렌드에 속는다**: 체인 블렌드(dur 0.20s) 동안 `GetCurrentAnimatorStateInfo` 는 여전히 **이전** 상태를 반환한다. 프레임 수로 폴링하면 프레임레이트에 따라 거짓 실패 → **시간 기준 + `IsInTransition`/`GetNextAnimatorStateInfo`** 까지 봐야 한다(`RemoteDriverAnimTests.IsEnteringOrIn`).
+- **데미지(단계별 상승)**: `Shared.Gameplay/GameplayEffectCatalog` 에 `combo_a/b/c_dmg`(Health −10/−15/−25) 코드 시드. 스킬 SO 3종(`GameData/Skill/Skill_ComboA/B/C`, 리치 half-Z 0.65/0.75/0.95, cd 350/400/800)이 각 데미지 참조 → `SkillCatalogExporter.BakeAll` → `skills.json`. **던전=서버 권위**(적중 시 `S_ApplyEffect{combo_*_dmg}`). **Main=`LocalCombat`** 도 스킬 OnHitEffect 에서 데미지를 읽어 단계별 상승(기존 고정 BaseDamage=10 → `SkillBaseDamage(skill)`=이펙트 Health 델타, `GameplayEffectCatalog` 주입).
+- **원격(던전 동기화)**: `RemoteDriver.HandlePlayerAttacked(skillId)` → `skillId switch {3→1,4→2,_→0}` = ComboStep + Attack. 강공격(1)·기본(0) 은 A. 서버가 단계마다 `S_Attack{SkillId}` 를 브로드캐스트하므로 원격도 A→B→C 를 그대로 재생한다.
+  - **⚠ 함정 4 — 원격은 서브SM 체인만으론 깨진다**: 로컬 체인 간격(0.8s) + **네트워크 지연**이 원격의 ComboA 유지시간(1.0s)을 넘으면 원격은 이미 Locomotion → 서브SM 체인(ComboA→ComboB)이 성립하지 않아 **원격만 콤보 애니가 안 나온다**(여유 0.2s뿐). → **`AnyState→ComboB/ComboC` 안전망**(Attack && ComboStep==N, dur 0.20) 추가. 체인이 `hasExitTime=false` 라 로컬은 어느 쪽이 걸려도 목적지가 같아 **결과 동일**. 가드 = `RemoteDriverAnimTests.원격_콤보_패킷이_늦게_와도_해당_단계_애니가_재생된다`.
+  - **⚠ 함정 5 — 서버 cadence 가 지터에 정상 콤보를 죽인다**: 클라는 정확히 `ComboChainMs` 간격으로 보내지만 **패킷별 지연 차로 서버 도착 간격이 더 짧아질 수 있다** → 게이트가 정상 콤보를 거부해 **데미지가 유실**(던전에서만 나는 버그). → `CombatHandler.ComboCadenceToleranceMs`(**100ms**) 허용치. 그래도 즉시 3연타(버스트)는 여전히 차단.
+- **⚠ Shared.Gameplay DLL 자동 복사**: 수동 `cp` 는 하네스가 `Client/Assets/Plugins` 쓰기를 차단 → `Shared.Gameplay.csproj` 에 **post-build `<Target> Copy`** 추가(빌드 내부 복사로 우회). 이제 `dotnet build Shared.Gameplay.csproj` 만 하면 클라 Plugins DLL 갱신.
+- **파일**: `Shared.Gameplay/{Effects/GameplayEffectCatalog.cs, Abilities/SkillTimeline.cs}`·`Shared.Gameplay.csproj`(DLL 자동복사) · `Shared.Infrastructure/Skills/SkillCatalog.cs`(JSON 파서) / `SocketServer/{PacketHandler/Handler/CombatHandler.cs, Player/PlayerState.cs}`(ResolveSkill + `TryBeginComboAttack`) / `skills.json`+`GameData/Skill/Skill_Combo*.asset`+`SkillCatalogDefinition`+`Gameplay/{Abilities/SkillDefinition.cs, Editor/SkillCatalogExporter.cs}` / 클라 `Gameplay/Character/ComboDriver.cs`(신규)·`CharacterAgentAnimations.cs`(int)·`Agent/PlayerCharacterAgent.cs`·`LocalCombat.cs`·`RemoteDriver.cs` / `PlayerController.controller` / `PlayerCharacter.prefab`·`RemotePlayerCharacter.prefab`(ComboStep).
+- **검증**: 서버 build0 · SocketServer.Tests **126**(`ComboCadenceTests` — 데이터 저작 확인·직전 단계 chain 게이트·**지터 허용**·**허용치 초과 연타 거부**·0 폴백) · Shared.Gameplay.Tests 39 · 클라 컴파일0 · EditMode **167**(`ComboDriverTests` 7 — A즉시·**선입력 버퍼링**·체인지점 이후 즉시·**단계별 다른 타이밍**·순환·창만료·Reset) · PlayMode **8**(`RemoteDriverAnimTests` — 서브SM 체인 A→B→C + **늦게 온 패킷도 재생**(던전 동기화) + hasExitTime 회귀 고정) · Docker E2E **SocketE2ETests 30/30**. 실 콤보 손맛 육안=MPPM 수동.
+
 ### 2.60 원격 회피 애니 — S_Dodge 브로드캐스트 (2026-07-12)
 
 애니 폴리시 백로그 #5. 다른 플레이어의 회피(구르기)가 안 보이던 것 해소.

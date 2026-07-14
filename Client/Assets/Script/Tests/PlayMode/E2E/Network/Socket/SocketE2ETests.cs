@@ -161,6 +161,37 @@ namespace Game.Tests.PlayMode.E2E
             }
         });
 
+        [UnityTest]
+        public IEnumerator RawSocket_콤보A_공격하면_S_Attack_skillId2_와_combo_a_dmg를_수신한다() => UniTask.ToCoroutine(async () =>
+        {
+            // #7 콤보: 클라 ComboDriver 가 단계별 skillId(2/3/4)를 송신 → 서버 ResolveSkill(combo_a) →
+            //   S_Attack{SkillId=2} 브로드캐스트 + 정면 적중 시 combo_a_dmg 부여. A 를 대표 검증(B/C 는 동일 경로·데이터만 상승).
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+            var guest = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
+
+            try
+            {
+                await host.SendAsync(new C_Move { PosX = 0, PosY = 0, PosZ = 0, RotY = 0 }, Timeout());
+                await guest.SendAsync(new C_Move { PosX = 0, PosY = 0, PosZ = 1, RotY = 0 }, Timeout());
+                await UniTask.Delay(TimeSpan.FromMilliseconds(400));
+
+                await host.SendAsync(new C_Attack { SkillId = 2 }, Timeout()); // 2 = combo_a
+
+                var atk = await host.WaitForPacketAsync<S_Attack>(p => p.AttackerId == room.HostUserId, Timeout());
+                Assert.AreEqual(2, atk.SkillId, "콤보A 는 skillId 2 로 브로드캐스트돼야 한다");
+
+                var apply = await guest.WaitForPacketAsync<S_ApplyEffect>(
+                    p => p.TargetId == room.GuestUserId && p.SourceId == room.HostUserId, Timeout());
+                Assert.AreEqual("combo_a_dmg", apply.EffectId, "콤보A 적중은 combo_a_dmg 를 부여해야 한다");
+            }
+            finally
+            {
+                await host.DisposeAsync();
+                await guest.DisposeAsync();
+            }
+        });
+
         // ── M3 몬스터(서버 권위 스폰/이동/전투) ────────────────────────
 
         [UnityTest]

@@ -52,7 +52,8 @@ public static class SkillCatalog
 
             result[s.Id] = new SkillTimeline(
                 s.Id, s.StartupMs, s.ActiveMs, s.RecoveryMs, s.CooldownMs,
-                hitbox, s.OnHitEffectIds ?? new List<string>(), s.ManaCost);
+                hitbox, s.OnHitEffectIds ?? new List<string>(), s.ManaCost,
+                s.ComboChainMs, s.ComboWindowMs);
         }
         return result;
     }
@@ -78,5 +79,9 @@ public static class SkillCatalog
         public float HalfY { get; set; }
         public float HalfZ { get; set; }
         public List<string> OnHitEffectIds { get; set; } = new();
+
+        // 콤보 타이밍(서버·클라 공유 진실원). 0 = 콤보 아님. 구 JSON(필드 없음)도 0 으로 안전 로드.
+        public int ComboChainMs { get; set; }
+        public int ComboWindowMs { get; set; }
     }
 }

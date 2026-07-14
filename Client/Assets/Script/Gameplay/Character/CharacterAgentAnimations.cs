@@ -24,6 +24,12 @@ namespace Game.Gameplay.Character
         MoveY  // 락온 strafe — facing 기준 후(-)/전(+) 이동 성분
     }
 
+    public enum AnimationIntType
+    {
+        None,
+        ComboStep // 근접 콤보 단계(0=A/1=B/2=C) — 컨트롤러가 이 값으로 콤보 상태 선택
+    }
+
     public enum AnimationBoolType
     {
         None,
@@ -41,6 +47,8 @@ namespace Game.Gameplay.Character
         [SerializeField] private string m_animationMoveXFloat;
         [SerializeField] private string m_animationMoveYFloat;
 
+        [SerializeField] private string m_animationComboStepInt;
+
         [SerializeField] private string m_animationGroundedBool;
         [SerializeField] private string m_animationStrafeBool;
         [SerializeField] private string m_animationFallTrigger;
@@ -56,6 +64,7 @@ namespace Game.Gameplay.Character
         private Dictionary<AnimationFloatType, string> floatParameters;
         private Dictionary<AnimationBoolType, string> boolParameters;
         private Dictionary<AnimationTriggerType, string> triggerParameters;
+        private Dictionary<AnimationIntType, string> intParameters;
 
         private void Awake()
         {
@@ -77,6 +86,10 @@ namespace Game.Gameplay.Character
                 { AnimationBoolType.Grounded, m_animationGroundedBool },
                 { AnimationBoolType.Strafe, m_animationStrafeBool },
                 // Add more mappings here
+            };
+            intParameters = new Dictionary<AnimationIntType, string>
+            {
+                { AnimationIntType.ComboStep, m_animationComboStepInt },
             };
             triggerParameters = new Dictionary<AnimationTriggerType, string>
             {
@@ -109,6 +122,17 @@ namespace Game.Gameplay.Character
             if (boolParameters.TryGetValue(boolType, out string paramName) && !string.IsNullOrEmpty(paramName))
             {
                 m_animator.SetBool(paramName, value);
+                return;
+            }
+        }
+
+        public void SetInt(AnimationIntType intType, int value)
+        {
+            if(!m_animator) return;
+            // 파라미터명이 비어있으면(미배선 — 예: NPC 콤보 미사용) 조용히 스킵.
+            if (intParameters.TryGetValue(intType, out string paramName) && !string.IsNullOrEmpty(paramName))
+            {
+                m_animator.SetInteger(paramName, value);
                 return;
             }
         }

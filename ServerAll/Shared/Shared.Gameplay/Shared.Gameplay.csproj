@@ -6,6 +6,23 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <RootNamespace>Shared.Gameplay</RootNamespace>
+
+    <!-- Unity 클라가 참조하는 Plugins DLL 경로. 빌드 시 자동 복사(아래 Target)로 Shared.Gameplay 소스 변경을 클라에 즉시 반영. -->
+    <UnityPluginDir>$(MSBuildThisFileDirectory)..\..\..\Client\Assets\Plugins\Shared.Gameplay\</UnityPluginDir>
   </PropertyGroup>
+
+  <!--
+    빌드 후 산출 DLL 을 Unity 클라 Plugins 로 자동 복사한다.
+    (수동 cp 는 하네스 권한 레이어가 Client/Assets/Plugins 쓰기를 차단 → 빌드 내부 Copy 로 우회.)
+    클라는 이 DLL 을 참조하므로 Shared.Gameplay 를 고칠 때마다 dotnet build 만 하면 클라에 반영된다.
+    .meta 는 Unity 가 관리하므로 DLL 만 복사한다.
+  -->
+  <Target Name="CopyToUnityPlugins" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)"
+          DestinationFolder="$(UnityPluginDir)"
+          SkipUnchangedFiles="false"
+          OverwriteReadOnlyFiles="true" />
+    <Message Importance="high" Text="[Shared.Gameplay] Unity Plugins 로 복사: $(UnityPluginDir)Shared.Gameplay.dll" />
+  </Target>
 
 </Project>

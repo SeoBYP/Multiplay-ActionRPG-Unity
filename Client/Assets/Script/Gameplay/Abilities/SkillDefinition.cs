@@ -38,6 +38,17 @@ namespace Game.Gameplay.Abilities
         [Tooltip("데미지=basic_attack_dmg, CC=stun_1_5s/slow_3s 등 — 스킬에 효과를 데이터로 부착.")]
         public List<string> onHitEffectIds = new();
 
+        [Header("콤보 타이밍 (서버·클라 공유 — 0 = 콤보 아님)")]
+        [Tooltip("이 스킬 발동 후 **다음 공격이 나갈 수 있는 최소 시점**(ms) = 애니 체인 지점.\n" +
+                 "그 전 입력은 클라가 선입력으로 버퍼했다가 이 시점에 발동한다. 서버는 이 값으로 cadence 를 권위 강제(연타 버스트 차단).\n" +
+                 "애니 클립의 체인 지점과 맞춰 저작한다(예: 클립 1.0s → 800).")]
+        public int comboChainMs = 0;
+
+        [Tooltip("이 스킬 발동 후 이 시간(ms)까지 다음 입력이 없으면 콤보가 끊겨 1단계(A)부터 다시 시작.\n" +
+                 "불변식: comboChainMs ≤ comboWindowMs < 애니 콤보상태 유지시간(클립 × exitTime).\n" +
+                 "창이 애니 유지시간보다 길면 클라는 다음 단계로 갔는데 Animator 는 이미 Locomotion 이라 애니가 안 나온다.")]
+        public int comboWindowMs = 0;
+
         /// <summary>Shared.Gameplay 순수 타입으로 변환(서버와 동일 판정 데이터).</summary>
         public SkillTimeline ToTimeline() => new SkillTimeline(
             id, startupMs, activeMs, recoveryMs, cooldownMs,
@@ -45,6 +56,6 @@ namespace Game.Gameplay.Abilities
                 hitboxShape,
                 new NVector3(hitboxOffset.x, hitboxOffset.y, hitboxOffset.z),
                 new NVector3(hitboxHalfExtents.x, hitboxHalfExtents.y, hitboxHalfExtents.z)),
-            onHitEffectIds, manaCost);
+            onHitEffectIds, manaCost, comboChainMs, comboWindowMs);
     }
 }

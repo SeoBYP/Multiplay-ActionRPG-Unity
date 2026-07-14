@@ -21,10 +21,18 @@ namespace Game.Gameplay.Character
         [Tooltip("락온 가능 최대 평면 사거리(m). 화면 안 + 이 거리 내 대상만 잡힌다.")]
         [SerializeField] private float lockOnRange = 15f;
 
+        // 콤보 단계별 skillId — 서버 CombatHandler.ResolveSkill 과 동일 규약(2=combo_a/3=combo_b/4=combo_c).
+        private static readonly int[] ComboSkillIds = { 2, 3, 4 };
+
+        // 콤보 타이밍 폴백(스킬 데이터 미로드 시에만). 진실원은 SkillTimeline.ComboChainMs/ComboWindowMs(skills.json).
+        private const float FallbackComboChainSec = 0.8f;
+        private const float FallbackComboWindowSec = 0.9f;
+
         private InteractionDetector _interactionDetector;
         private DodgeDriver _dodge;
         private KnockbackDriver _knockback;
         private LockOnDriver _lockOn;
+        private ComboDriver _combo;
 
         // 스킬 데이터(쿨다운·마나) 조회 — 클라 예측용. DI 미주입(테스트) 시 null → 게이트 없음.
         private SkillCatalogProvider _skills;
@@ -33,8 +41,15 @@ namespace Game.Gameplay.Character
         // 마나 리젠 소수부 누적(프레임 dt 비례 회복을 정수 Mana 로 환산). 서버 _manaRegenAccum 과 동일 방식.
         private float _manaRegenAccum;
 
-        /// <summary>skillId(int) → 스킬 데이터 키. 서버 CombatHandler.ResolveSkill 동일 규약(0=basic·1=heavy).</summary>
-        private static string SkillName(int skillId) => skillId switch { 1 => "heavy_swing", _ => "basic_swing" };
+        /// <summary>skillId(int) → 스킬 데이터 키. 서버 CombatHandler.ResolveSkill 동일 규약(0=basic·1=heavy·2/3/4=combo_a/b/c).</summary>
+        private static string SkillName(int skillId) => skillId switch
+        {
+            1 => "heavy_swing",
+            2 => "combo_a",
+            3 => "combo_b",
+            4 => "combo_c",
+            _ => "basic_swing",
+        };
 
         [Inject]
         public void ConstructAbilities(SkillCatalogProvider skills) => _skills = skills;
@@ -73,6 +88,8 @@ namespace Game.Gameplay.Character
 
             _dodge = new DodgeDriver(Motor, AbilitySystem, AgentAnimations, settings);
             _knockback = new KnockbackDriver(Motor);
+            // 콤보 타이밍은 스킬 데이터(SkillTimeline)가 진실원 — 서버 cadence 게이트와 같은 값을 본다.
+            _combo = new ComboDriver(ComboSkillIds, ResolveComboTiming);
 
             // 락온 = 순수 클라 조준 보조. 카메라 Follow(피벗 회전 소유)와 Motor(facing) 에 매 프레임 push.
             var cameraFollow = this.GetAroundComponent<CharacterCameraFollow>();
@@ -160,6 +177,7 @@ namespace Game.Gameplay.Character
             if (type == EGameplayAttribute.Health && current <= 0 && AbilitySystem != null && !IsDead)
             {
                 AbilitySystem.AddTag(DeadTag);
+                _combo?.Reset(); // 콤보 진행 초기화(부활 후 stale 단계 방지)
                 AgentAnimations?.ResetTrigger(AnimationTriggerType.Revive); // 이전 부활 트리거 잔재 제거(즉시 Dead 탈출 방지)
                 AgentAnimations?.SetTrigger(AnimationTriggerType.Dead); // 다운 포즈(Animator "Dead" 클립 배선은 클라 발전 시).
                 Debug.Log("[PlayerCharacterAgent] 로컬 다운 — HP≤0 → State.Dead (입력 게이트). ※다운 애니는 미배선(로그 대체)");
@@ -229,11 +247,34 @@ namespace Game.Gameplay.Character
         /// 적중 판정·데미지는 **서버 권위**(CombatSyncSender가 C_Attack 송신 → 서버 HitboxMath → S_ApplyEffect).
         /// 로컬은 연출만(피격 HitStop은 HitStopController가 HP 감소로 자동 트리거).
         /// </summary>
+        /// <summary>
+        /// 콤보 단계 skillId → (체인 지점 초, 콤보 창 초). <b>진실원 = 스킬 데이터</b>(skills.json, SO 저작).
+        /// 서버 `CombatHandler` 의 cadence 게이트가 같은 `ComboChainMs` 를 쓰므로 서버 권위와 애니가 어긋나지 않는다.
+        /// 데이터 미로드(테스트 하네스 등)면 폴백 상수.
+        /// </summary>
+        private (float chainSec, float windowSec) ResolveComboTiming(int skillId)
+        {
+            var skill = _skills?.Get(SkillName(skillId));
+            if (skill == null)
+                return (FallbackComboChainSec, FallbackComboWindowSec);
+
+            float chain = skill.ComboChainMs > 0 ? skill.ComboChainMs / 1000f : FallbackComboChainSec;
+            float window = skill.ComboWindowMs > 0 ? skill.ComboWindowMs / 1000f : FallbackComboWindowSec;
+            return (chain, window);
+        }
+
+        /// <summary>
+        /// 기본공격 반복 = 콤보 A→B→C(선입력 버퍼링). 입력은 콤보기에 접수만 하고,
+        /// 실제 발동은 매 프레임 <see cref="ComboDriver.TryFire"/> 가 "지금 나갈 시점"을 알려줄 때 한다.
+        /// → 스윙 도중 미리 누른 입력도 버려지지 않고 체인 지점에 자동으로 이어진다(애니가 즉시 잘리지 않음).
+        /// </summary>
         private void HandleAttackInput()
         {
-            if (InputSource == null || !InputSource.ConsumeAttackPressed())
-                return;
-            FireSkill(0); // 기본 공격(basic_swing)
+            if (InputSource != null && InputSource.ConsumeAttackPressed())
+                _combo.OnAttackPressed(Time.time); // 접수(선입력 포함)
+
+            if (_combo.TryFire(Time.time, out int skillId, out int step))
+                FireSkill(skillId, step);
         }
 
         /// <summary>락온 토글(Q) = Action 축 조준 보조. 토글 시 화면 중앙 대상 획득/해제(LockOnDriver 가 소유).</summary>
@@ -252,8 +293,9 @@ namespace Game.Gameplay.Character
             FireSkill(1); // 강공격(heavy_swing)
         }
 
-        /// <summary>스킬 발동 — 클라 마나+쿨다운 예측 게이트 통과 시 애니+OnAttackPerformed. 서버 게이트가 최종 권위.</summary>
-        private void FireSkill(int skillId)
+        /// <summary>스킬 발동 — 클라 마나+쿨다운 예측 게이트 통과 시 애니+OnAttackPerformed. 서버 게이트가 최종 권위.
+        /// comboStep: 콤보 단계(0=A/1=B/2=C). 음수 = 비콤보(강공격 등)로 A 애니 재생.</summary>
+        private void FireSkill(int skillId, int comboStep = -1)
         {
             var skill = _skills?.Get(SkillName(skillId));
             int manaCost = skill?.ManaCost ?? 0;
@@ -267,6 +309,8 @@ namespace Game.Gameplay.Character
             string abilityId = skill?.Id ?? SkillName(skillId);
             Debug.Log($"[GameplayAbility] 발동: '{abilityId}' (mana {manaCost}, cd {skill?.CooldownMs ?? 0}ms)");
 
+            // 콤보 단계를 애니 파라미터로 → 컨트롤러가 A/B/C 상태 선택. 비콤보(강공격)는 0(A) 재생.
+            AgentAnimations?.SetInt(AnimationIntType.ComboStep, comboStep < 0 ? 0 : comboStep);
             AgentAnimations?.SetTrigger(AnimationTriggerType.Attack);
             OnAttackPerformed?.Invoke(skillId);
 

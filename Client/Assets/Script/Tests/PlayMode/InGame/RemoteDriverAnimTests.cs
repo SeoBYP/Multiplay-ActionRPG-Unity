@@ -62,5 +62,120 @@ namespace Game.Tests.PlayMode.InGame
             Assert.IsTrue(enteredDodge,
                 "원격 회피(S_Dodge) 수신 시 Animator 가 Dodge 상태로 전이해야 한다 — 프리팹 CAA 의 Dodge 트리거명 배선 확인.");
         }
+
+        [UnityTest]
+        public IEnumerator 원격_콤보_A에서_B_C로_체인_전이한다()
+        {
+            // #7 원격 콤보: S_Attack{SkillId 2→3→4} 순서대로 수신 → RemoteDriver 가 ComboStep 0→1→2 + Attack.
+            // 컨트롤러 [Attack] 서브SM 은 **이전 공격에서 이어서** 체인한다(AnyState 진입은 ComboA 뿐,
+            // ComboA→ComboB→ComboC 는 상태→상태 전이 exitTime 0.35). 로컬·원격 동일 컨트롤러라 이 테스트가 체인 자체를 고정한다.
+            GameObject prefab = null;
+#if UNITY_EDITOR
+            prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Character/RemotePlayerCharacter.prefab");
+#endif
+            Assume.That(prefab, Is.Not.Null, "RemotePlayerCharacter 프리팹 로드 실패(에디터 외 실행)");
+
+            const long remoteId = 556;
+            _instance = Object.Instantiate(prefab);
+            var driver = _instance.GetComponent<RemoteDriver>();
+            var animator = _instance.GetComponentInChildren<Animator>();
+            Assume.That(animator.runtimeAnimatorController, Is.Not.Null, "PlayerController 미배선");
+
+            var state = new SocketPacketState();
+            driver.Initialize(remoteId, state);
+            for (int i = 0; i < 2; i++) yield return null;
+
+            // A: AnyState(Attack && ComboStep==0) → ComboA
+            state.NotifyPlayerAttacked(remoteId, 2); // combo_a
+            bool inA = false;
+            float deadline = Time.time + 1f;
+            while (Time.time < deadline && !inA)
+            {
+                yield return null;
+                inA = IsEnteringOrIn(animator, "ComboA");
+            }
+            Assert.IsTrue(inA, "콤보A(skillId 2) 수신 시 ComboA 로 진입해야 한다.");
+
+            // 스윙 도중 B 입력 → ComboA→ComboB 체인(상태→상태). 체인 전이는 hasExitTime=false 라 즉시 시작된다.
+            yield return new WaitForSeconds(0.45f);
+            state.NotifyPlayerAttacked(remoteId, 3); // combo_b
+            bool inB = false;
+            deadline = Time.time + 1f;
+            while (Time.time < deadline && !inB)
+            {
+                yield return null;
+                inB = IsEnteringOrIn(animator, "ComboB");
+            }
+            Assert.IsTrue(inB, "콤보B(skillId 3) 수신 시 ComboA 에서 ComboB 로 체인해야 한다(서브SM 상태전이).");
+
+            // 이어서 C 입력 → ComboB→ComboC
+            yield return new WaitForSeconds(0.45f);
+            state.NotifyPlayerAttacked(remoteId, 4); // combo_c
+            bool inC = false;
+            deadline = Time.time + 1f;
+            while (Time.time < deadline && !inC)
+            {
+                yield return null;
+                inC = IsEnteringOrIn(animator, "ComboC");
+            }
+            Assert.IsTrue(inC, "콤보C(skillId 4) 수신 시 ComboB 에서 ComboC 로 체인해야 한다(서브SM 상태전이).");
+        }
+
+        [UnityTest]
+        public IEnumerator 원격_콤보_패킷이_늦게_와도_해당_단계_애니가_재생된다()
+        {
+            // 던전 동기화 견고성. 로컬 체인 간격(ComboChainMs 0.8s) + 네트워크 지연이 원격의 ComboA 유지시간(1.0s)을
+            // 넘으면 원격은 이미 Locomotion 이다. 이때 서브SM 체인(ComboA→ComboB)은 성립하지 않으므로,
+            // **AnyState→ComboB 안전망**이 없으면 애니가 아예 안 나온다(원격만 콤보가 안 보이는 버그).
+            GameObject prefab = null;
+#if UNITY_EDITOR
+            prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Character/RemotePlayerCharacter.prefab");
+#endif
+            Assume.That(prefab, Is.Not.Null, "RemotePlayerCharacter 프리팹 로드 실패(에디터 외 실행)");
+
+            const long remoteId = 557;
+            _instance = Object.Instantiate(prefab);
+            var driver = _instance.GetComponent<RemoteDriver>();
+            var animator = _instance.GetComponentInChildren<Animator>();
+            Assume.That(animator.runtimeAnimatorController, Is.Not.Null, "PlayerController 미배선");
+
+            var state = new SocketPacketState();
+            driver.Initialize(remoteId, state);
+            for (int i = 0; i < 2; i++) yield return null;
+
+            state.NotifyPlayerAttacked(remoteId, 2); // A
+            bool inA = false;
+            float deadline = Time.time + 1f;
+            while (Time.time < deadline && !inA) { yield return null; inA = IsEnteringOrIn(animator, "ComboA"); }
+            Assert.IsTrue(inA, "콤보A 진입");
+
+            // ComboA(클립 1.0s, 복귀 exitTime 1.0)를 완전히 지나 보낸다 → 원격은 Locomotion 으로 복귀한 상태.
+            yield return new WaitForSeconds(1.3f);
+            Assert.IsFalse(animator.GetCurrentAnimatorStateInfo(0).IsName("ComboA"),
+                "전제: ComboA 는 이미 끝나 Locomotion 이어야 한다");
+
+            // 늦게 도착한 B — 서브SM 체인은 못 타지만 AnyState 안전망으로 ComboB 가 재생돼야 한다.
+            state.NotifyPlayerAttacked(remoteId, 3);
+            bool inB = false;
+            deadline = Time.time + 1f;
+            while (Time.time < deadline && !inB) { yield return null; inB = IsEnteringOrIn(animator, "ComboB"); }
+            Assert.IsTrue(inB,
+                "늦게 도착한 콤보B 도 ComboB 로 재생돼야 한다 — AnyState→ComboB 안전망 확인(원격 콤보 동기화).");
+        }
+
+        /// <summary>
+        /// 해당 상태에 있거나 그 상태로 <b>전이 중</b>인가.
+        /// 블렌드(체인 dur 0.20s) 동안 GetCurrentAnimatorStateInfo 는 여전히 <b>이전</b> 상태를 반환하므로,
+        /// 전이 대상(GetNextAnimatorStateInfo)까지 봐야 "체인이 일어났다"를 프레임레이트와 무관하게 판정할 수 있다.
+        /// </summary>
+        private static bool IsEnteringOrIn(Animator animator, string stateName)
+        {
+            if (animator.GetCurrentAnimatorStateInfo(0).IsName(stateName))
+                return true;
+            return animator.IsInTransition(0)
+                   && animator.GetNextAnimatorStateInfo(0).IsName(stateName);
+        }
     }
 }

@@ -146,4 +146,35 @@ public class PlayerState
 
     /// <summary>주어진 시각에 회피 무적(i-frame)인가.</summary>
     public bool IsInvulnerableAt(long nowMs) => nowMs < InvulnerableUntilMs;
+
+    // ── 콤보 cadence(서버 권위, 데이터 주도) ──────────────────────────────
+    // 직전 콤보 스윙의 시각 + 그 스킬의 SkillTimeline.ComboChainMs 를 기억해, 다음 콤보 공격이
+    // 그 시점 전에 오면 거부한다. 콤보는 단계마다 skillId 가 달라(2/3/4) **개별 쿨다운으론 연타를 못 막는다**
+    // (각자 첫 발동이라 쿨다운이 비어 있음 → C_Attack{2,3,4} 즉시 연사 = 합산 폭딜).
+    // 타이밍의 진실원은 skills.json(SO 저작) — 클라 ComboDriver 가 쓰는 값과 동일하다.
+    private long _lastComboAtMs;
+    private int _lastComboChainMs;
+
+    /// <summary>
+    /// 콤보 공격 cadence 게이트. 직전 콤보 스윙의 <c>ComboChainMs</c> 가 지났으면 true(그리고 이번 스윙을 기록).
+    /// 아직이면 <b>아무것도 기록하지 않고</b> false. chainMs=0(데이터 미설정)이면 최소 안전값으로 폴백한다.
+    ///
+    /// <paramref name="toleranceMs"/> = 네트워크 지터 허용치. 클라는 정확히 ComboChainMs 간격으로 보내지만
+    /// 패킷별 지연이 달라 <b>서버 도착 간격이 그보다 짧아질 수 있다</b> → 허용치가 없으면 정상 콤보가 거부돼
+    /// 데미지가 유실된다. 허용치만큼 느슨하게 봐도 버스트(즉시 3연타) 차단에는 지장이 없다.
+    /// </summary>
+    public bool TryBeginComboAttack(long nowMs, int thisChainMs, int minFallbackMs, int toleranceMs = 0)
+    {
+        if (_lastComboChainMs > 0)
+        {
+            long required = Math.Max(0, _lastComboChainMs - toleranceMs);
+            if (nowMs - _lastComboAtMs < required)
+                return false;
+        }
+
+        _lastComboAtMs = nowMs;
+        // 저작 실수로 0 이어도 버스트 구멍이 열리지 않도록 최소값 보장.
+        _lastComboChainMs = thisChainMs > 0 ? thisChainMs : minFallbackMs;
+        return true;
+    }
 }

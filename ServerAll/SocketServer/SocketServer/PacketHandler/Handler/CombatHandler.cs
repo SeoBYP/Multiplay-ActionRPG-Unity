@@ -24,6 +24,23 @@ public static class CombatHandler
     public const float TargetRadius = 0.5f;
 
     /// <summary>
+    /// 콤보 cadence 의 <b>최소 안전값</b>(ms). 진실원은 스킬 데이터(<c>SkillTimeline.ComboChainMs</c>, skills.json) —
+    /// 이 상수는 데이터가 0(저작 누락)일 때만 쓰이는 폴백이다. 콤보는 단계마다 skillId 가 달라(2/3/4)
+    /// **개별 쿨다운으로는 연타 버스트를 막지 못하므로**(각자 첫 발동) 최소한의 간격은 항상 강제한다.
+    /// </summary>
+    public const int ComboMinIntervalMs = 300;
+
+    /// <summary>
+    /// 콤보 cadence 의 네트워크 지터 허용치(ms). 클라는 정확히 ComboChainMs 간격으로 보내지만 패킷별 지연이 달라
+    /// <b>서버 도착 간격이 그보다 짧아질 수 있다</b>(예: 두 번째 패킷의 지연이 더 짧을 때) → 허용치가 없으면
+    /// 정상 콤보가 거부돼 데미지가 유실된다. 이만큼 느슨하게 봐도 버스트(즉시 3연타) 차단에는 지장이 없다.
+    /// </summary>
+    public const int ComboCadenceToleranceMs = 100;
+
+    /// <summary>콤보 단계 skillId 인가(클라 ComboDriver 와 동일 규약: 2=combo_a·3=combo_b·4=combo_c).</summary>
+    public static bool IsComboSkill(int skillId) => skillId is 2 or 3 or 4;
+
+    /// <summary>
     /// SkillId(패킷 int) → SkillTimeline. 데이터=임베디드 skills.json(클라 SkillDefinition SO 저작→bake, §2.5).
     /// int→문자열 id 매핑(패킷 계약 보존): 0=basic_swing, 1=heavy_swing …
     /// </summary>
@@ -32,6 +49,9 @@ public static class CombatHandler
         string id = skillId switch
         {
             1 => "heavy_swing",
+            2 => "combo_a", // #7 콤보 A→B→C — 클라 ComboDriver 가 단계별 skillId(2/3/4) 송신
+            3 => "combo_b",
+            4 => "combo_c",
             _ => "basic_swing",
         };
         return Shared.Infrastructure.Skills.SkillCatalog.Get(id);
@@ -89,9 +109,17 @@ public static class CombatHandler
             return;
         }
 
-        // 0b) 서버 발동 게이트(권위 쿨다운). 쿨다운 중이면 발동 거부 → 데미지 0.
-        //     클라가 C_Attack 을 연사해도 서버가 cadence 를 강제해 폭딜 치팅을 막는다.
         long startTick = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        // 0b-1) 콤보 cadence 게이트(권위, **데이터 주도**). 직전 콤보 스윙의 SkillTimeline.ComboChainMs 가
+        //       지나기 전의 다음 콤보 공격은 거부 → A→B→C 즉시 3연타(합산 폭딜) 치팅 차단.
+        //       타이밍 진실원 = skills.json(SO 저작) — 클라 ComboDriver 가 쓰는 값과 동일하므로 서버·클라가 어긋나지 않는다.
+        if (IsComboSkill(packet.SkillId)
+            && !attacker.TryBeginComboAttack(startTick, skill.ComboChainMs, ComboMinIntervalMs, ComboCadenceToleranceMs))
+            return;
+
+        // 0b-2) 서버 발동 게이트(권위 쿨다운). 쿨다운 중이면 발동 거부 → 데미지 0.
+        //     클라가 C_Attack 을 연사해도 서버가 cadence 를 강제해 폭딜 치팅을 막는다.
         if (!attacker.TryBeginSkill(packet.SkillId, skill.CooldownMs, startTick))
             return;
 

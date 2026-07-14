@@ -61,7 +61,15 @@ namespace Game.Gameplay.Editor
                     offsetX = s.hitboxOffset.x, offsetY = s.hitboxOffset.y, offsetZ = s.hitboxOffset.z,
                     halfX = s.hitboxHalfExtents.x, halfY = s.hitboxHalfExtents.y, halfZ = s.hitboxHalfExtents.z,
                     onHitEffectIds = new List<string>(s.onHitEffectIds ?? new List<string>()),
+                    comboChainMs = s.comboChainMs, comboWindowMs = s.comboWindowMs,
                 });
+
+                // 불변식 검증(저작 실수 조기 차단): 체인 ≤ 창.
+                if (s.comboChainMs > 0 && s.comboWindowMs > 0 && s.comboChainMs > s.comboWindowMs)
+                {
+                    Debug.LogError($"[SkillCatalogExporter] '{s.id}': comboChainMs({s.comboChainMs}) > comboWindowMs({s.comboWindowMs}) — 체인 지점이 창보다 늦으면 콤보가 절대 이어지지 않는다.");
+                    return -1;
+                }
             }
 
             var file = new FileDto { skills = dtos.OrderBy(d => d.id, StringComparer.Ordinal).ToList() };
@@ -89,6 +97,7 @@ namespace Game.Gameplay.Editor
             public string hitboxShape;
             public float offsetX, offsetY, offsetZ, halfX, halfY, halfZ;
             public List<string> onHitEffectIds = new();
+            public int comboChainMs, comboWindowMs; // 콤보 타이밍(서버·클라 공유)
         }
     }
 }
