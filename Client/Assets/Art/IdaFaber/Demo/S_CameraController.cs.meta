@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 1c5821ddd17ff5f4f993f1367a940b2a
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 183453
+  packageName: Horned Knight - RPG Dark Fantasy Modular Female and Male Characters
+  packageVersion: 2.0
+  assetPath: Assets/IdaFaber/Demo/S_CameraController.cs
+  uploadId: 761942

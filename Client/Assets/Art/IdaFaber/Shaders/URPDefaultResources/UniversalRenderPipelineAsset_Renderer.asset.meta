@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: b7cb793f0e2198349833d4c0b91499b0
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 183453
+  packageName: Horned Knight - RPG Dark Fantasy Modular Female and Male Characters
+  packageVersion: 2.0
+  assetPath: Assets/IdaFaber/Shaders/URPDefaultResources/UniversalRenderPipelineAsset_Renderer.asset
+  uploadId: 761942
