@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 441e1dd61f0e2ce4eba35f4cd166d700
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241768
+  packageName: Fantasy Monsters Pack
+  packageVersion: 1.0
+  assetPath: Assets/_DLNK/Characters/Wild Centaur/Source/Motion/WildCentaur_ctrl.controller
+  uploadId: 552161

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 0fc7b830743ac10459b9ad726a4eccdd
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 4300000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241768
+  packageName: Fantasy Monsters Pack
+  packageVersion: 1.0
+  assetPath: Assets/_DLNK/Characters/Wild Centaur/Source/Mesh/WildCentaur_LOD_Meshes/LEVEL_2/02_Centaur_Scythe.mesh
+  uploadId: 552161

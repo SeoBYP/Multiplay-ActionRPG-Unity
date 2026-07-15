@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 689aa649aaf37334499be65568ea377f
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 4300000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241768
+  packageName: Fantasy Monsters Pack
+  packageVersion: 1.0
+  assetPath: Assets/_DLNK/Characters/Wild Centaur/Source/Mesh/WildCentaur_LOD_Meshes/LEVEL_2/02_Box002.mesh
+  uploadId: 552161

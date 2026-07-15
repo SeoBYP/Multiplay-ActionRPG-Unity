@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 242c21ede7355624a88447ddf14f70cc
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures:
+  - _TransMask: {fileID: 2800000, guid: 72f052122502345f1b365b37455a8e3d, type: 3}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241768
+  packageName: Fantasy Monsters Pack
+  packageVersion: 1.0
+  assetPath: Assets/_DLNK/Characters/Arachnya Demon/Source/Shaders/DX11TSShader.shader
+  uploadId: 552161

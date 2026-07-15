@@ -1,0 +1,798 @@
+fileFormatVersion: 2
+guid: 36d662f9238ab524c810a9cfaa90d260
+ModelImporter:
+  serializedVersion: 20200
+  internalIDToNameTable:
+  - first:
+      74: 1827226128182048838
+    second: WalkCycle00
+  externalObjects: {}
+  materials:
+    materialImportMode: 1
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: "Copied Avatar Rig Configuration mis-match. Bone length in
+      copied configuration does not match position in animation file:\n\t'CreepyDemonAnkleBone002'
+      : position error = 483.372284 mm\n\t'CreepyDemonAnkleBone001' : position error
+      = 487.525574 mm\n"
+    animationImportErrors: 
+    animationImportWarnings: "\nClip 'Take 001' has import animation warnings that
+      might lower retargeting quality:\nNote: Activate translation DOF on avatar
+      to improve retargeting quality.\n\t'CreepyDemonSpine1' is inbetween humanoid
+      transforms and has rotation animation that will be discarded.\n\t'CreepyDemonSpine1
+      1' is inbetween humanoid transforms and has rotation animation that will be
+      discarded.\n\t'CreepyDemonLLegAnkle' has scale animation that will be discarded.\n\t'CreepyDemonRLegAnkle'
+      has scale animation that will be discarded.\n"
+    animationRetargetingWarnings: "\nRetargeting quality report for clip 'Take 001':\n\tLeftUpperArm
+      average position error 6.2 mm and maximum position error 8.8 mm at time 0:
+      7 (7.0%) Frame 7\n\tLeftLowerArm average position error 5.0 mm and maximum
+      position error 7.6 mm at time 0: 5 (5.0%) Frame 5\n\tLeftHand average position
+      error 4.1 mm and maximum position error 8.1 mm at time 0: 6 (6.0%) Frame 6\n\tRightUpperArm
+      average position error 6.2 mm and maximum position error 8.8 mm at time 0:
+      7 (7.0%) Frame 7\n\tRightLowerArm average position error 5.0 mm and maximum
+      position error 6.9 mm at time 0: 5 (5.0%) Frame 5\n\tRightHand average position
+      error 4.0 mm and maximum position error 6.9 mm at time 1: 2 (32.0%) Frame 32\n\tHead
+      average position error 29.4 mm and maximum position error 48.2 mm at time 2:25
+      (85.0%) Frame 85\n\tLeftFoot average orientation error 2.9 deg and maximum
+      orientation error 9.0 deg at time 3: 6 (96.0%) Frame 96\n\tRightFoot average
+      orientation error 4.5 deg and maximum orientation error 11.5 deg at time 0:20
+      (20.0%) Frame 20\n"
+    animationDoRetargetingWarnings: 1
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 0
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations:
+    - serializedVersion: 16
+      name: WalkCycle00
+      takeName: Take 001
+      internalID: 0
+      firstFrame: 0
+      lastFrame: 100
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 1
+      loopBlend: 1
+      loopBlendOrientation: 0
+      loopBlendPositionY: 1
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask:
+      - path: 
+        weight: 1
+      - path: CreepyDemon
+        weight: 0
+      - path: CreepyDemonLArmIKTarget
+        weight: 0
+      - path: CreepyDemonLLegPlatform
+        weight: 0
+      - path: CreepyDemonPelvis
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonLLeg1
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonLLeg1/CreepyDemonLLeg2
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonLLeg1/CreepyDemonLLeg2/CreepyDemonLLegAnkle
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonLLeg1/CreepyDemonLLeg2/CreepyDemonLLegAnkle/CreepyDemonAnkleBone002
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonRLeg1
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonRLeg1/CreepyDemonRLeg2
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonRLeg1/CreepyDemonRLeg2/CreepyDemonRLegAnkle
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonRLeg1/CreepyDemonRLeg2/CreepyDemonRLegAnkle/CreepyDemonAnkleBone001
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemon3Bone001
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemon3Bone001/CreepyDemon3Bone001Bone001
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemon3Bone001/CreepyDemon3Bone001Bone001/CreepyDemon3Bone001Bone001Bone001
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemon3Bone001
+          1
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemon3Bone001
+          1/CreepyDemon3Bone001Bone001 1
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemon3Bone001
+          1/CreepyDemon3Bone001Bone001 1/CreepyDemon3Bone001Bone001Bone001 1
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemon3Bone003
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemon3Bone003/CreepyDemon3Bone003Bone001
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemon3Bone003
+          1
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemon3Bone003
+          1/CreepyDemon3Bone003Bone001 1
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonLArmCollarbone
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonLArmCollarbone/CreepyDemonLArm1
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonLArmCollarbone/CreepyDemonLArm1/CreepyDemonLArm2
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonLArmCollarbone/CreepyDemonLArm1/CreepyDemonLArm2/CreepyDemonLArmPalm
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonLArmCollarbone/CreepyDemonLArm1/CreepyDemonLArm2/CreepyDemonLArmPalm/CreepyDemonLArmDigit11
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonLArmCollarbone/CreepyDemonLArm1/CreepyDemonLArm2/CreepyDemonLArmPalm/CreepyDemonLArmDigit11/CreepyDemonLArmDigit12
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonLArmCollarbone/CreepyDemonLArm1/CreepyDemonLArm2/CreepyDemonLArmPalm/CreepyDemonLArmDigit21
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonLArmCollarbone/CreepyDemonLArm1/CreepyDemonLArm2/CreepyDemonLArmPalm/CreepyDemonLArmDigit21/CreepyDemonLArmDigit22
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonRArmCollarbone
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonRArmCollarbone/CreepyDemonRArm1
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonRArmCollarbone/CreepyDemonRArm1/CreepyDemonRArm2
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonRArmCollarbone/CreepyDemonRArm1/CreepyDemonRArm2/CreepyDemonRArmPalm
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonRArmCollarbone/CreepyDemonRArm1/CreepyDemonRArm2/CreepyDemonRArmPalm/CreepyDemonRArmDigit11
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonRArmCollarbone/CreepyDemonRArm1/CreepyDemonRArm2/CreepyDemonRArmPalm/CreepyDemonRArmDigit11/CreepyDemonRArmDigit12
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonRArmCollarbone/CreepyDemonRArm1/CreepyDemonRArm2/CreepyDemonRArmPalm/CreepyDemonRArmDigit21
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonRArmCollarbone/CreepyDemonRArm1/CreepyDemonRArm2/CreepyDemonRArmPalm/CreepyDemonRArmDigit21/CreepyDemonRArmDigit22
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonSpine1
+          1
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonSpine1
+          1/CreepyDemonSpine2 1
+        weight: 1
+      - path: CreepyDemonPelvis/CreepyDemonSpine1/CreepyDemonSpine2/CreepyDemonSpine3/CreepyDemonHub002/CreepyDemonSpine1
+          1/CreepyDemonSpine2 1/CreepyDemonHead
+        weight: 1
+      - path: CreepyDemonRArmIKTarget
+        weight: 0
+      - path: CreepyDemonRLegPlatform
+        weight: 0
+      maskType: 0
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    isReadable: 0
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    fileIdsGeneration: 2
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    bakeAxisConversion: 0
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    meshOptimizationFlags: -1
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  referencedClips: []
+  importAnimation: 1
+  humanDescription:
+    serializedVersion: 3
+    human:
+    - boneName: CreepyDemonPelvis
+      humanName: Hips
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonLLeg1
+      humanName: LeftUpperLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonRLeg1
+      humanName: RightUpperLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonLLeg2
+      humanName: LeftLowerLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonRLeg2
+      humanName: RightLowerLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonLLegAnkle
+      humanName: LeftFoot
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonRLegAnkle
+      humanName: RightFoot
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonSpine2
+      humanName: Spine
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonSpine3
+      humanName: Chest
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonSpine2 1
+      humanName: Neck
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonHead
+      humanName: Head
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonLArmCollarbone
+      humanName: LeftShoulder
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonRArmCollarbone
+      humanName: RightShoulder
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonLArm1
+      humanName: LeftUpperArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonRArm1
+      humanName: RightUpperArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonLArm2
+      humanName: LeftLowerArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonRArm2
+      humanName: RightLowerArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonLArmPalm
+      humanName: LeftHand
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonRArmPalm
+      humanName: RightHand
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonLArmDigit11
+      humanName: Left Index Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonLArmDigit12
+      humanName: Left Index Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonLArmDigit21
+      humanName: Left Little Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonLArmDigit22
+      humanName: Left Little Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonRArmDigit11
+      humanName: Right Index Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonRArmDigit12
+      humanName: Right Index Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonRArmDigit21
+      humanName: Right Little Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonRArmDigit22
+      humanName: Right Little Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonHub002
+      humanName: UpperChest
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonAnkleBone001
+      humanName: RightToes
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: CreepyDemonAnkleBone002
+      humanName: LeftToes
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    skeleton:
+    - name: CreepyDemon(Clone)
+      parentName: 
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 0.00000006657903, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: CreepyDemon_Fabric
+      parentName: CreepyDemon(Clone)
+      position: {x: 0.000000005667112, y: 1.522174, z: 0.12964824}
+      rotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071067}
+      scale: {x: 18.4227, y: 18.4227, z: 18.4227}
+    - name: CreepyDemon_Mesh
+      parentName: CreepyDemon(Clone)
+      position: {x: 0.000000005667112, y: 1.522174, z: 0.12964824}
+      rotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071067}
+      scale: {x: 18.4227, y: 18.4227, z: 18.4227}
+    - name: CreepyDemon
+      parentName: CreepyDemon(Clone)
+      position: {x: 0.0042039487, y: -0.00089950557, z: 1.4654807e-10}
+      rotation: {x: 0.5, y: -0.5000001, z: -0.49999982, w: 0.50000006}
+      scale: {x: 1, y: 1, z: 1}
+    - name: CreepyDemonRLegPlatform
+      parentName: CreepyDemon(Clone)
+      position: {x: 0.25891453, y: 0.00000003990163, z: 0.082643434}
+      rotation: {x: 0.46459898, y: -0.46459904, z: -0.533055, w: 0.5330552}
+      scale: {x: 1, y: 1, z: 1}
+    - name: CreepyDemonLLegPlatform
+      parentName: CreepyDemon(Clone)
+      position: {x: -0.2589146, y: -0.00000004446349, z: 0.082643256}
+      rotation: {x: -0.5330552, y: 0.53305525, z: 0.4645988, w: -0.464599}
+      scale: {x: 1, y: 1, z: 1}
+    - name: CreepyDemonPelvis
+      parentName: CreepyDemon(Clone)
+      position: {x: -0.000000117058086, y: 0.7929679, z: -0.07447069}
+      rotation: {x: 0.50000006, y: -0.5000001, z: -0.49999985, w: 0.50000006}
+      scale: {x: 0.9999998, y: 0.9999998, z: 0.9999999}
+    - name: CreepyDemonSpine1
+      parentName: CreepyDemonPelvis
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 0.0000011920929, y: -0.000040203333, z: 0.06149599, w: 0.9981074}
+      scale: {x: 1.0000001, y: 1, z: 1}
+    - name: CreepyDemonSpine2
+      parentName: CreepyDemonSpine1
+      position: {x: -0.14838585, y: -0.0000000047683715, z: 0}
+      rotation: {x: 0.000004347477, y: -0.000033884568, z: -0.051543783, w: 0.99867076}
+      scale: {x: 1, y: 1.0000001, z: 1}
+    - name: CreepyDemonSpine3
+      parentName: CreepyDemonSpine2
+      position: {x: -0.14838585, y: -0.0000000047683715, z: 0}
+      rotation: {x: 0.0000128299, y: -0.00003169477, z: 0.19216464, w: -0.9813627}
+      scale: {x: 0.99999976, y: 1, z: 1.0000001}
+    - name: CreepyDemon3Bone001
+      parentName: CreepyDemonSpine3
+      position: {x: -0.0936869, y: -0.09867035, z: -0.04586143}
+      rotation: {x: 0.4005534, y: -0.080264576, z: 0.5711002, w: 0.7120107}
+      scale: {x: 1, y: 1, z: 1}
+    - name: CreepyDemon3Bone001Bone001
+      parentName: CreepyDemon3Bone001
+      position: {x: -0.38885307, y: 0, z: 0.000000009536743}
+      rotation: {x: -0.16019934, y: -0.1469819, z: -0.56836677, w: 0.7935312}
+      scale: {x: 0.9999998, y: 1, z: 0.99999964}
+    - name: CreepyDemon3Bone001Bone001Bone001
+      parentName: CreepyDemon3Bone001Bone001
+      position: {x: -0.35031807, y: 0, z: 0}
+      rotation: {x: -0.01832713, y: -0.080969036, z: -0.30631575, w: 0.94830316}
+      scale: {x: 1, y: 1.0000005, z: 0.99999994}
+    - name: CreepyDemon_Limb01
+      parentName: CreepyDemon3Bone001Bone001Bone001
+      position: {x: 0.018763924, y: 0.013397521, z: -0.009298896}
+      rotation: {x: -0.65683675, y: 0.07088803, z: 0.7055934, w: -0.2562778}
+      scale: {x: 18.422703, y: 18.422709, z: 18.422705}
+    - name: CreepyDemon_Limb00
+      parentName: CreepyDemon3Bone001Bone001
+      position: {x: 0.01320343, y: 0.016617507, z: -0.024586562}
+      rotation: {x: -0.6480119, y: 0.1672827, z: 0.6848305, w: -0.28827807}
+      scale: {x: 18.422699, y: 18.422695, z: 18.4227}
+    - name: CreepyDemon_Limb08
+      parentName: CreepyDemon3Bone001
+      position: {x: 0.002684555, y: 0.0027864075, z: -0.0061267945}
+      rotation: {x: -0.6778927, y: -0.023132935, z: 0.72530353, w: -0.11773354}
+      scale: {x: 18.422705, y: 18.422707, z: 18.422705}
+    - name: CreepyDemon3Bone001 1
+      parentName: CreepyDemonSpine3
+      position: {x: -0.093686976, y: -0.09867035, z: 0.039871957}
+      rotation: {x: -0.50541484, y: 0.06897809, z: 0.5585622, w: 0.6540689}
+      scale: {x: 0.99999976, y: 1.0000005, z: 1.0000001}
+    - name: CreepyDemon3Bone001Bone001 1
+      parentName: CreepyDemon3Bone001 1
+      position: {x: -0.38885313, y: 0, z: 0.000000019073486}
+      rotation: {x: 0.246107, y: 0.09667228, z: -0.53935075, w: 0.79949147}
+      scale: {x: 0.9999995, y: 1.0000004, z: 1.0000005}
+    - name: CreepyDemon3Bone001Bone001Bone001 1
+      parentName: CreepyDemon3Bone001Bone001 1
+      position: {x: -0.35031798, y: 0, z: -0.000000019073486}
+      rotation: {x: -0.06155672, y: 0.15940404, z: -0.3398379, w: 0.92483044}
+      scale: {x: 0.9999996, y: 1.0000001, z: 1.0000004}
+    - name: CreepyDemon_Limb05
+      parentName: CreepyDemon3Bone001Bone001Bone001 1
+      position: {x: 0.018644562, y: 0.03319275, z: 0.012588501}
+      rotation: {x: -0.5146177, y: -0.43604743, z: 0.7198346, w: 0.16391872}
+      scale: {x: 18.422705, y: 18.422709, z: 18.4227}
+    - name: CreepyDemon_Limb04
+      parentName: CreepyDemon3Bone001Bone001 1
+      position: {x: 0.027011642, y: 0.006708374, z: -0.021748751}
+      rotation: {x: 0.6837911, y: 0.25357077, z: -0.6443935, w: -0.22997525}
+      scale: {x: 18.422705, y: 18.422697, z: 18.422705}
+    - name: CreepyDemon_Limb09
+      parentName: CreepyDemon3Bone001 1
+      position: {x: -0.003303375, y: -0.0032924651, z: 0.01068099}
+      rotation: {x: 0.90043443, y: 0.30584463, z: 0.0059920927, w: -0.30925873}
+      scale: {x: 18.422699, y: 18.422707, z: 18.422707}
+    - name: CreepyDemon3Bone003
+      parentName: CreepyDemonSpine3
+      position: {x: 0.0010047912, y: -0.08550522, z: -0.04697636}
+      rotation: {x: 0.20285237, y: -0.16422008, z: 0.75029474, w: 0.6074047}
+      scale: {x: 0.9999998, y: 1.0000001, z: 1}
+    - name: CreepyDemon3Bone003Bone001
+      parentName: CreepyDemon3Bone003
+      position: {x: -0.31508407, y: -0.000000076293944, z: 0.000000028610229}
+      rotation: {x: 0.09908149, y: -0.7384192, z: -0.08999516, w: 0.66092426}
+      scale: {x: 0.9999996, y: 1.0000002, z: 1.0000006}
+    - name: CreepyDemon_Limb02
+      parentName: CreepyDemon3Bone003Bone001
+      position: {x: 0.0022242547, y: -0.0062361145, z: 0.0065317154}
+      rotation: {x: -0.49950033, y: 0.49800226, z: 0.50687504, w: 0.49555105}
+      scale: {x: 18.422703, y: 18.422707, z: 18.422707}
+    - name: CreepyDemon_Limb03
+      parentName: CreepyDemon3Bone003
+      position: {x: -0.014488258, y: -0.014158859, z: 0.021058425}
+      rotation: {x: -0.48781237, y: 0.51811886, z: 0.50073963, w: 0.49280003}
+      scale: {x: 18.422705, y: 18.422707, z: 18.422707}
+    - name: CreepyDemon3Bone003 1
+      parentName: CreepyDemonSpine3
+      position: {x: 0.0010046386, y: -0.08550522, z: 0.052535348}
+      rotation: {x: -0.22452156, y: 0.18176252, z: 0.7440977, w: 0.60238785}
+      scale: {x: 0.99999994, y: 0.9999999, z: 0.9999999}
+    - name: CreepyDemon3Bone003Bone001 1
+      parentName: CreepyDemon3Bone003 1
+      position: {x: -0.31508407, y: 0, z: -0.000000019073486}
+      rotation: {x: 0.018562222, y: 0.6935469, z: -0.191917, w: 0.69412977}
+      scale: {x: 1.0000001, y: 1.0000002, z: 1.0000001}
+    - name: CreepyDemon_Limb06
+      parentName: CreepyDemon3Bone003Bone001 1
+      position: {x: 0.012110958, y: -0.006932602, z: -0.009275817}
+      rotation: {x: 0.033011373, y: 0.8676385, z: 0.45701656, w: -0.19300137}
+      scale: {x: 18.422703, y: 18.422707, z: 18.42271}
+    - name: CreepyDemon_Limb07
+      parentName: CreepyDemon3Bone003 1
+      position: {x: -0.023430824, y: -0.014166259, z: -0.0065149115}
+      rotation: {x: -0.67880636, y: 0.17921779, z: 0.16710407, w: 0.69222766}
+      scale: {x: 18.422705, y: 18.422703, z: 18.422705}
+    - name: CreepyDemonHub002
+      parentName: CreepyDemonSpine3
+      position: {x: -0.14838585, y: 0, z: -9.3132255e-12}
+      rotation: {x: 0.0023077636, y: -0.004540315, z: -0.07045203, w: -0.99750215}
+      scale: {x: 1.0000002, y: 1.0000006, z: 0.9999999}
+    - name: CreepyDemonSpine1 1
+      parentName: CreepyDemonHub002
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 0.000484392, y: 0.010764836, z: 0.1277227, w: -0.9917514}
+      scale: {x: 0.9999999, y: 0.99999994, z: 1.0000001}
+    - name: CreepyDemonSpine2 1
+      parentName: CreepyDemonSpine1 1
+      position: {x: -0.1422161, y: -0.000000076293944, z: 0.0000000011920929}
+      rotation: {x: 0.0000002387969, y: 0.00000018067655, z: 0.1963687, w: 0.9805302}
+      scale: {x: 1.0000004, y: 1.0000005, z: 1.0000005}
+    - name: CreepyDemonHead
+      parentName: CreepyDemonSpine2 1
+      position: {x: -0.1422161, y: 0, z: -0.0000000011920929}
+      rotation: {x: -0.0054491605, y: -0.009296299, z: -0.21627407, w: -0.9762733}
+      scale: {x: 1, y: 0.9999998, z: 0.9999998}
+    - name: CreepyDemonRArmCollarbone
+      parentName: CreepyDemonHub002
+      position: {x: -0.037400056, y: -0.024245681, z: -0.07267812}
+      rotation: {x: -0.061771754, y: 0.79321444, z: 0.061771855, w: -0.6026436}
+      scale: {x: 1.0000006, y: 1.0000004, z: 1.0000001}
+    - name: CreepyDemonRArm1
+      parentName: CreepyDemonRArmCollarbone
+      position: {x: -0.08728447, y: -0.000000076293944, z: -0.000000076293944}
+      rotation: {x: 0.1769837, y: 0.11923057, z: 0.07071034, w: 0.9744029}
+      scale: {x: 0.9999991, y: 1.0000001, z: 1.0000008}
+    - name: CreepyDemonRArm2
+      parentName: CreepyDemonRArm1
+      position: {x: -0.20966323, y: 0, z: 0.000000076293944}
+      rotation: {x: 0.06764861, y: 0.0039142505, z: -0.039061666, w: 0.9969366}
+      scale: {x: 0.99999714, y: 0.9999998, z: 1.0000046}
+    - name: CreepyDemonRArmPalm
+      parentName: CreepyDemonRArm2
+      position: {x: -0.22734207, y: 0.000000009536743, z: -0.000000076293944}
+      rotation: {x: 0.6922137, y: 0.0021326537, z: 0.07745804, w: 0.71752065}
+      scale: {x: 0.9999901, y: 1.000006, z: 1.000003}
+    - name: CreepyDemonRArmDigit11
+      parentName: CreepyDemonRArmPalm
+      position: {x: -0.01207264, y: -0.0010816955, z: -0.038364943}
+      rotation: {x: -0.3707805, y: -0.04603051, z: -0.045099765, w: 0.9264821}
+      scale: {x: 0.99998534, y: 1.0000168, z: 0.9999985}
+    - name: CreepyDemonRArmDigit12
+      parentName: CreepyDemonRArmDigit11
+      position: {x: -0.059992444, y: 0, z: 0}
+      rotation: {x: 0.1919943, y: 0.044193864, z: -0.06686881, w: 0.97811747}
+      scale: {x: 0.9999967, y: 1.0000175, z: 0.9999853}
+    - name: CreepyDemonRArmDigit21
+      parentName: CreepyDemonRArmPalm
+      position: {x: -0.115360826, y: 0, z: 0}
+      rotation: {x: 0.007605847, y: -0.02255582, z: -0.004710754, w: 0.9997056}
+      scale: {x: 0.999986, y: 1.0000165, z: 0.99999744}
+    - name: CreepyDemonRArmDigit22
+      parentName: CreepyDemonRArmDigit21
+      position: {x: -0.04260002, y: 0, z: 0}
+      rotation: {x: -0.0138424, y: -0.0018087213, z: 0.1959957, w: 0.9805054}
+      scale: {x: 0.9999774, y: 1.0000253, z: 0.9999979}
+    - name: CreepyDemonLArmCollarbone
+      parentName: CreepyDemonHub002
+      position: {x: -0.037400056, y: -0.024245681, z: 0.072678104}
+      rotation: {x: -0.061771493, y: 0.7932146, z: -0.061771642, w: 0.6026435}
+      scale: {x: 1.0000001, y: 1, z: 0.9999999}
+    - name: CreepyDemonLArm1
+      parentName: CreepyDemonLArmCollarbone
+      position: {x: -0.08728447, y: 0, z: 0}
+      rotation: {x: -0.1769856, y: -0.11923069, z: 0.070709646, w: 0.9744026}
+      scale: {x: 1.0000008, y: 1.0000001, z: 0.99999976}
+    - name: CreepyDemonLArm2
+      parentName: CreepyDemonLArm1
+      position: {x: -0.20966327, y: 0, z: 0}
+      rotation: {x: -0.06765351, y: -0.003912432, z: -0.03906144, w: 0.99693626}
+      scale: {x: 1.0000033, y: 1.000001, z: 0.99999595}
+    - name: CreepyDemonLArmPalm
+      parentName: CreepyDemonLArm2
+      position: {x: -0.227342, y: 0, z: 0}
+      rotation: {x: -0.692216, y: -0.002134412, z: 0.07745682, w: 0.71751857}
+      scale: {x: 1.0000093, y: 0.9999933, z: 0.9999965}
+    - name: CreepyDemonLArmDigit11
+      parentName: CreepyDemonLArmPalm
+      position: {x: -0.012073097, y: -0.0010813903, z: 0.038364373}
+      rotation: {x: 0.37080255, y: 0.04603604, z: -0.045092877, w: 0.9264733}
+      scale: {x: 1.0000153, y: 0.9999834, z: 1.0000017}
+    - name: CreepyDemonLArmDigit12
+      parentName: CreepyDemonLArmDigit11
+      position: {x: -0.059992444, y: 0.000000038146972, z: 0}
+      rotation: {x: -0.19199517, y: -0.044194583, z: -0.0668664, w: 0.9781174}
+      scale: {x: 1.0000037, y: 0.99998224, z: 1.0000149}
+    - name: CreepyDemonLArmDigit21
+      parentName: CreepyDemonLArmPalm
+      position: {x: -0.115362816, y: 0, z: 0}
+      rotation: {x: -0.0076152636, y: 0.02255545, z: -0.00470297, w: 0.9997056}
+      scale: {x: 1.0000137, y: 0.99998355, z: 1.0000027}
+    - name: CreepyDemonLArmDigit22
+      parentName: CreepyDemonLArmDigit21
+      position: {x: -0.04260002, y: 0, z: 0}
+      rotation: {x: 0.013878152, y: 0.0018088932, z: 0.19599152, w: 0.98050576}
+      scale: {x: 1.0000228, y: 0.9999749, z: 1.0000023}
+    - name: CreepyDemonRLeg1
+      parentName: CreepyDemonPelvis
+      position: {x: 0.0126057435, y: -0.00000030994414, z: -0.18426311}
+      rotation: {x: -0.116914436, y: 0.9922759, z: 0.009252696, w: -0.04042408}
+      scale: {x: 0.99999976, y: 1.0000029, z: 0.9999982}
+    - name: CreepyDemonRLeg2
+      parentName: CreepyDemonRLeg1
+      position: {x: -0.36712757, y: -0.000000076293944, z: -0.000000019073486}
+      rotation: {x: 0.07358048, y: -0.009189682, z: 0.32879046, w: 0.9414873}
+      scale: {x: 1.0000232, y: 0.99999684, z: 0.9999807}
+    - name: CreepyDemonRLegAnkle
+      parentName: CreepyDemonRLeg2
+      position: {x: -0.30978534, y: 0, z: 0.000000019073486}
+      rotation: {x: 0.007236791, y: 0.017278753, z: -0.5267608, w: 0.8498071}
+      scale: {x: 1.0000277, y: 0.9999723, z: 1.0000005}
+    - name: CreepyDemonAnkleBone001
+      parentName: CreepyDemonRLegAnkle
+      position: {x: -0.44178233, y: 0.011117191, z: -0.00015407562}
+      rotation: {x: 0.055671904, y: -0.028332785, z: -0.43154868, w: 0.8999242}
+      scale: {x: 1.0000437, y: 0.9999791, z: 0.9999784}
+    - name: CreepyDemonLLeg1
+      parentName: CreepyDemonPelvis
+      position: {x: 0.012605667, y: -0.00000032424927, z: 0.18426318}
+      rotation: {x: -0.11692698, y: 0.9922783, z: -0.009150057, w: 0.040351566}
+      scale: {x: 1.0000006, y: 0.9999974, z: 1.0000026}
+    - name: CreepyDemonLLeg2
+      parentName: CreepyDemonLLeg1
+      position: {x: -0.36712745, y: -0.000000057220458, z: -0.000000019073486}
+      rotation: {x: -0.07321991, y: 0.009120712, z: 0.32879737, w: 0.94151366}
+      scale: {x: 0.9999947, y: 0.99999917, z: 1.0000062}
+    - name: CreepyDemonLLegAnkle
+      parentName: CreepyDemonLLeg2
+      position: {x: -0.30978534, y: 0.000000038146972, z: 0}
+      rotation: {x: -0.0075016227, y: -0.017362911, z: -0.5267549, w: 0.84980685}
+      scale: {x: 0.9999927, y: 1.000008, z: 1.0000006}
+    - name: CreepyDemonAnkleBone002
+      parentName: CreepyDemonLLegAnkle
+      position: {x: -0.43809494, y: 0.0074023437, z: 0.000031890868}
+      rotation: {x: -0.05285094, y: 0.026544856, z: -0.42291346, w: 0.90423805}
+      scale: {x: 0.99998707, y: 1.0000045, z: 1.0000087}
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 9de672fcfb0278a4d999502ade35ef60,
+    type: 3}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 3
+  humanoidOversampling: 1
+  avatarSetup: 2
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 0
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241768
+  packageName: Fantasy Monsters Pack
+  packageVersion: 1.0
+  assetPath: Assets/_DLNK/Characters/Creepy Demon/Source/Motion/@WalkCycle00.fbx
+  uploadId: 552161

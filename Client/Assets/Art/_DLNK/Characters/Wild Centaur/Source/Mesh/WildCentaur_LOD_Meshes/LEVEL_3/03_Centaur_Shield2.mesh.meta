@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 6537739ce30e99d4ca23e196e05d8c7f
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 4300000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241768
+  packageName: Fantasy Monsters Pack
+  packageVersion: 1.0
+  assetPath: Assets/_DLNK/Characters/Wild Centaur/Source/Mesh/WildCentaur_LOD_Meshes/LEVEL_3/03_Centaur_Shield2.mesh
+  uploadId: 552161

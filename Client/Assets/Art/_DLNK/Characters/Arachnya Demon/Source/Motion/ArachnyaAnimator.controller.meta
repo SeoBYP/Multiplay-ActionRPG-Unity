@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 1cead397029e43643a55224eee0b135c
+timeCreated: 1520276150
+licenseType: Store
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241768
+  packageName: Fantasy Monsters Pack
+  packageVersion: 1.0
+  assetPath: Assets/_DLNK/Characters/Arachnya Demon/Source/Motion/ArachnyaAnimator.controller
+  uploadId: 552161

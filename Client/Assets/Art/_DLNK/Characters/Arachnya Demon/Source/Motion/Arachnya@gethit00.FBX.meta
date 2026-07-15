@@ -1,0 +1,252 @@
+fileFormatVersion: 2
+guid: 828bf6b356f79da48b76023490bb9a0b
+ModelImporter:
+  serializedVersion: 22
+  fileIDToRecycleName:
+    100000: //RootNode
+    100002: ArachnyaRIGChest
+    100004: ArachnyaRIGHead
+    100006: ArachnyaRIGLArm1
+    100008: ArachnyaRIGLArm2
+    100010: ArachnyaRIGLArmCollarbone
+    100012: ArachnyaRIGLArmPalm
+    100014: ArachnyaRIGLClaw1
+    100016: ArachnyaRIGLClaw2
+    100018: ArachnyaRIGLClawCollarbone
+    100020: ArachnyaRIGLClawPalm
+    100022: ArachnyaRIGLIndex
+    100024: ArachnyaRIGLLeg1
+    100026: ArachnyaRIGLLeg2
+    100028: ArachnyaRIGLLegAnkle
+    100030: ArachnyaRIGLLegBack1
+    100032: ArachnyaRIGLLegBack2
+    100034: ArachnyaRIGLLegBackAnkle
+    100036: ArachnyaRIGLLegBackCollarbone
+    100038: ArachnyaRIGLLegFront1
+    100040: ArachnyaRIGLLegFront2
+    100042: ArachnyaRIGLLegFrontAnkle
+    100044: ArachnyaRIGLLegFrontCollarbone
+    100046: ArachnyaRIGLMiddlefinger
+    100048: ArachnyaRIGLPinky
+    100050: ArachnyaRIGLRingFinger
+    100052: ArachnyaRIGLSpike1
+    100054: ArachnyaRIGLSpike2
+    100056: ArachnyaRIGLSpikeCollarbone
+    100058: ArachnyaRIGLSpikePalm
+    100060: ArachnyaRIGLThumb
+    100062: ArachnyaRIGNeck
+    100064: ArachnyaRIGPalmBone001Bone001
+    100066: ArachnyaRIGPalmBone001Bone001 1
+    100068: ArachnyaRIGPalmBone001Bone002
+    100070: ArachnyaRIGPalmBone001Bone002 1
+    100072: ArachnyaRIGPalmBone001Bone003
+    100074: ArachnyaRIGPalmBone001Bone003 1
+    100076: ArachnyaRIGPalmBone001Bone004
+    100078: ArachnyaRIGPalmBone001Bone004 1
+    100080: ArachnyaRIGPalmBone005Bone001
+    100082: ArachnyaRIGPalmBone005Bone001 1
+    100084: ArachnyaRIGPelvis
+    100086: ArachnyaRIGRArm1
+    100088: ArachnyaRIGRArm2
+    100090: ArachnyaRIGRArmCollarbone
+    100092: ArachnyaRIGRArmPalm
+    100094: ArachnyaRIGRClaw1
+    100096: ArachnyaRIGRClaw2
+    100098: ArachnyaRIGRClawCollarbone
+    100100: ArachnyaRIGRClawPalm
+    100102: ArachnyaRIGRIndex
+    100104: ArachnyaRIGRLeg1
+    100106: ArachnyaRIGRLeg2
+    100108: ArachnyaRIGRLegAnkle
+    100110: ArachnyaRIGRLegBack1
+    100112: ArachnyaRIGRLegBack2
+    100114: ArachnyaRIGRLegBackAnkle
+    100116: ArachnyaRIGRLegBackCollarbone
+    100118: ArachnyaRIGRLegCollarbone
+    100120: ArachnyaRIGRLegFront1
+    100122: ArachnyaRIGRLegFront2
+    100124: ArachnyaRIGRLegFrontAnkle
+    100126: ArachnyaRIGRLegFrontCollarbone
+    100128: ArachnyaRIGRMiddlefinger
+    100130: ArachnyaRIGRPinky
+    100132: ArachnyaRIGRRingFinger
+    100134: ArachnyaRIGRSpike1
+    100136: ArachnyaRIGRSpike2
+    100138: ArachnyaRIGRSpikeCollarbone
+    100140: ArachnyaRIGRSpikePalm
+    100142: ArachnyaRIGRThumb
+    100144: ArachnyaRIGSpiderBag0
+    100146: ArachnyaRIGSpiderBag1
+    100148: ArachnyaRIGSpine1
+    100150: ArachnyaRIGSpine2
+    100152: ArachnyaRIGSpine3
+    100154: Object003
+    400000: //RootNode
+    400002: ArachnyaRIGChest
+    400004: ArachnyaRIGHead
+    400006: ArachnyaRIGLArm1
+    400008: ArachnyaRIGLArm2
+    400010: ArachnyaRIGLArmCollarbone
+    400012: ArachnyaRIGLArmPalm
+    400014: ArachnyaRIGLClaw1
+    400016: ArachnyaRIGLClaw2
+    400018: ArachnyaRIGLClawCollarbone
+    400020: ArachnyaRIGLClawPalm
+    400022: ArachnyaRIGLIndex
+    400024: ArachnyaRIGLLeg1
+    400026: ArachnyaRIGLLeg2
+    400028: ArachnyaRIGLLegAnkle
+    400030: ArachnyaRIGLLegBack1
+    400032: ArachnyaRIGLLegBack2
+    400034: ArachnyaRIGLLegBackAnkle
+    400036: ArachnyaRIGLLegBackCollarbone
+    400038: ArachnyaRIGLLegFront1
+    400040: ArachnyaRIGLLegFront2
+    400042: ArachnyaRIGLLegFrontAnkle
+    400044: ArachnyaRIGLLegFrontCollarbone
+    400046: ArachnyaRIGLMiddlefinger
+    400048: ArachnyaRIGLPinky
+    400050: ArachnyaRIGLRingFinger
+    400052: ArachnyaRIGLSpike1
+    400054: ArachnyaRIGLSpike2
+    400056: ArachnyaRIGLSpikeCollarbone
+    400058: ArachnyaRIGLSpikePalm
+    400060: ArachnyaRIGLThumb
+    400062: ArachnyaRIGNeck
+    400064: ArachnyaRIGPalmBone001Bone001
+    400066: ArachnyaRIGPalmBone001Bone001 1
+    400068: ArachnyaRIGPalmBone001Bone002
+    400070: ArachnyaRIGPalmBone001Bone002 1
+    400072: ArachnyaRIGPalmBone001Bone003
+    400074: ArachnyaRIGPalmBone001Bone003 1
+    400076: ArachnyaRIGPalmBone001Bone004
+    400078: ArachnyaRIGPalmBone001Bone004 1
+    400080: ArachnyaRIGPalmBone005Bone001
+    400082: ArachnyaRIGPalmBone005Bone001 1
+    400084: ArachnyaRIGPelvis
+    400086: ArachnyaRIGRArm1
+    400088: ArachnyaRIGRArm2
+    400090: ArachnyaRIGRArmCollarbone
+    400092: ArachnyaRIGRArmPalm
+    400094: ArachnyaRIGRClaw1
+    400096: ArachnyaRIGRClaw2
+    400098: ArachnyaRIGRClawCollarbone
+    400100: ArachnyaRIGRClawPalm
+    400102: ArachnyaRIGRIndex
+    400104: ArachnyaRIGRLeg1
+    400106: ArachnyaRIGRLeg2
+    400108: ArachnyaRIGRLegAnkle
+    400110: ArachnyaRIGRLegBack1
+    400112: ArachnyaRIGRLegBack2
+    400114: ArachnyaRIGRLegBackAnkle
+    400116: ArachnyaRIGRLegBackCollarbone
+    400118: ArachnyaRIGRLegCollarbone
+    400120: ArachnyaRIGRLegFront1
+    400122: ArachnyaRIGRLegFront2
+    400124: ArachnyaRIGRLegFrontAnkle
+    400126: ArachnyaRIGRLegFrontCollarbone
+    400128: ArachnyaRIGRMiddlefinger
+    400130: ArachnyaRIGRPinky
+    400132: ArachnyaRIGRRingFinger
+    400134: ArachnyaRIGRSpike1
+    400136: ArachnyaRIGRSpike2
+    400138: ArachnyaRIGRSpikeCollarbone
+    400140: ArachnyaRIGRSpikePalm
+    400142: ArachnyaRIGRThumb
+    400144: ArachnyaRIGSpiderBag0
+    400146: ArachnyaRIGSpiderBag1
+    400148: ArachnyaRIGSpine1
+    400150: ArachnyaRIGSpine2
+    400152: ArachnyaRIGSpine3
+    400154: Object003
+    7400000: Take 001
+    9500000: //RootNode
+    11100000: //RootNode
+  externalObjects: {}
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 0
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    animationCompression: 3
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 0.03
+    meshCompression: 0
+    addColliders: 0
+    importVisibility: 0
+    importBlendShapes: 1
+    importCameras: 0
+    importLights: 0
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    preserveHierarchy: 0
+    indexFormat: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 4
+    normalCalculationMode: 0
+  importAnimation: 1
+  copyAvatar: 1
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    rootMotionBoneRotation: {x: 0, y: 0, z: 0, w: 1}
+    hasTranslationDoF: 0
+    hasExtraRoot: 1
+    skeletonHasParents: 0
+  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: dae54c54f77480940af15e1f257ea1cb,
+    type: 3}
+  animationType: 2
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241768
+  packageName: Fantasy Monsters Pack
+  packageVersion: 1.0
+  assetPath: Assets/_DLNK/Characters/Arachnya Demon/Source/Motion/Arachnya@gethit00.FBX
+  uploadId: 552161

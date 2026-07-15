@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ab67224bd335f9447ab43475545c06f6
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241768
+  packageName: Fantasy Monsters Pack
+  packageVersion: 1.0
+  assetPath: Assets/_DLNK/Characters/Creepy Demon/Source/Motion/CreepyDemon.controller
+  uploadId: 552161

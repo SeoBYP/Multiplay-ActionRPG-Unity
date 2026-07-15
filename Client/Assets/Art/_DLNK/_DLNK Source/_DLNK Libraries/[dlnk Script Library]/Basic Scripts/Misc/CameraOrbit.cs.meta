@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 034d7de2dc02e65429b8d5be1eb857d6
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241768
+  packageName: Fantasy Monsters Pack
+  packageVersion: 1.0
+  assetPath: Assets/_DLNK/_DLNK Source/_DLNK Libraries/[dlnk Script Library]/Basic
+    Scripts/Misc/CameraOrbit.cs
+  uploadId: 552161

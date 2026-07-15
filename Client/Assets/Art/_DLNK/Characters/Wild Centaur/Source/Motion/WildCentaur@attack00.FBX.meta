@@ -1,0 +1,630 @@
+fileFormatVersion: 2
+guid: 902b646175e46044f849e01fb97294b4
+ModelImporter:
+  serializedVersion: 19301
+  internalIDToNameTable:
+  - first:
+      1: 100000
+    second: RigWCentaur
+  - first:
+      1: 100002
+    second: RigWCentaurFrontRLegFrontHoof
+  - first:
+      1: 100004
+    second: RigWCentaurFrontRLegHumerus
+  - first:
+      1: 100006
+    second: RigWCentaurFrontRLegMetacarpus
+  - first:
+      1: 100008
+    second: RigWCentaurFrontRLegPhalangesManus
+  - first:
+      1: 100010
+    second: RigWCentaurFrontRLegPlatform
+  - first:
+      1: 100012
+    second: RigWCentaurFrontRLegRadius
+  - first:
+      1: 100014
+    second: RigWCentaurFrontRLegScapula
+  - first:
+      1: 100016
+    second: RigWCentaurHead
+  - first:
+      1: 100018
+    second: RigWCentaurLArm1
+  - first:
+      1: 100020
+    second: RigWCentaurLArm2
+  - first:
+      1: 100022
+    second: RigWCentaurLArmCollarbone
+  - first:
+      1: 100024
+    second: RigWCentaurLArmPalm
+  - first:
+      1: 100026
+    second: RigWCentaurLFemur
+  - first:
+      1: 100028
+    second: RigWCentaurLFrontHoof
+  - first:
+      1: 100030
+    second: RigWCentaurLHumerus
+  - first:
+      1: 100032
+    second: RigWCentaurLLargeCannon
+  - first:
+      1: 100034
+    second: RigWCentaurLMetacarpus
+  - first:
+      1: 100036
+    second: RigWCentaurLPhalangesManus
+  - first:
+      1: 100038
+    second: RigWCentaurLPhalanxPrima
+  - first:
+      1: 100040
+    second: RigWCentaurLPlatform
+  - first:
+      1: 100042
+    second: RigWCentaurLPlatform 1
+  - first:
+      1: 100044
+    second: RigWCentaurLRadius
+  - first:
+      1: 100046
+    second: RigWCentaurLRearHoof
+  - first:
+      1: 100048
+    second: RigWCentaurLScapula
+  - first:
+      1: 100050
+    second: RigWCentaurLTibia
+  - first:
+      1: 100052
+    second: RigWCentaurPalmBone001
+  - first:
+      1: 100054
+    second: RigWCentaurPalmBone001 1
+  - first:
+      1: 100056
+    second: RigWCentaurPalmBone001Bone001
+  - first:
+      1: 100058
+    second: RigWCentaurPalmBone001Bone001 1
+  - first:
+      1: 100060
+    second: RigWCentaurPalmBone002
+  - first:
+      1: 100062
+    second: RigWCentaurPalmBone002 1
+  - first:
+      1: 100064
+    second: RigWCentaurPalmBone002Bone001
+  - first:
+      1: 100066
+    second: RigWCentaurPalmBone002Bone001 1
+  - first:
+      1: 100068
+    second: RigWCentaurPalmBone003
+  - first:
+      1: 100070
+    second: RigWCentaurPalmBone003 1
+  - first:
+      1: 100072
+    second: RigWCentaurPalmBone003Bone001
+  - first:
+      1: 100074
+    second: RigWCentaurPalmBone003Bone001 1
+  - first:
+      1: 100076
+    second: RigWCentaurPalmBone003Bone001Bone001
+  - first:
+      1: 100078
+    second: RigWCentaurPalmBone003Bone001Bone001 1
+  - first:
+      1: 100080
+    second: RigWCentaurPelvis
+  - first:
+      1: 100082
+    second: RigWCentaurRArm1
+  - first:
+      1: 100084
+    second: RigWCentaurRArm2
+  - first:
+      1: 100086
+    second: RigWCentaurRArmCollarbone
+  - first:
+      1: 100088
+    second: RigWCentaurRArmPalm
+  - first:
+      1: 100090
+    second: RigWCentaurRFemur
+  - first:
+      1: 100092
+    second: RigWCentaurRibcage
+  - first:
+      1: 100094
+    second: RigWCentaurRibcage001
+  - first:
+      1: 100096
+    second: RigWCentaurRibcage002Bone001
+  - first:
+      1: 100098
+    second: RigWCentaurRibcage002Bone002
+  - first:
+      1: 100100
+    second: RigWCentaurRibcage002Bone002 1
+  - first:
+      1: 100102
+    second: RigWCentaurRibcage002Bone002Bone001
+  - first:
+      1: 100104
+    second: RigWCentaurRibcage002Bone002Bone001 1
+  - first:
+      1: 100106
+    second: RigWCentaurRibcage002Bone002Bone001Bone001
+  - first:
+      1: 100108
+    second: RigWCentaurRibcage002Bone002Bone001Bone001 1
+  - first:
+      1: 100110
+    second: RigWCentaurRLargeCannon
+  - first:
+      1: 100112
+    second: RigWCentaurRPhalanxPrima
+  - first:
+      1: 100114
+    second: RigWCentaurRPlatform
+  - first:
+      1: 100116
+    second: RigWCentaurRRearHoof
+  - first:
+      1: 100118
+    second: RigWCentaurRTibia
+  - first:
+      1: 100120
+    second: RigWCentaurSpine1
+  - first:
+      1: 100122
+    second: RigWCentaurSpine1 1
+  - first:
+      1: 100124
+    second: RigWCentaurSpine1 2
+  - first:
+      1: 100126
+    second: RigWCentaurSpine2
+  - first:
+      1: 100128
+    second: RigWCentaurSpine2 1
+  - first:
+      1: 100130
+    second: RigWCentaurSpine2 2
+  - first:
+      1: 100132
+    second: RigWCentaurSpine3
+  - first:
+      1: 100134
+    second: RigWCentaurSpine3 1
+  - first:
+      1: 100136
+    second: RigWCentaurSpine4
+  - first:
+      1: 100138
+    second: RigWCentaurSpine4 1
+  - first:
+      1: 100140
+    second: RigWCentaurSpine5
+  - first:
+      1: 100142
+    second: RigWCentaurSpine5 1
+  - first:
+      1: 100144
+    second: RigWCentaurSpine6
+  - first:
+      1: 100146
+    second: RigWCentaurTail1
+  - first:
+      1: 100148
+    second: RigWCentaurTail1 1
+  - first:
+      1: 100150
+    second: RigWCentaurTail2
+  - first:
+      1: 100152
+    second: RigWCentaurTail2 1
+  - first:
+      1: 100154
+    second: RigWCentaurTail3
+  - first:
+      1: 100156
+    second: RigWCentaurTail3 1
+  - first:
+      1: 100158
+    second: RigWCentaurTail4
+  - first:
+      1: 100160
+    second: RigWCentaurTail4 1
+  - first:
+      1: 100162
+    second: RigWCentaurTail5
+  - first:
+      1: 100164
+    second: RigWCentaurTail5 1
+  - first:
+      1: 100166
+    second: RigWCentaurTail6
+  - first:
+      1: 100168
+    second: RigWCentaurTail7
+  - first:
+      1: 100170
+    second: //RootNode
+  - first:
+      4: 400000
+    second: RigWCentaur
+  - first:
+      4: 400002
+    second: RigWCentaurFrontRLegFrontHoof
+  - first:
+      4: 400004
+    second: RigWCentaurFrontRLegHumerus
+  - first:
+      4: 400006
+    second: RigWCentaurFrontRLegMetacarpus
+  - first:
+      4: 400008
+    second: RigWCentaurFrontRLegPhalangesManus
+  - first:
+      4: 400010
+    second: RigWCentaurFrontRLegPlatform
+  - first:
+      4: 400012
+    second: RigWCentaurFrontRLegRadius
+  - first:
+      4: 400014
+    second: RigWCentaurFrontRLegScapula
+  - first:
+      4: 400016
+    second: RigWCentaurHead
+  - first:
+      4: 400018
+    second: RigWCentaurLArm1
+  - first:
+      4: 400020
+    second: RigWCentaurLArm2
+  - first:
+      4: 400022
+    second: RigWCentaurLArmCollarbone
+  - first:
+      4: 400024
+    second: RigWCentaurLArmPalm
+  - first:
+      4: 400026
+    second: RigWCentaurLFemur
+  - first:
+      4: 400028
+    second: RigWCentaurLFrontHoof
+  - first:
+      4: 400030
+    second: RigWCentaurLHumerus
+  - first:
+      4: 400032
+    second: RigWCentaurLLargeCannon
+  - first:
+      4: 400034
+    second: RigWCentaurLMetacarpus
+  - first:
+      4: 400036
+    second: RigWCentaurLPhalangesManus
+  - first:
+      4: 400038
+    second: RigWCentaurLPhalanxPrima
+  - first:
+      4: 400040
+    second: RigWCentaurLPlatform
+  - first:
+      4: 400042
+    second: RigWCentaurLPlatform 1
+  - first:
+      4: 400044
+    second: RigWCentaurLRadius
+  - first:
+      4: 400046
+    second: RigWCentaurLRearHoof
+  - first:
+      4: 400048
+    second: RigWCentaurLScapula
+  - first:
+      4: 400050
+    second: RigWCentaurLTibia
+  - first:
+      4: 400052
+    second: RigWCentaurPalmBone001
+  - first:
+      4: 400054
+    second: RigWCentaurPalmBone001 1
+  - first:
+      4: 400056
+    second: RigWCentaurPalmBone001Bone001
+  - first:
+      4: 400058
+    second: RigWCentaurPalmBone001Bone001 1
+  - first:
+      4: 400060
+    second: RigWCentaurPalmBone002
+  - first:
+      4: 400062
+    second: RigWCentaurPalmBone002 1
+  - first:
+      4: 400064
+    second: RigWCentaurPalmBone002Bone001
+  - first:
+      4: 400066
+    second: RigWCentaurPalmBone002Bone001 1
+  - first:
+      4: 400068
+    second: RigWCentaurPalmBone003
+  - first:
+      4: 400070
+    second: RigWCentaurPalmBone003 1
+  - first:
+      4: 400072
+    second: RigWCentaurPalmBone003Bone001
+  - first:
+      4: 400074
+    second: RigWCentaurPalmBone003Bone001 1
+  - first:
+      4: 400076
+    second: RigWCentaurPalmBone003Bone001Bone001
+  - first:
+      4: 400078
+    second: RigWCentaurPalmBone003Bone001Bone001 1
+  - first:
+      4: 400080
+    second: RigWCentaurPelvis
+  - first:
+      4: 400082
+    second: RigWCentaurRArm1
+  - first:
+      4: 400084
+    second: RigWCentaurRArm2
+  - first:
+      4: 400086
+    second: RigWCentaurRArmCollarbone
+  - first:
+      4: 400088
+    second: RigWCentaurRArmPalm
+  - first:
+      4: 400090
+    second: RigWCentaurRFemur
+  - first:
+      4: 400092
+    second: RigWCentaurRibcage
+  - first:
+      4: 400094
+    second: RigWCentaurRibcage001
+  - first:
+      4: 400096
+    second: RigWCentaurRibcage002Bone001
+  - first:
+      4: 400098
+    second: RigWCentaurRibcage002Bone002
+  - first:
+      4: 400100
+    second: RigWCentaurRibcage002Bone002 1
+  - first:
+      4: 400102
+    second: RigWCentaurRibcage002Bone002Bone001
+  - first:
+      4: 400104
+    second: RigWCentaurRibcage002Bone002Bone001 1
+  - first:
+      4: 400106
+    second: RigWCentaurRibcage002Bone002Bone001Bone001
+  - first:
+      4: 400108
+    second: RigWCentaurRibcage002Bone002Bone001Bone001 1
+  - first:
+      4: 400110
+    second: RigWCentaurRLargeCannon
+  - first:
+      4: 400112
+    second: RigWCentaurRPhalanxPrima
+  - first:
+      4: 400114
+    second: RigWCentaurRPlatform
+  - first:
+      4: 400116
+    second: RigWCentaurRRearHoof
+  - first:
+      4: 400118
+    second: RigWCentaurRTibia
+  - first:
+      4: 400120
+    second: RigWCentaurSpine1
+  - first:
+      4: 400122
+    second: RigWCentaurSpine1 1
+  - first:
+      4: 400124
+    second: RigWCentaurSpine1 2
+  - first:
+      4: 400126
+    second: RigWCentaurSpine2
+  - first:
+      4: 400128
+    second: RigWCentaurSpine2 1
+  - first:
+      4: 400130
+    second: RigWCentaurSpine2 2
+  - first:
+      4: 400132
+    second: RigWCentaurSpine3
+  - first:
+      4: 400134
+    second: RigWCentaurSpine3 1
+  - first:
+      4: 400136
+    second: RigWCentaurSpine4
+  - first:
+      4: 400138
+    second: RigWCentaurSpine4 1
+  - first:
+      4: 400140
+    second: RigWCentaurSpine5
+  - first:
+      4: 400142
+    second: RigWCentaurSpine5 1
+  - first:
+      4: 400144
+    second: RigWCentaurSpine6
+  - first:
+      4: 400146
+    second: RigWCentaurTail1
+  - first:
+      4: 400148
+    second: RigWCentaurTail1 1
+  - first:
+      4: 400150
+    second: RigWCentaurTail2
+  - first:
+      4: 400152
+    second: RigWCentaurTail2 1
+  - first:
+      4: 400154
+    second: RigWCentaurTail3
+  - first:
+      4: 400156
+    second: RigWCentaurTail3 1
+  - first:
+      4: 400158
+    second: RigWCentaurTail4
+  - first:
+      4: 400160
+    second: RigWCentaurTail4 1
+  - first:
+      4: 400162
+    second: RigWCentaurTail5
+  - first:
+      4: 400164
+    second: RigWCentaurTail5 1
+  - first:
+      4: 400166
+    second: RigWCentaurTail6
+  - first:
+      4: 400168
+    second: RigWCentaurTail7
+  - first:
+      4: 400170
+    second: //RootNode
+  - first:
+      74: 7400000
+    second: Take 001
+  - first:
+      95: 9500000
+    second: //RootNode
+  - first:
+      111: 11100000
+    second: //RootNode
+  externalObjects: {}
+  materials:
+    materialImportMode: 0
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 0
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 3
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 2
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 0.013
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importVisibility: 0
+    importBlendShapes: 1
+    importCameras: 0
+    importLights: 0
+    fileIdsGeneration: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    meshOptimizationFlags: -1
+    indexFormat: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 4
+    normalCalculationMode: 0
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 1
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  referencedClips: []
+  importAnimation: 1
+  humanDescription:
+    serializedVersion: 3
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 0.013
+    rootMotionBoneName: RigWCentaur
+    hasTranslationDoF: 0
+    hasExtraRoot: 1
+    skeletonHasParents: 0
+  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 5240f1c358888b74f84b03a96e44be43,
+    type: 3}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 2
+  humanoidOversampling: 1
+  avatarSetup: 2
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241768
+  packageName: Fantasy Monsters Pack
+  packageVersion: 1.0
+  assetPath: Assets/_DLNK/Characters/Wild Centaur/Source/Motion/WildCentaur@attack00.FBX
+  uploadId: 552161
