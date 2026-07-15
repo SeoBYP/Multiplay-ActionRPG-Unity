@@ -50,7 +50,7 @@ namespace Game.Tests.PlayMode.Quest
         }
 
         private static QuestData Quest(string id, QuestProgressState status, int cur, int req)
-            => new(id, id, "desc", QuestObjectiveKind.KillMonster, "slime", req, cur, status,
+            => new(id, id, "desc", QuestObjectiveKind.KillMonster, "creepy_demon", req, cur, status,
                    new QuestRewardData(50, 100, "", 0));
 
         [UnityTest]
@@ -73,7 +73,7 @@ namespace Game.Tests.PlayMode.Quest
             Assert.AreEqual(2, latest.Quests.Count);
             Assert.IsTrue(latest.Quests[0].CanAccept);   // NotAccepted
             Assert.IsTrue(latest.Quests[1].CanClaim);    // Completed
-            Assert.AreEqual("slime 처치 0/3", latest.Quests[0].ConditionText);
+            Assert.AreEqual("creepy_demon 처치 0/3", latest.Quests[0].ConditionText);
         });
 
         [UnityTest]

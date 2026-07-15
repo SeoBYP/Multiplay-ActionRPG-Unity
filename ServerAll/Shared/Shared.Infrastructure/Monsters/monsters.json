@@ -1,14 +1,58 @@
 {
     "monsters": [
         {
-            "monsterId": "slime",
-            "maxHp": 30,
-            "moveSpeed": 2.0,
-            "aggroRange": 6.0,
-            "attackRange": 1.2,
+            "monsterId": "arachnya",
+            "maxHp": 65,
+            "moveSpeed": 2.5999999046325685,
+            "aggroRange": 8.0,
+            "attackRange": 1.600000023841858,
+            "attackCooldownMs": 1600.0,
+            "attackDamage": 14,
+            "expReward": 30,
+            "onHitEffectId": "slow_3s"
+        },
+        {
+            "monsterId": "creepy_demon",
+            "maxHp": 40,
+            "moveSpeed": 2.200000047683716,
+            "aggroRange": 7.0,
+            "attackRange": 1.2999999523162842,
+            "attackCooldownMs": 1400.0,
+            "attackDamage": 12,
+            "expReward": 18,
+            "onHitEffectId": ""
+        },
+        {
+            "monsterId": "demon_girl",
+            "maxHp": 55,
+            "moveSpeed": 2.4000000953674318,
+            "aggroRange": 9.0,
+            "attackRange": 1.5,
             "attackCooldownMs": 1500.0,
-            "attackDamage": 15,
-            "expReward": 20,
+            "attackDamage": 16,
+            "expReward": 26,
+            "onHitEffectId": ""
+        },
+        {
+            "monsterId": "gargoyle",
+            "maxHp": 130,
+            "moveSpeed": 2.0,
+            "aggroRange": 8.0,
+            "attackRange": 1.7999999523162842,
+            "attackCooldownMs": 1500.0,
+            "attackDamage": 22,
+            "expReward": 55,
+            "onHitEffectId": "stun_1_5s"
+        },
+        {
+            "monsterId": "leviathan",
+            "maxHp": 500,
+            "moveSpeed": 1.600000023841858,
+            "aggroRange": 14.0,
+            "attackRange": 3.0,
+            "attackCooldownMs": 1800.0,
+            "attackDamage": 40,
+            "expReward": 150,
             "onHitEffectId": "slow_3s"
         },
         {
@@ -19,7 +63,41 @@
             "attackRange": 1000.0,
             "attackCooldownMs": 50.0,
             "attackDamage": 9999,
-            "expReward": 0
+            "expReward": 0,
+            "onHitEffectId": ""
+        },
+        {
+            "monsterId": "undead_axemaster",
+            "maxHp": 170,
+            "moveSpeed": 2.200000047683716,
+            "aggroRange": 9.0,
+            "attackRange": 1.7000000476837159,
+            "attackCooldownMs": 1400.0,
+            "attackDamage": 28,
+            "expReward": 70,
+            "onHitEffectId": ""
+        },
+        {
+            "monsterId": "vampire_bat",
+            "maxHp": 20,
+            "moveSpeed": 3.5,
+            "aggroRange": 8.0,
+            "attackRange": 1.0,
+            "attackCooldownMs": 1000.0,
+            "attackDamage": 8,
+            "expReward": 12,
+            "onHitEffectId": ""
+        },
+        {
+            "monsterId": "wild_centaur",
+            "maxHp": 100,
+            "moveSpeed": 3.200000047683716,
+            "aggroRange": 10.0,
+            "attackRange": 1.600000023841858,
+            "attackCooldownMs": 1300.0,
+            "attackDamage": 20,
+            "expReward": 42,
+            "onHitEffectId": ""
         }
     ]
 }

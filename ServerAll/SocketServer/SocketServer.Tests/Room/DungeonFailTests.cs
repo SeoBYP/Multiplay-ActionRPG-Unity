@@ -24,7 +24,7 @@ public class DungeonFailTests
 
     private static void SpawnSlimes(global::Server.Room.Room room, int count)
         => room.SpawnMonsters(
-            new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, count, 0, Array.Empty<PatrolPoint>()) },
+            new List<MonsterSpawnDef> { new("creepy_demon", 0f, 0f, 0f, 0f, count, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 40f, 40f));
 
     [Fact]

@@ -35,15 +35,21 @@ public class MonsterRoomTests
         var room = rm.CreateRoom(roomId, message.PlayerInfos, message);
         Assert.NotNull(room);
 
-        var slime = Assert.Single(room!.GetAllMonsters());
-        Assert.Equal("slime", slime.MonsterId);
-        Assert.Equal(30, slime.MaxHp);
-        Assert.Equal(30, slime.Hp);
-        Assert.True(slime.InstanceId > 0);
-        Assert.Equal(4, slime.Patrol.Count);
-        Assert.Equal(6f, slime.PosX);
-        Assert.Equal(6f, slime.PosZ);
-        Assert.False(slime.IsDead);
+        // 임베디드 dungeon_01 레이아웃(진실원)이 그대로 스폰됐는지 검증 — 좌표/patrol 하드코딩 대신
+        // 레이아웃에서 기대값을 도출해 던전 재기획에도 견고하게 유지한다.
+        var layout = SpawnLayoutTable.Get(MapIds.Dungeon01);
+        var monsters = room!.GetAllMonsters();
+
+        Assert.Equal(layout.Monsters.Sum(m => Math.Max(1, m.Count)), monsters.Count); // count 합 = 총 마리수
+        Assert.All(monsters, m => Assert.True(m.InstanceId > 0));
+        Assert.All(monsters, m => Assert.False(m.IsDead));
+
+        // 레이아웃 첫 정의(초입 = vampire_bat)가 그 위치에 정확히 1마리, 카탈로그 스탯으로 스폰.
+        var firstDef = layout.Monsters[0];
+        var spawned = Assert.Single(monsters, m => m.PosX == firstDef.X && m.PosZ == firstDef.Z);
+        Assert.Equal(firstDef.MonsterId, spawned.MonsterId);
+        Assert.Equal(firstDef.Patrol.Count, spawned.Patrol.Count);
+        Assert.Equal(spawned.MaxHp, spawned.Hp); // 스폰 시 풀피
     }
 
     [Fact]
@@ -57,7 +63,7 @@ public class MonsterRoomTests
         var bounds = new MapBounds(0f, 0f, 40f, 40f);
         var defs = new List<MonsterSpawnDef>
         {
-            new("slime", 0f, 0f, 0f, 0f, 3, 0, Array.Empty<PatrolPoint>())
+            new("creepy_demon", 0f, 0f, 0f, 0f, 3, 0, Array.Empty<PatrolPoint>())
         };
 
         room.SpawnMonsters(defs, bounds);

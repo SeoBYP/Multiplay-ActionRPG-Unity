@@ -183,7 +183,7 @@ namespace Game.Gameplay.Editor
             int i = monsters.childCount;
             var def = new MonsterSpawn
             {
-                monsterId = "slime",
+                monsterId = "creepy_demon",
                 position  = new Vector3(i, 0f, 3f), // 겹침 방지 기본 위치
                 rotationY = 0f,
                 count     = 1,
@@ -251,7 +251,7 @@ namespace Game.Gameplay.Editor
             go.transform.eulerAngles = new Vector3(0f, def.rotationY, 0f);
 
             var m = go.AddComponent<MonsterSpawnMarker>();
-            m.monsterId         = string.IsNullOrEmpty(def.monsterId) ? "slime" : def.monsterId;
+            m.monsterId         = string.IsNullOrEmpty(def.monsterId) ? "creepy_demon" : def.monsterId;
             m.count             = Mathf.Max(1, def.count);
             m.wave              = def.wave;
             m.slotId            = def.slotId;

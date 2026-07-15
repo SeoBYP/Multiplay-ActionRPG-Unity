@@ -67,7 +67,7 @@ public class QuestServiceTests
         var afterGoblin = (await _service.GetQuestsAsync(UserId)).Single(v => v.Def.QuestId == "quest_slime_hunt");
         Assert.Equal(0, afterGoblin.Progress);
 
-        await _service.ReportKillAsync(UserId, "slime");
+        await _service.ReportKillAsync(UserId, "creepy_demon");
         var afterSlime = (await _service.GetQuestsAsync(UserId)).Single(v => v.Def.QuestId == "quest_slime_hunt");
         Assert.Equal(1, afterSlime.Progress);
     }
@@ -78,7 +78,7 @@ public class QuestServiceTests
         await _service.AcceptAsync(UserId, "quest_slime_hunt"); // 3 필요
 
         for (int i = 0; i < 5; i++) // 5번 보고해도 3에서 멈춤
-            await _service.ReportKillAsync(UserId, "slime");
+            await _service.ReportKillAsync(UserId, "creepy_demon");
 
         var view = (await _service.GetQuestsAsync(UserId)).Single(v => v.Def.QuestId == "quest_slime_hunt");
         Assert.Equal(3, view.Progress);
@@ -89,7 +89,7 @@ public class QuestServiceTests
     public async Task 완료_퀘스트_보상수령은_골드를_지급하고_Claimed_가_된다()
     {
         await _service.AcceptAsync(UserId, "quest_slime_hunt"); // 완료 시 exp50 + gold100
-        for (int i = 0; i < 3; i++) await _service.ReportKillAsync(UserId, "slime");
+        for (int i = 0; i < 3; i++) await _service.ReportKillAsync(UserId, "creepy_demon");
 
         var claim = await _service.ClaimRewardAsync(UserId, "quest_slime_hunt");
 
@@ -104,7 +104,7 @@ public class QuestServiceTests
     public async Task 미완료_보상수령은_실패한다()
     {
         await _service.AcceptAsync(UserId, "quest_slime_hunt");
-        await _service.ReportKillAsync(UserId, "slime"); // 1/3
+        await _service.ReportKillAsync(UserId, "creepy_demon"); // 1/3
 
         Assert.False((await _service.ClaimRewardAsync(UserId, "quest_slime_hunt")).Success);
     }
@@ -113,7 +113,7 @@ public class QuestServiceTests
     public async Task 보상은_한_번만_수령된다()
     {
         await _service.AcceptAsync(UserId, "quest_slime_hunt");
-        for (int i = 0; i < 3; i++) await _service.ReportKillAsync(UserId, "slime");
+        for (int i = 0; i < 3; i++) await _service.ReportKillAsync(UserId, "creepy_demon");
 
         await _service.ClaimRewardAsync(UserId, "quest_slime_hunt");
         var second = await _service.ClaimRewardAsync(UserId, "quest_slime_hunt");
@@ -152,7 +152,7 @@ public class QuestServiceTests
     public async Task 아이템_보상_퀘스트는_인벤토리에_지급된다()
     {
         await _service.AcceptAsync(UserId, "quest_slime_slayer"); // exp80 + potion_hp_small ×2
-        for (int i = 0; i < 5; i++) await _service.ReportKillAsync(UserId, "slime");
+        for (int i = 0; i < 5; i++) await _service.ReportKillAsync(UserId, "creepy_demon");
 
         var claim = await _service.ClaimRewardAsync(UserId, "quest_slime_slayer");
 

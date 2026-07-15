@@ -12,7 +12,7 @@ namespace Server.Tests.Monster;
 /// </summary>
 public class MonsterDamageTests
 {
-    private static global::Server.Room.Room NewRoomWithSlime(int hp = 30)
+    private static global::Server.Room.Room NewRoomWithMonster(int hp = 30)
     {
         var room = new global::Server.Room.Room(
             1,
@@ -20,7 +20,7 @@ public class MonsterDamageTests
             NullLogger<global::Server.Room.Room>.Instance);
 
         room.SpawnMonsters(
-            new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
+            new List<MonsterSpawnDef> { new("creepy_demon", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 40f, 40f));
         return room;
     }
@@ -62,7 +62,7 @@ public class MonsterDamageTests
     [Fact]
     public void DamageMonster는_GAS로_HP를_깎는다()
     {
-        var room = NewRoomWithSlime();
+        var room = NewRoomWithMonster();
         var id = room.GetAllMonsters()[0].InstanceId;
         var mods = CombatEffectCatalog.Resolve("basic_attack_dmg"); // Health -10
 
@@ -70,17 +70,18 @@ public class MonsterDamageTests
 
         Assert.True(hit);
         Assert.False(dead);
-        Assert.Equal(20, newHp); // 30 - 10
-        Assert.Equal(20, room.GetMonster(id)!.Hp);
+        Assert.Equal(30, newHp); // 40 - 10
+        Assert.Equal(30, room.GetMonster(id)!.Hp);
     }
 
     [Fact]
     public void HP가_0이하면_사망처리되고_방에서_제거된다()
     {
-        var room = NewRoomWithSlime();
+        var room = NewRoomWithMonster();
         var id = room.GetAllMonsters()[0].InstanceId;
         var mods = CombatEffectCatalog.Resolve("basic_attack_dmg"); // -10 each
 
+        room.DamageMonster(id, mods); // 40 → 30
         room.DamageMonster(id, mods); // 30 → 20
         room.DamageMonster(id, mods); // 20 → 10
         var (hit, newHp, dead) = room.DamageMonster(id, mods); // 10 → 0
@@ -95,7 +96,7 @@ public class MonsterDamageTests
     [Fact]
     public void 이미_제거된_몬스터_공격은_Miss를_반환한다()
     {
-        var room = NewRoomWithSlime();
+        var room = NewRoomWithMonster();
         var id = room.GetAllMonsters()[0].InstanceId;
         var big = new[] { new GameplayAttributeModifier(EGameplayAttribute.Health, -999, EModifierType.Additive) };
 

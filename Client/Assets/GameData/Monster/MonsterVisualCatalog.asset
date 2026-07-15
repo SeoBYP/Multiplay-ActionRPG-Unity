@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5308bdb1efaf1074a830b5944f300cf2, type: 3}
+  m_Name: MonsterVisualCatalog
+  m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Monster.MonsterVisualCatalog
+  entries:
+  - monsterId: vampire_bat
+    prefab: {fileID: 8304065375415288194, guid: 3fa17db70c949f64daf2216e00e7f02d, type: 3}
+  - monsterId: creepy_demon
+    prefab: {fileID: 5215035995363736349, guid: 900f5fe26d8782b4baea84a7d60a3a5c, type: 3}
+  - monsterId: demon_girl
+    prefab: {fileID: 8086081868264828803, guid: eeaba36eeaa4fdc49a8abdbecad2790f, type: 3}
+  - monsterId: arachnya
+    prefab: {fileID: 5782003342872613696, guid: 67368f114f151de46979a91c15ee2936, type: 3}
+  - monsterId: wild_centaur
+    prefab: {fileID: 7968823526451403628, guid: 622bdf1b1292ffe4cb61bc53513b359f, type: 3}
+  - monsterId: gargoyle
+    prefab: {fileID: 2851327131514382044, guid: 4ac8d897375d93e4baee03929b57bd10, type: 3}
+  - monsterId: undead_axemaster
+    prefab: {fileID: 623474458626713953, guid: 608042ab9306ed64591387f44372db0c, type: 3}
+  - monsterId: leviathan
+    prefab: {fileID: 1735641650104681035, guid: 06898f3216170f843ac1e65d79d03b1e, type: 3}

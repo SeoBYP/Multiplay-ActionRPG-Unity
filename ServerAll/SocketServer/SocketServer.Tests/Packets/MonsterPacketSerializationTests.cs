@@ -15,7 +15,7 @@ public class MonsterPacketSerializationTests
         var origin = new S_SpawnMonster
         {
             InstanceId = 3,
-            MonsterId = "slime",
+            MonsterId = "creepy_demon",
             PosX = 5.5f,
             PosY = 0f,
             PosZ = -2.25f,
@@ -29,7 +29,7 @@ public class MonsterPacketSerializationTests
 
         Assert.NotNull(decoded);
         Assert.Equal(3, decoded!.InstanceId);
-        Assert.Equal("slime", decoded.MonsterId);
+        Assert.Equal("creepy_demon", decoded.MonsterId);
         Assert.Equal(5.5f, decoded.PosX);
         Assert.Equal(0f, decoded.PosY);
         Assert.Equal(-2.25f, decoded.PosZ);
@@ -80,7 +80,7 @@ public class MonsterPacketSerializationTests
     [Fact]
     public void Union으로_역직렬화하면_구체타입이_복원된다()
     {
-        Packet spawn = new S_SpawnMonster { InstanceId = 1, MonsterId = "slime" };
+        Packet spawn = new S_SpawnMonster { InstanceId = 1, MonsterId = "creepy_demon" };
         Packet state = new S_MonsterState { InstanceId = 1, Phase = 1 };
         Packet dead = new S_MonsterDead { InstanceId = 1 };
 

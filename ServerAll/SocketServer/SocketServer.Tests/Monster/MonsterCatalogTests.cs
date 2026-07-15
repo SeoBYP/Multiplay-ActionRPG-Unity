@@ -11,13 +11,13 @@ namespace Server.Tests.Monster;
 public class MonsterCatalogTests
 {
     [Fact]
-    public void 임베디드_slime_정의가_로드된다()
+    public void 임베디드_creepy_demon_정의가_로드된다()
     {
-        var slime = MonsterCatalog.Get("slime");
+        var demon = MonsterCatalog.Get("creepy_demon");
 
-        Assert.Equal(30, slime.MaxHp);
-        Assert.Equal(15, slime.AttackDamage); // 밸런스(899aa114): slime AD 5→15
-        Assert.Equal(20, slime.ExpReward); // Main 킬 보상
+        Assert.Equal(40, demon.MaxHp);
+        Assert.Equal(12, demon.AttackDamage);
+        Assert.Equal(18, demon.ExpReward); // Main 킬 보상
     }
 
     [Fact]
@@ -40,8 +40,8 @@ public class MonsterCatalogTests
     [Fact]
     public void SocketServer_어댑터는_시뮬_스탯을_그대로_매핑한다()
     {
-        var stats = global::Server.Monster.MonsterCatalog.Get("slime");
-        var def = MonsterCatalog.Get("slime");
+        var stats = global::Server.Monster.MonsterCatalog.Get("creepy_demon");
+        var def = MonsterCatalog.Get("creepy_demon");
 
         Assert.Equal(def.MaxHp, stats.MaxHp);
         Assert.Equal(def.AttackDamage, stats.AttackDamage);

@@ -131,7 +131,7 @@ namespace Game.Tests.PlayMode.Dialogue
             {
                 var list = new List<QuestData>
                 {
-                    new("q1", "q1", "", QuestObjectiveKind.KillMonster, "slime", 1, 0, State, default),
+                    new("q1", "q1", "", QuestObjectiveKind.KillMonster, "creepy_demon", 1, 0, State, default),
                 };
                 return UniTask.FromResult((QuestResult.Success, (IReadOnlyList<QuestData>)list));
             }

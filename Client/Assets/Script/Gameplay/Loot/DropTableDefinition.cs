@@ -17,7 +17,7 @@ namespace Game.Gameplay.Loot
     [CreateAssetMenu(fileName = "DropTableDefinition", menuName = "Game/Drop Table Definition", order = 1)]
     public sealed class DropTableDefinition : ScriptableObject
     {
-        [Tooltip("몬스터 타입별 드랍 후보. monsterId 는 서버/클라 공용 식별자(예: slime).")]
+        [Tooltip("몬스터 타입별 드랍 후보. monsterId 는 서버/클라 공용 식별자(예: creepy_demon).")]
         public List<MonsterDropTable> tables = new();
 
         /// <summary>monsterId 의 드랍 후보를 반환한다. 미등록이면 빈 목록. (클라 런타임 조회용)</summary>

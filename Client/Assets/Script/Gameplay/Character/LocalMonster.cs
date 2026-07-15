@@ -20,15 +20,15 @@ namespace Game.Gameplay.Character
     public sealed class LocalMonster : MonoBehaviour
     {
         [Header("식별")]
-        [Tooltip("드랍 테이블/카탈로그 키(예: slime, goblin). DropTableDefinition 과 정렬.")]
-        [SerializeField] private string monsterId = "slime";
+        [Tooltip("드랍 테이블/카탈로그 키(예: creepy_demon, goblin). DropTableDefinition 과 정렬.")]
+        [SerializeField] private string monsterId = "creepy_demon";
 
         [Header("전투")]
-        [SerializeField] private int maxHp = 30;
+        [SerializeField] private int maxHp = 40;
         [Tooltip("HitboxMath 적중 판정용 타겟 반경(구).")]
         [SerializeField] private float targetRadius = 0.5f;
         [Tooltip("이 몬스터 공격의 GameplayAbility id(발동 로그·식별). 비우면 '{monsterId}_attack' 자동.")]
-        [SerializeField] private string attackAbilityId = "slime_attack";
+        [SerializeField] private string attackAbilityId = "creepy_demon_attack";
 
         [Header("간단 AI")]
         [SerializeField] private float chaseRange = 6f;
@@ -49,6 +49,18 @@ namespace Game.Gameplay.Character
         [SerializeField] private float knockbackDistance = 2f;
         [SerializeField] private float knockbackDuration = 0.2f;
 
+        [Header("애니(모델 컨트롤러의 상태 이름 — 비우면 미재생)")]
+        [Tooltip("모델의 Animator. 미할당 시 자식에서 자동 탐색.")]
+        [SerializeField] private Animator animator;
+        [SerializeField] private string idleState = "";
+        [SerializeField] private string walkState = "";
+        [SerializeField] private string dieState = "";
+        [Tooltip("이 속도(m/s) 이상 이동 시 walk, 미만이면 idle.")]
+        [SerializeField] private float walkSpeedThreshold = 0.3f;
+        [SerializeField] private float crossFadeSec = 0.15f;
+        [Tooltip("die 애니 재생 후 파괴까지 지연(초).")]
+        [SerializeField] private float deathDespawnDelay = 2.0f;
+
         [Inject] private readonly LocalPlayerContext _localPlayer = null;
         // CC 효과 정의 조회(Main 클라 권위). 던전은 서버 S_ApplyEffect 경로. 미주입 시 CC 미적용(데미지만).
         [Inject] private readonly GameplayEffectCatalog _effectCatalog = null;
@@ -58,6 +70,8 @@ namespace Game.Gameplay.Character
 
         private int _hp;
         private float _nextAttackTime;
+        private Vector3 _prevPos;
+        private string _currentState = ""; // 재-CrossFade 방지
 
         /// <summary>사망 시 발행(자기 자신 전달). MainMonsterSpawner 가 디스폰·드랍(B-lite 클레임)에 사용.</summary>
         public event Action<LocalMonster> OnDied;
@@ -86,11 +100,20 @@ namespace Game.Gameplay.Character
         private void Awake()
         {
             _hp = maxHp;
+            if (animator == null) animator = GetComponentInChildren<Animator>();
+            _prevPos = transform.position;
+            PlayState(idleState);
         }
 
         private void Update()
         {
             if (IsDead) return;
+
+            // 지난 프레임 대비 실제 이동 변위 → walk/idle (추격 중=walk, 정지/공격=idle).
+            var moved = transform.position - _prevPos; moved.y = 0f;
+            float speed = Time.deltaTime > 0f ? moved.magnitude / Time.deltaTime : 0f;
+            _prevPos = transform.position;
+            PlayState(speed >= walkSpeedThreshold ? walkState : idleState);
 
             var asc = _localPlayer?.AbilitySystem;
             if (asc == null) return;
@@ -171,8 +194,20 @@ namespace Game.Gameplay.Character
 
             IsDead = true;
             Debug.Log($"[Combat] {monsterId} 사망");
-            OnDied?.Invoke(this);
-            Destroy(gameObject);
+            PlayState(dieState);
+            // 사망 애니 중 재타격/재타겟 방지(HP guard 로 이미 no-op 이나 명시적으로 콜라이더 끔).
+            foreach (var c in GetComponentsInChildren<Collider>()) c.enabled = false;
+            OnDied?.Invoke(this);                    // 스포너: 드랍·재스폰(비주얼과 독립, 즉시)
+            Destroy(gameObject, deathDespawnDelay);  // die 애니 후 자체 파괴
+        }
+
+        /// <summary>상태 이름이 있고 지금 상태와 다르면 CrossFade. 빈 이름/애니터 없음이면 무시.</summary>
+        private void PlayState(string state)
+        {
+            if (animator == null || string.IsNullOrEmpty(state) || state == _currentState)
+                return;
+            _currentState = state;
+            animator.CrossFadeInFixedTime(state, crossFadeSec);
         }
     }
 }

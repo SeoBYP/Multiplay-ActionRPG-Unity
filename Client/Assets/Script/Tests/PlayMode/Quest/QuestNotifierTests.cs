@@ -12,7 +12,7 @@ namespace Game.Tests.PlayMode.Quest
     {
         private static QuestData Q(string id, QuestProgressState status,
             string name = "quest", int exp = 0, int gold = 0)
-            => new(id, name, "desc", QuestObjectiveKind.KillMonster, "slime", 3, 0, status,
+            => new(id, name, "desc", QuestObjectiveKind.KillMonster, "creepy_demon", 3, 0, status,
                    new QuestRewardData(exp, gold, "", 0));
 
         [Test]

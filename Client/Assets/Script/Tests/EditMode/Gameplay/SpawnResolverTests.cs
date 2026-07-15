@@ -24,10 +24,11 @@ namespace Game.Tests.EditMode.Gameplay
         {
             var layout = new SpawnLayoutProvider().Get("dungeon_01");
 
-            AssertPoint(SpawnResolver.Resolve(layout, 0), 0f, 0f, 0f, 0f);
-            AssertPoint(SpawnResolver.Resolve(layout, 1), 2f, 0f, 0f, 180f);
-            AssertPoint(SpawnResolver.Resolve(layout, 2), -2f, 0f, 0f, 90f);
-            AssertPoint(SpawnResolver.Resolve(layout, 3), 0f, 0f, 2f, 270f);
+            // dungeon_01 재기획(2026-07): 파티는 맵 남쪽(Z-16 부근)에서 북향(+Z)으로 진입.
+            AssertPoint(SpawnResolver.Resolve(layout, 0), 0f, 0f, -16f, 0f);
+            AssertPoint(SpawnResolver.Resolve(layout, 1), 2f, 0f, -16f, 0f);
+            AssertPoint(SpawnResolver.Resolve(layout, 2), -2f, 0f, -16f, 0f);
+            AssertPoint(SpawnResolver.Resolve(layout, 3), 0f, 0f, -18f, 0f);
         }
 
         [Test]
@@ -35,9 +36,9 @@ namespace Game.Tests.EditMode.Gameplay
         {
             var layout = new SpawnLayoutProvider().Get("dungeon_01"); // 4개 포인트
 
-            AssertPoint(SpawnResolver.Resolve(layout, 4), 0f, 0f, 0f, 0f);   // == 0
-            AssertPoint(SpawnResolver.Resolve(layout, 5), 2f, 0f, 0f, 180f); // == 1
-            AssertPoint(SpawnResolver.Resolve(layout, -1), 0f, 0f, 2f, 270f); // == 3
+            AssertPoint(SpawnResolver.Resolve(layout, 4), 0f, 0f, -16f, 0f);  // == 0
+            AssertPoint(SpawnResolver.Resolve(layout, 5), 2f, 0f, -16f, 0f);  // == 1
+            AssertPoint(SpawnResolver.Resolve(layout, -1), 0f, 0f, -18f, 0f); // == 3
         }
 
         [Test]

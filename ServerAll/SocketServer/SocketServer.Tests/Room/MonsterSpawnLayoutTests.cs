@@ -26,7 +26,7 @@ public class MonsterSpawnLayoutTests
             "bounds": { "centerX": 1, "centerZ": 2, "sizeX": 40, "sizeZ": 30 },
             "points": [{ "x": 0, "y": 0, "z": 0, "rotY": 0 }],
             "monsters": [{
-              "monsterId": "slime", "x": 5, "y": 0, "z": 7, "rotY": 90,
+              "monsterId": "creepy_demon", "x": 5, "y": 0, "z": 7, "rotY": 90,
               "count": 2, "wave": 1,
               "patrol": [ { "x": 5, "z": 7 }, { "x": 9, "z": 7 } ]
             }]
@@ -43,7 +43,7 @@ public class MonsterSpawnLayoutTests
         Assert.True(layout.Bounds.HasArea);
 
         var m = Assert.Single(layout.Monsters);
-        Assert.Equal("slime", m.MonsterId);
+        Assert.Equal("creepy_demon", m.MonsterId);
         Assert.Equal(5f, m.X);
         Assert.Equal(7f, m.Z);
         Assert.Equal(90f, m.RotY);
@@ -118,6 +118,19 @@ public class MonsterSpawnLayoutTests
     {
         var layout = SpawnLayoutTable.Get(MapIds.Dungeon01);
 
+        Assert.Equal(100L, layout.ExpReward);
+    }
+
+    [Fact]
+    public void 임베디드_dungeon_e2e는_외딴_creepy_demon1마리_픽스처다()
+    {
+        // E2E "전멸→클리어/처치/드랍" 결정론 픽스처. shipped dungeon_01/02 재기획과 독립.
+        // 이 계약(creepy_demon 1마리·exp 100)이 깨지면 SocketE2ETests 다수가 무너지므로 단위 레벨에서 가드.
+        var layout = SpawnLayoutTable.Get("dungeon_e2e");
+
+        var m = Assert.Single(layout.Monsters);
+        Assert.Equal("creepy_demon", m.MonsterId);
+        Assert.Equal(1, m.Count);
         Assert.Equal(100L, layout.ExpReward);
     }
 }

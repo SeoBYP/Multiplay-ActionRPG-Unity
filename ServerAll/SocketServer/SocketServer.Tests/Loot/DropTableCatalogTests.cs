@@ -20,9 +20,9 @@ public class DropTableCatalogTests
     }
 
     [Fact]
-    public void 임베디드_slime_데이터가_로드된다()
+    public void 임베디드_creepy_demon_데이터가_로드된다()
     {
-        var entries = DropTableCatalog.Get("slime");
+        var entries = DropTableCatalog.Get("creepy_demon");
 
         Assert.Contains(entries, e => e.ItemId == "potion_hp_small" && e.Chance == 1.0 && e.MinQty == 1 && e.MaxQty == 1);
         // 골드는 통화 — 항상 드랍(확률 1.0) + 의미 있는 수량(10~30).
@@ -52,7 +52,7 @@ public class DropTableCatalogTests
         // slime 드랍 = potion(보장 1.0) + gold(보장 1.0) + 장비 8종. potion·gold 통과(<1.0), 장비 8개는 0.9 로 전부 탈락.
         // (drops 순서대로 후보당 NextDouble 1회 소비 → 10개 제공. gold 수량(10≠30) 만 Next 1회 소비.)
         var rng = new StubRandom(doubles: [0.0, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9], ints: [20]);
-        var drops = DropTableCatalog.Roll("slime", rng);
+        var drops = DropTableCatalog.Roll("creepy_demon", rng);
 
         Assert.Equal(2, drops.Count);
         Assert.Contains(drops, d => d.ItemId == "potion_hp_small");

@@ -16,7 +16,7 @@ public class DungeonClearTests
     private static readonly GameplayAttributeModifier Lethal =
         new(EGameplayAttribute.Health, -999, EModifierType.Additive);
 
-    private static global::Server.Room.Room NewRoomWithSlimes(int count)
+    private static global::Server.Room.Room NewRoomWithMonsters(int count)
     {
         var room = new global::Server.Room.Room(
             1,
@@ -24,7 +24,7 @@ public class DungeonClearTests
             NullLogger<global::Server.Room.Room>.Instance);
 
         room.SpawnMonsters(
-            new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, count, 0, Array.Empty<PatrolPoint>()) },
+            new List<MonsterSpawnDef> { new("creepy_demon", 0f, 0f, 0f, 0f, count, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 40f, 40f));
         return room;
     }
@@ -32,7 +32,7 @@ public class DungeonClearTests
     [Fact]
     public void 몬스터가_남아있으면_클리어가_아니다()
     {
-        var room = NewRoomWithSlimes(2);
+        var room = NewRoomWithMonsters(2);
         var first = room.GetAllMonsters()[0].InstanceId;
 
         room.DamageMonster(first, new[] { Lethal }); // 1마리만 처치, 1마리 생존
@@ -43,7 +43,7 @@ public class DungeonClearTests
     [Fact]
     public void 전멸하면_TryMarkCleared는_최초_1회만_true다()
     {
-        var room = NewRoomWithSlimes(2);
+        var room = NewRoomWithMonsters(2);
         foreach (var m in room.GetAllMonsters())
             room.DamageMonster(m.InstanceId, new[] { Lethal });
 

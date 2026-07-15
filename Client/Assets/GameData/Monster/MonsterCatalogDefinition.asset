@@ -13,15 +13,6 @@ MonoBehaviour:
   m_Name: MonsterCatalogDefinition
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Monster.MonsterCatalogDefinition
   monsters:
-  - monsterId: slime
-    maxHp: 30
-    moveSpeed: 2
-    aggroRange: 6
-    attackRange: 1.2
-    attackCooldownMs: 1500
-    attackDamage: 5
-    onHitEffectId: slow_3s
-    expReward: 20
   - monsterId: test_brute
     maxHp: 999999
     moveSpeed: 0
@@ -31,3 +22,75 @@ MonoBehaviour:
     attackDamage: 9999
     onHitEffectId: 
     expReward: 0
+  - monsterId: vampire_bat
+    maxHp: 20
+    moveSpeed: 3.5
+    aggroRange: 8
+    attackRange: 1
+    attackCooldownMs: 1000
+    attackDamage: 8
+    onHitEffectId: 
+    expReward: 12
+  - monsterId: creepy_demon
+    maxHp: 40
+    moveSpeed: 2.2
+    aggroRange: 7
+    attackRange: 1.3
+    attackCooldownMs: 1400
+    attackDamage: 12
+    onHitEffectId: 
+    expReward: 18
+  - monsterId: demon_girl
+    maxHp: 55
+    moveSpeed: 2.4
+    aggroRange: 9
+    attackRange: 1.5
+    attackCooldownMs: 1500
+    attackDamage: 16
+    onHitEffectId: 
+    expReward: 26
+  - monsterId: arachnya
+    maxHp: 65
+    moveSpeed: 2.6
+    aggroRange: 8
+    attackRange: 1.6
+    attackCooldownMs: 1600
+    attackDamage: 14
+    onHitEffectId: slow_3s
+    expReward: 30
+  - monsterId: wild_centaur
+    maxHp: 100
+    moveSpeed: 3.2
+    aggroRange: 10
+    attackRange: 1.6
+    attackCooldownMs: 1300
+    attackDamage: 20
+    onHitEffectId: 
+    expReward: 42
+  - monsterId: gargoyle
+    maxHp: 130
+    moveSpeed: 2
+    aggroRange: 8
+    attackRange: 1.8
+    attackCooldownMs: 1500
+    attackDamage: 22
+    onHitEffectId: stun_1_5s
+    expReward: 55
+  - monsterId: undead_axemaster
+    maxHp: 170
+    moveSpeed: 2.2
+    aggroRange: 9
+    attackRange: 1.7
+    attackCooldownMs: 1400
+    attackDamage: 28
+    onHitEffectId: 
+    expReward: 70
+  - monsterId: leviathan
+    maxHp: 500
+    moveSpeed: 1.6
+    aggroRange: 14
+    attackRange: 3
+    attackCooldownMs: 1800
+    attackDamage: 40
+    onHitEffectId: slow_3s
+    expReward: 150

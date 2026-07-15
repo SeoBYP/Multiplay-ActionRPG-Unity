@@ -16,29 +16,89 @@ MonoBehaviour:
   expReward: 100
   visualPrefab: {fileID: 395377278721909691, guid: 5b96864f9c019d44784274d95efba9bd, type: 3}
   playerSpawns:
-  - position: {x: 0, y: 0, z: 0}
+  - position: {x: 0, y: 0, z: -16}
     rotationY: 0
-  - position: {x: 2, y: 0, z: 0}
-    rotationY: 180
-  - position: {x: -2, y: 0, z: 0}
-    rotationY: 90
-  - position: {x: 0, y: 0, z: 2}
-    rotationY: 270
+  - position: {x: 2, y: 0, z: -16}
+    rotationY: 0
+  - position: {x: -2, y: 0, z: -16}
+    rotationY: 0
+  - position: {x: 0, y: 0, z: -18}
+    rotationY: 0
   monsterSpawns:
-  - monsterId: slime
-    position: {x: 6, y: 0, z: 6}
-    rotationY: 0
+  - monsterId: vampire_bat
+    position: {x: -3, y: 0, z: -6}
+    rotationY: 180
     count: 1
     wave: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints:
-    - {x: 6, y: 0, z: 6}
-    - {x: 10, y: 0, z: 6}
-    - {x: 10, y: 0, z: 10}
-    - {x: 6, y: 0, z: 10}
+    - {x: -3, y: 0, z: -6}
+    - {x: -8, y: 0, z: -6}
+  - monsterId: vampire_bat
+    position: {x: 3, y: 0, z: -6}
+    rotationY: 180
+    count: 1
+    wave: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints:
+    - {x: 3, y: 0, z: -6}
+    - {x: 8, y: 0, z: -6}
+  - monsterId: creepy_demon
+    position: {x: -4, y: 0, z: 2}
+    rotationY: 180
+    count: 1
+    wave: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints:
+    - {x: -4, y: 0, z: 2}
+    - {x: -4, y: 0, z: 6}
+  - monsterId: creepy_demon
+    position: {x: 4, y: 0, z: 2}
+    rotationY: 180
+    count: 1
+    wave: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints:
+    - {x: 4, y: 0, z: 2}
+    - {x: 4, y: 0, z: 6}
+  - monsterId: creepy_demon
+    position: {x: 0, y: 0, z: 3}
+    rotationY: 180
+    count: 1
+    wave: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: demon_girl
+    position: {x: -4, y: 0, z: 10}
+    rotationY: 180
+    count: 1
+    wave: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: arachnya
+    position: {x: 4, y: 0, z: 10}
+    rotationY: 180
+    count: 1
+    wave: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: wild_centaur
+    position: {x: 0, y: 0, z: 17}
+    rotationY: 180
+    count: 1
+    wave: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
   bounds:
     centerX: 0
     centerZ: 0
-    sizeX: 40
-    sizeZ: 40
+    sizeX: 44
+    sizeZ: 44

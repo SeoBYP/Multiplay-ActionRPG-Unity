@@ -10,41 +10,31 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 99d1c56b40bcc36468768a44b739f14e, type: 3}
-  m_Name: main_field_01
+  m_Name: dungeon_e2e
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Spawn.MapDefinition
-  mapId: main_field_01
-  expReward: 0
+  mapId: dungeon_e2e
+  expReward: 100
   visualPrefab: {fileID: 0}
   playerSpawns:
   - position: {x: 0, y: 0, z: 0}
     rotationY: 0
+  - position: {x: 2, y: 0, z: 0}
+    rotationY: 180
   monsterSpawns:
   - monsterId: creepy_demon
-    position: {x: 8, y: 0, z: 8}
-    rotationY: 0
+    position: {x: 0, y: 0, z: 6}
+    rotationY: 180
     count: 1
     wave: 0
-    slotId: 1
-    respawnCooldownMs: 5000
-    patrolPoints: []
-  - monsterId: creepy_demon
-    position: {x: -8, y: 0, z: 8}
-    rotationY: 0
-    count: 1
-    wave: 0
-    slotId: 2
-    respawnCooldownMs: 5000
-    patrolPoints: []
-  - monsterId: creepy_demon
-    position: {x: 8, y: 0, z: -8}
-    rotationY: 0
-    count: 1
-    wave: 0
-    slotId: 3
-    respawnCooldownMs: 5000
-    patrolPoints: []
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints:
+    - {x: 0, y: 0, z: 6}
+    - {x: 4, y: 0, z: 6}
+    - {x: 4, y: 0, z: 10}
+    - {x: 0, y: 0, z: 10}
   bounds:
     centerX: 0
     centerZ: 0
-    sizeX: 60
-    sizeZ: 60
+    sizeX: 40
+    sizeZ: 40

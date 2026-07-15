@@ -198,16 +198,16 @@ namespace Game.Tests.PlayMode.E2E
         public IEnumerator RawSocket_입장하면_몬스터_스폰_로스터_수신() => UniTask.ToCoroutine(async () =>
         {
             // 입장 시 RoomJoinLeaveHandler가 현재 몬스터 로스터(S_SpawnMonster×N)를 회신.
-            // dungeon_01에는 슬라임 1마리(MaxHp 30) 시드됨.
-            var room = await CreateStartedTwoPlayerRoomAsync();
+            // dungeon_e2e = 외딴 슬라임 1마리(MaxHp 30) E2E 픽스처(shipped dungeon_01 재기획과 분리).
+            var room = await CreateStartedTwoPlayerRoomAsync("dungeon_e2e");
             var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
 
             try
             {
-                var spawn = await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "slime", Timeout());
-                Assert.AreEqual("slime", spawn.MonsterId);
+                var spawn = await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "creepy_demon", Timeout());
+                Assert.AreEqual("creepy_demon", spawn.MonsterId);
                 Assert.Greater(spawn.InstanceId, 0, "서버가 InstanceId를 권위 발급해야 한다");
-                Assert.AreEqual(30, spawn.MaxHp, "dungeon_01 슬라임 MaxHp");
+                Assert.AreEqual(40, spawn.MaxHp, "dungeon_e2e creepy_demon MaxHp");
             }
             finally
             {
@@ -220,12 +220,13 @@ namespace Game.Tests.PlayMode.E2E
         {
             // 플레이어→몬스터: basic_swing 적중마다 서버 권위로 HP -10(basic_attack_dmg). 30→0 = 3타 이상.
             // 슬라임이 패트롤/추격으로 움직이므로 최신 S_MonsterState 위치로 재조준해 정면(−Z 1유닛)에서 타격.
-            var room = await CreateStartedTwoPlayerRoomAsync();
+            // dungeon_e2e = 외딴 슬라임 1마리 픽스처(shipped dungeon_01 은 다수 몬스터라 크라우딩으로 불안정).
+            var room = await CreateStartedTwoPlayerRoomAsync("dungeon_e2e");
             var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
 
             try
             {
-                var spawn = await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "slime", Timeout());
+                var spawn = await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "creepy_demon", Timeout());
                 int slimeId = spawn.InstanceId;
 
                 bool dead = false;
@@ -307,14 +308,14 @@ namespace Game.Tests.PlayMode.E2E
         [UnityTest]
         public IEnumerator RawSocket_몬스터_사거리_안이면_S_ApplyEffect_monster_attack_dmg_수신() => UniTask.ToCoroutine(async () =>
         {
-            // 몬스터→플레이어: 패트롤 사각형(6,6)~(10,10) 중심(8,8)으로 가면 슬라임이 항상 aggro 범위 →
+            // 몬스터→플레이어: dungeon_01 arachnya(4,10) 부근(8,8)으로 가면 aggro(8) 범위 →
             // 추격·사거리 진입 → 쿨다운마다 monster_attack_dmg(S_ApplyEffect)를 그 플레이어에게 발행.
             var room = await CreateStartedTwoPlayerRoomAsync();
             var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
 
             try
             {
-                await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "slime", Timeout());
+                await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "creepy_demon", Timeout());
 
                 await host.SendAsync(new C_Move { PosX = 8, PosY = 0, PosZ = 8, RotY = 0 }, Timeout());
 
@@ -334,17 +335,18 @@ namespace Game.Tests.PlayMode.E2E
         [UnityTest]
         public IEnumerator RawSocket_몬스터_공격은_슬로우_CC도_함께_브로드캐스트한다() => UniTask.ToCoroutine(async () =>
         {
-            // 2.6.2 던전 CC: slime(monsters.json onHitEffectId=slow_3s) 공격 시 서버 TickMonsters 가
+            // 2.6.2 던전 CC: arachnya(monsters.json onHitEffectId=slow_3s) 공격 시 서버 TickMonsters 가
             // 데미지(monster_attack_dmg)와 함께 CC(slow_3s, Amount=0) S_ApplyEffect 를 브로드캐스트 →
             // 클라 EffectReceiver 가 적용 → GrantedTags(State.Slow) 게이트. (서버 권위 CC 경로 검증)
+            // creepy_demon 은 CC 가 없어 slow_3s 를 내는 arachnya(dungeon_01 (4,10))로 검증.
             var room = await CreateStartedTwoPlayerRoomAsync();
             var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
 
             try
             {
-                await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "slime", Timeout());
+                await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "arachnya", Timeout());
 
-                await host.SendAsync(new C_Move { PosX = 8, PosY = 0, PosZ = 8, RotY = 0 }, Timeout());
+                await host.SendAsync(new C_Move { PosX = 4, PosY = 0, PosZ = 9, RotY = 0 }, Timeout());
 
                 var cc = await host.WaitForPacketAsync<S_ApplyEffect>(
                     p => p.EffectId == "slow_3s" && p.TargetId == room.HostUserId,
@@ -421,16 +423,17 @@ namespace Game.Tests.PlayMode.E2E
         [UnityTest]
         public IEnumerator RawSocket_몬스터_전멸하면_양쪽_S_DungeonClear_수신() => UniTask.ToCoroutine(async () =>
         {
-            // M4 A 트랙 ③: dungeon_01 시드 = 슬라임 1마리. 그 1마리를 처치하면 전멸 →
+            // M4 A 트랙 ③: dungeon_e2e 시드 = 슬라임 1마리. 그 1마리를 처치하면 전멸 →
             // 서버 Room.TryMarkCleared(최초 1회) → S_DungeonClear 를 방에 브로드캐스트.
             // 시전자(호스트) + 같은 방 게스트 둘 다 수신해야 한다.
-            var room = await CreateStartedTwoPlayerRoomAsync();
+            // ※ shipped dungeon_01(8마리)은 전멸이 비현실적이라 전용 픽스처 맵으로 검증.
+            var room = await CreateStartedTwoPlayerRoomAsync("dungeon_e2e");
             var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
             var guest = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
 
             try
             {
-                var spawn = await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "slime", Timeout());
+                var spawn = await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "creepy_demon", Timeout());
                 int slimeId = spawn.InstanceId;
 
                 // 움직이는 슬라임을 최신 위치로 재조준하며 전멸(=클리어)까지 반복 타격.
@@ -456,7 +459,7 @@ namespace Game.Tests.PlayMode.E2E
 
                 Assert.IsTrue(cleared, "몬스터 전멸 시 호스트(시전자)가 S_DungeonClear를 받아야 한다");
                 host.TryGetLatest<S_DungeonClear>(p => p.RoomId == room.RoomId, out var hostClear);
-                Assert.AreEqual(100, hostClear.RewardExp, "호스트 S_DungeonClear에 dungeon_01 보상 Exp(100)가 실려야 한다");
+                Assert.AreEqual(100, hostClear.RewardExp, "호스트 S_DungeonClear에 dungeon_e2e 보상 Exp(100)가 실려야 한다");
 
                 // 같은 방의 게스트도 브로드캐스트를 받아야 한다(서버 권위 1회 발화).
                 var guestClear = await guest.WaitForPacketAsync<S_DungeonClear>(
@@ -481,13 +484,14 @@ namespace Game.Tests.PlayMode.E2E
             //   ② C_PickupItem → 서버 TryPickup(경쟁 중재·거리) → S_ItemPickedUp + Redis Stream 발행
             //   ③ GameServer LootGrantConsumer → GrantItemAsync → DB inventory_items(영속)
             //   ④ 클라 GetInventory(pull)로 지급 확인
-            // dungeon_01 슬라임은 potion_hp_small 을 보장 드랍(DropTable Chance 1.0) → 결정적.
-            var room = await CreateStartedTwoPlayerRoomAsync();
+            // dungeon_e2e 슬라임은 potion_hp_small 을 보장 드랍(DropTable Chance 1.0) → 결정적.
+            // (드랍은 monsterId=slime 에 종속, 맵 무관. 외딴 1마리 픽스처라 크라우딩 없이 안정.)
+            var room = await CreateStartedTwoPlayerRoomAsync("dungeon_e2e");
             var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
 
             try
             {
-                var spawn = await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "slime", Timeout());
+                var spawn = await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "creepy_demon", Timeout());
                 int slimeId = spawn.InstanceId;
 
                 // ① 움직이는 슬라임을 최신 위치로 재조준하며 처치 → 보장 드랍(S_SpawnGroundItem) 관측.
@@ -560,7 +564,7 @@ namespace Game.Tests.PlayMode.E2E
 
             try
             {
-                await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "slime", Timeout()); // 던전 준비 동기화
+                await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "creepy_demon", Timeout()); // 던전 준비 동기화
 
                 // 호스트 토큰으로 포션 시드(ClaimKill = Main 슬롯 처치, slime 보장 드랍 potion) 후 소비(gRPC).
                 // 회복 수치는 클램프(만피)라도 브로드캐스트는 발생. ※ GrantItem 은 무한파밍 핵으로 제거됨(ClaimKill 대체).

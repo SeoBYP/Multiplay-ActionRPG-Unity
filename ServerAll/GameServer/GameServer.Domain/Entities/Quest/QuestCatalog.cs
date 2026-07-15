@@ -4,21 +4,22 @@ namespace GameServer.Domain.Entities.Quest;
 /// 퀘스트 정의 카탈로그 — 코드 시드(정적 기획데이터). DB 테이블 아님(ItemCatalog·ShopCatalog 동형).
 /// 수주/진행 상태만 DB(UserQuest)에 영속한다.
 ///
-/// MVP: Main 에서 잡히는 monster=slime 뿐이라 KillMonster 는 slime 대상만 실제 진행한다.
+/// MVP: Main 에서 잡히는 monster=creepy_demon 뿐이라 KillMonster 는 creepy_demon 대상만 실제 진행한다.
 /// quest_potion_collect 는 목표타입 구조 시연(CollectItem) — 진행 훅은 후속(GrantItemAsync 합류 시).
 /// </summary>
 public static class QuestCatalog
 {
+    // questId 는 유지(UserQuest 영속·수주 이력 호환). 목표 몬스터만 slime→creepy_demon 으로 교체.
     private static readonly Dictionary<string, QuestDef> Quests = new()
     {
         ["quest_slime_hunt"] = new QuestDef(
-            "quest_slime_hunt", "슬라임 사냥", "들판의 슬라임 3마리를 처치하라.",
-            QuestObjectiveType.KillMonster, "slime", 3,
+            "quest_slime_hunt", "데몬 사냥", "들판의 데몬 3마리를 처치하라.",
+            QuestObjectiveType.KillMonster, "creepy_demon", 3,
             new QuestReward(Exp: 50, Gold: 100, ItemId: null, ItemQty: 0)),
 
         ["quest_slime_slayer"] = new QuestDef(
-            "quest_slime_slayer", "슬라임 토벌대", "슬라임 5마리를 더 처치해 토벌대에 합류하라.",
-            QuestObjectiveType.KillMonster, "slime", 5,
+            "quest_slime_slayer", "데몬 토벌대", "데몬 5마리를 더 처치해 토벌대에 합류하라.",
+            QuestObjectiveType.KillMonster, "creepy_demon", 5,
             new QuestReward(Exp: 80, Gold: 0, ItemId: "potion_hp_small", ItemQty: 2)),
 
         ["quest_potion_collect"] = new QuestDef(

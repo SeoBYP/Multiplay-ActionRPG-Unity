@@ -23,13 +23,13 @@ public class MonsterAttackTests
         room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f); // 플레이어를 몬스터(0,0,0) 사거리 안에
         room.MarkJoined(100);                                // 입장 완료 = 라이브 타깃
         room.SpawnMonsters(
-            new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
+            new List<MonsterSpawnDef> { new("creepy_demon", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 40f, 40f));
 
         const long t0 = 1_000_000; // LastAttackAt=0 이므로 첫 틱은 즉시 공격
 
         var p1 = room.TickMonsters(0.1f, t0);
-        // slime 은 데미지(monster_attack_dmg) + CC(slow_3s) 두 효과를 낸다 — 데미지 패킷만 특정.
+        // creepy_demon 은 데미지(monster_attack_dmg) 단일 효과(CC 없음). CC 부여 검증은 arachnya 테스트가 담당.
         var atk1 = p1.OfType<S_ApplyEffect>().Single(e => e.EffectId == "monster_attack_dmg");
         Assert.Equal(100, atk1.TargetId);
         Assert.Equal(0, atk1.SourceId); // 0 = 몬스터/환경
@@ -47,30 +47,30 @@ public class MonsterAttackTests
     public void 몬스터_공격은_플레이어_Defense를_빼고_데미지를_적용한다()
     {
         var room = NewRoom();
-        // slime AttackDamage=15, 플레이어 Defense=2 → 데미지 = max(1, 15-2) = 13
+        // creepy_demon AttackDamage=12, 플레이어 Defense=2 → 데미지 = max(1, 12-2) = 10
         room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f, attackPower: 0, defense: 2);
         room.MarkJoined(100);
         room.SpawnMonsters(
-            new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
+            new List<MonsterSpawnDef> { new("creepy_demon", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 40f, 40f));
 
         var atk = room.TickMonsters(0.1f, 1_000_000).OfType<S_ApplyEffect>().Single(e => e.EffectId == "monster_attack_dmg");
-        Assert.Equal(-13, atk.Amount); // 서버 권위 Health 델타(Defense 반영)
+        Assert.Equal(-10, atk.Amount); // 서버 권위 Health 델타(Defense 반영)
 
         // 서버 HP 도 같은 값으로 차감(클라 표시값 == 서버 권위).
         var hp = room.GetAllPlayerStates().Single().Hp;
-        Assert.Equal(global::Server.Room.Room.DefaultMaxHp - 13, hp);
+        Assert.Equal(global::Server.Room.Room.DefaultMaxHp - 10, hp);
     }
 
     [Fact]
     public void Defense가_공격력보다_커도_최소_1_데미지는_들어간다()
     {
         var room = NewRoom();
-        // slime AttackDamage=15, 플레이어 Defense=20 → max(1, 15-20) = 1 (무피해 방지)
+        // creepy_demon AttackDamage=12, 플레이어 Defense=20 → max(1, 12-20) = 1 (무피해 방지)
         room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f, attackPower: 0, defense: 20);
         room.MarkJoined(100);
         room.SpawnMonsters(
-            new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
+            new List<MonsterSpawnDef> { new("creepy_demon", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 40f, 40f));
 
         var atk = room.TickMonsters(0.1f, 1_000_000).OfType<S_ApplyEffect>().Single(e => e.EffectId == "monster_attack_dmg");
@@ -79,13 +79,14 @@ public class MonsterAttackTests
     }
 
     [Fact]
-    public void 슬라임_공격은_슬로우_CC를_함께_브로드캐스트한다()
+    public void 아라크냐_공격은_슬로우_CC를_함께_브로드캐스트한다()
     {
+        // CC 부여 몬스터로 arachnya(monsters.json onHitEffectId=slow_3s) 사용 — creepy_demon 은 CC 없음.
         var room = NewRoom();
         room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f); // 사거리 안
         room.MarkJoined(100);
         room.SpawnMonsters(
-            new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
+            new List<MonsterSpawnDef> { new("arachnya", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 40f, 40f));
 
         var effects = room.TickMonsters(0.1f, 1_000_000).OfType<S_ApplyEffect>().ToList();
@@ -103,7 +104,7 @@ public class MonsterAttackTests
         room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f); // 사거리 안
         room.MarkJoined(100);
         room.SpawnMonsters(
-            new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
+            new List<MonsterSpawnDef> { new("creepy_demon", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 40f, 40f));
 
         // 살아있을 때: 공격 발생(데미지 패킷)
@@ -121,7 +122,7 @@ public class MonsterAttackTests
         room.InitPlayerState(100, "A", 0, 100f, 0f, 0f, 0f); // 멀리(aggro 밖)
         room.MarkJoined(100);                                // 입장은 했지만 사거리 밖
         room.SpawnMonsters(
-            new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
+            new List<MonsterSpawnDef> { new("creepy_demon", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 400f, 400f));
 
         var packets = room.TickMonsters(0.1f, 1_000_000);

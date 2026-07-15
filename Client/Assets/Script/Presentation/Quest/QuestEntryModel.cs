@@ -14,7 +14,7 @@ namespace Game.Presentation.Quest
         public QuestProgressState Status { get; }
         public string ProgressText { get; }   // "2 / 3" 또는 완료/수령
         public string RewardText { get; }      // "보상: 경험치 50 골드 100"
-        public string ConditionText { get; }   // 목표 조건 한 줄(예: "slime 처치 2/3")
+        public string ConditionText { get; }   // 목표 조건 한 줄(예: "creepy_demon 처치 2/3")
         public bool ConditionMet { get; }       // 조건 충족(진행≥필요)
         public IReadOnlyList<string> RewardLines { get; } // 보상 항목별 문자열(reward 슬롯 분리 표시용)
 

@@ -1,18 +1,7 @@
 {
     "tables": [
         {
-            "monsterId": "goblin",
-            "drops": [
-                {
-                    "itemId": "potion_hp_small",
-                    "chance": 1.0,
-                    "minQty": 5,
-                    "maxQty": 10
-                }
-            ]
-        },
-        {
-            "monsterId": "slime",
+            "monsterId": "creepy_demon",
             "drops": [
                 {
                     "itemId": "potion_hp_small",
@@ -73,6 +62,17 @@
                     "chance": 0.15000000596046449,
                     "minQty": 1,
                     "maxQty": 1
+                }
+            ]
+        },
+        {
+            "monsterId": "goblin",
+            "drops": [
+                {
+                    "itemId": "potion_hp_small",
+                    "chance": 1.0,
+                    "minQty": 5,
+                    "maxQty": 10
                 }
             ]
         }

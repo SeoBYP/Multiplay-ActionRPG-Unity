@@ -40,7 +40,7 @@ public class MainSpawnClaimServiceTests
     {
         await _service.ClaimExpAsync(7L, MainMap, 1); // slot 1 = slime
 
-        Assert.Contains((7L, "slime"), _quest.ReportedKills);
+        Assert.Contains((7L, "creepy_demon"), _quest.ReportedKills);
     }
 
     [Fact]
@@ -86,26 +86,26 @@ public class MainSpawnClaimServiceTests
     [Fact]
     public async Task ClaimExp는_유효슬롯이면_킬_즉시_몬스터_exp를_적립한다()
     {
-        // main_field_01 슬롯 1 = slime, MonsterCatalog slime.ExpReward = 20. 줍기와 무관하게 죽이면 즉시.
+        // main_field_01 슬롯 1 = creepy_demon, MonsterCatalog creepy_demon.ExpReward = 18. 줍기와 무관하게 죽이면 즉시.
         var res = await _service.ClaimExpAsync(1L, MainMap, slotId: 1);
 
         Assert.True(res.Success, res.FailReason);
-        Assert.Equal(20, res.ExpGained);
+        Assert.Equal(18, res.ExpGained);
         var prog = await _progression.GetProgressionAsync(1L);
-        Assert.Equal(20, prog.Exp); // 서버 권위 적립(영속)
+        Assert.Equal(18, prog.Exp); // 서버 권위 적립(영속)
     }
 
     [Fact]
     public async Task ClaimExp는_쿨다운_재청구시_exp를_적립하지_않는다()
     {
-        await _service.ClaimExpAsync(1L, MainMap, slotId: 1); // 1회차 +20
+        await _service.ClaimExpAsync(1L, MainMap, slotId: 1); // 1회차 +18
 
         var second = await _service.ClaimExpAsync(1L, MainMap, slotId: 1); // exp 쿨다운 내 재청구
 
         Assert.True(second.Success);
         Assert.Equal(0, second.ExpGained); // exp 파밍도 쿨다운으로 상한
         var prog = await _progression.GetProgressionAsync(1L);
-        Assert.Equal(20, prog.Exp);        // 누적 20 그대로(이중 적립 없음)
+        Assert.Equal(18, prog.Exp);        // 누적 18 그대로(이중 적립 없음)
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class MainSpawnClaimServiceTests
         var exp = await _service.ClaimExpAsync(1L, MainMap, slotId: 1);
         var item = await _service.ClaimKillAsync(1L, MainMap, slotId: 1);
 
-        Assert.Equal(20, exp.ExpGained);
+        Assert.Equal(18, exp.ExpGained);
         Assert.NotEmpty(item.Granted); // 같은 슬롯이어도 아이템 줍기는 별개 쿨다운이라 성공
     }
 

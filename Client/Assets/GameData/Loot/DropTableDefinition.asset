@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: DropTableDefinition
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Loot.DropTableDefinition
   tables:
-  - monsterId: slime
+  - monsterId: creepy_demon
     drops:
     - itemId: potion_hp_small
       chance: 1

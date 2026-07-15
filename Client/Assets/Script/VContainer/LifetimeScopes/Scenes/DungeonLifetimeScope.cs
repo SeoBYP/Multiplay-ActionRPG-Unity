@@ -18,7 +18,8 @@ public class DungeonLifetimeScope : LifetimeScope
 {
     [SerializeField] private GameObject localPlayerPrefab;
     [SerializeField] private GameObject remotePlayerPrefab;
-    [SerializeField] private GameObject monsterPrefab; // M3 ⑥ 서버 권위 몬스터
+    [SerializeField] private GameObject monsterPrefab; // M3 ⑥ 서버 권위 몬스터(기본/폴백)
+    [SerializeField] private Game.Gameplay.Monster.MonsterVisualCatalog monsterVisualCatalog; // monsterId → 표시 프리팹
     [SerializeField] private GameObject groundItemPrefab; // 3.3 서버 권위 드랍(바닥 아이템)
     [SerializeField] private EffectIconCatalog effectIconCatalog; // 버프 표시 매핑(표시 전용)
     [SerializeField] private ItemDisplayCatalog itemDisplayCatalog; // 인벤토리 아이템 표시 매핑(itemId→이름·아이콘·분류)
@@ -119,7 +120,9 @@ public class DungeonLifetimeScope : LifetimeScope
         // 3인칭 카메라 Follow 런타임 바인딩 — 씬의 GameplayCameraRig 가 LocalPlayerContext.OnSet 구독 →
         // 스폰된 로컬 플레이어 CameraFollowTarget 으로 vcam.Follow 세팅(Main 과 동일 구성).
         builder.RegisterComponentInHierarchy<Game.Gameplay.Camera.GameplayCameraRig>();
-        // M3 ⑥: 서버 권위 몬스터 스폰/보간/디스폰.
+        // M3 ⑥: 서버 권위 몬스터 스폰/보간/디스폰. monsterId → 표시 프리팹은 MonsterVisualCatalog(있으면).
+        if (monsterVisualCatalog != null)
+            builder.RegisterInstance(monsterVisualCatalog);
         builder.RegisterEntryPoint<MonsterSpawner>(Lifetime.Scoped);
         // 3.3: 서버 권위 드랍(바닥 아이템) 스폰/디스폰 + 줍기.
         builder.RegisterEntryPoint<GroundItemSpawner>(Lifetime.Scoped);

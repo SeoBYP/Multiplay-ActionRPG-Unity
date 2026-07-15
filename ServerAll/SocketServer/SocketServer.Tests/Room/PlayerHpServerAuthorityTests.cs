@@ -74,7 +74,7 @@ public class PlayerHpServerAuthorityTests
         room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f); // 슬라임(0,0,0) 사거리 안
         room.MarkJoined(100);                                // 입장 완료 = 라이브 타깃
         room.SpawnMonsters(
-            new List<MonsterSpawnDef> { new("slime", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
+            new List<MonsterSpawnDef> { new("creepy_demon", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 40f, 40f));
 
         bool sawDead = false, sawFailed = false;

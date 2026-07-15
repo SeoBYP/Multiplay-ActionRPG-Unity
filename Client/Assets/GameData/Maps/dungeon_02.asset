@@ -13,48 +13,108 @@ MonoBehaviour:
   m_Name: dungeon_02
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Spawn.MapDefinition
   mapId: dungeon_02
-  expReward: 150
+  expReward: 300
   visualPrefab: {fileID: 395377278721909691, guid: 5b96864f9c019d44784274d95efba9bd, type: 3}
   playerSpawns:
-  - position: {x: 0, y: 0, z: -18}
+  - position: {x: 0, y: 0, z: -26}
     rotationY: 0
-  - position: {x: 2, y: 0, z: -18}
+  - position: {x: 2, y: 0, z: -26}
     rotationY: 0
-  - position: {x: -2, y: 0, z: -18}
+  - position: {x: -2, y: 0, z: -26}
     rotationY: 0
-  - position: {x: 0, y: 0, z: -20}
+  - position: {x: 0, y: 0, z: -28}
     rotationY: 0
   monsterSpawns:
-  - monsterId: slime
-    position: {x: 8, y: 0, z: 8}
-    rotationY: 0
-    count: 1
-    wave: 0
-    slotId: 0
-    respawnCooldownMs: 0
-    patrolPoints:
-    - {x: 8, y: 0, z: 8}
-    - {x: 14, y: 0, z: 8}
-    - {x: 14, y: 0, z: 14}
-    - {x: 8, y: 0, z: 14}
-  - monsterId: slime
-    position: {x: -8, y: 0, z: 8}
-    rotationY: 0
+  - monsterId: creepy_demon
+    position: {x: -5, y: 0, z: -14}
+    rotationY: 180
     count: 1
     wave: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
-  - monsterId: slime
-    position: {x: 0, y: 0, z: 14}
-    rotationY: 0
-    count: 2
-    wave: 1
+  - monsterId: creepy_demon
+    position: {x: 0, y: 0, z: -13}
+    rotationY: 180
+    count: 1
+    wave: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: creepy_demon
+    position: {x: 5, y: 0, z: -14}
+    rotationY: 180
+    count: 1
+    wave: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: demon_girl
+    position: {x: -5, y: 0, z: -2}
+    rotationY: 180
+    count: 1
+    wave: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: demon_girl
+    position: {x: 5, y: 0, z: -2}
+    rotationY: 180
+    count: 1
+    wave: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: arachnya
+    position: {x: 0, y: 0, z: -1}
+    rotationY: 180
+    count: 1
+    wave: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: gargoyle
+    position: {x: -6, y: 0, z: 8}
+    rotationY: 180
+    count: 1
+    wave: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: undead_axemaster
+    position: {x: 6, y: 0, z: 8}
+    rotationY: 180
+    count: 1
+    wave: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: wild_centaur
+    position: {x: -4, y: 0, z: 15}
+    rotationY: 180
+    count: 1
+    wave: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: wild_centaur
+    position: {x: 4, y: 0, z: 15}
+    rotationY: 180
+    count: 1
+    wave: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: leviathan
+    position: {x: 0, y: 0, z: 25}
+    rotationY: 180
+    count: 1
+    wave: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
   bounds:
     centerX: 0
     centerZ: 0
-    sizeX: 50
-    sizeZ: 50
+    sizeX: 64
+    sizeZ: 64

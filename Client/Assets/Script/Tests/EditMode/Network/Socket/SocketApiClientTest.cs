@@ -217,13 +217,13 @@ namespace Game.Tests.EditMode.Socket
             await dispatcher.DispatchAsync(new S_SpawnMonster
             {
                 InstanceId = 7,
-                MonsterId = "slime",
+                MonsterId = "creepy_demon",
                 PosX = 6f, PosY = 0f, PosZ = 6f, RotY = 90f,
                 Hp = 30, MaxHp = 30
             });
 
             Assert.IsTrue(state.TryGetMonster(7, out var m));
-            Assert.AreEqual("slime", m.MonsterId);
+            Assert.AreEqual("creepy_demon", m.MonsterId);
             Assert.AreEqual(6f, m.PosX);
             Assert.AreEqual(30, m.Hp);
             Assert.AreEqual(30, m.MaxHp);
@@ -235,14 +235,14 @@ namespace Game.Tests.EditMode.Socket
             var dispatcher = _container.Resolve<ISocketPacketDispatcher>();
             var state = _container.Resolve<ISocketPacketState>();
 
-            await dispatcher.DispatchAsync(new S_SpawnMonster { InstanceId = 7, MonsterId = "slime", Hp = 30, MaxHp = 30 });
+            await dispatcher.DispatchAsync(new S_SpawnMonster { InstanceId = 7, MonsterId = "creepy_demon", Hp = 30, MaxHp = 30 });
             await dispatcher.DispatchAsync(new S_MonsterState
             {
                 InstanceId = 7, PosX = 9f, PosY = 0f, PosZ = 5f, RotY = 45f, Hp = 18, Phase = 2
             });
 
             Assert.IsTrue(state.TryGetMonster(7, out var m));
-            Assert.AreEqual("slime", m.MonsterId); // 식별정보 유지
+            Assert.AreEqual("creepy_demon", m.MonsterId); // 식별정보 유지
             Assert.AreEqual(30, m.MaxHp);          // 유지
             Assert.AreEqual(9f, m.PosX);
             Assert.AreEqual(18, m.Hp);
@@ -255,7 +255,7 @@ namespace Game.Tests.EditMode.Socket
             var dispatcher = _container.Resolve<ISocketPacketDispatcher>();
             var state = _container.Resolve<ISocketPacketState>();
 
-            await dispatcher.DispatchAsync(new S_SpawnMonster { InstanceId = 7, MonsterId = "slime", Hp = 30, MaxHp = 30 });
+            await dispatcher.DispatchAsync(new S_SpawnMonster { InstanceId = 7, MonsterId = "creepy_demon", Hp = 30, MaxHp = 30 });
             Assert.IsTrue(state.TryGetMonster(7, out _));
 
             await dispatcher.DispatchAsync(new S_MonsterDead { InstanceId = 7 });
@@ -272,7 +272,7 @@ namespace Game.Tests.EditMode.Socket
             SocketMonsterSnapshot spawned = null;
             state.OnMonsterSpawned += s => spawned = s;
 
-            await dispatcher.DispatchAsync(new S_SpawnMonster { InstanceId = 3, MonsterId = "slime", Hp = 30, MaxHp = 30 });
+            await dispatcher.DispatchAsync(new S_SpawnMonster { InstanceId = 3, MonsterId = "creepy_demon", Hp = 30, MaxHp = 30 });
 
             Assert.IsNotNull(spawned);
             Assert.AreEqual(3, spawned.InstanceId);

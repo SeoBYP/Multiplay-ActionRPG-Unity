@@ -23,10 +23,11 @@ public class SpawnLayoutTests
     {
         var layout = SpawnLayoutTable.Get(MapIds.Dungeon01);
 
-        Assert.Equal(new SpawnPoint(0f, 0f, 0f, 0f), SpawnResolver.Resolve(layout, 0));
-        Assert.Equal(new SpawnPoint(2f, 0f, 0f, 180f), SpawnResolver.Resolve(layout, 1));
-        Assert.Equal(new SpawnPoint(-2f, 0f, 0f, 90f), SpawnResolver.Resolve(layout, 2));
-        Assert.Equal(new SpawnPoint(0f, 0f, 2f, 270f), SpawnResolver.Resolve(layout, 3));
+        // dungeon_01 재기획(2026-07): 파티는 맵 남쪽(Z-16 부근)에서 북향(+Z)으로 진입한다.
+        Assert.Equal(new SpawnPoint(0f, 0f, -16f, 0f), SpawnResolver.Resolve(layout, 0));
+        Assert.Equal(new SpawnPoint(2f, 0f, -16f, 0f), SpawnResolver.Resolve(layout, 1));
+        Assert.Equal(new SpawnPoint(-2f, 0f, -16f, 0f), SpawnResolver.Resolve(layout, 2));
+        Assert.Equal(new SpawnPoint(0f, 0f, -18f, 0f), SpawnResolver.Resolve(layout, 3));
     }
 
     [Fact]
@@ -75,11 +76,11 @@ public class SpawnLayoutTests
         var a = room.GetPlayerState(100)!;
         Assert.Equal(0, a.SpawnIndex);
         Assert.Equal(0f, a.PosX);
-        Assert.Equal(0f, a.PosZ);
+        Assert.Equal(-16f, a.PosZ);
 
         var b = room.GetPlayerState(200)!;
         Assert.Equal(1, b.SpawnIndex);
         Assert.Equal(2f, b.PosX);
-        Assert.Equal(180f, b.RotY);
+        Assert.Equal(0f, b.RotY);
     }
 }

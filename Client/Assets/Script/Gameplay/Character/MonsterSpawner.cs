@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Game.Gameplay.Monster;
 using Game.Network.Socket;
 using UnityEngine;
 using VContainer.Unity;
@@ -20,17 +21,20 @@ namespace Game.Gameplay.Character
         private readonly ISocketSession         _socketSession;
         private readonly ISocketPacketState     _packetState;
         private readonly CharacterPrefabSettings _prefabs;
+        private readonly MonsterVisualCatalog   _visuals; // monsterId → 표시 프리팹(없으면 기본 프리팹 폴백)
 
         private readonly Dictionary<int, MonsterEntity> _monsters = new Dictionary<int, MonsterEntity>();
 
         public MonsterSpawner(
             ISocketSession          socketSession,
             ISocketPacketState      packetState,
-            CharacterPrefabSettings prefabs)
+            CharacterPrefabSettings prefabs,
+            MonsterVisualCatalog    visuals = null)
         {
             _socketSession = socketSession;
             _packetState   = packetState;
             _prefabs       = prefabs;
+            _visuals       = visuals;
         }
 
         public UniTask StartAsync(CancellationToken ct)
@@ -60,7 +64,9 @@ namespace Game.Gameplay.Character
         {
             if (_monsters.ContainsKey(snapshot.InstanceId)) return;
 
-            var prefab = _prefabs.MonsterPrefab;
+            // monsterId 별 표시 프리팹 선택. 카탈로그 미등록이면 기본 프리팹(캡슐)으로 폴백.
+            var prefab = _visuals != null ? _visuals.GetPrefab(snapshot.MonsterId) : null;
+            if (prefab == null) prefab = _prefabs.MonsterPrefab;
             if (prefab == null)
             {
                 Debug.LogError("[MonsterSpawner] MonsterPrefab이 설정되지 않았습니다.");
@@ -87,11 +93,10 @@ namespace Game.Gameplay.Character
 
         private void Despawn(int instanceId)
         {
-            if (!_monsters.TryGetValue(instanceId, out var entity)) return;
-            _monsters.Remove(instanceId);
-            entity.Dispose();
-            if (entity != null) UnityEngine.Object.Destroy(entity.gameObject);
-            Debug.Log($"[MonsterSpawner] 몬스터 디스폰 — InstanceId={instanceId}");
+            // 사망 애니는 MonsterEntity 가 OnMonsterDead 를 직접 받아 재생 + 지연 자체 파괴한다.
+            // 스포너는 추적만 정리한다(즉시 파괴하면 die 애니가 안 보인다). 씬 종료는 Dispose 에서 즉시 파괴.
+            if (_monsters.Remove(instanceId))
+                Debug.Log($"[MonsterSpawner] 몬스터 사망 — InstanceId={instanceId} (die 애니 후 자체 디스폰)");
         }
 
         public void Dispose()

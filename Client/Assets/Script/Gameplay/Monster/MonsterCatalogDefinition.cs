@@ -15,7 +15,7 @@ namespace Game.Gameplay.Monster
     [CreateAssetMenu(fileName = "MonsterCatalogDefinition", menuName = "Game/Monster Catalog Definition", order = 4)]
     public sealed class MonsterCatalogDefinition : ScriptableObject
     {
-        [Tooltip("몬스터 타입별 정의. monsterId 는 서버/클라 공용 식별자(예: slime).")]
+        [Tooltip("몬스터 타입별 정의. monsterId 는 서버/클라 공용 식별자(예: creepy_demon).")]
         public List<MonsterDefinition> monsters = new();
 
         /// <summary>monsterId 의 정의. 미등록이면 null. (클라 런타임 조회용)</summary>

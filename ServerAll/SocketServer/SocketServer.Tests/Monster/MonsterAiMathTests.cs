@@ -16,7 +16,7 @@ public class MonsterAiMathTests
     private static MonsterState NewMonster(float x, float z, params PatrolPoint[] patrol) => new()
     {
         InstanceId = 1,
-        MonsterId = "slime",
+        MonsterId = "creepy_demon",
         PosX = x,
         PosZ = z,
         SpawnX = x,

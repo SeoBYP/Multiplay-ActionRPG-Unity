@@ -11,7 +11,7 @@ namespace Game.Gameplay.Spawn
     public sealed class MonsterSpawnMarker : MonoBehaviour
     {
         [Tooltip("몬스터 타입 키(서버·클라 공용 식별자).")]
-        public string monsterId = "slime";
+        public string monsterId = "creepy_demon";
 
         [Tooltip("이 지점에서 동시에 스폰할 수.")]
         public int count = 1;
