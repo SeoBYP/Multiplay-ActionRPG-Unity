@@ -68,6 +68,32 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+### 2.63 캡슐 몬스터 제거 + slime→creepy_demon 전면 교체 (2026-07-16)
+
+플레이스홀더 캡슐(`Monster.prefab` 던전 폴백·`LocalMonster.prefab` Main) + `slime` 몬스터를 실모델 몬스터로 대체. 사용자 지시 = "캡슐 3종 안 씀 → 실모델로, slime 데이터는 demon 으로 교체".
+
+- **왜 삭제가 아니라 교체인가**: `slime` 을 monsters.json 에서 지우면 **장비 드랍의 유일 소스**(drop-tables.json slime→potion·gold·장비 8종)와 **퀘스트 킬 목표**(`quest_slime_hunt/slayer`)와 SocketServer.Tests 12파일이 무너진다(원칙 6 으로 사전 보고). → **전면 rename `slime`→`creepy_demon`**(이미 로스터에 존재하는 실몬스터로 병합) 로 플러밍을 살렸다.
+- **데이터 교체(bake 경유)**: `MonsterCatalogDefinition`(slime 엔트리 제거) · `DropTableDefinition`(slime 테이블 monsterId→creepy_demon, 장비 드랍 그대로 이관) · spawn-layouts(dungeon_01 ×2·main_field_01 ×3·dungeon_e2e ×1) → 모두 SO 편집 후 재bake. 퀘스트는 코드 시드라 `QuestCatalog.cs` 목표 monsterId 직접 교체(**questId 는 유지** = UserQuest 영속·수주 이력 호환).
+- **Main 몬스터 실모델+애니**: `LocalMonster`(Main 클라권위, 자체 AI — 던전 `MonsterEntity` 와 별개)에 **애니 구동 추가**(Animator + 위치 변위→walk/idle + 사망 die 후 지연 자체 파괴, MonsterEntity 와 동형). 새 `CreepyDemonLocal.prefab`(creepy_demon 모델+Animator+`LocalMonster`(hp40/dmg12)+루트 콜라이더+`LockOnTarget`) → `MainLifetimeScope.localMonsterPrefab` 재배선. 던전 폴백은 `DungeonLifetimeScope.monsterPrefab=null`(모든 id 가 `MonsterVisualCatalog` 에 존재 → 폴백 불필요).
+- **MonsterRed.mat 은 유지**: `GroundItem`/`LocalGroundItem`(전리품 오브)도 이 재질을 쓴다 → 몬스터 프리팹만 삭제, .mat 은 전리품용으로 존치(사용자 확인).
+- **⚠ CC 테스트는 arachnya 로 재조준**: `slime` 은 slow_3s CC 가 있었으나 `creepy_demon` 은 CC 없음(monsters.json). "몬스터 공격 CC 브로드캐스트" 검증(`MonsterAttackTests`·`SocketE2ETests`)은 slow_3s 를 내는 **arachnya**(dungeon_01 (4,10))로 대상 변경 — 커버리지 보존.
+- **stat 델타 반영**: slime(hp30·AD15·exp20) → creepy_demon(hp40·AD12·exp18). 테스트 단언 갱신(데미지 −13→−10, 사망 타격 3→4회, Main 킬 exp 20→18, MonsterCatalog 로드값).
+- **검증(전량 그린)**: 서버 build0 · **SocketServer.Tests 127** · **GameServer.Tests 384**(Testcontainers, 퀘스트 목표·Main exp) · 클라 컴파일0 · **EditMode 167** · **Docker E2E SocketE2ETests 30/30**(creepy_demon 픽스처·arachnya CC) · **MainLoot+Quest E2E 9/9** · CreepyDemonLocal 애니 상태명 실존. slime 잔재 = questId(의도 유지) + 이관설명 주석 1개뿐.
+
+### 2.62 몬스터 로스터 8종 — 스탯·프리팹·애니 + 던전 재기획 + E2E 픽스처 분리 (2026-07-16)
+
+애니 폴리시 백로그 #2(몬스터 모델·애니). `_DLNK` 턴키 몬스터 8종을 데이터·프리팹·애니까지 세우고, 던전 2개를 그 로스터로 재기획했다.
+
+- **스탯 진실원 = `MonsterCatalogDefinition`(SO) → bake → `monsters.json`(서버 임베디드)**. 8종 티어링: T1 잡몹 `vampire_bat`(hp20)·`creepy_demon`(40) / T2 `demon_girl`(55)·`arachnya`(65,slow) / T3 정예 `wild_centaur`(100)·`gargoyle`(130,stun)·`undead_axemaster`(170) / T4 보스 `leviathan`(500,slow). 기존 `slime`·`test_brute` 유지. 서버 `MonsterCatalog.Get` 가 그대로 읽음(코드 무변경).
+  - **⚠ 회귀 봉인**: 밸런스 커밋 `899aa114` 가 `monsters.json` 을 **직접 하드패치**(slime AD 5→15)했으나 SO엔 미반영 → 재bake 가 5로 되돌렸다. **SO(진실원)에 15를 정합**해 향후 bake 안전. 교훈: JSON 직접 편집 금지, 항상 SO→bake.
+- **비주얼 = 클라 전용 `MonsterVisualCatalog`(SO, monsterId→프리팹)**. "무엇인가(스탯)=서버 카탈로그 / 어떻게 보이나(모델·애니)=클라 카탈로그" 분리(서버는 비주얼 무지). `MonsterSpawner` 가 `S_SpawnMonster.MonsterId` 로 프리팹 선택(미등록이면 기본 캡슐 폴백). `DungeonLifetimeScope` 에 SO 인스펙터 할당 + 조건부 등록.
+- **애니 구동 = `MonsterEntity`(네트워크 재생 전용, FSM/AI 없음)**. `_DLNK` 컨트롤러는 **파라미터가 거의 0개** → 공용 파라미터로 못 돌린다. 대신 각 컨트롤러의 **상태 이름**(idle/walk/die)을 프리팹에 직렬화하고 `CrossFadeInFixedTime` 로 직접 구동. 보간 변위 속도>임계→walk, 정지→idle, `OnMonsterDead`→die 후 지연 자체 디스폰. **⚠ 상태명이 틀리면 조용히 no-op(무애니)** → 8종 idle/walk/die 상태명이 각 컨트롤러에 실존하는지 검증(전부 OK).
+- **프리팹 8개 절차 생성**: 루트(`MonsterEntity`+`LockOnTarget`) > `Model`(언팩·콜라이더/RB 제거·Renderer bounds 로 목표 키 정규화·발 원점 정렬) + `HealthBar`(기존 `Monster.prefab` 에서 복제, `MonsterHealthBar` 는 `GetComponentInParent<MonsterEntity>` 자동 링크) + 루트 `CapsuleCollider`.
+- **던전 재기획 = 공간적 난이도 곡선(웨이브 코드 없음)**. 서버 `Room.SpawnMonsters` 는 **wave 무시하고 레이아웃 전 몬스터를 시작 시 스폰** → 난이도는 **aggroRange(6~14m) 밖으로 존을 벌려** 공간으로 페이싱. `dungeon_01` 초입(8마리, +Z 진행, 미니보스 wild_centaur, exp 100) / `dungeon_02` 심층(11마리, 보스 leviathan aggro14, exp 300). 남향 배치(rotY=180)로 진입 파티를 마주봄. 진실원 = `MapDefinition` SO → bake.
+- **⭐ E2E 픽스처 분리 = `dungeon_e2e`(외딴 슬라임 1마리, exp 100)**. 재기획으로 `dungeon_01`(8마리)이 "외딴 슬라임 1마리"라는 **E2E 결정론 계약**을 깼다(전멸=1킬 불가·크라우딩 불안정). **shipped 게임플레이 콘텐츠를 테스트에 고정하지 않는다**는 원칙대로 전용 픽스처 맵을 신설하고, 직접 싸우는 `SocketE2ETests` 4종(로스터·처치·전멸→클리어·드랍)을 `CreateStartedTwoPlayerRoomAsync("dungeon_e2e")` 로 리포인트. 서버 `SpawnLayoutTable.IsKnown` 이 JSON 로드분을 검증하고 StartGame 이 mapId 오버라이드를 지원해 무리 없음. 픽스처 계약은 단위 가드(`임베디드_dungeon_e2e는_외딴_슬라임1마리_픽스처다`)로 박제. `dungeon_01` exp 는 GameServer 레벨업 보상 테스트(100=Lv1임계 캘리브레이션)와 결합돼 **100 유지**(재기획 본질=레이아웃, exp는 순수 밸런스).
+- **손댄 파일**: 클라 `Gameplay/Monster/{MonsterCatalogDefinition,MonsterVisualCatalog}` · `Gameplay/Character/{MonsterEntity,MonsterSpawner,MonsterHealthBar}` · `VContainer/.../DungeonLifetimeScope` · `GameData/{Monster,Maps}/*.asset`(+8 프리팹) · 서버 `monsters.json`·`spawn-layouts.json`(bake) · 테스트 `SpawnLayoutTests`·`MonsterSpawnLayoutTests`·`MonsterRoomTests`·클라 `SpawnResolverTests`·`SocketE2ETests`.
+- **검증(전량 그린)**: 서버 build0 · **SocketServer.Tests 127**(dungeon_e2e 가드+MonsterRoom 레이아웃도출) · **GameServer 보상경로 3**(Testcontainers, dungeon_01=100 레벨업) · 클라 컴파일0 · **EditMode 167**(SpawnResolver 미러) · **Docker E2E SocketE2ETests 30/30**(전멸→클리어 픽스처 포함) · 몬스터 8종 애니 상태명 실존 검증. 실 몬스터 플레이 육안=MPPM 수동.
+
 ### 2.61 Attack 콤보 A→B→C — 단계별 상승, 패킷 신설 0 (2026-07-12)
 
 애니 폴리시 백로그 #7. 기본공격 반복(좌클릭)으로 A→B→C 진행, 단계별 데미지·리치 상승.

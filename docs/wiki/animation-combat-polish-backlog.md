@@ -2,7 +2,7 @@
 
 > 상태: **살아있는 백로그** (착수 시 해당 항목에 커밋/codemap 링크 추가, 완료 시 ✅)
 > 맥락: MotionMatching 외부화 후 클라는 **단순 PROTOFACTOR Animator**로 복원됨. 2026-07 세션에서 플레이어·원격 플레이어 애니 기반 + 무기 판정 + HitboxMath 방향 버그 + 이동잠금 + 부활 애니(§2.52~2.56) → **NPC 애니 · 락온 8방향 strafe · 파티 HP HUD(+원격 HP 기준선 동기화)**(§2.57·§2.58·§2.58b, 2026-07-12)까지 세움. 이 문서는 **그 위에 남은 폴리시 항목**을 실행 가능하게 목록화한다.
-> 진행: #1 NPC ✅ · #3 부활 기상 ✅ · #4 Interact(토스트) ✅ · #5 원격 회피 ✅ · #6 락온 ✅ · #7 Attack 콤보 A→B→C ✅ · ★ 파티 HP HUD ✅ (2026-07-12). **남은 것 = #2 몬스터 모델·애니**(메시 결정 필요) — 애니 폴리시 백로그 사실상 소진(#8·#9는 소소/상시).
+> 진행: #1 NPC ✅ · #2 몬스터 모델·애니 ✅ (2026-07-16, 8종+던전 재기획, codemap §2.62) · #3 부활 기상 ✅ · #4 Interact(토스트) ✅ · #5 원격 회피 ✅ · #6 락온 ✅ · #7 Attack 콤보 A→B→C ✅ · ★ 파티 HP HUD ✅. **애니 폴리시 백로그 소진**(#8·#9는 소소/상시).
 > 관련: [codemap.md](codemap.md) §2.52~2.58b · [plan.md](plan.md) · [.claude/rules/unity-gameplay-state.md](../../.claude/rules/unity-gameplay-state.md)
 
 ## 재사용할 확립된 패턴 (착수 전 참고)
@@ -21,7 +21,7 @@
 | # | 항목 | 규모 | 권위/계약 영향 | 권장 순서 |
 |---|------|------|----------------|-----------|
 | 1 | ✅ NPC 캐릭터 모델·애니 (휴머노이드) — 2026-07-12 완료(codemap §2.57) | 중 | 없음(클라) | — |
-| 2 | 몬스터 캐릭터 모델·애니 | 중 | 없음(클라) | 1 (메시 결정 필요) |
+| 2 | ✅ 몬스터 캐릭터 모델·애니 (8종 _DLNK + 던전 재기획) — 2026-07-16 완료(codemap §2.62) | 중 | 없음(클라) | — |
 | 3 | ✅ 부활 기상(GetUp) 클립 — 2026-07-12 완료(codemap §2.59). `GetBackUpFront` + Dead→GetUp→Loco 재배선(로컬·원격 공유 컨트롤러) | 소 | 없음 | — |
 | 4 | ✅ Interact 클립 — 2026-07-12 결정(§2.59): 전용 줍기 클립 없음 → **애니 제거 + 획득 토스트(GameHud)로 대체**(사용자 결정) | 소 | 없음 | — |
 | 5 | ✅ 원격 회피 애니 (S_Dodge) — 2026-07-12 완료(codemap §2.60). Union 1603 S_Dodge 브로드캐스트 → RemoteDriver 구르기 애니. Main=솔로라 던전 전용 | 중 | **공개계약**(Union 1603) | — |
@@ -41,14 +41,14 @@
 - **손댈 파일**: NPC 프리팹, `NPCController.controller`, (이동형이면) NPC 구동기.
 - **검증**: 플레이모드 NPC 배치 스크린샷 + 대화 E2E 무회귀.
 
-## 2. 몬스터 캐릭터 모델·애니 — 중 (메시 결정 필요)
+## 2. 몬스터 캐릭터 모델·애니 — ✅ 완료 (2026-07-16, codemap §2.62)
 
-- **현재**: `Monster.prefab`(던전, `MonsterEntity`)·`LocalMonster.prefab`(Main, `LocalMonster`) = 캡슐 `Model`. 체력바만 부착됨(§2.55).
-- **왜**: 적이 캡슐. 위치는 이미 서버/AI 보간으로 구동됨.
-- **⚠ 결정 필요**: 현재 몬스터 = "slime". `SK_Protof-Actor`(인간형)는 부적합 → **PROTOFACTOR Creature/Zombie 애님셋 메시** 사용하거나, 슬라임 전용 메시 도입. 메시가 정해져야 착수.
-- **접근**: `MonsterEntity`(던전)·`LocalMonster`(Main)에 RemoteDriver식 애니 구동 추가 — 보간 변위→Speed, `S_MonsterDead`/사망→Dead 트리거. 몬스터용 컨트롤러 신설(Idle/Move/Death). CharacterAgentAnimations 재사용 가능 여부 검토(몬스터는 다른 계약일 수 있음).
-- **손댈 파일**: `Monster.prefab`·`LocalMonster.prefab`, `MonsterEntity.cs`·`LocalMonster.cs`, 신규 `MonsterController.controller`, 몬스터 메시.
-- **검증**: 몬스터 스폰/이동/사망 애니 스크린샷 + 몬스터 E2E(SocketE2E) 무회귀.
+- **해결**: `_DLNK` 턴키 몬스터 8종(vampire_bat·creepy_demon·demon_girl·arachnya·wild_centaur·gargoyle·undead_axemaster·leviathan)을 스탯·프리팹·애니까지 세우고 던전 2개를 재기획했다. 메시 결정 = `_DLNK` 컬렉션(각자 모델+컨트롤러 포함) 채택.
+- **비주얼 분리**: 스탯=`MonsterCatalogDefinition`(SO→monsters.json, 서버) / 프리팹=`MonsterVisualCatalog`(SO, 클라). `MonsterSpawner` 가 monsterId 로 프리팹 선택(폴백=캡슐).
+- **애니 구동**: `_DLNK` 컨트롤러가 파라미터 거의 0개 → `MonsterEntity` 가 **상태 이름**(idle/walk/die, 프리팹 직렬화)을 `CrossFadeInFixedTime` 로 직접 구동(보간 변위→walk/idle, OnMonsterDead→die 후 자체 디스폰).
+- **던전 재기획**: dungeon_01(초입 8마리)·dungeon_02(심층 11마리+보스 leviathan) 공간적 난이도 곡선. E2E 결정론은 전용 픽스처 `dungeon_e2e`(외딴 슬라임 1마리)로 분리.
+- **검증**: 서버 build0 · SocketServer 127 · GameServer 보상 3 · EditMode 167 · Docker SocketE2E 30/30 · 8종 애니 상태명 실존. 상세 = codemap §2.62.
+- **잔여(선택)**: Main `LocalMonster`(클라권위 슬라임)는 여전히 캡슐 — 던전 몬스터만 교체. Main 몬스터 비주얼은 별도(YAGNI, 필요 시 동일 카탈로그 재사용).
 
 ## 3. 부활 기상(GetUp) 클립 — 소
 
