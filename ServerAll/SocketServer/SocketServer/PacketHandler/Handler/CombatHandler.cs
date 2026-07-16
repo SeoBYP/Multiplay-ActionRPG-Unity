@@ -248,7 +248,12 @@ public static class CombatHandler
                     Hp = newHp,
                     Phase = (byte)monster.Phase,
                 });
-                monster.MarkStateSent(); // dirty-flag 동기화: 방금 보낸 HP 를 TickMonsters 가 중복 재송신하지 않도록.
+                // ※ 여기서 MarkStateSent() 를 호출하지 않는다(AC-C3-hotfix, D2 회귀 봉합).
+                //   호출하면 틱이 "이 HP 는 이미 보냈다"고 착각한다 → 틱이 **먼저 만들어 둔 옛 HP 패킷**이
+                //   이 패킷보다 늦게 도착했을 때(생성-전송 사이 경합) 클라가 옛 값으로 되돌아가는데,
+                //   다음 틱은 StateDirty()==false 라 **정정하지 않아 HP 가 영구 고착**된다.
+                //   마킹을 생략하면 다음 틱이 무조건 재전송해 **자가 교정**된다(피격당 1패킷 = 정합성의 대가).
+                //   근본 해법은 상태 시퀀스(combat-diagnostics.md §4 안A) — 그때까지의 안전망.
             }
         }
 

@@ -242,6 +242,22 @@
 - **잔존(B3 에서 해소됨)**: 클라 `SkillDefinition`/`SkillCatalogDefinition`/`SkillCatalogProvider` → §2.63 참조.
 - 검증: SocketServer.Tests **137/137**(−5 삭제 +1 신규) · ServerAll.sln 0오류 · **Docker E2E SocketE2ETests 31/31**(stale-image guard 경고 반영해 **gameserver·socketserver 둘 다** 리빌드 — Shared.Infrastructure 변경은 양 서버 이미지에 영향).
 
+### 2.67 AC-C3-hotfix — 데미지 경로의 송신마킹 제거(D2 회귀 봉합) (2026-07-17)
+
+- **증상(D2)**: 몬스터를 때리면 클라 HP 가 옛 값으로 되돌아가고 **그대로 고착**(다음 틱이 정정하지 않음).
+- **원인 — 내가 AC 증분7(dirty-flag)에서 만든 회귀**: `CombatHandler.ApplyAttackToMonsters` 가 즉시 브로드캐스트 후 `monster.MarkStateSent()` 를 호출했다.
+  틱은 패킷을 **만든 뒤 나중에 송신**하므로(`Room.TickMonsters` 생성 → `RoomTickService` 송신) 그 사이 데미지가 들어가면 **옛 HP 패킷이 새 HP 뒤에 도착**한다.
+  마킹까지 해두면 다음 틱이 `StateDirty()==false` → **정정 포기** → 영구 고착. 증분7 이전엔 매 틱 재전송이라 조용히 자가 교정되던 것이 dirty-flag 도입으로 드러났다.
+- **수정**: `MarkStateSent()` **한 줄 제거** + 이유 주석. 마킹은 **틱만** 한다 → HP 변화는 다음 틱이 무조건 재전송해 **자가 교정**.
+  비용 = **피격당 1패킷**. 증분7 의 목적(Idle 트래픽 0)은 유지 — 위치·회전·페이즈 dirty 판정은 무변경.
+- **한계(안전망일 뿐)**: 순서 역전 자체는 못 막는다. 한 틱 동안 옛 HP 가 보였다가 정정된다(짧은 HP 튐).
+  **근본해법 = AC-C3(`S_MonsterState.Seq` + 클라 스테일 드롭, 공개계약 변경이라 승인 대기)**. 설계 = `docs/wiki/combat-diagnostics.md` §4·§5.
+- **테스트 — 인과를 양방향으로 고정** (`SocketServer.Tests/Monster/MonsterTickDirtyStateTests.cs`):
+  - `HP가_바뀌면_이동이_없어도_다음틱이_재전송한다_자가교정` — 불변식(프로덕션 경로).
+  - `데미지_경로가_송신마킹하면_자가교정이_깨진다_회귀가드` — **구 동작 재현**으로 "마킹하면 정정 패킷이 사라진다"를 못 박음.
+  ⚠️ **교훈**: 첫 시도의 테스트는 `DamageMonster` 를 직접 불러서 **hotfix 유무와 무관하게 통과**했다(마킹은 CombatHandler 만 했으므로). 회귀 테스트는 **버그 동작을 실제로 재현**해야 가드가 된다 — 불변식만 쓰면 "통과하지만 못 잡는" 테스트가 된다.
+- **검증**: SocketServer.Tests **156/156** · ServerAll.sln 0오류 · Docker(socketserver 리빌드) **E2E SocketE2ETests 31/31**.
+
 ### 2.63 AC-B B3 — 클라 Cue 데이터화 + 저작 단일화 (2026-07-16)
 
 - **동기(발견)**: B1 이후 같은 스킬이 **두 SO 에 중복 저작**(`GameData/Skill/Skill_*` + `GameData/Ability/Ability_*`)돼, 서버는 abilities.json(B2)·클라는 SkillCatalogDefinition 을 읽는 **드리프트 위험**이 생겼다 → B3 에서 클라도 Ability 로 일원화하며 Skill 계열 전량 제거.
