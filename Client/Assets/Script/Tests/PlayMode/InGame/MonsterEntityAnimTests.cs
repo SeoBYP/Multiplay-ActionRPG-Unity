@@ -98,7 +98,7 @@ namespace Game.Tests.PlayMode.InGame
             for (int i = 0; i < 2; i++) yield return null; // 초기(Idle) 안정화
 
             // 서버가 먼 위치를 통지 → MonsterEntity 가 보간 이동 → Speed 상승 → 컨트롤러 Idle→Walk
-            state.UpdateMonster(instanceId, 50f, 0f, 0f, 0f, 30, phase: 2);
+            state.UpdateMonster(instanceId, 50f, 0f, 0f, 0f, 30, phase: 2, seq: 1); // seq: 스폰 baseline 0 보다 커야 반영(AC-C3)
 
             bool enteredWalk = false;
             for (int i = 0; i < 30 && !enteredWalk; i++)

@@ -238,7 +238,7 @@ namespace Game.Tests.EditMode.Socket
             await dispatcher.DispatchAsync(new S_SpawnMonster { InstanceId = 7, MonsterId = "creepy_demon", Hp = 30, MaxHp = 30 });
             await dispatcher.DispatchAsync(new S_MonsterState
             {
-                InstanceId = 7, PosX = 9f, PosY = 0f, PosZ = 5f, RotY = 45f, Hp = 18, Phase = 2
+                InstanceId = 7, PosX = 9f, PosY = 0f, PosZ = 5f, RotY = 45f, Hp = 18, Phase = 2, Seq = 1
             });
 
             Assert.IsTrue(state.TryGetMonster(7, out var m));
@@ -247,6 +247,61 @@ namespace Game.Tests.EditMode.Socket
             Assert.AreEqual(9f, m.PosX);
             Assert.AreEqual(18, m.Hp);
             Assert.AreEqual((byte)2, m.Phase);
+            Assert.AreEqual(1, m.Seq);
+        }
+
+        [Test]
+        public async Task 뒤늦게_도착한_옛_상태는_Seq로_버려진다_AC_C3()
+        {
+            // D2 재현: 서버 틱이 HP30 패킷을 **먼저 만들고**(Seq=1) 데미지가 HP18 패킷을 나중에 만든다(Seq=2).
+            // 송신은 데미지가 먼저 → 옛 HP30(Seq=1)이 **나중에 도착**. 버리지 않으면 HP 가 되돌아간다.
+            var dispatcher = _container.Resolve<ISocketPacketDispatcher>();
+            var state = _container.Resolve<ISocketPacketState>();
+
+            await dispatcher.DispatchAsync(new S_SpawnMonster { InstanceId = 7, MonsterId = "creepy_demon", Hp = 30, MaxHp = 30 });
+            await dispatcher.DispatchAsync(new S_MonsterState { InstanceId = 7, Hp = 18, Phase = 3, Seq = 2 }); // 데미지(신)
+            await dispatcher.DispatchAsync(new S_MonsterState { InstanceId = 7, Hp = 30, Phase = 2, Seq = 1 }); // 틱(스테일) — 뒤늦게 도착
+
+            Assert.IsTrue(state.TryGetMonster(7, out var m));
+            Assert.AreEqual(18, m.Hp);            // HP 가 30 으로 되돌아가면 D2 재발
+            Assert.AreEqual((byte)3, m.Phase);    // 페이즈도 함께 스테일이면 안 된다
+            Assert.AreEqual(2, m.Seq);
+        }
+
+        [Test]
+        public async Task 같은_Seq_재전송도_버린다_AC_C3()
+        {
+            // 중복 전달(재전송·큐 재시도)로 같은 Seq 가 또 오면 무시한다 — `<=` 판정의 근거.
+            var dispatcher = _container.Resolve<ISocketPacketDispatcher>();
+            var state = _container.Resolve<ISocketPacketState>();
+
+            await dispatcher.DispatchAsync(new S_SpawnMonster { InstanceId = 7, MonsterId = "creepy_demon", Hp = 30, MaxHp = 30 });
+            await dispatcher.DispatchAsync(new S_MonsterState { InstanceId = 7, Hp = 18, Seq = 5 });
+
+            int moved = 0;
+            state.OnMonsterMoved += _ => moved++;
+            await dispatcher.DispatchAsync(new S_MonsterState { InstanceId = 7, Hp = 99, Seq = 5 }); // 같은 버전 = 무시
+
+            Assert.IsTrue(state.TryGetMonster(7, out var m));
+            Assert.AreEqual(18, m.Hp);
+            Assert.AreEqual(0, moved); // 버렸으면 보간 이벤트도 발행되지 않아야 한다
+        }
+
+        [Test]
+        public async Task 새_Seq는_정상_반영된다_AC_C3()
+        {
+            // 스테일 드롭이 **정상 갱신까지 막지 않는지** 확인(과잉 드롭 = 몬스터 정지 버그).
+            var dispatcher = _container.Resolve<ISocketPacketDispatcher>();
+            var state = _container.Resolve<ISocketPacketState>();
+
+            await dispatcher.DispatchAsync(new S_SpawnMonster { InstanceId = 7, MonsterId = "creepy_demon", Hp = 30, MaxHp = 30 });
+            await dispatcher.DispatchAsync(new S_MonsterState { InstanceId = 7, Hp = 25, Seq = 1 });
+            await dispatcher.DispatchAsync(new S_MonsterState { InstanceId = 7, Hp = 20, Seq = 2 });
+            await dispatcher.DispatchAsync(new S_MonsterState { InstanceId = 7, Hp = 15, Seq = 3 });
+
+            Assert.IsTrue(state.TryGetMonster(7, out var m));
+            Assert.AreEqual(15, m.Hp);
+            Assert.AreEqual(3, m.Seq);
         }
 
         [Test]

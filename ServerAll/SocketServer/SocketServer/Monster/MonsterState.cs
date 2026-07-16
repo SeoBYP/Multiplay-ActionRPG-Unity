@@ -71,4 +71,17 @@ public sealed class MonsterState
         _sentPosX = PosX; _sentPosY = PosY; _sentPosZ = PosZ; _sentRotY = RotY;
         _sentHp = Hp; _sentPhase = Phase; _stateSent = true;
     }
+
+    // ── 상태 시퀀스(AC-C3): 클라가 순서 역전을 무효화하기 위한 몬스터별 단조 증가 버전. ──
+    private int _seq;
+
+    /// <summary>
+    /// 다음 상태 버전을 발급한다. <b>S_MonsterState 를 만드는 그 자리에서</b> 호출한다(송신 시점 아님 —
+    /// 생성 순서가 곧 상태 순서이고, 막으려는 것이 생성≠송신 순서이기 때문. 상세는 S_MonsterState.Seq 주석).
+    /// <para>
+    /// 두 생산자(틱=<c>lock(_monsters)</c> 안 / 데미지=락 밖)가 서로 다른 컨텍스트에서 부르므로
+    /// <c>Interlocked</c> 로 발급한다. 첫 발급은 1 → 클라 baseline 0 과 함께 "첫 상태는 항상 통과"가 성립.
+    /// </para>
+    /// </summary>
+    public int NextSeq() => Interlocked.Increment(ref _seq);
 }

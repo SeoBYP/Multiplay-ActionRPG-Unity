@@ -592,6 +592,9 @@ public class Room
                         RotY = m.RotY,
                         Hp = m.Hp,
                         Phase = (byte)m.Phase,
+                        // AC-C3: 여기서 만든 이 패킷은 **RoomTickService 가 나중에** 보낸다. 그 사이 데미지가 끼면
+                        // 이 옛 HP 가 새 HP 뒤에 도착한다 → 클라가 Seq 로 버린다. 생성 시점 스탬프가 핵심.
+                        Seq = m.NextSeq(),
                     });
                     m.MarkStateSent();
                 }

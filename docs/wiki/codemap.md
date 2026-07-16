@@ -258,6 +258,21 @@
   ⚠️ **교훈**: 첫 시도의 테스트는 `DamageMonster` 를 직접 불러서 **hotfix 유무와 무관하게 통과**했다(마킹은 CombatHandler 만 했으므로). 회귀 테스트는 **버그 동작을 실제로 재현**해야 가드가 된다 — 불변식만 쓰면 "통과하지만 못 잡는" 테스트가 된다.
 - **검증**: SocketServer.Tests **156/156** · ServerAll.sln 0오류 · Docker(socketserver 리빌드) **E2E SocketE2ETests 31/31**.
 
+### 2.68 AC-C3 — S_MonsterState.Seq + 클라 스테일 드롭 (D2 근본 해결) (2026-07-17)
+
+- **공개계약 변경(승인받음)**: `S_MonsterState` 에 `int Seq` 추가(Union 1811 유지, 필드 추가만). 클라 미러는 **ClientCodegen 재생성**(`dotnet run --project ServerAll/Tools/ClientCodegen -- <repoRoot>`) — 손편집 금지.
+- **핵심 계약 — Seq 는 스냅샷(생성) 시점에 찍는다**(`MonsterState.NextSeq()`). 송신 시점에 찍으면 Seq 가 도착 순서와 같아져 **아무것도 못 거른다**(막으려는 게 바로 생성≠송신 순서).
+- **생산자 2곳**: `Room.TickMonsters`(lock 안) · `CombatHandler.ApplyAttackToMonsters`(**lock 밖**) → 서로 다른 컨텍스트라 `Interlocked.Increment` 로 발급. 첫 발급 1 + 클라 baseline 0 = "첫 상태 항상 통과".
+- **소비자 1곳**: `SocketPacketState.UpdateMonster` 에서 `seq <= existing.Seq` → **드롭**(보간 이벤트도 억제). 상태 저장소 = 단일 초크포인트, 핸들러는 전달만.
+  `SocketMonsterSnapshot.Seq` 추가(+`WithState(..., seq)`). 생성자 `seq` 는 **기본값 0** — 스폰 baseline.
+- **범위 결정**: `S_SpawnMonster` 엔 Seq 를 **넣지 않았다**. baseline 0 이라 첫 상태가 통과하고, 신규 입장자 로스터 경합은 다음 틱에 자가 교정되는 일시적 건이라 계약을 넓힐 이유가 없다(YAGNI).
+- **C3-hotfix 는 유지**: Seq 도입 후에도 `CombatHandler` 의 `MarkStateSent()` 생략을 되돌리지 않았다 → **Seq(순서 무효화) + 무조건 재전송(자가 교정)** 이중 안전망. 비용은 피격당 1패킷.
+- **⚠️ 함정 — 손으로 만든 `S_MonsterState` 는 Seq=0 이라 드롭된다**: 기존 `SocketApiClientTest.MonsterState_Dispatch시...` 가 이 때문에 깨져 `Seq = 1` 을 넣어 고쳤다. 테스트에서 패킷을 직접 만들 땐 **Seq 필수**(서버는 항상 ≥1 을 찍음).
+- **테스트가 진짜 잡는지 실측 검증함**(§2.67 교훈 적용): 가드(`if (seq <= existing.Seq) return;`)를 임시 제거 → `뒤늦게_도착한_옛_상태는_Seq로_버려진다_AC_C3` 가 **`Expected: 18, But was: 30`** 으로 실패(= D2 증상 그 자체) → 복원 후 그린. **추론이 아니라 실패를 확인**했다.
+- **위치**: 계약 `Shared.Packet/Packets/Domains/MonsterPackets.cs` · 발급 `SocketServer/Monster/MonsterState.cs`(`NextSeq`) · 생산 `Room/Room.cs`·`PacketHandler/Handler/CombatHandler.cs` · 소비 `Client/.../Network/Socket/SocketApiClient.cs`(`UpdateMonster`)·`Handler/Contents/MonsterPacketHandler.cs`.
+- **테스트**: 서버 `Monster/MonsterStateSeqTests.cs` 4종(첫 발급 1 · 단조 증가 · 몬스터별 독립 · 데미지 스냅샷 Seq > 틱 스냅샷 Seq) + 직렬화 라운드트립에 Seq 추가 → **160/160**. 클라 `SocketApiClientTest` 3종(스테일 드롭 · 동일 Seq 드롭 · 정상 반영) → EditMode **174/174**. E2E **31/31**.
+- **남은 한계**: 순서 역전은 무효화하지만 **재전송을 앞당기진 않는다** → 체감 지연 자체는 C1c 측정 후 판단(C2b).
+
 ### 2.63 AC-B B3 — 클라 Cue 데이터화 + 저작 단일화 (2026-07-16)
 
 - **동기(발견)**: B1 이후 같은 스킬이 **두 SO 에 중복 저작**(`GameData/Skill/Skill_*` + `GameData/Ability/Ability_*`)돼, 서버는 abilities.json(B2)·클라는 SkillCatalogDefinition 을 읽는 **드리프트 위험**이 생겼다 → B3 에서 클라도 Ability 로 일원화하며 Skill 계열 전량 제거.
