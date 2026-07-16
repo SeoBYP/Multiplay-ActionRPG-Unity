@@ -273,6 +273,28 @@
 - **테스트**: 서버 `Monster/MonsterStateSeqTests.cs` 4종(첫 발급 1 · 단조 증가 · 몬스터별 독립 · 데미지 스냅샷 Seq > 틱 스냅샷 Seq) + 직렬화 라운드트립에 Seq 추가 → **160/160**. 클라 `SocketApiClientTest` 3종(스테일 드롭 · 동일 Seq 드롭 · 정상 반영) → EditMode **174/174**. E2E **31/31**.
 - **남은 한계**: 순서 역전은 무효화하지만 **재전송을 앞당기진 않는다** → 체감 지연 자체는 C1c 측정 후 판단(C2b).
 
+### 2.69 검증 인프라 결함 2건 수정 — stale-image guard 오탐 · 클라 검증 명령 사망 (2026-07-17)
+
+**① stale-image guard 오탐(영구) — `.claude/hooks/check-stale-server-image.ps1`**
+- **증상**: AC-C3 에서 `Shared.Packet` 을 고치자 E2E 마다 "infra-gameserver 이미지가 소스보다 오래됨" 경고. 리빌드해도 **영원히 안 사라짐**.
+- **원인 2겹**:
+  1. 매핑이 거칠었다 — `Dirs = @('GameServer','Shared')`. 그런데 `Shared.Packet` 은 **SocketServer 전용**(GameServer.API 는 참조 안 함).
+  2. Dockerfile 이 `COPY Shared/ Shared/` 라 레이어 캐시는 깨져 **리빌드는 실제로 돈다**. 하지만 산출물이 **바이트 동일** → 도커가 기존 이미지 ID 재사용 → **`.Created` 가 안 올라감** → 경고 영구 지속 → alarm fatigue → **진짜 stale 을 놓치게 됨**(guard 존재 이유가 무력화).
+- **수정**: 이미지→소스 매핑을 **진입 csproj 의 ProjectReference 폐포**에서 유도(`Get-ProjectDirs`). 하드코딩 목록은 참조가 늘면 **false negative**(위험한 방향)로 썩는다 — csproj 그래프는 컴파일러와 같은 진실원이라 드리프트 불가.
+  진입점: gameserver=`GameServer/GameServer.API/GameServer.API.csproj`, socketserver=`SocketServer/SocketServer/SocketServer.csproj`.
+- **추가 수정(false negative)**: 파일 필터에 `*.json` 포함. `Shared.Infrastructure/Abilities/abilities.json` 같은 **임베드 카탈로그는 동작을 바꾸는데** 기존 필터(`*.cs,*.csproj,*.proto`)가 못 봐서, json 만 고치고 리빌드 안 하면 **경고 없이 옛 서버를 검증**했다.
+- **실측 검증(양방향)**: ① `Shared.Packet` touch → **socketserver 만** 경고(gameserver 안 걸림) ② `GameServer.API/Program.cs` touch → **gameserver 경고**(진짜 stale 탐지 유지) ③ mtime 복원 → 무경고. EditMode 입력은 무시.
+- **남은 한계(주석에 명시)**: 주석/공백만 바꿔 산출물이 동일하면 `.Created` 가 안 올라가 경고가 남는다. 근본해결은 빌드시 소스 해시를 이미지 LABEL 로 박는 것 — 빌드캐시 비용 대비 가치 없어 보류.
+
+**② 클라 검증 명령이 죽어 있었다 — `CLAUDE.md` §검증 명령**
+- **증상**: `dotnet build Client\Game.Main.csproj` 가 CS2001 14건으로 실패.
+- **원인**: `Client/*.csproj` 는 **Unity 생성물**(gitignore)인데, Unity 는 **asmdef 있는 것만 재생성하고 고아는 지우지 않는다.**
+  `Game.Main`/`Game.Input`/`Game.OutGame`/`Game.InGame`/`Game.System.DungeonLobby` 는 **asmdef 가 없는 2026-05-30 화석**(asmdef 재편 이전 레이아웃) → 옮겨진 `Assets/Script/Input/*` 을 참조. 살아있는 csproj 는 07-16 까지 갱신됨(대조).
+  → **CLAUDE.md 의 클라 검증은 asmdef 재편 이후 계속 깨진 채였다.**
+- **더 나쁜 사실**: 화석을 치워도 `dotnet` 은 답이 아니다. `Game.Gameplay`/`Game.GUI` 는 Unity 패키지(RenderPipelines.Core) 소스를 `dotnet` 컴파일러 설정으로 빌드해 **Unity 코드에서** CS8168/CS8347 이 나고, `Client.sln` 은 **MSB5004**(Unity.Timeline 중복)로 열리지도 않는다.
+- **수정**: CLAUDE.md 를 **"클라는 Unity 가 유일한 권위"** 로 교정(`refresh_unity` → `read_console(errors)` → `run_tests(EditMode)`). `dotnet build Client\*.csproj` 는 **금지**로 명시하고 위 3가지 이유를 함께 적어 재도입을 막았다.
+- **미해결(승인 대기)**: 화석 csproj 5개는 **삭제하지 않았다**(생성물이지만 Unity 가 재생성하지 않으므로 삭제가 곧 정리). `Client.sln` 은 이미 화석을 참조하지 않아 급하지 않음.
+
 ### 2.63 AC-B B3 — 클라 Cue 데이터화 + 저작 단일화 (2026-07-16)
 
 - **동기(발견)**: B1 이후 같은 스킬이 **두 SO 에 중복 저작**(`GameData/Skill/Skill_*` + `GameData/Ability/Ability_*`)돼, 서버는 abilities.json(B2)·클라는 SkillCatalogDefinition 을 읽는 **드리프트 위험**이 생겼다 → B3 에서 클라도 Ability 로 일원화하며 Skill 계열 전량 제거.
