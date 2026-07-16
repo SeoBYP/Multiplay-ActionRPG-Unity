@@ -114,9 +114,13 @@ gate                         Ok | OnCooldown | NoMana | Blocked | OutOfRange  �
 
 - **상관키**: `ActorId`(발동자) + `InstanceId`(대상 몬스터) + **`seq`**(§4의 상태 시퀀스). 클라·서버 로그를 이 키로 조인.
 - **서버**: `ILogger` 구조적 로그(`[CombatTrace]`) — 기존 Graylog 스택(docker-compose 에 이미 있음)으로 흘려보낸다. 새 인프라 X.
+  > ⚠️ **정정(C1a 구현 중 발견)**: 아래 "서버: `appsettings` 의 `Logging:CombatTrace`" 는 **이 서버에선 틀린 설명이었다.**
+  > SocketServer 는 `UseSerilog` + `ReadFrom.Configuration` 이라 **`Serilog:` 섹션만 읽고 `Logging:LogLevel` 은 무시한다.**
+  > 실제 스위치: `Serilog:MinimumLevel:Override:CombatTrace`(기본 `Information` = 트레이스는 `Debug` 라 Off) /
+  > 켜기 = `Serilog__MinimumLevel__Override__CombatTrace=Debug`.
 - **클라**: `CombatTraceRecorder`(순수 C#) — **링버퍼(최근 N=512건)**. 이게 **단일 소스**이고, 에디터 창·콘솔 덤프는 그 위의 뷰.
 - **스위치(필수 — 상시 로그 금지)**:
-  - 서버: `appsettings` 의 `Logging:CombatTrace` 레벨(기본 Off).
+  - 서버: **`Serilog:MinimumLevel:Override:CombatTrace`**(기본 `Information` → 트레이스는 `Debug` 라 Off). ~~`Logging:CombatTrace`~~ 는 이 서버에서 죽은 설정 — 위 정정 참조.
   - 클라: `CombatTraceRecorder.Enabled`(기본 Off) — 에디터 창에서 토글.
 - **오버헤드**: Off 면 호출 자체가 없어야 한다(`if (!Recorder.Enabled) return;` 선행 — **문자열 보간 금지**, 구조체 필드만 기록. 링버퍼는 사전할당·무할당 쓰기).
 
@@ -269,7 +273,7 @@ flowchart LR
 
 | # | 증분 | 검증 |
 |---|------|------|
-| **C1a** | 서버 `[CombatTrace]` 구조적 로그(스위치 Off 기본) — **타임라인**(수신/판정/송신 시각) + **판정**(§2.2 필드: path·formula·base/AP/DEF·final·gate) | 단위(Off 시 무호출) + Docker 로그 육안 |
+| **C1a** ✅ | 서버 `[CombatTrace]` 구조적 로그(스위치 Off 기본) — **타임라인**(recv/judge/serverMs) + **판정**(path·formula·base/AP/DEF·final·hp·seq·gate) | ✅ 단위 4종(Off 시 무호출 **실측**: 가드 제거 시 실패 확인) · SocketServer.Tests 164/164 · **Docker 육안 64건** · 오버라이드 제거 시 0건(기본 Off 실증) · E2E 31/31 |
 | **C1b** | 클라 `CombatTraceRecorder`(링버퍼·순수 C#) — 송신/수신/HP반영 시각 + 서버 판정 필드 수신·병합 | EditMode(링버퍼 링·Off 무오버헤드·구간 계산·판정 병합) |
 | **C1b'** | **`CombatTraceWindow`(에디터 창, §2.4)** — Record·요약 2탭(타임라인/판정)·이벤트 목록(dmg·gate)·상세(**공식 대입식**+타임라인)·Path 필터·CSV | 창은 뷰라 로직 테스트 불요 → Recorder 테스트로 대체 + 플레이 육안 |
 | **C1c** | **측정 세션** — 던전 플레이하며 창으로 수집 → ① 체감 지연의 실제 구간 ② 데미지 공식 검증 ③ gate 거부 분포 | 요약표 캡처 |

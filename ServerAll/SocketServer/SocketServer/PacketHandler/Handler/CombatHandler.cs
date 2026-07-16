@@ -1,6 +1,7 @@
 using System.Numerics;
 using Script.System.GamePlayAbilitySystem;
 using Server.Combat;
+using Server.Diagnostics;
 using Server.Monster;
 using Server.Player;
 using Shared.Infrastructure.Abilities;
@@ -86,9 +87,15 @@ public static class CombatHandler
         if (room is null)
             return;
 
+        long recvMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        long actorId = ActorIds.FromPlayer(session.UserId);
+
         var ability = ResolveAbility(packet.SkillId);
         if (ability is null)
+        {
+            CombatTrace.Gate(CombatGate.UnknownAbility, actorId, packet.SkillId, abilityId: "?", recvMs);
             return;
+        }
         var skill = ability.Timeline;
 
         var states = room.GetAllPlayerStates();
@@ -102,6 +109,7 @@ public static class CombatHandler
         //     쿨다운보다 먼저 본다 — 마나 부족으로 거부될 발동이 쿨다운 슬롯을 소모하지 않게.
         if (attacker.Mana < skill.ManaCost)
         {
+            CombatTrace.Gate(CombatGate.NoMana, actorId, ability.NetworkId, ability.Id, recvMs);
             await SendManaAsync(session, attacker, ct);
             return;
         }
@@ -113,12 +121,18 @@ public static class CombatHandler
         //       타이밍 진실원 = skills.json(SO 저작) — 클라 ComboDriver 가 쓰는 값과 동일하므로 서버·클라가 어긋나지 않는다.
         if (IsComboSkill(packet.SkillId)
             && !attacker.TryBeginComboAttack(startTick, skill.ComboChainMs, ComboMinIntervalMs, ComboCadenceToleranceMs))
+        {
+            CombatTrace.Gate(CombatGate.ComboCadence, actorId, ability.NetworkId, ability.Id, startTick);
             return;
+        }
 
         // 0b-2) 서버 발동 게이트(권위 쿨다운). 쿨다운 중이면 발동 거부 → 데미지 0.
         //     클라가 C_Attack 을 연사해도 서버가 cadence 를 강제해 폭딜 치팅을 막는다.
         if (!attacker.TryBeginSkill(packet.SkillId, skill.CooldownMs, startTick))
+        {
+            CombatTrace.Gate(CombatGate.OnCooldown, actorId, ability.NetworkId, ability.Id, startTick);
             return;
+        }
 
         // 0c) 마나 차감(권위) + owner 정정. 무료 스킬(basic_swing, cost 0)은 차감/정정 패킷 모두 생략.
         if (skill.ManaCost > 0)
@@ -143,6 +157,16 @@ public static class CombatHandler
         var hits = SelectHitTargets(skill, attacker, states, TargetRadius);
         foreach (var targetId in hits)
         {
+            // 트레이스(AC-C1a): 이 경로만 **산식을 경유하지 않는다**(flat). AP/DEF 가 0 으로 찍히는 게 아니라
+            // 애초에 입력이 아니라는 뜻 → FormulaFlat 표기 자체가 AC-D2 비대칭의 증거다.
+            CombatTrace.Damage(
+                CombatPath.PlayerToPlayer, CombatTrace.FormulaFlat,
+                actorId, ActorIds.FromPlayer(targetId),
+                ability.Id, ability.NetworkId,
+                baseDamage: ability.BaseDamage, attackPower: 0, defense: 0, finalDamage: ability.BaseDamage,
+                targetHpBefore: 0, targetHpAfter: 0, // 플레이어 HP 권위는 클라(결정론 lite) — 서버가 모른다
+                recvMs, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), seq: 0);
+
             room.Broadcast(new S_ApplyEffect
             {
                 InstanceId = room.NextEffectInstanceId(),
@@ -172,7 +196,7 @@ public static class CombatHandler
         }
 
         // 2) 몬스터 피격 → 서버 권위 HP 차감(GAS) → S_MonsterState / S_MonsterDead — 신규(⑤)
-        ApplyAttackToMonsters(session, room, ability, attacker);
+        ApplyAttackToMonsters(session, room, ability, attacker, recvMs);
     }
 
     /// <summary>
@@ -210,11 +234,12 @@ public static class CombatHandler
     /// 시전자 hitbox 와 겹치는 몬스터에 on-hit 효과를 GAS Health 모디파이어로 적용(서버 권위).
     /// 사망 시 S_MonsterDead, 생존 시 갱신된 HP 를 S_MonsterState 로 즉시 브로드캐스트.
     /// </summary>
-    private static void ApplyAttackToMonsters(Session session, global::Server.Room.Room room, AbilityDef ability, PlayerState attacker)
+    private static void ApplyAttackToMonsters(Session session, global::Server.Room.Room room, AbilityDef ability, PlayerState attacker, long recvMs)
     {
         // 스탯 기반 데미지(2.4 + AC-B 안B): **어빌리티 baseDamage** 를 base 로 attacker.AttackPower 로 스케일.
         // 몬스터 defense=0(몬스터 방어 스탯은 미도입).
-        var mods = BuildDamageMods(ability, attacker.AttackPower, defense: 0);
+        const int MonsterDefense = 0;
+        var mods = BuildDamageMods(ability, attacker.AttackPower, MonsterDefense);
 
         var attackerPos = new Vector3(attacker.PosX, attacker.PosY, attacker.PosZ);
         bool anyKilled = false;
@@ -228,10 +253,12 @@ public static class CombatHandler
             if (!HitboxMath.Overlaps(attackerPos, attacker.RotY, ability.Timeline.Hitbox, targetPos, TargetRadius))
                 continue;
 
+            int hpBefore = monster.Hp; // 차감 전 스냅샷 — 트레이스의 hp before→after 근거
             var (hit, newHp, dead) = room.DamageMonster(monster.InstanceId, mods);
             if (!hit)
                 continue;
 
+            int stateSeq = 0; // 사망이면 S_MonsterState 가 없어 상관키도 없다(0).
             if (dead)
             {
                 anyKilled = true;
@@ -240,6 +267,7 @@ public static class CombatHandler
             }
             else
             {
+                stateSeq = monster.NextSeq();
                 room.Broadcast(new S_MonsterState
                 {
                     InstanceId = monster.InstanceId,
@@ -249,7 +277,7 @@ public static class CombatHandler
                     Phase = (byte)monster.Phase,
                     // AC-C3: 틱이 **먼저 만들어 둔 옛 HP 패킷**보다 이 패킷이 새 상태임을 클라에 알린다.
                     // 도착 순서가 뒤집혀도 클라가 Seq 로 스테일을 버린다(근본 해법).
-                    Seq = monster.NextSeq(),
+                    Seq = stateSeq,
                 });
                 // ※ 여기서 MarkStateSent() 를 호출하지 않는다(AC-C3-hotfix).
                 //   AC-C3(Seq) 로 클라가 스테일을 버리게 된 뒤에도 이 생략은 그대로 둔다:
@@ -257,6 +285,17 @@ public static class CombatHandler
                 //   되돌릴 방법이 없다. 마킹을 생략하면 다음 틱이 무조건 재전송해 **자가 교정**된다
                 //   = Seq(순서 무효화) + 재전송(자가 교정)의 이중 안전망. 비용은 피격당 1패킷뿐.
             }
+
+            // 트레이스는 브로드캐스트 **뒤**에 남긴다 — 이 HP 를 실어 나른 패킷의 Seq 를 상관키로 싣기 위해.
+            // (직전 Seq 를 찍으면 클라 로그와 조인이 어긋난다.)
+            CombatTrace.Damage(
+                CombatPath.PlayerToMonster, CombatTrace.FormulaMelee,
+                ActorIds.FromPlayer(attacker.UserId), ActorIds.FromMonster(monster.InstanceId),
+                ability.Id, ability.NetworkId,
+                ability.BaseDamage, attacker.AttackPower, MonsterDefense,
+                finalDamage: hpBefore - newHp,
+                hpBefore, newHp,
+                recvMs, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), stateSeq);
         }
 
         // 클리어 감지: 이번 스윙으로 몬스터가 죽었고, 그 결과 전멸이면 1회만 발화.

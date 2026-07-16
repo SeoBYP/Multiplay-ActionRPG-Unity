@@ -92,6 +92,12 @@ namespace Server
                 })
                 .Build();
 
+            // 전투 트레이스 배선(AC-C1a). 패킷 핸들러가 static 이라 DI 가 닿지 않아 기동 시 1회 주입한다.
+            // 기본 Off — appsettings 의 Logging:LogLevel:CombatTrace 를 Debug 로 올려야 기록된다.
+            Server.Diagnostics.CombatTrace.Configure(
+                host.Services.GetRequiredService<ILoggerFactory>()
+                    .CreateLogger(Server.Diagnostics.CombatTrace.Category));
+
             await host.RunAsync();
         }
     }

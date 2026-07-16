@@ -299,6 +299,22 @@
   삭제 후: Unity 재컴파일해도 **되살아나지 않음**(= 진짜 고아 증명) · 컴파일 0오류 · EditMode 174/174 · csproj 는 gitignore 라 git 무영향.
   대상: `Game.Main` `Game.Input` `Game.OutGame` `Game.InGame` `Game.System.DungeonLobby` `Game.System.Editor` `Game`.
 
+### 2.70 AC-C1a — 서버 전투 트레이스 `[CombatTrace]` (2026-07-17)
+
+- **무엇**: "어떤 공격이 **어떤 공식·입력으로** 이 숫자를 냈나" + "왜 발동이 거부됐나"를 구조적 로그로 남긴다. 기본 Off.
+- **위치**: `SocketServer/Diagnostics/CombatTrace.cs`(+`CombatPath`/`CombatGate` enum). 배선 = `Program.cs`(host.Build() 직후 `Configure`).
+- **왜 static 인가**: 패킷 핸들러(`CombatHandler`)가 static 이라 DI 가 닿지 않는다. `Configure(ILogger)` 로 주입 가능하게 둬 테스트가 fake 로거를 꽂는다.
+- **호출 지점**: 데미지 3경로(`CombatHandler.ApplyAttackToMonsters`=P→M / `HandleAttack` 플레이어 피격=P→P / `Room.TickMonsters`=M→P) + gate 4종(UnknownAbility·NoMana·ComboCadence·OnCooldown).
+- **`formula` 는 호출부가 전달**: P→P 만 `flat(base)` — **산식 미경유**가 표기로 드러난다(AC-D2 비대칭의 증거). 나머지는 `max(1, base+AP-DEF)`.
+  ⚠ 문자열은 `CombatTrace.FormulaMelee` 상수 — 진실원 `StatCombatMath.MeleeDamage` 가 바뀌면 **같이 바꿔야 한다**(리뷰 대상). 트레이스가 거짓말하면 진단이 아니라 오도다.
+- **P→M 트레이스는 브로드캐스트 뒤에**: 이 HP 를 실어 나른 `S_MonsterState.Seq` 를 상관키로 실어야 클라 로그와 조인된다(직전 Seq 를 찍으면 어긋남). 사망 시엔 상태 패킷이 없어 seq=0.
+- **플레이어 HP before/after 는 0**: 플레이어 HP 권위는 클라(결정론 lite)라 서버가 모른다. 몬스터만 실제 before→after 를 싣는다.
+- **⚠️ 스위치는 Serilog 다 — 설계 문서가 틀렸다(구현 중 발견)**: 이 호스트는 `UseSerilog` + `ReadFrom.Configuration` 이라 **`Serilog:` 섹션만 읽고 `Logging:LogLevel` 은 무시**한다.
+  → 처음에 `Logging:LogLevel:CombatTrace` 로 넣었더니 **단위 테스트는 통과했는데 Docker 로그가 0건**이었다(육안 검증이 아니었으면 못 잡았다).
+  실제: `Serilog:MinimumLevel:Override:CombatTrace`(appsettings 기본 `Information` = Debug 트레이스 Off) / 켜기 `Serilog__MinimumLevel__Override__CombatTrace=Debug`.
+  **부수 발견(미수정)**: appsettings 의 `Logging:LogLevel` 블록 전체가 **죽은 설정**(Serilog 가 무시) — `Microsoft: Warning` 도 실효 없음.
+- **검증**: 단위 4종(`SocketServer.Tests/Diagnostics/CombatTraceTests.cs`) — **Off 무호출을 실측**(가드 제거 시 해당 테스트만 실패 확인 후 복원). SocketServer.Tests **164/164** · 솔루션 0오류 · **Docker 육안 64건**(`path=MonsterToPlayer formula=max(1, base+AP-DEF) actor=-7 ability=arachnya_attack(101) base=14 ap=0 def=5 final=9`) · 오버라이드 제거 시 **0건**(기본 Off 실증) · E2E **31/31**.
+
 ### 2.63 AC-B B3 — 클라 Cue 데이터화 + 저작 단일화 (2026-07-16)
 
 - **동기(발견)**: B1 이후 같은 스킬이 **두 SO 에 중복 저작**(`GameData/Skill/Skill_*` + `GameData/Ability/Ability_*`)돼, 서버는 abilities.json(B2)·클라는 SkillCatalogDefinition 을 읽는 **드리프트 위험**이 생겼다 → B3 에서 클라도 Ability 로 일원화하며 Skill 계열 전량 제거.

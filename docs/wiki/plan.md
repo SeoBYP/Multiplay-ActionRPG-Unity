@@ -373,10 +373,11 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 > - **D1 송신 직렬화 없음** — `Room.Broadcast` 가 fire-and-forget, `Session.SendPacketAsync` 는 큐·락 없이 부분전송 루프 → 틱 스레드와 패킷 스레드가 **동일 소켓 동시 write** → 순서 역전 + **프레임 인터리브(파싱 desync)** 위험.
 > - **D2 dirty-flag 스테일 고착** — 틱이 만든 옛 HP 패킷이 데미지 패킷보다 늦게 도착하면 되돌아가고, 다음 틱은 `StateDirty()==false` 라 정정 안 함 → **HP 가 틀린 값에 영구 고착**. 증분7 이전엔 매 틱 재전송이 자가 교정했다 → **AC 증분7이 만든 회귀**.
 - [x] **AC-C3-hotfix** (최우선·승인 불요) — **D2 봉합 완료.** 데미지 경로(`CombatHandler.ApplyAttackToMonsters`)의 `MarkStateSent()` 제거 → HP 변화는 다음 틱이 무조건 재전송해 **자가 교정**(피격당 1패킷 = 정합성의 대가). 회귀가드 2종 추가. 근본해법은 AC-C3(Seq).
-- [ ] **AC-C1 전투 계측 — 2축(타임라인 + 판정/공식)**. 상관키=ActorId/InstanceId(+Seq). **스위치 Off 기본**(상시 로그 금지, Off면 호출 자체 없음).
+- [~] **AC-C1 전투 계측 — 2축(타임라인 + 판정/공식)**. 상관키=ActorId/InstanceId(+Seq). **스위치 Off 기본**(상시 로그 금지, Off면 호출 자체 없음).
+  - [x] **C1a 서버 `[CombatTrace]` 구조적 로그** — 판정(path·formula·base/AP/DEF·final·hp·seq) + gate 4종 + 타임라인(recv/judge/serverMs). 기본 Off. ⚠ 스위치는 **Serilog**(`Serilog__MinimumLevel__Override__CombatTrace=Debug`) — `Logging:LogLevel` 은 이 서버에서 죽은 설정이었다. 검증: 단위 4종(Off 무호출 실측) · 164/164 · **Docker 육안 64건** · 기본 Off 0건 · E2E 31/31.
   - **축A 타임라인**: 송신→서버수신→판정→서버송신→클라수신→HP반영 **구간 delta** (체감 "느림"의 원인 구간)
   - **축B 판정/공식**: `abilityId·path·formula·base/AP/DEF·finalDamage·HP전후·onHit·gate(거부사유)` — **"이 데미지가 왜 이 숫자인가"**. 산식 진실원=`StatCombatMath.MeleeDamage = max(1, base+AP−DEF)`. ※경로 3개가 입력이 달라(플→몹: AP O/DEF 0 · 몹→플: AP 0/DEF O · **플→플: 산식 미경유 flat**) → 트레이스가 **AC-D2 비대칭을 데이터로 노출**한다.
-  - [ ] **C1a 서버** `[CombatTrace]` 구조적 로그(타임라인+판정) → 기존 Graylog(신규 인프라 0)
+  - [x] **C1a 서버** `[CombatTrace]` 구조적 로그(타임라인+판정) → 기존 Graylog(신규 인프라 0)
   - [ ] **C1b 클라 `CombatTraceRecorder`** — 링버퍼(512, 순수 C#·무할당) + 서버 판정 필드 병합. **단일 소스** — 창은 그 위의 뷰. EditMode 테스트 대상.
   - [ ] **C1b' `CombatTraceWindow`(에디터 창)** — `Tools/Combat/Combat Trace`, UI Toolkit(`MapEditorWindow`·`DialogueGraphWindow` 관례). **Record 토글 · 요약 2탭(타임라인 avg/p95/max · 판정: 어빌리티별 발동수·평균뎀·gate 거부분포) · 이벤트 목록(dmg·gate — 거부도 한 줄로) · 상세(공식을 실제 값 대입식 `max(1, 10+17-0)=27` 로 출력 + 입력 출처 병기 + 타임라인 + 스테일 드롭) · Path 필터 · CSV**. 창=뷰, 로직 0.
   - [ ] **C1c 측정 세션** — 던전 플레이하며 수집 → ① 체감 지연의 실제 구간 ② 데미지 공식 검증 ③ gate 거부 분포

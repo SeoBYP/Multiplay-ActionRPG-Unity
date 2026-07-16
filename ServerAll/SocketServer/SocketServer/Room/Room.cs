@@ -1,5 +1,6 @@
 using Script.System.GamePlayAbilitySystem;
 using Server.Combat;
+using Server.Diagnostics;
 using Server.Loot;
 using Server.Monster;
 using Server.Player;
@@ -626,11 +627,22 @@ public class Room
 
                     // 데미지 = 어빌리티 BaseDamage − 플레이어 Defense (Shared 결정론, 플레이어→몬스터와 동일 산식).
                     // 스탯 의존이라 클라가 자체계산 불가 → 서버가 권위 수치를 Amount 로 전달하고, HP 도 같은 값으로 차감.
-                    int finalDamage = StatCombatMath.MeleeDamage(chosen.BaseDamage, 0, target.Defense);
+                    const int MonsterAttackPower = 0; // 몬스터 공격력 스탯 미도입 — base 가 곧 공격력
+                    int finalDamage = StatCombatMath.MeleeDamage(chosen.BaseDamage, MonsterAttackPower, target.Defense);
                     var dmgMods = new[]
                     {
                         GameplayAttributeModifier.Create(EGameplayAttribute.Health, -finalDamage, EModifierType.Additive),
                     };
+
+                    // 트레이스(AC-C1a): 플레이어→몬스터와 **같은 산식·다른 입력**(AP=0, DEF=대상). 그 대비가 보여야 밸런스를 논할 수 있다.
+                    // 플레이어 HP 권위는 클라(결정론 lite)라 서버는 before/after 를 모른다 → 0.
+                    CombatTrace.Damage(
+                        CombatPath.MonsterToPlayer, CombatTrace.FormulaMelee,
+                        attackerActorId, ActorIds.FromPlayer(targetUserId),
+                        chosen.Id, chosen.NetworkId,
+                        chosen.BaseDamage, MonsterAttackPower, target.Defense, finalDamage,
+                        targetHpBefore: 0, targetHpAfter: 0,
+                        recvMs: nowMs, judgeMs: nowMs, seq: 0); // 틱 경로 = 수신·판정이 같은 틱 시각
 
                     outPackets.Add(new S_ApplyEffect
                     {
