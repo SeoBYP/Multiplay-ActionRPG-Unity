@@ -44,9 +44,11 @@ public class ConsumableEffectCatalogTests
     public void 전투_효과는_여전히_코드시드에서_해석된다()
     {
         // 전투 효과(서버 게임밸런스 권위)는 코드 시드 유지 — 소모품 흡수가 전투 조회를 깨면 안 된다(회귀 가드).
-        var mods = CombatEffectCatalog.Resolve("monster_attack_dmg");
+        // ※ 데미지 effect(*_dmg)는 AC-B B5 에서 폐기(수치=ability.baseDamage) → CC 효과로 검증한다.
+        var mods = CombatEffectCatalog.Resolve("slow_3s");
 
-        Assert.Contains(mods, m => m.AttributeType == EGameplayAttribute.Health);
+        Assert.NotNull(new GameplayEffectCatalog().Get("slow_3s"));
+        Assert.Empty(mods); // CC = modifier 없는 순수 상태태그(GrantedTags)
     }
 
     [Fact]

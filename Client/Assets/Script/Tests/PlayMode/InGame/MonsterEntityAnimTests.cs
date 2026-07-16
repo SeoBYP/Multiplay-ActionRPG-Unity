@@ -1,0 +1,117 @@
+using System.Collections;
+using Game.Gameplay.Character;
+using Game.Network.Socket;
+using NUnit.Framework;
+using Script.System.GamePlayAbilitySystem;
+using UnityEngine;
+using UnityEngine.TestTools;
+using Object = UnityEngine.Object;
+
+namespace Game.Tests.PlayMode.InGame
+{
+    /// <summary>
+    /// AC 증분4: 몬스터 공격 발동 연출 검증 — <b>실제 Monster 프리팹</b>을 로드해 서버 발동 신호(S_AbilityActivated)가
+    /// ActorRegistry→AbilityCueRouter→MonsterEntity.PlayAbilityCue→Animator("Attack") 로 관통하는지 확인한다.
+    /// 프리팹의 MonsterEntity.attackState 배선("Attack")까지 함께 고정한다(비면 SetState 가 조용히 스킵돼 공격 애니가 안 보이는 회귀).
+    /// </summary>
+    public class MonsterEntityAnimTests
+    {
+        private GameObject _instance;
+
+        [TearDown]
+        public void TearDown()
+        {
+            if (_instance != null) Object.Destroy(_instance);
+            _instance = null;
+        }
+
+        [UnityTest]
+        public IEnumerator 서버_발동신호_수신하면_몬스터_Animator가_Attack상태로_전이한다()
+        {
+            GameObject prefab = null;
+#if UNITY_EDITOR
+            prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Character/Monster/Monster_creepy_demon.prefab");
+#endif
+            Assume.That(prefab, Is.Not.Null, "Monster_creepy_demon 프리팹 로드 실패(에디터 외 실행)");
+
+            const int instanceId = 1;
+            _instance = Object.Instantiate(prefab);
+            var entity = _instance.GetComponent<MonsterEntity>();
+            Assert.IsNotNull(entity, "Monster 프리팹에 MonsterEntity 가 있어야 한다");
+
+            var animator = _instance.GetComponentInChildren<Animator>();
+            Assert.IsNotNull(animator, "Monster 프리팹에 Animator 가 있어야 한다");
+            Assume.That(animator.runtimeAnimatorController, Is.Not.Null, "몬스터 Animator Controller 미배선");
+
+            // 배선: registry 에 등록 + router 가 발동 신호를 라우팅 (던전 런타임과 동일 구성).
+            var state = new SocketPacketState();
+            var registry = new ActorRegistry();
+            long actorId = ActorIds.FromMonster(instanceId); // -1
+            registry.Register(actorId, entity);
+            var router = new AbilityCueRouter(state, registry, abilities: null);
+            router.Initialize();
+
+            entity.Initialize(instanceId, state); // idle 로 시작
+            for (int i = 0; i < 2; i++) yield return null; // 초기 프레임 안정화
+
+            // 서버 S_AbilityActivated → OnAbilityActivated → 라우터 → entity.PlayAbilityCue → CrossFade("Attack")
+            state.NotifyAbilityActivated(actorId, skillId: 0);
+
+            bool enteredAttack = false;
+            for (int i = 0; i < 30 && !enteredAttack; i++)
+            {
+                yield return null;
+                var st = animator.GetCurrentAnimatorStateInfo(0);
+                var next = animator.GetNextAnimatorStateInfo(0);
+                if (st.IsName("Attack") || (animator.IsInTransition(0) && next.IsName("Attack")))
+                    enteredAttack = true;
+            }
+
+            router.Dispose();
+            Assert.IsTrue(enteredAttack,
+                "서버 발동 신호 수신 시 몬스터 Animator 가 Attack 상태로 전이해야 한다 — 프리팹 CharacterAgentAnimations 의 Attack 트리거명 배선 확인.");
+        }
+
+        [UnityTest]
+        public IEnumerator 서버_이동_수신하면_몬스터_Animator가_Walk상태로_전이한다()
+        {
+            // 회귀 고정: 컨트롤러는 Speed 파라미터로 Idle↔Walk 를 전이하는데 코드가 상태이름 CrossFade 로 구동하던 시절,
+            // Speed 를 아무도 세팅하지 않아(항상 0) Walk 진입 즉시 Walk→Idle[Speed<0.1] 이 발동 → 걷기 애니가 안 보였다.
+            // → 파라미터 구동(SetFloat(Speed))으로 전환. 실제로 Walk 로 전이하는지 고정한다.
+            GameObject prefab = null;
+#if UNITY_EDITOR
+            prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Character/Monster/Monster_creepy_demon.prefab");
+#endif
+            Assume.That(prefab, Is.Not.Null, "Monster_creepy_demon 프리팹 로드 실패(에디터 외 실행)");
+
+            const int instanceId = 2;
+            _instance = Object.Instantiate(prefab);
+            var entity = _instance.GetComponent<MonsterEntity>();
+            var animator = _instance.GetComponentInChildren<Animator>();
+            Assume.That(animator.runtimeAnimatorController, Is.Not.Null, "몬스터 Animator Controller 미배선");
+
+            var state = new SocketPacketState();
+            state.AddMonster(new SocketMonsterSnapshot(instanceId, "creepy_demon", 0f, 0f, 0f, 0f, 30, 30, 0));
+            entity.Initialize(instanceId, state);
+            for (int i = 0; i < 2; i++) yield return null; // 초기(Idle) 안정화
+
+            // 서버가 먼 위치를 통지 → MonsterEntity 가 보간 이동 → Speed 상승 → 컨트롤러 Idle→Walk
+            state.UpdateMonster(instanceId, 50f, 0f, 0f, 0f, 30, phase: 2);
+
+            bool enteredWalk = false;
+            for (int i = 0; i < 30 && !enteredWalk; i++)
+            {
+                yield return null;
+                var st = animator.GetCurrentAnimatorStateInfo(0);
+                var next = animator.GetNextAnimatorStateInfo(0);
+                if (st.IsName("Walk") || (animator.IsInTransition(0) && next.IsName("Walk")))
+                    enteredWalk = true;
+            }
+
+            Assert.IsTrue(enteredWalk,
+                "서버 이동 수신 시 Speed 파라미터가 올라 Animator 가 Walk 로 전이해야 한다 — CharacterAgentAnimations 의 Speed 파라미터명 배선 확인.");
+        }
+    }
+}

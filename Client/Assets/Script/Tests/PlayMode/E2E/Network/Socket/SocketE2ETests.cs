@@ -151,7 +151,8 @@ namespace Game.Tests.PlayMode.E2E
 
                 Assert.AreEqual(room.GuestUserId, apply.TargetId);
                 Assert.AreEqual(room.HostUserId, apply.SourceId);
-                Assert.AreEqual("basic_attack_dmg", apply.EffectId, "basic_swing의 OnHitEffect가 적용돼야 한다");
+                Assert.AreEqual("ability_damage", apply.EffectId, "AC-B: 데미지는 단일 라벨 ability_damage 로 온다(수치=ability.baseDamage)");
+                Assert.Less(apply.Amount, 0, "서버 권위 데미지 델타가 Amount 에 실려야 한다");
                 Assert.Greater(apply.InstanceId, 0, "서버가 InstanceId를 권위 발급해야 한다");
             }
             finally
@@ -162,10 +163,10 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public IEnumerator RawSocket_콤보A_공격하면_S_Attack_skillId2_와_combo_a_dmg를_수신한다() => UniTask.ToCoroutine(async () =>
+        public IEnumerator RawSocket_콤보A_공격하면_S_AbilityActivated_skillId2_와_ability_damage를_수신한다() => UniTask.ToCoroutine(async () =>
         {
-            // #7 콤보: 클라 ComboDriver 가 단계별 skillId(2/3/4)를 송신 → 서버 ResolveSkill(combo_a) →
-            //   S_Attack{SkillId=2} 브로드캐스트 + 정면 적중 시 combo_a_dmg 부여. A 를 대표 검증(B/C 는 동일 경로·데이터만 상승).
+            // #7 콤보 + AC: 클라 ComboDriver 가 단계별 skillId(2/3/4)를 송신 → 서버 ResolveSkill(combo_a) →
+            //   S_AbilityActivated{ActorId=시전자, SkillId=2} 브로드캐스트(플레이어=양수 ActorId) + 정면 적중 시 데미지(ability_damage, Amount=-combo_a.baseDamage).
             var room = await CreateStartedTwoPlayerRoomAsync();
             var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
             var guest = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
@@ -178,12 +179,13 @@ namespace Game.Tests.PlayMode.E2E
 
                 await host.SendAsync(new C_Attack { SkillId = 2 }, Timeout()); // 2 = combo_a
 
-                var atk = await host.WaitForPacketAsync<S_Attack>(p => p.AttackerId == room.HostUserId, Timeout());
-                Assert.AreEqual(2, atk.SkillId, "콤보A 는 skillId 2 로 브로드캐스트돼야 한다");
+                var act = await host.WaitForPacketAsync<S_AbilityActivated>(p => p.ActorId == room.HostUserId, Timeout());
+                Assert.AreEqual(2, act.SkillId, "콤보A 는 skillId 2 로 브로드캐스트돼야 한다");
 
                 var apply = await guest.WaitForPacketAsync<S_ApplyEffect>(
                     p => p.TargetId == room.GuestUserId && p.SourceId == room.HostUserId, Timeout());
-                Assert.AreEqual("combo_a_dmg", apply.EffectId, "콤보A 적중은 combo_a_dmg 를 부여해야 한다");
+                Assert.AreEqual("ability_damage", apply.EffectId, "AC-B: 데미지는 단일 라벨 ability_damage");
+                Assert.AreEqual(-10, apply.Amount, "콤보A baseDamage=10 → 서버 권위 델타 -10");
             }
             finally
             {
@@ -218,7 +220,7 @@ namespace Game.Tests.PlayMode.E2E
         [UnityTest]
         public IEnumerator RawSocket_몬스터를_반복_공격하면_S_MonsterDead_수신() => UniTask.ToCoroutine(async () =>
         {
-            // 플레이어→몬스터: basic_swing 적중마다 서버 권위로 HP -10(basic_attack_dmg). 30→0 = 3타 이상.
+            // 플레이어→몬스터: basic_swing 적중마다 서버 권위로 HP -10(ability.baseDamage=10, AC-B). 30→0 = 3타 이상.
             // 슬라임이 패트롤/추격으로 움직이므로 최신 S_MonsterState 위치로 재조준해 정면(−Z 1유닛)에서 타격.
             // dungeon_e2e = 외딴 슬라임 1마리 픽스처(shipped dungeon_01 은 다수 몬스터라 크라우딩으로 불안정).
             var room = await CreateStartedTwoPlayerRoomAsync("dungeon_e2e");
@@ -258,10 +260,10 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public IEnumerator RawSocket_공격하면_S_Attack_연출_브로드캐스트를_수신한다() => UniTask.ToCoroutine(async () =>
+        public IEnumerator RawSocket_공격하면_S_AbilityActivated_연출_브로드캐스트를_수신한다() => UniTask.ToCoroutine(async () =>
         {
-            // 원격 공격 애니: 서버 게이트(마나·쿨다운)를 통과한 스윙만 S_Attack{AttackerId,SkillId} 를 방에 브로드캐스트.
-            // room.Broadcast 는 방 전원 발신이라 시전자 자신도 수신 → RemoteDriver 가 타 플레이어 스윙 애니 재생.
+            // 원격 공격 애니(AC 통합): 서버 게이트(마나·쿨다운)를 통과한 스윙만 S_AbilityActivated{ActorId,SkillId} 를 방에 브로드캐스트.
+            // 플레이어 ActorId = 양수 UserId. room.Broadcast 는 방 전원 발신 → AbilityCueRouter 가 ActorId 로 그 원격 플레이어의 스윙 애니 재생.
             // 적중·데미지는 별도(S_ApplyEffect/S_MonsterState, 서버 권위) — 이 패킷은 연출 전용이라 여기서 판정하지 않는다.
             var room = await CreateStartedTwoPlayerRoomAsync();
             var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
@@ -271,10 +273,11 @@ namespace Game.Tests.PlayMode.E2E
                 // basic_swing(SkillId=0): 마나 0(무료) + 첫 발동은 쿨다운 통과 → 브로드캐스트돼야 한다.
                 await host.SendAsync(new C_Attack { SkillId = 0 }, Timeout());
 
-                var atk = await host.WaitForPacketAsync<S_Attack>(p => p.AttackerId == room.HostUserId, Timeout());
+                var act = await host.WaitForPacketAsync<S_AbilityActivated>(p => p.ActorId == room.HostUserId, Timeout());
 
-                Assert.AreEqual(room.HostUserId, atk.AttackerId, "S_Attack 의 AttackerId 가 시전자여야 한다");
-                Assert.AreEqual(0, atk.SkillId, "SkillId(basic_swing=0)가 그대로 전달돼야 한다");
+                Assert.AreEqual(room.HostUserId, act.ActorId, "S_AbilityActivated 의 ActorId 가 시전자(양수 UserId)여야 한다");
+                Assert.Greater(act.ActorId, 0, "플레이어 발동 = 양수 ActorId");
+                Assert.AreEqual(0, act.SkillId, "SkillId(basic_swing=0)가 그대로 전달돼야 한다");
             }
             finally
             {
@@ -306,10 +309,10 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public IEnumerator RawSocket_몬스터_사거리_안이면_S_ApplyEffect_monster_attack_dmg_수신() => UniTask.ToCoroutine(async () =>
+        public IEnumerator RawSocket_몬스터_사거리_안이면_S_ApplyEffect_ability_damage_수신() => UniTask.ToCoroutine(async () =>
         {
             // 몬스터→플레이어: dungeon_01 arachnya(4,10) 부근(8,8)으로 가면 aggro(8) 범위 →
-            // 추격·사거리 진입 → 쿨다운마다 monster_attack_dmg(S_ApplyEffect)를 그 플레이어에게 발행.
+            // 추격·사거리 진입 → 쿨다운마다 데미지(S_ApplyEffect{ability_damage, Amount=-ability.baseDamage})를 그 플레이어에게 발행.
             var room = await CreateStartedTwoPlayerRoomAsync();
             var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
 
@@ -320,11 +323,35 @@ namespace Game.Tests.PlayMode.E2E
                 await host.SendAsync(new C_Move { PosX = 8, PosY = 0, PosZ = 8, RotY = 0 }, Timeout());
 
                 var apply = await host.WaitForPacketAsync<S_ApplyEffect>(
-                    p => p.EffectId == "monster_attack_dmg" && p.TargetId == room.HostUserId,
+                    p => p.EffectId == "ability_damage" && p.TargetId == room.HostUserId,
                     Timeout());
 
-                Assert.AreEqual("monster_attack_dmg", apply.EffectId);
+                Assert.AreEqual("ability_damage", apply.EffectId);
+                Assert.Less(apply.Amount, 0, "AC-B: 데미지 수치는 ability.baseDamage 산출값이 Amount 로 온다");
                 Assert.AreEqual(room.HostUserId, apply.TargetId, "공격 대상이 가장 가까운 플레이어(호스트)여야 한다");
+            }
+            finally
+            {
+                await host.DisposeAsync();
+            }
+        });
+
+        [UnityTest]
+        public IEnumerator RawSocket_몬스터_공격하면_S_AbilityActivated_발동신호를_수신한다() => UniTask.ToCoroutine(async () =>
+        {
+            // AC: 몬스터 공격 시 데미지(S_ApplyEffect)와 별개로 Actor 통합 발동 연출 신호(S_AbilityActivated)를 방에 브로드캐스트한다.
+            // ActorId 는 몬스터라 음수(-instanceId) — 클라 AbilityCueRouter 가 이 신호로 해당 몬스터의 공격 애니를 재생한다.
+            var room = await CreateStartedTwoPlayerRoomAsync();
+            var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
+
+            try
+            {
+                await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "creepy_demon", Timeout());
+                await host.SendAsync(new C_Move { PosX = 8, PosY = 0, PosZ = 8, RotY = 0 }, Timeout());
+
+                var act = await host.WaitForPacketAsync<S_AbilityActivated>(p => p.ActorId < 0, Timeout());
+
+                Assert.Less(act.ActorId, 0, "몬스터 발동 = 음수 ActorId(-instanceId)");
             }
             finally
             {
@@ -336,7 +363,7 @@ namespace Game.Tests.PlayMode.E2E
         public IEnumerator RawSocket_몬스터_공격은_슬로우_CC도_함께_브로드캐스트한다() => UniTask.ToCoroutine(async () =>
         {
             // 2.6.2 던전 CC: arachnya(monsters.json onHitEffectId=slow_3s) 공격 시 서버 TickMonsters 가
-            // 데미지(monster_attack_dmg)와 함께 CC(slow_3s, Amount=0) S_ApplyEffect 를 브로드캐스트 →
+            // 데미지(ability_damage)와 함께 CC(slow_3s, Amount=0) S_ApplyEffect 를 브로드캐스트 →
             // 클라 EffectReceiver 가 적용 → GrantedTags(State.Slow) 게이트. (서버 권위 CC 경로 검증)
             // creepy_demon 은 CC 가 없어 slow_3s 를 내는 arachnya(dungeon_01 (4,10))로 검증.
             var room = await CreateStartedTwoPlayerRoomAsync();

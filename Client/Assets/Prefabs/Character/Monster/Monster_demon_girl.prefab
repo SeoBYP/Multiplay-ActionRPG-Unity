@@ -1528,7 +1528,7 @@ Animator:
   m_GameObject: {fileID: 4969320739608290849}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: d3b617d4c5387004fa355973611faee7, type: 3}
-  m_Controller: {fileID: 9100000, guid: 5e53106831023b7499983b1d67f806f9, type: 2}
+  m_Controller: {fileID: 9100000, guid: 240cf805eac9c494482e6aab6bdf8813, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
   m_ApplyRootMotion: 1
@@ -2883,6 +2883,7 @@ GameObject:
   - component: {fileID: 6913725455843019297}
   - component: {fileID: 4443035826539225935}
   - component: {fileID: 679859264621335336}
+  - component: {fileID: 6846608202538963539}
   m_Layer: 0
   m_Name: Monster_demon_girl
   m_TagString: Untagged
@@ -2920,13 +2921,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.MonsterEntity
   lerpSpeed: 15
-  animator: {fileID: 8698862654915380263}
-  idleState: idle00
-  walkState: walk01
-  dieState: die00
-  walkSpeedThreshold: 0.3
+  speedSmoothing: 10
   deathDespawnDelay: 2
-  crossFadeSec: 0.15
 --- !u!114 &4443035826539225935
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2963,6 +2959,32 @@ CapsuleCollider:
   m_Height: 1.7
   m_Direction: 1
   m_Center: {x: 0, y: 0.85, z: 0}
+--- !u!114 &6846608202538963539
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8086081868264828803}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69a2c0eb64bb45148a00305eb06dceca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.CharacterAgentAnimations
+  m_animationSpeedFloat: Speed
+  m_animationMoveXFloat: 
+  m_animationMoveYFloat: 
+  m_animationComboStepInt: 
+  m_animationGroundedBool: 
+  m_animationStrafeBool: 
+  m_animationFallTrigger: 
+  m_animationJumpTrigger: 
+  m_animationLandTrigger: 
+  m_animationInteractTrigger: 
+  m_animationAttackTrigger: Attack
+  m_animationDeathTrigger: Die
+  m_animationDodgeTrigger: 
+  m_animationReviveTrigger: 
 --- !u!1 &8356902920763643704
 GameObject:
   m_ObjectHideFlags: 0

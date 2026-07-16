@@ -532,7 +532,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2502653575644290370}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.016003385, y: 0.44519815, z: -0.24414933, w: 0.86135566}
+  m_LocalRotation: {x: -0.016003387, y: 0.44519815, z: -0.24414934, w: 0.86135566}
   m_LocalPosition: {x: -0.15355937, y: 0.00000045776366, z: 0.000000076293944}
   m_LocalScale: {x: 1.0000002, y: 1.0000001, z: 1}
   m_ConstrainProportionsScale: 0
@@ -969,7 +969,7 @@ Animator:
   m_GameObject: {fileID: 3767363169680464625}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: a47e003f3f1b3824c895da8cae4de76c, type: 3}
-  m_Controller: {fileID: 9100000, guid: 09e27dceab522574e8545822f9bbd65a, type: 2}
+  m_Controller: {fileID: 9100000, guid: 9c1b008abea63774cb8f17478c398edf, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
   m_ApplyRootMotion: 1
@@ -1612,7 +1612,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4555795261992891943}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.012553898, y: 0.008076663, z: 0.99502903, w: 0.09845992}
+  m_LocalRotation: {x: 0.012553898, y: 0.008076664, z: 0.99502903, w: 0.09845993}
   m_LocalPosition: {x: -0.6534773, y: -0.012915878, z: 0.000033454893}
   m_LocalScale: {x: 0.99999994, y: 0.99999976, z: 0.99999994}
   m_ConstrainProportionsScale: 0
@@ -2640,6 +2640,7 @@ GameObject:
   - component: {fileID: 5515444839405723673}
   - component: {fileID: 2786041945702384030}
   - component: {fileID: 7792081176638253054}
+  - component: {fileID: 165034855168127626}
   m_Layer: 0
   m_Name: Monster_vampire_bat
   m_TagString: Untagged
@@ -2677,13 +2678,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.MonsterEntity
   lerpSpeed: 15
-  animator: {fileID: 6034615482323643482}
-  idleState: Idle
-  walkState: FlyCycle
-  dieState: Die
-  walkSpeedThreshold: 0.3
+  speedSmoothing: 10
   deathDespawnDelay: 2
-  crossFadeSec: 0.15
 --- !u!114 &2786041945702384030
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2720,6 +2716,32 @@ CapsuleCollider:
   m_Height: 1
   m_Direction: 1
   m_Center: {x: 0, y: 0.5, z: 0}
+--- !u!114 &165034855168127626
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8304065375415288194}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69a2c0eb64bb45148a00305eb06dceca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.CharacterAgentAnimations
+  m_animationSpeedFloat: Speed
+  m_animationMoveXFloat: 
+  m_animationMoveYFloat: 
+  m_animationComboStepInt: 
+  m_animationGroundedBool: 
+  m_animationStrafeBool: 
+  m_animationFallTrigger: 
+  m_animationJumpTrigger: 
+  m_animationLandTrigger: 
+  m_animationInteractTrigger: 
+  m_animationAttackTrigger: Attack
+  m_animationDeathTrigger: Die
+  m_animationDodgeTrigger: 
+  m_animationReviveTrigger: 
 --- !u!1 &8582634457888325190
 GameObject:
   m_ObjectHideFlags: 0

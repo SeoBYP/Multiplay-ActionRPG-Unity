@@ -5,6 +5,8 @@ using Shared.Infrastructure.Messages;
 using Shared.Infrastructure.Spawn;
 using Shared.Packet.Packets;
 
+using Server.PacketHandler.Handler;
+
 namespace Server.Tests.Combat;
 
 /// <summary>
@@ -53,7 +55,7 @@ public class DodgeIframeTests
 
         // 무적 만료 + 몬스터 쿨다운(1500ms) 경과 → 다시 피해. (slime 은 데미지+슬로우 2효과 — 데미지만 특정)
         var p2 = room.TickMonsters(0.1f, t0 + 2000);
-        Assert.Single(p2.OfType<S_ApplyEffect>().Where(e => e.EffectId == "monster_attack_dmg"));
+        Assert.Single(p2.OfType<S_ApplyEffect>().Where(e => e.EffectId == CombatHandler.AbilityDamageEffectId));
         Assert.True(room.GetPlayerState(100)!.Hp < global::Server.Room.Room.DefaultMaxHp);
     }
 }

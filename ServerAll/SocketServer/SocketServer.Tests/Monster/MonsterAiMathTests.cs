@@ -9,7 +9,7 @@ namespace Server.Tests.Monster;
 public class MonsterAiMathTests
 {
     private static readonly MonsterStats Stats =
-        new(MaxHp: 30, MoveSpeed: 2f, AggroRange: 6f, AttackRange: 1.2f, AttackCooldownMs: 1500f, AttackDamage: 5);
+        new(MaxHp: 30, MoveSpeed: 2f, AggroRange: 6f, AttackRange: 1.2f);
 
     private static readonly MapBounds Bounds40 = new(0f, 0f, 40f, 40f); // x,z ∈ [-20, 20]
 

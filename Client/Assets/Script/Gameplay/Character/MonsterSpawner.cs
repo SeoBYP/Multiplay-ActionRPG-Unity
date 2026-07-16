@@ -4,6 +4,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Gameplay.Monster;
 using Game.Network.Socket;
+using Script.System.GamePlayAbilitySystem;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -21,6 +22,7 @@ namespace Game.Gameplay.Character
         private readonly ISocketSession         _socketSession;
         private readonly ISocketPacketState     _packetState;
         private readonly CharacterPrefabSettings _prefabs;
+        private readonly ActorRegistry          _actors;   // ActorId(-instanceId) → MonsterEntity, 발동 Cue 라우팅용
         private readonly MonsterVisualCatalog   _visuals; // monsterId → 표시 프리팹(없으면 기본 프리팹 폴백)
 
         private readonly Dictionary<int, MonsterEntity> _monsters = new Dictionary<int, MonsterEntity>();
@@ -29,11 +31,13 @@ namespace Game.Gameplay.Character
             ISocketSession          socketSession,
             ISocketPacketState      packetState,
             CharacterPrefabSettings prefabs,
+            ActorRegistry           actors,
             MonsterVisualCatalog    visuals = null)
         {
             _socketSession = socketSession;
             _packetState   = packetState;
             _prefabs       = prefabs;
+            _actors        = actors;
             _visuals       = visuals;
         }
 
@@ -87,6 +91,8 @@ namespace Game.Gameplay.Character
 
             entity.Initialize(snapshot.InstanceId, _packetState);
             _monsters[snapshot.InstanceId] = entity;
+            // AC: ActorId(-instanceId)로 레지스트리 등록 → S_AbilityActivated 발동 신호가 이 몬스터의 공격 Cue 로 라우팅됨.
+            _actors.Register(ActorIds.FromMonster(snapshot.InstanceId), entity);
 
             Debug.Log($"[MonsterSpawner] 몬스터 스폰 — InstanceId={snapshot.InstanceId} MonsterId={snapshot.MonsterId}");
         }
@@ -96,7 +102,10 @@ namespace Game.Gameplay.Character
             // 사망 애니는 MonsterEntity 가 OnMonsterDead 를 직접 받아 재생 + 지연 자체 파괴한다.
             // 스포너는 추적만 정리한다(즉시 파괴하면 die 애니가 안 보인다). 씬 종료는 Dispose 에서 즉시 파괴.
             if (_monsters.Remove(instanceId))
+            {
+                _actors.Unregister(ActorIds.FromMonster(instanceId)); // 발동 라우팅 대상에서 제거(사망 후 Cue 무시)
                 Debug.Log($"[MonsterSpawner] 몬스터 사망 — InstanceId={instanceId} (die 애니 후 자체 디스폰)");
+            }
         }
 
         public void Dispose()
@@ -104,10 +113,11 @@ namespace Game.Gameplay.Character
             _packetState.OnMonsterSpawned -= HandleSpawned;
             _packetState.OnMonsterDead    -= HandleDead;
 
-            foreach (var entity in _monsters.Values)
+            foreach (var kv in _monsters)
             {
-                entity.Dispose();
-                if (entity != null) UnityEngine.Object.Destroy(entity.gameObject);
+                _actors.Unregister(ActorIds.FromMonster(kv.Key));
+                kv.Value.Dispose();
+                if (kv.Value != null) UnityEngine.Object.Destroy(kv.Value.gameObject);
             }
             _monsters.Clear();
         }

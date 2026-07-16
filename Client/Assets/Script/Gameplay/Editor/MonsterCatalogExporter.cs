@@ -84,11 +84,8 @@ namespace Game.Gameplay.Editor
                         maxHp = m.maxHp,
                         moveSpeed = m.moveSpeed,
                         aggroRange = m.aggroRange,
-                        attackRange = m.attackRange,
-                        attackCooldownMs = m.attackCooldownMs,
-                        attackDamage = m.attackDamage,
+                        abilityIds = new List<string>(m.abilityIds ?? new List<string>()),
                         expReward = m.expReward,
-                        onHitEffectId = m.onHitEffectId,
                     })
                     .ToList()
             };
@@ -132,11 +129,8 @@ namespace Game.Gameplay.Editor
                     maxHp = m.maxHp,
                     moveSpeed = m.moveSpeed,
                     aggroRange = m.aggroRange,
-                    attackRange = m.attackRange,
-                    attackCooldownMs = m.attackCooldownMs,
-                    attackDamage = m.attackDamage,
+                    abilityIds = new List<string>(m.abilityIds ?? new List<string>()),
                     expReward = m.expReward,
-                    onHitEffectId = m.onHitEffectId,
                 })
                 .ToList();
 
@@ -184,11 +178,8 @@ namespace Game.Gameplay.Editor
             public int maxHp = 30;
             public float moveSpeed = 2.0f;
             public float aggroRange = 6f;
-            public float attackRange = 1.2f;
-            public float attackCooldownMs = 1500f;
-            public int attackDamage = 5;
+            public List<string> abilityIds = new();
             public int expReward = 20;
-            public string onHitEffectId = "";
         }
     }
 }

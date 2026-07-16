@@ -55,11 +55,6 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 2d2165db04c06d349a2b3ffd27072b34
-    m_Address: Assets/GameData/Skill/SkillCatalogDefinition.asset
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 2dfb4c9749719cb40b134b59556b9d24
     m_Address: Assets/Prefabs/GUI/Dungeon/DungeonFaild.prefab
     m_ReadOnly: 0
@@ -97,6 +92,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 4f39a9707f246da4191531c2501dedc6
     m_Address: Assets/Prefabs/GUI/Shop/Shop_Item.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 54e10a57027b8bf4cb768f84e7c3462b
+    m_Address: Assets/GameData/Ability/AbilityCatalogDefinition.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

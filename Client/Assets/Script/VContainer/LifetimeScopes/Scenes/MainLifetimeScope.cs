@@ -52,6 +52,8 @@ namespace Game.Installers.Scenes
             builder.Register<LocalPlayerContext>(Lifetime.Scoped).AsSelf();
             // CharacterSpawner 가 로컬 ASC 를 등록하므로 레지스트리도 필요(Main 은 파티 HUD 미표시 — 소비자 없음).
             builder.Register<PartyAscRegistry>(Lifetime.Scoped).AsSelf();
+            // AC: CharacterSpawner 생성자 충족용. Main 은 솔로(원격 없음)라 등록 대상이 없고 라우터도 없다(빈 레지스트리).
+            builder.Register<Game.Gameplay.Character.ActorRegistry>(Lifetime.Scoped).AsSelf();
             // Main 로컬 줍기(LocalGroundItem) → InGameModel 획득 토스트 통지 허브.
             builder.Register<ItemPickupNotifier>(Lifetime.Scoped).AsSelf();
             builder.Register<SpawnLayoutProvider>(Lifetime.Scoped).AsSelf();
@@ -122,11 +124,11 @@ namespace Game.Installers.Scenes
             builder.RegisterEntryPoint<ConsumableCatalogSeeder>(Lifetime.Scoped);
             builder.RegisterEntryPoint<ConsumableEffectHandler>(Lifetime.Scoped);
 
-            // 스킬 데이터(2.2) — SkillDefinition SO 카탈로그 → SkillCatalogProvider(id→SkillTimeline).
+            // 어빌리티 데이터(AC-B) — AbilityDefinition SO 카탈로그 → AbilityCatalogProvider(id/networkId→타임라인·Cue).
             // LocalCombat(Main hitbox)이 사용. 서버는 같은 데이터를 bake skills.json 으로 읽음(데이터 진실원=SO, §2.5).
-            builder.RegisterInstance(new Game.Gameplay.Abilities.SkillCatalogProvider(
-                LoadData<Game.Gameplay.Abilities.SkillCatalogDefinition>(AddressKeys.Data.SkillCatalog)
-                ?? ScriptableObject.CreateInstance<Game.Gameplay.Abilities.SkillCatalogDefinition>()));
+            builder.RegisterInstance(new Game.Gameplay.Abilities.AbilityCatalogProvider(
+                LoadData<Game.Gameplay.Abilities.AbilityCatalogDefinition>(AddressKeys.Data.AbilityCatalog)
+                ?? ScriptableObject.CreateInstance<Game.Gameplay.Abilities.AbilityCatalogDefinition>()));
 
             // Main 씬은 로컬 플레이어만 스폰. RemotePlayerPrefab 없음.
             builder.RegisterInstance(new CharacterPrefabSettings(localPlayerPrefab));

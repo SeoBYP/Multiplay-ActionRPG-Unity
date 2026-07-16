@@ -12,6 +12,7 @@
         "VContainer",
         "Unity.InputSystem",
         "Unity.InputSystem.TestFramework",
+        "Unity.Mathematics",
         "UnityEngine.TestRunner",
         "R3.Unity",
         "R3.Unity.Editor"

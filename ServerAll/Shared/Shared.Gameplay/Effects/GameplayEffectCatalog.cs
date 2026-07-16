@@ -57,57 +57,17 @@ namespace Script.System.GamePlayAbilitySystem
                     GameplayAttributeModifier.Create(EGameplayAttribute.Defense, -10, EModifierType.Additive),
                 }));
 
-            // CA-3: basic_swing(SkillTimeline) 적중 시 서버가 부여하는 즉발 피해. Health 감소.
-            // 즉발이라 ApplyEffectAuthoritative가 Resource(Health)를 즉시 깎는다(버프 아이콘 없음).
+            // AC-B 안B: **데미지 단일 라벨**. 값은 여기서 정하지 않는다 — 서버가 `ability.baseDamage` 로 계산해
+            // S_ApplyEffect.Amount(권위 델타)로 실어 보내고, 클라 ApplyEffectAuthoritative 의 healthOverride 가 이 값을 덮어쓴다.
+            // 즉 이 정의는 "즉발 Health 피해"라는 **형태**만 제공하고 수치는 어빌리티가 소유한다(폐기된 basic_attack_dmg/combo_*_dmg/monster_attack_dmg 대체).
             Register(new GameplayEffectDefinition(
-                id: "basic_attack_dmg",
+                id: "ability_damage",
                 category: EEffectCategory.AttackPower,
                 policy: EDurationPolicy.Instant,
                 durationMs: 0,
                 modifiers: new[]
                 {
-                    GameplayAttributeModifier.Create(EGameplayAttribute.Health, -10, EModifierType.Additive),
-                }));
-
-            // #7 Attack 콤보 A→B→C — 단계별 상승 즉발 피해(basic_attack_dmg 와 동형, Health 감소만 커짐).
-            //   combo_a/b/c 스킬(skills.json)의 OnHitEffectIds 가 각각 참조. 서버 권위 적중 → S_ApplyEffect(effectId) → 클라 미러.
-            Register(new GameplayEffectDefinition(
-                id: "combo_a_dmg",
-                category: EEffectCategory.AttackPower,
-                policy: EDurationPolicy.Instant,
-                durationMs: 0,
-                modifiers: new[]
-                {
-                    GameplayAttributeModifier.Create(EGameplayAttribute.Health, -10, EModifierType.Additive),
-                }));
-            Register(new GameplayEffectDefinition(
-                id: "combo_b_dmg",
-                category: EEffectCategory.AttackPower,
-                policy: EDurationPolicy.Instant,
-                durationMs: 0,
-                modifiers: new[]
-                {
-                    GameplayAttributeModifier.Create(EGameplayAttribute.Health, -15, EModifierType.Additive),
-                }));
-            Register(new GameplayEffectDefinition(
-                id: "combo_c_dmg",
-                category: EEffectCategory.AttackPower,
-                policy: EDurationPolicy.Instant,
-                durationMs: 0,
-                modifiers: new[]
-                {
-                    GameplayAttributeModifier.Create(EGameplayAttribute.Health, -25, EModifierType.Additive),
-                }));
-
-            // M3 ⑤b: 몬스터가 사거리 안 플레이어를 공격 시 서버가 S_ApplyEffect로 부여하는 즉발 피해.
-            Register(new GameplayEffectDefinition(
-                id: "monster_attack_dmg",
-                category: EEffectCategory.AttackPower,
-                policy: EDurationPolicy.Instant,
-                durationMs: 0,
-                modifiers: new[]
-                {
-                    GameplayAttributeModifier.Create(EGameplayAttribute.Health, -5, EModifierType.Additive),
+                    GameplayAttributeModifier.Create(EGameplayAttribute.Health, -1, EModifierType.Additive), // placeholder — Amount 가 항상 덮어씀
                 }));
 
             // 2.6.2 상태이상(CC) — Duration 효과가 GrantedTags 로 상태 태그를 부여한다(modifier 없음).

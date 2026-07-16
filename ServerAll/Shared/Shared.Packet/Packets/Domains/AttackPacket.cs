@@ -21,3 +21,21 @@ public partial class S_Attack : Packet
     public long TargetId { get; set; }
     public int Damage { get; set; }
 }
+
+/// <summary>
+/// 서버 → 클라: <b>어떤 액터가 어빌리티를 발동했다</b>는 통합 연출 신호(actor-combat-architecture §4).
+/// 플레이어·몬스터를 <see cref="ActorId"/>(부호 규약: 양수=UserId / 음수=-InstanceId) 하나로 지칭한다 —
+/// 종족별 별도 패킷(S_Attack + 몬스터 전용)을 대체하는 단일 파이프. 클라 ActorRegistry 가 ActorId 로
+/// 대상을 찾아 스킬 애니(Cue)를 재생한다.
+///
+/// <b>연출 전용</b> — 적중·데미지는 서버 권위(S_ApplyEffect)로 별도 반영. 이 패킷으로 로컬 판정하지 않는다.
+/// </summary>
+[MemoryPackable]
+public partial class S_AbilityActivated : Packet
+{
+    /// <summary>발동 주체(부호 규약). Shared.Gameplay ActorIds 로 해석한다.</summary>
+    public long ActorId { get; set; }
+
+    /// <summary>발동한 스킬 식별. 플레이어=SkillId(0=basic/1=heavy/2~4=combo), 몬스터=주공격(0).</summary>
+    public int SkillId { get; set; }
+}

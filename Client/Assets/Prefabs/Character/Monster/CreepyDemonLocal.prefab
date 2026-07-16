@@ -786,7 +786,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 623739354272308684}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.19896723, y: 0.102149926, z: 0.13200882, w: 0.96568686}
+  m_LocalRotation: {x: -0.19896725, y: 0.102149926, z: 0.13200884, w: 0.96568686}
   m_LocalPosition: {x: -0.087284505, y: 0, z: 0}
   m_LocalScale: {x: 1.0000007, y: 0.9999998, z: 0.99999905}
   m_ConstrainProportionsScale: 0
@@ -2855,7 +2855,7 @@ Animator:
   m_GameObject: {fileID: 4950812717405378785}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: 9de672fcfb0278a4d999502ade35ef60, type: 3}
-  m_Controller: {fileID: 9100000, guid: ab67224bd335f9447ab43475545c06f6, type: 2}
+  m_Controller: {fileID: 9100000, guid: 98a866b57befeb44383aa13b49acdcf9, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
   m_ApplyRootMotion: 1
@@ -3251,6 +3251,7 @@ GameObject:
   - component: {fileID: 537472259393882624}
   - component: {fileID: 3780991866395632732}
   - component: {fileID: 5413239376207327073}
+  - component: {fileID: 8107460506159345850}
   m_Layer: 0
   m_Name: CreepyDemonLocal
   m_TagString: Untagged
@@ -3299,12 +3300,7 @@ MonoBehaviour:
   knockbackOnHit: 0
   knockbackDistance: 2
   knockbackDuration: 0.2
-  animator: {fileID: 999174856389390710}
-  idleState: Idle00
-  walkState: WalkCycle00
-  dieState: Die00
-  walkSpeedThreshold: 0.3
-  crossFadeSec: 0.15
+  speedSmoothing: 10
   deathDespawnDelay: 2
 --- !u!114 &3780991866395632732
 MonoBehaviour:
@@ -3342,6 +3338,32 @@ CapsuleCollider:
   m_Height: 1.7
   m_Direction: 1
   m_Center: {x: 0, y: 0.85, z: 0}
+--- !u!114 &8107460506159345850
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6137679945505950099}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69a2c0eb64bb45148a00305eb06dceca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.CharacterAgentAnimations
+  m_animationSpeedFloat: Speed
+  m_animationMoveXFloat: 
+  m_animationMoveYFloat: 
+  m_animationComboStepInt: 
+  m_animationGroundedBool: 
+  m_animationStrafeBool: 
+  m_animationFallTrigger: 
+  m_animationJumpTrigger: 
+  m_animationLandTrigger: 
+  m_animationInteractTrigger: 
+  m_animationAttackTrigger: Attack
+  m_animationDeathTrigger: Die
+  m_animationDodgeTrigger: 
+  m_animationReviveTrigger: 
 --- !u!1 &6141147201891233640
 GameObject:
   m_ObjectHideFlags: 0
@@ -4227,7 +4249,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7978026994814000235}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.009721168, y: 0.02277158, z: -0.70294327, w: 0.71081495}
+  m_LocalRotation: {x: 0.009721167, y: 0.02277158, z: -0.7029432, w: 0.71081495}
   m_LocalPosition: {x: -0.30978537, y: 0.000000038146972, z: -0.000000019073486}
   m_LocalScale: {x: 1.0000296, y: 0.9999705, z: 1}
   m_ConstrainProportionsScale: 0

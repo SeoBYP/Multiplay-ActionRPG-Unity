@@ -4,7 +4,7 @@ using Server.Player;
 namespace Server.Tests.Combat;
 
 /// <summary>
-/// #7 콤보 서버 권위 cadence — <b>타이밍 진실원 = 스킬 데이터</b>(SkillTimeline.ComboChainMs, skills.json).
+/// #7 콤보 서버 권위 cadence — <b>타이밍 진실원 = 어빌리티 데이터</b>(SkillTimeline.ComboChainMs, abilities.json — AC-B).
 ///
 /// 콤보는 단계마다 skillId 가 다르다(2=combo_a·3=combo_b·4=combo_c). 따라서 **단계별 개별 쿨다운만으로는
 /// A→B→C 즉시 3연타를 못 막는다**(각자 첫 발동이라 쿨다운이 비어 있음) → 합산 폭딜(10+15+25) 치팅.
@@ -30,21 +30,21 @@ public class ComboCadenceTests
         // 진실원 확인 — 서버가 이 값으로 cadence 를 강제한다. 불변식: chain ≤ window.
         foreach (var id in new[] { "combo_a", "combo_b", "combo_c" })
         {
-            var skill = Shared.Infrastructure.Skills.SkillCatalog.Get(id);
+            var skill = Shared.Infrastructure.Abilities.AbilityCatalog.Get(id)?.Timeline;
             Assert.NotNull(skill);
             Assert.True(skill!.ComboChainMs > 0, $"{id}: ComboChainMs 가 저작돼야 한다");
             Assert.True(skill.ComboChainMs <= skill.ComboWindowMs, $"{id}: chain({skill.ComboChainMs}) ≤ window({skill.ComboWindowMs})");
         }
 
         // 비콤보 스킬은 0(게이트 없음).
-        Assert.Equal(0, Shared.Infrastructure.Skills.SkillCatalog.Get("basic_swing")!.ComboChainMs);
+        Assert.Equal(0, Shared.Infrastructure.Abilities.AbilityCatalog.Get("basic_swing")!.Timeline.ComboChainMs);
     }
 
     [Fact]
     public void 직전_단계의_ComboChainMs_전에는_다음_콤보를_거부한다()
     {
         var state = new PlayerState { UserId = 1 };
-        var comboA = Shared.Infrastructure.Skills.SkillCatalog.Get("combo_a")!;
+        var comboA = Shared.Infrastructure.Abilities.AbilityCatalog.Get("combo_a")!.Timeline;
         long t = 10_000;
 
         // A 발동 — 첫 콤보라 통과. 이후 A 의 ComboChainMs 만큼 다음 콤보가 막힌다.
@@ -55,7 +55,7 @@ public class ComboCadenceTests
         Assert.False(state.TryBeginComboAttack(t + comboA.ComboChainMs - 1, 0, CombatHandler.ComboMinIntervalMs));
 
         // A 의 체인 지점이 지나면 B 허용.
-        var comboB = Shared.Infrastructure.Skills.SkillCatalog.Get("combo_b")!;
+        var comboB = Shared.Infrastructure.Abilities.AbilityCatalog.Get("combo_b")!.Timeline;
         Assert.True(state.TryBeginComboAttack(t + comboA.ComboChainMs, comboB.ComboChainMs, CombatHandler.ComboMinIntervalMs));
     }
 
@@ -65,7 +65,7 @@ public class ComboCadenceTests
         // 클라는 정확히 ComboChainMs 간격으로 보내지만 패킷별 지연 차로 서버 도착 간격이 더 짧아질 수 있다.
         // 허용치가 없으면 **정상 콤보가 거부돼 데미지가 유실**된다(던전에서만 나는 버그).
         var state = new PlayerState { UserId = 1 };
-        var comboA = Shared.Infrastructure.Skills.SkillCatalog.Get("combo_a")!;
+        var comboA = Shared.Infrastructure.Abilities.AbilityCatalog.Get("combo_a")!.Timeline;
         long t = 10_000;
 
         Assert.True(state.TryBeginComboAttack(t, comboA.ComboChainMs, CombatHandler.ComboMinIntervalMs, CombatHandler.ComboCadenceToleranceMs));
@@ -81,7 +81,7 @@ public class ComboCadenceTests
     {
         // 허용치를 줘도 버스트(즉시 3연타) 차단은 유지돼야 한다.
         var state = new PlayerState { UserId = 1 };
-        var comboA = Shared.Infrastructure.Skills.SkillCatalog.Get("combo_a")!;
+        var comboA = Shared.Infrastructure.Abilities.AbilityCatalog.Get("combo_a")!.Timeline;
         long t = 10_000;
 
         Assert.True(state.TryBeginComboAttack(t, comboA.ComboChainMs, CombatHandler.ComboMinIntervalMs, CombatHandler.ComboCadenceToleranceMs));

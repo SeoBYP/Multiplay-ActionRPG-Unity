@@ -28,7 +28,7 @@ namespace Game.Gameplay.Monster
         }
     }
 
-    /// <summary>한 몬스터 타입 — 시뮬 스탯 + 보상(exp).</summary>
+    /// <summary>한 몬스터 타입 — "무엇인가"(체력·이동·시야) + 보상(exp) + 쓸 수 있는 어빌리티 목록.</summary>
     [Serializable]
     public sealed class MonsterDefinition
     {
@@ -38,13 +38,14 @@ namespace Game.Gameplay.Monster
         [Header("Sim 스탯 (던전 서버 시뮬)")]
         public int maxHp = 30;
         public float moveSpeed = 2.0f;
+        [Tooltip("추격 시작 거리. 공격 사거리는 어빌리티(activationRange)가 갖는다.")]
         public float aggroRange = 6f;
-        public float attackRange = 1.2f;
-        public float attackCooldownMs = 1500f;
-        public int attackDamage = 5;
 
-        [Tooltip("적중 시 부여할 CC 효과 id(GameplayEffectCatalog). 비우면 없음. 예: slow_3s · stun_1_5s")]
-        public string onHitEffectId = "";
+        [Header("어빌리티 (AC-B B4 — 공격은 전부 Ability SO 저작)")]
+        [Tooltip("이 몬스터가 쓰는 어빌리티 id 목록(AbilityCatalogDefinition 의 id). **우선순위 = 이 순서** —\n" +
+                 "서버 AI 가 사거리·쿨다운을 만족하는 첫 어빌리티를 발동한다. 2개 이상 넣으면 보스 다중 스킬.\n" +
+                 "쿨다운·사거리·데미지·CC 는 전부 Ability SO 에서 편집한다(여기 중복 저작 없음).")]
+        public List<string> abilityIds = new();
 
         [Header("보상")]
         [Tooltip("처치 시 획득 경험치(Main 킬 보상). 던전은 맵 클리어 단위라 미사용 가능.")]

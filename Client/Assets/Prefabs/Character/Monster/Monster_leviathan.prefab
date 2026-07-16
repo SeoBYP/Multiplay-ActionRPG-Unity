@@ -5605,7 +5605,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1660263617990697036}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.35781515, y: -0.587499, z: -0.055265293, w: 0.723712}
+  m_LocalRotation: {x: 0.35781512, y: -0.587499, z: -0.055265285, w: 0.723712}
   m_LocalPosition: {x: -3.2742646, y: 0, z: 0.00000038146973}
   m_LocalScale: {x: 1.0000077, y: 0.99998873, z: 1.0000031}
   m_ConstrainProportionsScale: 0
@@ -5756,6 +5756,7 @@ GameObject:
   - component: {fileID: 6870619908938012509}
   - component: {fileID: 3942309033693014737}
   - component: {fileID: 6456483275320372677}
+  - component: {fileID: 702833629053687940}
   m_Layer: 0
   m_Name: Monster_leviathan
   m_TagString: Untagged
@@ -5793,13 +5794,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.MonsterEntity
   lerpSpeed: 15
-  animator: {fileID: 8774838931284932212}
-  idleState: StandIdle
-  walkState: WalkCycle
-  dieState: Die
-  walkSpeedThreshold: 0.3
+  speedSmoothing: 10
   deathDespawnDelay: 2
-  crossFadeSec: 0.15
 --- !u!114 &3942309033693014737
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5836,6 +5832,32 @@ CapsuleCollider:
   m_Height: 4.5
   m_Direction: 1
   m_Center: {x: 0, y: 2.25, z: 0}
+--- !u!114 &702833629053687940
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1735641650104681035}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69a2c0eb64bb45148a00305eb06dceca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.CharacterAgentAnimations
+  m_animationSpeedFloat: Speed
+  m_animationMoveXFloat: 
+  m_animationMoveYFloat: 
+  m_animationComboStepInt: 
+  m_animationGroundedBool: 
+  m_animationStrafeBool: 
+  m_animationFallTrigger: 
+  m_animationJumpTrigger: 
+  m_animationLandTrigger: 
+  m_animationInteractTrigger: 
+  m_animationAttackTrigger: Attack
+  m_animationDeathTrigger: Die
+  m_animationDodgeTrigger: 
+  m_animationReviveTrigger: 
 --- !u!1 &1772817591172337522
 GameObject:
   m_ObjectHideFlags: 0
@@ -6211,7 +6233,7 @@ Animator:
   m_GameObject: {fileID: 2503345062786469622}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: 240eb9482b84aa044a36b0069b513ab9, type: 3}
-  m_Controller: {fileID: 9100000, guid: d496e71674d74c44689179333998ebc9, type: 2}
+  m_Controller: {fileID: 9100000, guid: 60aaa6d260b9d924da9fc2b3988c25a0, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
   m_ApplyRootMotion: 1
@@ -7152,7 +7174,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5391838618205148096}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.21303925, y: 0.8886033, z: -0.16826735, w: -0.36970866}
+  m_LocalRotation: {x: 0.21303925, y: 0.8886034, z: -0.16826735, w: -0.3697087}
   m_LocalPosition: {x: -0.60047954, y: -0.61769944, z: -1.1224847}
   m_LocalScale: {x: 0.9999999, y: 1, z: 1.0000008}
   m_ConstrainProportionsScale: 0
@@ -7280,7 +7302,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5611123534518426181}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.38953063, y: 0.68169147, z: -0.47302443, w: 0.39976305}
+  m_LocalRotation: {x: -0.38953063, y: 0.6816915, z: -0.47302443, w: 0.39976308}
   m_LocalPosition: {x: 0.5243536, y: 2.0740287, z: 3.9660556}
   m_LocalScale: {x: 1.0000001, y: 0.99999976, z: 1.0000001}
   m_ConstrainProportionsScale: 0
@@ -12680,7 +12702,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6936195631272495202}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.5134781, y: 0.7997582, z: -0.21338592, w: 0.22625984}
+  m_LocalRotation: {x: -0.51347816, y: 0.79975826, z: -0.21338594, w: 0.22625986}
   m_LocalPosition: {x: 2.777169, y: 1.9941505, z: 3.8666253}
   m_LocalScale: {x: 0.9999999, y: 1.0000001, z: 1}
   m_ConstrainProportionsScale: 0

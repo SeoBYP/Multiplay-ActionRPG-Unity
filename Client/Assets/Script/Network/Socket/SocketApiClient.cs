@@ -44,6 +44,8 @@ namespace Game.Network.Socket
             builder.Register<IPacketHandler, RevivePacketHandler>(Lifetime.Singleton);
             // 원격 공격 연출: S_Attack 브로드캐스트 → RemoteDriver 스윙 애니(적중은 서버 권위).
             builder.Register<IPacketHandler, AttackPacketHandler>(Lifetime.Singleton);
+            // AC: Actor 통합 발동 연출 — S_AbilityActivated 브로드캐스트 → AbilityCueRouter 가 ActorRegistry 로 대상 Cue 재생(몬스터 공격 등).
+            builder.Register<IPacketHandler, AbilityActivatedPacketHandler>(Lifetime.Singleton);
             // 원격 회피 연출: S_Dodge 브로드캐스트 → RemoteDriver 구르기 애니(무적은 서버 권위).
             builder.Register<IPacketHandler, DodgePacketHandler>(Lifetime.Singleton);
             // 3.3 루트/드랍: 바닥 아이템 스폰/제거 + 줍기 토스트.
@@ -119,6 +121,11 @@ namespace Game.Network.Socket
         event Action<long, int> OnPlayerAttacked;
         void NotifyPlayerAttacked(long attackerId, int skillId);
 
+        // ── Actor 통합 발동 연출(S_AbilityActivated 브로드캐스트) ──
+        /// <summary>S_AbilityActivated 수신 시 발행(actorId, skillId). AbilityCueRouter 가 ActorRegistry 로 대상을 찾아 Cue 재생(적중=서버 권위).</summary>
+        event Action<long, int> OnAbilityActivated;
+        void NotifyAbilityActivated(long actorId, int skillId);
+
         // ── 원격 회피 연출(S_Dodge 브로드캐스트) ──
         /// <summary>S_Dodge 수신 시 발행(userId). RemoteDriver 가 회피(구르기) 애니만 재생한다(무적=서버 권위).</summary>
         event Action<long> OnPlayerDodged;
@@ -180,6 +187,7 @@ namespace Game.Network.Socket
         public event Action                       OnDungeonFailed;
         public event Action<long>                 OnPlayerDead;
         public event Action<long, int>            OnPlayerAttacked;
+        public event Action<long, int>            OnAbilityActivated;
         public event Action<long>                 OnPlayerDodged;
         public event Action<long, int>            OnPlayerRevived;
         public event Action<SocketMonsterSnapshot> OnMonsterSpawned;
@@ -194,6 +202,7 @@ namespace Game.Network.Socket
         public void MarkDungeonFailed() => OnDungeonFailed?.Invoke();
         public void NotifyPlayerDead(long userId) => OnPlayerDead?.Invoke(userId);
         public void NotifyPlayerAttacked(long attackerId, int skillId) => OnPlayerAttacked?.Invoke(attackerId, skillId);
+        public void NotifyAbilityActivated(long actorId, int skillId) => OnAbilityActivated?.Invoke(actorId, skillId);
         public void NotifyPlayerDodged(long userId) => OnPlayerDodged?.Invoke(userId);
         public void NotifyPlayerRevived(long userId, int hp) => OnPlayerRevived?.Invoke(userId, hp);
 

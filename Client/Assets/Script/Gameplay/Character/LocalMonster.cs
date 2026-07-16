@@ -17,7 +17,7 @@ namespace Game.Gameplay.Character
     /// - 사망: OnDied(this) 발행(MainMonsterSpawner 가 디스폰·드랍 처리) 후 자기 파괴.
     /// 콜라이더 필요(LocalCombat 의 Physics.OverlapSphere 가 찾는다). UnityEngine 의존이므로 서버와 무관.
     /// </summary>
-    public sealed class LocalMonster : MonoBehaviour
+    public sealed class LocalMonster : MonoBehaviour, IActorView
     {
         [Header("식별")]
         [Tooltip("드랍 테이블/카탈로그 키(예: creepy_demon, goblin). DropTableDefinition 과 정렬.")]
@@ -49,15 +49,9 @@ namespace Game.Gameplay.Character
         [SerializeField] private float knockbackDistance = 2f;
         [SerializeField] private float knockbackDuration = 0.2f;
 
-        [Header("애니(모델 컨트롤러의 상태 이름 — 비우면 미재생)")]
-        [Tooltip("모델의 Animator. 미할당 시 자식에서 자동 탐색.")]
-        [SerializeField] private Animator animator;
-        [SerializeField] private string idleState = "";
-        [SerializeField] private string walkState = "";
-        [SerializeField] private string dieState = "";
-        [Tooltip("이 속도(m/s) 이상 이동 시 walk, 미만이면 idle.")]
-        [SerializeField] private float walkSpeedThreshold = 0.3f;
-        [SerializeField] private float crossFadeSec = 0.15f;
+        [Header("애니(Animator 파라미터 구동 — 이름 배선은 CharacterAgentAnimations)")]
+        [Tooltip("Speed 파라미터 평활화 계수. 지터가 Idle/Walk 전이를 떨게 하는 것을 막는다.")]
+        [SerializeField] private float speedSmoothing = 10f;
         [Tooltip("die 애니 재생 후 파괴까지 지연(초).")]
         [SerializeField] private float deathDespawnDelay = 2.0f;
 
@@ -69,9 +63,10 @@ namespace Game.Gameplay.Character
         [Inject] private readonly PlayerProgressionHolder _progression = null;
 
         private int _hp;
-        private float _nextAttackTime;
+        private long _lastAttackMs;      // 발동 게이트(AbilityActivationMath)용 마지막 공격 시각(ms)
         private Vector3 _prevPos;
-        private string _currentState = ""; // 재-CrossFade 방지
+        private CharacterAgentAnimations _animations;
+        private float _animSpeed;
 
         /// <summary>사망 시 발행(자기 자신 전달). MainMonsterSpawner 가 디스폰·드랍(B-lite 클레임)에 사용.</summary>
         public event Action<LocalMonster> OnDied;
@@ -100,9 +95,8 @@ namespace Game.Gameplay.Character
         private void Awake()
         {
             _hp = maxHp;
-            if (animator == null) animator = GetComponentInChildren<Animator>();
+            _animations = GetComponent<CharacterAgentAnimations>();
             _prevPos = transform.position;
-            PlayState(idleState);
         }
 
         private void Update()
@@ -111,9 +105,15 @@ namespace Game.Gameplay.Character
 
             // 지난 프레임 대비 실제 이동 변위 → walk/idle (추격 중=walk, 정지/공격=idle).
             var moved = transform.position - _prevPos; moved.y = 0f;
-            float speed = Time.deltaTime > 0f ? moved.magnitude / Time.deltaTime : 0f;
+            float instant = Time.deltaTime > 0f ? moved.magnitude / Time.deltaTime : 0f;
             _prevPos = transform.position;
-            PlayState(speed >= walkSpeedThreshold ? walkState : idleState);
+            // 실제 이동 속도 → Speed 파라미터. 컨트롤러가 임계로 Idle↔Walk 를 전이한다(상태를 직접 고르지 않는다).
+            if (_animations != null && Time.deltaTime > 0f)
+            {
+                _animSpeed = Mathf.Lerp(_animSpeed, instant, Time.deltaTime * speedSmoothing);
+                if (_animSpeed < 0.01f) _animSpeed = 0f;
+                _animations.SetFloat(AnimationFloatType.Speed, _animSpeed);
+            }
 
             var asc = _localPlayer?.AbilitySystem;
             if (asc == null) return;
@@ -141,8 +141,16 @@ namespace Game.Gameplay.Character
         /// <summary>쿨다운마다 플레이어 ASC 에 즉발 피해(로컬 권위). HP≤0 → PlayerCharacterAgent 가 다운 처리.</summary>
         private void TryAttack(AbilitySystemComponent target)
         {
-            if (Time.time < _nextAttackTime) return;
-            _nextAttackTime = Time.time + attackCooldownSec;
+            // 발동 게이트 = AbilityActivationMath(던전 몬스터·플레이어와 동일 Shared 규칙). Main 은 마나·차단태그 없어 쿨다운만 먹인다.
+            long nowMs = (long)(Time.time * 1000f);
+            if (!AbilityActivationMath.CanActivate(nowMs, _lastAttackMs, (int)(attackCooldownSec * 1000f),
+                    manaCost: 0, currentMana: 0, blocked: false))
+                return;
+            _lastAttackMs = nowMs;
+
+            // AC: 발동 = 스윙 애니(헛스윙 포함). i-frame 판정보다 먼저 재생한다(던전 MonsterEntity 와 동일).
+            // 몬스터 주공격은 아직 카탈로그 밖(어빌리티화 = B4) → 기본 공격 Cue 고정.
+            PlayAbilityCue(AnimationTriggerType.Attack, comboStep: 0);
 
             // 회피 무적(i-frame): 무적 중이면 이 공격은 빗나간다(쿨다운은 소모 = 헛스윙). Main 클라 권위 게이트.
             // 던전(서버 권위)은 서버 TickMonsters 가 동일하게 막는다(authority-model 정합).
@@ -194,20 +202,23 @@ namespace Game.Gameplay.Character
 
             IsDead = true;
             Debug.Log($"[Combat] {monsterId} 사망");
-            PlayState(dieState);
+            _animations?.SetTrigger(AnimationTriggerType.Dead);
             // 사망 애니 중 재타격/재타겟 방지(HP guard 로 이미 no-op 이나 명시적으로 콜라이더 끔).
             foreach (var c in GetComponentsInChildren<Collider>()) c.enabled = false;
             OnDied?.Invoke(this);                    // 스포너: 드랍·재스폰(비주얼과 독립, 즉시)
             Destroy(gameObject, deathDespawnDelay);  // die 애니 후 자체 파괴
         }
 
-        /// <summary>상태 이름이 있고 지금 상태와 다르면 CrossFade. 빈 이름/애니터 없음이면 무시.</summary>
-        private void PlayState(string state)
+        /// <summary>
+        /// 발동 연출(IActorView) — 로컬 권위. AI 의 TryAttack 이 발동 시 직접 호출한다(Main 은 네트워크·라우터 없음).
+        /// 컨트롤러의 트리거 전이가 스윙 재생·복귀를 담당한다. 사망/미배선이면 조용히 무시.
+        /// ※ 몬스터 어빌리티가 카탈로그에 오르면(B4) TryAttack 이 카탈로그에서 Cue 를 해석해 넘긴다 — 지금은 주공격 고정.
+        /// </summary>
+        public void PlayAbilityCue(AnimationTriggerType trigger, int comboStep)
         {
-            if (animator == null || string.IsNullOrEmpty(state) || state == _currentState)
-                return;
-            _currentState = state;
-            animator.CrossFadeInFixedTime(state, crossFadeSec);
+            if (IsDead) return;
+            _animations?.SetInt(AnimationIntType.ComboStep, comboStep);
+            _animations?.SetTrigger(trigger);
         }
     }
 }

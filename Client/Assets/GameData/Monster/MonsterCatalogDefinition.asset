@@ -17,80 +17,63 @@ MonoBehaviour:
     maxHp: 999999
     moveSpeed: 0
     aggroRange: 1000
-    attackRange: 1000
-    attackCooldownMs: 50
-    attackDamage: 9999
-    onHitEffectId: 
+    abilityIds:
+    - test_brute_attack
     expReward: 0
   - monsterId: vampire_bat
     maxHp: 20
     moveSpeed: 3.5
     aggroRange: 8
-    attackRange: 1
-    attackCooldownMs: 1000
-    attackDamage: 8
-    onHitEffectId: 
+    abilityIds:
+    - vampire_bat_attack
     expReward: 12
   - monsterId: creepy_demon
     maxHp: 40
     moveSpeed: 2.2
     aggroRange: 7
-    attackRange: 1.3
-    attackCooldownMs: 1400
-    attackDamage: 12
-    onHitEffectId: 
+    abilityIds:
+    - creepy_demon_attack
     expReward: 18
   - monsterId: demon_girl
     maxHp: 55
     moveSpeed: 2.4
     aggroRange: 9
-    attackRange: 1.5
-    attackCooldownMs: 1500
-    attackDamage: 16
-    onHitEffectId: 
+    abilityIds:
+    - demon_girl_attack
     expReward: 26
   - monsterId: arachnya
     maxHp: 65
     moveSpeed: 2.6
     aggroRange: 8
-    attackRange: 1.6
-    attackCooldownMs: 1600
-    attackDamage: 14
-    onHitEffectId: slow_3s
+    abilityIds:
+    - arachnya_attack
     expReward: 30
   - monsterId: wild_centaur
     maxHp: 100
     moveSpeed: 3.2
     aggroRange: 10
-    attackRange: 1.6
-    attackCooldownMs: 1300
-    attackDamage: 20
-    onHitEffectId: 
+    abilityIds:
+    - wild_centaur_attack
     expReward: 42
   - monsterId: gargoyle
     maxHp: 130
     moveSpeed: 2
     aggroRange: 8
-    attackRange: 1.8
-    attackCooldownMs: 1500
-    attackDamage: 22
-    onHitEffectId: stun_1_5s
+    abilityIds:
+    - gargoyle_attack
     expReward: 55
   - monsterId: undead_axemaster
     maxHp: 170
     moveSpeed: 2.2
     aggroRange: 9
-    attackRange: 1.7
-    attackCooldownMs: 1400
-    attackDamage: 28
-    onHitEffectId: 
+    abilityIds:
+    - undead_axemaster_attack
     expReward: 70
   - monsterId: leviathan
     maxHp: 500
     moveSpeed: 1.6
     aggroRange: 14
-    attackRange: 3
-    attackCooldownMs: 1800
-    attackDamage: 40
-    onHitEffectId: slow_3s
+    abilityIds:
+    - leviathan_slam
+    - leviathan_attack
     expReward: 150

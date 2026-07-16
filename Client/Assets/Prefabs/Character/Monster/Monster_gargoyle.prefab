@@ -187,6 +187,7 @@ GameObject:
   - component: {fileID: 4376728027428023422}
   - component: {fileID: 4968501547547406215}
   - component: {fileID: 1870918401409740035}
+  - component: {fileID: 6559509112687491662}
   m_Layer: 0
   m_Name: Monster_gargoyle
   m_TagString: Untagged
@@ -224,13 +225,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.MonsterEntity
   lerpSpeed: 15
-  animator: {fileID: 1100584691849293314}
-  idleState: idle_unarmed
-  walkState: walk_unarmed
-  dieState: die
-  walkSpeedThreshold: 0.3
+  speedSmoothing: 10
   deathDespawnDelay: 2
-  crossFadeSec: 0.15
 --- !u!114 &4968501547547406215
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -267,6 +263,32 @@ CapsuleCollider:
   m_Height: 2.3
   m_Direction: 1
   m_Center: {x: 0, y: 1.15, z: 0}
+--- !u!114 &6559509112687491662
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2851327131514382044}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69a2c0eb64bb45148a00305eb06dceca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.CharacterAgentAnimations
+  m_animationSpeedFloat: Speed
+  m_animationMoveXFloat: 
+  m_animationMoveYFloat: 
+  m_animationComboStepInt: 
+  m_animationGroundedBool: 
+  m_animationStrafeBool: 
+  m_animationFallTrigger: 
+  m_animationJumpTrigger: 
+  m_animationLandTrigger: 
+  m_animationInteractTrigger: 
+  m_animationAttackTrigger: Attack
+  m_animationDeathTrigger: Die
+  m_animationDodgeTrigger: 
+  m_animationReviveTrigger: 
 --- !u!1 &3406626103323214964
 GameObject:
   m_ObjectHideFlags: 0
@@ -403,7 +425,7 @@ Animator:
   m_GameObject: {fileID: 5053111555244964859}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: 48c30b9485eb4c7419b34a39c657402b, type: 3}
-  m_Controller: {fileID: 9100000, guid: 781ce18320bed51478d720730be623be, type: 2}
+  m_Controller: {fileID: 9100000, guid: d2d580579eacef34289583bcd631fb58, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
   m_ApplyRootMotion: 1
