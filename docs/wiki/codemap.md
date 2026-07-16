@@ -293,7 +293,11 @@
   → **CLAUDE.md 의 클라 검증은 asmdef 재편 이후 계속 깨진 채였다.**
 - **더 나쁜 사실**: 화석을 치워도 `dotnet` 은 답이 아니다. `Game.Gameplay`/`Game.GUI` 는 Unity 패키지(RenderPipelines.Core) 소스를 `dotnet` 컴파일러 설정으로 빌드해 **Unity 코드에서** CS8168/CS8347 이 나고, `Client.sln` 은 **MSB5004**(Unity.Timeline 중복)로 열리지도 않는다.
 - **수정**: CLAUDE.md 를 **"클라는 Unity 가 유일한 권위"** 로 교정(`refresh_unity` → `read_console(errors)` → `run_tests(EditMode)`). `dotnet build Client\*.csproj` 는 **금지**로 명시하고 위 3가지 이유를 함께 적어 재도입을 막았다.
-- **미해결(승인 대기)**: 화석 csproj 5개는 **삭제하지 않았다**(생성물이지만 Unity 가 재생성하지 않으므로 삭제가 곧 정리). `Client.sln` 은 이미 화석을 참조하지 않아 급하지 않음.
+- **화석 csproj 삭제 완료(승인 2026-07-17)** — **5개가 아니라 7개**(13파일, `.Player` 변형 포함)였다.
+  ⚠️ **검사법 교훈**: 처음엔 asmdef **파일명**으로 대조해 5개만 찾았는데, **Unity 는 asmdef 의 내부 `name` 필드로 csproj 이름을 정한다**(파일명 ≠ 어셈블리명). `name` 필드로 다시 대조하니 `Game.System.Editor`(07-05)·`Game`(05-29, Compile 0개 빈 껍데기)가 추가로 드러났다.
+  삭제 전 4중 확인: ① asmdef `name` 목록에 없음 ② 살아있는 csproj 가 참조 안 함 ③ `Client.sln` 미포함(고정문자열 대조 — `grep -n` 정규식이 오탐을 냈다) ④ 백업 후 삭제.
+  삭제 후: Unity 재컴파일해도 **되살아나지 않음**(= 진짜 고아 증명) · 컴파일 0오류 · EditMode 174/174 · csproj 는 gitignore 라 git 무영향.
+  대상: `Game.Main` `Game.Input` `Game.OutGame` `Game.InGame` `Game.System.DungeonLobby` `Game.System.Editor` `Game`.
 
 ### 2.63 AC-B B3 — 클라 Cue 데이터화 + 저작 단일화 (2026-07-16)
 
