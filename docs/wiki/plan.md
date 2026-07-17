@@ -385,6 +385,9 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 - [x] **AC-C3 상태 시퀀스** — **완료**(승인 2026-07-17). `S_MonsterState.Seq`(몬스터별 단조 증가, **스냅샷 시점** 스탬프) + 클라 `SocketPacketState.UpdateMonster` 스테일 드롭(`seq <= 반영값` → 무시). D2(HP 되돌아감) **근본 해결** — 도착 순서가 뒤집혀도 무효화. C3-hotfix 의 재전송은 이중 안전망으로 유지.
 - [ ] **AC-C2b 추가 조치** — 틱레이트·클라 예측 등. **C1c 측정 전 착수 금지.**
 
+**플레이 중 발견한 버그 (사용자 관측 → 즉시 수정)**
+- [x] **몬스터 사망 시 체력바가 안 비는 버그** — 2026-07-17. 서버는 `dead` 면 `S_MonsterDead` 만 보내고 죽는 순간의 `S_MonsterState{Hp=0}` 은 없는데, 클라 `MonsterEntity.HandleDead` 도 HP 를 0 으로 만들지 않아 **체력바가 치명타 직전 값에 멈춘 채 2초간 die 모션**이 재생됐다. → `HandleDead` 에서 HP 0 확정 후 트리거. 서버 추가 전송 대신 클라 유도를 택한 이유 = D1(송신 직렬화 없음) 로 Dead 가 먼저 오면 `Hp=0` 이 버려져 간헐 재발. 플레이어는 `S_ApplyEffect` 로 ASC 가 직접 차감해 이 버그 없음(비대칭). 상세 = codemap §2.73. 검증: PlayMode anim 3/3 · EditMode 189/189.
+
 **AC-D — 연출/밸런스 잔여 (AC-B에서 확장점으로 남긴 것들)**
 - [ ] **AC-D1 어빌리티별 전용 애니** — 지금은 보스 강스킬도 `Attack` 트리거 공유(`AnimationTriggerType` enum에 Attack/Dodge/Dead…만 존재). 필요 작업: enum 값 추가(예: `AbilitySpecial`) + `CharacterAgentAnimations` 파라미터 필드 + 몬스터 컨트롤러 상태/트리거 + `AbilityDefinition.cueTrigger` 저작. **소재는 이미 있음** — leviathan FBX 에 `AttackSpecial`/`AttackHard`/`Roar` 클립 존재. 설계 = [ability-so-authoring.md](ability-so-authoring.md) §남은 확장점.
 - [ ] **AC-D2 플레이어→플레이어 데미지 스탯 스케일** — 현재 **플랫 피해**(AP·Defense 미반영). 몬스터→플레이어/플레이어→몬스터는 스탯 스케일이라 **비대칭**. 전환은 밸런스 결정이라 보류 중(B5 는 출처 일원화만 하고 동작 보존). ※ 코옵에서 friendly fire 를 유지할지 자체가 선행 결정.
