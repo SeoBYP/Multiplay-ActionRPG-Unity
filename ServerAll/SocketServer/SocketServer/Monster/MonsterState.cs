@@ -1,3 +1,4 @@
+using Shared.Infrastructure.Monsters;
 using Shared.Infrastructure.Spawn;
 
 namespace Server.Monster;
@@ -19,6 +20,15 @@ public sealed class MonsterState
 {
     public int InstanceId { get; init; }
     public string MonsterId { get; init; } = "";
+
+    /// <summary>
+    /// 스폰 시 확정된 레벨(AC-E2). <b>매 틱 재계산하지 않는다</b> — 레벨업하는 몬스터는 없고,
+    /// 스탯은 스폰 순간의 값이 진실이다. 해석 규칙 = <c>MapSpawnLayout.ResolveLevel</c>.
+    /// </summary>
+    public int Level { get; init; } = 1;
+
+    /// <summary>스폰 시 확정된 등급(AC-E2). 레벨과 직교 — 대역 안에서의 강도.</summary>
+    public MonsterTier Tier { get; init; } = MonsterTier.Normal;
 
     public float PosX;
     public float PosY;

@@ -341,7 +341,10 @@ public class Room
     /// **반드시 이 메서드를 경유**한다. 원인이 여럿이 되면 이 한 점을 `SpawnSystem`(이벤트 라우터)로
     /// 감싸 "왜 스폰(원인)"과 "어떻게 스폰(여기)"을 분리한다. 설계·승격 트리거 = docs/wiki/spawn-system-evolution.md.
     /// </summary>
-    public void SpawnMonsters(IReadOnlyList<MonsterSpawnDef> defs, MapBounds bounds)
+    /// <param name="mapMonsterLevel">
+    /// 던전 기본 몬스터 레벨(AC-E2). 0 = 미저작 → 스폰별 Level 도 없으면 L1(레벨 도입 전과 동일 동작).
+    /// </param>
+    public void SpawnMonsters(IReadOnlyList<MonsterSpawnDef> defs, MapBounds bounds, int mapMonsterLevel = 0)
     {
         lock (_monsters)
         {
@@ -350,6 +353,11 @@ public class Room
             {
                 var stats = MonsterCatalog.Get(def.MonsterId);
                 int count = Math.Max(1, def.Count);
+
+                // 레벨·등급은 **스폰 시 1회 확정**한다(monster-leveling.md §4.1) — 매 틱 재계산하지 않는다.
+                int level = MapSpawnLayout.ResolveLevel(def.Level, mapMonsterLevel);
+                int maxHp = Shared.Infrastructure.Monsters.MonsterLevelScaling.Hp(stats.MaxHp, level, def.Tier);
+
                 for (int i = 0; i < count; i++)
                 {
                     int id = ++_nextMonsterInstanceId;
@@ -357,11 +365,13 @@ public class Room
                     {
                         InstanceId = id,
                         MonsterId  = def.MonsterId,
+                        Level = level,
+                        Tier = def.Tier,
                         PosX = def.X, PosY = def.Y, PosZ = def.Z,
                         SpawnX = def.X, SpawnZ = def.Z,
                         RotY = def.RotY,
-                        MaxHp = stats.MaxHp,
-                        Hp = stats.MaxHp,
+                        MaxHp = maxHp,
+                        Hp = maxHp,
                         Phase = MonsterPhase.Idle,
                         Patrol = def.Patrol,
                         PatrolIndex = 0,

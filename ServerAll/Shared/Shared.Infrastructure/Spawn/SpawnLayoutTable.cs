@@ -66,10 +66,12 @@ public static class SpawnLayoutTable
                     (m.Patrol ?? new List<PatrolDto>())
                         .Select(p => new PatrolPoint(p.X, p.Z))
                         .ToList(),
-                    m.SlotId, m.RespawnCooldownMs))
+                    m.SlotId, m.RespawnCooldownMs,
+                    m.Level, (Monsters.MonsterTier)m.Tier))
                 .ToList();
 
-            result[map.MapId] = new MapSpawnLayout(map.MapId, points, bounds, monsters, map.ExpReward);
+            result[map.MapId] = new MapSpawnLayout(
+                map.MapId, points, bounds, monsters, map.ExpReward, map.MonsterLevel);
         }
         return result;
     }
@@ -88,6 +90,9 @@ public static class SpawnLayoutTable
 
         /// <summary>던전 클리어 시 참가자 전원에게 지급할 경험치. 누락 시 0(보상 없음).</summary>
         public long ExpReward { get; set; }
+
+        /// <summary>이 던전 몬스터의 기본 레벨(AC-E2). 누락 시 0 = L1 — 기존 JSON 이 그대로 동작한다.</summary>
+        public int MonsterLevel { get; set; }
     }
 
     private sealed class PointDto
@@ -116,6 +121,12 @@ public static class SpawnLayoutTable
         public int Count { get; set; } = 1;
         public int Wave { get; set; }
         public List<PatrolDto> Patrol { get; set; } = new();
+
+        /// <summary>이 스폰만의 레벨(AC-E2). 0 = 맵 기본(<c>MapEntry.MonsterLevel</c>) 사용 — 같은 맵의 엘리트/보스를 올릴 때 쓴다.</summary>
+        public int Level { get; set; }
+
+        /// <summary>등급(AC-E2). 0=Normal · 1=Elite · 2=Boss. 레벨과 직교 — 대역 안에서의 강도.</summary>
+        public int Tier { get; set; }
 
         /// <summary>Main B-lite 클레임 키(슬롯 안정 식별자). 던전 미사용(기본 0). main-spawn-claim.md.</summary>
         public int SlotId { get; set; }

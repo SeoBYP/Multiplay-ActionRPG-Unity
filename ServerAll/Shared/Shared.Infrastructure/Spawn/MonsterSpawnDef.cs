@@ -1,3 +1,5 @@
+using Shared.Infrastructure.Monsters;
+
 namespace Shared.Infrastructure.Spawn;
 
 /// <summary>패트롤 경로의 한 지점(XZ). 몬스터는 patrol 목록을 순서대로 순회한다.</summary>
@@ -19,4 +21,6 @@ public sealed record MonsterSpawnDef(
     int Wave,
     IReadOnlyList<PatrolPoint> Patrol,
     int SlotId = 0,
-    int RespawnCooldownMs = 0);
+    int RespawnCooldownMs = 0,
+    int Level = 0,
+    MonsterTier Tier = MonsterTier.Normal);
