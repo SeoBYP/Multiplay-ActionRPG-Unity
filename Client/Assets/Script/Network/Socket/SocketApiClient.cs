@@ -294,6 +294,7 @@ namespace Game.Network.Socket
         public void UpdateMonster(int instanceId, float posX, float posY, float posZ, float rotY, int hp, byte phase, int seq)
         {
             SocketMonsterSnapshot updated = null;
+            int hpDelta = 0;
             lock (_sync)
             {
                 if (_monsters.TryGetValue(instanceId, out var existing))
@@ -301,7 +302,16 @@ namespace Game.Network.Socket
                     // AC-C3 스테일 드롭: 서버는 상태를 **만든 순서대로** Seq 를 찍지만 송신은 그 순서가 아닐 수 있다
                     // (틱이 먼저 만든 패킷을 나중에 보냄 → 데미지 패킷이 먼저 도착). 이미 더 새 상태를 반영했다면 버린다.
                     // 버리지 않으면 HP 가 옛 값으로 되돌아가고, 서버는 그 되돌림을 모른다 → 체감상 HP 고착/튐.
-                    if (seq <= existing.Seq) return;
+                    if (seq <= existing.Seq)
+                    {
+                        // 진단(AC-C1b): 버린 사건 자체가 "순서 역전이 실재했다"는 증거 — C1c 에서 빈도를 본다.
+                        Diagnostics.CombatTraceRecorder.Shared.RecordStaleDropped(
+                            Diagnostics.CombatTraceRecorder.NowMs, -(long)instanceId, seq, existing.Seq);
+                        return;
+                    }
+
+                    // 진단: HP 델타 = 플레이어→몬스터 스윙의 **유일한 데미지 신호**(몬스터엔 S_ApplyEffect 가 없다).
+                    hpDelta = hp - existing.Hp;
 
                     updated = existing.WithState(posX, posY, posZ, rotY, hp, phase, seq);
                     _monsters[instanceId] = updated;
@@ -313,7 +323,14 @@ namespace Game.Network.Socket
                     _monsters[instanceId] = new SocketMonsterSnapshot(instanceId, string.Empty, posX, posY, posZ, rotY, hp, hp, phase, seq);
                 }
             }
-            if (updated != null) OnMonsterMoved?.Invoke(updated);
+
+            if (updated != null)
+            {
+                // 진단은 lock 밖에서 — 기록이 상태 저장소 잠금을 잡고 있을 이유가 없다(§2.3 무할당·저간섭).
+                Diagnostics.CombatTraceRecorder.Shared.RecordMonsterHpApplied(
+                    Diagnostics.CombatTraceRecorder.NowMs, -(long)instanceId, hp, seq, hpDelta);
+                OnMonsterMoved?.Invoke(updated);
+            }
         }
 
         public void RemoveMonster(int instanceId)

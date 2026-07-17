@@ -131,6 +131,42 @@ namespace Game.Tests.EditMode.Socket
         }
 
         [Test]
+        public void 몬스터_피격은_S_ApplyEffect_없이_HP델타로_귀속된다()
+        {
+            // ⚠ 실제 서버 동작: 몬스터 피해는 S_ApplyEffect 로 오지 않는다(그건 플레이어가 대상일 때만).
+            //   서버가 몬스터 HP 를 권위로 깎아 S_MonsterState 로만 보낸다 → HP 델타가 유일한 데미지 신호.
+            //   이게 던전의 주 시나리오(= "몬스터 HP 동기화가 느리다"는 원 관측)이므로 반드시 병합돼야 한다.
+            var r = new CombatTraceRecorder { Enabled = true };
+            r.RecordAttackSent(1000, Actor, NetId);
+            r.RecordAbilityActivated(1014, Actor, NetId);
+            r.RecordMonsterHpApplied(1031, Monster, hp: 3, seq: 41, amount: -27); // 데미지 신호 = 델타
+
+            var rec = CombatTraceJoin.Build(r.Snapshot()).Single();
+
+            Assert.AreEqual(Monster, rec.TargetId, "델타가 있는 몬스터가 이 스윙의 대상");
+            Assert.AreEqual(27, rec.FinalDamage);
+            Assert.AreEqual(3, rec.HpAfter);
+            Assert.AreEqual(41, rec.Seq);
+            Assert.AreEqual(31, rec.SendToHpMs, "체감 지연의 본체가 계산돼야 한다");
+            Assert.IsFalse(rec.LikelyGated);
+        }
+
+        [Test]
+        public void 델타없는_이동틱은_대상으로_오인되지_않는다()
+        {
+            // 추격 중인 몬스터는 매 틱 위치만 바뀐 S_MonsterState(델타 0)를 흘린다 → 대상으로 잡히면 구간이 거짓이 된다.
+            var r = new CombatTraceRecorder { Enabled = true };
+            r.RecordAttackSent(1000, Actor, NetId);
+            r.RecordMonsterHpApplied(1005, targetId: -99, hp: 50, seq: 7, amount: 0); // 이동만
+            r.RecordMonsterHpApplied(1031, Monster, hp: 3, seq: 41, amount: -27);     // 진짜 피격
+
+            var rec = CombatTraceJoin.Build(r.Snapshot()).Single();
+
+            Assert.AreEqual(Monster, rec.TargetId, "델타 0 인 이동 갱신은 배제돼야 한다");
+            Assert.AreEqual(31, rec.SendToHpMs);
+        }
+
+        [Test]
         public void 연속_스윙은_각각_별개의_구간으로_분리된다()
         {
             var r = new CombatTraceRecorder { Enabled = true };

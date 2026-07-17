@@ -20,6 +20,10 @@ namespace Game.Network.Socket
 
         public override UniTask HandleAsync(S_AbilityActivated packet)
         {
+            // 진단(AC-C1b): 서버가 발동 게이트를 통과시켰다는 신호의 도착 시각. 이게 안 오면 gate 에 막힌 것(LikelyGated).
+            Diagnostics.CombatTraceRecorder.Shared.RecordAbilityActivated(
+                Diagnostics.CombatTraceRecorder.NowMs, packet.ActorId, packet.SkillId);
+
             _state.NotifyAbilityActivated(packet.ActorId, packet.SkillId);
             return UniTask.CompletedTask;
         }

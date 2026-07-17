@@ -62,6 +62,20 @@ namespace Game.Network.Socket.Diagnostics
         /// <summary>보관 건수. 전투 수 초 분량이면 충분하고(재현 즉시 확인용), 512×32B ≈ 16KB 로 상주 비용도 무시할 만하다.</summary>
         public const int Capacity = 512;
 
+        /// <summary>
+        /// 런타임 기록·에디터 창이 공유하는 인스턴스.
+        /// <para><b>왜 static 인가</b>: 기록자는 DI 로 닿지만 <b>에디터 창은 VContainer 스코프 밖</b>이라 같은 객체를 볼 방법이 없다.
+        /// (스코프를 찾아 Resolve 하는 건 씬·스코프 이름에 결합돼 더 깨지기 쉽다.) 서버 <c>CombatTrace</c> 도 같은 이유로 static 이다.
+        /// 진단 전용·기본 Off 라 부작용이 없고, 테스트는 <c>new CombatTraceRecorder()</c> 로 격리한다.</para>
+        /// </summary>
+        public static readonly CombatTraceRecorder Shared = new CombatTraceRecorder();
+
+        private static readonly System.Diagnostics.Stopwatch Clock = System.Diagnostics.Stopwatch.StartNew();
+
+        /// <summary>단조 증가 클럭(ms). 구간 delta 전용이라 절대시각일 필요가 없고, <c>Time.time</c> 과 달리 스레드 어디서든 안전하다
+        /// (소켓 수신 스레드가 기록한다 — Unity API 는 메인 스레드 전용이라 쓸 수 없다).</summary>
+        public static long NowMs => Clock.ElapsedMilliseconds;
+
         private readonly CombatTraceEntry[] _ring = new CombatTraceEntry[Capacity];
         private readonly object _sync = new object();
         private int _next;    // 다음 쓸 위치
@@ -99,9 +113,15 @@ namespace Game.Network.Socket.Diagnostics
         public void RecordDamageReceived(long timeMs, long actorId, long targetId, int amount)
             => Write(CombatTraceKind.DamageReceived, timeMs, actorId, targetId, networkId: 0, amount, hp: 0, seq: 0);
 
-        /// <summary>S_MonsterState 반영(t_apply).</summary>
-        public void RecordMonsterHpApplied(long timeMs, long targetId, int hp, int seq)
-            => Write(CombatTraceKind.MonsterHpApplied, timeMs, actorId: 0, targetId, networkId: 0, amount: 0, hp, seq);
+        /// <summary>
+        /// S_MonsterState 반영(t_apply).
+        /// <para><paramref name="amount"/> = 이번 반영의 HP 델타(피해면 음수, 변화 없으면 0).
+        /// <b>몬스터 피해는 S_ApplyEffect 로 오지 않는다</b> — 서버는 몬스터 HP 를 권위로 계산해 S_MonsterState 로만 보낸다
+        /// (S_ApplyEffect 는 플레이어가 대상일 때만). 그래서 이 델타가 <b>플레이어→몬스터 스윙의 유일한 데미지 신호</b>이고,
+        /// 이게 없으면 틱마다 흐르는 무관한 몬스터 갱신과 구별할 수 없다.</para>
+        /// </summary>
+        public void RecordMonsterHpApplied(long timeMs, long targetId, int hp, int seq, int amount = 0)
+            => Write(CombatTraceKind.MonsterHpApplied, timeMs, actorId: 0, targetId, networkId: 0, amount, hp, seq);
 
         /// <summary>스테일 드롭(AC-C3) — 순서 역전이 실제로 일어난 증거.</summary>
         public void RecordStaleDropped(long timeMs, long targetId, int droppedSeq, int currentSeq)

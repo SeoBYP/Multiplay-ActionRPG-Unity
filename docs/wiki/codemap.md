@@ -315,6 +315,23 @@
   **부수 발견(미수정)**: appsettings 의 `Logging:LogLevel` 블록 전체가 **죽은 설정**(Serilog 가 무시) — `Microsoft: Warning` 도 실효 없음.
 - **검증**: 단위 4종(`SocketServer.Tests/Diagnostics/CombatTraceTests.cs`) — **Off 무호출을 실측**(가드 제거 시 해당 테스트만 실패 확인 후 복원). SocketServer.Tests **164/164** · 솔루션 0오류 · **Docker 육안 64건**(`path=MonsterToPlayer formula=max(1, base+AP-DEF) actor=-7 ability=arachnya_attack(101) base=14 ap=0 def=5 final=9`) · 오버라이드 제거 시 **0건**(기본 Off 실증) · E2E **31/31**.
 
+### 2.71 AC-C1b/C1b' — 클라 트레이스 링버퍼 + Combat Trace 창 (2026-07-17)
+
+- **단일 소스** = `Network/Socket/Diagnostics/CombatTraceRecorder.cs`(링 512·구조체·무할당·기본 Off) + `CombatTraceJoin.cs`(순수 함수: 스윙 단위 병합·구간 delta). 창은 그 위의 **뷰**(로직 0).
+- **배치가 Game.Network 인 이유**: 기록자가 Network(패킷 수신)와 Gameplay(HP 반영) 양쪽인데 `Game.Network.asmdef` 는 우리 어셈블리를 하나도 참조하지 않는다 → Core 에 두면 참조 추가 필요. Network 에 두면 `Gameplay→Network` 가 허용 방향이라 asmdef 무변경. 서버 `SocketServer/Diagnostics` 와 대칭.
+- **static `Shared` + `NowMs`**: 에디터 창은 VContainer 스코프 밖이라 DI 로 같은 객체를 못 본다(스코프 Resolve 는 씬·이름 결합이라 더 취약). 서버 `CombatTrace` 와 같은 이유. 시각은 `Stopwatch`(단조·스레드 안전) — 소켓 수신 스레드가 기록하므로 `Time.time`(메인 스레드 전용) 은 쓸 수 없다.
+- **배선 4곳**: `CombatSyncSender`(t_send, ActorId=`AuthSession.UserId`) · `AbilityActivatedPacketHandler` · `EffectPacketHandler`(**Amount≠0 만** — CC 는 태그라 제외) · `SocketPacketState.UpdateMonster`(HP델타 + 스테일드롭; 기록은 **lock 밖**).
+- **⚠️ 배선이 C1b 설계 결함을 드러냈다(가장 중요)**: **몬스터 피해는 `S_ApplyEffect` 로 오지 않는다** — 그건 **플레이어가 대상일 때만**이고, 몬스터 HP 는 서버 권위로 계산돼 `S_MonsterState` 로만 온다.
+  최초 `Join` 은 `DamageReceived` 가 있어야 대상을 정했으므로 **던전 주 시나리오(= 원 관측 "몬스터 HP 가 느리다")에서 아무 레코드도 못 만들었다.**
+  → 전송 경로가 둘임을 반영: 몬스터는 **HP 델타가 유일한 데미지 신호**(`amount<0`)이고, 델타 0 인 이동 틱은 자연히 배제된다. 회귀 테스트 2종 추가.
+  **교훈: 배선 없는 순수 로직 테스트는 "실제로 오는 패킷"을 검증하지 못한다.**
+- **⚠️ stale 어셈블리 위의 거짓 그린**: `CombatSyncSender` 의 CS0246(AuthSession using 누락)으로 컴파일이 깨지자 Unity 가 **옛 어셈블리로 테스트를 돌려 184/184 "통과"** 가 나왔다(신규 2건이 없는데도). → **테스트 건수 증가를 반드시 확인**해야 한다(184→186). `read_console(filter_text="error CS")` 로 CS 만 걸러 봐야 환경성 경고에 묻히지 않는다.
+- **창**: `Gameplay/Editor/CombatTraceWindow.cs`, 메뉴 `Tools/Combat/Combat Trace`. **IMGUI 채택**(§2.4 초안의 UI Toolkit 대신) — 매 프레임 갱신되는 진단 덤프라 즉시모드가 맞고 상주 UI 트리·바인딩이 불필요. 선례 `MapEditorWindow` 도 IMGUI.
+  `Total > Count` 면 "N건 덮임" 경고(측정 유실). 상세는 서버 조인 키(actor·seq)를 안내 — AP/DEF 분해는 서버 로그 몫(§2.4 정정).
+- **asmdef 변경(승인)**: `Game.Gameplay.Editor` references 에 `Game.Network` 1줄 추가. 하향이라 레이어 위반 아님. 대안(`Game.Network.Editor` 신설)은 원칙2(asmdef 과도 분리 금지)와 충돌해 기각.
+- **함정**: 창 네임스페이스가 `Game.Gameplay.Editor` 라 `System.IO` 가 **`Game.System.IO`** 로 해석됨(CS0234) → `global::System.IO` 필수. (`.claude/rules/testing.md` 의 "System 세그먼트 금지"와 같은 뿌리)
+- **검증**: 컴파일 0오류 · EditMode **186/186**(184 + 신규 2) · Docker E2E **31/31**(**리빌드 후** — 내가 고친 guard 가 `appsettings.json` 변경을 stale 로 잡았다. `*.json` 을 필터에 넣은 §2.69 수정이 실제로 false negative 를 막은 첫 사례).
+
 ### 2.63 AC-B B3 — 클라 Cue 데이터화 + 저작 단일화 (2026-07-16)
 
 - **동기(발견)**: B1 이후 같은 스킬이 **두 SO 에 중복 저작**(`GameData/Skill/Skill_*` + `GameData/Ability/Ability_*`)돼, 서버는 abilities.json(B2)·클라는 SkillCatalogDefinition 을 읽는 **드리프트 위험**이 생겼다 → B3 에서 클라도 Ability 로 일원화하며 Skill 계열 전량 제거.

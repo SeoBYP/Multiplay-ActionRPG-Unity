@@ -18,6 +18,14 @@ namespace Game.Network.Socket
 
         public override UniTask HandleAsync(S_ApplyEffect packet)
         {
+            // 진단(AC-C1b): 서버 권위 데미지(Amount)의 도착 시각 = 판정 결과 병합의 근거.
+            // CC(Amount=0)는 데미지가 아니라 태그 부여라 트레이스에서 제외한다.
+            if (packet.Amount != 0)
+            {
+                Diagnostics.CombatTraceRecorder.Shared.RecordDamageReceived(
+                    Diagnostics.CombatTraceRecorder.NowMs, packet.SourceId, packet.TargetId, packet.Amount);
+            }
+
             _state.ApplyEffect(new SocketEffectApply(
                 packet.EffectId,
                 packet.InstanceId,

@@ -280,7 +280,7 @@ flowchart LR
 |---|------|------|
 | **C1a** ✅ | 서버 `[CombatTrace]` 구조적 로그(스위치 Off 기본) — **타임라인**(recv/judge/serverMs) + **판정**(path·formula·base/AP/DEF·final·hp·seq·gate) | ✅ 단위 4종(Off 시 무호출 **실측**: 가드 제거 시 실패 확인) · SocketServer.Tests 164/164 · **Docker 육안 64건** · 오버라이드 제거 시 0건(기본 Off 실증) · E2E 31/31 |
 | **C1b** ✅ | 클라 `CombatTraceRecorder`(링버퍼 512·순수 C#·무할당) + `CombatTraceJoin`(스윙 단위 병합) — 송신/발동/데미지/HP반영 시각 + 서버 판정 결과(Amount·Hp·Seq) 병합 | ✅ EditMode 10종(기본 Off·링 회전·구간 계산·판정 병합·게이트 의심·타몬스터 배제) · **184/184** |
-| **C1b'** | **`CombatTraceWindow`(에디터 창, §2.4)** — Record·요약 2탭(타임라인/판정)·이벤트 목록(dmg·gate)·상세(**공식 대입식**+타임라인)·Path 필터·CSV | 창은 뷰라 로직 테스트 불요 → Recorder 테스트로 대체 + 플레이 육안 |
+| **C1b'** ✅ | **`CombatTraceWindow`**(IMGUI) + **배선 4곳** — Record·요약 2탭·이벤트 목록(dmg·gate)·상세·거부만 필터·CSV | ✅ 창은 뷰라 로직 0(병합=`CombatTraceJoin`) → EditMode **186/186** · 컴파일 0오류 · E2E **31/31** |
 | **C1c** | **측정 세션** — 던전 플레이하며 창으로 수집 → ① 체감 지연의 실제 구간 ② 데미지 공식 검증 ③ gate 거부 분포 | 요약표 캡처 |
 | **C3-hotfix** ✅ | dirty-flag 안전망(HP 변화는 항상 재전송) — **D2 회귀 봉합 완료** | ✅ `MonsterTickDirtyStateTests` 4종(자가교정 + 회귀가드) · SocketServer.Tests 156/156 · E2E 31/31 |
 | **C2** | 세션 송신 큐(단일 소비자) — D1 수정 | 소켓 단위(동시 broadcast 프레임 무결) + Docker E2E |

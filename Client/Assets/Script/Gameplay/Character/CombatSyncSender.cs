@@ -1,6 +1,7 @@
 using Cysharp.Threading.Tasks;
 using Game.Network.Socket;
 using Game.Network.Socket.Packets;
+using Game.System.Auth;
 using UnityEngine;
 using VContainer;
 
@@ -14,6 +15,9 @@ namespace Game.Gameplay.Character
     public class CombatSyncSender : MonoBehaviour
     {
         [Inject] private ISocketSession _session;
+
+        /// <summary>진단 트레이스의 발동자 ActorId 용(플레이어 = +UserId). 전투 로직엔 쓰지 않는다.</summary>
+        [Inject] private AuthSession _authSession;
 
         private PlayerCharacterAgent _agent;
 
@@ -39,6 +43,12 @@ namespace Game.Gameplay.Character
             // 주입 전(AddComponent 직후 OnEnable)·미접속 시 무시.
             if (_session == null || _session.State != SocketSessionState.Joined)
                 return;
+
+            // 진단(AC-C1b): t_send. 이 시각이 스윙의 기준점이라 **송신 직전**에 찍는다.
+            Game.Network.Socket.Diagnostics.CombatTraceRecorder.Shared.RecordAttackSent(
+                Game.Network.Socket.Diagnostics.CombatTraceRecorder.NowMs,
+                _authSession?.UserId ?? 0, // 플레이어 ActorId = +UserId (ActorIds 규약)
+                skillId);
 
             _session.SendAsync(new C_Attack { SkillId = skillId }, destroyCancellationToken).Forget();
         }

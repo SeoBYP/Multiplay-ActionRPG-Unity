@@ -99,9 +99,23 @@ namespace Game.Network.Socket.Diagnostics
                             break;
 
                         case CombatTraceKind.MonsterHpApplied:
-                            // 데미지가 지목한 대상의 HP 반영만 이 스윙에 귀속한다(다른 몬스터의 틱 갱신 제외).
-                            if (rec.HpAppliedMs < 0 && rec.TargetId != 0 && e.TargetId == rec.TargetId)
+                            if (rec.HpAppliedMs >= 0) break;
+
+                            if (rec.TargetId != 0)
                             {
+                                // 대상이 이미 정해진 경우(플레이어 피격 = S_ApplyEffect 경로): 그 대상의 반영만 귀속.
+                                if (e.TargetId != rec.TargetId) break;
+                                rec.HpAppliedMs = e.TimeMs;
+                                rec.HpAfter = e.Hp;
+                                rec.Seq = e.Seq;
+                            }
+                            else if (e.Amount < 0)
+                            {
+                                // 플레이어→몬스터: 데미지가 S_ApplyEffect 로 오지 않고 **HP 델타가 유일한 신호**다.
+                                // 델타가 있는 몬스터만 이 스윙에 귀속 → 틱마다 흐르는 무관한 갱신(델타 0)은 자연히 배제된다.
+                                rec.TargetId = e.TargetId;
+                                rec.FinalDamage = -e.Amount;
+                                rec.DamageMs = e.TimeMs;   // 이 경로는 데미지 통지와 HP 상태가 같은 패킷이라 두 시각이 같다.
                                 rec.HpAppliedMs = e.TimeMs;
                                 rec.HpAfter = e.Hp;
                                 rec.Seq = e.Seq;
