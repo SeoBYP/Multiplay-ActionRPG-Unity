@@ -378,7 +378,7 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
   - **축A 타임라인**: 송신→서버수신→판정→서버송신→클라수신→HP반영 **구간 delta** (체감 "느림"의 원인 구간)
   - **축B 판정/공식**: `abilityId·path·formula·base/AP/DEF·finalDamage·HP전후·onHit·gate(거부사유)` — **"이 데미지가 왜 이 숫자인가"**. 산식 진실원=`StatCombatMath.MeleeDamage = max(1, base+AP−DEF)`. ※경로 3개가 입력이 달라(플→몹: AP O/DEF 0 · 몹→플: AP 0/DEF O · **플→플: 산식 미경유 flat**) → 트레이스가 **AC-D2 비대칭을 데이터로 노출**한다.
   - [x] **C1a 서버** `[CombatTrace]` 구조적 로그(타임라인+판정) → 기존 Graylog(신규 인프라 0)
-  - [ ] **C1b 클라 `CombatTraceRecorder`** — 링버퍼(512, 순수 C#·무할당) + 서버 판정 필드 병합. **단일 소스** — 창은 그 위의 뷰. EditMode 테스트 대상.
+  - [x] **C1b 클라 `CombatTraceRecorder`** — 링버퍼(512, 순수 C#·무할당, 기본 Off) + `CombatTraceJoin`(스윙 단위 병합·구간 delta). **단일 소스** — 창은 그 위의 뷰. ⚠ 설계 정정: 클라는 AP/DEF 를 못 받으므로 `AP-DEF = final - base` 역산(§2.4 정정). 검증: EditMode 10종 · **184/184**.
   - [ ] **C1b' `CombatTraceWindow`(에디터 창)** — `Tools/Combat/Combat Trace`, UI Toolkit(`MapEditorWindow`·`DialogueGraphWindow` 관례). **Record 토글 · 요약 2탭(타임라인 avg/p95/max · 판정: 어빌리티별 발동수·평균뎀·gate 거부분포) · 이벤트 목록(dmg·gate — 거부도 한 줄로) · 상세(공식을 실제 값 대입식 `max(1, 10+17-0)=27` 로 출력 + 입력 출처 병기 + 타임라인 + 스테일 드롭) · Path 필터 · CSV**. 창=뷰, 로직 0.
   - [ ] **C1c 측정 세션** — 던전 플레이하며 수집 → ① 체감 지연의 실제 구간 ② 데미지 공식 검증 ③ gate 거부 분포
 - [ ] **AC-C2 세션 송신 큐** — 세션당 `Channel`+단일 소비자 루프로 **FIFO·프레임 원자성** 보장(D1 근본). ※연결 계층 변경 → 소켓 E2E 동반 필수.

@@ -182,6 +182,11 @@ Tools/Combat/Combat Trace          ← 메뉴
   - **판정** — `formula` 를 **실제 값을 대입한 식 그대로**(`max(1, 10 + 17 - 0) = 27`) 출력하고, 각 입력의 **출처**를 병기(base=SO 저작 / AP=서버 권위 스탯 / DEF=대상). 결과가 `S_ApplyEffect.Amount`·HP 전후와 이어짐 → **"이 숫자가 왜 나왔나"가 한 화면에서 닫힌다.**
   - **타임라인** — 구간 delta + **스테일 드롭 표시**(§4 Seq 도입 시 D2 재현을 눈으로 확인).
 - **Path 필터** — `Player→Player` 만 걸어보면 **산식 미경유(flat) 비대칭**(§2.2 표, AC-D2)이 데이터로 드러난다.
+
+> ⚠️ **정정(C1b 구현 중 발견) — 위 상세 패널의 `AP=17 ← 시전자 AttackPower` 는 클라가 채울 수 없다.**
+> AP/DEF 는 **서버 권위 스탯이라 클라에 오지 않는다**. 그런데 §2.5 는 "서버 로그를 창으로 끌어오지 않는다"고 못박았다 → **둘은 동시에 성립 불가**.
+> **해소**: 클라는 아는 것만 쓴다 — `base`(AbilityDefinition SO) + `final`(S_ApplyEffect.Amount) 로 **`AP-DEF = final - base` 를 역산**한다(`CombatTraceJoin.InferStatContribution`).
+> 이것으로 "왜 이 숫자인가"는 닫히고, AP/DEF **분해**가 필요하면 `seq`·ActorId 로 서버 `[CombatTrace]`(Graylog)와 조인한다 — 설계 의도(§2.3 상관키)대로다.
 - **Export CSV** = 오프라인 분석·이슈 첨부용.
 - **Play Mode 전용** — 미플레이 시 안내 문구.
 - 구현: `CombatTraceWindow : EditorWindow`(UI Toolkit `MultiColumnListView`). **로직 없음** — `CombatTraceRecorder` 를 읽어 그리기만(테스트는 Recorder 를 EditMode 로).
@@ -274,7 +279,7 @@ flowchart LR
 | # | 증분 | 검증 |
 |---|------|------|
 | **C1a** ✅ | 서버 `[CombatTrace]` 구조적 로그(스위치 Off 기본) — **타임라인**(recv/judge/serverMs) + **판정**(path·formula·base/AP/DEF·final·hp·seq·gate) | ✅ 단위 4종(Off 시 무호출 **실측**: 가드 제거 시 실패 확인) · SocketServer.Tests 164/164 · **Docker 육안 64건** · 오버라이드 제거 시 0건(기본 Off 실증) · E2E 31/31 |
-| **C1b** | 클라 `CombatTraceRecorder`(링버퍼·순수 C#) — 송신/수신/HP반영 시각 + 서버 판정 필드 수신·병합 | EditMode(링버퍼 링·Off 무오버헤드·구간 계산·판정 병합) |
+| **C1b** ✅ | 클라 `CombatTraceRecorder`(링버퍼 512·순수 C#·무할당) + `CombatTraceJoin`(스윙 단위 병합) — 송신/발동/데미지/HP반영 시각 + 서버 판정 결과(Amount·Hp·Seq) 병합 | ✅ EditMode 10종(기본 Off·링 회전·구간 계산·판정 병합·게이트 의심·타몬스터 배제) · **184/184** |
 | **C1b'** | **`CombatTraceWindow`(에디터 창, §2.4)** — Record·요약 2탭(타임라인/판정)·이벤트 목록(dmg·gate)·상세(**공식 대입식**+타임라인)·Path 필터·CSV | 창은 뷰라 로직 테스트 불요 → Recorder 테스트로 대체 + 플레이 육안 |
 | **C1c** | **측정 세션** — 던전 플레이하며 창으로 수집 → ① 체감 지연의 실제 구간 ② 데미지 공식 검증 ③ gate 거부 분포 | 요약표 캡처 |
 | **C3-hotfix** ✅ | dirty-flag 안전망(HP 변화는 항상 재전송) — **D2 회귀 봉합 완료** | ✅ `MonsterTickDirtyStateTests` 4종(자가교정 + 회귀가드) · SocketServer.Tests 156/156 · E2E 31/31 |
