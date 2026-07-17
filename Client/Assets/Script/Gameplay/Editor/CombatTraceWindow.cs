@@ -21,7 +21,7 @@ namespace Game.Gameplay.Editor
     /// </summary>
     public class CombatTraceWindow : EditorWindow
     {
-        private enum SummaryTab { Timeline, Judgement }
+        private enum SummaryTab { Timeline, Judgement, MonsterSync }
 
         private SummaryTab _tab = SummaryTab.Timeline;
         private Vector2 _listScroll;
@@ -29,7 +29,12 @@ namespace Game.Gameplay.Editor
         private int _selected = -1;
         private bool _gatedOnly;
 
+        /// <summary>액터 필터 — 전부 / 내 캐릭터 / 다른 플레이어 / 몬스터.</summary>
+        private int _originFilter; // 0=All 1=Local 2=Remote 3=Monster
+        private static readonly string[] OriginFilterNames = { "전체", "내 캐릭터", "다른 플레이어", "몬스터" };
+
         private List<CombatTraceRecord> _records = new List<CombatTraceRecord>();
+        private List<MonsterSyncStat> _monsters = new List<MonsterSyncStat>();
         private CombatTraceEntry[] _entries = Array.Empty<CombatTraceEntry>();
 
         [MenuItem("Tools/Combat/Combat Trace")]
@@ -84,6 +89,7 @@ namespace Game.Gameplay.Editor
                     ExportCsv();
 
                 GUILayout.FlexibleSpace();
+                _originFilter = EditorGUILayout.Popup(_originFilter, OriginFilterNames, EditorStyles.toolbarPopup, GUILayout.Width(95));
                 _gatedOnly = GUILayout.Toggle(_gatedOnly, "거부만", EditorStyles.toolbarButton, GUILayout.Width(60));
 
                 // Total > Count = 링이 돌아 오래된 기록이 덮였다는 신호(측정 유실 경고).
@@ -95,8 +101,25 @@ namespace Game.Gameplay.Editor
         private void Refresh(CombatTraceRecorder rec)
         {
             _entries = rec.Snapshot();
-            var all = CombatTraceJoin.Build(_entries);
-            _records = _gatedOnly ? all.Where(r => r.LikelyGated).ToList() : all;
+
+            // 로컬 ActorId 는 내 스윙(AttackSent)이 남긴 것으로 안다 — 창은 DI 밖이라 AuthSession 을 못 본다.
+            long localActor = 0;
+            foreach (var e in _entries)
+                if (e.Kind == CombatTraceKind.AttackSent) { localActor = e.ActorId; break; }
+
+            var all = CombatTraceJoin.Build(_entries, localActor);
+            _monsters = CombatTraceJoin.BuildMonsterSync(_entries);
+
+            IEnumerable<CombatTraceRecord> q = all;
+            switch (_originFilter)
+            {
+                case 1: q = q.Where(r => r.Origin == SwingOrigin.LocalPlayer); break;
+                case 2: q = q.Where(r => r.Origin == SwingOrigin.RemotePlayer); break;
+                case 3: q = q.Where(r => r.Origin == SwingOrigin.Monster); break;
+            }
+            if (_gatedOnly) q = q.Where(r => r.LikelyGated);
+
+            _records = q.ToList();
             if (_selected >= _records.Count) _selected = _records.Count - 1;
         }
 
@@ -105,30 +128,40 @@ namespace Game.Gameplay.Editor
             using (new EditorGUILayout.HorizontalScope())
             {
                 if (GUILayout.Toggle(_tab == SummaryTab.Timeline, "타임라인", EditorStyles.miniButtonLeft)) _tab = SummaryTab.Timeline;
-                if (GUILayout.Toggle(_tab == SummaryTab.Judgement, "판정", EditorStyles.miniButtonRight)) _tab = SummaryTab.Judgement;
+                if (GUILayout.Toggle(_tab == SummaryTab.Judgement, "판정", EditorStyles.miniButtonMid)) _tab = SummaryTab.Judgement;
+                if (GUILayout.Toggle(_tab == SummaryTab.MonsterSync, "몬스터 동기화", EditorStyles.miniButtonRight)) _tab = SummaryTab.MonsterSync;
             }
 
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
                 if (_tab == SummaryTab.Timeline) DrawTimelineSummary();
-                else DrawJudgementSummary();
+                else if (_tab == SummaryTab.Judgement) DrawJudgementSummary();
+                else DrawMonsterSync();
             }
         }
 
         private void DrawTimelineSummary()
         {
-            var done = _records.Where(r => r.SendToHpMs >= 0).ToList();
-            EditorGUILayout.LabelField($"완결 스윙 {done.Count} / 전체 {_records.Count}", EditorStyles.miniLabel);
-            if (done.Count == 0)
+            int local = _records.Count(r => r.Origin == SwingOrigin.LocalPlayer);
+            int remote = _records.Count(r => r.Origin == SwingOrigin.RemotePlayer);
+            int mon = _records.Count(r => r.Origin == SwingOrigin.Monster);
+            EditorGUILayout.LabelField($"스윙 {_records.Count}  (내 {local} · 다른 플레이어 {remote} · 몬스터 {mon})", EditorStyles.miniLabel);
+
+            if (_records.Count == 0)
             {
-                EditorGUILayout.LabelField("HP 반영까지 이어진 스윙이 없습니다(빗나감·게이트 거부만).", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField("기록된 스윙이 없습니다.", EditorStyles.miniLabel);
                 return;
             }
 
             Row("구간", "avg", "p95", "max", header: true);
-            Stat("송신→발동 통지", done.Select(r => r.ActivateRoundTripMs));
-            Stat("데미지→HP 반영", done.Where(r => r.DamageToHpMs >= 0).Select(r => r.DamageToHpMs));
-            Stat("── 송신→HP 반영", done.Select(r => r.SendToHpMs));
+
+            // 로컬만 t_send 를 안다 — 원격·몬스터의 입력 시각은 클라가 알 방법이 없다(서버 통지가 첫 관측).
+            Stat("[내] 송신→발동 통지", _records.Select(r => r.ActivateRoundTripMs));
+            Stat("[내] 송신→HP 반영", _records.Select(r => r.SendToHpMs));
+
+            // 모든 액터에서 관측 가능한 구간 = 원격·몬스터 스윙의 유일한 지연 지표.
+            Stat("[전체] 발동→HP 반영", _records.Select(r => r.ActivateToHpMs));
+            Stat("[전체] 데미지→HP 반영", _records.Select(r => r.DamageToHpMs));
         }
 
         private void Stat(string label, IEnumerable<long> values)
@@ -173,6 +206,32 @@ namespace Game.Gameplay.Editor
                 EditorStyles.miniLabel);
         }
 
+        /// <summary>모든 몬스터의 동기화 상태 — 한 대도 안 맞은 몬스터도 나온다(스윙과 무관한 집계).</summary>
+        private void DrawMonsterSync()
+        {
+            if (_monsters.Count == 0)
+            {
+                EditorGUILayout.LabelField("몬스터 상태 수신 없음.", EditorStyles.miniLabel);
+                return;
+            }
+
+            EditorGUILayout.LabelField($"몬스터 {_monsters.Count} 마리 — 누적피해는 서버 [CombatTrace] final 합과 대조(데미지 검수)", EditorStyles.miniLabel);
+            Row("몬스터(actor)", "HP", "seq", "갱신/스테일", header: true);
+            foreach (var m in _monsters)
+            {
+                // 스테일 드롭 = AC-C3 가 막아낸 순서 역전 횟수. 0 이 아니면 경합이 실재한다는 뜻.
+                string stale = m.StaleDrops > 0 ? $"{m.Updates}/{m.StaleDrops} ⚠" : $"{m.Updates}/0";
+                Row($"#{m.InstanceId} ({m.ActorId})", $"{m.LastHp}  누적-{m.TotalDamage}", m.LastSeq.ToString(), stale);
+            }
+        }
+
+        private static string OriginTag(SwingOrigin o) => o switch
+        {
+            SwingOrigin.LocalPlayer => "나  ",
+            SwingOrigin.RemotePlayer => "타P ",
+            _ => "몬스",
+        };
+
         private void DrawEventList()
         {
             EditorGUILayout.LabelField("이벤트 (최신순)", EditorStyles.boldLabel);
@@ -185,8 +244,10 @@ namespace Game.Gameplay.Editor
                     bool sel = i == _selected;
                     string dmg = r.FinalDamage > 0 ? r.FinalDamage.ToString() : "-";
                     string gate = r.LikelyGated ? "거부의심 ⚠" : "Ok";
-                    string total = r.SendToHpMs >= 0 ? $"{r.SendToHpMs}ms" : "-";
-                    string line = $"actor {r.ActorId,-6} netId {r.NetworkId,-3} → {r.TargetId,-6} dmg {dmg,-5} {gate,-11} {total}";
+                    // 로컬은 송신→HP, 원격·몬스터는 발동→HP(관측 가능한 구간이 다르다).
+                    long span = r.Origin == SwingOrigin.LocalPlayer ? r.SendToHpMs : r.ActivateToHpMs;
+                    string total = span >= 0 ? $"{span}ms" : "-";
+                    string line = $"{OriginTag(r.Origin)} actor {r.ActorId,-6} netId {r.NetworkId,-3} → {r.TargetId,-6} dmg {dmg,-5} {gate,-11} {total}";
 
                     if (GUILayout.Toggle(sel, line, EditorStyles.miniButton) != sel)
                         _selected = sel ? -1 : i;
@@ -234,9 +295,17 @@ namespace Game.Gameplay.Editor
 
                 EditorGUILayout.Space(4);
                 EditorGUILayout.LabelField("■ 타임라인 (언제 반영됐나)", EditorStyles.boldLabel);
-                EditorGUILayout.LabelField($"  t_send        0ms");
-                EditorGUILayout.LabelField($"  발동 통지   {Fmt(r.ActivateRoundTripMs)}   상행+서버게이트+하행");
-                EditorGUILayout.LabelField($"  HP 반영     {Fmt(r.SendToHpMs)}   ← 체감 지연의 본체");
+                if (r.Origin == SwingOrigin.LocalPlayer)
+                {
+                    EditorGUILayout.LabelField($"  t_send        0ms   (내 캐릭터라 입력 시각을 안다)");
+                    EditorGUILayout.LabelField($"  발동 통지   {Fmt(r.ActivateRoundTripMs)}   상행+서버게이트+하행");
+                    EditorGUILayout.LabelField($"  HP 반영     {Fmt(r.SendToHpMs)}   ← 체감 지연의 본체");
+                }
+                else
+                {
+                    EditorGUILayout.LabelField($"  발동 통지     0ms   ({(r.Origin == SwingOrigin.RemotePlayer ? "다른 플레이어" : "몬스터")} — 입력 시각은 클라가 알 수 없어 여기가 기준)");
+                    EditorGUILayout.LabelField($"  HP 반영     {Fmt(r.ActivateToHpMs)}");
+                }
                 if (r.Seq > 0) EditorGUILayout.LabelField($"  seq          {r.Seq}   (서버 로그 조인 키)");
             }
         }
@@ -248,9 +317,13 @@ namespace Game.Gameplay.Editor
             string path = EditorUtility.SaveFilePanel("Export Combat Trace", "", "combat-trace.csv", "csv");
             if (string.IsNullOrEmpty(path)) return;
 
-            var sb = new StringBuilder("actorId,networkId,targetId,finalDamage,hpAfter,seq,activateMs,sendToHpMs,likelyGated\n");
+            var sb = new StringBuilder("origin,actorId,networkId,targetId,finalDamage,hpAfter,seq,activateRttMs,sendToHpMs,activateToHpMs,likelyGated\n");
             foreach (var r in _records)
-                sb.Append($"{r.ActorId},{r.NetworkId},{r.TargetId},{r.FinalDamage},{r.HpAfter},{r.Seq},{r.ActivateRoundTripMs},{r.SendToHpMs},{r.LikelyGated}\n");
+                sb.Append($"{r.Origin},{r.ActorId},{r.NetworkId},{r.TargetId},{r.FinalDamage},{r.HpAfter},{r.Seq},{r.ActivateRoundTripMs},{r.SendToHpMs},{r.ActivateToHpMs},{r.LikelyGated}\n");
+
+            sb.Append("\nmonsterInstanceId,actorId,lastHp,lastSeq,updates,staleDrops,totalDamage\n");
+            foreach (var m in _monsters)
+                sb.Append($"{m.InstanceId},{m.ActorId},{m.LastHp},{m.LastSeq},{m.Updates},{m.StaleDrops},{m.TotalDamage}\n");
 
             // global:: 필수 — 이 파일의 네임스페이스가 Game.Gameplay.Editor 라 `System.IO` 가 **Game.System.IO** 로 해석된다
             // (프로젝트에 Game.System 이 있어 전역 System 을 가린다).

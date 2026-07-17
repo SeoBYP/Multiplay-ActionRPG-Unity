@@ -197,6 +197,75 @@ namespace Game.Tests.EditMode.Socket
         }
 
         [Test]
+        public void 다른_플레이어의_스윙도_기록된다()
+        {
+            // 회귀: 초기 Join 은 AttackSent(=내 캐릭터만 남긴다)에서만 레코드를 만들어 **내 스윙만 보였다**.
+            // 다른 플레이어의 입력 시각은 알 수 없지만, 서버 발동 통지부터는 관측 가능하다.
+            const long Other = 200;
+            var r = new CombatTraceRecorder { Enabled = true };
+            r.RecordAttackSent(1000, Actor, NetId);                                   // 내 스윙
+            r.RecordAbilityActivated(1012, Actor, NetId);
+            r.RecordAbilityActivated(1100, Other, NetId);                             // 다른 플레이어 스윙
+            r.RecordMonsterHpApplied(1130, Monster, hp: 20, seq: 9, amount: -15);
+
+            var recs = CombatTraceJoin.Build(r.Snapshot(), localActorId: Actor);
+
+            Assert.AreEqual(2, recs.Count, "내 스윙 + 다른 플레이어 스윙이 모두 나와야 한다");
+            var mine = recs.Single(x => x.ActorId == Actor);
+            var theirs = recs.Single(x => x.ActorId == Other);
+
+            Assert.AreEqual(SwingOrigin.LocalPlayer, mine.Origin);
+            Assert.AreEqual(SwingOrigin.RemotePlayer, theirs.Origin);
+            Assert.AreEqual(-1, theirs.SentMs, "다른 플레이어의 입력 시각은 알 수 없다");
+            Assert.AreEqual(30, theirs.ActivateToHpMs, "발동→HP 반영은 관측 가능하다");
+            Assert.AreEqual(15, theirs.FinalDamage);
+            Assert.IsFalse(theirs.LikelyGated, "원격은 발동 통지가 곧 시작점이라 거부가 정의상 보이지 않는다");
+        }
+
+        [Test]
+        public void 몬스터의_공격도_기록된다()
+        {
+            // 몬스터→플레이어: 서버 틱이 S_AbilityActivated(ActorId<0) + S_ApplyEffect(SourceId=몬스터) 를 보낸다.
+            var r = new CombatTraceRecorder { Enabled = true };
+            r.RecordAbilityActivated(2000, Monster, networkId: 101);
+            r.RecordDamageReceived(2018, Monster, targetId: Actor, amount: -9);
+
+            var rec = CombatTraceJoin.Build(r.Snapshot(), localActorId: Actor).Single();
+
+            Assert.AreEqual(SwingOrigin.Monster, rec.Origin);
+            Assert.AreEqual(Monster, rec.ActorId);
+            Assert.AreEqual(Actor, rec.TargetId);
+            Assert.AreEqual(9, rec.FinalDamage);
+            Assert.AreEqual(-1, rec.SendToHpMs, "몬스터 스윙엔 내 송신 시각이 없다");
+        }
+
+        [Test]
+        public void 모든_몬스터의_동기화가_집계된다_한대도_안맞아도()
+        {
+            // 동기화 검수: 스윙과 무관하게 상태를 받은 모든 몬스터가 나와야 한다.
+            var r = new CombatTraceRecorder { Enabled = true };
+            r.RecordMonsterHpApplied(1000, -7, hp: 30, seq: 1, amount: 0);   // 이동만(피해 0)
+            r.RecordMonsterHpApplied(1100, -7, hp: 18, seq: 2, amount: -12); // 피격
+            r.RecordStaleDropped(1105, -7, droppedSeq: 1, currentSeq: 2);    // 순서 역전 방어
+            r.RecordMonsterHpApplied(1200, -8, hp: 50, seq: 1, amount: 0);   // 한 대도 안 맞은 몬스터
+
+            var stats = CombatTraceJoin.BuildMonsterSync(r.Snapshot());
+
+            Assert.AreEqual(2, stats.Count, "상태를 받은 몬스터는 전부 나와야 한다");
+
+            var m7 = stats.Single(s => s.InstanceId == 7);
+            Assert.AreEqual(18, m7.LastHp);
+            Assert.AreEqual(2, m7.LastSeq);
+            Assert.AreEqual(2, m7.Updates);
+            Assert.AreEqual(1, m7.StaleDrops, "AC-C3 가 막아낸 순서 역전");
+            Assert.AreEqual(12, m7.TotalDamage, "누적 피해 = 서버 final 합과 대조할 값");
+
+            var m8 = stats.Single(s => s.InstanceId == 8);
+            Assert.AreEqual(0, m8.TotalDamage);
+            Assert.AreEqual(0, m8.StaleDrops);
+        }
+
+        [Test]
         public void 스탯_기여분은_final과_base로_역산된다()
         {
             // 클라는 base(SO)와 final(서버 권위)만 안다 → AP-DEF 합만 역산 가능. 분해는 서버 로그와 조인.

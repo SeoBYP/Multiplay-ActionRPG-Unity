@@ -332,6 +332,21 @@
 - **함정**: 창 네임스페이스가 `Game.Gameplay.Editor` 라 `System.IO` 가 **`Game.System.IO`** 로 해석됨(CS0234) → `global::System.IO` 필수. (`.claude/rules/testing.md` 의 "System 세그먼트 금지"와 같은 뿌리)
 - **검증**: 컴파일 0오류 · EditMode **186/186**(184 + 신규 2) · Docker E2E **31/31**(**리빌드 후** — 내가 고친 guard 가 `appsettings.json` 변경을 stale 로 잡았다. `*.json` 을 필터에 넣은 §2.69 수정이 실제로 false negative 를 막은 첫 사례).
 
+### 2.72 AC-C1c 준비 — 트레이스가 **모든 액터**를 낸다 (2026-07-17)
+
+- **사용자 관측**: "다른 플레이어가 한 건 기록이 안 되네" — 사실이었다.
+- **원인**: `CombatTraceJoin.Build` 가 **`AttackSent` 만 스윙 시작점**으로 봤는데, `AttackSent` 는 로컬 `CombatSyncSender` 만 남긴다.
+  원격 플레이어·몬스터의 발동은 **엔트리로는 쌓이는데 레코드가 안 만들어져** 창에서 사라졌다. (서버는 이미 몬스터 발동도 `S_AbilityActivated{ActorId=-instanceId}` 로 보내고 있었다 — `Room.cs:618`. **데이터는 다 오는데 내가 버리고 있었다.**)
+- **수정**: 시작점을 액터별로 나눴다 — 로컬=`AttackSent`(t_send 를 안다) / 원격·몬스터=`AbilityActivated`(그들의 입력 시각은 클라가 알 방법이 없다. 서버 통지가 첫 관측).
+  `SwingOrigin{LocalPlayer,RemotePlayer,Monster}` 추가. 로컬 스윙이 가져간 발동 통지는 `consumed` 로 표시해 중복 레코드를 막는다.
+- **구간 지표가 origin 마다 다르다(중요)**: `SendToHpMs` 는 **로컬 전용**(원격은 -1). 모든 액터 공통 지표는 **`ActivateToHpMs`**(발동 통지→HP 반영). 창의 요약도 `[내]`/`[전체]` 로 갈라 표시한다.
+  `LikelyGated` 도 **로컬 전용** — 원격·몬스터는 발동 통지가 곧 시작점이라 정의상 거부가 보이지 않는다.
+- **동기화 검수**: `BuildMonsterSync` 추가 — 스윙과 무관하게 **상태를 받은 모든 몬스터**를 집계(HP·seq·갱신수·**스테일 드롭수**·**누적 피해**). 누적 피해는 서버 `[CombatTrace]` final 합과 대조하는 **데미지 검수** 근거. 창에 "몬스터 동기화" 탭 + CSV 2섹션.
+- **ActorIds 를 못 쓴 이유**: `Game.Network.asmdef` 가 `overrideReferences: true` 이고 `precompiledReferences` 에 `Shared.Gameplay.dll` 이 없다 → 부호 규약을 `CombatTraceJoin.IsMonster` 로 국소화하고 진실원을 주석에 명시(asmdef 추가 변경 회피).
+- **알려진 한계**: 여러 플레이어가 **동시에** 한 몬스터를 때리면 HP 델타의 주인을 클라가 구분할 수 없다(P→M 은 S_ApplyEffect 가 없어 SourceId 가 없다) → 확정은 서버 로그 조인.
+- **회귀를 실측 확인**: 원격 레코드 생성을 끄니 `다른_플레이어의_스윙도_기록된다` 가 **Expected: 2, But was: 1**(= 사용자가 본 증상 그대로), `몬스터의_공격도_기록된다` 는 0건 → 복원 후 그린.
+- **검증**: EditMode **189/189**(186 + 신규 3) · E2E **31/31**. ⚠ 첫 E2E 에서 `NICKNAME_ALREADY_TAKEN` 1건 실패 → 단독 재실행 통과 + 전체 재실행 31/31 = **테스트 격리 플래키**(반복 E2E 로 닉네임 누적), 내 회귀 아님.
+
 ### 2.63 AC-B B3 — 클라 Cue 데이터화 + 저작 단일화 (2026-07-16)
 
 - **동기(발견)**: B1 이후 같은 스킬이 **두 SO 에 중복 저작**(`GameData/Skill/Skill_*` + `GameData/Ability/Ability_*`)돼, 서버는 abilities.json(B2)·클라는 SkillCatalogDefinition 을 읽는 **드리프트 위험**이 생겼다 → B3 에서 클라도 Ability 로 일원화하며 Skill 계열 전량 제거.

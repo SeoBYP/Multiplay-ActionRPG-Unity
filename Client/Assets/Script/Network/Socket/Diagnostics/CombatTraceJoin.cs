@@ -1,133 +1,255 @@
-using System;
 using System.Collections.Generic;
 
 namespace Game.Network.Socket.Diagnostics
 {
+    /// <summary>스윙을 누가 시작했나. 관측 가능한 구간이 달라진다(로컬만 t_send 를 안다).</summary>
+    public enum SwingOrigin : byte
+    {
+        /// <summary>내 캐릭터 — C_Attack 송신 시각을 알아 **송신→HP 반영** 전 구간이 보인다.</summary>
+        LocalPlayer = 0,
+        /// <summary>다른 플레이어 — 그가 언제 눌렀는지는 알 수 없다. 관측은 S_AbilityActivated 수신부터.</summary>
+        RemotePlayer = 1,
+        /// <summary>몬스터(ActorId &lt; 0) — 서버 틱이 발동. 관측은 S_AbilityActivated 수신부터.</summary>
+        Monster = 2,
+    }
+
     /// <summary>
-    /// 한 번의 스윙을 클라 관점으로 이어붙인 결과(송신 → 발동 → 데미지 → HP 반영).
-    /// 구간 delta 가 §2.1 표와 1:1 이고, 판정부는 §2.2 를 **클라가 아는 범위**로 채운다.
+    /// 한 번의 스윙을 클라 관점으로 이어붙인 결과. <b>던전의 모든 액터</b>(내 캐릭터·다른 플레이어·몬스터)가 대상이다.
     /// </summary>
     public struct CombatTraceRecord
     {
+        public SwingOrigin Origin;
         public long ActorId;
         public int NetworkId;
         public long TargetId;
 
-        public long SentMs;        // t_send (C_Attack)
+        /// <summary>C_Attack 송신(t_send). <b>로컬 스윙만</b> 알 수 있다 — 원격/몬스터는 -1.</summary>
+        public long SentMs;
         public long ActivatedMs;   // S_AbilityActivated 수신 (없으면 -1)
-        public long DamageMs;      // S_ApplyEffect 수신 (없으면 -1)
-        public long HpAppliedMs;   // S_MonsterState 반영 (없으면 -1)
+        public long DamageMs;      // 데미지 관측 (없으면 -1)
+        public long HpAppliedMs;   // HP 반영 (없으면 -1)
 
-        /// <summary>서버 권위 최종 데미지(양수). 미수신이면 0.</summary>
+        /// <summary>서버 권위 최종 데미지(양수). 미관측이면 0.</summary>
         public int FinalDamage;
         public int HpAfter;
         public int Seq;
 
-        /// <summary>발동 왕복: 送信 → 서버 게이트 통과 통지. -1 = 미수신(= 서버가 발동을 거부했을 수 있다).</summary>
-        public long ActivateRoundTripMs => ActivatedMs < 0 ? -1 : ActivatedMs - SentMs;
+        /// <summary>타임라인 기준점. 로컬은 송신 시각, 원격·몬스터는 발동 통지 수신 시각.</summary>
+        public long StartMs => SentMs >= 0 ? SentMs : ActivatedMs;
 
-        /// <summary>체감 지연의 본체: 공격 입력 송신 → 대상 HP 가 화면에 반영되기까지. -1 = 미완결.</summary>
-        public long SendToHpMs => HpAppliedMs < 0 ? -1 : HpAppliedMs - SentMs;
+        /// <summary>발동 왕복(로컬 전용): 송신 → 서버 게이트 통과 통지. -1 = 해당 없음/미수신.</summary>
+        public long ActivateRoundTripMs => (SentMs < 0 || ActivatedMs < 0) ? -1 : ActivatedMs - SentMs;
 
-        /// <summary>데미지 도착 → HP 반영. 크면 클라 디스패치/표시 구간이 범인.</summary>
+        /// <summary>체감 지연의 본체(로컬 전용): 공격 입력 송신 → 대상 HP 반영. -1 = 해당 없음/미완결.</summary>
+        public long SendToHpMs => (SentMs < 0 || HpAppliedMs < 0) ? -1 : HpAppliedMs - SentMs;
+
+        /// <summary>발동 통지 → HP 반영. <b>모든 액터에서 관측 가능</b>해 원격/몬스터 스윙의 유일한 지연 지표다.</summary>
+        public long ActivateToHpMs => (ActivatedMs < 0 || HpAppliedMs < 0) ? -1 : HpAppliedMs - ActivatedMs;
+
+        /// <summary>데미지 관측 → HP 반영. 크면 클라 디스패치/표시 구간이 범인.</summary>
         public long DamageToHpMs => (DamageMs < 0 || HpAppliedMs < 0) ? -1 : HpAppliedMs - DamageMs;
 
-        /// <summary>서버가 발동을 알리지 않았다 = 게이트에 막혔을 가능성(쿨다운·마나·콤보 cadence). 서버 [CombatTrace] gate 와 대조한다.</summary>
-        public bool LikelyGated => ActivatedMs < 0;
+        /// <summary>
+        /// 내가 보냈는데 서버가 발동을 알리지 않았다 = 게이트(쿨다운·마나·콤보)에 막혔을 가능성.
+        /// <b>로컬 스윙에만 의미가 있다</b> — 원격·몬스터는 발동 통지가 곧 관측 시작점이라 정의상 거부가 보이지 않는다.
+        /// </summary>
+        public bool LikelyGated => Origin == SwingOrigin.LocalPlayer && ActivatedMs < 0;
+    }
+
+    /// <summary>한 몬스터의 동기화 상태 집계(동기화 검수용). 스윙과 무관하게 <b>모든 몬스터</b>가 나온다.</summary>
+    public struct MonsterSyncStat
+    {
+        public long ActorId;        // -InstanceId
+        public int InstanceId;
+        public int LastHp;
+        public int LastSeq;
+        public int Updates;         // 반영된 S_MonsterState 수
+        public int StaleDrops;      // Seq 로 버린 수(AC-C3 가 막아낸 순서 역전)
+        public int TotalDamage;     // 누적 HP 감소량 — 서버 데미지 합과 대조(데미지 검수)
     }
 
     /// <summary>
     /// 링버퍼의 원시 엔트리를 "스윙 단위"로 병합한다(AC-C1b). <b>순수 함수</b> — EditMode 로 검증한다.
     ///
+    /// <para><b>모든 액터를 낸다</b>: 레코드의 시작점은 로컬이면 <c>AttackSent</c>, 원격 플레이어·몬스터면
+    /// <c>AbilityActivated</c> 다(그들이 언제 눌렀는지는 클라가 알 방법이 없다 — 서버 통지가 첫 관측이다).
+    /// 초기 구현은 <c>AttackSent</c> 만 시작점으로 봐서 **내 스윙만 보였다**.</para>
+    ///
     /// <para><b>왜 클라가 산식 입력을 못 채우나(설계 정정)</b>: §2.4 상세 패널 초안은 <c>AP=시전자 AttackPower</c> 를
     /// 그렸지만, 그건 **서버 권위 스탯이라 클라에 오지 않는다**. §2.5 가 "서버 로그를 창으로 끌어오지 않는다"고
     /// 못박았으므로 둘은 동시에 성립할 수 없다. → 클라는 아는 것만 쓴다:
-    /// <c>base</c>(AbilityDefinition SO) + <c>final</c>(S_ApplyEffect.Amount) 로 <b><c>AP-DEF = final - base</c> 를 역산</b>한다.
-    /// 이것만으로 "왜 이 숫자인가"는 닫히고, AP/DEF 분해가 필요하면 <c>seq</c>·ActorId 로 서버 로그(Graylog)와 조인한다.</para>
+    /// <c>base</c>(AbilityDefinition SO) + <c>final</c>(S_ApplyEffect.Amount) 로 <b><c>AP-DEF = final - base</c> 를 역산</b>한다.</para>
     /// </summary>
     public static class CombatTraceJoin
     {
         /// <summary>스윙 하나에 속한 후속 이벤트로 볼 최대 지연. 이보다 늦게 온 건 다음 스윙의 것으로 본다.</summary>
         public const long CorrelationWindowMs = 2_000;
 
+        /// <summary>ActorId 규약(진실원 = Shared.Gameplay <c>ActorIds</c>): 양수=플레이어 / 음수=몬스터 / 0=환경.
+        /// Game.Network 는 <c>overrideReferences</c> 라 Shared.Gameplay.dll 이 안 걸려 있어 부호로 직접 판별한다.</summary>
+        public static bool IsMonster(long actorId) => actorId < 0;
+
         /// <summary>
-        /// 송신(AttackSent)을 기준으로 같은 <c>(ActorId, NetworkId)</c> 의 후속 이벤트를 시간창 안에서 이어붙인다.
-        /// 데미지·HP 는 대상별로 갈리므로 **첫 대상**만 잇는다(다중 히트는 개별 엔트리로 링에 남아 있다).
+        /// 던전의 <b>모든</b> 스윙(내 캐릭터·다른 플레이어·몬스터)을 시간순 레코드로 만든다.
         /// </summary>
-        public static List<CombatTraceRecord> Build(IReadOnlyList<CombatTraceEntry> entries)
+        /// <param name="localActorId">내 캐릭터의 ActorId(+UserId). 0 이면 로컬 판별 없이 전부 원격으로 본다.</param>
+        public static List<CombatTraceRecord> Build(IReadOnlyList<CombatTraceEntry> entries, long localActorId = 0)
         {
             var records = new List<CombatTraceRecord>();
             if (entries == null) return records;
 
+            // 로컬 송신에 이미 짝지어진 발동 통지 — 같은 스윙이 두 번 나오지 않도록 소비 표시.
+            var consumedActivation = new HashSet<int>();
+
+            // 1) 로컬 스윙: AttackSent 가 시작점 → 송신→발동 왕복까지 보인다.
             for (int i = 0; i < entries.Count; i++)
             {
                 if (entries[i].Kind != CombatTraceKind.AttackSent) continue;
 
                 var sent = entries[i];
-                var rec = new CombatTraceRecord
-                {
-                    ActorId = sent.ActorId,
-                    NetworkId = sent.NetworkId,
-                    SentMs = sent.TimeMs,
-                    ActivatedMs = -1,
-                    DamageMs = -1,
-                    HpAppliedMs = -1,
-                    TargetId = 0,
-                };
+                var rec = NewRecord(SwingOrigin.LocalPlayer, sent.ActorId, sent.NetworkId);
+                rec.SentMs = sent.TimeMs;
 
-                for (int j = i + 1; j < entries.Count; j++)
-                {
-                    var e = entries[j];
-                    if (e.TimeMs - sent.TimeMs > CorrelationWindowMs) break;
-                    // 다음 스윙이 시작되면 이 스윙의 구간은 닫힌다.
-                    if (e.Kind == CombatTraceKind.AttackSent && e.ActorId == sent.ActorId) break;
-
-                    switch (e.Kind)
-                    {
-                        case CombatTraceKind.AbilityActivated:
-                            if (rec.ActivatedMs < 0 && e.ActorId == sent.ActorId && e.NetworkId == sent.NetworkId)
-                                rec.ActivatedMs = e.TimeMs;
-                            break;
-
-                        case CombatTraceKind.DamageReceived:
-                            if (rec.DamageMs < 0 && e.ActorId == sent.ActorId)
-                            {
-                                rec.DamageMs = e.TimeMs;
-                                rec.TargetId = e.TargetId;
-                                rec.FinalDamage = -e.Amount; // Amount 는 Health 델타(음수) → 표시용 양수
-                            }
-                            break;
-
-                        case CombatTraceKind.MonsterHpApplied:
-                            if (rec.HpAppliedMs >= 0) break;
-
-                            if (rec.TargetId != 0)
-                            {
-                                // 대상이 이미 정해진 경우(플레이어 피격 = S_ApplyEffect 경로): 그 대상의 반영만 귀속.
-                                if (e.TargetId != rec.TargetId) break;
-                                rec.HpAppliedMs = e.TimeMs;
-                                rec.HpAfter = e.Hp;
-                                rec.Seq = e.Seq;
-                            }
-                            else if (e.Amount < 0)
-                            {
-                                // 플레이어→몬스터: 데미지가 S_ApplyEffect 로 오지 않고 **HP 델타가 유일한 신호**다.
-                                // 델타가 있는 몬스터만 이 스윙에 귀속 → 틱마다 흐르는 무관한 갱신(델타 0)은 자연히 배제된다.
-                                rec.TargetId = e.TargetId;
-                                rec.FinalDamage = -e.Amount;
-                                rec.DamageMs = e.TimeMs;   // 이 경로는 데미지 통지와 HP 상태가 같은 패킷이라 두 시각이 같다.
-                                rec.HpAppliedMs = e.TimeMs;
-                                rec.HpAfter = e.Hp;
-                                rec.Seq = e.Seq;
-                            }
-                            break;
-                    }
-                }
-
+                Attach(entries, i + 1, sent.TimeMs, sent.ActorId, sent.NetworkId, ref rec, consumedActivation);
                 records.Add(rec);
             }
 
+            // 2) 원격 플레이어·몬스터: 발동 통지가 시작점(그들의 입력 시각은 클라가 알 수 없다).
+            for (int i = 0; i < entries.Count; i++)
+            {
+                if (entries[i].Kind != CombatTraceKind.AbilityActivated) continue;
+                if (consumedActivation.Contains(i)) continue; // 로컬 스윙이 이미 가져감
+
+                var act = entries[i];
+                var origin = IsMonster(act.ActorId) ? SwingOrigin.Monster : SwingOrigin.RemotePlayer;
+                var rec = NewRecord(origin, act.ActorId, act.NetworkId);
+                rec.ActivatedMs = act.TimeMs;
+
+                Attach(entries, i + 1, act.TimeMs, act.ActorId, act.NetworkId, ref rec, consumed: null);
+                records.Add(rec);
+            }
+
+            records.Sort((a, b) => a.StartMs.CompareTo(b.StartMs));
             return records;
+        }
+
+        private static CombatTraceRecord NewRecord(SwingOrigin origin, long actorId, int networkId) => new CombatTraceRecord
+        {
+            Origin = origin,
+            ActorId = actorId,
+            NetworkId = networkId,
+            SentMs = -1,
+            ActivatedMs = -1,
+            DamageMs = -1,
+            HpAppliedMs = -1,
+            TargetId = 0,
+        };
+
+        /// <summary>시작 시각 이후의 발동/데미지/HP 반영을 이 스윙에 이어붙인다.</summary>
+        private static void Attach(
+            IReadOnlyList<CombatTraceEntry> entries, int from, long startMs,
+            long actorId, int networkId, ref CombatTraceRecord rec, HashSet<int> consumed)
+        {
+            for (int j = from; j < entries.Count; j++)
+            {
+                var e = entries[j];
+                if (e.TimeMs - startMs > CorrelationWindowMs) break;
+
+                // 같은 액터의 다음 스윙이 시작되면 이 스윙의 구간은 닫힌다.
+                if ((e.Kind == CombatTraceKind.AttackSent || e.Kind == CombatTraceKind.AbilityActivated)
+                    && e.ActorId == actorId && j != from - 1)
+                {
+                    bool isOwnActivation = e.Kind == CombatTraceKind.AbilityActivated
+                                           && rec.ActivatedMs < 0 && e.NetworkId == networkId;
+                    if (!isOwnActivation) break;
+                }
+
+                switch (e.Kind)
+                {
+                    case CombatTraceKind.AbilityActivated:
+                        if (rec.ActivatedMs < 0 && e.ActorId == actorId && e.NetworkId == networkId)
+                        {
+                            rec.ActivatedMs = e.TimeMs;
+                            consumed?.Add(j);
+                        }
+                        break;
+
+                    case CombatTraceKind.DamageReceived:
+                        // 플레이어가 대상인 피해(S_ApplyEffect) — SourceId 로 시전자가 특정된다.
+                        if (rec.DamageMs < 0 && e.ActorId == actorId)
+                        {
+                            rec.DamageMs = e.TimeMs;
+                            rec.TargetId = e.TargetId;
+                            rec.FinalDamage = -e.Amount; // Amount 는 Health 델타(음수) → 표시용 양수
+                        }
+                        break;
+
+                    case CombatTraceKind.MonsterHpApplied:
+                        if (rec.HpAppliedMs >= 0) break;
+
+                        if (rec.TargetId != 0)
+                        {
+                            if (e.TargetId != rec.TargetId) break;
+                            rec.HpAppliedMs = e.TimeMs;
+                            rec.HpAfter = e.Hp;
+                            rec.Seq = e.Seq;
+                        }
+                        else if (e.Amount < 0 && !IsMonster(actorId))
+                        {
+                            // 플레이어→몬스터: 데미지가 S_ApplyEffect 로 오지 않고 **HP 델타가 유일한 신호**다.
+                            // ⚠ 여러 플레이어가 동시에 때리면 이 델타의 주인을 클라는 구분할 수 없다(서버 로그로 확정).
+                            rec.TargetId = e.TargetId;
+                            rec.FinalDamage = -e.Amount;
+                            rec.DamageMs = e.TimeMs;   // 이 경로는 데미지 통지와 HP 상태가 같은 패킷이라 두 시각이 같다.
+                            rec.HpAppliedMs = e.TimeMs;
+                            rec.HpAfter = e.Hp;
+                            rec.Seq = e.Seq;
+                        }
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// <b>모든 몬스터</b>의 동기화 상태를 집계한다(스윙과 무관 — 한 대도 안 맞은 몬스터도 나온다).
+        /// 누적 피해는 서버 <c>[CombatTrace]</c> 의 final 합과 대조해 **데미지 검수**에 쓴다.
+        /// </summary>
+        public static List<MonsterSyncStat> BuildMonsterSync(IReadOnlyList<CombatTraceEntry> entries)
+        {
+            var map = new Dictionary<long, MonsterSyncStat>();
+            if (entries == null) return new List<MonsterSyncStat>();
+
+            foreach (var e in entries)
+            {
+                if (e.Kind != CombatTraceKind.MonsterHpApplied && e.Kind != CombatTraceKind.StaleDropped) continue;
+
+                if (!map.TryGetValue(e.TargetId, out var s))
+                {
+                    s = new MonsterSyncStat
+                    {
+                        ActorId = e.TargetId,
+                        InstanceId = (int)(-e.TargetId), // ActorId = -InstanceId 규약의 역
+                    };
+                }
+
+                if (e.Kind == CombatTraceKind.StaleDropped)
+                {
+                    s.StaleDrops++;
+                }
+                else
+                {
+                    s.Updates++;
+                    s.LastHp = e.Hp;
+                    s.LastSeq = e.Seq;
+                    if (e.Amount < 0) s.TotalDamage += -e.Amount;
+                }
+
+                map[e.TargetId] = s;
+            }
+
+            var list = new List<MonsterSyncStat>(map.Values);
+            list.Sort((a, b) => a.InstanceId.CompareTo(b.InstanceId));
+            return list;
         }
 
         /// <summary>
