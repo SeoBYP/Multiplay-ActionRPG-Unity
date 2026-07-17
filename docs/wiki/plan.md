@@ -396,13 +396,13 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
   - [x] **E2 레벨·등급 필드 + 해석 경로** — `MonsterSpawnDef.Level/Tier` · `MapSpawnLayout.MonsterLevel` · `MonsterState.Level/Tier`(스폰 시 1회 확정). 해석은 **단일 구현** `MapSpawnLayout.ResolveLevel(spawnLevel, mapLevel)`(스폰>맵>1) — 두 곳에서 재구현하면 어긋난다. **동작 보존**: 전부 선택 필드라 기존 JSON 이 L1 로 떨어지고 L1 스케일은 항등 → 스탯 무변경(테스트로 고정). ⚠ **던전 대역 저작은 E3/E5 로 분리** — 레벨 값은 기획 결정이라 이 증분에 섞지 않았다. 검증: 단위 **9종** · 194/194 · E2E 31/31.
   - [x] **E3 피해 배선** — `Room.TickMonsters` 가 `MonsterLevelScaling.Damage(base, Level, Tier)` 로 스케일된 base 를 산식에 넣는다. `StatCombatMath` 무변경(산식은 옳았고 틀린 건 base). 트레이스도 **실제 산식 입력**(scaledBase)을 찍는다 — 저작값을 찍으면 진단이 거짓말한다. HP 는 E2 에서 이미 배선됨(스폰 시 필요). **동작 보존**(전부 L1=항등). ⚠ **증분 순서 정정**: 던전 대역 저작은 E3 이 아니라 **E5** 다 — `spawn-layouts.json` 은 `MapDataExporter` 가 굽는 **생성물**이라 직접 편집하면 다음 Export 에 덮인다. 검증: 단위 4종(스케일 우회 시 3건 실패 **실측**) · 198/198 · E2E 31/31.
   - [x] **E4 드롭 롤의 레벨·등급 반영**(코드) — `DropTableRoll.Roll(entries, rng, chanceMultiplier, quantityMultiplier)` 순수 오버로드 + `DropTableCatalog.Roll(id, rng, level, tier)` 가 배율 계산 + `CombatHandler.SpawnDrops` 배선. **수량 배율은 가변수량(MaxQty>1, gold)에만** — 장비(1~1)에 걸면 검이 2자루 나온다. 확률은 1.0 clamp. 배율 기본값 = 기존 동작(보존). ⚠ **9마리 저작·goblin 제거는 E5** — `drop-tables.json` 도 `DropTableExporter` 가 굽는 생성물이라 직접 편집하면 덮인다. 검증: 단위 6종 · SocketServer 204/204 · Shared.Gameplay 50/50 · E2E 31/31.
-  - [~] **E5 클라 SO 저작 + Export 왕복** — **밸런스 완료 / 드롭 Export 대기**.
+  - [x] **E5 클라 SO 저작 + Export 왕복** — **완료**.
     - [x] SO 필드: `MapDefinition.monsterLevel` · `MonsterSpawn.level/tier`(+ 클라 미러 enum `MonsterTier` — 서버 enum 은 Shared.Infrastructure 라 클라 미참조. 계약은 JSON int)
     - [x] `MapDataExporter` 왕복 배선(Export+**Import** 둘 다 — Import 누락 시 저작이 0 으로 지워진다)
-    - [x] **던전 대역 저작 + Export 완료** — `dungeon_01`=L1 · `dungeon_02`=L6 · `dungeon_e2e`=L1(픽스처 고정). `spawn-layouts.json` 반영 확인. **밸런스가 실제로 바뀌었다**(L6 순피해가 바닥 1 에서 탈출 — 테스트로 고정).
-    - [x] 드롭 SO 저작(8마리 + goblin 제거, test_brute 의도적 제외) — 방침 = monster-leveling.md §5
-    - [ ] **`Tools/Loot/Export Drop Tables` 실행 대기** — Unity MCP 무응답으로 미실행. `drop-tables.json` 은 아직 creepy_demon+goblin(유령). **SO 저작은 저장됐으니 Export 만 돌리면 된다.**
-    - [ ] Unity 컴파일·EditMode·E2E 재확인(Unity 복구 후)
+    - [x] **던전 대역**: `dungeon_01`=L1 · `dungeon_02`=L6 · `dungeon_e2e`=L1(픽스처 고정). **밸런스 실제 수정**(L6 순피해가 바닥 1 에서 탈출 — 테스트 고정)
+    - [x] **드롭 8마리 전수 + goblin 유령 제거**(test_brute 는 픽스처라 의도적 제외). 기존 `임베디드_goblin_데이터가_로드된다` 는 표본을 실존 몬스터(leviathan)로 교체 — 의도(저작→Export 왕복 검증)는 유지
+    - [x] 검증: SocketServer **210/210** · 솔루션 0오류 · Unity 컴파일 0 · EditMode **192/192** · Docker E2E **31/31**
+    - ⚠️ **함정 기록**: exporter 가 끝에 `EditorUtility.DisplayDialog`(모달)를 띄운다 → **MCP 호출이 그 자리에서 무기한 블록**된다(이번에 Unity 가 멈춘 원인). 자동화로 Export 할 땐 팝업 없는 경로를 쓴다.
 
 **AC-D — 연출/밸런스 잔여 (AC-B에서 확장점으로 남긴 것들)**
 - [ ] **AC-D1 어빌리티별 전용 애니** — 지금은 보스 강스킬도 `Attack` 트리거 공유(`AnimationTriggerType` enum에 Attack/Dodge/Dead…만 존재). 필요 작업: enum 값 추가(예: `AbilitySpecial`) + `CharacterAgentAnimations` 파라미터 필드 + 몬스터 컨트롤러 상태/트리거 + `AbilityDefinition.cueTrigger` 저작. **소재는 이미 있음** — leviathan FBX 에 `AttackSpecial`/`AttackHard`/`Roar` 클립 존재. 설계 = [ability-so-authoring.md](ability-so-authoring.md) §남은 확장점.

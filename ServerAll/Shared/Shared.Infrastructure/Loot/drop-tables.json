@@ -1,78 +1,192 @@
 {
     "tables": [
         {
-            "monsterId": "creepy_demon",
+            "monsterId": "vampire_bat",
             "drops": [
                 {
-                    "itemId": "potion_hp_small",
-                    "chance": 1.0,
-                    "minQty": 1,
-                    "maxQty": 1
-                },
-                {
                     "itemId": "gold",
-                    "chance": 1.0,
-                    "minQty": 10,
-                    "maxQty": 30
+                    "chance": 1,
+                    "minQty": 3,
+                    "maxQty": 8
                 },
                 {
-                    "itemId": "sword_basic",
-                    "chance": 0.30000001192092898,
-                    "minQty": 1,
-                    "maxQty": 1
-                },
-                {
-                    "itemId": "armor_leather",
-                    "chance": 0.30000001192092898,
-                    "minQty": 1,
-                    "maxQty": 1
-                },
-                {
-                    "itemId": "helmet_iron",
-                    "chance": 0.25,
-                    "minQty": 1,
-                    "maxQty": 1
-                },
-                {
-                    "itemId": "boots_leather",
-                    "chance": 0.25,
-                    "minQty": 1,
-                    "maxQty": 1
-                },
-                {
-                    "itemId": "gloves_leather",
-                    "chance": 0.25,
-                    "minQty": 1,
-                    "maxQty": 1
-                },
-                {
-                    "itemId": "shield_wooden",
-                    "chance": 0.20000000298023225,
-                    "minQty": 1,
-                    "maxQty": 1
-                },
-                {
-                    "itemId": "ring_power",
-                    "chance": 0.15000000596046449,
-                    "minQty": 1,
-                    "maxQty": 1
-                },
-                {
-                    "itemId": "necklace_vitality",
-                    "chance": 0.15000000596046449,
+                    "itemId": "potion_hp_small",
+                    "chance": 0.15,
                     "minQty": 1,
                     "maxQty": 1
                 }
             ]
         },
         {
-            "monsterId": "goblin",
+            "monsterId": "creepy_demon",
             "drops": [
                 {
+                    "itemId": "gold",
+                    "chance": 1,
+                    "minQty": 10,
+                    "maxQty": 30
+                },
+                {
                     "itemId": "potion_hp_small",
-                    "chance": 1.0,
-                    "minQty": 5,
-                    "maxQty": 10
+                    "chance": 1,
+                    "minQty": 1,
+                    "maxQty": 1
+                },
+                {
+                    "itemId": "sword_basic",
+                    "chance": 0.3,
+                    "minQty": 1,
+                    "maxQty": 1
+                },
+                {
+                    "itemId": "armor_leather",
+                    "chance": 0.2,
+                    "minQty": 1,
+                    "maxQty": 1
+                }
+            ]
+        },
+        {
+            "monsterId": "arachnya",
+            "drops": [
+                {
+                    "itemId": "gold",
+                    "chance": 1,
+                    "minQty": 8,
+                    "maxQty": 20
+                },
+                {
+                    "itemId": "potion_hp_small",
+                    "chance": 0.35,
+                    "minQty": 1,
+                    "maxQty": 1
+                }
+            ]
+        },
+        {
+            "monsterId": "demon_girl",
+            "drops": [
+                {
+                    "itemId": "gold",
+                    "chance": 1,
+                    "minQty": 12,
+                    "maxQty": 28
+                },
+                {
+                    "itemId": "potion_hp_small",
+                    "chance": 0.3,
+                    "minQty": 1,
+                    "maxQty": 1
+                },
+                {
+                    "itemId": "ring_power",
+                    "chance": 0.08,
+                    "minQty": 1,
+                    "maxQty": 1
+                }
+            ]
+        },
+        {
+            "monsterId": "wild_centaur",
+            "drops": [
+                {
+                    "itemId": "gold",
+                    "chance": 1,
+                    "minQty": 15,
+                    "maxQty": 35
+                },
+                {
+                    "itemId": "boots_leather",
+                    "chance": 0.18,
+                    "minQty": 1,
+                    "maxQty": 1
+                },
+                {
+                    "itemId": "gloves_leather",
+                    "chance": 0.18,
+                    "minQty": 1,
+                    "maxQty": 1
+                }
+            ]
+        },
+        {
+            "monsterId": "gargoyle",
+            "drops": [
+                {
+                    "itemId": "gold",
+                    "chance": 1,
+                    "minQty": 18,
+                    "maxQty": 40
+                },
+                {
+                    "itemId": "shield_wooden",
+                    "chance": 0.22,
+                    "minQty": 1,
+                    "maxQty": 1
+                },
+                {
+                    "itemId": "helmet_iron",
+                    "chance": 0.12,
+                    "minQty": 1,
+                    "maxQty": 1
+                }
+            ]
+        },
+        {
+            "monsterId": "undead_axemaster",
+            "drops": [
+                {
+                    "itemId": "gold",
+                    "chance": 1,
+                    "minQty": 30,
+                    "maxQty": 60
+                },
+                {
+                    "itemId": "sword_basic",
+                    "chance": 0.35,
+                    "minQty": 1,
+                    "maxQty": 1
+                },
+                {
+                    "itemId": "helmet_iron",
+                    "chance": 0.2,
+                    "minQty": 1,
+                    "maxQty": 1
+                },
+                {
+                    "itemId": "potion_hp_small",
+                    "chance": 0.5,
+                    "minQty": 1,
+                    "maxQty": 2
+                }
+            ]
+        },
+        {
+            "monsterId": "leviathan",
+            "drops": [
+                {
+                    "itemId": "gold",
+                    "chance": 1,
+                    "minQty": 80,
+                    "maxQty": 150
+                },
+                {
+                    "itemId": "sword_basic",
+                    "chance": 1,
+                    "minQty": 1,
+                    "maxQty": 1
+                },
+                {
+                    "itemId": "necklace_vitality",
+                    "chance": 0.5,
+                    "minQty": 1,
+                    "maxQty": 1
+                },
+                {
+                    "itemId": "ring_power",
+                    "chance": 0.35,
+                    "minQty": 1,
+                    "maxQty": 1
                 }
             ]
         }

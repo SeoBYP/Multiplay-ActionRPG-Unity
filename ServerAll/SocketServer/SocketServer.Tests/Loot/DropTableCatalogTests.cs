@@ -30,13 +30,16 @@ public class DropTableCatalogTests
     }
 
     [Fact]
-    public void 임베디드_goblin_데이터가_로드된다()
+    public void 임베디드_보스_데이터가_로드된다()
     {
         // SO(DropTableDefinition) 저작 → Tools/Loot/Export 로 추가된 데이터가 임베디드 JSON 에 반영됐는지 검증.
-        var entries = DropTableCatalog.Get("goblin");
+        //
+        // 표본이 goblin 이었는데 **monsters.json 에 없는 유령**이라 AC-E5 에서 제거했다(스폰될 수 없으니 롤도 안 일어난다).
+        // 이 테스트의 의도는 "저작→Export 왕복이 서버까지 닿는가"이므로 표본만 **실존 몬스터**로 바꾼다.
+        var entries = DropTableCatalog.Get("leviathan");
 
-        Assert.Single(entries);
-        Assert.Contains(entries, e => e.ItemId == "potion_hp_small" && e.Chance == 1.0 && e.MinQty == 5 && e.MaxQty == 10);
+        Assert.NotEmpty(entries);
+        Assert.Contains(entries, e => e.ItemId == "sword_basic" && e.Chance == 1.0); // 보스 = 장비 확정
     }
 
     [Fact]
