@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Shared.Infrastructure.Messages;
+using Shared.Infrastructure.Abilities;
 using Shared.Infrastructure.Monsters;
 using Shared.Infrastructure.Spawn;
 
@@ -120,16 +121,50 @@ public class MonsterSpawnLevelTests
     }
 
     [Fact]
-    public void 저작된_레이아웃은_아직_전부_L1이다_E2_동작보존()
+    public void 던전_대역이_저작되어_있다_E5()
     {
-        // E2 는 필드와 해석 경로만 넣는다 — 던전 대역 저작은 별도 결정(E3/E5).
-        // 지금 값이 바뀌면 이 증분이 "동작 보존"이 아니게 된다.
+        // E5 에서 SO 저작 → Export 로 들어온 값. E2 때는 전부 0(L1)이었고, 이 테스트가 그 전환을 고정한다.
+        // 근거: dungeon_02 는 expReward 300 = dungeon_01(100)의 3배 → 상위 대역.
+        Assert.Equal(1, SpawnLayoutTable.Get("dungeon_01").MonsterLevel);
+        Assert.Equal(6, SpawnLayoutTable.Get("dungeon_02").MonsterLevel);
+    }
+
+    [Fact]
+    public void E2E_던전은_L1로_고정된다()
+    {
+        // 테스트 픽스처 — 대역이 바뀌면 E2E 기대값(몬스터 HP·피해)이 조용히 흔들린다.
+        Assert.Equal(1, SpawnLayoutTable.Get("dungeon_e2e").MonsterLevel);
+    }
+
+    [Fact]
+    public void 스폰별_레벨_등급은_아직_미저작이다()
+    {
+        // 지금은 던전 기본만 쓴다. 엘리트/보스 배치는 콘텐츠 작업 — 저작되면 여기서 드러난다.
         foreach (var mapId in new[] { "dungeon_01", "dungeon_02", "dungeon_e2e" })
         {
             var layout = SpawnLayoutTable.Get(mapId);
-            Assert.Equal(0, layout.MonsterLevel);
             Assert.All(layout.Monsters, m => Assert.Equal(0, m.Level));
             Assert.All(layout.Monsters, m => Assert.Equal(MonsterTier.Normal, m.Tier));
         }
+    }
+
+    [Fact]
+    public void 저작된_대역이_실제_스탯으로_이어진다_E5()
+    {
+        // 밸런스가 진짜로 바뀌었는지 — dungeon_02(L6) 몬스터는 dungeon_01(L1)보다 두껍고 아파야 한다.
+        var d1 = SpawnLayoutTable.Get("dungeon_01");
+        var d2 = SpawnLayoutTable.Get("dungeon_02");
+
+        int baseHp = MonsterCatalog.Get("creepy_demon").MaxHp;
+        int hp1 = MonsterLevelScaling.Hp(baseHp, MapSpawnLayout.ResolveLevel(0, d1.MonsterLevel));
+        int hp6 = MonsterLevelScaling.Hp(baseHp, MapSpawnLayout.ResolveLevel(0, d2.MonsterLevel));
+
+        Assert.Equal(baseHp, hp1);                 // L1 = 항등
+        Assert.True(hp6 > hp1 * 2, $"L6 HP({hp6})가 L1({hp1})의 2배 이상이어야 한다");
+
+        // C1c 에서 본 증상: L6 플레이어(DEF 15) 앞에서 creepy_demon 피해가 1.
+        int baseDmg = AbilityCatalog.Get("creepy_demon_attack")!.BaseDamage;
+        int dmg6 = MonsterLevelScaling.Damage(baseDmg, 6);
+        Assert.True(dmg6 - 15 > 5, $"L6 순피해가 {dmg6 - 15} — 바닥(1)에서 벗어나야 밸런스가 고쳐진 것");
     }
 }

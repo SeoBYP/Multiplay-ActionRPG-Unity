@@ -22,6 +22,10 @@ namespace Game.Gameplay.Spawn
         [Tooltip("던전 클리어 시 참가자에게 지급할 경험치(서버 권위). 0=보상 없음(Main/아레나 등). spawn-layouts.json 의 expReward 로 bake 되어 서버가 읽는다.")]
         public long expReward;
 
+        [Tooltip("이 던전 몬스터의 기본 레벨(AC-E). 0=L1. 스폰별 level 이 있으면 그쪽이 우선.\n" +
+                 "몬스터 HP·피해·드롭이 이 레벨로 스케일된다(monster-leveling.md). 한 줄로 던전 전체 난이도를 조절한다.")]
+        public int monsterLevel;
+
         [Tooltip("맵 배경 모델 프리팹(클라 전용). 던전 진입 시 MapLoader 가 인스턴스화. 서버는 사용 안 함(JSON에 미포함).")]
         public GameObject visualPrefab;
 
@@ -53,6 +57,19 @@ namespace Game.Gameplay.Spawn
         public float rotationY;
     }
 
+    /// <summary>
+    /// 몬스터 등급(저작용). 서버 <c>Shared.Infrastructure.Monsters.MonsterTier</c> 의 **미러**다 —
+    /// 그쪽은 서버 전용 어셈블리라 클라가 참조할 수 없다.
+    /// <para>계약은 <b>JSON 의 int</b>(0/1/2)이고 값이 셋뿐이라 드리프트 위험이 낮다.
+    /// 값을 추가하면 <b>양쪽을 같이</b> 고쳐야 한다(리뷰 대상).</para>
+    /// </summary>
+    public enum MonsterTier
+    {
+        Normal = 0,
+        Elite = 1,
+        Boss = 2,
+    }
+
     /// <summary>몬스터 스폰 정의(저작). 실제 스폰/AI 는 M3에서 서버 권위로 구동된다.</summary>
     [Serializable]
     public sealed class MonsterSpawn
@@ -65,6 +82,15 @@ namespace Game.Gameplay.Spawn
         public int count = 1;
         [Tooltip("웨이브 인덱스(0=시작 시). 미사용 시 0.")]
         public int wave;
+
+        [Tooltip("이 스폰만의 레벨(AC-E). 0=맵 기본(MapDefinition.monsterLevel) 사용.\n" +
+                 "같은 던전 안에서 이 몬스터만 대역을 올릴 때 쓴다(엘리트·보스 배치).")]
+        public int level;
+
+        [Tooltip("등급(AC-E). 레벨과 직교 — 대역 안에서의 강도.\n" +
+                 "Elite=HP×2·피해×1.3·Exp×3·드롭확률×2 / Boss=HP×6·피해×1.6·Exp×10·드롭확률×3.\n" +
+                 "HP 를 크게 피해를 작게 올린다 — 피해를 키우면 즉사가 되고 HP 를 키우면 '오래 버티는 위협'이 된다.")]
+        public MonsterTier tier = MonsterTier.Normal;
 
         [Tooltip("Main B-lite 클레임 키(슬롯 안정 식별자, 1부터). 0=클레임 불가. 던전은 미사용.")]
         public int slotId;

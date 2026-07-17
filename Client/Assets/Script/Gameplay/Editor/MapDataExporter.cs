@@ -79,6 +79,7 @@ namespace Game.Gameplay.Editor
                     {
                         mapId = d.mapId,
                         expReward = d.expReward,
+                        monsterLevel = d.monsterLevel, // AC-E: 던전 기본 몬스터 레벨(0=L1)
                         bounds = ToBoundsDto(d.bounds),
                         points = (d.playerSpawns ?? new List<MapSpawnPoint>())
                             .Select(p => new PointDto
@@ -92,6 +93,7 @@ namespace Game.Gameplay.Editor
                                 monsterId = mn.monsterId,
                                 x = mn.position.x, y = mn.position.y, z = mn.position.z, rotY = mn.rotationY,
                                 count = mn.count, wave = mn.wave,
+                                level = mn.level, tier = (int)mn.tier, // AC-E: 0=맵 기본 / 등급은 int 계약
                                 slotId = mn.slotId, respawnCooldownMs = mn.respawnCooldownMs,
                                 patrol = (mn.patrolPoints ?? new List<Vector3>())
                                     .Select(p => new PatrolDto { x = p.x, z = p.z })
@@ -149,6 +151,7 @@ namespace Game.Gameplay.Editor
 
                 def.mapId = map.mapId;
                 def.expReward = map.expReward;
+                def.monsterLevel = map.monsterLevel; // 왕복 필수 — 빠지면 Import 가 저작한 레벨을 0 으로 지운다
                 def.playerSpawns = (map.points ?? new List<PointDto>())
                     .Select(p => new MapSpawnPoint
                     {
@@ -164,6 +167,8 @@ namespace Game.Gameplay.Editor
                         rotationY = mn.rotY,
                         count = mn.count,
                         wave = mn.wave,
+                        level = mn.level,
+                        tier = (MonsterTier)mn.tier, // JSON 계약은 int → 저작 enum 으로 복원
                         slotId = mn.slotId,
                         respawnCooldownMs = mn.respawnCooldownMs,
                         patrolPoints = (mn.patrol ?? new List<PatrolDto>())
@@ -240,9 +245,9 @@ namespace Game.Gameplay.Editor
 
         // ── JSON DTO (런타임 로더와 동일 형식) ──
         [Serializable] private sealed class FileDto { public List<MapDto> maps = new(); }
-        [Serializable] private sealed class MapDto { public string mapId; public long expReward; public BoundsDto bounds = new(); public List<PointDto> points = new(); public List<MonsterDto> monsters = new(); }
+        [Serializable] private sealed class MapDto { public string mapId; public long expReward; public int monsterLevel; public BoundsDto bounds = new(); public List<PointDto> points = new(); public List<MonsterDto> monsters = new(); }
         [Serializable] private sealed class PointDto { public float x, y, z, rotY; }
-        [Serializable] private sealed class MonsterDto { public string monsterId; public float x, y, z, rotY; public int count = 1; public int wave; public int slotId; public int respawnCooldownMs; public List<PatrolDto> patrol = new(); }
+        [Serializable] private sealed class MonsterDto { public string monsterId; public float x, y, z, rotY; public int count = 1; public int wave; public int level; public int tier; public int slotId; public int respawnCooldownMs; public List<PatrolDto> patrol = new(); }
         [Serializable] private sealed class PatrolDto { public float x, z; }
         [Serializable] private sealed class BoundsDto { public float centerX, centerZ, sizeX, sizeZ; }
     }
