@@ -67,8 +67,13 @@ HP(L) = 100 + 20(L-1) = HP(1)·(1 + 0.2(L-1))
 **모든 몬스터가 자기 역할을 그대로 유지**한다. 증가폭 하한이 2(=플레이어 DEF 성장)라 **바닥에 눌리는 일이 원천적으로 없다**.
 
 > **위치 결정**: `Shared.Infrastructure/Monsters/MonsterLevelScaling.cs`.
-> 이 식은 **플레이어 레벨 곡선을 정의상 참조**한다(DEF 성장 2, HP 성장비 0.2) → 곡선이 있는 `Progression/LevelTable` 옆이 맞다.
+> 이 식은 **플레이어 레벨 곡선을 정의상 참조**한다 → 곡선이 있는 `Progression/LevelTable` 옆이 맞다.
 > `Shared.Gameplay/StatCombatMath`(순수 산식)와 달리 **테이블 의존**이라 Gameplay 에 두면 역참조가 된다.
+>
+> ⚠️ **정정(AC-F1)**: 초판은 곡선 상수(DEF 5/+2, HP비 0.2)를 **여기 하드코딩**하고 "곡선 바꾸면 여기도 같이 바꿔라"는
+> 주석을 달았다 — 그게 바로 SO 교리가 막으려는 **수동 동기화 함정**이었다.
+> 지금은 상수가 하나도 없다: `base(L) = net₁ · HP(L)/HP(1) + DEF(L)` 로 **테이블을 직접 읽는다**(곡선이 비선형이어도 자동 추종).
+> 등급 배율도 `switch` 하드코딩 → `MonsterScalingCatalog`(SO bake) 로 옮겼다.
 
 **HP 스케일**: 플레이어 AP 가 `10+3(L-1)` = L6 에 2.5배 → 킬 타임 유지하려면 몬스터 HP 도 같은 비율.
 `maxHp(L) = maxHp₁ · AP(L)/AP(1) = maxHp₁ · (1 + 0.3(L-1))`

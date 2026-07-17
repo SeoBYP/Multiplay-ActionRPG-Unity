@@ -388,6 +388,13 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 **플레이 중 발견한 버그 (사용자 관측 → 즉시 수정)**
 - [x] **몬스터 사망 시 체력바가 안 비는 버그** — 2026-07-17. 서버는 `dead` 면 `S_MonsterDead` 만 보내고 죽는 순간의 `S_MonsterState{Hp=0}` 은 없는데, 클라 `MonsterEntity.HandleDead` 도 HP 를 0 으로 만들지 않아 **체력바가 치명타 직전 값에 멈춘 채 2초간 die 모션**이 재생됐다. → `HandleDead` 에서 HP 0 확정 후 트리거. 서버 추가 전송 대신 클라 유도를 택한 이유 = D1(송신 직렬화 없음) 로 Dead 가 먼저 오면 `Hp=0` 이 버려져 간헐 재발. 플레이어는 `S_ApplyEffect` 로 ASC 가 직접 차감해 이 버그 없음(비대칭). 상세 = codemap §2.73. 검증: PlayMode anim 3/3 · EditMode 189/189.
 
+**AC-F — 데이터 전면 SO 화 + 던전 확장 (2026-07-17 완료)**
+- [x] **F1 밸런스 상수 하드코딩 제거** — `MonsterLevelScaling` 이 플레이어 곡선을 `LevelTable`(이미 SO 저작)에서 **직접 읽는다**. 식 재유도: `base(L) = net₁·HP(L)/HP(1) + DEF(L)` → **상수 0개**, 곡선이 비선형이어도 자동 추종. 이전엔 DEF 5/+2·HP비 0.2 를 복제해두고 "같이 바꿔라" 주석을 달았다(수동 동기화 함정).
+- [x] **F2 등급 배율 → SO 테이블** — `MonsterScalingDefinition`(SO) → `MonsterScalingExporter` → `monster-scaling.json` → `MonsterScalingCatalog`. 기획이 배율을 바꾸는 데 서버 코드 수정이 더는 필요 없다. exporter 검증: 등급 중복·배율 0 이하·Normal 누락.
+- [x] **F3 던전 5개 + 진행 곡선** — L1(100) → L6(300) → L12(700) → L20(1500) → L30(3000). 등급 구성도 점층(N만 → B 1 → E 1 → E2+B1 → E3+B2). `DungeonCatalog` 5개 등록(등록 안 하면 UI 에 안 뜬다).
+- [x] **보스 등급 교정** — `leviathan`(base 40/slam 90)이 `dungeon_02` 에서 **Normal 로 스폰**되고 있었다 → Boss 로.
+- 검증: SocketServer **212/212** · 솔루션 0오류 · EditMode **192/192** · Docker E2E **31/31**.
+
 **AC-C1c 가 드러낸 후속 (측정 근거 있음)**
 - [x] **트레이스 링버퍼 포화 — 해소(안ⓒ, 2026-07-17)**. ① 이동 틱(HP 델타 0)은 **링에 안 넣는다**(실측 89% 노이즈 제거) ② 용량 512→**4096**(~200KB) ③ **동기화 집계를 링에서 분리** — 몬스터당 1행 맵(`CombatTraceRecorder.MonsterSync()`)이라 링이 돌아도 유실 없고(예전엔 m3 가 49건 증발), **한 대도 안 맞은 몬스터도 계속 보인다**(필터만 했으면 사라졌을 요구사항). 검증: EditMode **192/192**(+4, 노이즈 필터·델타 보존·집계 무유실).
 - [ ] **몬스터→플레이어 지연 관측 불가** — 몬스터 스윙 행은 `activateToHpMs=-1`. 플레이어 HP 는 ASC 가 적용하는데 그 시점을 기록하지 않는다(`MonsterHpApplied` 는 몬스터 전용). "맞을 때 내 체력바 반응"을 재려면 `EffectReceiver` 적용 시점 기록이 필요.

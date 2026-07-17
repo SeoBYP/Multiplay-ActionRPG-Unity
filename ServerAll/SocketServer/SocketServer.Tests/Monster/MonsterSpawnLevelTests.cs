@@ -121,12 +121,51 @@ public class MonsterSpawnLevelTests
     }
 
     [Fact]
-    public void 던전_대역이_저작되어_있다_E5()
+    public void 던전_대역이_단조_증가한다_AC_F()
     {
-        // E5 에서 SO 저작 → Export 로 들어온 값. E2 때는 전부 0(L1)이었고, 이 테스트가 그 전환을 고정한다.
-        // 근거: dungeon_02 는 expReward 300 = dungeon_01(100)의 3배 → 상위 대역.
-        Assert.Equal(1, SpawnLayoutTable.Get("dungeon_01").MonsterLevel);
-        Assert.Equal(6, SpawnLayoutTable.Get("dungeon_02").MonsterLevel);
+        // 저작된 진행 곡선. 대역이 뒤섞이면 플레이어가 어느 던전을 가야 할지 알 수 없다.
+        var band = new[]
+        {
+            ("dungeon_01", 1), ("dungeon_02", 6), ("dungeon_03", 12), ("dungeon_04", 20), ("dungeon_05", 30),
+        };
+
+        int prevLevel = 0;
+        long prevExp = 0;
+        foreach (var (mapId, expected) in band)
+        {
+            var layout = SpawnLayoutTable.Get(mapId);
+            Assert.Equal(expected, layout.MonsterLevel);
+            Assert.True(layout.MonsterLevel > prevLevel, $"{mapId}: 레벨이 단조 증가해야 한다");
+            Assert.True(layout.ExpReward > prevExp, $"{mapId}: 보상도 대역과 함께 커져야 한다");
+            prevLevel = layout.MonsterLevel;
+            prevExp = layout.ExpReward;
+        }
+    }
+
+    [Fact]
+    public void 상위_던전일수록_등급_구성이_강해진다_AC_F()
+    {
+        // 보스는 상위 대역에만. dungeon_01(입문)에 보스가 있으면 진행 곡선이 무너진다.
+        Assert.DoesNotContain(SpawnLayoutTable.Get("dungeon_01").Monsters, m => m.Tier != MonsterTier.Normal);
+
+        Assert.Contains(SpawnLayoutTable.Get("dungeon_02").Monsters, m => m.Tier == MonsterTier.Boss);
+        Assert.Contains(SpawnLayoutTable.Get("dungeon_03").Monsters, m => m.Tier == MonsterTier.Elite);
+        Assert.Contains(SpawnLayoutTable.Get("dungeon_04").Monsters, m => m.Tier == MonsterTier.Boss);
+
+        // 최상급 = 잡몹이 없다(전원 엘리트 이상).
+        Assert.DoesNotContain(SpawnLayoutTable.Get("dungeon_05").Monsters, m => m.Tier == MonsterTier.Normal);
+    }
+
+    [Fact]
+    public void 보스_몬스터는_보스_등급으로_배치된다()
+    {
+        // leviathan 은 base 40/slam 90 인 보스인데 dungeon_02 에서 Normal 로 스폰되고 있었다(AC-F 에서 교정).
+        foreach (var mapId in new[] { "dungeon_02", "dungeon_04", "dungeon_05" })
+        {
+            var levis = SpawnLayoutTable.Get(mapId).Monsters.Where(m => m.MonsterId == "leviathan").ToList();
+            Assert.NotEmpty(levis);
+            Assert.All(levis, m => Assert.Equal(MonsterTier.Boss, m.Tier));
+        }
     }
 
     [Fact]
@@ -137,15 +176,12 @@ public class MonsterSpawnLevelTests
     }
 
     [Fact]
-    public void 스폰별_레벨_등급은_아직_미저작이다()
+    public void 스폰별_레벨_override_는_쓰지_않는다()
     {
-        // 지금은 던전 기본만 쓴다. 엘리트/보스 배치는 콘텐츠 작업 — 저작되면 여기서 드러난다.
-        foreach (var mapId in new[] { "dungeon_01", "dungeon_02", "dungeon_e2e" })
-        {
-            var layout = SpawnLayoutTable.Get(mapId);
-            Assert.All(layout.Monsters, m => Assert.Equal(0, m.Level));
-            Assert.All(layout.Monsters, m => Assert.Equal(MonsterTier.Normal, m.Tier));
-        }
+        // 대역은 맵 한 줄로 조절하고, 강도 차이는 **등급**으로 낸다(레벨 override 는 필요해질 때만).
+        // 섞어 쓰면 "이 몬스터가 왜 센지"를 두 곳에서 찾아야 한다.
+        foreach (var mapId in new[] { "dungeon_01", "dungeon_02", "dungeon_03", "dungeon_04", "dungeon_05", "dungeon_e2e" })
+            Assert.All(SpawnLayoutTable.Get(mapId).Monsters, m => Assert.Equal(0, m.Level));
     }
 
     [Fact]

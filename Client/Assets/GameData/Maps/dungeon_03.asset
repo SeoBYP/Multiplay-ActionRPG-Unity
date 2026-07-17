@@ -10,24 +10,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 99d1c56b40bcc36468768a44b739f14e, type: 3}
-  m_Name: dungeon_02
+  m_Name: dungeon_03
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Spawn.MapDefinition
-  mapId: dungeon_02
-  expReward: 300
-  monsterLevel: 6
-  visualPrefab: {fileID: 395377278721909691, guid: 5b96864f9c019d44784274d95efba9bd, type: 3}
+  mapId: dungeon_03
+  expReward: 700
+  monsterLevel: 12
+  visualPrefab: {fileID: 0}
   playerSpawns:
-  - position: {x: 0, y: 0, z: -26}
+  - position: {x: -3, y: 0, z: -26}
     rotationY: 0
-  - position: {x: 2, y: 0, z: -26}
+  - position: {x: -1, y: 0, z: -26}
     rotationY: 0
-  - position: {x: -2, y: 0, z: -26}
+  - position: {x: 1, y: 0, z: -26}
     rotationY: 0
-  - position: {x: 0, y: 0, z: -28}
+  - position: {x: 3, y: 0, z: -26}
     rotationY: 0
   monsterSpawns:
-  - monsterId: creepy_demon
-    position: {x: -5, y: 0, z: -14}
+  - monsterId: wild_centaur
+    position: {x: -6, y: 0, z: -4}
     rotationY: 180
     count: 1
     wave: 0
@@ -36,48 +36,8 @@ MonoBehaviour:
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
-  - monsterId: creepy_demon
-    position: {x: 0, y: 0, z: -13}
-    rotationY: 180
-    count: 1
-    wave: 0
-    level: 0
-    tier: 0
-    slotId: 0
-    respawnCooldownMs: 0
-    patrolPoints: []
-  - monsterId: creepy_demon
-    position: {x: 5, y: 0, z: -14}
-    rotationY: 180
-    count: 1
-    wave: 0
-    level: 0
-    tier: 0
-    slotId: 0
-    respawnCooldownMs: 0
-    patrolPoints: []
-  - monsterId: demon_girl
-    position: {x: -5, y: 0, z: -2}
-    rotationY: 180
-    count: 1
-    wave: 0
-    level: 0
-    tier: 0
-    slotId: 0
-    respawnCooldownMs: 0
-    patrolPoints: []
-  - monsterId: demon_girl
-    position: {x: 5, y: 0, z: -2}
-    rotationY: 180
-    count: 1
-    wave: 0
-    level: 0
-    tier: 0
-    slotId: 0
-    respawnCooldownMs: 0
-    patrolPoints: []
-  - monsterId: arachnya
-    position: {x: 0, y: 0, z: -1}
+  - monsterId: wild_centaur
+    position: {x: 6, y: 0, z: -4}
     rotationY: 180
     count: 1
     wave: 0
@@ -87,7 +47,17 @@ MonoBehaviour:
     respawnCooldownMs: 0
     patrolPoints: []
   - monsterId: gargoyle
-    position: {x: -6, y: 0, z: 8}
+    position: {x: -5, y: 0, z: 4}
+    rotationY: 180
+    count: 1
+    wave: 0
+    level: 0
+    tier: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: gargoyle
+    position: {x: 5, y: 0, z: 4}
     rotationY: 180
     count: 1
     wave: 0
@@ -97,7 +67,7 @@ MonoBehaviour:
     respawnCooldownMs: 0
     patrolPoints: []
   - monsterId: undead_axemaster
-    position: {x: 6, y: 0, z: 8}
+    position: {x: 0, y: 0, z: 8}
     rotationY: 180
     count: 1
     wave: 0
@@ -106,8 +76,8 @@ MonoBehaviour:
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
-  - monsterId: wild_centaur
-    position: {x: -4, y: 0, z: 15}
+  - monsterId: demon_girl
+    position: {x: -8, y: 0, z: 10}
     rotationY: 180
     count: 1
     wave: 0
@@ -116,8 +86,8 @@ MonoBehaviour:
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
-  - monsterId: wild_centaur
-    position: {x: 4, y: 0, z: 15}
+  - monsterId: demon_girl
+    position: {x: 8, y: 0, z: 10}
     rotationY: 180
     count: 1
     wave: 0
@@ -126,13 +96,13 @@ MonoBehaviour:
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
-  - monsterId: leviathan
-    position: {x: 0, y: 0, z: 25}
+  - monsterId: undead_axemaster
+    position: {x: 0, y: 0, z: 16}
     rotationY: 180
     count: 1
     wave: 0
     level: 0
-    tier: 2
+    tier: 1
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []

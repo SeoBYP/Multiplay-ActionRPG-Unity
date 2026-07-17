@@ -373,7 +373,404 @@
                     "count": 1,
                     "wave": 0,
                     "level": 0,
+                    "tier": 2,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                }
+            ]
+        },
+        {
+            "mapId": "dungeon_03",
+            "expReward": 700,
+            "monsterLevel": 12,
+            "bounds": {
+                "centerX": 0.0,
+                "centerZ": 0.0,
+                "sizeX": 64.0,
+                "sizeZ": 64.0
+            },
+            "points": [
+                {
+                    "x": -3.0,
+                    "y": 0.0,
+                    "z": -26.0,
+                    "rotY": 0.0
+                },
+                {
+                    "x": -1.0,
+                    "y": 0.0,
+                    "z": -26.0,
+                    "rotY": 0.0
+                },
+                {
+                    "x": 1.0,
+                    "y": 0.0,
+                    "z": -26.0,
+                    "rotY": 0.0
+                },
+                {
+                    "x": 3.0,
+                    "y": 0.0,
+                    "z": -26.0,
+                    "rotY": 0.0
+                }
+            ],
+            "monsters": [
+                {
+                    "monsterId": "wild_centaur",
+                    "x": -6.0,
+                    "y": 0.0,
+                    "z": -4.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
                     "tier": 0,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                },
+                {
+                    "monsterId": "wild_centaur",
+                    "x": 6.0,
+                    "y": 0.0,
+                    "z": -4.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 0,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                },
+                {
+                    "monsterId": "gargoyle",
+                    "x": -5.0,
+                    "y": 0.0,
+                    "z": 4.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 0,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                },
+                {
+                    "monsterId": "gargoyle",
+                    "x": 5.0,
+                    "y": 0.0,
+                    "z": 4.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 0,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                },
+                {
+                    "monsterId": "undead_axemaster",
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 8.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 0,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                },
+                {
+                    "monsterId": "demon_girl",
+                    "x": -8.0,
+                    "y": 0.0,
+                    "z": 10.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 0,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                },
+                {
+                    "monsterId": "demon_girl",
+                    "x": 8.0,
+                    "y": 0.0,
+                    "z": 10.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 0,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                },
+                {
+                    "monsterId": "undead_axemaster",
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 16.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 1,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                }
+            ]
+        },
+        {
+            "mapId": "dungeon_04",
+            "expReward": 1500,
+            "monsterLevel": 20,
+            "bounds": {
+                "centerX": 0.0,
+                "centerZ": 0.0,
+                "sizeX": 72.0,
+                "sizeZ": 72.0
+            },
+            "points": [
+                {
+                    "x": -3.0,
+                    "y": 0.0,
+                    "z": -30.0,
+                    "rotY": 0.0
+                },
+                {
+                    "x": -1.0,
+                    "y": 0.0,
+                    "z": -30.0,
+                    "rotY": 0.0
+                },
+                {
+                    "x": 1.0,
+                    "y": 0.0,
+                    "z": -30.0,
+                    "rotY": 0.0
+                },
+                {
+                    "x": 3.0,
+                    "y": 0.0,
+                    "z": -30.0,
+                    "rotY": 0.0
+                }
+            ],
+            "monsters": [
+                {
+                    "monsterId": "gargoyle",
+                    "x": -7.0,
+                    "y": 0.0,
+                    "z": -6.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 0,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                },
+                {
+                    "monsterId": "gargoyle",
+                    "x": 7.0,
+                    "y": 0.0,
+                    "z": -6.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 0,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                },
+                {
+                    "monsterId": "undead_axemaster",
+                    "x": -5.0,
+                    "y": 0.0,
+                    "z": 2.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 0,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                },
+                {
+                    "monsterId": "undead_axemaster",
+                    "x": 5.0,
+                    "y": 0.0,
+                    "z": 2.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 0,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                },
+                {
+                    "monsterId": "wild_centaur",
+                    "x": -9.0,
+                    "y": 0.0,
+                    "z": 8.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 1,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                },
+                {
+                    "monsterId": "gargoyle",
+                    "x": 9.0,
+                    "y": 0.0,
+                    "z": 8.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 1,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                },
+                {
+                    "monsterId": "leviathan",
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 18.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 2,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                }
+            ]
+        },
+        {
+            "mapId": "dungeon_05",
+            "expReward": 3000,
+            "monsterLevel": 30,
+            "bounds": {
+                "centerX": 0.0,
+                "centerZ": 0.0,
+                "sizeX": 80.0,
+                "sizeZ": 80.0
+            },
+            "points": [
+                {
+                    "x": -3.0,
+                    "y": 0.0,
+                    "z": -34.0,
+                    "rotY": 0.0
+                },
+                {
+                    "x": -1.0,
+                    "y": 0.0,
+                    "z": -34.0,
+                    "rotY": 0.0
+                },
+                {
+                    "x": 1.0,
+                    "y": 0.0,
+                    "z": -34.0,
+                    "rotY": 0.0
+                },
+                {
+                    "x": 3.0,
+                    "y": 0.0,
+                    "z": -34.0,
+                    "rotY": 0.0
+                }
+            ],
+            "monsters": [
+                {
+                    "monsterId": "undead_axemaster",
+                    "x": -8.0,
+                    "y": 0.0,
+                    "z": -2.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 1,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                },
+                {
+                    "monsterId": "undead_axemaster",
+                    "x": 8.0,
+                    "y": 0.0,
+                    "z": -2.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 1,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                },
+                {
+                    "monsterId": "gargoyle",
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 6.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 1,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                },
+                {
+                    "monsterId": "leviathan",
+                    "x": -6.0,
+                    "y": 0.0,
+                    "z": 16.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 2,
+                    "slotId": 0,
+                    "respawnCooldownMs": 0,
+                    "patrol": []
+                },
+                {
+                    "monsterId": "leviathan",
+                    "x": 6.0,
+                    "y": 0.0,
+                    "z": 16.0,
+                    "rotY": 180.0,
+                    "count": 1,
+                    "wave": 0,
+                    "level": 0,
+                    "tier": 2,
                     "slotId": 0,
                     "respawnCooldownMs": 0,
                     "patrol": []
