@@ -3,6 +3,11 @@
 > **계기**: AC-C1c 측정에서 몬스터 피해가 **1,1,2,2,3,5** 로 `max(1,..)` 바닥에 눌린 것을 확인(2026-07-17).
 > **결정**(사용자, 2026-07-17): 레벨 = **맵 기본 + 스폰별 override** · Variant = **등급(Normal/Elite/Boss)** · 드롭 = **9마리 전수 + 레벨 스케일 + goblin 제거**.
 > 관련 = [combat-diagnostics.md](combat-diagnostics.md) · 진행 = plan.md M5.
+>
+> **⚠️ 최종형 정정(AC-G, 2026-07-17)** — 이 문서의 "등급 = 배율" 부분은 **폐기됐다**(§3·§4 의 Tier 인자·§4.3 등급배율).
+> 등급은 `monsters.json` 의 **분류 필드**(문자열 "Normal"/"Elite"/"Boss")일 뿐 스탯에 곱해지지 않으며,
+> 강한 개체는 **변종 ID 를 직접 저작**한다(`leviathan` hp 500 / `leviathan_boss` hp 3000 — 스폰은 monsterId 하나만 본다).
+> **레벨 스케일(§2)은 그대로 유효.** 폐기 경위 = plan.md AC-G · codemap.
 
 ---
 
@@ -73,14 +78,17 @@ HP(L) = 100 + 20(L-1) = HP(1)·(1 + 0.2(L-1))
 > ⚠️ **정정(AC-F1)**: 초판은 곡선 상수(DEF 5/+2, HP비 0.2)를 **여기 하드코딩**하고 "곡선 바꾸면 여기도 같이 바꿔라"는
 > 주석을 달았다 — 그게 바로 SO 교리가 막으려는 **수동 동기화 함정**이었다.
 > 지금은 상수가 하나도 없다: `base(L) = net₁ · HP(L)/HP(1) + DEF(L)` 로 **테이블을 직접 읽는다**(곡선이 비선형이어도 자동 추종).
-> 등급 배율도 `switch` 하드코딩 → `MonsterScalingCatalog`(SO bake) 로 옮겼다.
+> ~~등급 배율도 `switch` 하드코딩 → `MonsterScalingCatalog`(SO bake) 로 옮겼다~~ → 그 배율 자체가 **AC-G 에서 폐기**(변종 ID 직접 저작).
 
 **HP 스케일**: 플레이어 AP 가 `10+3(L-1)` = L6 에 2.5배 → 킬 타임 유지하려면 몬스터 HP 도 같은 비율.
 `maxHp(L) = maxHp₁ · AP(L)/AP(1) = maxHp₁ · (1 + 0.3(L-1))`
 
 ---
 
-## 3. 등급 Variant (Normal/Elite/Boss)
+## 3. ~~등급 Variant (Normal/Elite/Boss)~~ → **폐기(AC-G)**
+
+> ⚠️ 아래 배율 표는 구현됐다가(AC-F2) **같은 날 접었다.** 배율 방식의 실비용: ① tier enum 을 서버·클라 양쪽에 미러링(드리프트 위험) ② 스폰에 필드 2개(level+tier) ③ "이 몬스터가 왜 센지"를 몬스터 테이블과 배율 테이블 **두 곳에서** 찾아야 함.
+> **최종형**: 변종이 각자 ID·스탯을 직접 갖는다(`undead_axemaster` 170 / `undead_axemaster_elite` 340 / `leviathan_boss` 3000). `tier` 는 표시·연출 분기용 분류로만 남았다(보스 체력바·등장 연출 후보). 아래 표는 **당시 기록**.
 
 레벨과 **직교**한다 — 레벨은 "어느 던전 대역인가", 등급은 "그 대역 안에서 얼마나 강한가".
 
@@ -96,6 +104,10 @@ HP(L) = 100 + 20(L-1) = HP(1)·(1 + 0.2(L-1))
 ---
 
 ## 4. 컴포넌트 배치 · 흐름
+
+> ⚠️ **정정(AC-G)**: 아래 흐름의 `T`(등급) 인자와 `spawn.tier` 는 제거됐다. 현행 시그니처:
+> `MonsterLevelScaling.Hp(maxHp₁, L)` · `Damage(base₁, L)` · `Exp(exp₁, L)` · `DropTableCatalog.Roll(id, rng, level)`.
+> 등급 강도는 **변종 ID 의 저작값**이 담당하고, `MonsterState.Tier` 는 카탈로그(monsterId 행)에서 읽는 분류다.
 
 ```
 spawn-layouts.json                     monsters.json           abilities.json        drop-tables.json
@@ -162,17 +174,21 @@ CombatHandler.SpawnDrops(room, monster)
 
 **`goblin` 테이블 삭제** — `monsters.json` 에 없는 유령이라 롤이 절대 일어나지 않는다.
 
+> ✅ **저작 완료(E5) + AC-G 반영**: 8마리 전수 + `goblin` 유령 제거 완료(`test_brute` 는 픽스처라 의도적 제외). **변종(`*_elite`·`leviathan_boss`)은 각자 자기 ID 의 드롭 테이블**을 갖는다 — 등급 확률 배율이 없으므로 테이블이 없으면 아무것도 안 떨군다.
+
 ---
 
 ## 6. 증분 계획
 
 | # | 증분 | 검증 |
 |---|------|------|
-| **E1** | `MonsterLevelScaling`(Shared.Infrastructure) + 단위테스트 — **코드만, 배선 없음** | 단위(역할 보존·바닥 없음·경계) |
-| **E2** | `MonsterSpawnDef.Level/Tier` + `MapSpawnLayout.MonsterLevel` 저작 + 스폰 시 확정 | 단위(맵 기본/override) · 기존 테스트 무변경 확인 |
-| **E3** | 피해·HP·Exp 배선(`Room.TickMonsters`·`SpawnMonsters`) | 단위(레벨별 피해) · **Docker E2E** |
-| **E4** | 드롭 9마리 전수 + 레벨/등급 롤 + goblin 제거 | 단위(롤 분포·유령 부재) |
-| **E5** | 클라 SO 저작(`MonsterCatalogDefinition`·spawn) + Export 왕복 | Unity 컴파일 · EditMode |
+| **E1** ✅ | `MonsterLevelScaling`(Shared.Infrastructure) + 단위테스트 — **코드만, 배선 없음** | 단위(역할 보존·바닥 없음·경계) |
+| **E2** ✅ | `MonsterSpawnDef.Level/Tier` + `MapSpawnLayout.MonsterLevel` 저작 + 스폰 시 확정 | 단위(맵 기본/override) · 기존 테스트 무변경 확인 |
+| **E3** ✅ | 피해·HP·Exp 배선(`Room.TickMonsters`·`SpawnMonsters`) | 단위(레벨별 피해) · **Docker E2E** |
+| **E4** ✅ | 드롭 9마리 전수 + 레벨/등급 롤 + goblin 제거 | 단위(롤 분포·유령 부재) |
+| **E5** ✅ | 클라 SO 저작(`MonsterCatalogDefinition`·spawn) + Export 왕복 | Unity 컴파일 · EditMode |
+
+> ✅ **전 증분 완료(2026-07-17)** + 후속 **AC-F**(상수 하드코딩 제거·던전 5개 L1→L30)·**AC-G**(등급→ID) — plan.md 참조.
 
 - **E1 을 먼저** 한다 — 순수함수라 리스크 0 이고, 나머지가 전부 여기 의존한다.
 - 각 증분은 **그 자체로 동작 보존**(codemap §2.62 교훈 — 데이터 선반영이 증분 경계를 깨뜨린 사례).

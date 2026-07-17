@@ -2,7 +2,7 @@
 
 > **새 채팅 시작 시 이 파일을 먼저 읽어라.**
 > Phase가 완료될 때마다 즉시 갱신한다.
-> 마지막 갱신: 2026-07-16 — **몬스터 로스터 8종 + 던전 재기획 완료** (애니 폴리시 백로그 #2 마지막 항목 소진 → 백로그 전체 ✅. `_DLNK` 몬스터 8종 스탯·프리팹·애니 + dungeon_01/02 티어 재기획 + E2E 픽스처 `dungeon_e2e` 분리. 상세 = codemap §2.62)
+> 마지막 갱신: 2026-07-17 — **AC 트랙 전체 완료 + PR #60 머지**(main `972991e5`, 24커밋). AC/AC-B(Actor 통합·Ability SO 단일 저작) · AC-C(전투 진단 → D1 송신큐·D2 Seq 근본수정, **측정으로 C2b 불필요 판정**) · AC-E~G(몬스터 레벨링·밸런스 데이터 전면 SO화·던전 5개 L1→L30·**등급은 ID 로**) · AC-H(Main 몬스터 체력바). 잔여 = AC-D(전용 애니·P→P 스케일·VFX Cue)·dungeon_03~05 맵 배경. (직전 07-16 몬스터 로스터 = codemap §2.62)
 >
 > | 커밋 | 내용 | codemap |
 > |---|---|---|
@@ -364,20 +364,19 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 - [ ] 장비/루트/재화/상점/소모품 [3.2~3.8] + 관련 UI [7.2~7.8]
 - [x] 전투 보조 — 회피✅·CC✅·**Co-op 부활✅**(2.5.2) · **타겟팅/락온✅**(2.6.3 완료 2026-06-30) [2.6·2.5.2] → **2.6 전체 완료**
 - [ ] **CA-5**: Skill Timeline 에디터 툴(공유 JSON read/write) [2.7]
-- [ ] **AC — 몬스터·플레이어 Actor 통합 전투(GAS)** [2.6·4.1] — 설계 [actor-combat-architecture.md](actor-combat-architecture.md). 계기=몬스터 공격 모션 부재(발동 신호 경로 부재). ActorId 통합 파이프(`S_AbilityActivated`)로 플레이어·몬스터 발동·연출·조회 단일화 + 대량 몬스터 O(N) 라우팅. 증분: **[x] 1** `ActorIds`+`AbilityActivationMath`(Shared 순수, `Shared.Gameplay.Tests` 50/50) · **[x] 2** 패킷 `S_AbilityActivated`(1604)+codegen 미러(`SocketServer.Tests` 130/130·Unity 0오류) · **[x] 3** 서버 `Room.TickMonsters` 게이트(MonsterDef)+`S_AbilityActivated` broadcast+SourceId 승격(SocketServer.Tests 132/132) · **[x] 4** 클라 `ActorRegistry`+`IActorView`+`AbilityCueRouter`+`MonsterEntity.PlayAbilityCue`(**몬스터 공격 모션 해소**, EditMode 172/172·PlayMode 애니·Docker E2E 31/31) · **[x] 5** 플레이어 흡수(`CombatHandler` S_Attack→S_AbilityActivated·`RemoteDriver` IActorView·Docker E2E 31/31, 1601 타입 보존) · **[x] 6** Main `LocalMonster` 승격(인라인→`AbilityActivationMath`+`PlayAbilityCue`, Main 모션 해소, PlayMode 5/5) · **[x] 7** 스케일 = 서버 dirty-flag(Idle 몬스터 트래픽 0, SocketServer.Tests 134/134·Docker E2E 31/31). ※클라 이동 Registry 라우팅은 보류(YAGNI — fan-out 병목 아님, 실비용은 엔티티 Update). **→ AC 트랙 완료**
+- [x] **AC — 몬스터·플레이어 Actor 통합 전투(GAS)** [2.6·4.1] — 설계 [actor-combat-architecture.md](actor-combat-architecture.md). 계기=몬스터 공격 모션 부재(발동 신호 경로 부재). ActorId 통합 파이프(`S_AbilityActivated`)로 플레이어·몬스터 발동·연출·조회 단일화 + 대량 몬스터 O(N) 라우팅. 증분: **[x] 1** `ActorIds`+`AbilityActivationMath`(Shared 순수, `Shared.Gameplay.Tests` 50/50) · **[x] 2** 패킷 `S_AbilityActivated`(1604)+codegen 미러(`SocketServer.Tests` 130/130·Unity 0오류) · **[x] 3** 서버 `Room.TickMonsters` 게이트(MonsterDef)+`S_AbilityActivated` broadcast+SourceId 승격(SocketServer.Tests 132/132) · **[x] 4** 클라 `ActorRegistry`+`IActorView`+`AbilityCueRouter`+`MonsterEntity.PlayAbilityCue`(**몬스터 공격 모션 해소**, EditMode 172/172·PlayMode 애니·Docker E2E 31/31) · **[x] 5** 플레이어 흡수(`CombatHandler` S_Attack→S_AbilityActivated·`RemoteDriver` IActorView·Docker E2E 31/31, 1601 타입 보존) · **[x] 6** Main `LocalMonster` 승격(인라인→`AbilityActivationMath`+`PlayAbilityCue`, Main 모션 해소, PlayMode 5/5) · **[x] 7** 스케일 = 서버 dirty-flag(Idle 몬스터 트래픽 0, SocketServer.Tests 134/134·Docker E2E 31/31). ※클라 이동 Registry 라우팅은 보류(YAGNI — fan-out 병목 아님, 실비용은 엔티티 Update). **→ AC 트랙 완료**
 - [x] **AC-A 몬스터 애니 파라미터 구동 전환** (2026-07-16) — **Walk 버그 근본 수정**: 컨트롤러는 `Speed` 파라미터 전이인데 코드는 상태이름 CrossFade + `Speed` 미세팅 → Walk 진입 즉시 `Walk→Idle[Speed<0.1]` 로 튕김. `MonsterEntity`/`LocalMonster` 를 `CharacterAgentAnimations`(플레이어와 동일 어댑터) 파라미터 구동으로 통일(Speed/Attack/Die), 상태이름 필드·attack lock 제거, 프리팹 9종 배선. PlayMode 애니 6/6(Walk 회귀 신규)·EditMode 172/172. 상세 = [codemap §2.60](codemap.md)
-- [ ] **AC-B Ability SO 통합 저작** — 설계 ✅ [ability-so-authoring.md](ability-so-authoring.md) (2026-07-16). 모든 GAS 공격·스킬을 **Ability SO 한 곳에서 편집**(게임플레이 + Cue 트리거) → `abilities.json` bake 로 `skills.json`·몬스터 `attack*` 필드 대체, `ResolveSkill` 하드코딩 switch 제거, **몬스터 다중 스킬(보스)** 개방. 증분: **[x] B1**(2026-07-16) SO 2종(`AbilityDefinition`/`AbilityCatalogDefinition`)+`AbilityCatalogExporter`+서버 `Shared.Infrastructure.Abilities.AbilityCatalog`+**5스킬 SO 이관·bake**(`Assets/GameData/Ability/`, 읽기만·미사용). Cue 는 bake 제외(서버 무지). `AbilityCatalogTests` 7·SocketServer.Tests 141/141 · **[x] B2**(2026-07-16) `CombatHandler.ResolveSkill` 하드코딩 switch **제거**→`AbilityCatalog.Get(networkId)`(=**스킬 추가에 서버 코드 수정 불필요 달성**), `skills.json`+`Skills/SkillCatalog.cs`+`SkillCatalogExporter` 삭제. 동작 무변경(데미지는 B5 까지 onHit 유지). SocketServer.Tests 137/137·Docker E2E 31/31 · **[x] B3**(2026-07-16) 클라 Cue 데이터화 + **클라·서버 저작 단일화**: `AbilityCatalogProvider` 신설, `IActorView.PlayAbilityCue(trigger, comboStep)`(라우터가 카탈로그로 해석) → `RemoteDriver` 콤보 switch·`LocalCombat`/`PlayerCharacterAgent` `SkillName` switch **제거**, Skill 계열(SO 2종·Provider·5 에셋·Exporter·테스트) **전량 삭제**. EditMode 170/170·PlayMode 애니 6/6·Docker E2E 31/31 · **[x] B4**(2026-07-16) 몬스터 어빌리티화 — `MonsterDefinition.abilityIds[]`(공격 수치 4필드 제거)·`MonsterStats.AttackRange`=어빌리티 최대사거리 파생·`Room.SelectMonsterAbility`(사거리+쿨다운 만족 첫 어빌리티, 저작순=우선순위)·`MonsterState` 어빌리티별 쿨다운·몬스터 9종 Ability SO(networkId 100+, 밸런스 무변경). **→ 보스 다중 스킬 개방.** SocketServer.Tests 145/145·Docker E2E 31/31 · **[x] B5**(2026-07-16) 데미지 출처 일원화(안B 완결) — 플레이어·몬스터 모두 `ability.BaseDamage` 기준(`BuildDamageMods`), `basic_attack_dmg`/`combo_*_dmg`/`monster_attack_dmg` **폐기** → 데미지 라벨 `ability_damage` 단일(수치=서버 권위 Amount), onHit=**CC 전용**. 밸런스 무변경 이관. SocketServer 146/146·Shared 50/50·EditMode 170/170·Docker E2E 31/31 · **[x] B6**(2026-07-16) 보스 다중스킬 실증 — `leviathan.abilityIds=[leviathan_slam(강·cd6000·dmg90·stun), leviathan_attack(평타)]`, **코드 변경 0**으로 강스킬→쿨다운이면 평타 폴백. `BossMultiAbilityTests` 8·SocketServer.Tests 154/154·Docker E2E 31/31. **→ AC-B 트랙 완료**(스킬 추가 = SO 저작+Export+서버 재빌드, 코드 수정 없음).
+- [x] **AC-B Ability SO 통합 저작** — 설계 ✅ [ability-so-authoring.md](ability-so-authoring.md) (2026-07-16). 모든 GAS 공격·스킬을 **Ability SO 한 곳에서 편집**(게임플레이 + Cue 트리거) → `abilities.json` bake 로 `skills.json`·몬스터 `attack*` 필드 대체, `ResolveSkill` 하드코딩 switch 제거, **몬스터 다중 스킬(보스)** 개방. 증분: **[x] B1**(2026-07-16) SO 2종(`AbilityDefinition`/`AbilityCatalogDefinition`)+`AbilityCatalogExporter`+서버 `Shared.Infrastructure.Abilities.AbilityCatalog`+**5스킬 SO 이관·bake**(`Assets/GameData/Ability/`, 읽기만·미사용). Cue 는 bake 제외(서버 무지). `AbilityCatalogTests` 7·SocketServer.Tests 141/141 · **[x] B2**(2026-07-16) `CombatHandler.ResolveSkill` 하드코딩 switch **제거**→`AbilityCatalog.Get(networkId)`(=**스킬 추가에 서버 코드 수정 불필요 달성**), `skills.json`+`Skills/SkillCatalog.cs`+`SkillCatalogExporter` 삭제. 동작 무변경(데미지는 B5 까지 onHit 유지). SocketServer.Tests 137/137·Docker E2E 31/31 · **[x] B3**(2026-07-16) 클라 Cue 데이터화 + **클라·서버 저작 단일화**: `AbilityCatalogProvider` 신설, `IActorView.PlayAbilityCue(trigger, comboStep)`(라우터가 카탈로그로 해석) → `RemoteDriver` 콤보 switch·`LocalCombat`/`PlayerCharacterAgent` `SkillName` switch **제거**, Skill 계열(SO 2종·Provider·5 에셋·Exporter·테스트) **전량 삭제**. EditMode 170/170·PlayMode 애니 6/6·Docker E2E 31/31 · **[x] B4**(2026-07-16) 몬스터 어빌리티화 — `MonsterDefinition.abilityIds[]`(공격 수치 4필드 제거)·`MonsterStats.AttackRange`=어빌리티 최대사거리 파생·`Room.SelectMonsterAbility`(사거리+쿨다운 만족 첫 어빌리티, 저작순=우선순위)·`MonsterState` 어빌리티별 쿨다운·몬스터 9종 Ability SO(networkId 100+, 밸런스 무변경). **→ 보스 다중 스킬 개방.** SocketServer.Tests 145/145·Docker E2E 31/31 · **[x] B5**(2026-07-16) 데미지 출처 일원화(안B 완결) — 플레이어·몬스터 모두 `ability.BaseDamage` 기준(`BuildDamageMods`), `basic_attack_dmg`/`combo_*_dmg`/`monster_attack_dmg` **폐기** → 데미지 라벨 `ability_damage` 단일(수치=서버 권위 Amount), onHit=**CC 전용**. 밸런스 무변경 이관. SocketServer 146/146·Shared 50/50·EditMode 170/170·Docker E2E 31/31 · **[x] B6**(2026-07-16) 보스 다중스킬 실증 — `leviathan.abilityIds=[leviathan_slam(강·cd6000·dmg90·stun), leviathan_attack(평타)]`, **코드 변경 0**으로 강스킬→쿨다운이면 평타 폴백. `BossMultiAbilityTests` 8·SocketServer.Tests 154/154·Docker E2E 31/31. **→ AC-B 트랙 완료**(스킬 추가 = SO 저작+Export+서버 재빌드, 코드 수정 없음).
 
-**AC-C — 전투 진단/관측 + 동기화 무결성 (다음 작업, 우선)** — 설계 ✅ [combat-diagnostics.md](combat-diagnostics.md)
+**AC-C — 전투 진단/관측 + 동기화 무결성 (✅ 2026-07-17 전체 완료)** — 설계 [combat-diagnostics.md](combat-diagnostics.md)
 > 코드 리딩으로 **재현 조건이 명확한 결함 2건** 확인(측정 전에도 고칠 근거 충분):
 > - **D1 송신 직렬화 없음** — `Room.Broadcast` 가 fire-and-forget, `Session.SendPacketAsync` 는 큐·락 없이 부분전송 루프 → 틱 스레드와 패킷 스레드가 **동일 소켓 동시 write** → 순서 역전 + **프레임 인터리브(파싱 desync)** 위험.
 > - **D2 dirty-flag 스테일 고착** — 틱이 만든 옛 HP 패킷이 데미지 패킷보다 늦게 도착하면 되돌아가고, 다음 틱은 `StateDirty()==false` 라 정정 안 함 → **HP 가 틀린 값에 영구 고착**. 증분7 이전엔 매 틱 재전송이 자가 교정했다 → **AC 증분7이 만든 회귀**.
 - [x] **AC-C3-hotfix** (최우선·승인 불요) — **D2 봉합 완료.** 데미지 경로(`CombatHandler.ApplyAttackToMonsters`)의 `MarkStateSent()` 제거 → HP 변화는 다음 틱이 무조건 재전송해 **자가 교정**(피격당 1패킷 = 정합성의 대가). 회귀가드 2종 추가. 근본해법은 AC-C3(Seq).
-- [~] **AC-C1 전투 계측 — 2축(타임라인 + 판정/공식)**. 상관키=ActorId/InstanceId(+Seq). **스위치 Off 기본**(상시 로그 금지, Off면 호출 자체 없음).
+- [x] **AC-C1 전투 계측 — 2축(타임라인 + 판정/공식)**. 상관키=ActorId/InstanceId(+Seq). **스위치 Off 기본**(상시 로그 금지, Off면 호출 자체 없음).
   - [x] **C1a 서버 `[CombatTrace]` 구조적 로그** — 판정(path·formula·base/AP/DEF·final·hp·seq) + gate 4종 + 타임라인(recv/judge/serverMs). 기본 Off. ⚠ 스위치는 **Serilog**(`Serilog__MinimumLevel__Override__CombatTrace=Debug`) — `Logging:LogLevel` 은 이 서버에서 죽은 설정이었다. 검증: 단위 4종(Off 무호출 실측) · 164/164 · **Docker 육안 64건** · 기본 Off 0건 · E2E 31/31.
   - **축A 타임라인**: 송신→서버수신→판정→서버송신→클라수신→HP반영 **구간 delta** (체감 "느림"의 원인 구간)
   - **축B 판정/공식**: `abilityId·path·formula·base/AP/DEF·finalDamage·HP전후·onHit·gate(거부사유)` — **"이 데미지가 왜 이 숫자인가"**. 산식 진실원=`StatCombatMath.MeleeDamage = max(1, base+AP−DEF)`. ※경로 3개가 입력이 달라(플→몹: AP O/DEF 0 · 몹→플: AP 0/DEF O · **플→플: 산식 미경유 flat**) → 트레이스가 **AC-D2 비대칭을 데이터로 노출**한다.
-  - [x] **C1a 서버** `[CombatTrace]` 구조적 로그(타임라인+판정) → 기존 Graylog(신규 인프라 0)
   - [x] **C1b 클라 `CombatTraceRecorder`** — 링버퍼(512, 순수 C#·무할당, 기본 Off) + `CombatTraceJoin`(스윙 단위 병합·구간 delta). **단일 소스** — 창은 그 위의 뷰. ⚠ 설계 정정: 클라는 AP/DEF 를 못 받으므로 `AP-DEF = final - base` 역산(§2.4 정정). 검증: EditMode 10종 · **184/184**.
   - [x] **C1b' `CombatTraceWindow`(에디터 창) + 배선** — `Tools/Combat/Combat Trace`(IMGUI — 매 프레임 갱신되는 진단 덤프라 즉시모드가 맞고 `MapEditorWindow` 선례와 동일). Record 토글·Clear·CSV·거부만 필터·요약 2탭(타임라인 avg/p95/max · 판정: netId별 발동수·평균뎀·게이트의심·스테일드롭수)·이벤트 목록·상세. **창=뷰, 로직 0**(병합은 `CombatTraceJoin`). 배선 4곳: `CombatSyncSender`(t_send) · `AbilityActivatedPacketHandler` · `EffectPacketHandler`(Amount≠0) · `SocketPacketState.UpdateMonster`(HP델타·스테일드롭). ⚠ **asmdef 변경(승인 2026-07-17)**: `Game.Gameplay.Editor` → `Game.Network` 참조 1줄 추가(하향, 위반 아님). 검증: 컴파일 0오류 · EditMode **186/186** · Docker E2E **31/31**(리빌드 후).
   - [x] **C1c 측정 세션** — **완료 2026-07-17**(사용자 플레이, CSV 확보). 결과: **① 데미지 검수 통과** — `max(1,base+AP-DEF)` 역산이 콤보 3단계 모두 일관(내 AP=25 / 다른 플레이어 AP=16), 누적피해 = 스윙별 final 합 완전 일치(m8=90·m7=57·m6=35·m4=31). **② 지연** — 송신→HP 반영 avg **37ms**(max 50), RTT avg **39ms**(max 94), 발동→HP **14ms**. 체감의 대부분이 RTT → **C2b(틱레이트·예측) 착수 근거 없음**. **③ 스테일 드롭 8마리 전부 0** — C2 의 FIFO 로 생성순=도착순이 되어 역전 자체가 사라짐. C3 Seq 는 이중 안전망으로 강등. gate 거부도 0건. **④ 발견: 링버퍼 포화**(508/512, 89%가 이동 틱 노이즈) → 측정이 최근 수 초로 잘림. **⑤ 발견: 몬스터→플레이어 지연 관측 불가**(플레이어 HP 반영 시점 미기록). **⑥ 밸런스: 몬스터 피해가 1~5 로 max(1,..) 바닥**.
@@ -388,33 +387,13 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 **플레이 중 발견한 버그 (사용자 관측 → 즉시 수정)**
 - [x] **몬스터 사망 시 체력바가 안 비는 버그** — 2026-07-17. 서버는 `dead` 면 `S_MonsterDead` 만 보내고 죽는 순간의 `S_MonsterState{Hp=0}` 은 없는데, 클라 `MonsterEntity.HandleDead` 도 HP 를 0 으로 만들지 않아 **체력바가 치명타 직전 값에 멈춘 채 2초간 die 모션**이 재생됐다. → `HandleDead` 에서 HP 0 확정 후 트리거. 서버 추가 전송 대신 클라 유도를 택한 이유 = D1(송신 직렬화 없음) 로 Dead 가 먼저 오면 `Hp=0` 이 버려져 간헐 재발. 플레이어는 `S_ApplyEffect` 로 ASC 가 직접 차감해 이 버그 없음(비대칭). 상세 = codemap §2.73. 검증: PlayMode anim 3/3 · EditMode 189/189.
 
-**AC-F — 데이터 전면 SO 화 + 던전 확장 (2026-07-17 완료)**
-- [x] **F1 밸런스 상수 하드코딩 제거** — `MonsterLevelScaling` 이 플레이어 곡선을 `LevelTable`(이미 SO 저작)에서 **직접 읽는다**. 식 재유도: `base(L) = net₁·HP(L)/HP(1) + DEF(L)` → **상수 0개**, 곡선이 비선형이어도 자동 추종. 이전엔 DEF 5/+2·HP비 0.2 를 복제해두고 "같이 바꿔라" 주석을 달았다(수동 동기화 함정).
-- [x] **F2 등급 배율 → SO 테이블** — `MonsterScalingDefinition`(SO) → `MonsterScalingExporter` → `monster-scaling.json` → `MonsterScalingCatalog`. 기획이 배율을 바꾸는 데 서버 코드 수정이 더는 필요 없다. exporter 검증: 등급 중복·배율 0 이하·Normal 누락.
-- [x] **F3 던전 5개 + 진행 곡선** — L1(100) → L6(300) → L12(700) → L20(1500) → L30(3000). 등급 구성도 점층(N만 → B 1 → E 1 → E2+B1 → E3+B2). `DungeonCatalog` 5개 등록(등록 안 하면 UI 에 안 뜬다).
-- [x] **보스 등급 교정** — `leviathan`(base 40/slam 90)이 `dungeon_02` 에서 **Normal 로 스폰**되고 있었다 → Boss 로.
-- 검증: SocketServer **212/212** · 솔루션 0오류 · EditMode **192/192** · Docker E2E **31/31**.
-
-**AC-H — Main 몬스터 체력바 (2026-07-17 완료)**
-- [x] **`IMonsterHealth` 계약 도입** — 구현체가 **실제로 둘**(던전 `MonsterEntity`=서버 권위 / Main `LocalMonster`=클라 권위)이라 unity-client.md 의 인터페이스 도입 기준 충족. 체력바는 "누가 권위인가"를 알 필요가 없다.
-- [x] `MonsterHealthBar` 를 계약 기반으로 전환 → **던전·Main 공용**(컴포넌트 1개).
-- [x] `LocalMonster` 가 계약 구현 + 피격/사망 시 `HpChanged` 발행. **사망 시 HP 0 확정**(음수 노출 금지) — 던전에서 고친 그 버그의 Main 판 예방.
-- [x] `CreepyDemonLocal.prefab` 에 던전 프리팹의 HealthBar 서브트리 복제(손으로 Canvas 재구성하면 앵커·스케일이 어긋난다).
-- 검증: PlayMode **3/3**(프리팹 배선·피격 fill 감소·사망 0) · EditMode **192/192** · 컴파일 0오류.
-
-**AC-G — 등급을 Monster Table 로 · 변종은 ID 로 (2026-07-17 완료, 사용자 지시)**
-- [x] **배율 간접층 제거** — `MonsterScalingDefinition`(SO)·`monster-scaling.json`·`MonsterScalingCatalog`·`spawn.tier`·클라 `MonsterTier` 미러 enum 을 **전부 삭제**. AC-F2 에서 만든 걸 하루 만에 접었다 — 사용자 지적("ID만 처리하면 되잖아")이 옳았다.
-- [x] **등급 = `monsters.json` 의 `tier` 필드**(문자열 "Normal"/"Elite"/"Boss"). **분류일 뿐 스탯에 곱해지지 않는다** — 표시·연출 분기용.
-- [x] **변종 = 별개 ID·스탯 직접 저작** — `leviathan`(hp 500) / `leviathan_boss`(hp 3000). 스폰은 `monsterId` **하나만** 처리한다.
-- [x] 변종 4종(`undead_axemaster_elite`·`wild_centaur_elite`·`gargoyle_elite`·`leviathan_boss`) + 각자의 드롭 테이블(배율이 없으니 없으면 아무것도 안 떨군다).
-- [x] 던전 스폰이 변종 ID 를 직접 지목하도록 재배치(dungeon_02~05).
-- ⚠️ **테스트가 내 저작 실수를 잡았다**: `leviathan` base 를 65 로 착각(그건 arachnya)해 boss 를 390 으로 적었다 → **원본(500)보다 약한 보스**. `변종은_별개_ID_로_저작된다_AC_G` 가 실패시켜 실제 base 로 재저작(3000).
-- 검증: SocketServer **209/209** · 솔루션 0오류 · EditMode **192/192** · Docker E2E **31/31**.
-
 **AC-C1c 가 드러낸 후속 (측정 근거 있음)**
 - [x] **트레이스 링버퍼 포화 — 해소(안ⓒ, 2026-07-17)**. ① 이동 틱(HP 델타 0)은 **링에 안 넣는다**(실측 89% 노이즈 제거) ② 용량 512→**4096**(~200KB) ③ **동기화 집계를 링에서 분리** — 몬스터당 1행 맵(`CombatTraceRecorder.MonsterSync()`)이라 링이 돌아도 유실 없고(예전엔 m3 가 49건 증발), **한 대도 안 맞은 몬스터도 계속 보인다**(필터만 했으면 사라졌을 요구사항). 검증: EditMode **192/192**(+4, 노이즈 필터·델타 보존·집계 무유실).
 - [ ] **몬스터→플레이어 지연 관측 불가** — 몬스터 스윙 행은 `activateToHpMs=-1`. 플레이어 HP 는 ASC 가 적용하는데 그 시점을 기록하지 않는다(`MonsterHpApplied` 는 몬스터 전용). "맞을 때 내 체력바 반응"을 재려면 `EffectReceiver` 적용 시점 기록이 필요.
-- [~] **AC-E 몬스터 레벨링 · 등급 Variant · 드롭 정리** — 설계 ✅ [monster-leveling.md](monster-leveling.md). C1c 측정(몬스터 피해 1~5 바닥)의 뿌리 = **몬스터에 레벨이 없어 스탯 고정**인데 플레이어만 선형 성장(DEF +2/L) → L19 부터 전 몬스터 1 데미지. 결정(사용자): 레벨=**맵 기본+스폰 override** · Variant=**등급(Normal/Elite/Boss)** · 드롭=**9마리 전수+레벨 스케일+goblin 제거**.
+- [x] **밸런스: 몬스터 피해가 바닥(1~5)** → **AC-E 트랙으로 해결**(아래).
+
+**AC-E — 몬스터 레벨링 · 드롭 정리 (✅ 2026-07-17 완료)** — 설계 [monster-leveling.md](monster-leveling.md). C1c 측정(몬스터 피해 1~5 바닥)의 뿌리 = **몬스터에 레벨이 없어 스탯 고정**인데 플레이어만 선형 성장(DEF +2/L) → L19 부터 전 몬스터 1 데미지.
+> ⚠️ 아래 증분 기록의 **등급(Tier) 배율·`spawn.tier` 는 AC-G 로 대체됨**(변종 ID 직접 저작). 레벨 스케일(`MonsterLevelScaling`)은 그대로 유효. 최초 결정("Variant=등급 배율")은 당시 기록으로 보존한다.
   - [x] **E1 `MonsterLevelScaling`**(순수 함수, 배선 없음) — **비례 가산** `base(L)=base₁+(2+0.2·net₁)(L-1)` 로 **역할 보존**(곱셈은 slam 폭발 L20=688, 단순가산은 전부 중간 수렴). HP=플레이어 AP 성장 추종, 등급은 **HP 크게·피해 작게**(즉사 방지). 검증: 단위 **17종** · 185/185.
   - [x] **E2 레벨·등급 필드 + 해석 경로** — `MonsterSpawnDef.Level/Tier` · `MapSpawnLayout.MonsterLevel` · `MonsterState.Level/Tier`(스폰 시 1회 확정). 해석은 **단일 구현** `MapSpawnLayout.ResolveLevel(spawnLevel, mapLevel)`(스폰>맵>1) — 두 곳에서 재구현하면 어긋난다. **동작 보존**: 전부 선택 필드라 기존 JSON 이 L1 로 떨어지고 L1 스케일은 항등 → 스탯 무변경(테스트로 고정). ⚠ **던전 대역 저작은 E3/E5 로 분리** — 레벨 값은 기획 결정이라 이 증분에 섞지 않았다. 검증: 단위 **9종** · 194/194 · E2E 31/31.
   - [x] **E3 피해 배선** — `Room.TickMonsters` 가 `MonsterLevelScaling.Damage(base, Level, Tier)` 로 스케일된 base 를 산식에 넣는다. `StatCombatMath` 무변경(산식은 옳았고 틀린 건 base). 트레이스도 **실제 산식 입력**(scaledBase)을 찍는다 — 저작값을 찍으면 진단이 거짓말한다. HP 는 E2 에서 이미 배선됨(스폰 시 필요). **동작 보존**(전부 L1=항등). ⚠ **증분 순서 정정**: 던전 대역 저작은 E3 이 아니라 **E5** 다 — `spawn-layouts.json` 은 `MapDataExporter` 가 굽는 **생성물**이라 직접 편집하면 다음 Export 에 덮인다. 검증: 단위 4종(스케일 우회 시 3건 실패 **실측**) · 198/198 · E2E 31/31.
@@ -427,10 +406,33 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
     - [x] 검증: SocketServer **210/210** · 솔루션 0오류 · Unity 컴파일 0 · EditMode **192/192** · Docker E2E **31/31**
     - ⚠️ **함정 기록**: exporter 가 끝에 `EditorUtility.DisplayDialog`(모달)를 띄운다 → **MCP 호출이 그 자리에서 무기한 블록**된다(이번에 Unity 가 멈춘 원인). 자동화로 Export 할 땐 팝업 없는 경로를 쓴다.
 
+**AC-F — 데이터 전면 SO 화 + 던전 확장 (2026-07-17 완료)**
+- [x] **F1 밸런스 상수 하드코딩 제거** — `MonsterLevelScaling` 이 플레이어 곡선을 `LevelTable`(이미 SO 저작)에서 **직접 읽는다**. 식 재유도: `base(L) = net₁·HP(L)/HP(1) + DEF(L)` → **상수 0개**, 곡선이 비선형이어도 자동 추종. 이전엔 DEF 5/+2·HP비 0.2 를 복제해두고 "같이 바꿔라" 주석을 달았다(수동 동기화 함정).
+- [x] ~~**F2 등급 배율 → SO 테이블**~~ — **AC-G 에서 같은 날 폐기.** 배율 간접층(`MonsterScalingDefinition`→`monster-scaling.json`→`MonsterScalingCatalog`)은 enum 서버·클라 미러링·스폰 필드 2개·"왜 센지"를 두 테이블에서 찾기를 낳았고, 사용자 지적("ID만 처리하면 되잖아")대로 **변종 ID 직접 저작**으로 대체됐다. F1·F3 은 유효.
+- [x] **F3 던전 5개 + 진행 곡선** — L1(100) → L6(300) → L12(700) → L20(1500) → L30(3000). 등급 구성도 점층(N만 → B 1 → E 1 → E2+B1 → E3+B2). `DungeonCatalog` 5개 등록(등록 안 하면 UI 에 안 뜬다).
+- [x] **보스 등급 교정** — `leviathan`(base 40/slam 90)이 `dungeon_02` 에서 **Normal 로 스폰**되고 있었다 → Boss 로.
+- 검증: SocketServer **212/212** · 솔루션 0오류 · EditMode **192/192** · Docker E2E **31/31**.
+
+**AC-G — 등급을 Monster Table 로 · 변종은 ID 로 (2026-07-17 완료, 사용자 지시)**
+- [x] **배율 간접층 제거** — `MonsterScalingDefinition`(SO)·`monster-scaling.json`·`MonsterScalingCatalog`·`spawn.tier`·클라 `MonsterTier` 미러 enum 을 **전부 삭제**. AC-F2 에서 만든 걸 하루 만에 접었다 — 사용자 지적("ID만 처리하면 되잖아")이 옳았다.
+- [x] **등급 = `monsters.json` 의 `tier` 필드**(문자열 "Normal"/"Elite"/"Boss"). **분류일 뿐 스탯에 곱해지지 않는다** — 표시·연출 분기용.
+- [x] **변종 = 별개 ID·스탯 직접 저작** — `leviathan`(hp 500) / `leviathan_boss`(hp 3000). 스폰은 `monsterId` **하나만** 처리한다.
+- [x] 변종 4종(`undead_axemaster_elite`·`wild_centaur_elite`·`gargoyle_elite`·`leviathan_boss`) + 각자의 드롭 테이블(배율이 없으니 없으면 아무것도 안 떨군다).
+- [x] 던전 스폰이 변종 ID 를 직접 지목하도록 재배치(dungeon_02~05).
+- ⚠️ **테스트가 내 저작 실수를 잡았다**: `leviathan` base 를 65 로 착각(그건 arachnya)해 boss 를 390 으로 적었다 → **원본(500)보다 약한 보스**. `변종은_별개_ID_로_저작된다_AC_G` 가 실패시켜 실제 base 로 재저작(3000).
+- 검증: SocketServer **209/209** · 솔루션 0오류 · EditMode **192/192** · Docker E2E **31/31**.
+
+**AC-H — Main 몬스터 체력바 (2026-07-17 완료)**
+- [x] **`IMonsterHealth` 계약 도입** — 구현체가 **실제로 둘**(던전 `MonsterEntity`=서버 권위 / Main `LocalMonster`=클라 권위)이라 unity-client.md 의 인터페이스 도입 기준 충족. 체력바는 "누가 권위인가"를 알 필요가 없다.
+- [x] `MonsterHealthBar` 를 계약 기반으로 전환 → **던전·Main 공용**(컴포넌트 1개).
+- [x] `LocalMonster` 가 계약 구현 + 피격/사망 시 `HpChanged` 발행. **사망 시 HP 0 확정**(음수 노출 금지) — 던전에서 고친 그 버그의 Main 판 예방.
+- [x] `CreepyDemonLocal.prefab` 에 던전 프리팹의 HealthBar 서브트리 복제(손으로 Canvas 재구성하면 앵커·스케일이 어긋난다).
+- 검증: PlayMode **3/3**(프리팹 배선·피격 fill 감소·사망 0) · EditMode **192/192** · 컴파일 0오류.
+
 **AC-D — 연출/밸런스 잔여 (AC-B에서 확장점으로 남긴 것들)**
 - [ ] **AC-D1 어빌리티별 전용 애니** — 지금은 보스 강스킬도 `Attack` 트리거 공유(`AnimationTriggerType` enum에 Attack/Dodge/Dead…만 존재). 필요 작업: enum 값 추가(예: `AbilitySpecial`) + `CharacterAgentAnimations` 파라미터 필드 + 몬스터 컨트롤러 상태/트리거 + `AbilityDefinition.cueTrigger` 저작. **소재는 이미 있음** — leviathan FBX 에 `AttackSpecial`/`AttackHard`/`Roar` 클립 존재. 설계 = [ability-so-authoring.md](ability-so-authoring.md) §남은 확장점.
 - [ ] **AC-D2 플레이어→플레이어 데미지 스탯 스케일** — 현재 **플랫 피해**(AP·Defense 미반영). 몬스터→플레이어/플레이어→몬스터는 스탯 스케일이라 **비대칭**. 전환은 밸런스 결정이라 보류 중(B5 는 출처 일원화만 하고 동작 보존). ※ 코옵에서 friendly fire 를 유지할지 자체가 선행 결정.
-- [ ] **AC-D3 VFX/SFX Cue** — `IActorView.PlayAbilityCue` 진입점·`AbilityDefinition` Cue 필드는 이미 있음 → CueCatalog(SO) + 스폰만 추가하면 확장(gas-architecture §2 ①②③). 애니 트리거만 있는 현 상태에서 자연 증분. **✅ 결정(2026-07-16): 데미지 출처 = 안B(통합) — 양쪽 `ability.baseDamage` 기준, effect 는 태그/CC 전용, `*_dmg` effect 폐기(밸런스 무변경 이관)**
+- [ ] **AC-D3 VFX/SFX Cue** — `IActorView.PlayAbilityCue` 진입점·`AbilityDefinition` Cue 필드는 이미 있음 → CueCatalog(SO) + 스폰만 추가하면 확장(gas-architecture §2 ①②③). 애니 트리거만 있는 현 상태에서 자연 증분.
 - [x] **던전 메타: `DungeonRoom.MapId` 도입 + 던전 선택 UI** [4.3·9.2] — ✅ 완료 2026-06-25. 방 생성 시 결정·영속(엔티티 4곳+EF 마이그레이션+Redis Hash) + 생성 팝업 던전 드롭다운(`DungeonCatalog` SO)·`RoomInfo.map_id` 표시·expReward Export 왕복 결함 수정. 상세=4.3 항목. 콘텐츠 확장(여러 던전)은 `MapDefinition` SO 추가→Export→서버 재빌드로 데이터만 추가.
 - [ ] PVE 오픈월드 맛보기 — 월드/존·퀘스트·NPC/대화·상호작용 [4.4~4.7]
 - [ ] 소셜(핑/이모트)·설정/옵션·재접속 [5.2·6.3·6.4]
