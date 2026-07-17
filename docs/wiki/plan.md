@@ -394,9 +394,9 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 - [~] **AC-E 몬스터 레벨링 · 등급 Variant · 드롭 정리** — 설계 ✅ [monster-leveling.md](monster-leveling.md). C1c 측정(몬스터 피해 1~5 바닥)의 뿌리 = **몬스터에 레벨이 없어 스탯 고정**인데 플레이어만 선형 성장(DEF +2/L) → L19 부터 전 몬스터 1 데미지. 결정(사용자): 레벨=**맵 기본+스폰 override** · Variant=**등급(Normal/Elite/Boss)** · 드롭=**9마리 전수+레벨 스케일+goblin 제거**.
   - [x] **E1 `MonsterLevelScaling`**(순수 함수, 배선 없음) — **비례 가산** `base(L)=base₁+(2+0.2·net₁)(L-1)` 로 **역할 보존**(곱셈은 slam 폭발 L20=688, 단순가산은 전부 중간 수렴). HP=플레이어 AP 성장 추종, 등급은 **HP 크게·피해 작게**(즉사 방지). 검증: 단위 **17종** · 185/185.
   - [x] **E2 레벨·등급 필드 + 해석 경로** — `MonsterSpawnDef.Level/Tier` · `MapSpawnLayout.MonsterLevel` · `MonsterState.Level/Tier`(스폰 시 1회 확정). 해석은 **단일 구현** `MapSpawnLayout.ResolveLevel(spawnLevel, mapLevel)`(스폰>맵>1) — 두 곳에서 재구현하면 어긋난다. **동작 보존**: 전부 선택 필드라 기존 JSON 이 L1 로 떨어지고 L1 스케일은 항등 → 스탯 무변경(테스트로 고정). ⚠ **던전 대역 저작은 E3/E5 로 분리** — 레벨 값은 기획 결정이라 이 증분에 섞지 않았다. 검증: 단위 **9종** · 194/194 · E2E 31/31.
-  - [ ] **E3** 피해·HP·Exp 배선(`Room.TickMonsters`·`SpawnMonsters`) — Docker E2E 필수
+  - [x] **E3 피해 배선** — `Room.TickMonsters` 가 `MonsterLevelScaling.Damage(base, Level, Tier)` 로 스케일된 base 를 산식에 넣는다. `StatCombatMath` 무변경(산식은 옳았고 틀린 건 base). 트레이스도 **실제 산식 입력**(scaledBase)을 찍는다 — 저작값을 찍으면 진단이 거짓말한다. HP 는 E2 에서 이미 배선됨(스폰 시 필요). **동작 보존**(전부 L1=항등). ⚠ **증분 순서 정정**: 던전 대역 저작은 E3 이 아니라 **E5** 다 — `spawn-layouts.json` 은 `MapDataExporter` 가 굽는 **생성물**이라 직접 편집하면 다음 Export 에 덮인다. 검증: 단위 4종(스케일 우회 시 3건 실패 **실측**) · 198/198 · E2E 31/31.
   - [ ] **E4** 드롭 9마리 전수 + 레벨/등급 롤 + goblin 유령 테이블 제거
-  - [ ] **E5** 클라 SO 저작 + Export 왕복
+  - [ ] **E5 클라 SO 저작 + Export 왕복** — `MapDataExporter`(spawn-layouts) 에 monsterLevel/level/tier 필드 추가 + **던전 대역 저작**(제안: dungeon_01=L1 · dungeon_02=L6 · dungeon_e2e=L1 고정). **여기서 비로소 밸런스가 실제로 바뀐다.** `MonsterCatalogExporter`/`DropTableExporter` 도 같은 왕복.
 
 **AC-D — 연출/밸런스 잔여 (AC-B에서 확장점으로 남긴 것들)**
 - [ ] **AC-D1 어빌리티별 전용 애니** — 지금은 보스 강스킬도 `Attack` 트리거 공유(`AnimationTriggerType` enum에 Attack/Dodge/Dead…만 존재). 필요 작업: enum 값 추가(예: `AbilitySpecial`) + `CharacterAgentAnimations` 파라미터 필드 + 몬스터 컨트롤러 상태/트리거 + `AbilityDefinition.cueTrigger` 저작. **소재는 이미 있음** — leviathan FBX 에 `AttackSpecial`/`AttackHard`/`Roar` 클립 존재. 설계 = [ability-so-authoring.md](ability-so-authoring.md) §남은 확장점.

@@ -638,7 +638,13 @@ public class Room
                     // 데미지 = 어빌리티 BaseDamage − 플레이어 Defense (Shared 결정론, 플레이어→몬스터와 동일 산식).
                     // 스탯 의존이라 클라가 자체계산 불가 → 서버가 권위 수치를 Amount 로 전달하고, HP 도 같은 값으로 차감.
                     const int MonsterAttackPower = 0; // 몬스터 공격력 스탯 미도입 — base 가 곧 공격력
-                    int finalDamage = StatCombatMath.MeleeDamage(chosen.BaseDamage, MonsterAttackPower, target.Defense);
+
+                    // AC-E3: **산식은 그대로, base 만 레벨·등급으로 스케일**한다.
+                    // 원래 버그는 산식이 아니라 base 가 고정이라 플레이어 DEF(+2/L) 성장에 밀린 것이었다
+                    // (C1c 실측: L19 부터 전 몬스터 1 데미지). 유도 = monster-leveling.md §2.
+                    int scaledBase = Shared.Infrastructure.Monsters.MonsterLevelScaling.Damage(
+                        chosen.BaseDamage, m.Level, m.Tier);
+                    int finalDamage = StatCombatMath.MeleeDamage(scaledBase, MonsterAttackPower, target.Defense);
                     var dmgMods = new[]
                     {
                         GameplayAttributeModifier.Create(EGameplayAttribute.Health, -finalDamage, EModifierType.Additive),
@@ -650,7 +656,9 @@ public class Room
                         CombatPath.MonsterToPlayer, CombatTrace.FormulaMelee,
                         attackerActorId, ActorIds.FromPlayer(targetUserId),
                         chosen.Id, chosen.NetworkId,
-                        chosen.BaseDamage, MonsterAttackPower, target.Defense, finalDamage,
+                        // 저작값(chosen.BaseDamage)이 아니라 **실제 산식에 들어간 값**을 찍는다 —
+                        // 트레이스가 거짓말하면 진단이 아니라 오도다(C1a 교훈).
+                        scaledBase, MonsterAttackPower, target.Defense, finalDamage,
                         targetHpBefore: 0, targetHpAfter: 0,
                         recvMs: nowMs, judgeMs: nowMs, seq: 0); // 틱 경로 = 수신·판정이 같은 틱 시각
 
