@@ -24,7 +24,7 @@
 | ② | **"Effect 적용"이 두 엔진** — 클라 ASC vs 서버 인라인(`Room.DamageMonster`가 `GameplayEffectMath` 직접 호출) | ASC가 MonoBehaviour라 Shared 불가 |
 | ③ | **죽은 구 ability 경로 잔존** — `GameplayEffect`+`AbilitySystemUtils` (CA-4에서 같이 삭제됐어야 함) | `Effects/GameplayEffect.cs` |
 | ④ | **태그 시스템 부재** — `AbilitySystemUtils` 주석은 "태그 검사 넣을 수 있다"지만 GameplayTag가 없음. 사망(2.5.1)을 표현할 자리가 없음 | — |
-| ⑤ | **서버 발동 권위 없음** — 쿨다운/active-window/시전중 미추적 → `C_Attack` 연사 = 데미지 연사(치팅) | `CombatHandler.HandleAttack` |
+| ⑤ | ~~**서버 발동 권위 없음**~~ → **✅ 대부분 해소(AC, 2026-07-17)** — 쿨다운(`TryBeginSkill`)·콤보 cadence·마나 게이트가 구현돼 `C_Attack` 연사가 서버에서 거부된다(거부 사유는 `[CombatTrace]` gate 로 관측). **잔여**: active-window 정밀 타이밍·플레이어 서버측 HP 추적 | `CombatHandler.HandleAttack` |
 | ⑥ | ASC가 MonoBehaviour + 자가 `Update` tick → 헤드리스 불가 (서버가 ASC 못 씀의 근인) | `AbilitySystemComponent` |
 
 > ②⑥는 본 정리 범위 밖(option C, YAGNI). 이번은 ①③④⑤ 중심.
@@ -186,10 +186,10 @@ Main(싱글) = 일정 시간 후 로컬 리스폰(후속 증분, 로컬 권위�
 | 클라/서버 effect 카탈로그 **단일화** | Shared | 문제① 해소(✅). 전투=`CombatEffectCatalog` 위임(2.6bⓑ) / 소모품=SO 저작→bake(§2.5) |
 | `EffectDefinition`에 `GrantedTags[]` 추가 | Shared | 상태 부여 |
 | `GameplayEffect`+`AbilitySystemUtils` **삭제** | Client | 문제③ 죽은코드 |
-| 서버 발동 게이트(쿨다운/시전중) | Server | 문제⑤. 데이터 이미 존재 |
+| ~~서버 발동 게이트(쿨다운/시전중)~~ **✅ 구현(AC)** | Server | 문제⑤ 해소 — 쿨다운·콤보 cadence·마나. active-window 정밀 타이밍은 잔여 |
 | ASC에 TagContainer | Client | 게이트·상태 |
 | 연출 SO ①②③ + CueManager | Client | **2.5.1에서 최소로 시작 권장**(YAGNI) |
-| **안 함**: `S_AbilityActivated` relay / `S_ApplyEffect` 필드 추가 / ASC 헤드리스화(②⑥) | — | YAGNI / 별도 |
+| **안 함**: ~~`S_AbilityActivated` relay~~(→ **AC 에서 도입**, Union 1604 — 플레이어·몬스터 공용 발동 파이프의 축이 됐다. 당시 YAGNI 판단이 Actor 통합 설계로 뒤집힌 사례) / `S_ApplyEffect` 필드 추가 / ASC 헤드리스화(②⑥) | — | — / 별도 |
 
 ---
 

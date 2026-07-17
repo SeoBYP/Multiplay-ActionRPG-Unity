@@ -7,7 +7,7 @@ namespace Game.Gameplay.Character
     ///
     /// <b>뷰는 어빌리티 카탈로그를 모른다</b> — networkId→Cue 해석은 호출자(AbilityCueRouter / LocalMonster AI)가 하고,
     /// 뷰는 "이 트리거를 이 콤보단계로 재생하라"만 받는다(AC-B B3). 실제 Animator 파라미터 *이름* 은
-    /// 프리팹의 CharacterAgentAnimations 가 갖는다 → 컨트롤러가 제각각인 몬스터도 같은 어빌리티를 공유(codemap §2.60).
+    /// 프리팹의 CharacterAgentAnimations 가 갖는다 → 컨트롤러가 제각각인 몬스터도 같은 어빌리티를 공유(codemap §2.64).
     ///
     /// 지금은 애니 트리거만. VFX/SFX 는 이 뒤에 plug-in (확장점).
     /// </summary>

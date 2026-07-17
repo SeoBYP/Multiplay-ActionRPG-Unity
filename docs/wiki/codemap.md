@@ -69,6 +69,266 @@
 
 ## 2. 설계 결정 로그 (왜 — append-only, 최신이 위)
 
+> **AC 트랙 연대기 (2.64~2.80)** — 이 블록만 예외적으로 **오래된 것→새 것**(오름차순)이다: B1→B6→C→E~H 의 증분 서사를 보존한다.
+> ⚠️ **재번호(2026-07-17)** — 원래 2.60~2.76 으로 매겨져 기존 항목(2.60 회피·2.61 콤보·2.62 로스터·2.63 캡슐)과 **번호가 충돌**했다. 과거 커밋 메시지·PR 본문의 참조는 아래 대조표로 읽는다:
+> 구2.60(애니)→**2.64** · 2.61(B1)→**2.65** · 2.62(B2)→**2.66** · 2.63(B3)→**2.67** · 2.64(B4)→**2.68** · 2.65(B5)→**2.69** · 2.66(B6)→**2.70** · 2.67(C3-hotfix)→**2.71** · 2.68(C3)→**2.72** · 2.69(infra)→**2.73** · 2.70(C1a)→**2.74** · 2.71(C1b)→**2.75** · 2.72(C1c준비)→**2.76** · 2.73(사망체력바)→**2.77** · 2.74(C2)→**2.78** · 2.75(링포화)→**2.79** · 2.76(E~H)→**2.80**
+
+### 2.64 몬스터 애니 파라미터 구동 전환 (Walk 버그 근본 수정, 2026-07-16)
+
+- **버그**: 던전/Main 몬스터의 **Walk 애니가 안 나옴**. 근본 원인 = **컨트롤러와 코드의 구동 방식 불일치**.
+  - 컨트롤러(`GameResources/Animations/Monster/*_AC.controller`)는 `Speed`(float)·`Attack`/`Die`(Trigger) 파라미터 전이로 저작됨 — `Walk→Idle [Speed Less 0.1] noExit`.
+  - 그런데 `MonsterEntity`/`LocalMonster` 는 **상태이름 `CrossFadeInFixedTime`** 으로 구동하고 **`Speed` 를 한 번도 세팅하지 않음(항상 0)** → `CrossFade("Walk")` 로 Walk 진입 즉시 `Speed(0)<0.1` 이 참이라 **Idle 로 튕김**. (Die=나가는 전이 없음·Attack=exitTime 전이라 우연히 동작 → Walk 만 깨짐.)
+- **수정**: 몬스터 애니 구동을 **RemoteDriver(플레이어)와 동일한 파라미터 방식**으로 통일.
+  - `MonsterEntity`/`LocalMonster`: `idleState`/`walkState`/`dieState`/`attackState` 문자열 필드 + `PlayState()` + attack lock(`attackLockSec`/`_attackLockUntil`) **전부 제거**.
+  - 대신 `CharacterAgentAnimations`(기존 플레이어 어댑터, 파라미터명이 **프리팹에 직렬화**) 재사용: 이동=`SetFloat(Speed, 평활화 속도)`(RemoteDriver 와 동일 역산·smoothing) · 공격=`SetTrigger(Attack)` · 사망=`SetTrigger(Dead)`.
+  - 프리팹 9종(던전 8 + `CreepyDemonLocal`)에 `CharacterAgentAnimations` 추가 + 배선 `Speed`→"Speed" / `Attack`→"Attack" / `Dead`→**"Die"**(몬스터 컨트롤러 파라미터명).
+  - → 컨트롤러 전이가 설계대로 동작(Idle↔Walk 는 Speed, 스윙 복귀는 Attack→Idle exitTime) = **잠금 해킹 불필요**.
+- **회귀 고정**: `MonsterEntityAnimTests.서버_이동_수신하면_몬스터_Animator가_Walk상태로_전이한다`(신규) — 서버 이동 통지→보간→Speed 상승→Walk 전이.
+- 검증: Unity 0오류 · PlayMode 애니 **6/6**(Walk 신규 + Attack 던전/Main + 원격 회피·콤보) · EditMode 172/172. 클라 전용 변경(서버 무관)이라 Docker E2E 영향 없음.
+- **교훈**: Animator 컨트롤러를 파라미터 전이로 저작하면 **코드도 반드시 파라미터로 구동**해야 한다. 상태이름 CrossFade 와 섞으면 파라미터 조건(기본값)이 즉시 되돌린다.
+- **후속 = AC-B**: 공격·스킬 저작을 **Ability SO 로 통합**. 설계 = [ability-so-authoring.md](ability-so-authoring.md), 진행 = plan.md M5 "AC-B".
+
+### 2.65 AC-B B1 — Ability SO 저작 인프라 (2026-07-16)
+
+- **목적**: 스킬 하나 추가에 **SO + 서버 switch + 클라 combo switch + 프리팹 4곳**을 고쳐야 하던 분산 저작을 **Ability SO 한 곳**으로. 데미지 출처도 단일화(**안B 확정**: `ability.baseDamage`, effect 는 태그/CC 전용).
+- **신규**:
+  - 클라 저작 `Gameplay/Abilities/AbilityDefinition.cs`(id·**networkId**·타임라인·hitbox·**baseDamage**·**activationRange**·onHitEffectIds(CC전용)·콤보 + **Cue**: `cueTrigger`(AnimationTriggerType)·`cueComboStep`) · `AbilityCatalogDefinition.cs`(목록, `Get(id)`/`GetByNetworkId`).
+  - 에디터 `Gameplay/Editor/AbilityCatalogExporter.cs` → `Tools/Ability/Export`. **Cue 는 bake 제외**(서버는 연출을 모른다 — gas §2). id·**networkId 중복**·콤보 불변식 검증.
+  - 서버 `Shared.Infrastructure/Abilities/AbilityCatalog.cs`(+`AbilityDef` record: Id/NetworkId/**SkillTimeline 재사용**/BaseDamage/ActivationRange) ← 임베디드 `Abilities/abilities.json`(csproj 등록).
+  - 에셋 `Assets/GameData/Ability/`: `Ability_{BasicSwing,HeavySwing,ComboA,ComboB,ComboC}.asset` + `AbilityCatalogDefinition.asset`.
+- **이관 규칙(밸런스 무변경)**: networkId = 기존 `ResolveSkill` 매핑 보존(0=basic/1=heavy/2·3·4=combo_a·b·c) · baseDamage = 기존 effect 실효값(10/10/10/15/25) · cueComboStep = 기존 `RemoteDriver` switch(3→1, 4→2, else 0) · onHitEffectIds = 비움(`*_dmg` 는 baseDamage 로 이관).
+- **아직 아무도 안 씀**(설계대로): 기존 `skills.json`·`ResolveSkill` switch 그대로 동작. **B2 에서 원자적 전환**.
+- 검증: `AbilityCatalogTests` 7(로드·networkId 매핑·수치 동일성·콤보 리치/불변식·baseDamage·미등록 null) → SocketServer.Tests **141/141** · ServerAll.sln 0오류 · Unity 0오류.
+- ⚠️ 신규 클라 .cs 3개 + 에셋 6개 커밋 시 `.meta` `git add -f`.
+
+### 2.66 AC-B B2 — ResolveSkill 카탈로그화 · skills.json 제거 (2026-07-16)
+
+- **핵심 성과**: `CombatHandler.ResolveSkill` 의 **하드코딩 switch 제거** → `AbilityCatalog.Get(networkId)`.
+  `public static AbilityDef? ResolveAbility(int)` 신설 + `ResolveSkill(int)` 은 `ResolveAbility(id)?.Timeline` 축약(기존 호출부 무변경).
+  → **스킬 추가에 서버 코드 수정이 더는 필요 없다**(SO 저작 + Export + 서버 재빌드). int→어빌리티 매핑이 **데이터**(`AbilityDefinition.networkId`)로 이동.
+- **삭제(dead)**: `Shared.Infrastructure/Skills/SkillCatalog.cs` · `Skills/skills.json` · csproj EmbeddedResource · 클라 `Editor/SkillCatalogExporter.cs`(삭제된 파일을 bake 하던 툴) · `SkillCatalogTests`(→`AbilityCatalogTests` 로 대체).
+- **전환**: `ComboCadenceTests` 의 진실원을 `Skills.SkillCatalog` → `Abilities.AbilityCatalog.Get(id)!.Timeline` 으로 이관.
+- **⚠️ 증분 경계 교훈(B1 수정)**: B1 에서 `onHitEffectIds` 의 `*_dmg` 를 미리 비웠더니, B2 가 카탈로그를 물리는 순간 **데미지가 0** 이 됐다(`ScaleDamageByStats` 는 B5 전까지 onHit 를 읽음) → `CombatHandlerStatDamageTests` 3건 실패로 조기 검출. **`*_dmg` 복원 + 재bake** 로 B2 를 *동작 무변경* 으로 되돌림. `baseDamage`(10/10/10/15/25)는 저작만 된 채 **B5 까지 미사용 대기**.
+  → 원칙: **각 증분은 그 자체로 동작 보존**이어야 한다. 데이터 선반영이 증분 경계를 깨뜨렸다.
+- **잔존(B3 에서 해소됨)**: 클라 `SkillDefinition`/`SkillCatalogDefinition`/`SkillCatalogProvider` → §2.67 참조.
+- 검증: SocketServer.Tests **137/137**(−5 삭제 +1 신규) · ServerAll.sln 0오류 · **Docker E2E SocketE2ETests 31/31**(stale-image guard 경고 반영해 **gameserver·socketserver 둘 다** 리빌드 — Shared.Infrastructure 변경은 양 서버 이미지에 영향).
+
+### 2.67 AC-B B3 — 클라 Cue 데이터화 + 저작 단일화 (2026-07-16)
+
+- **동기(발견)**: B1 이후 같은 스킬이 **두 SO 에 중복 저작**(`GameData/Skill/Skill_*` + `GameData/Ability/Ability_*`)돼, 서버는 abilities.json(B2)·클라는 SkillCatalogDefinition 을 읽는 **드리프트 위험**이 생겼다 → B3 에서 클라도 Ability 로 일원화하며 Skill 계열 전량 제거.
+- **신규**: `Gameplay/Abilities/AbilityCatalogProvider.cs` — `Get(id)`/`Get(networkId)`(→`AbilityDefinition`, Cue 포함) + `GetTimeline(id)`/`GetTimeline(networkId)`(→`SkillTimeline`, 게임플레이). 구 `SkillCatalogProvider` 대체.
+- **Cue 계약 변경**: `IActorView.PlayAbilityCue(int skillId)` → **`PlayAbilityCue(AnimationTriggerType trigger, int comboStep)`**. **networkId→Cue 해석은 `AbilityCueRouter` 한 곳**(카탈로그 조회, 미등록이면 Attack/0 폴백 — 몬스터 주공격은 B4 까지 미등록).
+  → `RemoteDriver` 의 하드코딩 콤보 switch(`3=>1, 4=>2, _=>0`) **제거**. 뷰는 카탈로그를 모른다(뷰=재생만).
+- **하드코딩 매핑 제거(클라 미러)**: `LocalCombat`·`PlayerCharacterAgent` 의 `SkillName(int)` switch(0=basic/1=heavy/2·3·4=combo) 삭제 → `AbilityCatalogProvider.GetTimeline(networkId)` 데이터 조회. **서버 `ResolveSkill`(B2)과 대칭 — 이제 클라·서버 어디에도 int→스킬 하드코딩이 없다.**
+- **삭제**: `Abilities/{SkillDefinition,SkillCatalogDefinition,SkillCatalogProvider}.cs` · `GameData/Skill/`(에셋 6) · `Editor/SkillCatalogExporter.cs`(B2) · `Tests/EditMode/Gameplay/SkillCatalogProviderTests.cs`.
+- **DI/주소**: `AddressKeys.Data.SkillCatalog` → `AbilityCatalog`(`Assets/GameData/Ability/AbilityCatalogDefinition.asset`). Dungeon·Main 스코프가 `AbilityCatalogProvider` 등록. `AbilityCueRouter` 생성자에 provider 추가.
+- 검증: Unity 0오류 · EditMode **170/170**(−2 삭제) · PlayMode 애니 **6/6**(**콤보 A→B→C 체인·늦은 패킷 안전망 회귀** = 연출 데이터화의 핵심 회귀) · **Docker E2E 31/31**.
+- **잔여(B4 에서 해소됨)**: 몬스터 주공격이 카탈로그에 등록돼 정식 networkId(100+)로 해석된다 → §2.68.
+
+### 2.68 AC-B B4 — 몬스터 어빌리티화 · 보스 다중 스킬 개방 (2026-07-16)
+
+- **데이터 스키마**: `MonsterDefinition`(클라 SO)·`MonsterDef`(서버)에서 **`attackRange`/`attackCooldownMs`/`attackDamage`/`onHitEffectId` 4필드 제거** → **`abilityIds: List<string>`** 추가(저작 순서=발동 우선순위). 몬스터는 "무엇인가"(maxHp·moveSpeed·aggroRange·expReward)만 갖고 **공격은 전부 Ability SO 소유**. `MonsterCatalogExporter` Export/Import 양방향 갱신 → `monsters.json` 재bake.
+- **에셋**: 몬스터 9종 `Ability_{monsterId}_attack.asset` — **networkId 100~108**(플레이어 0~4와 대역 분리, 겹치면 서버가 엉뚱한 어빌리티 발동). 쿨다운/사거리/데미지/CC 는 기존 monsters.json 값 **그대로 이관**(밸런스 무변경). abilities.json = 14종(플레이어 5 + 몬스터 9).
+- **서버 어댑터**(`Server.Monster.MonsterCatalog`): `MonsterStats` 축소(MaxHp·MoveSpeed·AggroRange·**AttackRange**) — **AttackRange 는 이제 저작값이 아니라 그 몬스터 어빌리티들의 `max(ActivationRange)` 파생**(MonsterAiMath 의 Attack 페이즈 진입 판정용, Step 시그니처 무변경). `GetAbilities(monsterId)` 신설(미등록 id 는 조용히 skip).
+- **상태**: `MonsterState.LastAttackAt`(단일) → **`GetLastCast(abilityId)`/`MarkCast(abilityId, now)`**(Dictionary) — 보스가 스킬별 쿨다운을 독립 추적.
+- **선택 로직**: `Room.SelectMonsterAbility(m, target, nowMs)` — 저작 순서대로 **사거리 안 + `AbilityActivationMath.CanActivate` 통과인 첫 어빌리티** 반환(없으면 발동 없음). 데미지=`ability.BaseDamage`(→`StatCombatMath.MeleeDamage`), CC=`ability.Timeline.OnHitEffectIds` 순회. `S_AbilityActivated.SkillId` = `ability.NetworkId`(클라 라우터가 이 값으로 Cue 조회).
+  → **보스 다중 스킬 = abilityIds 에 2개 이상 넣기만 하면 동작**(코드 변경 0). 앞의 강스킬 → 쿨다운이면 뒤의 평타로 폴백하는 식으로 저작.
+- **안전 degrade**: 어빌리티 미저작/오타 몬스터 → `AttackRange=0` → 접근만 하고 공격 안 함(크래시 아님). 테스트로 고정.
+- 검증: `MonsterAbilitySelectionTests` 5 신규(사거리 밖 미발동·쿨다운=어빌리티값·networkId 실림·데미지/CC 저작값·어빌리티 없으면 미공격) + `MonsterCatalogTests`/`MonsterAiMathTests`/`MonsterAttackTests` 개편 → **SocketServer.Tests 145/145** · ServerAll.sln 0오류 · Unity 0오류 · **Docker E2E 31/31**(양 서버 리빌드).
+
+### 2.69 AC-B B5 — 데미지 출처 일원화(안B 완결) (2026-07-16)
+
+- **결과**: **데미지 수치는 `ability.BaseDamage` 한 곳에서만 편집**한다(플레이어·몬스터 공통). effect 는 **CC/태그 전용**으로 역할 축소.
+- **폐기**: `basic_attack_dmg` · `combo_a/b/c_dmg` · `monster_attack_dmg`(Shared `GameplayEffectCatalog` 코드 시드에서 제거).
+  → 대체 = **`ability_damage` 단일 라벨**(Instant Health **placeholder −1**). **수치는 이 effect 가 정하지 않는다** — 서버가 `S_ApplyEffect.Amount`(권위 델타)로 실어 보내고 클라 `ApplyEffectAuthoritative(healthOverride)` 가 덮어쓴다.
+- **서버**: `CombatHandler.ScaleDamageByStats`(effect 카탈로그 Health → AP 스케일) → **`BuildDamageMods(AbilityDef, ap, def)`** = `StatCombatMath.MeleeDamage(ability.BaseDamage, ap, def)`. `HandleAttack` 이 `ResolveAbility` 로 `AbilityDef` 확보 → 플레이어 피격에 `ability_damage`+`Amount=-BaseDamage` 브로드캐스트 + CC 는 별도 `Amount=0`. `Room.TickMonsters` 의 EffectId 도 `ability_damage` 로 통일.
+- **밸런스 무변경**: baseDamage(10/10/10/15/25 + 몬스터 8~9999)가 구 effect 실효값과 동일. ※플레이어→플레이어는 **기존대로 플랫 피해**(AP·Defense 미반영) — 스탯 스케일로 바꾸는 건 별도 밸런스 결정이라 B5 범위 밖(주석에 명시).
+- **⚠️ 함정(테스트에서 검출)**: `ability_damage` 의 placeholder(−1)는 **Amount 를 안 보내면 그대로 적용**된다(EffectReceiverTests 가 100→99 로 실패해 발견). 프로덕션은 항상 Amount 를 싣지만, **데미지 S_ApplyEffect 에 Amount 누락 시 조용히 1 피해**가 되는 구조 → 테스트를 프로덕션과 동일하게 `amount:` 포함으로 정렬해 고정.
+- **테스트 이관**: `CombatHandlerStatDamageTests`(BuildDamageMods 기준·어빌리티별 저작값 검증 추가) · `MonsterDamageTests`(effect Resolve → BuildDamageMods, 단일소스 위임 가드는 CC 로) · `ConsumableEffectCatalogTests`(전투 조회 가드 → CC) · `AbilityCatalogTests`(onHit=CC 전용으로 반전) · E2E 3건(`ability_damage`+Amount 어설션) · `EffectReceiverTests`/`EffectSystemTests`.
+- 검증: SocketServer.Tests **146/146** · Shared.Gameplay.Tests **50/50** · EditMode **170/170** · Unity 0오류 · **Docker E2E 31/31**(양 서버 리빌드).
+### 2.70 AC-B B6 — 보스 다중스킬 실증 · **AC-B 트랙 완료** (2026-07-16)
+
+- **실증**: `leviathan.abilityIds = [leviathan_slam, leviathan_attack]` — **코드 변경 0, 데이터 저작만으로** 다중 스킬 동작.
+  - `Ability_leviathan_slam`(netId **109**, cd 6000, range 3.5, dmg 90, cc `stun_1_5s`) = 강스킬 우선 / `leviathan_attack`(cd 1800, range 3.0, dmg 40, `slow_3s`) = 폴백 평타.
+  - 파생 확인: `MonsterStats.AttackRange` = max(3.5, 3.0) = **3.5**(slam 사거리) → AI 가 더 멀리서 Attack 페이즈 진입.
+- **고정된 동작**(`BossMultiAbilityTests` 8): 저작 2개 확인 · 사거리 최대값 파생 · 첫 발동=강스킬 · **강스킬 쿨다운 중 평타 폴백** · 강 쿨다운 후 재사용 · **어빌리티별 독립 쿨다운**(평타를 여러 번 써도 slam 시계는 자기대로) · 강스킬이 더 아프고 CC 도 어빌리티별(stun vs slow) · 평타 사거리 밖/강 사거리 안이면 강스킬만.
+- **⚠️ 테스트 픽스처 함정(검출)**: 보스 실데미지(slam 90 + 평타 40 = 130 > 기본 HP 100)로 **테스트 중 플레이어가 다운** → AI 타깃에서 빠져 이후 발동이 사라짐 → 선택 로직이 아니라 픽스처 때문에 실패. `maxHealth: 100_000` 로 해소(주석에 사유 명시).
+- 검증: SocketServer.Tests **154/154** · ServerAll.sln 0오류 · **Docker E2E 31/31**(양 서버 리빌드).
+
+### ✅ AC-B 트랙 완료 (B1~B6)
+
+- **스킬 추가 절차(최종)**: `Ability_*.asset` 저작 → `Tools/Ability/Export` → 서버 재빌드. **코드 수정 없음.**
+- int→스킬 하드코딩이 **클라·서버 어디에도 없음**(`ResolveSkill`/`SkillName`/`RemoteDriver` 콤보 switch 전부 데이터 조회로 대체).
+- 데미지 = `ability.BaseDamage` 단일 출처 / effect = CC·태그 전용 / 연출 = `cueTrigger`+프리팹 파라미터명.
+- **남은 확장점**: ① 어빌리티별 **전용 애니**(현재 보스 강스킬도 `Attack` 트리거 공유 — `AnimationTriggerType` enum + `CharacterAgentAnimations` 필드 + 컨트롤러 상태 추가 필요. leviathan FBX 엔 AttackSpecial/AttackHard/Roar 클립 존재) ② 플레이어→플레이어 데미지 플랫 유지(스탯 스케일 전환은 밸런스 결정) ③ VFX/SFX Cue.
+- **⚠️ 함정(발견·해소)**: `AssetDatabase.CreateAsset` 로 만든 SO 는 **Addressable 로 자동 등록되지 않는다**. 미등록이면 `LifetimeScope.LoadData` 가 null → `?? CreateInstance<...>()` **빈 SO 폴백** → 클라 쿨다운·Cue·hitbox 가 조용히 전부 죽는다. **테스트로는 안 잡힌다**(E2E=raw socket, 애니 테스트=직접 생성 → Addressables 미경유).
+  → `settings.CreateOrMoveEntry(guid, DefaultGroup)` + `address = 에셋경로`(이 repo 규약: 주소=경로) 로 등록 후, **Addressables 로드 → Provider 구성 → netId 0~4 조회**를 런타임 경로로 실증(cd/mana/cue 전부 기존값 일치, 콤보 0/1/2).
+  → 교훈: **SO 를 코드로 생성하면 Addressable 등록·로드까지 확인**해야 한다.
+- **PartyHpView 글씨색**: 흰색→**검은색**(사용자 요청).
+- **검증**: 서버 build0 · **SocketServer.Tests 5**(신규 `ToJoinedPacket은_PlayerState의_HP기준선을_S_PlayerJoined에_싣는다` — `ToJoinedPacket` internal+`InternalsVisibleTo("SocketServer.Tests")` 시임) · 클라 컴파일0 · EditMode **157**(신규 `PlayerJoined_HP기준선이_스냅샷에_실리고_Move후에도_보존된다`) · PlayMode 7(신규 `원격_스폰시_서버_HP기준선으로_ASC가_초기화된다` + `PartyModelTests` 3) · **E2E `SocketE2ETests` 28/28**(신규: `두_클라이언트_입장` 이 S_PlayerJoined MaxHp>0·Hp==MaxHp 검증, Docker 리빌드 후 201s).
+- **잔여 한계**: MaxHp는 입장 시점값(던전 중 레벨업 미반영 — 던전 내 레벨업 없음 YAGNI). 최초 구현(§2.58)의 "prefab 근사" 한계는 이 수정으로 해소.
+
+### 2.71 AC-C3-hotfix — 데미지 경로의 송신마킹 제거(D2 회귀 봉합) (2026-07-17)
+
+- **증상(D2)**: 몬스터를 때리면 클라 HP 가 옛 값으로 되돌아가고 **그대로 고착**(다음 틱이 정정하지 않음).
+- **원인 — 내가 AC 증분7(dirty-flag)에서 만든 회귀**: `CombatHandler.ApplyAttackToMonsters` 가 즉시 브로드캐스트 후 `monster.MarkStateSent()` 를 호출했다.
+  틱은 패킷을 **만든 뒤 나중에 송신**하므로(`Room.TickMonsters` 생성 → `RoomTickService` 송신) 그 사이 데미지가 들어가면 **옛 HP 패킷이 새 HP 뒤에 도착**한다.
+  마킹까지 해두면 다음 틱이 `StateDirty()==false` → **정정 포기** → 영구 고착. 증분7 이전엔 매 틱 재전송이라 조용히 자가 교정되던 것이 dirty-flag 도입으로 드러났다.
+- **수정**: `MarkStateSent()` **한 줄 제거** + 이유 주석. 마킹은 **틱만** 한다 → HP 변화는 다음 틱이 무조건 재전송해 **자가 교정**.
+  비용 = **피격당 1패킷**. 증분7 의 목적(Idle 트래픽 0)은 유지 — 위치·회전·페이즈 dirty 판정은 무변경.
+- **한계(안전망일 뿐)**: 순서 역전 자체는 못 막는다. 한 틱 동안 옛 HP 가 보였다가 정정된다(짧은 HP 튐).
+  **근본해법 = AC-C3(`S_MonsterState.Seq` + 클라 스테일 드롭, 공개계약 변경이라 승인 대기)**. 설계 = `docs/wiki/combat-diagnostics.md` §4·§5.
+- **테스트 — 인과를 양방향으로 고정** (`SocketServer.Tests/Monster/MonsterTickDirtyStateTests.cs`):
+  - `HP가_바뀌면_이동이_없어도_다음틱이_재전송한다_자가교정` — 불변식(프로덕션 경로).
+  - `데미지_경로가_송신마킹하면_자가교정이_깨진다_회귀가드` — **구 동작 재현**으로 "마킹하면 정정 패킷이 사라진다"를 못 박음.
+  ⚠️ **교훈**: 첫 시도의 테스트는 `DamageMonster` 를 직접 불러서 **hotfix 유무와 무관하게 통과**했다(마킹은 CombatHandler 만 했으므로). 회귀 테스트는 **버그 동작을 실제로 재현**해야 가드가 된다 — 불변식만 쓰면 "통과하지만 못 잡는" 테스트가 된다.
+- **검증**: SocketServer.Tests **156/156** · ServerAll.sln 0오류 · Docker(socketserver 리빌드) **E2E SocketE2ETests 31/31**.
+
+### 2.72 AC-C3 — S_MonsterState.Seq + 클라 스테일 드롭 (D2 근본 해결) (2026-07-17)
+
+- **공개계약 변경(승인받음)**: `S_MonsterState` 에 `int Seq` 추가(Union 1811 유지, 필드 추가만). 클라 미러는 **ClientCodegen 재생성**(`dotnet run --project ServerAll/Tools/ClientCodegen -- <repoRoot>`) — 손편집 금지.
+- **핵심 계약 — Seq 는 스냅샷(생성) 시점에 찍는다**(`MonsterState.NextSeq()`). 송신 시점에 찍으면 Seq 가 도착 순서와 같아져 **아무것도 못 거른다**(막으려는 게 바로 생성≠송신 순서).
+- **생산자 2곳**: `Room.TickMonsters`(lock 안) · `CombatHandler.ApplyAttackToMonsters`(**lock 밖**) → 서로 다른 컨텍스트라 `Interlocked.Increment` 로 발급. 첫 발급 1 + 클라 baseline 0 = "첫 상태 항상 통과".
+- **소비자 1곳**: `SocketPacketState.UpdateMonster` 에서 `seq <= existing.Seq` → **드롭**(보간 이벤트도 억제). 상태 저장소 = 단일 초크포인트, 핸들러는 전달만.
+  `SocketMonsterSnapshot.Seq` 추가(+`WithState(..., seq)`). 생성자 `seq` 는 **기본값 0** — 스폰 baseline.
+- **범위 결정**: `S_SpawnMonster` 엔 Seq 를 **넣지 않았다**. baseline 0 이라 첫 상태가 통과하고, 신규 입장자 로스터 경합은 다음 틱에 자가 교정되는 일시적 건이라 계약을 넓힐 이유가 없다(YAGNI).
+- **C3-hotfix 는 유지**: Seq 도입 후에도 `CombatHandler` 의 `MarkStateSent()` 생략을 되돌리지 않았다 → **Seq(순서 무효화) + 무조건 재전송(자가 교정)** 이중 안전망. 비용은 피격당 1패킷.
+- **⚠️ 함정 — 손으로 만든 `S_MonsterState` 는 Seq=0 이라 드롭된다**: 기존 `SocketApiClientTest.MonsterState_Dispatch시...` 가 이 때문에 깨져 `Seq = 1` 을 넣어 고쳤다. 테스트에서 패킷을 직접 만들 땐 **Seq 필수**(서버는 항상 ≥1 을 찍음).
+- **테스트가 진짜 잡는지 실측 검증함**(§2.71 교훈 적용): 가드(`if (seq <= existing.Seq) return;`)를 임시 제거 → `뒤늦게_도착한_옛_상태는_Seq로_버려진다_AC_C3` 가 **`Expected: 18, But was: 30`** 으로 실패(= D2 증상 그 자체) → 복원 후 그린. **추론이 아니라 실패를 확인**했다.
+- **위치**: 계약 `Shared.Packet/Packets/Domains/MonsterPackets.cs` · 발급 `SocketServer/Monster/MonsterState.cs`(`NextSeq`) · 생산 `Room/Room.cs`·`PacketHandler/Handler/CombatHandler.cs` · 소비 `Client/.../Network/Socket/SocketApiClient.cs`(`UpdateMonster`)·`Handler/Contents/MonsterPacketHandler.cs`.
+- **테스트**: 서버 `Monster/MonsterStateSeqTests.cs` 4종(첫 발급 1 · 단조 증가 · 몬스터별 독립 · 데미지 스냅샷 Seq > 틱 스냅샷 Seq) + 직렬화 라운드트립에 Seq 추가 → **160/160**. 클라 `SocketApiClientTest` 3종(스테일 드롭 · 동일 Seq 드롭 · 정상 반영) → EditMode **174/174**. E2E **31/31**.
+- **남은 한계**: 순서 역전은 무효화하지만 **재전송을 앞당기진 않는다** → 체감 지연 자체는 C1c 측정 후 판단(C2b).
+
+### 2.73 검증 인프라 결함 2건 수정 — stale-image guard 오탐 · 클라 검증 명령 사망 (2026-07-17)
+
+**① stale-image guard 오탐(영구) — `.claude/hooks/check-stale-server-image.ps1`**
+- **증상**: AC-C3 에서 `Shared.Packet` 을 고치자 E2E 마다 "infra-gameserver 이미지가 소스보다 오래됨" 경고. 리빌드해도 **영원히 안 사라짐**.
+- **원인 2겹**:
+  1. 매핑이 거칠었다 — `Dirs = @('GameServer','Shared')`. 그런데 `Shared.Packet` 은 **SocketServer 전용**(GameServer.API 는 참조 안 함).
+  2. Dockerfile 이 `COPY Shared/ Shared/` 라 레이어 캐시는 깨져 **리빌드는 실제로 돈다**. 하지만 산출물이 **바이트 동일** → 도커가 기존 이미지 ID 재사용 → **`.Created` 가 안 올라감** → 경고 영구 지속 → alarm fatigue → **진짜 stale 을 놓치게 됨**(guard 존재 이유가 무력화).
+- **수정**: 이미지→소스 매핑을 **진입 csproj 의 ProjectReference 폐포**에서 유도(`Get-ProjectDirs`). 하드코딩 목록은 참조가 늘면 **false negative**(위험한 방향)로 썩는다 — csproj 그래프는 컴파일러와 같은 진실원이라 드리프트 불가.
+  진입점: gameserver=`GameServer/GameServer.API/GameServer.API.csproj`, socketserver=`SocketServer/SocketServer/SocketServer.csproj`.
+- **추가 수정(false negative)**: 파일 필터에 `*.json` 포함. `Shared.Infrastructure/Abilities/abilities.json` 같은 **임베드 카탈로그는 동작을 바꾸는데** 기존 필터(`*.cs,*.csproj,*.proto`)가 못 봐서, json 만 고치고 리빌드 안 하면 **경고 없이 옛 서버를 검증**했다.
+- **실측 검증(양방향)**: ① `Shared.Packet` touch → **socketserver 만** 경고(gameserver 안 걸림) ② `GameServer.API/Program.cs` touch → **gameserver 경고**(진짜 stale 탐지 유지) ③ mtime 복원 → 무경고. EditMode 입력은 무시.
+- **남은 한계(주석에 명시)**: 주석/공백만 바꿔 산출물이 동일하면 `.Created` 가 안 올라가 경고가 남는다. 근본해결은 빌드시 소스 해시를 이미지 LABEL 로 박는 것 — 빌드캐시 비용 대비 가치 없어 보류.
+
+**② 클라 검증 명령이 죽어 있었다 — `CLAUDE.md` §검증 명령**
+- **증상**: `dotnet build Client\Game.Main.csproj` 가 CS2001 14건으로 실패.
+- **원인**: `Client/*.csproj` 는 **Unity 생성물**(gitignore)인데, Unity 는 **asmdef 있는 것만 재생성하고 고아는 지우지 않는다.**
+  `Game.Main`/`Game.Input`/`Game.OutGame`/`Game.InGame`/`Game.System.DungeonLobby` 는 **asmdef 가 없는 2026-05-30 화석**(asmdef 재편 이전 레이아웃) → 옮겨진 `Assets/Script/Input/*` 을 참조. 살아있는 csproj 는 07-16 까지 갱신됨(대조).
+  → **CLAUDE.md 의 클라 검증은 asmdef 재편 이후 계속 깨진 채였다.**
+- **더 나쁜 사실**: 화석을 치워도 `dotnet` 은 답이 아니다. `Game.Gameplay`/`Game.GUI` 는 Unity 패키지(RenderPipelines.Core) 소스를 `dotnet` 컴파일러 설정으로 빌드해 **Unity 코드에서** CS8168/CS8347 이 나고, `Client.sln` 은 **MSB5004**(Unity.Timeline 중복)로 열리지도 않는다.
+- **수정**: CLAUDE.md 를 **"클라는 Unity 가 유일한 권위"** 로 교정(`refresh_unity` → `read_console(errors)` → `run_tests(EditMode)`). `dotnet build Client\*.csproj` 는 **금지**로 명시하고 위 3가지 이유를 함께 적어 재도입을 막았다.
+- **화석 csproj 삭제 완료(승인 2026-07-17)** — **5개가 아니라 7개**(13파일, `.Player` 변형 포함)였다.
+  ⚠️ **검사법 교훈**: 처음엔 asmdef **파일명**으로 대조해 5개만 찾았는데, **Unity 는 asmdef 의 내부 `name` 필드로 csproj 이름을 정한다**(파일명 ≠ 어셈블리명). `name` 필드로 다시 대조하니 `Game.System.Editor`(07-05)·`Game`(05-29, Compile 0개 빈 껍데기)가 추가로 드러났다.
+  삭제 전 4중 확인: ① asmdef `name` 목록에 없음 ② 살아있는 csproj 가 참조 안 함 ③ `Client.sln` 미포함(고정문자열 대조 — `grep -n` 정규식이 오탐을 냈다) ④ 백업 후 삭제.
+  삭제 후: Unity 재컴파일해도 **되살아나지 않음**(= 진짜 고아 증명) · 컴파일 0오류 · EditMode 174/174 · csproj 는 gitignore 라 git 무영향.
+  대상: `Game.Main` `Game.Input` `Game.OutGame` `Game.InGame` `Game.System.DungeonLobby` `Game.System.Editor` `Game`.
+
+### 2.74 AC-C1a — 서버 전투 트레이스 `[CombatTrace]` (2026-07-17)
+
+- **무엇**: "어떤 공격이 **어떤 공식·입력으로** 이 숫자를 냈나" + "왜 발동이 거부됐나"를 구조적 로그로 남긴다. 기본 Off.
+- **위치**: `SocketServer/Diagnostics/CombatTrace.cs`(+`CombatPath`/`CombatGate` enum). 배선 = `Program.cs`(host.Build() 직후 `Configure`).
+- **왜 static 인가**: 패킷 핸들러(`CombatHandler`)가 static 이라 DI 가 닿지 않는다. `Configure(ILogger)` 로 주입 가능하게 둬 테스트가 fake 로거를 꽂는다.
+- **호출 지점**: 데미지 3경로(`CombatHandler.ApplyAttackToMonsters`=P→M / `HandleAttack` 플레이어 피격=P→P / `Room.TickMonsters`=M→P) + gate 4종(UnknownAbility·NoMana·ComboCadence·OnCooldown).
+- **`formula` 는 호출부가 전달**: P→P 만 `flat(base)` — **산식 미경유**가 표기로 드러난다(AC-D2 비대칭의 증거). 나머지는 `max(1, base+AP-DEF)`.
+  ⚠ 문자열은 `CombatTrace.FormulaMelee` 상수 — 진실원 `StatCombatMath.MeleeDamage` 가 바뀌면 **같이 바꿔야 한다**(리뷰 대상). 트레이스가 거짓말하면 진단이 아니라 오도다.
+- **P→M 트레이스는 브로드캐스트 뒤에**: 이 HP 를 실어 나른 `S_MonsterState.Seq` 를 상관키로 실어야 클라 로그와 조인된다(직전 Seq 를 찍으면 어긋남). 사망 시엔 상태 패킷이 없어 seq=0.
+- **플레이어 HP before/after 는 0**: 플레이어 HP 권위는 클라(결정론 lite)라 서버가 모른다. 몬스터만 실제 before→after 를 싣는다.
+- **⚠️ 스위치는 Serilog 다 — 설계 문서가 틀렸다(구현 중 발견)**: 이 호스트는 `UseSerilog` + `ReadFrom.Configuration` 이라 **`Serilog:` 섹션만 읽고 `Logging:LogLevel` 은 무시**한다.
+  → 처음에 `Logging:LogLevel:CombatTrace` 로 넣었더니 **단위 테스트는 통과했는데 Docker 로그가 0건**이었다(육안 검증이 아니었으면 못 잡았다).
+  실제: `Serilog:MinimumLevel:Override:CombatTrace`(appsettings 기본 `Information` = Debug 트레이스 Off) / 켜기 `Serilog__MinimumLevel__Override__CombatTrace=Debug`.
+  **부수 발견(미수정)**: appsettings 의 `Logging:LogLevel` 블록 전체가 **죽은 설정**(Serilog 가 무시) — `Microsoft: Warning` 도 실효 없음.
+- **검증**: 단위 4종(`SocketServer.Tests/Diagnostics/CombatTraceTests.cs`) — **Off 무호출을 실측**(가드 제거 시 해당 테스트만 실패 확인 후 복원). SocketServer.Tests **164/164** · 솔루션 0오류 · **Docker 육안 64건**(`path=MonsterToPlayer formula=max(1, base+AP-DEF) actor=-7 ability=arachnya_attack(101) base=14 ap=0 def=5 final=9`) · 오버라이드 제거 시 **0건**(기본 Off 실증) · E2E **31/31**.
+
+### 2.75 AC-C1b/C1b' — 클라 트레이스 링버퍼 + Combat Trace 창 (2026-07-17)
+
+- **단일 소스** = `Network/Socket/Diagnostics/CombatTraceRecorder.cs`(링 512·구조체·무할당·기본 Off) + `CombatTraceJoin.cs`(순수 함수: 스윙 단위 병합·구간 delta). 창은 그 위의 **뷰**(로직 0).
+- **배치가 Game.Network 인 이유**: 기록자가 Network(패킷 수신)와 Gameplay(HP 반영) 양쪽인데 `Game.Network.asmdef` 는 우리 어셈블리를 하나도 참조하지 않는다 → Core 에 두면 참조 추가 필요. Network 에 두면 `Gameplay→Network` 가 허용 방향이라 asmdef 무변경. 서버 `SocketServer/Diagnostics` 와 대칭.
+- **static `Shared` + `NowMs`**: 에디터 창은 VContainer 스코프 밖이라 DI 로 같은 객체를 못 본다(스코프 Resolve 는 씬·이름 결합이라 더 취약). 서버 `CombatTrace` 와 같은 이유. 시각은 `Stopwatch`(단조·스레드 안전) — 소켓 수신 스레드가 기록하므로 `Time.time`(메인 스레드 전용) 은 쓸 수 없다.
+- **배선 4곳**: `CombatSyncSender`(t_send, ActorId=`AuthSession.UserId`) · `AbilityActivatedPacketHandler` · `EffectPacketHandler`(**Amount≠0 만** — CC 는 태그라 제외) · `SocketPacketState.UpdateMonster`(HP델타 + 스테일드롭; 기록은 **lock 밖**).
+- **⚠️ 배선이 C1b 설계 결함을 드러냈다(가장 중요)**: **몬스터 피해는 `S_ApplyEffect` 로 오지 않는다** — 그건 **플레이어가 대상일 때만**이고, 몬스터 HP 는 서버 권위로 계산돼 `S_MonsterState` 로만 온다.
+  최초 `Join` 은 `DamageReceived` 가 있어야 대상을 정했으므로 **던전 주 시나리오(= 원 관측 "몬스터 HP 가 느리다")에서 아무 레코드도 못 만들었다.**
+  → 전송 경로가 둘임을 반영: 몬스터는 **HP 델타가 유일한 데미지 신호**(`amount<0`)이고, 델타 0 인 이동 틱은 자연히 배제된다. 회귀 테스트 2종 추가.
+  **교훈: 배선 없는 순수 로직 테스트는 "실제로 오는 패킷"을 검증하지 못한다.**
+- **⚠️ stale 어셈블리 위의 거짓 그린**: `CombatSyncSender` 의 CS0246(AuthSession using 누락)으로 컴파일이 깨지자 Unity 가 **옛 어셈블리로 테스트를 돌려 184/184 "통과"** 가 나왔다(신규 2건이 없는데도). → **테스트 건수 증가를 반드시 확인**해야 한다(184→186). `read_console(filter_text="error CS")` 로 CS 만 걸러 봐야 환경성 경고에 묻히지 않는다.
+- **창**: `Gameplay/Editor/CombatTraceWindow.cs`, 메뉴 `Tools/Combat/Combat Trace`. **IMGUI 채택**(§2.4 초안의 UI Toolkit 대신) — 매 프레임 갱신되는 진단 덤프라 즉시모드가 맞고 상주 UI 트리·바인딩이 불필요. 선례 `MapEditorWindow` 도 IMGUI.
+  `Total > Count` 면 "N건 덮임" 경고(측정 유실). 상세는 서버 조인 키(actor·seq)를 안내 — AP/DEF 분해는 서버 로그 몫(§2.4 정정).
+- **asmdef 변경(승인)**: `Game.Gameplay.Editor` references 에 `Game.Network` 1줄 추가. 하향이라 레이어 위반 아님. 대안(`Game.Network.Editor` 신설)은 원칙2(asmdef 과도 분리 금지)와 충돌해 기각.
+- **함정**: 창 네임스페이스가 `Game.Gameplay.Editor` 라 `System.IO` 가 **`Game.System.IO`** 로 해석됨(CS0234) → `global::System.IO` 필수. (`.claude/rules/testing.md` 의 "System 세그먼트 금지"와 같은 뿌리)
+- **검증**: 컴파일 0오류 · EditMode **186/186**(184 + 신규 2) · Docker E2E **31/31**(**리빌드 후** — 내가 고친 guard 가 `appsettings.json` 변경을 stale 로 잡았다. `*.json` 을 필터에 넣은 §2.73 수정이 실제로 false negative 를 막은 첫 사례).
+
+### 2.76 AC-C1c 준비 — 트레이스가 **모든 액터**를 낸다 (2026-07-17)
+
+- **사용자 관측**: "다른 플레이어가 한 건 기록이 안 되네" — 사실이었다.
+- **원인**: `CombatTraceJoin.Build` 가 **`AttackSent` 만 스윙 시작점**으로 봤는데, `AttackSent` 는 로컬 `CombatSyncSender` 만 남긴다.
+  원격 플레이어·몬스터의 발동은 **엔트리로는 쌓이는데 레코드가 안 만들어져** 창에서 사라졌다. (서버는 이미 몬스터 발동도 `S_AbilityActivated{ActorId=-instanceId}` 로 보내고 있었다 — `Room.cs:618`. **데이터는 다 오는데 내가 버리고 있었다.**)
+- **수정**: 시작점을 액터별로 나눴다 — 로컬=`AttackSent`(t_send 를 안다) / 원격·몬스터=`AbilityActivated`(그들의 입력 시각은 클라가 알 방법이 없다. 서버 통지가 첫 관측).
+  `SwingOrigin{LocalPlayer,RemotePlayer,Monster}` 추가. 로컬 스윙이 가져간 발동 통지는 `consumed` 로 표시해 중복 레코드를 막는다.
+- **구간 지표가 origin 마다 다르다(중요)**: `SendToHpMs` 는 **로컬 전용**(원격은 -1). 모든 액터 공통 지표는 **`ActivateToHpMs`**(발동 통지→HP 반영). 창의 요약도 `[내]`/`[전체]` 로 갈라 표시한다.
+  `LikelyGated` 도 **로컬 전용** — 원격·몬스터는 발동 통지가 곧 시작점이라 정의상 거부가 보이지 않는다.
+- **동기화 검수**: `BuildMonsterSync` 추가 — 스윙과 무관하게 **상태를 받은 모든 몬스터**를 집계(HP·seq·갱신수·**스테일 드롭수**·**누적 피해**). 누적 피해는 서버 `[CombatTrace]` final 합과 대조하는 **데미지 검수** 근거. 창에 "몬스터 동기화" 탭 + CSV 2섹션.
+- **ActorIds 를 못 쓴 이유**: `Game.Network.asmdef` 가 `overrideReferences: true` 이고 `precompiledReferences` 에 `Shared.Gameplay.dll` 이 없다 → 부호 규약을 `CombatTraceJoin.IsMonster` 로 국소화하고 진실원을 주석에 명시(asmdef 추가 변경 회피).
+- **알려진 한계**: 여러 플레이어가 **동시에** 한 몬스터를 때리면 HP 델타의 주인을 클라가 구분할 수 없다(P→M 은 S_ApplyEffect 가 없어 SourceId 가 없다) → 확정은 서버 로그 조인.
+- **회귀를 실측 확인**: 원격 레코드 생성을 끄니 `다른_플레이어의_스윙도_기록된다` 가 **Expected: 2, But was: 1**(= 사용자가 본 증상 그대로), `몬스터의_공격도_기록된다` 는 0건 → 복원 후 그린.
+- **검증**: EditMode **189/189**(186 + 신규 3) · E2E **31/31**. ⚠ 첫 E2E 에서 `NICKNAME_ALREADY_TAKEN` 1건 실패 → 단독 재실행 통과 + 전체 재실행 31/31 = **테스트 격리 플래키**(반복 E2E 로 닉네임 누적), 내 회귀 아님.
+
+### 2.77 몬스터 사망 시 체력바가 안 비는 버그 (2026-07-17)
+
+- **사용자 관측**: "체력바가 남아 있는데 죽는 모션이 나와 — 죽을 때 체력이랑 UI 동기화가 안 되는 것 같아". 사실이었다.
+- **원인(두 겹)**:
+  1. **서버**: `CombatHandler.ApplyAttackToMonsters` 는 `dead` 면 `S_MonsterDead` **만** 보낸다 — 죽는 순간의 `S_MonsterState{Hp=0}` 은 없다(살아있을 때만 상태를 보냄).
+  2. **클라**: `MonsterEntity.HandleDead` 가 die 트리거 + 지연 디스폰만 하고 **HP 를 0 으로 만들지 않았다**.
+  → 체력바(`MonsterHealthBar`, `HpChanged` 구독)가 **치명타 직전 HP** 에 멈춘 채 `deathDespawnDelay`(2s) 동안 죽는 모션이 재생됐다.
+- **수정**: `HandleDead` 에서 `Hp = 0; HpChanged?.Invoke(this);` 후 die 트리거.
+- **왜 서버가 `Hp=0` 을 추가 전송하지 않고 클라가 유도하나**: `S_MonsterDead` 와 `S_MonsterState` 는 **송신 직렬화가 없어(D1) 순서가 뒤집힐 수 있다.** Dead 가 먼저 도착하면 `RemoveMonster` 로 스냅샷이 사라져 뒤이은 `Hp=0` 이 `UpdateMonster` 에서 **최소 스냅샷만 만들고 `OnMonsterMoved` 를 발행하지 않아 버려진다** → 간헐 재발. 반면 "사망 = HP 0" 은 **서버가 이미 내린 판정**이라 클라 유도가 권위를 해치지 않고 도착 순서와 무관하게 항상 맞다. (C2 로 D1 을 고쳐도 이 유도가 더 단순하고 안전하다.)
+- **플레이어엔 왜 없나(비대칭)**: 플레이어 HP 는 `S_ApplyEffect.Amount` 로 클라 ASC 가 직접 차감한다(결정론 lite) → **죽인 그 타격이 이미 HP 를 0 으로 만든다.** 몬스터만 HP 가 `S_MonsterState` 로만 오는데 그 마지막 패킷이 없어서 생긴 문제.
+- **회귀를 실측 확인**: 수정을 끄니 `사망시_체력바가_0으로_내려간_뒤_죽는모션이_나온다` 가 **Expected: 0, But was: 12**(= 관측된 증상 그대로) → 복원 후 그린.
+- **위치**: `Client/.../Gameplay/Character/MonsterEntity.cs`(`HandleDead`) · 테스트 `Tests/PlayMode/InGame/MonsterEntityAnimTests.cs`.
+- **검증**: PlayMode anim **3/3**(2 + 신규 1) · EditMode **189/189**.
+
+### 2.78 AC-C2 — 세션 송신 큐 (D1 수정) (2026-07-17)
+
+- **무엇**: `Session` 에 `Channel<byte[]>`(Bounded 1024) + 단일 소비자 `SendLoopAsync`. `SendPacketAsync` 는 **직렬화 + 큐잉만** 하고 실제 소켓 write 는 SendLoop 이 전담 → 프레임 단위 원자성 + FIFO.
+- **기동/정리**: `RunAsync` 가 SendLoop 을 함께 띄우고, finally 에서 `Writer.TryComplete()` → `await sendLoop` 로 회수(안 하면 세션마다 Task 누수).
+- **시그니처 유지 결정**: `Task SendPacketAsync(Packet, ct)` 그대로 → 호출부 ~20곳 무변경(연결 계층 변경의 위험 표면 축소). **의미는 바뀜** — Task 완료 = "큐에 들어갔다"이지 "전선에 나갔다"가 아니다. 송신 직후 `Disconnect()` 하면 유실되지만 **그런 호출부는 없다**(Disconnect 는 하트비트 타임아웃·에러·종료 경로뿐 — 확인함).
+- **Bounded + 포화 시 끊김**: 무한 큐면 느린 클라 1명이 서버 메모리를 계속 먹는다(DoS 벡터). 1024 = 10Hz 틱 기준 ~100초치 = 사실상 죽은 연결. `FullMode.Wait` + **`TryWrite` 만 사용**(대기 모드는 TryWrite 가 실패를 알려주는 유일한 모드) — 생산자가 틱 스레드라 **절대 블록시키면 안 된다**.
+- **직렬화 실패 처리 변경**: 예전엔 serialize 예외에도 세션을 끊었다 → 이제 그 패킷만 버리고 로깅(패킷 하나의 문제로 연결을 죽이지 않는다).
+- **⚠️⚠️ 가장 중요 — D1 의 "치명적 프레임 인터리브" 주장은 플랫폼 의존이었다(실측)**:
+  설계 §1.1 은 코드 리딩만으로 "부분전송 시 프레임 인터리브 = 파싱 desync(치명)" 이라 단정했는데, **Windows 에선 재현 불가**다.
+  overlapped `WSASend` 는 **버퍼 전체 소비 후에만 완료**돼 `sent == frame.Length` 가 보장 → `while (offset < len)` 이 1회만 돈다 → **부분 전송이 없어 섞일 수가 없다.**
+  큐를 우회한 채 **20KB 프레임 × 512B 송신버퍼 × 4스레드 동시 송신**을 돌려도 통과했다(두 번 시도: 첫 시도는 프레임이 버퍼보다 작아 무의미했고, 크게 키운 두 번째도 통과).
+  **그러나 서버는 Linux 컨테이너에서 돈다** — Linux `send()` 는 부분 반환이 정상이라 거기선 실재한다. → **수정은 필요하되 프레임 원자성은 구조적 보장(단일 소비자)이지 테스트로 증명된 게 아니다.**
+  **교훈: "코드 리딩으로 확인된 결함"도 재현 조건은 플랫폼에 달렸다. 단정 전에 돌려봐야 한다.**
+- **테스트**(`SocketServer.Tests/Session/SessionSendQueueTests.cs`, 실제 루프백 소켓): 동시 송신 프레임 무결 · **순서 보존** · **포화 시 끊김** · 끊긴 세션 무시. 뒤 3개는 진짜 가드, 첫 번째는 Windows 에선 큐 없이도 통과함을 명시.
+  ⚠ 네임스페이스는 `Server.Tests.Sessions` — `...Session` 으로 두면 전역 `Session` 타입을 가려 `TestSessionFactory` 등이 **CS0118 로 깨진다**(testing.md 의 'System' 금지와 같은 뿌리).
+- **검증**: SocketServer.Tests **168/168**(164+4) · 솔루션 0오류 · Docker(리빌드) **E2E 31/31**. ※ 중간에 E2E 가 25/31 에서 멈췄으나 `isPlaying=False` 로 **플러그인 끊김 좀비** 확인(서버 로그에 큐 포화·SendLoop 에러 0건) → 도메인 리로드 후 재실행 31/31.
+
+### 2.79 AC-C1c 후속 — 트레이스 링 포화 해소(안ⓒ) (2026-07-17)
+
+- **측정이 드러낸 결함**: 링 **508/512 포화**, 그중 **451건(89%)이 이동 틱**(HP 델타 0). 정작 볼 스윙이 덮여 측정이 최근 수 초로 잘렸다. 집계도 링에서 유도해 **m3 가 seq 234 vs updates 185 = 49건 증발**.
+- **왜 필터만으론 안 됐나(중요)**: 델타 0 을 그냥 안 찍으면 **한 대도 안 맞은 몬스터가 동기화 탭에서 사라진다** — 사용자가 명시한 "모든 몬스터가 다 나와야 한다"가 깨진다. → **자료구조를 목적에 맞게 분리**했다:
+  - **링 = 이벤트 로그**(전투 관련만): AttackSent · AbilityActivated · DamageReceived · **MonsterHpApplied(델타≠0만)** · StaleDropped
+  - **맵 = 몬스터당 1행 동기화 집계**(`_monsterSync`, `MonsterSync()`): **모든 갱신** 반영. 몬스터당 1행이라 폭증하지 않고 링 회전과 무관해 유실이 없다.
+- **삭제**: `CombatTraceJoin.BuildMonsterSync`(링에서 유도 = 유실의 원인). 창은 `recorder.MonsterSync()` 를 쓴다.
+- **용량**: 512 → **4096**(구조체 ~48B → ~200KB). 필터와 **함께** 해야 의미가 있다 — 둘 중 하나만으론 부족.
+- **테스트 파장(정직히)**: 필터가 기존 테스트 2건을 깼다 — `RecordMonsterHpApplied` 에 amount 기본값 0 을 쓰던 것들이 "HP 반영"을 의도했는데 이제 링에 안 들어가 `SendToHpMs=-1` 이 됐다. 실제 P→M 은 HP 가 변할 때만 이 이벤트가 의미를 가지므로 **테스트를 현실에 맞춰 델타를 넣었다**(구현을 되돌리지 않음).
+- **검증**: EditMode **192/192**(189+4: 이동 틱 링 제외 · 델타 있는 틱은 링 보존 · 집계 무유실 · 모든 몬스터 노출).
+
+### 2.80 AC-E~H — 몬스터 레벨링·데이터 SO화·등급→ID·Main 체력바 (2026-07-17, PR #60)
+
+한 흐름의 종착: C1c 측정(몬스터 피해 1~5 바닥) → 레벨링(E) → 데이터 SO화+던전 5개(F) → 등급을 ID 로(G) → Main 체력바(H). 설계 = [monster-leveling.md](monster-leveling.md)(§3 은 AC-G 로 폐기 주석).
+
+- **레벨 스케일** = `Shared.Infrastructure/Monsters/MonsterLevelScaling.cs` — **상수 0개**, 플레이어 곡선을 `LevelTable`(SO 저작)에서 직접 읽는다: `base(L)=net₁·HP(L)/HP(1)+DEF(L)` · `maxHp(L)=maxHp₁·AP(L)/AP(1)`. 유도 근거 = 역할 보존(곱셈은 slam 폭발·단순가산은 중간 수렴). `StatCombatMath` 는 무변경(산식은 옳았고 틀린 건 base).
+- **레벨 저작** = `MapDefinition.monsterLevel`(맵 기본) + `MonsterSpawn.level`(스폰 override, 현재 미사용) → `MapSpawnLayout.ResolveLevel`(단일 구현, 스폰>맵>1) → `Room.SpawnMonsters` 에서 **스폰 시 1회 확정**. 대역: dungeon_01=L1·02=L6·03=L12·04=L20·05=L30(보상·등급 구성 단조 증가, 테스트 고정).
+- **⚠️ 등급의 최종형(AC-G)** — `spawn.tier`+배율 테이블(AC-F2)을 **같은 날 폐기**: enum 서버·클라 미러링·스폰 필드 2개·이중 조회 비용. 최종: `monsters.json` 의 `tier` **문자열**("Normal"/"Elite"/"Boss") = **분류일 뿐 스탯에 곱해지지 않는다**. 강한 개체 = **변종 행 직접 저작**(`leviathan` 500 / `leviathan_boss` 3000, `*_elite` 3종) — **스폰은 monsterId 하나만 처리**. `MonsterState.Tier` 는 카탈로그(monsterId 행)에서 읽는다(표시·연출 분기용, 아직 소비자 없음).
+- **드롭** = `DropTableRoll.Roll(entries, rng, chanceMultiplier, quantityMultiplier)` 순수 오버로드(배율은 **인자** — Shared.Gameplay 는 Infrastructure 를 못 부른다) + `DropTableCatalog.Roll(id, rng, level)`. 수량 배율은 **가변수량(MaxQty>1, gold)에만**(장비 1~1 에 걸면 검 2자루). 8마리 전수 + `goblin` 유령 제거 + **변종별 자기 테이블**(배율이 없으니 없으면 안 떨군다). test_brute 는 픽스처라 제외.
+- **Main 체력바(H)** = `IMonsterHealth`(Hp/MaxHp/HpChanged) — 구현체 둘(던전 `MonsterEntity`=서버 권위 / Main `LocalMonster`=클라 권위)이라 인터페이스 도입 기준 충족. `MonsterHealthBar` 는 계약만 봐서 **던전·Main 공용**. LocalMonster 도 **사망 시 HP 0 확정**(§2.77 버그의 Main 판 예방). 프리팹은 던전 것 서브트리 복제(`CreepyDemonLocal.prefab`).
+- **저작 파이프 함정 3건(재발 방지)**: ① `spawn-layouts.json`/`drop-tables.json`/`monsters.json` 은 **exporter 생성물** — 직접 편집하면 다음 Export 에 덮인다(→ SO 저작 후 Export 가 유일 경로). ② exporter 의 `Export()` 는 끝에 `DisplayDialog`(모달) → **MCP/자동화가 무기한 블록**(Unity 멈춤의 원인) — 팝업 없는 `BakeAll()` 을 쓴다. ③ Import 왕복 배선 누락 시 bootstrap Import 가 저작값을 0 으로 지운다.
+- **⚠️ 데이터 저작에도 계약 테스트**: leviathan base 를 65 로 착각(그건 arachnya)해 boss 390 = **원본(500)보다 약한 보스**를 저작 → `변종은_별개_ID_로_저작된다_AC_G`(boss.MaxHp > normal×4)가 잡았다. 오타 monsterId 는 Default 폴백으로 **공격 안 하는 유령**이 되므로 `스폰이_지목한_변종이_카탈로그에_존재한다_AC_G` 로 전수 검증.
+- 잔여: dungeon_03~05 `visualPrefab` 없음(에셋) · `tier` 연출 소비자 없음(보스 체력바·등장 연출 후보) · AC-D(전용 애니·P→P 스케일·VFX Cue).
+- 검증(최종): SocketServer **209/209** · Shared.Gameplay 50/50 · EditMode **192/192** · PlayMode(anim 3/3 · Main 체력바 3/3) · Docker E2E **31/31**. PR #60 → main `972991e5`.
+
 ### 2.63 캡슐 몬스터 제거 + slime→creepy_demon 전면 교체 (2026-07-16)
 
 플레이스홀더 캡슐(`Monster.prefab` 던전 폴백·`LocalMonster.prefab` Main) + `slime` 몬스터를 실모델 몬스터로 대체. 사용자 지시 = "캡슐 3종 안 씀 → 실모델로, slime 데이터는 demon 으로 교체".
@@ -201,262 +461,6 @@
   - **클라 이동 라우팅 Registry화는 보류(YAGNI, 설계 §4.4 재판정)**: `OnMonsterMoved` fan-out 비용 = 몬스터당 int 비교+early-return(마이크로초)이고, 대량 몬스터의 지배 비용은 **엔티티마다 매 프레임 `MonsterEntity.Update()` 보간·렌더**(라우팅으로 안 줄어듦). 병목이 아니라 판정 → 확장점만 남김(필요 시 `MonsterSpawner._monsters` 단일 구독자 dispatch 로 전환, IActorView 무변경).
   - 검증: `MonsterTickDirtyStateTests` 2(idle 생략·chase 매틱) → SocketServer.Tests 134/134 · ServerAll.sln 0오류 · **Docker E2E 31/31**(리빌드 후 회귀).
 - **✅ AC 트랙 완료(증분1~7)** — 원 문제 "몬스터 공격 모션 안 나온다" = 던전(증분4)·Main(증분6) 양쪽 해소. 전투 발동·연출·조회가 ActorId 단일 파이프로 통합(플레이어=양수/몬스터=음수).
-
-### 2.60 몬스터 애니 파라미터 구동 전환 (Walk 버그 근본 수정, 2026-07-16)
-
-- **버그**: 던전/Main 몬스터의 **Walk 애니가 안 나옴**. 근본 원인 = **컨트롤러와 코드의 구동 방식 불일치**.
-  - 컨트롤러(`GameResources/Animations/Monster/*_AC.controller`)는 `Speed`(float)·`Attack`/`Die`(Trigger) 파라미터 전이로 저작됨 — `Walk→Idle [Speed Less 0.1] noExit`.
-  - 그런데 `MonsterEntity`/`LocalMonster` 는 **상태이름 `CrossFadeInFixedTime`** 으로 구동하고 **`Speed` 를 한 번도 세팅하지 않음(항상 0)** → `CrossFade("Walk")` 로 Walk 진입 즉시 `Speed(0)<0.1` 이 참이라 **Idle 로 튕김**. (Die=나가는 전이 없음·Attack=exitTime 전이라 우연히 동작 → Walk 만 깨짐.)
-- **수정**: 몬스터 애니 구동을 **RemoteDriver(플레이어)와 동일한 파라미터 방식**으로 통일.
-  - `MonsterEntity`/`LocalMonster`: `idleState`/`walkState`/`dieState`/`attackState` 문자열 필드 + `PlayState()` + attack lock(`attackLockSec`/`_attackLockUntil`) **전부 제거**.
-  - 대신 `CharacterAgentAnimations`(기존 플레이어 어댑터, 파라미터명이 **프리팹에 직렬화**) 재사용: 이동=`SetFloat(Speed, 평활화 속도)`(RemoteDriver 와 동일 역산·smoothing) · 공격=`SetTrigger(Attack)` · 사망=`SetTrigger(Dead)`.
-  - 프리팹 9종(던전 8 + `CreepyDemonLocal`)에 `CharacterAgentAnimations` 추가 + 배선 `Speed`→"Speed" / `Attack`→"Attack" / `Dead`→**"Die"**(몬스터 컨트롤러 파라미터명).
-  - → 컨트롤러 전이가 설계대로 동작(Idle↔Walk 는 Speed, 스윙 복귀는 Attack→Idle exitTime) = **잠금 해킹 불필요**.
-- **회귀 고정**: `MonsterEntityAnimTests.서버_이동_수신하면_몬스터_Animator가_Walk상태로_전이한다`(신규) — 서버 이동 통지→보간→Speed 상승→Walk 전이.
-- 검증: Unity 0오류 · PlayMode 애니 **6/6**(Walk 신규 + Attack 던전/Main + 원격 회피·콤보) · EditMode 172/172. 클라 전용 변경(서버 무관)이라 Docker E2E 영향 없음.
-- **교훈**: Animator 컨트롤러를 파라미터 전이로 저작하면 **코드도 반드시 파라미터로 구동**해야 한다. 상태이름 CrossFade 와 섞으면 파라미터 조건(기본값)이 즉시 되돌린다.
-- **후속 = AC-B**: 공격·스킬 저작을 **Ability SO 로 통합**. 설계 = [ability-so-authoring.md](ability-so-authoring.md), 진행 = plan.md M5 "AC-B".
-
-### 2.61 AC-B B1 — Ability SO 저작 인프라 (2026-07-16)
-
-- **목적**: 스킬 하나 추가에 **SO + 서버 switch + 클라 combo switch + 프리팹 4곳**을 고쳐야 하던 분산 저작을 **Ability SO 한 곳**으로. 데미지 출처도 단일화(**안B 확정**: `ability.baseDamage`, effect 는 태그/CC 전용).
-- **신규**:
-  - 클라 저작 `Gameplay/Abilities/AbilityDefinition.cs`(id·**networkId**·타임라인·hitbox·**baseDamage**·**activationRange**·onHitEffectIds(CC전용)·콤보 + **Cue**: `cueTrigger`(AnimationTriggerType)·`cueComboStep`) · `AbilityCatalogDefinition.cs`(목록, `Get(id)`/`GetByNetworkId`).
-  - 에디터 `Gameplay/Editor/AbilityCatalogExporter.cs` → `Tools/Ability/Export`. **Cue 는 bake 제외**(서버는 연출을 모른다 — gas §2). id·**networkId 중복**·콤보 불변식 검증.
-  - 서버 `Shared.Infrastructure/Abilities/AbilityCatalog.cs`(+`AbilityDef` record: Id/NetworkId/**SkillTimeline 재사용**/BaseDamage/ActivationRange) ← 임베디드 `Abilities/abilities.json`(csproj 등록).
-  - 에셋 `Assets/GameData/Ability/`: `Ability_{BasicSwing,HeavySwing,ComboA,ComboB,ComboC}.asset` + `AbilityCatalogDefinition.asset`.
-- **이관 규칙(밸런스 무변경)**: networkId = 기존 `ResolveSkill` 매핑 보존(0=basic/1=heavy/2·3·4=combo_a·b·c) · baseDamage = 기존 effect 실효값(10/10/10/15/25) · cueComboStep = 기존 `RemoteDriver` switch(3→1, 4→2, else 0) · onHitEffectIds = 비움(`*_dmg` 는 baseDamage 로 이관).
-- **아직 아무도 안 씀**(설계대로): 기존 `skills.json`·`ResolveSkill` switch 그대로 동작. **B2 에서 원자적 전환**.
-- 검증: `AbilityCatalogTests` 7(로드·networkId 매핑·수치 동일성·콤보 리치/불변식·baseDamage·미등록 null) → SocketServer.Tests **141/141** · ServerAll.sln 0오류 · Unity 0오류.
-- ⚠️ 신규 클라 .cs 3개 + 에셋 6개 커밋 시 `.meta` `git add -f`.
-
-### 2.62 AC-B B2 — ResolveSkill 카탈로그화 · skills.json 제거 (2026-07-16)
-
-- **핵심 성과**: `CombatHandler.ResolveSkill` 의 **하드코딩 switch 제거** → `AbilityCatalog.Get(networkId)`.
-  `public static AbilityDef? ResolveAbility(int)` 신설 + `ResolveSkill(int)` 은 `ResolveAbility(id)?.Timeline` 축약(기존 호출부 무변경).
-  → **스킬 추가에 서버 코드 수정이 더는 필요 없다**(SO 저작 + Export + 서버 재빌드). int→어빌리티 매핑이 **데이터**(`AbilityDefinition.networkId`)로 이동.
-- **삭제(dead)**: `Shared.Infrastructure/Skills/SkillCatalog.cs` · `Skills/skills.json` · csproj EmbeddedResource · 클라 `Editor/SkillCatalogExporter.cs`(삭제된 파일을 bake 하던 툴) · `SkillCatalogTests`(→`AbilityCatalogTests` 로 대체).
-- **전환**: `ComboCadenceTests` 의 진실원을 `Skills.SkillCatalog` → `Abilities.AbilityCatalog.Get(id)!.Timeline` 으로 이관.
-- **⚠️ 증분 경계 교훈(B1 수정)**: B1 에서 `onHitEffectIds` 의 `*_dmg` 를 미리 비웠더니, B2 가 카탈로그를 물리는 순간 **데미지가 0** 이 됐다(`ScaleDamageByStats` 는 B5 전까지 onHit 를 읽음) → `CombatHandlerStatDamageTests` 3건 실패로 조기 검출. **`*_dmg` 복원 + 재bake** 로 B2 를 *동작 무변경* 으로 되돌림. `baseDamage`(10/10/10/15/25)는 저작만 된 채 **B5 까지 미사용 대기**.
-  → 원칙: **각 증분은 그 자체로 동작 보존**이어야 한다. 데이터 선반영이 증분 경계를 깨뜨렸다.
-- **잔존(B3 에서 해소됨)**: 클라 `SkillDefinition`/`SkillCatalogDefinition`/`SkillCatalogProvider` → §2.63 참조.
-- 검증: SocketServer.Tests **137/137**(−5 삭제 +1 신규) · ServerAll.sln 0오류 · **Docker E2E SocketE2ETests 31/31**(stale-image guard 경고 반영해 **gameserver·socketserver 둘 다** 리빌드 — Shared.Infrastructure 변경은 양 서버 이미지에 영향).
-
-### 2.67 AC-C3-hotfix — 데미지 경로의 송신마킹 제거(D2 회귀 봉합) (2026-07-17)
-
-- **증상(D2)**: 몬스터를 때리면 클라 HP 가 옛 값으로 되돌아가고 **그대로 고착**(다음 틱이 정정하지 않음).
-- **원인 — 내가 AC 증분7(dirty-flag)에서 만든 회귀**: `CombatHandler.ApplyAttackToMonsters` 가 즉시 브로드캐스트 후 `monster.MarkStateSent()` 를 호출했다.
-  틱은 패킷을 **만든 뒤 나중에 송신**하므로(`Room.TickMonsters` 생성 → `RoomTickService` 송신) 그 사이 데미지가 들어가면 **옛 HP 패킷이 새 HP 뒤에 도착**한다.
-  마킹까지 해두면 다음 틱이 `StateDirty()==false` → **정정 포기** → 영구 고착. 증분7 이전엔 매 틱 재전송이라 조용히 자가 교정되던 것이 dirty-flag 도입으로 드러났다.
-- **수정**: `MarkStateSent()` **한 줄 제거** + 이유 주석. 마킹은 **틱만** 한다 → HP 변화는 다음 틱이 무조건 재전송해 **자가 교정**.
-  비용 = **피격당 1패킷**. 증분7 의 목적(Idle 트래픽 0)은 유지 — 위치·회전·페이즈 dirty 판정은 무변경.
-- **한계(안전망일 뿐)**: 순서 역전 자체는 못 막는다. 한 틱 동안 옛 HP 가 보였다가 정정된다(짧은 HP 튐).
-  **근본해법 = AC-C3(`S_MonsterState.Seq` + 클라 스테일 드롭, 공개계약 변경이라 승인 대기)**. 설계 = `docs/wiki/combat-diagnostics.md` §4·§5.
-- **테스트 — 인과를 양방향으로 고정** (`SocketServer.Tests/Monster/MonsterTickDirtyStateTests.cs`):
-  - `HP가_바뀌면_이동이_없어도_다음틱이_재전송한다_자가교정` — 불변식(프로덕션 경로).
-  - `데미지_경로가_송신마킹하면_자가교정이_깨진다_회귀가드` — **구 동작 재현**으로 "마킹하면 정정 패킷이 사라진다"를 못 박음.
-  ⚠️ **교훈**: 첫 시도의 테스트는 `DamageMonster` 를 직접 불러서 **hotfix 유무와 무관하게 통과**했다(마킹은 CombatHandler 만 했으므로). 회귀 테스트는 **버그 동작을 실제로 재현**해야 가드가 된다 — 불변식만 쓰면 "통과하지만 못 잡는" 테스트가 된다.
-- **검증**: SocketServer.Tests **156/156** · ServerAll.sln 0오류 · Docker(socketserver 리빌드) **E2E SocketE2ETests 31/31**.
-
-### 2.68 AC-C3 — S_MonsterState.Seq + 클라 스테일 드롭 (D2 근본 해결) (2026-07-17)
-
-- **공개계약 변경(승인받음)**: `S_MonsterState` 에 `int Seq` 추가(Union 1811 유지, 필드 추가만). 클라 미러는 **ClientCodegen 재생성**(`dotnet run --project ServerAll/Tools/ClientCodegen -- <repoRoot>`) — 손편집 금지.
-- **핵심 계약 — Seq 는 스냅샷(생성) 시점에 찍는다**(`MonsterState.NextSeq()`). 송신 시점에 찍으면 Seq 가 도착 순서와 같아져 **아무것도 못 거른다**(막으려는 게 바로 생성≠송신 순서).
-- **생산자 2곳**: `Room.TickMonsters`(lock 안) · `CombatHandler.ApplyAttackToMonsters`(**lock 밖**) → 서로 다른 컨텍스트라 `Interlocked.Increment` 로 발급. 첫 발급 1 + 클라 baseline 0 = "첫 상태 항상 통과".
-- **소비자 1곳**: `SocketPacketState.UpdateMonster` 에서 `seq <= existing.Seq` → **드롭**(보간 이벤트도 억제). 상태 저장소 = 단일 초크포인트, 핸들러는 전달만.
-  `SocketMonsterSnapshot.Seq` 추가(+`WithState(..., seq)`). 생성자 `seq` 는 **기본값 0** — 스폰 baseline.
-- **범위 결정**: `S_SpawnMonster` 엔 Seq 를 **넣지 않았다**. baseline 0 이라 첫 상태가 통과하고, 신규 입장자 로스터 경합은 다음 틱에 자가 교정되는 일시적 건이라 계약을 넓힐 이유가 없다(YAGNI).
-- **C3-hotfix 는 유지**: Seq 도입 후에도 `CombatHandler` 의 `MarkStateSent()` 생략을 되돌리지 않았다 → **Seq(순서 무효화) + 무조건 재전송(자가 교정)** 이중 안전망. 비용은 피격당 1패킷.
-- **⚠️ 함정 — 손으로 만든 `S_MonsterState` 는 Seq=0 이라 드롭된다**: 기존 `SocketApiClientTest.MonsterState_Dispatch시...` 가 이 때문에 깨져 `Seq = 1` 을 넣어 고쳤다. 테스트에서 패킷을 직접 만들 땐 **Seq 필수**(서버는 항상 ≥1 을 찍음).
-- **테스트가 진짜 잡는지 실측 검증함**(§2.67 교훈 적용): 가드(`if (seq <= existing.Seq) return;`)를 임시 제거 → `뒤늦게_도착한_옛_상태는_Seq로_버려진다_AC_C3` 가 **`Expected: 18, But was: 30`** 으로 실패(= D2 증상 그 자체) → 복원 후 그린. **추론이 아니라 실패를 확인**했다.
-- **위치**: 계약 `Shared.Packet/Packets/Domains/MonsterPackets.cs` · 발급 `SocketServer/Monster/MonsterState.cs`(`NextSeq`) · 생산 `Room/Room.cs`·`PacketHandler/Handler/CombatHandler.cs` · 소비 `Client/.../Network/Socket/SocketApiClient.cs`(`UpdateMonster`)·`Handler/Contents/MonsterPacketHandler.cs`.
-- **테스트**: 서버 `Monster/MonsterStateSeqTests.cs` 4종(첫 발급 1 · 단조 증가 · 몬스터별 독립 · 데미지 스냅샷 Seq > 틱 스냅샷 Seq) + 직렬화 라운드트립에 Seq 추가 → **160/160**. 클라 `SocketApiClientTest` 3종(스테일 드롭 · 동일 Seq 드롭 · 정상 반영) → EditMode **174/174**. E2E **31/31**.
-- **남은 한계**: 순서 역전은 무효화하지만 **재전송을 앞당기진 않는다** → 체감 지연 자체는 C1c 측정 후 판단(C2b).
-
-### 2.69 검증 인프라 결함 2건 수정 — stale-image guard 오탐 · 클라 검증 명령 사망 (2026-07-17)
-
-**① stale-image guard 오탐(영구) — `.claude/hooks/check-stale-server-image.ps1`**
-- **증상**: AC-C3 에서 `Shared.Packet` 을 고치자 E2E 마다 "infra-gameserver 이미지가 소스보다 오래됨" 경고. 리빌드해도 **영원히 안 사라짐**.
-- **원인 2겹**:
-  1. 매핑이 거칠었다 — `Dirs = @('GameServer','Shared')`. 그런데 `Shared.Packet` 은 **SocketServer 전용**(GameServer.API 는 참조 안 함).
-  2. Dockerfile 이 `COPY Shared/ Shared/` 라 레이어 캐시는 깨져 **리빌드는 실제로 돈다**. 하지만 산출물이 **바이트 동일** → 도커가 기존 이미지 ID 재사용 → **`.Created` 가 안 올라감** → 경고 영구 지속 → alarm fatigue → **진짜 stale 을 놓치게 됨**(guard 존재 이유가 무력화).
-- **수정**: 이미지→소스 매핑을 **진입 csproj 의 ProjectReference 폐포**에서 유도(`Get-ProjectDirs`). 하드코딩 목록은 참조가 늘면 **false negative**(위험한 방향)로 썩는다 — csproj 그래프는 컴파일러와 같은 진실원이라 드리프트 불가.
-  진입점: gameserver=`GameServer/GameServer.API/GameServer.API.csproj`, socketserver=`SocketServer/SocketServer/SocketServer.csproj`.
-- **추가 수정(false negative)**: 파일 필터에 `*.json` 포함. `Shared.Infrastructure/Abilities/abilities.json` 같은 **임베드 카탈로그는 동작을 바꾸는데** 기존 필터(`*.cs,*.csproj,*.proto`)가 못 봐서, json 만 고치고 리빌드 안 하면 **경고 없이 옛 서버를 검증**했다.
-- **실측 검증(양방향)**: ① `Shared.Packet` touch → **socketserver 만** 경고(gameserver 안 걸림) ② `GameServer.API/Program.cs` touch → **gameserver 경고**(진짜 stale 탐지 유지) ③ mtime 복원 → 무경고. EditMode 입력은 무시.
-- **남은 한계(주석에 명시)**: 주석/공백만 바꿔 산출물이 동일하면 `.Created` 가 안 올라가 경고가 남는다. 근본해결은 빌드시 소스 해시를 이미지 LABEL 로 박는 것 — 빌드캐시 비용 대비 가치 없어 보류.
-
-**② 클라 검증 명령이 죽어 있었다 — `CLAUDE.md` §검증 명령**
-- **증상**: `dotnet build Client\Game.Main.csproj` 가 CS2001 14건으로 실패.
-- **원인**: `Client/*.csproj` 는 **Unity 생성물**(gitignore)인데, Unity 는 **asmdef 있는 것만 재생성하고 고아는 지우지 않는다.**
-  `Game.Main`/`Game.Input`/`Game.OutGame`/`Game.InGame`/`Game.System.DungeonLobby` 는 **asmdef 가 없는 2026-05-30 화석**(asmdef 재편 이전 레이아웃) → 옮겨진 `Assets/Script/Input/*` 을 참조. 살아있는 csproj 는 07-16 까지 갱신됨(대조).
-  → **CLAUDE.md 의 클라 검증은 asmdef 재편 이후 계속 깨진 채였다.**
-- **더 나쁜 사실**: 화석을 치워도 `dotnet` 은 답이 아니다. `Game.Gameplay`/`Game.GUI` 는 Unity 패키지(RenderPipelines.Core) 소스를 `dotnet` 컴파일러 설정으로 빌드해 **Unity 코드에서** CS8168/CS8347 이 나고, `Client.sln` 은 **MSB5004**(Unity.Timeline 중복)로 열리지도 않는다.
-- **수정**: CLAUDE.md 를 **"클라는 Unity 가 유일한 권위"** 로 교정(`refresh_unity` → `read_console(errors)` → `run_tests(EditMode)`). `dotnet build Client\*.csproj` 는 **금지**로 명시하고 위 3가지 이유를 함께 적어 재도입을 막았다.
-- **화석 csproj 삭제 완료(승인 2026-07-17)** — **5개가 아니라 7개**(13파일, `.Player` 변형 포함)였다.
-  ⚠️ **검사법 교훈**: 처음엔 asmdef **파일명**으로 대조해 5개만 찾았는데, **Unity 는 asmdef 의 내부 `name` 필드로 csproj 이름을 정한다**(파일명 ≠ 어셈블리명). `name` 필드로 다시 대조하니 `Game.System.Editor`(07-05)·`Game`(05-29, Compile 0개 빈 껍데기)가 추가로 드러났다.
-  삭제 전 4중 확인: ① asmdef `name` 목록에 없음 ② 살아있는 csproj 가 참조 안 함 ③ `Client.sln` 미포함(고정문자열 대조 — `grep -n` 정규식이 오탐을 냈다) ④ 백업 후 삭제.
-  삭제 후: Unity 재컴파일해도 **되살아나지 않음**(= 진짜 고아 증명) · 컴파일 0오류 · EditMode 174/174 · csproj 는 gitignore 라 git 무영향.
-  대상: `Game.Main` `Game.Input` `Game.OutGame` `Game.InGame` `Game.System.DungeonLobby` `Game.System.Editor` `Game`.
-
-### 2.70 AC-C1a — 서버 전투 트레이스 `[CombatTrace]` (2026-07-17)
-
-- **무엇**: "어떤 공격이 **어떤 공식·입력으로** 이 숫자를 냈나" + "왜 발동이 거부됐나"를 구조적 로그로 남긴다. 기본 Off.
-- **위치**: `SocketServer/Diagnostics/CombatTrace.cs`(+`CombatPath`/`CombatGate` enum). 배선 = `Program.cs`(host.Build() 직후 `Configure`).
-- **왜 static 인가**: 패킷 핸들러(`CombatHandler`)가 static 이라 DI 가 닿지 않는다. `Configure(ILogger)` 로 주입 가능하게 둬 테스트가 fake 로거를 꽂는다.
-- **호출 지점**: 데미지 3경로(`CombatHandler.ApplyAttackToMonsters`=P→M / `HandleAttack` 플레이어 피격=P→P / `Room.TickMonsters`=M→P) + gate 4종(UnknownAbility·NoMana·ComboCadence·OnCooldown).
-- **`formula` 는 호출부가 전달**: P→P 만 `flat(base)` — **산식 미경유**가 표기로 드러난다(AC-D2 비대칭의 증거). 나머지는 `max(1, base+AP-DEF)`.
-  ⚠ 문자열은 `CombatTrace.FormulaMelee` 상수 — 진실원 `StatCombatMath.MeleeDamage` 가 바뀌면 **같이 바꿔야 한다**(리뷰 대상). 트레이스가 거짓말하면 진단이 아니라 오도다.
-- **P→M 트레이스는 브로드캐스트 뒤에**: 이 HP 를 실어 나른 `S_MonsterState.Seq` 를 상관키로 실어야 클라 로그와 조인된다(직전 Seq 를 찍으면 어긋남). 사망 시엔 상태 패킷이 없어 seq=0.
-- **플레이어 HP before/after 는 0**: 플레이어 HP 권위는 클라(결정론 lite)라 서버가 모른다. 몬스터만 실제 before→after 를 싣는다.
-- **⚠️ 스위치는 Serilog 다 — 설계 문서가 틀렸다(구현 중 발견)**: 이 호스트는 `UseSerilog` + `ReadFrom.Configuration` 이라 **`Serilog:` 섹션만 읽고 `Logging:LogLevel` 은 무시**한다.
-  → 처음에 `Logging:LogLevel:CombatTrace` 로 넣었더니 **단위 테스트는 통과했는데 Docker 로그가 0건**이었다(육안 검증이 아니었으면 못 잡았다).
-  실제: `Serilog:MinimumLevel:Override:CombatTrace`(appsettings 기본 `Information` = Debug 트레이스 Off) / 켜기 `Serilog__MinimumLevel__Override__CombatTrace=Debug`.
-  **부수 발견(미수정)**: appsettings 의 `Logging:LogLevel` 블록 전체가 **죽은 설정**(Serilog 가 무시) — `Microsoft: Warning` 도 실효 없음.
-- **검증**: 단위 4종(`SocketServer.Tests/Diagnostics/CombatTraceTests.cs`) — **Off 무호출을 실측**(가드 제거 시 해당 테스트만 실패 확인 후 복원). SocketServer.Tests **164/164** · 솔루션 0오류 · **Docker 육안 64건**(`path=MonsterToPlayer formula=max(1, base+AP-DEF) actor=-7 ability=arachnya_attack(101) base=14 ap=0 def=5 final=9`) · 오버라이드 제거 시 **0건**(기본 Off 실증) · E2E **31/31**.
-
-### 2.71 AC-C1b/C1b' — 클라 트레이스 링버퍼 + Combat Trace 창 (2026-07-17)
-
-- **단일 소스** = `Network/Socket/Diagnostics/CombatTraceRecorder.cs`(링 512·구조체·무할당·기본 Off) + `CombatTraceJoin.cs`(순수 함수: 스윙 단위 병합·구간 delta). 창은 그 위의 **뷰**(로직 0).
-- **배치가 Game.Network 인 이유**: 기록자가 Network(패킷 수신)와 Gameplay(HP 반영) 양쪽인데 `Game.Network.asmdef` 는 우리 어셈블리를 하나도 참조하지 않는다 → Core 에 두면 참조 추가 필요. Network 에 두면 `Gameplay→Network` 가 허용 방향이라 asmdef 무변경. 서버 `SocketServer/Diagnostics` 와 대칭.
-- **static `Shared` + `NowMs`**: 에디터 창은 VContainer 스코프 밖이라 DI 로 같은 객체를 못 본다(스코프 Resolve 는 씬·이름 결합이라 더 취약). 서버 `CombatTrace` 와 같은 이유. 시각은 `Stopwatch`(단조·스레드 안전) — 소켓 수신 스레드가 기록하므로 `Time.time`(메인 스레드 전용) 은 쓸 수 없다.
-- **배선 4곳**: `CombatSyncSender`(t_send, ActorId=`AuthSession.UserId`) · `AbilityActivatedPacketHandler` · `EffectPacketHandler`(**Amount≠0 만** — CC 는 태그라 제외) · `SocketPacketState.UpdateMonster`(HP델타 + 스테일드롭; 기록은 **lock 밖**).
-- **⚠️ 배선이 C1b 설계 결함을 드러냈다(가장 중요)**: **몬스터 피해는 `S_ApplyEffect` 로 오지 않는다** — 그건 **플레이어가 대상일 때만**이고, 몬스터 HP 는 서버 권위로 계산돼 `S_MonsterState` 로만 온다.
-  최초 `Join` 은 `DamageReceived` 가 있어야 대상을 정했으므로 **던전 주 시나리오(= 원 관측 "몬스터 HP 가 느리다")에서 아무 레코드도 못 만들었다.**
-  → 전송 경로가 둘임을 반영: 몬스터는 **HP 델타가 유일한 데미지 신호**(`amount<0`)이고, 델타 0 인 이동 틱은 자연히 배제된다. 회귀 테스트 2종 추가.
-  **교훈: 배선 없는 순수 로직 테스트는 "실제로 오는 패킷"을 검증하지 못한다.**
-- **⚠️ stale 어셈블리 위의 거짓 그린**: `CombatSyncSender` 의 CS0246(AuthSession using 누락)으로 컴파일이 깨지자 Unity 가 **옛 어셈블리로 테스트를 돌려 184/184 "통과"** 가 나왔다(신규 2건이 없는데도). → **테스트 건수 증가를 반드시 확인**해야 한다(184→186). `read_console(filter_text="error CS")` 로 CS 만 걸러 봐야 환경성 경고에 묻히지 않는다.
-- **창**: `Gameplay/Editor/CombatTraceWindow.cs`, 메뉴 `Tools/Combat/Combat Trace`. **IMGUI 채택**(§2.4 초안의 UI Toolkit 대신) — 매 프레임 갱신되는 진단 덤프라 즉시모드가 맞고 상주 UI 트리·바인딩이 불필요. 선례 `MapEditorWindow` 도 IMGUI.
-  `Total > Count` 면 "N건 덮임" 경고(측정 유실). 상세는 서버 조인 키(actor·seq)를 안내 — AP/DEF 분해는 서버 로그 몫(§2.4 정정).
-- **asmdef 변경(승인)**: `Game.Gameplay.Editor` references 에 `Game.Network` 1줄 추가. 하향이라 레이어 위반 아님. 대안(`Game.Network.Editor` 신설)은 원칙2(asmdef 과도 분리 금지)와 충돌해 기각.
-- **함정**: 창 네임스페이스가 `Game.Gameplay.Editor` 라 `System.IO` 가 **`Game.System.IO`** 로 해석됨(CS0234) → `global::System.IO` 필수. (`.claude/rules/testing.md` 의 "System 세그먼트 금지"와 같은 뿌리)
-- **검증**: 컴파일 0오류 · EditMode **186/186**(184 + 신규 2) · Docker E2E **31/31**(**리빌드 후** — 내가 고친 guard 가 `appsettings.json` 변경을 stale 로 잡았다. `*.json` 을 필터에 넣은 §2.69 수정이 실제로 false negative 를 막은 첫 사례).
-
-### 2.72 AC-C1c 준비 — 트레이스가 **모든 액터**를 낸다 (2026-07-17)
-
-- **사용자 관측**: "다른 플레이어가 한 건 기록이 안 되네" — 사실이었다.
-- **원인**: `CombatTraceJoin.Build` 가 **`AttackSent` 만 스윙 시작점**으로 봤는데, `AttackSent` 는 로컬 `CombatSyncSender` 만 남긴다.
-  원격 플레이어·몬스터의 발동은 **엔트리로는 쌓이는데 레코드가 안 만들어져** 창에서 사라졌다. (서버는 이미 몬스터 발동도 `S_AbilityActivated{ActorId=-instanceId}` 로 보내고 있었다 — `Room.cs:618`. **데이터는 다 오는데 내가 버리고 있었다.**)
-- **수정**: 시작점을 액터별로 나눴다 — 로컬=`AttackSent`(t_send 를 안다) / 원격·몬스터=`AbilityActivated`(그들의 입력 시각은 클라가 알 방법이 없다. 서버 통지가 첫 관측).
-  `SwingOrigin{LocalPlayer,RemotePlayer,Monster}` 추가. 로컬 스윙이 가져간 발동 통지는 `consumed` 로 표시해 중복 레코드를 막는다.
-- **구간 지표가 origin 마다 다르다(중요)**: `SendToHpMs` 는 **로컬 전용**(원격은 -1). 모든 액터 공통 지표는 **`ActivateToHpMs`**(발동 통지→HP 반영). 창의 요약도 `[내]`/`[전체]` 로 갈라 표시한다.
-  `LikelyGated` 도 **로컬 전용** — 원격·몬스터는 발동 통지가 곧 시작점이라 정의상 거부가 보이지 않는다.
-- **동기화 검수**: `BuildMonsterSync` 추가 — 스윙과 무관하게 **상태를 받은 모든 몬스터**를 집계(HP·seq·갱신수·**스테일 드롭수**·**누적 피해**). 누적 피해는 서버 `[CombatTrace]` final 합과 대조하는 **데미지 검수** 근거. 창에 "몬스터 동기화" 탭 + CSV 2섹션.
-- **ActorIds 를 못 쓴 이유**: `Game.Network.asmdef` 가 `overrideReferences: true` 이고 `precompiledReferences` 에 `Shared.Gameplay.dll` 이 없다 → 부호 규약을 `CombatTraceJoin.IsMonster` 로 국소화하고 진실원을 주석에 명시(asmdef 추가 변경 회피).
-- **알려진 한계**: 여러 플레이어가 **동시에** 한 몬스터를 때리면 HP 델타의 주인을 클라가 구분할 수 없다(P→M 은 S_ApplyEffect 가 없어 SourceId 가 없다) → 확정은 서버 로그 조인.
-- **회귀를 실측 확인**: 원격 레코드 생성을 끄니 `다른_플레이어의_스윙도_기록된다` 가 **Expected: 2, But was: 1**(= 사용자가 본 증상 그대로), `몬스터의_공격도_기록된다` 는 0건 → 복원 후 그린.
-- **검증**: EditMode **189/189**(186 + 신규 3) · E2E **31/31**. ⚠ 첫 E2E 에서 `NICKNAME_ALREADY_TAKEN` 1건 실패 → 단독 재실행 통과 + 전체 재실행 31/31 = **테스트 격리 플래키**(반복 E2E 로 닉네임 누적), 내 회귀 아님.
-
-### 2.73 몬스터 사망 시 체력바가 안 비는 버그 (2026-07-17)
-
-- **사용자 관측**: "체력바가 남아 있는데 죽는 모션이 나와 — 죽을 때 체력이랑 UI 동기화가 안 되는 것 같아". 사실이었다.
-- **원인(두 겹)**:
-  1. **서버**: `CombatHandler.ApplyAttackToMonsters` 는 `dead` 면 `S_MonsterDead` **만** 보낸다 — 죽는 순간의 `S_MonsterState{Hp=0}` 은 없다(살아있을 때만 상태를 보냄).
-  2. **클라**: `MonsterEntity.HandleDead` 가 die 트리거 + 지연 디스폰만 하고 **HP 를 0 으로 만들지 않았다**.
-  → 체력바(`MonsterHealthBar`, `HpChanged` 구독)가 **치명타 직전 HP** 에 멈춘 채 `deathDespawnDelay`(2s) 동안 죽는 모션이 재생됐다.
-- **수정**: `HandleDead` 에서 `Hp = 0; HpChanged?.Invoke(this);` 후 die 트리거.
-- **왜 서버가 `Hp=0` 을 추가 전송하지 않고 클라가 유도하나**: `S_MonsterDead` 와 `S_MonsterState` 는 **송신 직렬화가 없어(D1) 순서가 뒤집힐 수 있다.** Dead 가 먼저 도착하면 `RemoveMonster` 로 스냅샷이 사라져 뒤이은 `Hp=0` 이 `UpdateMonster` 에서 **최소 스냅샷만 만들고 `OnMonsterMoved` 를 발행하지 않아 버려진다** → 간헐 재발. 반면 "사망 = HP 0" 은 **서버가 이미 내린 판정**이라 클라 유도가 권위를 해치지 않고 도착 순서와 무관하게 항상 맞다. (C2 로 D1 을 고쳐도 이 유도가 더 단순하고 안전하다.)
-- **플레이어엔 왜 없나(비대칭)**: 플레이어 HP 는 `S_ApplyEffect.Amount` 로 클라 ASC 가 직접 차감한다(결정론 lite) → **죽인 그 타격이 이미 HP 를 0 으로 만든다.** 몬스터만 HP 가 `S_MonsterState` 로만 오는데 그 마지막 패킷이 없어서 생긴 문제.
-- **회귀를 실측 확인**: 수정을 끄니 `사망시_체력바가_0으로_내려간_뒤_죽는모션이_나온다` 가 **Expected: 0, But was: 12**(= 관측된 증상 그대로) → 복원 후 그린.
-- **위치**: `Client/.../Gameplay/Character/MonsterEntity.cs`(`HandleDead`) · 테스트 `Tests/PlayMode/InGame/MonsterEntityAnimTests.cs`.
-- **검증**: PlayMode anim **3/3**(2 + 신규 1) · EditMode **189/189**.
-
-### 2.74 AC-C2 — 세션 송신 큐 (D1 수정) (2026-07-17)
-
-- **무엇**: `Session` 에 `Channel<byte[]>`(Bounded 1024) + 단일 소비자 `SendLoopAsync`. `SendPacketAsync` 는 **직렬화 + 큐잉만** 하고 실제 소켓 write 는 SendLoop 이 전담 → 프레임 단위 원자성 + FIFO.
-- **기동/정리**: `RunAsync` 가 SendLoop 을 함께 띄우고, finally 에서 `Writer.TryComplete()` → `await sendLoop` 로 회수(안 하면 세션마다 Task 누수).
-- **시그니처 유지 결정**: `Task SendPacketAsync(Packet, ct)` 그대로 → 호출부 ~20곳 무변경(연결 계층 변경의 위험 표면 축소). **의미는 바뀜** — Task 완료 = "큐에 들어갔다"이지 "전선에 나갔다"가 아니다. 송신 직후 `Disconnect()` 하면 유실되지만 **그런 호출부는 없다**(Disconnect 는 하트비트 타임아웃·에러·종료 경로뿐 — 확인함).
-- **Bounded + 포화 시 끊김**: 무한 큐면 느린 클라 1명이 서버 메모리를 계속 먹는다(DoS 벡터). 1024 = 10Hz 틱 기준 ~100초치 = 사실상 죽은 연결. `FullMode.Wait` + **`TryWrite` 만 사용**(대기 모드는 TryWrite 가 실패를 알려주는 유일한 모드) — 생산자가 틱 스레드라 **절대 블록시키면 안 된다**.
-- **직렬화 실패 처리 변경**: 예전엔 serialize 예외에도 세션을 끊었다 → 이제 그 패킷만 버리고 로깅(패킷 하나의 문제로 연결을 죽이지 않는다).
-- **⚠️⚠️ 가장 중요 — D1 의 "치명적 프레임 인터리브" 주장은 플랫폼 의존이었다(실측)**:
-  설계 §1.1 은 코드 리딩만으로 "부분전송 시 프레임 인터리브 = 파싱 desync(치명)" 이라 단정했는데, **Windows 에선 재현 불가**다.
-  overlapped `WSASend` 는 **버퍼 전체 소비 후에만 완료**돼 `sent == frame.Length` 가 보장 → `while (offset < len)` 이 1회만 돈다 → **부분 전송이 없어 섞일 수가 없다.**
-  큐를 우회한 채 **20KB 프레임 × 512B 송신버퍼 × 4스레드 동시 송신**을 돌려도 통과했다(두 번 시도: 첫 시도는 프레임이 버퍼보다 작아 무의미했고, 크게 키운 두 번째도 통과).
-  **그러나 서버는 Linux 컨테이너에서 돈다** — Linux `send()` 는 부분 반환이 정상이라 거기선 실재한다. → **수정은 필요하되 프레임 원자성은 구조적 보장(단일 소비자)이지 테스트로 증명된 게 아니다.**
-  **교훈: "코드 리딩으로 확인된 결함"도 재현 조건은 플랫폼에 달렸다. 단정 전에 돌려봐야 한다.**
-- **테스트**(`SocketServer.Tests/Session/SessionSendQueueTests.cs`, 실제 루프백 소켓): 동시 송신 프레임 무결 · **순서 보존** · **포화 시 끊김** · 끊긴 세션 무시. 뒤 3개는 진짜 가드, 첫 번째는 Windows 에선 큐 없이도 통과함을 명시.
-  ⚠ 네임스페이스는 `Server.Tests.Sessions` — `...Session` 으로 두면 전역 `Session` 타입을 가려 `TestSessionFactory` 등이 **CS0118 로 깨진다**(testing.md 의 'System' 금지와 같은 뿌리).
-- **검증**: SocketServer.Tests **168/168**(164+4) · 솔루션 0오류 · Docker(리빌드) **E2E 31/31**. ※ 중간에 E2E 가 25/31 에서 멈췄으나 `isPlaying=False` 로 **플러그인 끊김 좀비** 확인(서버 로그에 큐 포화·SendLoop 에러 0건) → 도메인 리로드 후 재실행 31/31.
-
-### 2.75 AC-C1c 후속 — 트레이스 링 포화 해소(안ⓒ) (2026-07-17)
-
-- **측정이 드러낸 결함**: 링 **508/512 포화**, 그중 **451건(89%)이 이동 틱**(HP 델타 0). 정작 볼 스윙이 덮여 측정이 최근 수 초로 잘렸다. 집계도 링에서 유도해 **m3 가 seq 234 vs updates 185 = 49건 증발**.
-- **왜 필터만으론 안 됐나(중요)**: 델타 0 을 그냥 안 찍으면 **한 대도 안 맞은 몬스터가 동기화 탭에서 사라진다** — 사용자가 명시한 "모든 몬스터가 다 나와야 한다"가 깨진다. → **자료구조를 목적에 맞게 분리**했다:
-  - **링 = 이벤트 로그**(전투 관련만): AttackSent · AbilityActivated · DamageReceived · **MonsterHpApplied(델타≠0만)** · StaleDropped
-  - **맵 = 몬스터당 1행 동기화 집계**(`_monsterSync`, `MonsterSync()`): **모든 갱신** 반영. 몬스터당 1행이라 폭증하지 않고 링 회전과 무관해 유실이 없다.
-- **삭제**: `CombatTraceJoin.BuildMonsterSync`(링에서 유도 = 유실의 원인). 창은 `recorder.MonsterSync()` 를 쓴다.
-- **용량**: 512 → **4096**(구조체 ~48B → ~200KB). 필터와 **함께** 해야 의미가 있다 — 둘 중 하나만으론 부족.
-- **테스트 파장(정직히)**: 필터가 기존 테스트 2건을 깼다 — `RecordMonsterHpApplied` 에 amount 기본값 0 을 쓰던 것들이 "HP 반영"을 의도했는데 이제 링에 안 들어가 `SendToHpMs=-1` 이 됐다. 실제 P→M 은 HP 가 변할 때만 이 이벤트가 의미를 가지므로 **테스트를 현실에 맞춰 델타를 넣었다**(구현을 되돌리지 않음).
-- **검증**: EditMode **192/192**(189+4: 이동 틱 링 제외 · 델타 있는 틱은 링 보존 · 집계 무유실 · 모든 몬스터 노출).
-
-### 2.76 AC-E~H — 몬스터 레벨링·데이터 SO화·등급→ID·Main 체력바 (2026-07-17, PR #60)
-
-한 흐름의 종착: C1c 측정(몬스터 피해 1~5 바닥) → 레벨링(E) → 데이터 SO화+던전 5개(F) → 등급을 ID 로(G) → Main 체력바(H). 설계 = [monster-leveling.md](monster-leveling.md)(§3 은 AC-G 로 폐기 주석).
-
-- **레벨 스케일** = `Shared.Infrastructure/Monsters/MonsterLevelScaling.cs` — **상수 0개**, 플레이어 곡선을 `LevelTable`(SO 저작)에서 직접 읽는다: `base(L)=net₁·HP(L)/HP(1)+DEF(L)` · `maxHp(L)=maxHp₁·AP(L)/AP(1)`. 유도 근거 = 역할 보존(곱셈은 slam 폭발·단순가산은 중간 수렴). `StatCombatMath` 는 무변경(산식은 옳았고 틀린 건 base).
-- **레벨 저작** = `MapDefinition.monsterLevel`(맵 기본) + `MonsterSpawn.level`(스폰 override, 현재 미사용) → `MapSpawnLayout.ResolveLevel`(단일 구현, 스폰>맵>1) → `Room.SpawnMonsters` 에서 **스폰 시 1회 확정**. 대역: dungeon_01=L1·02=L6·03=L12·04=L20·05=L30(보상·등급 구성 단조 증가, 테스트 고정).
-- **⚠️ 등급의 최종형(AC-G)** — `spawn.tier`+배율 테이블(AC-F2)을 **같은 날 폐기**: enum 서버·클라 미러링·스폰 필드 2개·이중 조회 비용. 최종: `monsters.json` 의 `tier` **문자열**("Normal"/"Elite"/"Boss") = **분류일 뿐 스탯에 곱해지지 않는다**. 강한 개체 = **변종 행 직접 저작**(`leviathan` 500 / `leviathan_boss` 3000, `*_elite` 3종) — **스폰은 monsterId 하나만 처리**. `MonsterState.Tier` 는 카탈로그(monsterId 행)에서 읽는다(표시·연출 분기용, 아직 소비자 없음).
-- **드롭** = `DropTableRoll.Roll(entries, rng, chanceMultiplier, quantityMultiplier)` 순수 오버로드(배율은 **인자** — Shared.Gameplay 는 Infrastructure 를 못 부른다) + `DropTableCatalog.Roll(id, rng, level)`. 수량 배율은 **가변수량(MaxQty>1, gold)에만**(장비 1~1 에 걸면 검 2자루). 8마리 전수 + `goblin` 유령 제거 + **변종별 자기 테이블**(배율이 없으니 없으면 안 떨군다). test_brute 는 픽스처라 제외.
-- **Main 체력바(H)** = `IMonsterHealth`(Hp/MaxHp/HpChanged) — 구현체 둘(던전 `MonsterEntity`=서버 권위 / Main `LocalMonster`=클라 권위)이라 인터페이스 도입 기준 충족. `MonsterHealthBar` 는 계약만 봐서 **던전·Main 공용**. LocalMonster 도 **사망 시 HP 0 확정**(§2.73 버그의 Main 판 예방). 프리팹은 던전 것 서브트리 복제(`CreepyDemonLocal.prefab`).
-- **저작 파이프 함정 3건(재발 방지)**: ① `spawn-layouts.json`/`drop-tables.json`/`monsters.json` 은 **exporter 생성물** — 직접 편집하면 다음 Export 에 덮인다(→ SO 저작 후 Export 가 유일 경로). ② exporter 의 `Export()` 는 끝에 `DisplayDialog`(모달) → **MCP/자동화가 무기한 블록**(Unity 멈춤의 원인) — 팝업 없는 `BakeAll()` 을 쓴다. ③ Import 왕복 배선 누락 시 bootstrap Import 가 저작값을 0 으로 지운다.
-- **⚠️ 데이터 저작에도 계약 테스트**: leviathan base 를 65 로 착각(그건 arachnya)해 boss 390 = **원본(500)보다 약한 보스**를 저작 → `변종은_별개_ID_로_저작된다_AC_G`(boss.MaxHp > normal×4)가 잡았다. 오타 monsterId 는 Default 폴백으로 **공격 안 하는 유령**이 되므로 `스폰이_지목한_변종이_카탈로그에_존재한다_AC_G` 로 전수 검증.
-- 잔여: dungeon_03~05 `visualPrefab` 없음(에셋) · `tier` 연출 소비자 없음(보스 체력바·등장 연출 후보) · AC-D(전용 애니·P→P 스케일·VFX Cue).
-- 검증(최종): SocketServer **209/209** · Shared.Gameplay 50/50 · EditMode **192/192** · PlayMode(anim 3/3 · Main 체력바 3/3) · Docker E2E **31/31**. PR #60 → main `972991e5`.
-
-### 2.63 AC-B B3 — 클라 Cue 데이터화 + 저작 단일화 (2026-07-16)
-
-- **동기(발견)**: B1 이후 같은 스킬이 **두 SO 에 중복 저작**(`GameData/Skill/Skill_*` + `GameData/Ability/Ability_*`)돼, 서버는 abilities.json(B2)·클라는 SkillCatalogDefinition 을 읽는 **드리프트 위험**이 생겼다 → B3 에서 클라도 Ability 로 일원화하며 Skill 계열 전량 제거.
-- **신규**: `Gameplay/Abilities/AbilityCatalogProvider.cs` — `Get(id)`/`Get(networkId)`(→`AbilityDefinition`, Cue 포함) + `GetTimeline(id)`/`GetTimeline(networkId)`(→`SkillTimeline`, 게임플레이). 구 `SkillCatalogProvider` 대체.
-- **Cue 계약 변경**: `IActorView.PlayAbilityCue(int skillId)` → **`PlayAbilityCue(AnimationTriggerType trigger, int comboStep)`**. **networkId→Cue 해석은 `AbilityCueRouter` 한 곳**(카탈로그 조회, 미등록이면 Attack/0 폴백 — 몬스터 주공격은 B4 까지 미등록).
-  → `RemoteDriver` 의 하드코딩 콤보 switch(`3=>1, 4=>2, _=>0`) **제거**. 뷰는 카탈로그를 모른다(뷰=재생만).
-- **하드코딩 매핑 제거(클라 미러)**: `LocalCombat`·`PlayerCharacterAgent` 의 `SkillName(int)` switch(0=basic/1=heavy/2·3·4=combo) 삭제 → `AbilityCatalogProvider.GetTimeline(networkId)` 데이터 조회. **서버 `ResolveSkill`(B2)과 대칭 — 이제 클라·서버 어디에도 int→스킬 하드코딩이 없다.**
-- **삭제**: `Abilities/{SkillDefinition,SkillCatalogDefinition,SkillCatalogProvider}.cs` · `GameData/Skill/`(에셋 6) · `Editor/SkillCatalogExporter.cs`(B2) · `Tests/EditMode/Gameplay/SkillCatalogProviderTests.cs`.
-- **DI/주소**: `AddressKeys.Data.SkillCatalog` → `AbilityCatalog`(`Assets/GameData/Ability/AbilityCatalogDefinition.asset`). Dungeon·Main 스코프가 `AbilityCatalogProvider` 등록. `AbilityCueRouter` 생성자에 provider 추가.
-- 검증: Unity 0오류 · EditMode **170/170**(−2 삭제) · PlayMode 애니 **6/6**(**콤보 A→B→C 체인·늦은 패킷 안전망 회귀** = 연출 데이터화의 핵심 회귀) · **Docker E2E 31/31**.
-- **잔여(B4 에서 해소됨)**: 몬스터 주공격이 카탈로그에 등록돼 정식 networkId(100+)로 해석된다 → §2.64.
-
-### 2.64 AC-B B4 — 몬스터 어빌리티화 · 보스 다중 스킬 개방 (2026-07-16)
-
-- **데이터 스키마**: `MonsterDefinition`(클라 SO)·`MonsterDef`(서버)에서 **`attackRange`/`attackCooldownMs`/`attackDamage`/`onHitEffectId` 4필드 제거** → **`abilityIds: List<string>`** 추가(저작 순서=발동 우선순위). 몬스터는 "무엇인가"(maxHp·moveSpeed·aggroRange·expReward)만 갖고 **공격은 전부 Ability SO 소유**. `MonsterCatalogExporter` Export/Import 양방향 갱신 → `monsters.json` 재bake.
-- **에셋**: 몬스터 9종 `Ability_{monsterId}_attack.asset` — **networkId 100~108**(플레이어 0~4와 대역 분리, 겹치면 서버가 엉뚱한 어빌리티 발동). 쿨다운/사거리/데미지/CC 는 기존 monsters.json 값 **그대로 이관**(밸런스 무변경). abilities.json = 14종(플레이어 5 + 몬스터 9).
-- **서버 어댑터**(`Server.Monster.MonsterCatalog`): `MonsterStats` 축소(MaxHp·MoveSpeed·AggroRange·**AttackRange**) — **AttackRange 는 이제 저작값이 아니라 그 몬스터 어빌리티들의 `max(ActivationRange)` 파생**(MonsterAiMath 의 Attack 페이즈 진입 판정용, Step 시그니처 무변경). `GetAbilities(monsterId)` 신설(미등록 id 는 조용히 skip).
-- **상태**: `MonsterState.LastAttackAt`(단일) → **`GetLastCast(abilityId)`/`MarkCast(abilityId, now)`**(Dictionary) — 보스가 스킬별 쿨다운을 독립 추적.
-- **선택 로직**: `Room.SelectMonsterAbility(m, target, nowMs)` — 저작 순서대로 **사거리 안 + `AbilityActivationMath.CanActivate` 통과인 첫 어빌리티** 반환(없으면 발동 없음). 데미지=`ability.BaseDamage`(→`StatCombatMath.MeleeDamage`), CC=`ability.Timeline.OnHitEffectIds` 순회. `S_AbilityActivated.SkillId` = `ability.NetworkId`(클라 라우터가 이 값으로 Cue 조회).
-  → **보스 다중 스킬 = abilityIds 에 2개 이상 넣기만 하면 동작**(코드 변경 0). 앞의 강스킬 → 쿨다운이면 뒤의 평타로 폴백하는 식으로 저작.
-- **안전 degrade**: 어빌리티 미저작/오타 몬스터 → `AttackRange=0` → 접근만 하고 공격 안 함(크래시 아님). 테스트로 고정.
-- 검증: `MonsterAbilitySelectionTests` 5 신규(사거리 밖 미발동·쿨다운=어빌리티값·networkId 실림·데미지/CC 저작값·어빌리티 없으면 미공격) + `MonsterCatalogTests`/`MonsterAiMathTests`/`MonsterAttackTests` 개편 → **SocketServer.Tests 145/145** · ServerAll.sln 0오류 · Unity 0오류 · **Docker E2E 31/31**(양 서버 리빌드).
-
-### 2.65 AC-B B5 — 데미지 출처 일원화(안B 완결) (2026-07-16)
-
-- **결과**: **데미지 수치는 `ability.BaseDamage` 한 곳에서만 편집**한다(플레이어·몬스터 공통). effect 는 **CC/태그 전용**으로 역할 축소.
-- **폐기**: `basic_attack_dmg` · `combo_a/b/c_dmg` · `monster_attack_dmg`(Shared `GameplayEffectCatalog` 코드 시드에서 제거).
-  → 대체 = **`ability_damage` 단일 라벨**(Instant Health **placeholder −1**). **수치는 이 effect 가 정하지 않는다** — 서버가 `S_ApplyEffect.Amount`(권위 델타)로 실어 보내고 클라 `ApplyEffectAuthoritative(healthOverride)` 가 덮어쓴다.
-- **서버**: `CombatHandler.ScaleDamageByStats`(effect 카탈로그 Health → AP 스케일) → **`BuildDamageMods(AbilityDef, ap, def)`** = `StatCombatMath.MeleeDamage(ability.BaseDamage, ap, def)`. `HandleAttack` 이 `ResolveAbility` 로 `AbilityDef` 확보 → 플레이어 피격에 `ability_damage`+`Amount=-BaseDamage` 브로드캐스트 + CC 는 별도 `Amount=0`. `Room.TickMonsters` 의 EffectId 도 `ability_damage` 로 통일.
-- **밸런스 무변경**: baseDamage(10/10/10/15/25 + 몬스터 8~9999)가 구 effect 실효값과 동일. ※플레이어→플레이어는 **기존대로 플랫 피해**(AP·Defense 미반영) — 스탯 스케일로 바꾸는 건 별도 밸런스 결정이라 B5 범위 밖(주석에 명시).
-- **⚠️ 함정(테스트에서 검출)**: `ability_damage` 의 placeholder(−1)는 **Amount 를 안 보내면 그대로 적용**된다(EffectReceiverTests 가 100→99 로 실패해 발견). 프로덕션은 항상 Amount 를 싣지만, **데미지 S_ApplyEffect 에 Amount 누락 시 조용히 1 피해**가 되는 구조 → 테스트를 프로덕션과 동일하게 `amount:` 포함으로 정렬해 고정.
-- **테스트 이관**: `CombatHandlerStatDamageTests`(BuildDamageMods 기준·어빌리티별 저작값 검증 추가) · `MonsterDamageTests`(effect Resolve → BuildDamageMods, 단일소스 위임 가드는 CC 로) · `ConsumableEffectCatalogTests`(전투 조회 가드 → CC) · `AbilityCatalogTests`(onHit=CC 전용으로 반전) · E2E 3건(`ability_damage`+Amount 어설션) · `EffectReceiverTests`/`EffectSystemTests`.
-- 검증: SocketServer.Tests **146/146** · Shared.Gameplay.Tests **50/50** · EditMode **170/170** · Unity 0오류 · **Docker E2E 31/31**(양 서버 리빌드).
-### 2.66 AC-B B6 — 보스 다중스킬 실증 · **AC-B 트랙 완료** (2026-07-16)
-
-- **실증**: `leviathan.abilityIds = [leviathan_slam, leviathan_attack]` — **코드 변경 0, 데이터 저작만으로** 다중 스킬 동작.
-  - `Ability_leviathan_slam`(netId **109**, cd 6000, range 3.5, dmg 90, cc `stun_1_5s`) = 강스킬 우선 / `leviathan_attack`(cd 1800, range 3.0, dmg 40, `slow_3s`) = 폴백 평타.
-  - 파생 확인: `MonsterStats.AttackRange` = max(3.5, 3.0) = **3.5**(slam 사거리) → AI 가 더 멀리서 Attack 페이즈 진입.
-- **고정된 동작**(`BossMultiAbilityTests` 8): 저작 2개 확인 · 사거리 최대값 파생 · 첫 발동=강스킬 · **강스킬 쿨다운 중 평타 폴백** · 강 쿨다운 후 재사용 · **어빌리티별 독립 쿨다운**(평타를 여러 번 써도 slam 시계는 자기대로) · 강스킬이 더 아프고 CC 도 어빌리티별(stun vs slow) · 평타 사거리 밖/강 사거리 안이면 강스킬만.
-- **⚠️ 테스트 픽스처 함정(검출)**: 보스 실데미지(slam 90 + 평타 40 = 130 > 기본 HP 100)로 **테스트 중 플레이어가 다운** → AI 타깃에서 빠져 이후 발동이 사라짐 → 선택 로직이 아니라 픽스처 때문에 실패. `maxHealth: 100_000` 로 해소(주석에 사유 명시).
-- 검증: SocketServer.Tests **154/154** · ServerAll.sln 0오류 · **Docker E2E 31/31**(양 서버 리빌드).
-
-### ✅ AC-B 트랙 완료 (B1~B6)
-
-- **스킬 추가 절차(최종)**: `Ability_*.asset` 저작 → `Tools/Ability/Export` → 서버 재빌드. **코드 수정 없음.**
-- int→스킬 하드코딩이 **클라·서버 어디에도 없음**(`ResolveSkill`/`SkillName`/`RemoteDriver` 콤보 switch 전부 데이터 조회로 대체).
-- 데미지 = `ability.BaseDamage` 단일 출처 / effect = CC·태그 전용 / 연출 = `cueTrigger`+프리팹 파라미터명.
-- **남은 확장점**: ① 어빌리티별 **전용 애니**(현재 보스 강스킬도 `Attack` 트리거 공유 — `AnimationTriggerType` enum + `CharacterAgentAnimations` 필드 + 컨트롤러 상태 추가 필요. leviathan FBX 엔 AttackSpecial/AttackHard/Roar 클립 존재) ② 플레이어→플레이어 데미지 플랫 유지(스탯 스케일 전환은 밸런스 결정) ③ VFX/SFX Cue.
-- **⚠️ 함정(발견·해소)**: `AssetDatabase.CreateAsset` 로 만든 SO 는 **Addressable 로 자동 등록되지 않는다**. 미등록이면 `LifetimeScope.LoadData` 가 null → `?? CreateInstance<...>()` **빈 SO 폴백** → 클라 쿨다운·Cue·hitbox 가 조용히 전부 죽는다. **테스트로는 안 잡힌다**(E2E=raw socket, 애니 테스트=직접 생성 → Addressables 미경유).
-  → `settings.CreateOrMoveEntry(guid, DefaultGroup)` + `address = 에셋경로`(이 repo 규약: 주소=경로) 로 등록 후, **Addressables 로드 → Provider 구성 → netId 0~4 조회**를 런타임 경로로 실증(cd/mana/cue 전부 기존값 일치, 콤보 0/1/2).
-  → 교훈: **SO 를 코드로 생성하면 Addressable 등록·로드까지 확인**해야 한다.
-- **PartyHpView 글씨색**: 흰색→**검은색**(사용자 요청).
-- **검증**: 서버 build0 · **SocketServer.Tests 5**(신규 `ToJoinedPacket은_PlayerState의_HP기준선을_S_PlayerJoined에_싣는다` — `ToJoinedPacket` internal+`InternalsVisibleTo("SocketServer.Tests")` 시임) · 클라 컴파일0 · EditMode **157**(신규 `PlayerJoined_HP기준선이_스냅샷에_실리고_Move후에도_보존된다`) · PlayMode 7(신규 `원격_스폰시_서버_HP기준선으로_ASC가_초기화된다` + `PartyModelTests` 3) · **E2E `SocketE2ETests` 28/28**(신규: `두_클라이언트_입장` 이 S_PlayerJoined MaxHp>0·Hp==MaxHp 검증, Docker 리빌드 후 201s).
-- **잔여 한계**: MaxHp는 입장 시점값(던전 중 레벨업 미반영 — 던전 내 레벨업 없음 YAGNI). 최초 구현(§2.58)의 "prefab 근사" 한계는 이 수정으로 해소.
 
 ### 2.57 NPC 애니 + 락온 strafe(8방향) + 락온 UI 마커 (2026-07-12)
 
@@ -1134,8 +1138,6 @@
 - **Main 사망 트리거**: `LocalMonster` 근접 공격 추가 — `attackRange` 내에서 `attackCooldownSec` 마다 플레이어 ASC 에 즉발 `local_monster_attack`(Health -dmg, 클라 로컬 권위). 다운 플레이어는 공격 안 함. (없으면 Main 에서 죽을 수단이 없어 리스폰 잠복.)
 - **위치**: `Gameplay/Character/{Agent/PlayerCharacterAgent, LocalRespawnController, LocalMonster, CharacterAgentAnimations}.cs` · `VContainer/.../MainLifetimeScope.cs`.
 - **남음**: Animator "Dead" 배선(아트)·Unity 컴파일·플레이 검증.
-
-### 2.6 CA-2 SkillTimeline 스키마 + 서버 권위 설계 (Shared.Gameplay)
 
 ### 2.6 CA-2 SkillTimeline 스키마 + 서버 권위 설계 (Shared.Gameplay)
 - **무엇**: `Shared.Gameplay`(ns `Script.System.GamePlayAbilitySystem`)에 스킬 결정론 코어 — `SkillTimeline`(Id·Startup/Active/Recovery/Cooldown ms·`HitboxSpec`·`OnHitEffectIds[]`), `HitboxSpec`(Box/Sphere, `System.Numerics.Vector3`), `ESkillPhase`/`EHitboxShape`, `SkillTimelineMath`(PhaseAt/IsActive), `HitboxMath.Overlaps`(yaw로 월드→로컬 변환+박스/구 겹침, 엔진 비의존), `SkillCatalog`(코드 시드).

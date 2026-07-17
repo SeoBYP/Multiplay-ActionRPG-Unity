@@ -61,7 +61,7 @@ namespace Game.Gameplay.Abilities
 
         [Header("Cue (연출) — 클라 전용. bake 되지 않는다")]
         [Tooltip("재생할 애니 트리거의 **의미**(enum). 실제 Animator 파라미터 *이름* 은 프리팹의 CharacterAgentAnimations 가 갖는다 —\n" +
-                 "그래야 컨트롤러 파라미터명이 제각각인 몬스터들이 같은 어빌리티를 공유할 수 있다(codemap §2.60).")]
+                 "그래야 컨트롤러 파라미터명이 제각각인 몬스터들이 같은 어빌리티를 공유할 수 있다(codemap §2.64).")]
         public AnimationTriggerType cueTrigger = AnimationTriggerType.Attack;
 
         [Tooltip("ComboStep int 파라미터에 실을 값(콤보 A=0/B=1/C=2). 콤보 미사용이면 0.")]

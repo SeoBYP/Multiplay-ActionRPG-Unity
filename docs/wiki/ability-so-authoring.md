@@ -98,7 +98,7 @@ public sealed class AbilityDefinition : ScriptableObject
 
 ### 왜 Cue 를 "enum + comboStep" 으로 두는가 (파라미터 *이름* 이 아니라)
 
-Part A(codemap §2.60)에서 확정된 구조를 그대로 쓴다:
+Part A(codemap §2.64)에서 확정된 구조를 그대로 쓴다:
 
 ```
 AbilityDefinition.cueTrigger = AnimationTriggerType.Attack   ← "공격이다"라는 의미 (어빌리티 소유)

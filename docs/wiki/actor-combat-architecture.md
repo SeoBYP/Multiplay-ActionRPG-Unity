@@ -354,7 +354,7 @@ public interface IActorView            // RemoteDriver·MonsterEntity·LocalMons
 > **구현 노트(2026-07-16)**: Cue 재생은 **Animator 파라미터**로 한다 — `CharacterAgentAnimations`(파라미터명이 프리팹에 직렬화)
 > 경유로 이동=`SetFloat(Speed)` · 공격=`SetTrigger(Attack)` · 사망=`SetTrigger(Dead)`. 플레이어·몬스터 **동일 방식**.
 > ※ 초기엔 몬스터만 상태이름 `CrossFade` 로 구동했는데, 컨트롤러의 `Walk→Idle[Speed<0.1]` 전이와 충돌해
-> **Walk 가 즉시 튕기는 버그**가 있었다(Speed 미세팅). 파라미터 구동으로 통일해 해소 — codemap §2.60.
+> **Walk 가 즉시 튕기는 버그**가 있었다(Speed 미세팅). 파라미터 구동으로 통일해 해소 — codemap §2.64.
 - 등록 시점 = 스포너(`CharacterSpawner`/`MonsterSpawner`)의 스폰/디스폰 — 이미 양쪽 다 Dictionary 를
   들고 있으므로 등록 한 줄씩 추가. **새 생명주기 관리 코드 없음.**
 - `IActorView` 는 asmdef 경계(Interface 도입 기준 충족: 구현체 3개 + 소비자 레이어 분리).

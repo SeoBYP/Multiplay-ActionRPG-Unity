@@ -10,7 +10,7 @@ namespace Server.Tests.Monster;
 /// AC-E2: 몬스터 레벨·등급 저작과 스폰 시 확정. 설계 = docs/wiki/monster-leveling.md §4.1.
 ///
 /// 이 증분은 **동작 보존**이어야 한다 — 레벨을 저작하지 않은 기존 데이터는 전부 L1 로 떨어지고,
-/// L1 스케일은 항등이라 스탯이 하나도 바뀌지 않는다(codemap §2.62: 증분 경계 교훈).
+/// L1 스케일은 항등이라 스탯이 하나도 바뀌지 않는다(codemap §2.66: 증분 경계 교훈).
 /// </summary>
 public class MonsterSpawnLevelTests
 {
