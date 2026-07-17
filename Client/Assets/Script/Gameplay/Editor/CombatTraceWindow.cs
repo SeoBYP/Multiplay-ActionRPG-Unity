@@ -108,7 +108,7 @@ namespace Game.Gameplay.Editor
                 if (e.Kind == CombatTraceKind.AttackSent) { localActor = e.ActorId; break; }
 
             var all = CombatTraceJoin.Build(_entries, localActor);
-            _monsters = CombatTraceJoin.BuildMonsterSync(_entries);
+            _monsters = rec.MonsterSync(); // 링과 독립 — 링이 돌아도 집계가 유실되지 않는다(C1c 근거)
 
             IEnumerable<CombatTraceRecord> q = all;
             switch (_originFilter)

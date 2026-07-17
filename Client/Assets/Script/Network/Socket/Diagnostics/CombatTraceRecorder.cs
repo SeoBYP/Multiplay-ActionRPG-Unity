@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Game.Network.Socket.Diagnostics
 {
@@ -59,8 +60,15 @@ namespace Game.Network.Socket.Diagnostics
     /// </summary>
     public sealed class CombatTraceRecorder
     {
-        /// <summary>보관 건수. 전투 수 초 분량이면 충분하고(재현 즉시 확인용), 512×32B ≈ 16KB 로 상주 비용도 무시할 만하다.</summary>
-        public const int Capacity = 512;
+        /// <summary>
+        /// 보관 건수. 엔트리가 구조체(~48B)라 4096 이어도 ~200KB — 진단 창을 켠 동안의 상주 비용으로 무시할 만하다.
+        /// <para>
+        /// ⚠️ <b>512 였다가 올렸다(C1c 측정 근거)</b>: 실제 측정에서 링이 <b>508/512 로 포화</b>돼 앞부분이 덮였다
+        /// (m3 는 seq 234 인데 updates 185 = 49건 유실). 원인은 용량만이 아니라 <b>이동만 하는 틱까지 기록한 것</b>이라
+        /// 그 필터(<see cref="RecordMonsterHpApplied"/>)와 <b>함께</b> 고쳐야 의미가 있다 — 둘 중 하나만으론 부족하다.
+        /// </para>
+        /// </summary>
+        public const int Capacity = 4096;
 
         /// <summary>
         /// 런타임 기록·에디터 창이 공유하는 인스턴스.
@@ -77,6 +85,10 @@ namespace Game.Network.Socket.Diagnostics
         public static long NowMs => Clock.ElapsedMilliseconds;
 
         private readonly CombatTraceEntry[] _ring = new CombatTraceEntry[Capacity];
+
+        /// <summary>몬스터당 1행 동기화 집계. 링(이벤트 로그)과 **의도적으로 분리** — 이유는 <see cref="RecordMonsterHpApplied"/> 참조.</summary>
+        private readonly Dictionary<long, MonsterSyncStat> _monsterSync = new Dictionary<long, MonsterSyncStat>();
+
         private readonly object _sync = new object();
         private int _next;    // 다음 쓸 위치
         private int _count;   // 채워진 건수(Capacity 에서 포화)
@@ -98,6 +110,7 @@ namespace Game.Network.Socket.Diagnostics
                 _next = 0;
                 _count = 0;
                 _total = 0;
+                _monsterSync.Clear();
             }
         }
 
@@ -117,15 +130,73 @@ namespace Game.Network.Socket.Diagnostics
         /// S_MonsterState 반영(t_apply).
         /// <para><paramref name="amount"/> = 이번 반영의 HP 델타(피해면 음수, 변화 없으면 0).
         /// <b>몬스터 피해는 S_ApplyEffect 로 오지 않는다</b> — 서버는 몬스터 HP 를 권위로 계산해 S_MonsterState 로만 보낸다
-        /// (S_ApplyEffect 는 플레이어가 대상일 때만). 그래서 이 델타가 <b>플레이어→몬스터 스윙의 유일한 데미지 신호</b>이고,
-        /// 이게 없으면 틱마다 흐르는 무관한 몬스터 갱신과 구별할 수 없다.</para>
+        /// (S_ApplyEffect 는 플레이어가 대상일 때만). 그래서 이 델타가 <b>플레이어→몬스터 스윙의 유일한 데미지 신호</b>이다.</para>
+        ///
+        /// <para><b>기록처가 둘로 갈린다(C1c 측정 근거)</b>:
+        /// <list type="bullet">
+        /// <item>동기화 집계(맵) — <b>모든 갱신</b>. 몬스터당 1행이라 아무리 와도 폭증하지 않고,
+        /// 한 대도 안 맞은 몬스터까지 보여야 "모든 몬스터 동기화 검수"가 성립한다.</item>
+        /// <item>이벤트 링 — <b>HP 가 실제로 변한 것만</b>. 이동만 하는 틱(델타 0)은 진단 가치가 없는데
+        /// 10Hz×N마리로 쏟아져 링을 채운다(실측: 508건 중 451건=89%가 이 노이즈였고 정작 스윙이 덮였다).</item>
+        /// </list></para>
         /// </summary>
         public void RecordMonsterHpApplied(long timeMs, long targetId, int hp, int seq, int amount = 0)
-            => Write(CombatTraceKind.MonsterHpApplied, timeMs, actorId: 0, targetId, networkId: 0, amount, hp, seq);
+        {
+            if (!Enabled) return;
 
-        /// <summary>스테일 드롭(AC-C3) — 순서 역전이 실제로 일어난 증거.</summary>
+            lock (_sync)
+            {
+                var s = GetOrCreateStat(targetId);
+                s.Updates++;
+                s.LastHp = hp;
+                s.LastSeq = seq;
+                if (amount < 0) s.TotalDamage += -amount;
+                _monsterSync[targetId] = s;
+            }
+
+            if (amount != 0)
+                Write(CombatTraceKind.MonsterHpApplied, timeMs, actorId: 0, targetId, networkId: 0, amount, hp, seq);
+        }
+
+        /// <summary>스테일 드롭(AC-C3) — 순서 역전이 실제로 일어난 증거. 드물어서 링에도 항상 남긴다.</summary>
         public void RecordStaleDropped(long timeMs, long targetId, int droppedSeq, int currentSeq)
-            => Write(CombatTraceKind.StaleDropped, timeMs, actorId: currentSeq, targetId, networkId: 0, amount: 0, hp: 0, seq: droppedSeq);
+        {
+            if (!Enabled) return;
+
+            lock (_sync)
+            {
+                var s = GetOrCreateStat(targetId);
+                s.StaleDrops++;
+                _monsterSync[targetId] = s;
+            }
+
+            Write(CombatTraceKind.StaleDropped, timeMs, actorId: currentSeq, targetId, networkId: 0, amount: 0, hp: 0, seq: droppedSeq);
+        }
+
+        /// <summary>호출자가 이미 <c>_sync</c> 를 잡고 있어야 한다.</summary>
+        private MonsterSyncStat GetOrCreateStat(long targetId)
+        {
+            if (_monsterSync.TryGetValue(targetId, out var s)) return s;
+            return new MonsterSyncStat
+            {
+                ActorId = targetId,
+                InstanceId = (int)(-targetId), // ActorId = -InstanceId 규약의 역
+            };
+        }
+
+        /// <summary>
+        /// 모든 몬스터의 동기화 집계(InstanceId 순). <b>링과 독립</b>이라 링이 돌아도 유실되지 않는다 —
+        /// 링에서 유도하던 예전 방식은 실측에서 49건을 잃었다(m3: seq 234 vs updates 185).
+        /// </summary>
+        public List<MonsterSyncStat> MonsterSync()
+        {
+            lock (_sync)
+            {
+                var list = new List<MonsterSyncStat>(_monsterSync.Values);
+                list.Sort((a, b) => a.InstanceId.CompareTo(b.InstanceId));
+                return list;
+            }
+        }
 
         private void Write(CombatTraceKind kind, long timeMs, long actorId, long targetId, int networkId, int amount, int hp, int seq)
         {

@@ -79,7 +79,7 @@ namespace Game.Tests.EditMode.Socket
             r.RecordAttackSent(1000, Actor, NetId);
             r.RecordAbilityActivated(1014, Actor, NetId);
             r.RecordDamageReceived(1015, Actor, Monster, amount: -27);
-            r.RecordMonsterHpApplied(1019, Monster, hp: 3, seq: 41);
+            r.RecordMonsterHpApplied(1019, Monster, hp: 3, seq: 41, amount: -27); // HP 가 실제로 변해야 t_apply 다(델타 0=이동은 링에 없다)
 
             var rec = CombatTraceJoin.Build(r.Snapshot()).Single();
 
@@ -120,9 +120,9 @@ namespace Game.Tests.EditMode.Socket
             var r = new CombatTraceRecorder { Enabled = true };
             r.RecordAttackSent(1000, Actor, NetId);
             r.RecordAbilityActivated(1010, Actor, NetId);
-            r.RecordMonsterHpApplied(1012, targetId: -99, hp: 50, seq: 7); // 무관한 몬스터
+            r.RecordMonsterHpApplied(1012, targetId: -99, hp: 50, seq: 7, amount: 0); // 무관한 몬스터의 이동 틱
             r.RecordDamageReceived(1015, Actor, Monster, amount: -27);
-            r.RecordMonsterHpApplied(1019, Monster, hp: 3, seq: 41);
+            r.RecordMonsterHpApplied(1019, Monster, hp: 3, seq: 41, amount: -27);
 
             var rec = CombatTraceJoin.Build(r.Snapshot()).Single();
 
@@ -249,20 +249,69 @@ namespace Game.Tests.EditMode.Socket
             r.RecordStaleDropped(1105, -7, droppedSeq: 1, currentSeq: 2);    // 순서 역전 방어
             r.RecordMonsterHpApplied(1200, -8, hp: 50, seq: 1, amount: 0);   // 한 대도 안 맞은 몬스터
 
-            var stats = CombatTraceJoin.BuildMonsterSync(r.Snapshot());
+            var stats = r.MonsterSync();
 
             Assert.AreEqual(2, stats.Count, "상태를 받은 몬스터는 전부 나와야 한다");
 
             var m7 = stats.Single(s => s.InstanceId == 7);
             Assert.AreEqual(18, m7.LastHp);
             Assert.AreEqual(2, m7.LastSeq);
-            Assert.AreEqual(2, m7.Updates);
+            Assert.AreEqual(2, m7.Updates, "이동 틱도 갱신 수에는 포함된다(집계는 모든 갱신을 본다)");
             Assert.AreEqual(1, m7.StaleDrops, "AC-C3 가 막아낸 순서 역전");
             Assert.AreEqual(12, m7.TotalDamage, "누적 피해 = 서버 final 합과 대조할 값");
 
             var m8 = stats.Single(s => s.InstanceId == 8);
             Assert.AreEqual(0, m8.TotalDamage);
             Assert.AreEqual(0, m8.StaleDrops);
+            Assert.AreEqual(1, m8.Updates, "이동만 한 몬스터도 사라지면 안 된다(모든 몬스터 검수)");
+        }
+
+        [Test]
+        public void 이동만_하는_틱은_링을_채우지_않는다_C1c()
+        {
+            // C1c 측정에서 링 508건 중 451건(89%)이 이동 틱이라 정작 볼 스윙이 덮였다.
+            // 이동 틱은 진단 가치가 없으므로 **링에는 넣지 않는다**(집계 맵에는 그대로 반영).
+            var r = new CombatTraceRecorder { Enabled = true };
+
+            for (int i = 0; i < 100; i++)
+                r.RecordMonsterHpApplied(1000 + i, -7, hp: 30, seq: i + 1, amount: 0); // 이동만
+
+            Assert.AreEqual(0, r.Count, "이동 틱은 링에 쌓이지 않아야 한다");
+            Assert.AreEqual(100, r.MonsterSync().Single().Updates, "그래도 집계에는 전부 반영된다");
+        }
+
+        [Test]
+        public void HP가_변한_틱은_링에_남는다_C1c()
+        {
+            // 필터가 과해서 정작 데미지까지 버리면 스윙 병합이 깨진다 — 그 반대 방향도 고정한다.
+            var r = new CombatTraceRecorder { Enabled = true };
+
+            r.RecordMonsterHpApplied(1000, -7, hp: 30, seq: 1, amount: 0);   // 이동 → 링 X
+            r.RecordMonsterHpApplied(1100, -7, hp: 18, seq: 2, amount: -12); // 피격 → 링 O
+
+            var e = r.Snapshot().Single();
+            Assert.AreEqual(CombatTraceKind.MonsterHpApplied, e.Kind);
+            Assert.AreEqual(-12, e.Amount);
+            Assert.AreEqual(18, e.Hp);
+        }
+
+        [Test]
+        public void 집계는_링이_돌아도_유실되지_않는다_C1c()
+        {
+            // 예전엔 집계를 링에서 유도해, 링이 도는 순간 앞부분이 조용히 사라졌다
+            // (실측: m3 가 seq 234 인데 updates 185 = 49건 증발). 이제 집계는 링과 독립이다.
+            var r = new CombatTraceRecorder { Enabled = true };
+
+            int over = CombatTraceRecorder.Capacity + 50;
+            for (int i = 0; i < over; i++)
+                r.RecordMonsterHpApplied(1000 + i, -7, hp: 100 - i, seq: i + 1, amount: -1); // 전부 피격 = 전부 링에 들어감
+
+            Assert.AreEqual(CombatTraceRecorder.Capacity, r.Count, "링은 포화된다");
+
+            var s = r.MonsterSync().Single();
+            Assert.AreEqual(over, s.Updates, "집계는 링 포화와 무관하게 전부 센다");
+            Assert.AreEqual(over, s.TotalDamage, "누적 피해도 유실되면 데미지 검수가 거짓이 된다");
+            Assert.AreEqual(over, s.LastSeq);
         }
 
         [Test]

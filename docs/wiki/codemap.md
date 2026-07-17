@@ -378,6 +378,17 @@
   ⚠ 네임스페이스는 `Server.Tests.Sessions` — `...Session` 으로 두면 전역 `Session` 타입을 가려 `TestSessionFactory` 등이 **CS0118 로 깨진다**(testing.md 의 'System' 금지와 같은 뿌리).
 - **검증**: SocketServer.Tests **168/168**(164+4) · 솔루션 0오류 · Docker(리빌드) **E2E 31/31**. ※ 중간에 E2E 가 25/31 에서 멈췄으나 `isPlaying=False` 로 **플러그인 끊김 좀비** 확인(서버 로그에 큐 포화·SendLoop 에러 0건) → 도메인 리로드 후 재실행 31/31.
 
+### 2.75 AC-C1c 후속 — 트레이스 링 포화 해소(안ⓒ) (2026-07-17)
+
+- **측정이 드러낸 결함**: 링 **508/512 포화**, 그중 **451건(89%)이 이동 틱**(HP 델타 0). 정작 볼 스윙이 덮여 측정이 최근 수 초로 잘렸다. 집계도 링에서 유도해 **m3 가 seq 234 vs updates 185 = 49건 증발**.
+- **왜 필터만으론 안 됐나(중요)**: 델타 0 을 그냥 안 찍으면 **한 대도 안 맞은 몬스터가 동기화 탭에서 사라진다** — 사용자가 명시한 "모든 몬스터가 다 나와야 한다"가 깨진다. → **자료구조를 목적에 맞게 분리**했다:
+  - **링 = 이벤트 로그**(전투 관련만): AttackSent · AbilityActivated · DamageReceived · **MonsterHpApplied(델타≠0만)** · StaleDropped
+  - **맵 = 몬스터당 1행 동기화 집계**(`_monsterSync`, `MonsterSync()`): **모든 갱신** 반영. 몬스터당 1행이라 폭증하지 않고 링 회전과 무관해 유실이 없다.
+- **삭제**: `CombatTraceJoin.BuildMonsterSync`(링에서 유도 = 유실의 원인). 창은 `recorder.MonsterSync()` 를 쓴다.
+- **용량**: 512 → **4096**(구조체 ~48B → ~200KB). 필터와 **함께** 해야 의미가 있다 — 둘 중 하나만으론 부족.
+- **테스트 파장(정직히)**: 필터가 기존 테스트 2건을 깼다 — `RecordMonsterHpApplied` 에 amount 기본값 0 을 쓰던 것들이 "HP 반영"을 의도했는데 이제 링에 안 들어가 `SendToHpMs=-1` 이 됐다. 실제 P→M 은 HP 가 변할 때만 이 이벤트가 의미를 가지므로 **테스트를 현실에 맞춰 델타를 넣었다**(구현을 되돌리지 않음).
+- **검증**: EditMode **192/192**(189+4: 이동 틱 링 제외 · 델타 있는 틱은 링 보존 · 집계 무유실 · 모든 몬스터 노출).
+
 ### 2.63 AC-B B3 — 클라 Cue 데이터화 + 저작 단일화 (2026-07-16)
 
 - **동기(발견)**: B1 이후 같은 스킬이 **두 SO 에 중복 저작**(`GameData/Skill/Skill_*` + `GameData/Ability/Ability_*`)돼, 서버는 abilities.json(B2)·클라는 SkillCatalogDefinition 을 읽는 **드리프트 위험**이 생겼다 → B3 에서 클라도 Ability 로 일원화하며 Skill 계열 전량 제거.

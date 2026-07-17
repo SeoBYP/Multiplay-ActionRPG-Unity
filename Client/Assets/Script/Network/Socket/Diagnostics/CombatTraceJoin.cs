@@ -210,47 +210,9 @@ namespace Game.Network.Socket.Diagnostics
             }
         }
 
-        /// <summary>
-        /// <b>모든 몬스터</b>의 동기화 상태를 집계한다(스윙과 무관 — 한 대도 안 맞은 몬스터도 나온다).
-        /// 누적 피해는 서버 <c>[CombatTrace]</c> 의 final 합과 대조해 **데미지 검수**에 쓴다.
-        /// </summary>
-        public static List<MonsterSyncStat> BuildMonsterSync(IReadOnlyList<CombatTraceEntry> entries)
-        {
-            var map = new Dictionary<long, MonsterSyncStat>();
-            if (entries == null) return new List<MonsterSyncStat>();
-
-            foreach (var e in entries)
-            {
-                if (e.Kind != CombatTraceKind.MonsterHpApplied && e.Kind != CombatTraceKind.StaleDropped) continue;
-
-                if (!map.TryGetValue(e.TargetId, out var s))
-                {
-                    s = new MonsterSyncStat
-                    {
-                        ActorId = e.TargetId,
-                        InstanceId = (int)(-e.TargetId), // ActorId = -InstanceId 규약의 역
-                    };
-                }
-
-                if (e.Kind == CombatTraceKind.StaleDropped)
-                {
-                    s.StaleDrops++;
-                }
-                else
-                {
-                    s.Updates++;
-                    s.LastHp = e.Hp;
-                    s.LastSeq = e.Seq;
-                    if (e.Amount < 0) s.TotalDamage += -e.Amount;
-                }
-
-                map[e.TargetId] = s;
-            }
-
-            var list = new List<MonsterSyncStat>(map.Values);
-            list.Sort((a, b) => a.InstanceId.CompareTo(b.InstanceId));
-            return list;
-        }
+        // ※ BuildMonsterSync 는 제거됐다(C1c 측정 근거). 링에서 유도하면 링이 도는 순간 집계가 **조용히 유실**된다
+        //   (실측: m3 가 seq 234 인데 updates 185 = 49건 증발). 집계는 몬스터당 1행이라 링에 둘 이유가 없다
+        //   → CombatTraceRecorder.MonsterSync() 가 링과 독립인 맵으로 들고 있다.
 
         /// <summary>
         /// 서버가 쓴 산식의 스탯 기여분을 역산한다: <c>final - base = AP - DEF</c>.
