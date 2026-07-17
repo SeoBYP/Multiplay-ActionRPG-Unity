@@ -30,6 +30,10 @@
 | **Unity 클라 (gRPC·VContainer·MVI 레이어)** | [unity-client.md](unity-client.md), [.claude/rules/unity-client.md](../../.claude/rules/unity-client.md) |
 | **입력 시스템 (버퍼·라우터·전역화)** | [.claude/rules/unity-input.md](../../.claude/rules/unity-input.md) + 아래 §2.10 |
 | **멀티플레이 테스트 (MPPM 2-창 / E2E)** | [mppm-testing.md](mppm-testing.md), [.claude/rules/testing.md](../../.claude/rules/testing.md) |
+| **Actor 통합 전투(플레이어·몬스터 단일 파이프·6축 통합지도·서버분리 seam)** | [actor-combat-architecture.md](actor-combat-architecture.md) |
+| **Ability SO 단일 저작(스킬 추가 절차 = SO+Export, 코드 0)** | [ability-so-authoring.md](ability-so-authoring.md) |
+| **전투 진단(트레이스 2축·D1/D2·C1c 측정 결과)** | [combat-diagnostics.md](combat-diagnostics.md) |
+| **몬스터 레벨링·변종(ID)·드롭 방침** | [monster-leveling.md](monster-leveling.md) |
 
 > 신규 설계 문서를 만들면 **이 표에 한 줄 추가**한다(= 발견성 유지의 핵심).
 
@@ -48,13 +52,15 @@
 | **공유 결정론 코어(전투 수식·히트박스·스킬)** | `ServerAll/Shared/Shared.Gameplay/`(서버 ProjectReference) + 클라 `Client/Assets/Plugins/Shared.Gameplay.dll`(동일 ns, 단일 소스) | [authority-model.md](authority-model.md) §2, §2.6 |
 | **전투 흐름(입력→판정→데미지→연출)** | 클라 `Gameplay/Character/`(`PlayerCharacterAgent`·`CombatSyncSender`) → 서버 `SocketServer/.../Handler/CombatHandler` → `Room.DamageMonster` | [authority-model.md](authority-model.md), §2.7 |
 | **회피(Dodge) — 대시+무적프레임** | 클라 `Gameplay/Character/{DodgeDriver,DodgeSyncSender}`·`PlayerCharacterAgent.HandleDodgeInput` → 서버 `SocketServer/.../Handler/DodgeHandler`·`PlayerState.TryBeginDodge`·`Room.TickMonsters`(iframe 게이트). 수치=`Shared.Gameplay/Combat/DodgeConfig`. 아래 §2.47 | [authority-model.md](authority-model.md) |
-| **스킬 데이터(SkillTimeline)** | 저작=클라 `Gameplay/Abilities/{SkillDefinition,SkillCatalogDefinition,SkillCatalogProvider}` + `Editor/SkillCatalogExporter` → bake `Shared.Infrastructure/Skills/skills.json` → 서버 `Shared.Infrastructure.Skills.SkillCatalog` → `CombatHandler.ResolveSkill`. 자산 `Assets/GameData/Skill/`. 아래 §2.49 | gas-architecture §2.5 |
-| **Actor 통합 전투(GAS·설계+증분1)** | 설계·전 축 통합지도 = [actor-combat-architecture.md](actor-combat-architecture.md). 착수분 = `Shared.Gameplay/Actors/ActorIds.cs`(ActorId 부호 규약) + `Abilities/AbilityActivationMath.cs`(발동 게이트 순수함수, 플레이어·몬스터 공용). 아래 §2.59 | [actor-combat-architecture.md](actor-combat-architecture.md) |
-| **상태이상(CC) — 스턴·슬로우·넉백** | 정의=`Shared.Gameplay` `GameplayTags.Stun/Slow`+`GameplayEffectCatalog`(stun_1_5s/slow_3s,GrantedTags)+`Combat/CcConfig`. 게이트=클라 `PlayerCharacterAgent`(스턴)·`GroundState`(슬로우). 부여=던전 `monsters.json onHitEffectId`→`Room.TickMonsters` S_ApplyEffect / Main `LocalMonster.onHitCcId`. **넉백**=`Gameplay/Character/KnockbackDriver`+`PlayerCharacterAgent.ApplyKnockback`(public, Ability 융합용). 아래 §2.48 | [authority-model.md](authority-model.md) |
+| **어빌리티 데이터(스킬·공격 단일 저작)** | 저작=클라 `Gameplay/Abilities/{AbilityDefinition,AbilityCatalogDefinition,AbilityCatalogProvider}` + `Editor/AbilityCatalogExporter` → bake `Shared.Infrastructure/Abilities/abilities.json` → 서버 `AbilityCatalog` → `CombatHandler.ResolveAbility(networkId)`. 자산 `Assets/GameData/Ability/`. ※구 Skill 계열(skills.json·SkillCatalog·SkillDefinition)은 AC-B 에서 전량 삭제 — §2.65~2.70 | [ability-so-authoring.md](ability-so-authoring.md) |
+| **Actor 통합 전투(GAS) — ✅ 전 트랙 완료** | `Shared.Gameplay/Actors/ActorIds.cs`(+UserId/−InstanceId) · 발동 파이프=`S_AbilityActivated`(1604)→클라 `ActorRegistry`+`AbilityCueRouter`→`IActorView.PlayAbilityCue` · 서버 게이트=`CombatHandler`(쿨다운·cadence·마나)+`AbilityActivationMath`. 연대기 = §2.64~2.80 | [actor-combat-architecture.md](actor-combat-architecture.md) |
+| **몬스터 카탈로그·레벨링·변종** | `Shared.Infrastructure/Monsters/{MonsterCatalog+monsters.json,MonsterTier,MonsterLevelScaling}`(상수 0 — `LevelTable` 직독) · 저작=클라 `Gameplay/Monster/MonsterCatalogDefinition`+`Editor/MonsterCatalogExporter` · **변종=별개 ID 직접 저작**(leviathan_boss). 레벨=`MapDefinition.monsterLevel`→`MapSpawnLayout.ResolveLevel`→스폰 1회 확정. §2.80 | [monster-leveling.md](monster-leveling.md) |
+| **전투 진단(트레이스)** | 서버 `SocketServer/Diagnostics/CombatTrace`(Serilog Override 로 on/off) · 클라 `Network/Socket/Diagnostics/{CombatTraceRecorder,CombatTraceJoin}`(링 4096·무할당) · 창 `Gameplay/Editor/CombatTraceWindow`(`Tools/Combat/Combat Trace`). §2.74~2.76·2.79 | [combat-diagnostics.md](combat-diagnostics.md) |
+| **상태이상(CC) — 스턴·슬로우·넉백** | 정의=`Shared.Gameplay` `GameplayTags.Stun/Slow`+`GameplayEffectCatalog`(stun_1_5s/slow_3s,GrantedTags)+`Combat/CcConfig`. 게이트=클라 `PlayerCharacterAgent`(스턴)·`GroundState`(슬로우). 부여=던전 **어빌리티 `OnHitEffectIds`**(abilities.json, AC-B)→`Room.TickMonsters`·`CombatHandler` 가 S_ApplyEffect(Amount=0) / Main `LocalMonster.onHitCcId`. **넉백**=`Gameplay/Character/KnockbackDriver`+`PlayerCharacterAgent.ApplyKnockback`(public, Ability 융합용). 아래 §2.48 | [authority-model.md](authority-model.md) |
 | **게임플레이 카메라(3인칭 Follow)** | `Gameplay/Camera/{GameplayCameraRig,CharacterCameraFollow}` — rig가 `LocalPlayerContext.OnSet`→vcam.Follow 런타임 바인딩. 아래 §2.47 | — |
 | SocketServer(TCP/방/세션) | `ServerAll/SocketServer/SocketServer/{Room,Session,PacketHandler}` | [socketserver.md](socketserver.md) |
 | Redis 스트림/큐 | `Shared/Shared.Infrastructure/MessageQueue/`, `Messages/` | [redis.md](redis.md) |
-| **루트/드랍(던전 경로)** | 드랍/줍기 = `SocketServer/Loot/`(DropTable·GroundItem)·`Handler/{CombatHandler.SpawnDrops,LootHandler}`·`Room`(GroundItem·TryPickup) / 지급 = `GameServer.Infrastructure/Common/{Consumer/LootGrantConsumer,MessageQueue/LootPickupMessageQueue}` → `IInventoryService.GrantItemAsync`. 아래 §2.16. **Main(싱글) 경로 지급 = `GameServer.API/Services/InventoryGrpcService.GrantItem`(gRPC+가드, §2.18)** | [loot-drop.md](loot-drop.md) |
+| **루트/드랍(던전 경로)** | 드랍 롤 = `Shared.Gameplay/Loot/DropTable`(순수)+`Shared.Infrastructure/Loot/DropTableCatalog`(drop-tables.json, 레벨 반영 §2.80) · 줍기 = `SocketServer/Loot/GroundItem`·`Handler/{CombatHandler.SpawnDrops,LootHandler}`·`Room`(GroundItem·TryPickup) / 지급 = `GameServer.Infrastructure/Common/{Consumer/LootGrantConsumer,MessageQueue/LootPickupMessageQueue}` → `IInventoryService.GrantItemAsync`. 아래 §2.16. **Main(싱글) 경로 지급 = `GameServer.API/Services/InventoryGrpcService.GrantItem`(gRPC+가드, §2.18)** | [loot-drop.md](loot-drop.md) |
 | 클라 gRPC | `Client/Assets/Script/Network/Https/` | [unity-client.md](unity-client.md) |
 | 클라 소켓 | `Client/Assets/Script/Network/Socket/` | `.claude/rules/networking.md` |
 | 클라 MVI 모델 (타이틀·로비·인게임) | `Client/Assets/Script/Presentation/{Title,DungeonLobby,InGame}` (asmdef `Game.Presentation`, ns `Game.Presentation.*`) — GUI가 바인딩하는 MVI 모델 레이어 | `.claude/rules/unity-client.md` |
@@ -326,7 +332,7 @@
 - **Main 체력바(H)** = `IMonsterHealth`(Hp/MaxHp/HpChanged) — 구현체 둘(던전 `MonsterEntity`=서버 권위 / Main `LocalMonster`=클라 권위)이라 인터페이스 도입 기준 충족. `MonsterHealthBar` 는 계약만 봐서 **던전·Main 공용**. LocalMonster 도 **사망 시 HP 0 확정**(§2.77 버그의 Main 판 예방). 프리팹은 던전 것 서브트리 복제(`CreepyDemonLocal.prefab`).
 - **저작 파이프 함정 3건(재발 방지)**: ① `spawn-layouts.json`/`drop-tables.json`/`monsters.json` 은 **exporter 생성물** — 직접 편집하면 다음 Export 에 덮인다(→ SO 저작 후 Export 가 유일 경로). ② exporter 의 `Export()` 는 끝에 `DisplayDialog`(모달) → **MCP/자동화가 무기한 블록**(Unity 멈춤의 원인) — 팝업 없는 `BakeAll()` 을 쓴다. ③ Import 왕복 배선 누락 시 bootstrap Import 가 저작값을 0 으로 지운다.
 - **⚠️ 데이터 저작에도 계약 테스트**: leviathan base 를 65 로 착각(그건 arachnya)해 boss 390 = **원본(500)보다 약한 보스**를 저작 → `변종은_별개_ID_로_저작된다_AC_G`(boss.MaxHp > normal×4)가 잡았다. 오타 monsterId 는 Default 폴백으로 **공격 안 하는 유령**이 되므로 `스폰이_지목한_변종이_카탈로그에_존재한다_AC_G` 로 전수 검증.
-- 잔여: dungeon_03~05 `visualPrefab` 없음(에셋) · `tier` 연출 소비자 없음(보스 체력바·등장 연출 후보) · AC-D(전용 애니·P→P 스케일·VFX Cue).
+- 잔여: dungeon_03~05 `visualPrefab` 없음(에셋) · `tier` 연출 소비자 없음(보스 체력바·등장 연출 후보) · AC-D(전용 애니·P→P 스케일·VFX Cue) · **발견(2026-07-17 검수): `Shared.Gameplay/Abilities/SkillCatalog.cs` 는 죽은코드**(실호출 0 — AC-B 가 AbilityCatalog 로 대체. 삭제는 DLL 재배포 동반이라 승인 대기).
 - 검증(최종): SocketServer **209/209** · Shared.Gameplay 50/50 · EditMode **192/192** · PlayMode(anim 3/3 · Main 체력바 3/3) · Docker E2E **31/31**. PR #60 → main `972991e5`.
 
 ### 2.63 캡슐 몬스터 제거 + slime→creepy_demon 전면 교체 (2026-07-16)

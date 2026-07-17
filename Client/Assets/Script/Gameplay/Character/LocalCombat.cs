@@ -13,8 +13,8 @@ namespace Game.Gameplay.Character
     /// 클라가 직접 적중을 판정한다(loot-drop.md §1.5). 싱글이라 치팅 일관성 문제가 없어 클라 권위 수용.
     ///
     /// PlayerCharacterAgent.OnAttackPerformed → 근처 LocalMonster 를 Physics.OverlapSphere 로 모은 뒤,
-    /// 서버와 동일한 HitboxMath.Overlaps(SkillCatalog "basic_swing")로 정밀 판정 → TakeDamage.
-    /// 판정 로직(HitboxMath/SkillCatalog)은 Shared.Gameplay DLL 공유 — 던전(서버)과 같은 함수.
+    /// 서버와 동일한 HitboxMath.Overlaps(AbilityCatalogProvider 의 SkillTimeline)로 정밀 판정 → TakeDamage.
+    /// 판정 로직(HitboxMath)은 Shared.Gameplay DLL 공유 — 던전(서버)과 같은 함수. (구 SkillCatalog 는 AC-B 에서 폐기)
     /// CharacterSpawner 가 Main 브랜치에서 로컬 캐릭터에 동적 부착.
     /// </summary>
     public sealed class LocalCombat : MonoBehaviour

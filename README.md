@@ -163,14 +163,16 @@ ServerAll/
 │  └─ SocketServer.Tests        # RoomManager 등 단위 테스트
 ├─ Shared/
 │  ├─ Shared.Packet             # MemoryPack 패킷 정의 + Union 등록
-│  ├─ Shared.Infrastructure     # Redis MessageQueue 베이스, 교차 서버 메시지
-│  └─ Shared.Contracts/Protos   # .proto (common/auth/user/lobby/chat)
+│  ├─ Shared.Gameplay           # 결정론 전투 코어(수식·히트박스·태그·Effect) — 클라는 동일 DLL 공유
+│  ├─ Shared.Infrastructure     # Redis MessageQueue + 게임 데이터 카탈로그(abilities/monsters/drop/level/spawn JSON 임베드)
+│  └─ Shared.Contracts/Protos   # .proto (common/auth/user/lobby/chat ...)
 └─ Tools/ClientCodegen          # Shared.Packet → Unity 클라 패킷 동기화
 
 Client/Assets/Script/
-├─ Network/{Https, Socket}      # gRPC 채널·서비스 / TCP 세션·패킷·핸들러
-├─ System/                      # Auth/Startup/DungeonLobby/InGame 등 시스템 레이어
-├─ OutGame/ · InGame/           # MVI 모델 (로비 / 인게임)
+├─ Network/{Https, Socket}      # gRPC 채널·서비스 / TCP 세션·패킷·핸들러(+전투 진단 링버퍼)
+├─ System/                      # Auth·Startup 등 시스템 레이어 + GAS(ASC·Effect·Tag)
+├─ Presentation/                # MVI 모델 (Title / DungeonLobby / InGame)
+├─ Gameplay/                    # 캐릭터·전투·입력·스폰·몬스터 + SO 저작(Abilities/Monster/Loot/Maps) + 에디터 툴(Exporter·전투 트레이스 창)
 ├─ GUI/                         # 뷰·HUD·ViewController
 ├─ VContainer/                  # LifetimeScope · Installer · EntryPoint
 └─ Tests/{EditMode, PlayMode}   # 단위 / Docker 대상 E2E
@@ -193,8 +195,10 @@ Client/Assets/Script/
 | 던전 입·퇴장 일관성 | ✅ | 플레이어 단위 `PlayerLeftRoom` 이벤트 → association 정리(빈 방 삭제/호스트 이양), 재로그인 복원 차단 |
 | DB/캐시 | ✅ | PostgreSQL + Redis Cache-Aside(+Delete), Testcontainers 통합 테스트 |
 | Unity 클라(OutGame) | ✅ | gRPC 로그인/로비 UI, VContainer DI, MVI |
-| Unity 클라(InGame) | 🔄 | 소켓 진입·이동·HUD·로비 복귀 완료 / 캐릭터 스폰·인게임 UI 진행 중 |
-| 실시간 전투 | 📝 | 예정 (Phase B) |
+| Unity 클라(InGame) | ✅ | 캐릭터 스폰·이동 보간·HUD·타겟팅/락온·애니메이션(파라미터 구동) |
+| 실시간 전투(서버 권위) | ✅ | GAS + **Ability SO 단일 저작**(스킬 추가 = 코드 0) · **Actor 통합 발동 파이프**(플레이어=몬스터 동일 경로) · 서버 게이트(쿨다운·콤보 cadence·마나) · 히트박스 판정 · CC/회피 i-frame · Co-op 부활 |
+| 몬스터·던전 루프 | ✅ | 서버 권위 몬스터 AI(틱) · **레벨 스케일(상수 0 — 플레이어 곡선 직독)** · 변종=ID 직접 저작(보스/엘리트) · 드롭→인벤 지급 · 클리어/실패→보상→로비 복귀 · 던전 5개(L1→L30) |
+| 전투 진단/무결성 | ✅ | 서버 `[CombatTrace]` + 클라 링버퍼 + 에디터 창 — **측정 우선**으로 D1(송신 직렬화)·D2(상태 시퀀스) 근본 수정, 틱레이트 조정은 "불필요" 판정 |
 
 자세한 “무엇을·왜” 결정 로그는 [`docs/wiki/codemap.md`](docs/wiki/codemap.md), 학습 기록은 [`docs/portfolio/`](docs/portfolio/README.md) 참고.
 
@@ -207,11 +211,11 @@ Client/Assets/Script/
 ```mermaid
 flowchart LR
     M0["✅ M0 기반"]
-    M1["🔄 M1 인게임 진입"]
-    M2["M2 전투 코어"]
-    M3["M3 몬스터"]
-    M4["M4 던전 루프"]
-    M5["M5 폴리시 + PVE 맛보기"]
+    M1["✅ M1 인게임 진입"]
+    M2["✅ M2 전투 코어"]
+    M3["✅ M3 몬스터"]
+    M4["✅ M4 던전 루프"]
+    M5["🔄 M5 폴리시 + PVE 맛보기"]
     M6["M6 마감"]
     M0 --> M1 --> M2 --> M3 --> M4 --> M5 --> M6
 ```
@@ -219,11 +223,11 @@ flowchart LR
 | 마일스톤 | 내용 | 상태 |
 |---|------|------|
 | M0 | 인증·로비·채팅·게임시작 E2E·소켓 이동·던전 입퇴장·DB/캐시·Unity OutGame | ✅ |
-| **M1** | 인게임 진입 — 원격 캐릭터 스폰·이동 보간, 인게임 UI 전환 | 🔄 |
-| M2 | 실시간 전투 — 서버 권위 Attack/Hit/Damage, Health·Attribute | 📝 |
-| M3 | 몬스터 — Spawn/State/간단 AI/Dead 동기화 | 📝 |
-| M4 | 던전 루프 — Clear → 보상(경험치/아이템) → 로비 복귀 | 📝 |
-| M5 | 폴리시(애니메이션·스킬·아이템·사운드) + PVE 오픈월드 맛보기 | 📝 |
+| M1 | 인게임 진입 — 원격 캐릭터 스폰·이동 보간, 인게임 UI 전환 | ✅ |
+| M2 | 실시간 전투 — 서버 권위 Attack/Hit/Damage, Health·Attribute | ✅ |
+| M3 | 몬스터 — Spawn/State/AI/Dead 동기화 | ✅ |
+| M4 | 던전 루프 — Clear/실패 → 보상(경험치/아이템) → 로비 복귀 | ✅ |
+| **M5** | 폴리시(애니·스킬·아이템·밸런스) + PVE 맛보기 — Actor 통합 전투·전투 진단·몬스터 레벨링 완료, 잔여 = 전용 애니·VFX·맵 배경 | 🔄 |
 | M6 | 마감 — 데모 영상·부하/E2E 검증·배포 문서 | 📝 |
 
 > 단일 진실 소스: [`docs/wiki/plan.md`](docs/wiki/plan.md)
@@ -237,6 +241,9 @@ flowchart LR
 - **TCP + MemoryPack** — 인게임은 HTTP/2 프레임 오버헤드를 피해 지연을 최소화. MemoryPack으로 제로카피에 가까운 고속 직렬화.
 - **퇴장 = 플레이어 단위 이벤트** — 방이 빌 때만이 아니라 **퇴장마다** 이벤트를 발행해, 어느 경우든 플레이어 association을 정리(재로그인 시 떠난 방으로 복원되는 버그 방지).
 - **클라 MVI + VContainer** — View는 자기 Model만 알고(Intent→Effect→Result→Reducer→State), 네트워크/시스템 레이어와 분리. HUD 등은 생명주기에 맞춰 Addressable 런타임 로드.
+- **서버 권위 전투 + 결정론 코어 공유** — 판정·수치는 서버가 소유하되, 산식(`Shared.Gameplay`)을 클라와 DLL 로 공유해 예측·표시가 어긋나지 않게. 발동 게이트(쿨다운·콤보 cadence·마나)가 패킷 연사 치팅을 서버에서 거부.
+- **게임 데이터 = SO 저작 → JSON bake** — 어빌리티·몬스터·드롭·레벨·스폰을 Unity ScriptableObject 로 편집하면 exporter 가 서버 임베디드 JSON 으로 굽는다. **스킬·몬스터 추가에 서버 코드 수정 0.** 몬스터 스케일 공식조차 상수 없이 플레이어 성장 곡선을 직독.
+- **측정 우선(관측 가능성)** — "체력 동기화가 느린 것 같다"는 체감을 전투 트레이스(서버 구조적 로그 + 클라 링버퍼 + 에디터 창)로 계측 → 실제 결함(송신 비직렬화·상태 스테일)만 근본 수정하고, 틱레이트 조정은 데이터로 "불필요" 판정.
 - **보안** — JWT + DeviceId 바인딩(SHA256), 토큰 로테이션·재사용 탐지, 단일 기기 세션.
 
 자세한 트레이드오프는 [`docs/portfolio/`](docs/portfolio/README.md) 챕터별 기록 참고.
@@ -275,9 +282,9 @@ dotnet build ServerAll/ServerAll.sln --no-restore -p:SKIP_CODEGEN=true
 dotnet test  ServerAll/GameServer/GameServer.Tests/GameServer.Tests.csproj
 dotnet test  ServerAll/SocketServer/SocketServer.Tests/SocketServer.Tests.csproj
 
-# 클라이언트 빌드
-dotnet build Client/Game.Main.csproj --no-restore
 ```
+
+> 클라이언트 컴파일 판정은 **Unity 에디터가 유일한 권위**입니다 — `Client/*.csproj` 는 Unity 생성물이라 `dotnet build` 대상이 아닙니다(상세: `CLAUDE.md` §검증 명령).
 
 ### proto 수정 시
 `.proto`를 바꾸면 클라이언트 `Client/Assets/Script/Network/Https/Generated/`를 재생성해야 합니다 (명령은 [`CLAUDE.md`](CLAUDE.md) 참조).
@@ -291,6 +298,7 @@ dotnet build Client/Game.Main.csproj --no-restore
 | 코드맵 + 설계 결정 로그 | [`docs/wiki/codemap.md`](docs/wiki/codemap.md) |
 | 작업 플랜(로드맵) | [`docs/wiki/plan.md`](docs/wiki/plan.md) |
 | 아키텍처 / 패킷 / 소켓 / Redis / 게임 흐름 | [`docs/wiki/`](docs/wiki/) |
+| 전투·GAS 설계(Actor 통합 / Ability SO / 전투 진단 / 몬스터 레벨링) | [`docs/wiki/actor-combat-architecture.md`](docs/wiki/actor-combat-architecture.md) 외 `ability-so-authoring` · `combat-diagnostics` · `monster-leveling` |
 | 포트폴리오 학습 기록(챕터별) | [`docs/portfolio/README.md`](docs/portfolio/README.md) |
 | 기여/작업 규칙 | [`CLAUDE.md`](CLAUDE.md), [`.claude/rules/`](.claude/rules/) |
 ```

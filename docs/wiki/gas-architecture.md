@@ -1,5 +1,7 @@
 # GAS 아키텍처 (설계 기준)
 
+> **2026-07-17 코드 대조 검수** — 문제 ①④⑤ 해소·③ 폐기(부활)·연출 SO 는 `cueTrigger` 경로로 대체 구현. 각 표에 반영됨. AC 구현 상세 = codemap §2.64~2.80.
+
 > Gameplay Ability System(Tag·Effect·Ability·Cue)의 **합의된 정리 방향**.
 > 버프/디버프 디테일은 [effect-system.md](effect-system.md), 권위 4축은 [authority-model.md](authority-model.md), 캐릭터 두 축은 [character-architecture.md](character-architecture.md) 참조.
 > 구현 진행은 [plan.md](plan.md), 결정 요약은 [codemap.md](codemap.md).
@@ -22,8 +24,8 @@
 |---|------|------|
 | ① | ~~**데미지 수치 이중 정의** — 같은 effect가 클라/서버 카탈로그에 손으로 중복~~ → **해소**: 전투=`CombatEffectCatalog`가 Shared 코드 시드 위임(2.6b ⓑ), 소모품=클라 SO 저작→bake 단일소스(§2.5·2.6c). | (해소됨) |
 | ② | **"Effect 적용"이 두 엔진** — 클라 ASC vs 서버 인라인(`Room.DamageMonster`가 `GameplayEffectMath` 직접 호출) | ASC가 MonoBehaviour라 Shared 불가 |
-| ③ | **죽은 구 ability 경로 잔존** — `GameplayEffect`+`AbilitySystemUtils` (CA-4에서 같이 삭제됐어야 함) | `Effects/GameplayEffect.cs` |
-| ④ | **태그 시스템 부재** — `AbilitySystemUtils` 주석은 "태그 검사 넣을 수 있다"지만 GameplayTag가 없음. 사망(2.5.1)을 표현할 자리가 없음 | — |
+| ③ | ~~**죽은 구 ability 경로 잔존**~~ → **정정(2026-07-17 검수): 삭제 계획 폐기** — `GameplayEffect` 는 이후 **Main 로컬 권위 경로에서 부활**(`LocalMonster` 즉발 피해 생성·`ConsumableEffectHandler`), `AbilitySystemUtils` 는 테스트 헬퍼로 생존. 더는 죽은코드가 아니다 | `Effects/GameplayEffect.cs` |
+| ④ | ~~**태그 시스템 부재**~~ → **✅ 해소** — `GameplayTagContainer` 가 ASC 에 존재(AddTag/HasTag + 활성 Effect 의 GrantedTags 동적 합산). CC(스턴·슬로우)·사망 태그가 실사용 중 | `AbilitySystemComponent` |
 | ⑤ | ~~**서버 발동 권위 없음**~~ → **✅ 대부분 해소(AC, 2026-07-17)** — 쿨다운(`TryBeginSkill`)·콤보 cadence·마나 게이트가 구현돼 `C_Attack` 연사가 서버에서 거부된다(거부 사유는 `[CombatTrace]` gate 로 관측). **잔여**: active-window 정밀 타이밍·플레이어 서버측 HP 추적 | `CombatHandler.HandleAttack` |
 | ⑥ | ASC가 MonoBehaviour + 자가 `Update` tick → 헤드리스 불가 (서버가 ASC 못 씀의 근인) | `AbilitySystemComponent` |
 
@@ -63,6 +65,11 @@
 ```
 
 **원칙: Shared는 게임플레이 순수. 서버는 Cue 문자열을 하나도 안 가진다. 모든 연출 매핑은 클라 SO.**
+
+> ⚠️ **현행화(2026-07-17 검수)** — 위 다이어그램의 "연출 SO 3종"은 그대로 구현되지 않았다. **실물**(AC-B B3):
+> ① AbilityCueTrack → **`AbilityDefinition.cueTrigger/cueComboStep`**(Ability SO 안에 통합, bake 제외) + `AbilityCueRouter`(ActorId→`IActorView.PlayAbilityCue`) + `CharacterAgentAnimations`(파라미터명은 프리팹 보유).
+> ② EffectCueMap — **미구현**(피격은 `EffectReceiver`→ASC 직결, 별도 연출 매핑 없음). ③ CueCatalog(VFX/SFX) — **잔여 = AC-D3**.
+> "삭제: GameplayEffect+AbilitySystemUtils" 도 폐기됐다(문제③ 정정 참조). 원칙(서버는 Cue 무지)은 그대로 지켜지고 있다.
 `SkillTimeline`의 기존 doc 주석("Cue/VFX 미포함")을 그대로 지킨다 — 연출은 별도 클라 트랙(①)으로 분리.
 
 ---
@@ -181,14 +188,14 @@ Main(싱글) = 일정 시간 후 로컬 리스폰(후속 증분, 로컬 권위�
 
 | 작업 | 분류 | 비고 |
 |------|------|------|
-| `GameplayTag`+`Container` 신설 | Shared NEW | 사망/버프/상태 공통 |
-| `GameplayEffectDefinition`/`Catalog`/`ActiveGameplayEffect` 이사 | Client→Shared | 순수라 이동 가능 |
+| `GameplayTag`+`Container` 신설 **✅ 구현** | Shared | 사망/버프/상태 공통 — CC·사망 태그 실사용 |
+| `GameplayEffectDefinition`/`Catalog`/`ActiveGameplayEffect` 이사 **✅ 완료** | Client→Shared | `Shared.Gameplay/Effects/` 에 존재 |
 | 클라/서버 effect 카탈로그 **단일화** | Shared | 문제① 해소(✅). 전투=`CombatEffectCatalog` 위임(2.6bⓑ) / 소모품=SO 저작→bake(§2.5) |
-| `EffectDefinition`에 `GrantedTags[]` 추가 | Shared | 상태 부여 |
-| `GameplayEffect`+`AbilitySystemUtils` **삭제** | Client | 문제③ 죽은코드 |
+| `EffectDefinition`에 `GrantedTags[]` 추가 **✅ 완료** | Shared | 스턴/슬로우가 GrantedTags 로 동작 |
+| ~~`GameplayEffect`+`AbilitySystemUtils` 삭제~~ **폐기(2026-07-17)** | Client | 문제③ 정정 — Main 로컬 권위 경로에서 부활해 더는 죽은코드가 아님 |
 | ~~서버 발동 게이트(쿨다운/시전중)~~ **✅ 구현(AC)** | Server | 문제⑤ 해소 — 쿨다운·콤보 cadence·마나. active-window 정밀 타이밍은 잔여 |
-| ASC에 TagContainer | Client | 게이트·상태 |
-| 연출 SO ①②③ + CueManager | Client | **2.5.1에서 최소로 시작 권장**(YAGNI) |
+| ASC에 TagContainer **✅ 완료** | Client | 게이트·상태 |
+| ~~연출 SO ①②③ + CueManager~~ → **①은 `AbilityDefinition.cueTrigger` 로 대체 구현(AC-B)** | Client | ② EffectCueMap 미구현 · ③ CueCatalog(VFX/SFX)=**AC-D3 잔여** |
 | **안 함**: ~~`S_AbilityActivated` relay~~(→ **AC 에서 도입**, Union 1604 — 플레이어·몬스터 공용 발동 파이프의 축이 됐다. 당시 YAGNI 판단이 Actor 통합 설계로 뒤집힌 사례) / `S_ApplyEffect` 필드 추가 / ASC 헤드리스화(②⑥) | — | — / 별도 |
 
 ---
