@@ -389,6 +389,20 @@
 - **테스트 파장(정직히)**: 필터가 기존 테스트 2건을 깼다 — `RecordMonsterHpApplied` 에 amount 기본값 0 을 쓰던 것들이 "HP 반영"을 의도했는데 이제 링에 안 들어가 `SendToHpMs=-1` 이 됐다. 실제 P→M 은 HP 가 변할 때만 이 이벤트가 의미를 가지므로 **테스트를 현실에 맞춰 델타를 넣었다**(구현을 되돌리지 않음).
 - **검증**: EditMode **192/192**(189+4: 이동 틱 링 제외 · 델타 있는 틱은 링 보존 · 집계 무유실 · 모든 몬스터 노출).
 
+### 2.76 AC-E~H — 몬스터 레벨링·데이터 SO화·등급→ID·Main 체력바 (2026-07-17, PR #60)
+
+한 흐름의 종착: C1c 측정(몬스터 피해 1~5 바닥) → 레벨링(E) → 데이터 SO화+던전 5개(F) → 등급을 ID 로(G) → Main 체력바(H). 설계 = [monster-leveling.md](monster-leveling.md)(§3 은 AC-G 로 폐기 주석).
+
+- **레벨 스케일** = `Shared.Infrastructure/Monsters/MonsterLevelScaling.cs` — **상수 0개**, 플레이어 곡선을 `LevelTable`(SO 저작)에서 직접 읽는다: `base(L)=net₁·HP(L)/HP(1)+DEF(L)` · `maxHp(L)=maxHp₁·AP(L)/AP(1)`. 유도 근거 = 역할 보존(곱셈은 slam 폭발·단순가산은 중간 수렴). `StatCombatMath` 는 무변경(산식은 옳았고 틀린 건 base).
+- **레벨 저작** = `MapDefinition.monsterLevel`(맵 기본) + `MonsterSpawn.level`(스폰 override, 현재 미사용) → `MapSpawnLayout.ResolveLevel`(단일 구현, 스폰>맵>1) → `Room.SpawnMonsters` 에서 **스폰 시 1회 확정**. 대역: dungeon_01=L1·02=L6·03=L12·04=L20·05=L30(보상·등급 구성 단조 증가, 테스트 고정).
+- **⚠️ 등급의 최종형(AC-G)** — `spawn.tier`+배율 테이블(AC-F2)을 **같은 날 폐기**: enum 서버·클라 미러링·스폰 필드 2개·이중 조회 비용. 최종: `monsters.json` 의 `tier` **문자열**("Normal"/"Elite"/"Boss") = **분류일 뿐 스탯에 곱해지지 않는다**. 강한 개체 = **변종 행 직접 저작**(`leviathan` 500 / `leviathan_boss` 3000, `*_elite` 3종) — **스폰은 monsterId 하나만 처리**. `MonsterState.Tier` 는 카탈로그(monsterId 행)에서 읽는다(표시·연출 분기용, 아직 소비자 없음).
+- **드롭** = `DropTableRoll.Roll(entries, rng, chanceMultiplier, quantityMultiplier)` 순수 오버로드(배율은 **인자** — Shared.Gameplay 는 Infrastructure 를 못 부른다) + `DropTableCatalog.Roll(id, rng, level)`. 수량 배율은 **가변수량(MaxQty>1, gold)에만**(장비 1~1 에 걸면 검 2자루). 8마리 전수 + `goblin` 유령 제거 + **변종별 자기 테이블**(배율이 없으니 없으면 안 떨군다). test_brute 는 픽스처라 제외.
+- **Main 체력바(H)** = `IMonsterHealth`(Hp/MaxHp/HpChanged) — 구현체 둘(던전 `MonsterEntity`=서버 권위 / Main `LocalMonster`=클라 권위)이라 인터페이스 도입 기준 충족. `MonsterHealthBar` 는 계약만 봐서 **던전·Main 공용**. LocalMonster 도 **사망 시 HP 0 확정**(§2.73 버그의 Main 판 예방). 프리팹은 던전 것 서브트리 복제(`CreepyDemonLocal.prefab`).
+- **저작 파이프 함정 3건(재발 방지)**: ① `spawn-layouts.json`/`drop-tables.json`/`monsters.json` 은 **exporter 생성물** — 직접 편집하면 다음 Export 에 덮인다(→ SO 저작 후 Export 가 유일 경로). ② exporter 의 `Export()` 는 끝에 `DisplayDialog`(모달) → **MCP/자동화가 무기한 블록**(Unity 멈춤의 원인) — 팝업 없는 `BakeAll()` 을 쓴다. ③ Import 왕복 배선 누락 시 bootstrap Import 가 저작값을 0 으로 지운다.
+- **⚠️ 데이터 저작에도 계약 테스트**: leviathan base 를 65 로 착각(그건 arachnya)해 boss 390 = **원본(500)보다 약한 보스**를 저작 → `변종은_별개_ID_로_저작된다_AC_G`(boss.MaxHp > normal×4)가 잡았다. 오타 monsterId 는 Default 폴백으로 **공격 안 하는 유령**이 되므로 `스폰이_지목한_변종이_카탈로그에_존재한다_AC_G` 로 전수 검증.
+- 잔여: dungeon_03~05 `visualPrefab` 없음(에셋) · `tier` 연출 소비자 없음(보스 체력바·등장 연출 후보) · AC-D(전용 애니·P→P 스케일·VFX Cue).
+- 검증(최종): SocketServer **209/209** · Shared.Gameplay 50/50 · EditMode **192/192** · PlayMode(anim 3/3 · Main 체력바 3/3) · Docker E2E **31/31**. PR #60 → main `972991e5`.
+
 ### 2.63 AC-B B3 — 클라 Cue 데이터화 + 저작 단일화 (2026-07-16)
 
 - **동기(발견)**: B1 이후 같은 스킬이 **두 SO 에 중복 저작**(`GameData/Skill/Skill_*` + `GameData/Ability/Ability_*`)돼, 서버는 abilities.json(B2)·클라는 SkillCatalogDefinition 을 읽는 **드리프트 위험**이 생겼다 → B3 에서 클라도 Ability 로 일원화하며 Skill 계열 전량 제거.
