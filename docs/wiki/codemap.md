@@ -361,6 +361,23 @@
 - **위치**: `Client/.../Gameplay/Character/MonsterEntity.cs`(`HandleDead`) · 테스트 `Tests/PlayMode/InGame/MonsterEntityAnimTests.cs`.
 - **검증**: PlayMode anim **3/3**(2 + 신규 1) · EditMode **189/189**.
 
+### 2.74 AC-C2 — 세션 송신 큐 (D1 수정) (2026-07-17)
+
+- **무엇**: `Session` 에 `Channel<byte[]>`(Bounded 1024) + 단일 소비자 `SendLoopAsync`. `SendPacketAsync` 는 **직렬화 + 큐잉만** 하고 실제 소켓 write 는 SendLoop 이 전담 → 프레임 단위 원자성 + FIFO.
+- **기동/정리**: `RunAsync` 가 SendLoop 을 함께 띄우고, finally 에서 `Writer.TryComplete()` → `await sendLoop` 로 회수(안 하면 세션마다 Task 누수).
+- **시그니처 유지 결정**: `Task SendPacketAsync(Packet, ct)` 그대로 → 호출부 ~20곳 무변경(연결 계층 변경의 위험 표면 축소). **의미는 바뀜** — Task 완료 = "큐에 들어갔다"이지 "전선에 나갔다"가 아니다. 송신 직후 `Disconnect()` 하면 유실되지만 **그런 호출부는 없다**(Disconnect 는 하트비트 타임아웃·에러·종료 경로뿐 — 확인함).
+- **Bounded + 포화 시 끊김**: 무한 큐면 느린 클라 1명이 서버 메모리를 계속 먹는다(DoS 벡터). 1024 = 10Hz 틱 기준 ~100초치 = 사실상 죽은 연결. `FullMode.Wait` + **`TryWrite` 만 사용**(대기 모드는 TryWrite 가 실패를 알려주는 유일한 모드) — 생산자가 틱 스레드라 **절대 블록시키면 안 된다**.
+- **직렬화 실패 처리 변경**: 예전엔 serialize 예외에도 세션을 끊었다 → 이제 그 패킷만 버리고 로깅(패킷 하나의 문제로 연결을 죽이지 않는다).
+- **⚠️⚠️ 가장 중요 — D1 의 "치명적 프레임 인터리브" 주장은 플랫폼 의존이었다(실측)**:
+  설계 §1.1 은 코드 리딩만으로 "부분전송 시 프레임 인터리브 = 파싱 desync(치명)" 이라 단정했는데, **Windows 에선 재현 불가**다.
+  overlapped `WSASend` 는 **버퍼 전체 소비 후에만 완료**돼 `sent == frame.Length` 가 보장 → `while (offset < len)` 이 1회만 돈다 → **부분 전송이 없어 섞일 수가 없다.**
+  큐를 우회한 채 **20KB 프레임 × 512B 송신버퍼 × 4스레드 동시 송신**을 돌려도 통과했다(두 번 시도: 첫 시도는 프레임이 버퍼보다 작아 무의미했고, 크게 키운 두 번째도 통과).
+  **그러나 서버는 Linux 컨테이너에서 돈다** — Linux `send()` 는 부분 반환이 정상이라 거기선 실재한다. → **수정은 필요하되 프레임 원자성은 구조적 보장(단일 소비자)이지 테스트로 증명된 게 아니다.**
+  **교훈: "코드 리딩으로 확인된 결함"도 재현 조건은 플랫폼에 달렸다. 단정 전에 돌려봐야 한다.**
+- **테스트**(`SocketServer.Tests/Session/SessionSendQueueTests.cs`, 실제 루프백 소켓): 동시 송신 프레임 무결 · **순서 보존** · **포화 시 끊김** · 끊긴 세션 무시. 뒤 3개는 진짜 가드, 첫 번째는 Windows 에선 큐 없이도 통과함을 명시.
+  ⚠ 네임스페이스는 `Server.Tests.Sessions` — `...Session` 으로 두면 전역 `Session` 타입을 가려 `TestSessionFactory` 등이 **CS0118 로 깨진다**(testing.md 의 'System' 금지와 같은 뿌리).
+- **검증**: SocketServer.Tests **168/168**(164+4) · 솔루션 0오류 · Docker(리빌드) **E2E 31/31**. ※ 중간에 E2E 가 25/31 에서 멈췄으나 `isPlaying=False` 로 **플러그인 끊김 좀비** 확인(서버 로그에 큐 포화·SendLoop 에러 0건) → 도메인 리로드 후 재실행 31/31.
+
 ### 2.63 AC-B B3 — 클라 Cue 데이터화 + 저작 단일화 (2026-07-16)
 
 - **동기(발견)**: B1 이후 같은 스킬이 **두 SO 에 중복 저작**(`GameData/Skill/Skill_*` + `GameData/Ability/Ability_*`)돼, 서버는 abilities.json(B2)·클라는 SkillCatalogDefinition 을 읽는 **드리프트 위험**이 생겼다 → B3 에서 클라도 Ability 로 일원화하며 Skill 계열 전량 제거.
