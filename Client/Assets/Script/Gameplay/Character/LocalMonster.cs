@@ -17,7 +17,7 @@ namespace Game.Gameplay.Character
     /// - 사망: OnDied(this) 발행(MainMonsterSpawner 가 디스폰·드랍 처리) 후 자기 파괴.
     /// 콜라이더 필요(LocalCombat 의 Physics.OverlapSphere 가 찾는다). UnityEngine 의존이므로 서버와 무관.
     /// </summary>
-    public sealed class LocalMonster : MonoBehaviour, IActorView
+    public sealed class LocalMonster : MonoBehaviour, IActorView, IMonsterHealth
     {
         [Header("식별")]
         [Tooltip("드랍 테이블/카탈로그 키(예: creepy_demon, goblin). DropTableDefinition 과 정렬.")]
@@ -63,6 +63,14 @@ namespace Game.Gameplay.Character
         [Inject] private readonly PlayerProgressionHolder _progression = null;
 
         private int _hp;
+
+        // ── IMonsterHealth (체력바 표시 계약) ──
+        // Main 은 HP 권위가 **클라 로컬**이다(던전은 서버). 체력바는 그 차이를 몰라도 되게 계약만 노출한다.
+        public int Hp => _hp;
+        public int MaxHp => maxHp;
+
+        /// <summary>HP 변경 시 발행(초기 seed·사망 0 확정 포함). <see cref="MonsterHealthBar"/> 가 구독.</summary>
+        public event Action<IMonsterHealth> HpChanged;
         private long _lastAttackMs;      // 발동 게이트(AbilityActivationMath)용 마지막 공격 시각(ms)
         private Vector3 _prevPos;
         private CharacterAgentAnimations _animations;
@@ -97,6 +105,7 @@ namespace Game.Gameplay.Character
             _hp = maxHp;
             _animations = GetComponent<CharacterAgentAnimations>();
             _prevPos = transform.position;
+            HpChanged?.Invoke(this); // 체력바 최초 표시(구독 전이면 Start 의 seed 가 받는다)
         }
 
         private void Update()
@@ -198,7 +207,13 @@ namespace Game.Gameplay.Character
             int before = _hp;
             _hp -= amount;
             Debug.Log($"[Combat] {monsterId} 피격 dmg={amount} HP {before}→{Mathf.Max(0, _hp)}/{maxHp}");
+            HpChanged?.Invoke(this);
             if (_hp > 0) return;
+
+            // 사망 = HP 0 확정. 음수로 두면 체력바가 Clamp01 로 0 을 그리긴 하나, 계약(Hp)이 음수를 노출하면
+            // 다른 소비자가 오독한다. 던전(MonsterEntity.HandleDead)과 같은 규칙.
+            _hp = 0;
+            HpChanged?.Invoke(this);
 
             IsDead = true;
             Debug.Log($"[Combat] {monsterId} 사망");

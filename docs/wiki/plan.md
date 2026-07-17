@@ -395,6 +395,13 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 - [x] **보스 등급 교정** — `leviathan`(base 40/slam 90)이 `dungeon_02` 에서 **Normal 로 스폰**되고 있었다 → Boss 로.
 - 검증: SocketServer **212/212** · 솔루션 0오류 · EditMode **192/192** · Docker E2E **31/31**.
 
+**AC-H — Main 몬스터 체력바 (2026-07-17 완료)**
+- [x] **`IMonsterHealth` 계약 도입** — 구현체가 **실제로 둘**(던전 `MonsterEntity`=서버 권위 / Main `LocalMonster`=클라 권위)이라 unity-client.md 의 인터페이스 도입 기준 충족. 체력바는 "누가 권위인가"를 알 필요가 없다.
+- [x] `MonsterHealthBar` 를 계약 기반으로 전환 → **던전·Main 공용**(컴포넌트 1개).
+- [x] `LocalMonster` 가 계약 구현 + 피격/사망 시 `HpChanged` 발행. **사망 시 HP 0 확정**(음수 노출 금지) — 던전에서 고친 그 버그의 Main 판 예방.
+- [x] `CreepyDemonLocal.prefab` 에 던전 프리팹의 HealthBar 서브트리 복제(손으로 Canvas 재구성하면 앵커·스케일이 어긋난다).
+- 검증: PlayMode **3/3**(프리팹 배선·피격 fill 감소·사망 0) · EditMode **192/192** · 컴파일 0오류.
+
 **AC-G — 등급을 Monster Table 로 · 변종은 ID 로 (2026-07-17 완료, 사용자 지시)**
 - [x] **배율 간접층 제거** — `MonsterScalingDefinition`(SO)·`monster-scaling.json`·`MonsterScalingCatalog`·`spawn.tier`·클라 `MonsterTier` 미러 enum 을 **전부 삭제**. AC-F2 에서 만든 걸 하루 만에 접었다 — 사용자 지적("ID만 처리하면 되잖아")이 옳았다.
 - [x] **등급 = `monsters.json` 의 `tier` 필드**(문자열 "Normal"/"Elite"/"Boss"). **분류일 뿐 스탯에 곱해지지 않는다** — 표시·연출 분기용.

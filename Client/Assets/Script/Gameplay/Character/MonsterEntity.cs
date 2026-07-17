@@ -15,7 +15,7 @@ namespace Game.Gameplay.Character
     /// 파라미터 이름은 프리팹의 CharacterAgentAnimations 에 배선한다(미배선이면 조용히 스킵).
     /// ※ 과거 상태이름 CrossFade 방식은 제거 — 컨트롤러의 Speed 전이와 충돌해 Walk 가 즉시 Idle 로 튕겼다.
     /// </summary>
-    public class MonsterEntity : MonoBehaviour, IActorView, IDisposable
+    public class MonsterEntity : MonoBehaviour, IActorView, IMonsterHealth, IDisposable
     {
         [SerializeField] private float lerpSpeed = 15f;
         [Tooltip("Speed 파라미터 평활화 계수. 보간 지터가 Idle/Walk 전이를 떨게 하는 것을 막는다.")]
@@ -30,7 +30,7 @@ namespace Game.Gameplay.Character
         public int MaxHp { get; private set; }
 
         /// <summary>HP 변경 시 발행(초기 seed 포함). <see cref="MonsterHealthBar"/> 가 구독해 fill 을 갱신.</summary>
-        public event Action<MonsterEntity> HpChanged;
+        public event Action<IMonsterHealth> HpChanged;
 
         private Vector3 _targetPos;
         private float   _targetRotY;
