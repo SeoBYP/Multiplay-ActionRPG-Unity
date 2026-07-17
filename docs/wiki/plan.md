@@ -2,7 +2,16 @@
 
 > **새 채팅 시작 시 이 파일을 먼저 읽어라.**
 > Phase가 완료될 때마다 즉시 갱신한다.
-> 마지막 갱신: 2026-07-17 — **AC 트랙 전체 완료 + PR #60 머지**(main `972991e5`, 24커밋). AC/AC-B(Actor 통합·Ability SO 단일 저작) · AC-C(전투 진단 → D1 송신큐·D2 Seq 근본수정, **측정으로 C2b 불필요 판정**) · AC-E~G(몬스터 레벨링·밸런스 데이터 전면 SO화·던전 5개 L1→L30·**등급은 ID 로**) · AC-H(Main 몬스터 체력바). 잔여 = AC-D(전용 애니·P→P 스케일·VFX Cue)·dungeon_03~05 맵 배경. (직전 07-16 몬스터 로스터 = codemap §2.62)
+> 마지막 갱신: 2026-07-17 — **AC 트랙 전체 완료(PR #60) + 문서 전면 검수·정리**. AC/AC-B(Actor 통합·Ability SO 단일 저작) · AC-C(전투 진단 → D1 송신큐·D2 Seq 근본수정, **측정으로 C2b 불필요 판정**) · AC-E~G(몬스터 레벨링·밸런스 데이터 전면 SO화·던전 5개 L1→L30·**등급은 ID 로**) · AC-H(Main 몬스터 체력바). 잔여 = AC-D(전용 애니·P→P 스케일·VFX Cue)·dungeon_03~05 맵 배경.
+>
+> **문서 정리 라운드(PR #60 이후, main 직접 커밋)** — 코드가 아니라 *문서가 코드와 어긋난 것*을 실측 대조로 고쳤다:
+>
+> | 커밋 | 내용 |
+> |---|---|
+> | `15dfe272`·`07439bac` | codemap 번호 충돌 해소 + **실제 코드/SO 대조 검수** — gas-architecture 의 뒤집힌 사실 정정(S_AbilityActivated "안 만든다"→도입됨 1604 / 발동게이트 "안 본다"→구현됨), codemap §1 행 현행화, README 정정 |
+> | `79fdfd16` | **죽은 코드 `SkillCatalog` 삭제**(호출 0) + 위키 ASCII 다이어그램 → **mermaid 6종**(현재 시그니처로 재작도) |
+> | `ea73efbb` | `Shared.Gameplay.dll` 재배포(소스 삭제 반영, SHA256 대조) — 클라 컴파일0·EditMode 192/192 |
+> | `cda7524d` | **포트폴리오 챕터 26 신설**(AC 트랙 = 측정이 이끈 전투 정리) + 로드맵 M5 현행화 + README 구체화(규모 스냅샷·문제→원인→해결 7건) |
 >
 > | 커밋 | 내용 | codemap |
 > |---|---|---|
@@ -22,7 +31,14 @@
 >
 > **검증**: 서버 build0 · SocketServer.Tests **126** · Shared.Gameplay.Tests **39** · 클라 컴파일0 · EditMode **167** · PlayMode **8** · Docker E2E `SocketE2ETests` **30/30** · MPPM 2인 던전 플레이 확인(사용자).
 >
-> **다음 후보**: 애니/전투연출 폴리시 백로그 **전체 소진**(#1~#7 + 몬스터 #2 ✅). → **4.6 PVE 오픈월드**(서버·콘텐츠 트랙) 또는 **2.5.1 사망/리스폰 잔여 T1**(던전 다운잠금·Main 타이머). 목록 = [animation-combat-polish-backlog.md](animation-combat-polish-backlog.md)
+> **다음 후보** (2026-07-17 기준 — T1 잔여 없음. 2.5.1/2.5.2 사망·부활은 ✅ 완료, 애니 폴리시 백로그 #1~#7 소진):
+> | 후보 | 성격 | 규모 | 비고 |
+> |---|---|---|---|
+> | **AC-D3 VFX/SFX Cue** | 연출 | 중 | 진입점(`IActorView.PlayAbilityCue`)·SO 필드 **이미 있음** → CueCatalog + 스폰만. 지금 전투가 "소리·이펙트 0"이라 체감 개선 최대 |
+> | **AC-D1 어빌리티별 전용 애니** | 연출 | 소~중 | 보스 강스킬이 평타와 같은 `Attack` 트리거. 클립은 이미 있음(leviathan `AttackSpecial`/`Roar`) |
+> | **dungeon_03~05 맵 비주얼** | 에셋 | 중 | 데이터·밸런스는 완비, `visualPrefab` 만 비어 회색 평면(아래 결함 참조) |
+> | **4.6 PVE 오픈월드** | 신규 콘텐츠 | 대 | 월드/존·NPC/대화·상호작용 [4.4~4.7] |
+> | **M6 마감** | 포트폴리오 | 중 | 데모 영상·부하 검증·배포 문서. **DoD 는 이미 달성** — 지금 시점에 "보여줄 것"을 만드는 선택지 |
 >
 > 직전: 2026-07-11 (**M5 애니/전투연출 폴리시 — 클라 PROTOFACTOR Animator 실배선 + 히트박스 방향 버그 수정** — MM 외부화 후 비어있던 캐릭터 애니를 실제로 세웠다. ① **플레이어 애니 기반**(커밋 `698b0728`): `SK_Protof-Actor` 모델+Animator 를 `PlayerCharacter.prefab` 에 배선(회색 캡슐→실캐릭터), `PlayerController` 깨진 모션 재지정(1hMelee in-place)+고아 `MM_` 제거+Dead/Dodge 상태+순환클립 LoopTime 정정. 무기 프롭 `SM_BludgeonProp` 오른손 부착 + `WeaponHitbox`(AttackA 애니이벤트 active-window, Main 클라권위)·던전은 서버 HitboxMath 유지. 히트박스 무기 리치 저작→skills.json bake. ② **이동잠금(Rooted)**: 공격/상호작용 중 수평이동 금지(`ActionTags.Rooted`, GroundState+Fall/Jump 폴링, CA-1 태그·전이 아님). ③ **원격 플레이어 애니**(커밋 `1e5a0a6d`): `RemotePlayerCharacter` 모델+Animator+무기(**메시 전용**=서버권위 보호), `RemoteDriver` 가 보간변위→Speed·사망/부활·공격(`S_Attack` 브로드캐스트) 애니 구동. ④ **몬스터 체력바**(월드공간 Canvas+`MonsterHealthBar`, `MonsterEntity` HP 노출). ⑤ **HitboxMath yaw 부호 버그 수정**(서버·클라 공유, 커밋 `1e5a0a6d`): 월드→로컬 회전이 `-yaw` 라 yaw 0/180 에서만 맞고 측면(90/270·대각)은 히트박스가 반대로 갔다 → 부호 교정. **던전 전 방향 공격/피격 판정 정상화**(기존 테스트가 0/180만 봐 사각지대). ⑥ **부활 복귀 애니**: Dead 상태 탈출 전이가 없어 부활해도 사망포즈에 갇힘 → 양성 `Revive` 트리거 신설(컨트롤러 Dead→로코모션 전이). ⑦ **SocketConnector 송신↔종료 레이스 NRE 수정**(락 대기 중 `_stream` null 교체). **검증: Shared.Gameplay 39/39 · SocketServer 118/118 · EditMode 155/155 · PlayMode ActionRootTests(이동잠금·공중·부활 애니) · Docker SocketE2E 27/27. MPPM 플레이 검증(사용자: 줍기 이동잠금·공격 전방·부활 복귀 모두 확인).** 상세 codemap §2.52~2.56. **잔여(폴리시)**: NPC/몬스터 애니(캡슐)·Attack 콤보·원격 회피(S_Dodge 패킷 없음)·기상(GetUp) 클립 — 목록화·우선순위 = [animation-combat-polish-backlog.md](animation-combat-polish-backlog.md). **다음 후보**: B(애니 폴리시) 또는 C(4.6 PVE 오픈월드).)
 >
@@ -338,7 +354,7 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 > **✅ 직전 완료 (2026-06-13, T1 잔여 전부 닫힘)**:
 > 1. **회복 수치 단일소스** — ✅ **완료(클라 컴파일 검증 통과 2026-06-13)**: 서버 bake JSON + 클라 `ConsumableCatalogSeeder`로 던전 회복 미러 회귀 복구 + Editor `ConsumableEffectExporter`. 교리 = [gas-architecture.md §2.5](gas-architecture.md), 상세 codemap §2.6c. **Unity 컴파일 0오류 확인 완료** — 잔여 검증 없음.
 > 2. **4.6.3 Main 획득 B-lite 서버 검증 (T1)** — ✅ **완료(플레이 검증 2026-06-13)**: 서버 374 그린 + PlayMode E2E + 플레이(슬롯 스폰→킬→`ClaimKill` 서버roll 지급→5s 재스폰, 쿨다운 파밍차단). 무한파밍 핵 차단(`GrantItem` 제거). 저작=`MapDefinition` SO→bake. 설계 = [main-spawn-claim.md](main-spawn-claim.md).
-> 3. **2.5.1 사망/리스폰** — ✅ **완료(플레이 검증 2026-06-13)**: Main 타이머 리스폰(`LocalRespawnController`)+`LocalMonster` 근접공격(사망 트리거)+다운→3s 부활. ~~다운포즈 Animator 클립=로그 대체~~ → **다운포즈 클립 배선됨(2026-07-09, PROTOFACTOR `DeathFront1hMelee`, [player-animation-setup.md](player-animation-setup.md)). ⚠️ 부활 복귀 애니는 미배선(Revive가 ResetTrigger만, 양성 부활신호 없음 → 부활 후 Dead 포즈 잔존) — 별도 수정 필요.** 던전 다운잠금·서버권위 HP 기존 완료. 던전 내 부활=2.5.2(T2).
+> 3. **2.5.1 사망/리스폰** — ✅ **완료(플레이 검증 2026-06-13)**: Main 타이머 리스폰(`LocalRespawnController`)+`LocalMonster` 근접공격(사망 트리거)+다운→3s 부활. ~~다운포즈 Animator 클립=로그 대체~~ → **다운포즈 클립 배선됨(2026-07-09, PROTOFACTOR `DeathFront1hMelee`, [player-animation-setup.md](player-animation-setup.md)).** ~~⚠️ 부활 복귀 애니 미배선~~ → **해소됨(2026-07-11)**: 양성 `Revive` 트리거 신설로 Dead→로코모션 전이(위 07-11 항목 ⑥). 던전 다운잠금·서버권위 HP 기존 완료. 던전 내 부활=2.5.2(T2). **→ 2.5 전체 잔여 없음.**
 >
 > **🟢 현재 트랙 (2026-06-13~): 서버 도메인 완성** — RPG 코어 서버 기능을 의존성 순서로 마무리한다. 우선순위(의존성 정렬):
 > 1. **2.3 레벨업/스탯 성장** — ✅ **완료(서버 28 + Unity 컴파일 0오류 + PlayMode E2E `ProgressionE2ETests` 2(Docker) + 전체 PlayMode 68/68, 2026-06-14)**. ① 데이터 = `LevelTableDefinition` SO(클라, 1~60) → `LevelTableExporter` bake → `Shared.Infrastructure.Progression.LevelTable`(임베디드 `level-table.json`, 거듭제곱 Exp `round(100·L^1.5)` + 레벨별 스탯 룩업). ② 도메인 = `UserProgression.AddExp(amount, ILevelCurve)` 레벨업 루프(remainder 이월·60만렙 고정), `ILevelCurve`(Domain) ↔ `LevelTableCurve`(Infra, LevelTable 위임). **DB는 Level/Exp만 영속(마이그레이션 0), 스탯은 레벨 룩업 파생=단일소스.** ③ 클라 노출 = `progression.proto` GetProgression(레벨/Exp/expToNext/스탯, userId=JWT) + `ProgressionGrpcService`(서버, LevelTable 룩업 합성) + Generated/Network 래퍼(ClientCodegen 재생성) + System `IProgressionService`(proto 은닉) + Presentation `ProgressionModel`(MVI pull, Main·Dungeon 스코프 등록). **검증: 서버 — 전체 솔루션 빌드 0오류 + 진행 테스트 28 그린(LevelTable 7·UserProgression 8·Service 3·gRPC 3·통합 7). 클라 — 생성 래퍼/인터페이스가 수기 코드와 일치 확인, 컴파일은 Inventory 동일 패턴 미러. ⚠️ Unity 클라 컴파일 최종 확인은 대기**(force refresh 후 Unity 브리지 도메인리로드 중 무응답 — 포커스 후 재시도 필요). **잔여 = 스탯창 prefab 비주얼 저작(7.3, 사용자 Unity) + Unity 컴파일 확정.**
@@ -433,6 +449,7 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 - [ ] **AC-D1 어빌리티별 전용 애니** — 지금은 보스 강스킬도 `Attack` 트리거 공유(`AnimationTriggerType` enum에 Attack/Dodge/Dead…만 존재). 필요 작업: enum 값 추가(예: `AbilitySpecial`) + `CharacterAgentAnimations` 파라미터 필드 + 몬스터 컨트롤러 상태/트리거 + `AbilityDefinition.cueTrigger` 저작. **소재는 이미 있음** — leviathan FBX 에 `AttackSpecial`/`AttackHard`/`Roar` 클립 존재. 설계 = [ability-so-authoring.md](ability-so-authoring.md) §남은 확장점.
 - [ ] **AC-D2 플레이어→플레이어 데미지 스탯 스케일** — 현재 **플랫 피해**(AP·Defense 미반영). 몬스터→플레이어/플레이어→몬스터는 스탯 스케일이라 **비대칭**. 전환은 밸런스 결정이라 보류 중(B5 는 출처 일원화만 하고 동작 보존). ※ 코옵에서 friendly fire 를 유지할지 자체가 선행 결정.
 - [ ] **AC-D3 VFX/SFX Cue** — `IActorView.PlayAbilityCue` 진입점·`AbilityDefinition` Cue 필드는 이미 있음 → CueCatalog(SO) + 스폰만 추가하면 확장(gas-architecture §2 ①②③). 애니 트리거만 있는 현 상태에서 자연 증분.
+- [ ] **AC-D4 dungeon_03~05 맵 비주얼** — `DungeonCatalog` 는 던전 5개를 **전부 선택 가능**하게 노출하는데 `dungeon_03/04/05` 의 `MapDefinition.visualPrefab` 이 비어 있다 → `MapLoader` 가 경고만 남기고 배경 없이 진행 → **씬 기본 Plane(100×100) 위 회색 평면에서 전투**. 낙사는 아님(모든 맵 bounds ≤80 이 Plane 안). `dungeon_02` 는 `dungeon_01` 비주얼을 재사용하는데 bounds 가 44→64 로 커져 **배경이 플레이 영역을 다 못 덮을 수 있음**. 에셋 작업(맵 프리팹 3종 + 02 재점검).
 - [x] **던전 메타: `DungeonRoom.MapId` 도입 + 던전 선택 UI** [4.3·9.2] — ✅ 완료 2026-06-25. 방 생성 시 결정·영속(엔티티 4곳+EF 마이그레이션+Redis Hash) + 생성 팝업 던전 드롭다운(`DungeonCatalog` SO)·`RoomInfo.map_id` 표시·expReward Export 왕복 결함 수정. 상세=4.3 항목. 콘텐츠 확장(여러 던전)은 `MapDefinition` SO 추가→Export→서버 재빌드로 데이터만 추가.
 - [ ] PVE 오픈월드 맛보기 — 월드/존·퀘스트·NPC/대화·상호작용 [4.4~4.7]
 - [ ] 소셜(핑/이모트)·설정/옵션·재접속 [5.2·6.3·6.4]
