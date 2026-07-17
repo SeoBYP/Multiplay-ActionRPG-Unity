@@ -19,8 +19,8 @@ public class MonsterSpawnLevelTests
             new List<PlayerInfo> { new() { UserId = 100, Nickname = "A", SpawnIndex = 0 } },
             NullLogger<global::Server.Room.Room>.Instance);
 
-    private static MonsterSpawnDef Def(string id = "creepy_demon", int level = 0, MonsterTier tier = MonsterTier.Normal)
-        => new(id, 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>(), 0, 0, level, tier);
+    private static MonsterSpawnDef Def(string id = "creepy_demon", int level = 0)
+        => new(id, 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>(), 0, 0, level);
 
     private static readonly MapBounds Bounds = new(0f, 0f, 400f, 400f);
 
@@ -89,38 +89,6 @@ public class MonsterSpawnLevelTests
     }
 
     [Fact]
-    public void 등급이_스폰에_확정되고_HP에_반영된다()
-    {
-        var room = NewRoom();
-        room.SpawnMonsters(new List<MonsterSpawnDef> { Def(tier: MonsterTier.Elite) }, Bounds);
-
-        var m = room.GetAllMonsters().Single();
-
-        Assert.Equal(MonsterTier.Elite, m.Tier);
-        Assert.Equal(MonsterLevelScaling.Hp(MonsterCatalog.Get("creepy_demon").MaxHp, 1, MonsterTier.Elite), m.MaxHp);
-    }
-
-    [Fact]
-    public void 같은_맵에서_잡몹과_보스가_공존한다()
-    {
-        // 등급이 스폰별이라 같은 monsterId 를 잡몹으로도 보스로도 쓸 수 있다(설계 §3).
-        var room = NewRoom();
-        room.SpawnMonsters(
-            new List<MonsterSpawnDef> { Def(), Def(tier: MonsterTier.Boss) },
-            Bounds,
-            mapMonsterLevel: 4);
-
-        var all = room.GetAllMonsters().OrderBy(x => x.MaxHp).ToList();
-
-        Assert.Equal(2, all.Count);
-        Assert.Equal(MonsterTier.Normal, all[0].Tier);
-        Assert.Equal(MonsterTier.Boss, all[1].Tier);
-        Assert.Equal(4, all[0].Level);
-        Assert.Equal(4, all[1].Level); // 레벨은 맵 기본 공유 — 등급만 다르다(직교)
-        Assert.True(all[1].MaxHp > all[0].MaxHp * 4, "보스는 HP ×6 이라 확연히 두껍다");
-    }
-
-    [Fact]
     public void 던전_대역이_단조_증가한다_AC_F()
     {
         // 저작된 진행 곡선. 대역이 뒤섞이면 플레이어가 어느 던전을 가야 할지 알 수 없다.
@@ -143,36 +111,91 @@ public class MonsterSpawnLevelTests
     }
 
     [Fact]
-    public void 상위_던전일수록_등급_구성이_강해진다_AC_F()
-    {
-        // 보스는 상위 대역에만. dungeon_01(입문)에 보스가 있으면 진행 곡선이 무너진다.
-        Assert.DoesNotContain(SpawnLayoutTable.Get("dungeon_01").Monsters, m => m.Tier != MonsterTier.Normal);
-
-        Assert.Contains(SpawnLayoutTable.Get("dungeon_02").Monsters, m => m.Tier == MonsterTier.Boss);
-        Assert.Contains(SpawnLayoutTable.Get("dungeon_03").Monsters, m => m.Tier == MonsterTier.Elite);
-        Assert.Contains(SpawnLayoutTable.Get("dungeon_04").Monsters, m => m.Tier == MonsterTier.Boss);
-
-        // 최상급 = 잡몹이 없다(전원 엘리트 이상).
-        Assert.DoesNotContain(SpawnLayoutTable.Get("dungeon_05").Monsters, m => m.Tier == MonsterTier.Normal);
-    }
-
-    [Fact]
-    public void 보스_몬스터는_보스_등급으로_배치된다()
-    {
-        // leviathan 은 base 40/slam 90 인 보스인데 dungeon_02 에서 Normal 로 스폰되고 있었다(AC-F 에서 교정).
-        foreach (var mapId in new[] { "dungeon_02", "dungeon_04", "dungeon_05" })
-        {
-            var levis = SpawnLayoutTable.Get(mapId).Monsters.Where(m => m.MonsterId == "leviathan").ToList();
-            Assert.NotEmpty(levis);
-            Assert.All(levis, m => Assert.Equal(MonsterTier.Boss, m.Tier));
-        }
-    }
-
-    [Fact]
     public void E2E_던전은_L1로_고정된다()
     {
         // 테스트 픽스처 — 대역이 바뀌면 E2E 기대값(몬스터 HP·피해)이 조용히 흔들린다.
         Assert.Equal(1, SpawnLayoutTable.Get("dungeon_e2e").MonsterLevel);
+    }
+
+    [Fact]
+    public void 등급은_카탈로그에서_온다_스폰이_정하지_않는다_AC_G()
+    {
+        // AC-G: 등급을 스폰 필드에서 **몬스터 테이블**로 옮겼다 — monsterId 가 곧 변종이다.
+        // creepy_demon 은 Normal 로 저작돼 있으므로 스폰이 무엇을 하든 Normal 이다.
+        var room = NewRoom();
+        room.SpawnMonsters(new List<MonsterSpawnDef> { Def() }, Bounds, mapMonsterLevel: 4);
+
+        var m = room.GetAllMonsters().Single();
+
+        Assert.Equal(MonsterCatalog.Get("creepy_demon").Tier, m.Tier);
+        Assert.Equal(4, m.Level); // 레벨은 여전히 스폰/맵이 정한다(등급과 직교)
+    }
+
+    [Fact]
+    public void 등급은_스탯에_곱해지지_않는다_AC_G()
+    {
+        // 배율을 없앴다 — 변종은 각자 ID·스탯을 직접 저작한다.
+        // 따라서 같은 base·레벨이면 등급과 무관하게 HP 가 같다(등급은 표시·연출 분류일 뿐).
+        int hp = MonsterLevelScaling.Hp(MonsterCatalog.Get("creepy_demon").MaxHp, 6);
+        var room = NewRoom();
+        room.SpawnMonsters(new List<MonsterSpawnDef> { Def() }, Bounds, mapMonsterLevel: 6);
+
+        Assert.Equal(hp, room.GetAllMonsters().Single().MaxHp);
+    }
+
+    [Fact]
+    public void 변종은_별개_ID_로_저작된다_AC_G()
+    {
+        // AC-G 의 핵심: 등급 배율 대신 **변종이 자기 ID·스탯을 직접 갖는다**.
+        var normal = MonsterCatalog.Get("leviathan");
+        var boss = MonsterCatalog.Get("leviathan_boss");
+
+        Assert.Equal(MonsterTier.Normal, normal.Tier);
+        Assert.Equal(MonsterTier.Boss, boss.Tier);
+        Assert.True(boss.MaxHp > normal.MaxHp * 4, $"보스({boss.MaxHp})는 원본({normal.MaxHp})보다 확연히 두꺼워야 한다");
+        Assert.True(boss.ExpReward > normal.ExpReward, "보스 보상이 더 커야 한다");
+
+        // 어빌리티는 원본과 같다(같은 몬스터의 변종이므로).
+        Assert.Equal(normal.AbilityIds, boss.AbilityIds);
+    }
+
+    [Fact]
+    public void 변종도_자기_ID_의_드롭테이블을_갖는다_AC_G()
+    {
+        // 등급 확률 배율을 없앴으므로, 변종에 테이블이 없으면 **아무것도 안 떨군다**.
+        foreach (var id in new[] { "leviathan_boss", "undead_axemaster_elite", "wild_centaur_elite", "gargoyle_elite" })
+            Assert.NotEmpty(Shared.Infrastructure.Loot.DropTableCatalog.Get(id));
+    }
+
+    [Fact]
+    public void 스폰이_지목한_변종이_카탈로그에_존재한다_AC_G()
+    {
+        // 오타난 monsterId 는 Default 폴백(어빌리티 없음 = 공격 안 함)으로 조용히 떨어진다 → 여기서 잡는다.
+        foreach (var mapId in new[] { "dungeon_01", "dungeon_02", "dungeon_03", "dungeon_04", "dungeon_05", "dungeon_e2e" })
+        {
+            foreach (var m in SpawnLayoutTable.Get(mapId).Monsters)
+            {
+                var def = MonsterCatalog.Get(m.MonsterId);
+                Assert.False(string.IsNullOrEmpty(def.MonsterId),
+                    $"{mapId}: '{m.MonsterId}' 가 monsters.json 에 없다(오타 → 공격 안 하는 유령 몬스터가 된다)");
+            }
+        }
+    }
+
+    [Fact]
+    public void 상위_던전일수록_변종_구성이_강해진다_AC_G()
+    {
+        // 등급은 이제 monsterId 로 드러난다 — 스폰 필드를 볼 필요가 없다.
+        Func<string, int> BossCount = mapId => SpawnLayoutTable.Get(mapId).Monsters
+            .Count(m => MonsterCatalog.Get(m.MonsterId).Tier == MonsterTier.Boss);
+
+        Assert.Equal(0, BossCount("dungeon_01"));  // 입문에 보스가 있으면 진행 곡선이 무너진다
+        Assert.Equal(1, BossCount("dungeon_02"));
+        Assert.Equal(2, BossCount("dungeon_05"));  // 최상급 = 보스 러시
+
+        // 최상급은 잡몹이 없다(전원 엘리트 이상).
+        Assert.DoesNotContain(SpawnLayoutTable.Get("dungeon_05").Monsters,
+            m => MonsterCatalog.Get(m.MonsterId).Tier == MonsterTier.Normal);
     }
 
     [Fact]

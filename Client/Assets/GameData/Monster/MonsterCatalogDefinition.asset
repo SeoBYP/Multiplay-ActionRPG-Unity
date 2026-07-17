@@ -20,6 +20,7 @@ MonoBehaviour:
     abilityIds:
     - test_brute_attack
     expReward: 0
+    tier: 0
   - monsterId: vampire_bat
     maxHp: 20
     moveSpeed: 3.5
@@ -27,6 +28,7 @@ MonoBehaviour:
     abilityIds:
     - vampire_bat_attack
     expReward: 12
+    tier: 0
   - monsterId: creepy_demon
     maxHp: 40
     moveSpeed: 2.2
@@ -34,6 +36,7 @@ MonoBehaviour:
     abilityIds:
     - creepy_demon_attack
     expReward: 18
+    tier: 0
   - monsterId: demon_girl
     maxHp: 55
     moveSpeed: 2.4
@@ -41,6 +44,7 @@ MonoBehaviour:
     abilityIds:
     - demon_girl_attack
     expReward: 26
+    tier: 0
   - monsterId: arachnya
     maxHp: 65
     moveSpeed: 2.6
@@ -48,6 +52,7 @@ MonoBehaviour:
     abilityIds:
     - arachnya_attack
     expReward: 30
+    tier: 0
   - monsterId: wild_centaur
     maxHp: 100
     moveSpeed: 3.2
@@ -55,6 +60,7 @@ MonoBehaviour:
     abilityIds:
     - wild_centaur_attack
     expReward: 42
+    tier: 0
   - monsterId: gargoyle
     maxHp: 130
     moveSpeed: 2
@@ -62,6 +68,7 @@ MonoBehaviour:
     abilityIds:
     - gargoyle_attack
     expReward: 55
+    tier: 0
   - monsterId: undead_axemaster
     maxHp: 170
     moveSpeed: 2.2
@@ -69,6 +76,7 @@ MonoBehaviour:
     abilityIds:
     - undead_axemaster_attack
     expReward: 70
+    tier: 0
   - monsterId: leviathan
     maxHp: 500
     moveSpeed: 1.6
@@ -77,3 +85,37 @@ MonoBehaviour:
     - leviathan_slam
     - leviathan_attack
     expReward: 150
+    tier: 0
+  - monsterId: undead_axemaster_elite
+    maxHp: 340
+    moveSpeed: 2.2
+    aggroRange: 9
+    abilityIds:
+    - undead_axemaster_attack
+    expReward: 210
+    tier: 1
+  - monsterId: wild_centaur_elite
+    maxHp: 200
+    moveSpeed: 3.2
+    aggroRange: 10
+    abilityIds:
+    - wild_centaur_attack
+    expReward: 126
+    tier: 1
+  - monsterId: gargoyle_elite
+    maxHp: 260
+    moveSpeed: 2
+    aggroRange: 8
+    abilityIds:
+    - gargoyle_attack
+    expReward: 165
+    tier: 1
+  - monsterId: leviathan_boss
+    maxHp: 3000
+    moveSpeed: 1.6
+    aggroRange: 14
+    abilityIds:
+    - leviathan_slam
+    - leviathan_attack
+    expReward: 1500
+    tier: 2

@@ -17,7 +17,6 @@
     <EmbeddedResource Include="Consumables/consumable-effects.json" />
     <EmbeddedResource Include="Progression/level-table.json" />
     <EmbeddedResource Include="Monsters/monsters.json" />
-    <EmbeddedResource Include="Monsters/monster-scaling.json" />
     <EmbeddedResource Include="Abilities/abilities.json" />
   </ItemGroup>
 

@@ -29,15 +29,17 @@ public static class DropTableCatalog
         => DropTableRoll.Roll(Get(monsterId), rng);
 
     /// <summary>
-    /// 레벨·등급을 반영해 굴린다(AC-E4). 배율 계산은 여기가 한다 —
+    /// 레벨을 반영해 굴린다(AC-E4/G). 수량 배율 계산은 여기가 한다 —
     /// <see cref="DropTableRoll"/> 는 순수 함수라 플레이어 곡선(<see cref="Monsters.MonsterLevelScaling"/>)을 모른다.
+    /// <para>등급 확률 배율은 없앴다(AC-G) — 변종이 <b>자기 ID 의 드롭 테이블</b>을 갖는다.
+    /// <c>leviathan_boss</c> 의 확률은 그 테이블에 직접 적는다.</para>
     /// </summary>
-    public static List<DropResult> Roll(string? monsterId, System.Random rng, int level, Monsters.MonsterTier tier)
+    public static List<DropResult> Roll(string? monsterId, System.Random rng, int level)
         => DropTableRoll.Roll(
             Get(monsterId),
             rng,
-            Monsters.MonsterLevelScaling.DropChanceMultiplier(tier),
-            Monsters.MonsterLevelScaling.DropQuantityMultiplier(level));
+            chanceMultiplier: 1.0,
+            quantityMultiplier: Monsters.MonsterLevelScaling.DropQuantityMultiplier(level));
 
     private static IReadOnlyDictionary<string, IReadOnlyList<DropEntry>> LoadEmbedded()
     {

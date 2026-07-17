@@ -2,24 +2,19 @@ using Shared.Infrastructure.Progression;
 
 namespace Shared.Infrastructure.Monsters;
 
-/// <summary>몬스터 등급. 레벨과 **직교** — 레벨은 "어느 던전 대역인가", 등급은 "그 대역 안에서 얼마나 강한가".</summary>
-public enum MonsterTier
-{
-    Normal = 0,
-    Elite = 1,
-    Boss = 2,
-}
-
 /// <summary>
 /// 몬스터 스탯의 레벨·등급 스케일(AC-E). 설계 = <c>docs/wiki/monster-leveling.md</c>.
 ///
 /// <para><b>왜 필요한가</b>: 플레이어만 성장하고 몬스터는 고정이라 <c>max(1, base − DEF)</c> 가
 /// 고레벨에서 전 몬스터를 1 데미지로 눌렀다(C1c 실측: 1,1,2,2,3,5).</para>
 ///
+/// <para><b>레벨만 다룬다(AC-G)</b> — 등급 배율은 없앴다. 변종은 <b>각자 ID·스탯을 직접 저작</b>한다
+/// (<c>leviathan_boss</c> 는 maxHp 를 그대로 적는다). 배율 간접층은 enum 미러링·스폰 필드 2개·
+/// "왜 센지를 두 곳에서 찾기"를 낳아 접었다.</para>
+///
 /// <para><b>상수가 없다 — 전부 저작 테이블에서 읽는다(AC-F1)</b>:
 /// <list type="bullet">
 /// <item>플레이어 곡선 = <see cref="LevelTable"/>(SO <c>LevelTableDefinition</c> → level-table.json)</item>
-/// <item>등급 배율 = <see cref="MonsterScalingCatalog"/>(SO <c>MonsterScalingDefinition</c> → monster-scaling.json)</item>
 /// </list>
 /// 이전엔 곡선 상수(DEF 5/+2, HP비 0.2…)를 여기 하드코딩하고 "곡선 바꾸면 여기도 같이 바꿔라"는
 /// 주석을 달았다 — 그게 바로 SO 교리가 막으려는 **수동 동기화 함정**이었다.</para>
@@ -44,7 +39,7 @@ public static class MonsterLevelScaling
     /// <item><b>단순 가산</b>(<c>base+4(L-1)</c>) — 약한 몬스터는 세지고 강한 몬스터는 약해져 <b>전부 중간으로 수렴</b>(역할 붕괴).</item>
     /// </list></para>
     /// </summary>
-    public static int Damage(int baseDamage, int level, MonsterTier tier = MonsterTier.Normal)
+    public static int Damage(int baseDamage, int level)
     {
         int lv = NormalizeLevel(level);
         var l1 = LevelTable.StatsAt(1);
@@ -53,34 +48,29 @@ public static class MonsterLevelScaling
         float net1 = baseDamage - l1.Defense;                 // L1 순피해 = 이 몬스터의 "역할"
         float scaled = net1 * ((float)lN.MaxHealth / l1.MaxHealth) + lN.Defense;
 
-        return Math.Max(1, (int)MathF.Round(scaled * MonsterScalingCatalog.Get(tier).DamageMultiplier));
+        return Math.Max(1, (int)MathF.Round(scaled));
     }
 
     /// <summary>
     /// 레벨 L·등급 T 의 최대 HP. <b>플레이어 공격력 성장에 비례</b>해야 킬 타임이 유지된다:
     /// <c>maxHp(L) = maxHp₁ · AP(L)/AP(1)</c>.
     /// </summary>
-    public static int Hp(int baseHp, int level, MonsterTier tier = MonsterTier.Normal)
+    public static int Hp(int baseHp, int level)
     {
         int lv = NormalizeLevel(level);
         var l1 = LevelTable.StatsAt(1);
         var lN = LevelTable.StatsAt(lv);
 
         float scaled = baseHp * ((float)lN.AttackPower / l1.AttackPower);
-        return Math.Max(1, (int)MathF.Round(scaled * MonsterScalingCatalog.Get(tier).HpMultiplier));
+        return Math.Max(1, (int)MathF.Round(scaled));
     }
 
     /// <summary>레벨 L·등급 T 의 경험치 보상. 플레이어 HP 성장에 비례(= 보상 감각 유지) + 등급 배율.</summary>
-    public static long Exp(long baseExp, int level, MonsterTier tier = MonsterTier.Normal)
+    public static long Exp(long baseExp, int level)
     {
         if (baseExp <= 0) return 0; // 보상 없는 몬스터(테스트 픽스처 등)는 스케일해도 0
-        float scaled = baseExp * LevelGrowth(level);
-        return (long)MathF.Round(scaled * MonsterScalingCatalog.Get(tier).ExpMultiplier);
+        return (long)MathF.Round(baseExp * LevelGrowth(level));
     }
-
-    /// <summary>드롭 확률 배율(등급). 상위 등급일수록 잘 떨군다.</summary>
-    public static float DropChanceMultiplier(MonsterTier tier)
-        => MonsterScalingCatalog.Get(tier).DropChanceMultiplier;
 
     /// <summary>골드 등 <b>가변 수량</b> 드롭의 레벨 배율. 보상 감각이 레벨과 함께 커진다.</summary>
     public static float DropQuantityMultiplier(int level) => LevelGrowth(level);

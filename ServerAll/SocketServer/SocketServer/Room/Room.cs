@@ -354,9 +354,10 @@ public class Room
                 var stats = MonsterCatalog.Get(def.MonsterId);
                 int count = Math.Max(1, def.Count);
 
-                // 레벨·등급은 **스폰 시 1회 확정**한다(monster-leveling.md §4.1) — 매 틱 재계산하지 않는다.
+                // 레벨은 **스폰 시 1회 확정**한다(monster-leveling.md §4.1) — 매 틱 재계산하지 않는다.
+                // 등급은 스폰이 아니라 **카탈로그(monsterId 행)** 에서 온다(AC-G) — monsterId 가 곧 변종이다.
                 int level = MapSpawnLayout.ResolveLevel(def.Level, mapMonsterLevel);
-                int maxHp = Shared.Infrastructure.Monsters.MonsterLevelScaling.Hp(stats.MaxHp, level, def.Tier);
+                int maxHp = Shared.Infrastructure.Monsters.MonsterLevelScaling.Hp(stats.MaxHp, level);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -366,7 +367,9 @@ public class Room
                         InstanceId = id,
                         MonsterId  = def.MonsterId,
                         Level = level,
-                        Tier = def.Tier,
+                        // 등급은 카탈로그(monsterId 행)에서 직접 읽는다(AC-G) — MonsterStats 는 시뮬 전용 뷰라
+                        // 표시·연출용 등급을 담지 않는다.
+                        Tier = Shared.Infrastructure.Monsters.MonsterCatalog.Get(def.MonsterId).Tier,
                         PosX = def.X, PosY = def.Y, PosZ = def.Z,
                         SpawnX = def.X, SpawnZ = def.Z,
                         RotY = def.RotY,
@@ -643,7 +646,7 @@ public class Room
                     // 원래 버그는 산식이 아니라 base 가 고정이라 플레이어 DEF(+2/L) 성장에 밀린 것이었다
                     // (C1c 실측: L19 부터 전 몬스터 1 데미지). 유도 = monster-leveling.md §2.
                     int scaledBase = Shared.Infrastructure.Monsters.MonsterLevelScaling.Damage(
-                        chosen.BaseDamage, m.Level, m.Tier);
+                        chosen.BaseDamage, m.Level);
                     int finalDamage = StatCombatMath.MeleeDamage(scaledBase, MonsterAttackPower, target.Defense);
                     var dmgMods = new[]
                     {

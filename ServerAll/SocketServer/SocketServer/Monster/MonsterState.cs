@@ -27,7 +27,10 @@ public sealed class MonsterState
     /// </summary>
     public int Level { get; init; } = 1;
 
-    /// <summary>스폰 시 확정된 등급(AC-E2). 레벨과 직교 — 대역 안에서의 강도.</summary>
+    /// <summary>
+    /// 등급 <b>분류</b>(AC-G). <c>MonsterCatalog</c> 의 이 monsterId 행에서 온다 — 스폰이 정하지 않는다.
+    /// <b>스탯에 곱해지지 않는다</b>(변종은 각자 ID·스탯을 직접 저작). 표시·연출 분기용.
+    /// </summary>
     public MonsterTier Tier { get; init; } = MonsterTier.Normal;
 
     public float PosX;

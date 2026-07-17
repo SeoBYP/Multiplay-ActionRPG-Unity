@@ -32,7 +32,6 @@ MonoBehaviour:
     count: 1
     wave: 0
     level: 0
-    tier: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -42,7 +41,6 @@ MonoBehaviour:
     count: 1
     wave: 0
     level: 0
-    tier: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -52,7 +50,6 @@ MonoBehaviour:
     count: 1
     wave: 0
     level: 0
-    tier: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -62,7 +59,6 @@ MonoBehaviour:
     count: 1
     wave: 0
     level: 0
-    tier: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -72,7 +68,6 @@ MonoBehaviour:
     count: 1
     wave: 0
     level: 0
-    tier: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -82,7 +77,6 @@ MonoBehaviour:
     count: 1
     wave: 0
     level: 0
-    tier: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -92,7 +86,6 @@ MonoBehaviour:
     count: 1
     wave: 0
     level: 0
-    tier: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -102,7 +95,6 @@ MonoBehaviour:
     count: 1
     wave: 0
     level: 0
-    tier: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -112,7 +104,6 @@ MonoBehaviour:
     count: 1
     wave: 0
     level: 0
-    tier: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -122,17 +113,15 @@ MonoBehaviour:
     count: 1
     wave: 0
     level: 0
-    tier: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
-  - monsterId: leviathan
+  - monsterId: leviathan_boss
     position: {x: 0, y: 0, z: 25}
     rotationY: 180
     count: 1
     wave: 0
     level: 0
-    tier: 2
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []

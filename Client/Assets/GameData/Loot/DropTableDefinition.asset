@@ -129,3 +129,67 @@ MonoBehaviour:
       chance: 0.35
       minQty: 1
       maxQty: 1
+  - monsterId: undead_axemaster_elite
+    drops:
+    - itemId: gold
+      chance: 1
+      minQty: 60
+      maxQty: 120
+    - itemId: sword_basic
+      chance: 0.7
+      minQty: 1
+      maxQty: 1
+    - itemId: helmet_iron
+      chance: 0.4
+      minQty: 1
+      maxQty: 1
+    - itemId: potion_hp_small
+      chance: 1
+      minQty: 1
+      maxQty: 2
+  - monsterId: wild_centaur_elite
+    drops:
+    - itemId: gold
+      chance: 1
+      minQty: 30
+      maxQty: 70
+    - itemId: boots_leather
+      chance: 0.36
+      minQty: 1
+      maxQty: 1
+    - itemId: gloves_leather
+      chance: 0.36
+      minQty: 1
+      maxQty: 1
+  - monsterId: gargoyle_elite
+    drops:
+    - itemId: gold
+      chance: 1
+      minQty: 36
+      maxQty: 80
+    - itemId: shield_wooden
+      chance: 0.44
+      minQty: 1
+      maxQty: 1
+    - itemId: helmet_iron
+      chance: 0.24
+      minQty: 1
+      maxQty: 1
+  - monsterId: leviathan_boss
+    drops:
+    - itemId: gold
+      chance: 1
+      minQty: 240
+      maxQty: 450
+    - itemId: sword_basic
+      chance: 1
+      minQty: 1
+      maxQty: 1
+    - itemId: necklace_vitality
+      chance: 1
+      minQty: 1
+      maxQty: 1
+    - itemId: ring_power
+      chance: 0.8
+      minQty: 1
+      maxQty: 1

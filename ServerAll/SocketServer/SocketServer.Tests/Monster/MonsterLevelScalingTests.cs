@@ -91,50 +91,17 @@ public class MonsterLevelScalingTests
     }
 
     [Fact]
-    public void 등급은_HP를_크게_피해를_작게_올린다()
-    {
-        // 피해를 크게 올리면 즉사가 되고, HP 를 올리면 "오래 버티는 위협"이 된다.
-        int hpN = MonsterLevelScaling.Hp(100, 1, MonsterTier.Normal);
-        int hpE = MonsterLevelScaling.Hp(100, 1, MonsterTier.Elite);
-        int hpB = MonsterLevelScaling.Hp(100, 1, MonsterTier.Boss);
-
-        int dmgN = MonsterLevelScaling.Damage(20, 1, MonsterTier.Normal);
-        int dmgE = MonsterLevelScaling.Damage(20, 1, MonsterTier.Elite);
-        int dmgB = MonsterLevelScaling.Damage(20, 1, MonsterTier.Boss);
-
-        Assert.Equal(200, hpE);   // ×2
-        Assert.Equal(600, hpB);   // ×6
-        Assert.Equal(26, dmgE);   // ×1.3
-        Assert.Equal(32, dmgB);   // ×1.6
-
-        // 계약: HP 배율 > 피해 배율 (즉사 방지)
-        Assert.True(hpE / (float)hpN > dmgE / (float)dmgN);
-        Assert.True(hpB / (float)hpN > dmgB / (float)dmgN);
-    }
-
-    [Fact]
-    public void 등급과_레벨은_직교한다()
-    {
-        // 레벨 = 던전 대역 / 등급 = 그 대역 안의 강도. 곱해질 뿐 서로를 바꾸지 않는다.
-        int normalL10 = MonsterLevelScaling.Hp(50, 10, MonsterTier.Normal);
-        int eliteL10 = MonsterLevelScaling.Hp(50, 10, MonsterTier.Elite);
-
-        Assert.Equal(normalL10 * 2, eliteL10);
-    }
-
-    [Fact]
     public void 보상없는_몬스터는_스케일해도_0이다()
     {
         // test_brute 처럼 ExpReward=0 인 픽스처가 레벨 때문에 갑자기 보상을 주면 안 된다.
-        Assert.Equal(0, MonsterLevelScaling.Exp(0, 30, MonsterTier.Boss));
+        Assert.Equal(0, MonsterLevelScaling.Exp(0, 30));
     }
 
     [Fact]
-    public void 드롭_배율은_레벨과_등급을_함께_반영한다()
+    public void 드롭_수량은_레벨에_비례한다()
     {
+        // 등급 확률 배율은 없앴다(AC-G) — 변종이 자기 ID 의 드롭 테이블을 갖는다.
         Assert.Equal(1f, MonsterLevelScaling.DropQuantityMultiplier(1));
-        Assert.Equal(2f, MonsterLevelScaling.DropQuantityMultiplier(6));   // 1 + 0.2×5
-        Assert.Equal(1f, MonsterLevelScaling.DropChanceMultiplier(MonsterTier.Normal));
-        Assert.Equal(2f, MonsterLevelScaling.DropChanceMultiplier(MonsterTier.Elite));
+        Assert.Equal(2f, MonsterLevelScaling.DropQuantityMultiplier(6));   // HP(6)/HP(1) = 200/100
     }
 }

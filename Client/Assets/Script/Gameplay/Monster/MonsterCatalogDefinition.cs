@@ -5,12 +5,27 @@ using UnityEngine;
 namespace Game.Gameplay.Monster
 {
     /// <summary>
+    /// 몬스터 등급 분류(저작용). 서버 <c>Shared.Infrastructure.Monsters.MonsterTier</c> 의 미러 —
+    /// 그쪽은 서버 전용 어셈블리라 클라가 참조할 수 없다. <b>계약은 JSON 의 문자열</b>("Normal"/"Elite"/"Boss").
+    /// <para>문자열인 이유: JSON 을 사람이 읽을 때 <c>2</c> 보다 <c>"Boss"</c> 가 낫고, 등급이 늘어도 숫자 재매핑이 없다.</para>
+    /// </summary>
+    public enum MonsterTierId
+    {
+        Normal = 0,
+        Elite = 1,
+        Boss = 2,
+    }
+
+    /// <summary>
     /// 몬스터 타입별 정의 저작(authoring) 진실원. 디자이너가 이 SO 하나를 Inspector 에서 편집한다.
     /// (DropTableDefinition·LevelTableDefinition 과 동일 컨벤션 — 단일 SO + List, SO 저작 → JSON bake → 서버 임베디드.)
     ///
-    /// "몬스터가 무엇인가"(스탯·exp) = 여기. "몬스터가 어디에 스폰되나"(위치·슬롯) = MapDefinition 의 스폰 데이터.
+    /// "몬스터가 무엇인가"(스탯·exp·등급) = 여기. "몬스터가 어디에 스폰되나"(위치·레벨) = MapDefinition 의 스폰 데이터.
     /// 서버(UnityEngine 의존 0)는 못 읽으므로 Export 툴(Tools/Monster/Export)이 monsters.json 으로 bake →
     /// `Shared.Infrastructure.Monsters.MonsterCatalog` 가 읽는다(던전 시뮬 스탯 + Main 킬 exp).
+    ///
+    /// <para><b>변종 = 별개 행</b>(AC-G). <c>leviathan</c> 과 <c>leviathan_boss</c> 는 각자 ID·스탯을 갖는다 —
+    /// 배율 테이블로 곱하지 않는다. 스폰은 <b>monsterId 하나만</b> 처리하면 된다.</para>
     /// </summary>
     [CreateAssetMenu(fileName = "MonsterCatalogDefinition", menuName = "Game/Monster Catalog Definition", order = 4)]
     public sealed class MonsterCatalogDefinition : ScriptableObject
@@ -50,5 +65,10 @@ namespace Game.Gameplay.Monster
         [Header("보상")]
         [Tooltip("처치 시 획득 경험치(Main 킬 보상). 던전은 맵 클리어 단위라 미사용 가능.")]
         public int expReward = 20;
+
+        [Tooltip("등급 분류(AC-G). 배율이 아니다 — 변종은 각자 ID·스탯을 직접 저작한다. " +
+                 "표시·연출 분기용이고 스탯에 곱해지지 않는다. " +
+                 "보스를 만들려면: 이 행을 복제해 monsterId 를 leviathan_boss 로 바꾸고 maxHp 를 직접 올린다.")]
+        public MonsterTierId tier = MonsterTierId.Normal;
     }
 }

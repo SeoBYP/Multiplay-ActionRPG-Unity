@@ -93,7 +93,7 @@ namespace Game.Gameplay.Editor
                                 monsterId = mn.monsterId,
                                 x = mn.position.x, y = mn.position.y, z = mn.position.z, rotY = mn.rotationY,
                                 count = mn.count, wave = mn.wave,
-                                level = mn.level, tier = (int)mn.tier, // AC-E: 0=맵 기본 / 등급은 int 계약
+                                level = mn.level, // AC-E: 0=맵 기본. 등급은 monsterId 가 갖는다(AC-G)
                                 slotId = mn.slotId, respawnCooldownMs = mn.respawnCooldownMs,
                                 patrol = (mn.patrolPoints ?? new List<Vector3>())
                                     .Select(p => new PatrolDto { x = p.x, z = p.z })
@@ -168,7 +168,6 @@ namespace Game.Gameplay.Editor
                         count = mn.count,
                         wave = mn.wave,
                         level = mn.level,
-                        tier = (MonsterTier)mn.tier, // JSON 계약은 int → 저작 enum 으로 복원
                         slotId = mn.slotId,
                         respawnCooldownMs = mn.respawnCooldownMs,
                         patrolPoints = (mn.patrol ?? new List<PatrolDto>())
@@ -247,7 +246,7 @@ namespace Game.Gameplay.Editor
         [Serializable] private sealed class FileDto { public List<MapDto> maps = new(); }
         [Serializable] private sealed class MapDto { public string mapId; public long expReward; public int monsterLevel; public BoundsDto bounds = new(); public List<PointDto> points = new(); public List<MonsterDto> monsters = new(); }
         [Serializable] private sealed class PointDto { public float x, y, z, rotY; }
-        [Serializable] private sealed class MonsterDto { public string monsterId; public float x, y, z, rotY; public int count = 1; public int wave; public int level; public int tier; public int slotId; public int respawnCooldownMs; public List<PatrolDto> patrol = new(); }
+        [Serializable] private sealed class MonsterDto { public string monsterId; public float x, y, z, rotY; public int count = 1; public int wave; public int level; public int slotId; public int respawnCooldownMs; public List<PatrolDto> patrol = new(); }
         [Serializable] private sealed class PatrolDto { public float x, z; }
         [Serializable] private sealed class BoundsDto { public float centerX, centerZ, sizeX, sizeZ; }
     }

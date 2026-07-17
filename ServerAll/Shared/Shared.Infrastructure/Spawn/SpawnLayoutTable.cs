@@ -66,8 +66,7 @@ public static class SpawnLayoutTable
                     (m.Patrol ?? new List<PatrolDto>())
                         .Select(p => new PatrolPoint(p.X, p.Z))
                         .ToList(),
-                    m.SlotId, m.RespawnCooldownMs,
-                    m.Level, (Monsters.MonsterTier)m.Tier))
+                    m.SlotId, m.RespawnCooldownMs, m.Level))
                 .ToList();
 
             result[map.MapId] = new MapSpawnLayout(
@@ -122,11 +121,9 @@ public static class SpawnLayoutTable
         public int Wave { get; set; }
         public List<PatrolDto> Patrol { get; set; } = new();
 
-        /// <summary>이 스폰만의 레벨(AC-E2). 0 = 맵 기본(<c>MapEntry.MonsterLevel</c>) 사용 — 같은 맵의 엘리트/보스를 올릴 때 쓴다.</summary>
+        /// <summary>이 스폰만의 레벨(AC-E2). 0 = 맵 기본(<c>MapEntry.MonsterLevel</c>) 사용.
+        /// 등급은 여기 없다 — **monsterId 가 곧 변종**이다(AC-G).</summary>
         public int Level { get; set; }
-
-        /// <summary>등급(AC-E2). 0=Normal · 1=Elite · 2=Boss. 레벨과 직교 — 대역 안에서의 강도.</summary>
-        public int Tier { get; set; }
 
         /// <summary>Main B-lite 클레임 키(슬롯 안정 식별자). 던전 미사용(기본 0). main-spawn-claim.md.</summary>
         public int SlotId { get; set; }

@@ -395,6 +395,15 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 - [x] **보스 등급 교정** — `leviathan`(base 40/slam 90)이 `dungeon_02` 에서 **Normal 로 스폰**되고 있었다 → Boss 로.
 - 검증: SocketServer **212/212** · 솔루션 0오류 · EditMode **192/192** · Docker E2E **31/31**.
 
+**AC-G — 등급을 Monster Table 로 · 변종은 ID 로 (2026-07-17 완료, 사용자 지시)**
+- [x] **배율 간접층 제거** — `MonsterScalingDefinition`(SO)·`monster-scaling.json`·`MonsterScalingCatalog`·`spawn.tier`·클라 `MonsterTier` 미러 enum 을 **전부 삭제**. AC-F2 에서 만든 걸 하루 만에 접었다 — 사용자 지적("ID만 처리하면 되잖아")이 옳았다.
+- [x] **등급 = `monsters.json` 의 `tier` 필드**(문자열 "Normal"/"Elite"/"Boss"). **분류일 뿐 스탯에 곱해지지 않는다** — 표시·연출 분기용.
+- [x] **변종 = 별개 ID·스탯 직접 저작** — `leviathan`(hp 500) / `leviathan_boss`(hp 3000). 스폰은 `monsterId` **하나만** 처리한다.
+- [x] 변종 4종(`undead_axemaster_elite`·`wild_centaur_elite`·`gargoyle_elite`·`leviathan_boss`) + 각자의 드롭 테이블(배율이 없으니 없으면 아무것도 안 떨군다).
+- [x] 던전 스폰이 변종 ID 를 직접 지목하도록 재배치(dungeon_02~05).
+- ⚠️ **테스트가 내 저작 실수를 잡았다**: `leviathan` base 를 65 로 착각(그건 arachnya)해 boss 를 390 으로 적었다 → **원본(500)보다 약한 보스**. `변종은_별개_ID_로_저작된다_AC_G` 가 실패시켜 실제 base 로 재저작(3000).
+- 검증: SocketServer **209/209** · 솔루션 0오류 · EditMode **192/192** · Docker E2E **31/31**.
+
 **AC-C1c 가 드러낸 후속 (측정 근거 있음)**
 - [x] **트레이스 링버퍼 포화 — 해소(안ⓒ, 2026-07-17)**. ① 이동 틱(HP 델타 0)은 **링에 안 넣는다**(실측 89% 노이즈 제거) ② 용량 512→**4096**(~200KB) ③ **동기화 집계를 링에서 분리** — 몬스터당 1행 맵(`CombatTraceRecorder.MonsterSync()`)이라 링이 돌아도 유실 없고(예전엔 m3 가 49건 증발), **한 대도 안 맞은 몬스터도 계속 보인다**(필터만 했으면 사라졌을 요구사항). 검증: EditMode **192/192**(+4, 노이즈 필터·델타 보존·집계 무유실).
 - [ ] **몬스터→플레이어 지연 관측 불가** — 몬스터 스윙 행은 `activateToHpMs=-1`. 플레이어 HP 는 ASC 가 적용하는데 그 시점을 기록하지 않는다(`MonsterHpApplied` 는 몬스터 전용). "맞을 때 내 체력바 반응"을 재려면 `EffectReceiver` 적용 시점 기록이 필요.

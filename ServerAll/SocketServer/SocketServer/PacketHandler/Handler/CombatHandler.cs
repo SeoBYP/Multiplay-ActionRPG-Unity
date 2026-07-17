@@ -316,8 +316,8 @@ public static class CombatHandler
     /// </summary>
     private static void SpawnDrops(global::Server.Room.Room room, MonsterState monster)
     {
-        // AC-E4: 레벨(수량)·등급(확률)을 반영해 굴린다 — 고레벨 던전의 보상 감각이 커지고, 엘리트/보스가 잘 떨군다.
-        var drops = DropTableCatalog.Roll(monster.MonsterId, Random.Shared, monster.Level, monster.Tier);
+        // AC-E4/G: 레벨을 반영해 굴린다(수량 = 보상 감각). 등급별 확률은 **변종 자기 ID 의 드롭 테이블**이 갖는다.
+        var drops = DropTableCatalog.Roll(monster.MonsterId, Random.Shared, monster.Level);
         foreach (var drop in drops)
         {
             var ground = room.SpawnGroundItem(drop.ItemId, drop.Qty, monster.PosX, monster.PosY, monster.PosZ);

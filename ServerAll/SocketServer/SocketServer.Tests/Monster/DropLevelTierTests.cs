@@ -1,5 +1,4 @@
 using Shared.Gameplay;
-using Shared.Infrastructure.Monsters;
 
 namespace Server.Tests.Monster;
 
@@ -23,16 +22,6 @@ public class DropLevelTierTests
 
     private static readonly DropEntry Gold = new("gold", chance: 0.5, minQty: 10, maxQty: 30);
     private static readonly DropEntry Sword = new("sword_basic", chance: 0.5, minQty: 1, maxQty: 1);
-
-    [Fact]
-    public void 등급_확률배율이_적중을_넓힌다()
-    {
-        // rng 0.7 > chance 0.5 → Normal 은 미적중. Elite(×2 → 1.0)는 적중.
-        var rng = new FixedRng(0.7);
-
-        Assert.Empty(DropTableRoll.Roll(new[] { Gold }, rng));                          // 배율 1.0
-        Assert.Single(DropTableRoll.Roll(new[] { Gold }, rng, chanceMultiplier: 2.0));  // Elite
-    }
 
     [Fact]
     public void 확률은_1을_넘지_않는다()
@@ -65,14 +54,6 @@ public class DropLevelTierTests
 
         Assert.Equal(legacy.Count, scaled.Count);
         Assert.Equal(legacy[0].Qty, scaled[0].Qty);
-    }
-
-    [Fact]
-    public void 등급별_확률배율이_설계와_일치한다()
-    {
-        Assert.Equal(1f, MonsterLevelScaling.DropChanceMultiplier(MonsterTier.Normal));
-        Assert.Equal(2f, MonsterLevelScaling.DropChanceMultiplier(MonsterTier.Elite));
-        Assert.Equal(3f, MonsterLevelScaling.DropChanceMultiplier(MonsterTier.Boss));
     }
 
     [Fact]

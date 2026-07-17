@@ -26,53 +26,48 @@ MonoBehaviour:
   - position: {x: 3, y: 0, z: -34}
     rotationY: 0
   monsterSpawns:
-  - monsterId: undead_axemaster
+  - monsterId: undead_axemaster_elite
     position: {x: -8, y: 0, z: -2}
     rotationY: 180
     count: 1
     wave: 0
     level: 0
-    tier: 1
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
-  - monsterId: undead_axemaster
+  - monsterId: undead_axemaster_elite
     position: {x: 8, y: 0, z: -2}
     rotationY: 180
     count: 1
     wave: 0
     level: 0
-    tier: 1
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
-  - monsterId: gargoyle
+  - monsterId: gargoyle_elite
     position: {x: 0, y: 0, z: 6}
     rotationY: 180
     count: 1
     wave: 0
     level: 0
-    tier: 1
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
-  - monsterId: leviathan
+  - monsterId: leviathan_boss
     position: {x: -6, y: 0, z: 16}
     rotationY: 180
     count: 1
     wave: 0
     level: 0
-    tier: 2
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
-  - monsterId: leviathan
+  - monsterId: leviathan_boss
     position: {x: 6, y: 0, z: 16}
     rotationY: 180
     count: 1
     wave: 0
     level: 0
-    tier: 2
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
