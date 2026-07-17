@@ -347,6 +347,20 @@
 - **회귀를 실측 확인**: 원격 레코드 생성을 끄니 `다른_플레이어의_스윙도_기록된다` 가 **Expected: 2, But was: 1**(= 사용자가 본 증상 그대로), `몬스터의_공격도_기록된다` 는 0건 → 복원 후 그린.
 - **검증**: EditMode **189/189**(186 + 신규 3) · E2E **31/31**. ⚠ 첫 E2E 에서 `NICKNAME_ALREADY_TAKEN` 1건 실패 → 단독 재실행 통과 + 전체 재실행 31/31 = **테스트 격리 플래키**(반복 E2E 로 닉네임 누적), 내 회귀 아님.
 
+### 2.73 몬스터 사망 시 체력바가 안 비는 버그 (2026-07-17)
+
+- **사용자 관측**: "체력바가 남아 있는데 죽는 모션이 나와 — 죽을 때 체력이랑 UI 동기화가 안 되는 것 같아". 사실이었다.
+- **원인(두 겹)**:
+  1. **서버**: `CombatHandler.ApplyAttackToMonsters` 는 `dead` 면 `S_MonsterDead` **만** 보낸다 — 죽는 순간의 `S_MonsterState{Hp=0}` 은 없다(살아있을 때만 상태를 보냄).
+  2. **클라**: `MonsterEntity.HandleDead` 가 die 트리거 + 지연 디스폰만 하고 **HP 를 0 으로 만들지 않았다**.
+  → 체력바(`MonsterHealthBar`, `HpChanged` 구독)가 **치명타 직전 HP** 에 멈춘 채 `deathDespawnDelay`(2s) 동안 죽는 모션이 재생됐다.
+- **수정**: `HandleDead` 에서 `Hp = 0; HpChanged?.Invoke(this);` 후 die 트리거.
+- **왜 서버가 `Hp=0` 을 추가 전송하지 않고 클라가 유도하나**: `S_MonsterDead` 와 `S_MonsterState` 는 **송신 직렬화가 없어(D1) 순서가 뒤집힐 수 있다.** Dead 가 먼저 도착하면 `RemoveMonster` 로 스냅샷이 사라져 뒤이은 `Hp=0` 이 `UpdateMonster` 에서 **최소 스냅샷만 만들고 `OnMonsterMoved` 를 발행하지 않아 버려진다** → 간헐 재발. 반면 "사망 = HP 0" 은 **서버가 이미 내린 판정**이라 클라 유도가 권위를 해치지 않고 도착 순서와 무관하게 항상 맞다. (C2 로 D1 을 고쳐도 이 유도가 더 단순하고 안전하다.)
+- **플레이어엔 왜 없나(비대칭)**: 플레이어 HP 는 `S_ApplyEffect.Amount` 로 클라 ASC 가 직접 차감한다(결정론 lite) → **죽인 그 타격이 이미 HP 를 0 으로 만든다.** 몬스터만 HP 가 `S_MonsterState` 로만 오는데 그 마지막 패킷이 없어서 생긴 문제.
+- **회귀를 실측 확인**: 수정을 끄니 `사망시_체력바가_0으로_내려간_뒤_죽는모션이_나온다` 가 **Expected: 0, But was: 12**(= 관측된 증상 그대로) → 복원 후 그린.
+- **위치**: `Client/.../Gameplay/Character/MonsterEntity.cs`(`HandleDead`) · 테스트 `Tests/PlayMode/InGame/MonsterEntityAnimTests.cs`.
+- **검증**: PlayMode anim **3/3**(2 + 신규 1) · EditMode **189/189**.
+
 ### 2.63 AC-B B3 — 클라 Cue 데이터화 + 저작 단일화 (2026-07-16)
 
 - **동기(발견)**: B1 이후 같은 스킬이 **두 SO 에 중복 저작**(`GameData/Skill/Skill_*` + `GameData/Ability/Ability_*`)돼, 서버는 abilities.json(B2)·클라는 SkillCatalogDefinition 을 읽는 **드리프트 위험**이 생겼다 → B3 에서 클라도 Ability 로 일원화하며 Skill 계열 전량 제거.

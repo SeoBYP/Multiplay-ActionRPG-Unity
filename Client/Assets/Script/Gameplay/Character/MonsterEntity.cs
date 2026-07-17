@@ -76,11 +76,25 @@ namespace Game.Gameplay.Character
             }
         }
 
-        /// <summary>서버 사망 통지 → die 애니 트리거 + 보간 정지 + 지연 디스폰(디스폰은 스포너가 리스트에서 제거).</summary>
+        /// <summary>서버 사망 통지 → HP 0 확정 + die 애니 트리거 + 보간 정지 + 지연 디스폰(디스폰은 스포너가 리스트에서 제거).</summary>
         private void HandleDead(int instanceId)
         {
             if (instanceId != InstanceId || _dead) return;
             _dead = true;
+
+            // 사망 = HP 0. **서버는 죽는 순간의 S_MonsterState 를 보내지 않는다** — S_MonsterDead 만 온다.
+            // 그래서 여기서 0 으로 만들지 않으면 체력바가 **치명타 직전 값에 멈춘 채** die 애니가 재생된다.
+            //
+            // 왜 서버가 Hp=0 상태를 추가 전송하지 않고 클라가 유도하나:
+            //   S_MonsterDead 와 S_MonsterState 는 송신 직렬화가 없어(D1) 순서가 뒤집힐 수 있고,
+            //   Dead 가 먼저 도착하면 상태 저장소에서 몬스터가 제거돼 뒤이은 Hp=0 이 **버려진다**(간헐 재발).
+            //   "사망 = HP 0" 은 서버가 이미 내린 판정이라 클라가 유도해도 권위를 해치지 않고 순서와 무관하게 항상 맞다.
+            if (Hp != 0)
+            {
+                Hp = 0;
+                HpChanged?.Invoke(this);
+            }
+
             _animations?.SetTrigger(AnimationTriggerType.Dead);
             // 즉시 파괴하면 die 애니가 안 보인다 → 지연 후 자체 파괴. 스포너는 HandleDead 에서 리스트만 정리.
             Destroy(gameObject, deathDespawnDelay);

@@ -113,5 +113,43 @@ namespace Game.Tests.PlayMode.InGame
             Assert.IsTrue(enteredWalk,
                 "서버 이동 수신 시 Speed 파라미터가 올라 Animator 가 Walk 로 전이해야 한다 — CharacterAgentAnimations 의 Speed 파라미터명 배선 확인.");
         }
+
+        [UnityTest]
+        public IEnumerator 사망시_체력바가_0으로_내려간_뒤_죽는모션이_나온다()
+        {
+            // 회귀: 서버는 죽는 순간의 S_MonsterState 를 보내지 않고 S_MonsterDead 만 보낸다.
+            // 클라가 HP 를 0 으로 확정하지 않으면 **체력바가 치명타 직전 값에 멈춘 채** die 애니가 재생된다
+            // (사용자 관측: "체력바가 남아 있는데 죽는 모션이 나와").
+            GameObject prefab = null;
+#if UNITY_EDITOR
+            prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Character/Monster/Monster_creepy_demon.prefab");
+#endif
+            Assume.That(prefab, Is.Not.Null, "Monster_creepy_demon 프리팹 로드 실패(에디터 외 실행)");
+
+            const int instanceId = 3;
+            _instance = Object.Instantiate(prefab);
+            var entity = _instance.GetComponent<MonsterEntity>();
+
+            var state = new SocketPacketState();
+            state.AddMonster(new SocketMonsterSnapshot(instanceId, "creepy_demon", 0f, 0f, 0f, 0f, 30, 30, 0));
+            entity.Initialize(instanceId, state);
+            yield return null;
+
+            // 치명타 직전: HP 가 12 로 깎인 상태(체력바도 12/30 을 그리고 있다).
+            state.UpdateMonster(instanceId, 0f, 0f, 0f, 0f, hp: 12, phase: 3, seq: 1);
+            yield return null;
+            Assume.That(entity.Hp, Is.EqualTo(12), "선행 조건: 사망 직전 HP 가 남아 있어야 이 회귀가 성립한다");
+
+            int hpChangedCalls = 0;
+            entity.HpChanged += _ => hpChangedCalls++;
+
+            // 서버가 죽였다 — HP 통지 없이 사망만 온다.
+            state.RemoveMonster(instanceId);
+            yield return null;
+
+            Assert.AreEqual(0, entity.Hp, "사망 통지를 받으면 HP 가 0 이어야 한다(체력바가 남아 있으면 안 된다)");
+            Assert.AreEqual(1, hpChangedCalls, "체력바가 다시 그리도록 HpChanged 가 발화해야 한다");
+        }
     }
 }
