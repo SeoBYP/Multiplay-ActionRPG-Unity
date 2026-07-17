@@ -35,33 +35,25 @@
 
 ## 2. 목표 레이어링 — 무엇이 어디에
 
-```
-┌──────────── Shared.Gameplay (게임플레이 데이터·판정만, UnityEngine 0, Cue 0) ────────────┐
-│  GameplayTag / GameplayTagContainer       ← "State.Dead" 등 상태 (NEW)                    │
-│  GameplayAttributeModifier · GameplayEffectMath · HitboxMath · SkillTimelineMath (순수)   │
-│  GameplayEffectDefinition (+ GrantedTags[])  ← Client에서 이사. GrantedTags=게임플레이     │
-│  GameplayEffectCatalog(데이터)  ← 클라/서버 카탈로그 **단일소스로 합침** (문제① 해소)      │
-│  ActiveGameplayEffect            ← Client에서 이사 (순수)                                  │
-│  SkillTimeline (startup/active/recovery/cooldown/Hitbox/OnHitEffectIds) ← 게임플레이만     │
-└──────────▲───────────────────────────────────────────────────────────▲──────────────────┘
-       클라 = Plugins/Shared.Gameplay.dll                          서버 = ProjectReference
-            │ (동일 ns 머지)                                            │ (Cue를 모름)
-┌───────────┴───────────────────────────────────┐   ┌────────────────┴────────────────────┐
-│ CLIENT — 연출은 전부 여기, ID로 조인           │   │ SERVER                               │
-│                                                │   │  발동 게이트(쿨다운/시전중) → 판정    │
-│ AbilitySystemComponent : MonoBehaviour         │   │  → 적중분만 S_ApplyEffect / Damage    │
-│   ├ TagContainer (State.Dead …)                │   │  발동 상태(LastCast)만 per-actor 보유 │
-│   ├ Attributes + Tick                          │   │  (연출·CueTag 미보유)                 │
-│   └ on(EffectApplied / TagChanged) 이벤트       │   └──────────────────────────────────────┘
-│                                                │
-│ [연출 = 클라 전용 SO 3종, key=ID]              │
-│   ① AbilityCueTrack  key=AbilityId → [(ms,Cue)]│  ← 시전자 스윙/캐스트 타임라인
-│   ② EffectCueMap     key=EffectId  → CueTag[]  │  ← 피격/상태 연출
-│   ③ CueCatalog       key=CueTag    → prefab/SFX│  ← 실제 VFX·사운드 에셋
-│ GameplayCueManager: ①②를 ③으로 해석해 스폰     │
-│                                                │
-│ 삭제: GameplayEffect + AbilitySystemUtils (③)  │
-└────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph SHARED["Shared.Gameplay — 게임플레이 데이터·판정만 (UnityEngine 0 · Cue 0)"]
+        TAG["GameplayTag / TagContainer"]
+        MATH["GameplayEffectMath · HitboxMath ·<br/>SkillTimelineMath · StatCombatMath (순수)"]
+        EFF["GameplayEffectDefinition(+GrantedTags) ·<br/>GameplayEffectCatalog · ActiveGameplayEffect"]
+        TL["SkillTimeline<br/>(startup/active/recovery/cooldown/Hitbox/OnHitEffectIds)"]
+    end
+    SHARED -.->|"클라 = Plugins/Shared.Gameplay.dll (동일 ns)"| CLIENT
+    SHARED -.->|"서버 = ProjectReference (Cue 를 모른다)"| SERVER
+    subgraph CLIENT["CLIENT — 연출은 전부 여기, ID 로 조인"]
+        ASC["AbilitySystemComponent : MonoBehaviour<br/>TagContainer · Attributes+Tick · 이벤트"]
+        CUE["연출(현행): AbilityDefinition.cueTrigger(SO, bake 제외)<br/>→ AbilityCueRouter(ActorId → IActorView)<br/>→ CharacterAgentAnimations(파라미터명 = 프리팹 보유)"]
+    end
+    subgraph SERVER["SERVER"]
+        GATE["발동 게이트: 마나 → 콤보 cadence → 쿨다운"]
+        JUDGE["HitboxMath 재계산 → 적중분만<br/>S_ApplyEffect / DamageMonster"]
+        GATE --> JUDGE
+    end
 ```
 
 **원칙: Shared는 게임플레이 순수. 서버는 Cue 문자열을 하나도 안 가진다. 모든 연출 매핑은 클라 SO.**
@@ -78,13 +70,12 @@
 
 게임플레이 **콘텐츠 데이터**(아이템·소모품·스킬 수치)의 단일 교리. 문제①(수치 이중정의)의 근본 해법.
 
-```
-[기획자] Unity Inspector 에서만 편집
-   └─ ScriptableObject (예: ConsumableCatalog · DropTableDefinition)   ◀── 저작 진실원(편집 쉬움)
-        ├─(런타임 직접 읽기)──▶ 클라: 아이템/스킬 정보 프리뷰·UI·로컬 적용 (클라가 미리 데이터를 앎)
-        └─[Tools/.../Export] (에디터 1버튼)
-              └─ bake ▶ *.json (Shared.Infrastructure 임베디드)   ◀── 기계 산출물(기획자 비노출)
-                          └─▶ 서버: 클라가 보낸 아이템/스킬 사용이 적합한지 **검증(치팅 방지)**
+```mermaid
+flowchart TB
+    AUTH["기획자 — Unity Inspector 에서만 편집<br/>ScriptableObject (AbilityDefinition · MonsterCatalogDefinition ·<br/>DropTableDefinition · LevelTableDefinition · MapDefinition ...)"]
+    AUTH ==>|"저작 진실원"| CLI["클라: 프리뷰·UI·로컬 적용<br/>(런타임 직접 읽기 — 데이터를 미리 안다)"]
+    AUTH -->|"Tools/.../Export (에디터 1버튼, BakeAll)"| JSON["*.json — Shared.Infrastructure 임베디드<br/>기계 산출물(기획자 비노출·직접 편집 금지)"]
+    JSON --> SRV["서버: 클라 요청(아이템/스킬 사용)이<br/>적합한지 검증 — 치팅 방지"]
 ```
 
 - **왜 SO가 저작 진실원**: ① Inspector 편집이 쉬움(기획 친화) ② **클라가 데이터를 미리 알아야** 아이템/스킬 정보를 화면에 보여줄 수 있음.
@@ -112,46 +103,55 @@
 
 ## 4. 연출(Cue)이 터지는 3경로 — 전부 ID 조회, 패킷 무변경
 
-```
-시전자 스윙   : 로컬 입력 → AbilityId 로 ①AbilityCueTrack 로컬 재생            [패킷 0]
-피격 스파크   : S_ApplyEffect{EffectId,TargetId} 수신 → ②EffectCueMap 조회        [기존 패킷, 변경 0]
-                 → TargetId→그 캐릭터 transform 위치에 ③CueCatalog 스폰
-상태(사망/버프): TagContainer 변경(State.Dead 등) → 그 태그에 묶인 Cue 재생         [Tag 복제로]
+```mermaid
+flowchart LR
+    A["시전자 스윙(나)"] -->|"로컬 입력 → cueTrigger 즉시 재생<br/>패킷 0 — 손맛"| CUE["애니 Cue<br/>(CharacterAgentAnimations)"]
+    B["원격 스윙(남·몬스터)"] -->|"S_AbilityActivated — 게이트 통과분만<br/>(AC 도입, Union 1604)"| RT["AbilityCueRouter"]
+    RT --> CUE
+    C["피격"] -->|"S_ApplyEffect{EffectId,Amount}<br/>기존 패킷, 변경 0"| ER["EffectReceiver → ASC 적용<br/>(EffectCueMap 미구현 — VFX 는 AC-D3)"]
+    D["상태(사망/버프)"] -->|"활성 Effect 의 GrantedTags"| TG["TagContainer → 게이트·포즈"]
 ```
 
 **중요 — `S_ApplyEffect`에 `CueTags` 필드 추가는 불필요(철회).** 패킷은 이미 `EffectId`를 싣고, 클라가 그 ID로 `EffectCueMap`을 조회한다. **공개계약 변경 0.** (동적 큐 — 크리티컬 등 — 가 생기면 그때 필드 추가 검토.)
 
 ### 시전자 즉발 vs 원격 지연 (authority-model ③)
-```
-시전자(나):  입력 순간 ──즉시──> 로컬 Cue(스윙)        ← RTT 안 기다림(손맛)
-                                  └ 내 S_ApplyEffect 도착해도 "내가 시전자"면 중복 cue skip
-원격(남):    S_ApplyEffect/Tag 도착 ──> 그제서야 피격/상태 Cue 재생  ← ~1 RTT 뒤
+```mermaid
+sequenceDiagram
+    participant Me as 시전자(나)
+    participant Sv as 서버
+    participant Ot as 원격(남)
+    Me->>Me: 입력 즉시 로컬 Cue (RTT 0 — 손맛)
+    Me->>Sv: C_Attack{SkillId}
+    Sv->>Sv: 게이트(마나·cadence·쿨다운) → HitboxMath 판정
+    Sv-->>Ot: S_AbilityActivated → 원격 스윙 Cue (~1 RTT)
+    Sv-->>Ot: S_ApplyEffect(적중분) → 피격/상태 반영
+    Note over Me: 내 S_ApplyEffect 가 와도 시전자면 중복 cue skip
 ```
 authority-model.md §5(데미지 숫자)와 동일 패턴 — View(CueManager)는 멍청하게, Source만 로컬/네트워크 교체.
 
-### 의도된 누락 (YAGNI)
-**원격 헛스윙 연출**(남의 startup swing을 봄)은 빠진다 = 드롭한 `S_AbilityActivated` relay 영역.
-필요해지면 발동 1줄 relay로 원격에도 ①AbilityCueTrack을 재생하면 끝 — **확장점만 남기고 지금은 안 만든다.**
+### ~~의도된 누락 (YAGNI)~~ → **✅ 도입됨 (AC, 2026-07-17)**
+당시 "지금은 안 만든다"고 접었던 `S_AbilityActivated` relay 가 **Actor 통합 설계에서 축으로 승격**됐다(Union 1604).
+서버 게이트를 통과한 발동만 브로드캐스트되므로 연사 치팅이 원격 애니로 새지 않고, 플레이어·몬스터가 같은 파이프를 쓴다.
 
 ---
 
 ## 5. 서버 발동 권위 — 치팅 축(①) 차단
 
-연출이 로컬이어도 **데미지는 항상 서버를 거친다**. 그러나 현재 서버는 발동 *조건*을 안 본다 → `C_Attack` 연사 = 폭딜(문제⑤).
+연출이 로컬이어도 **데미지는 항상 서버를 거친다**. ~~그러나 현재 서버는 발동 *조건*을 안 본다~~ → **✅ 구현됨(AC)**: 아래 게이트 체인이 `CombatHandler.HandleAttack` 에 그대로 있다(거부 사유는 `[CombatTrace]` gate 로 관측).
 
+```mermaid
+flowchart TB
+    CA["C_Attack{SkillId}"] --> RES["ResolveAbility(networkId)<br/>미등록 = 거부(조작 SkillId 방어)"]
+    RES --> MANA{"마나 ≥ cost?"}
+    MANA -->|NO| G1["거부 + S_PlayerMana 정정<br/>gate=NoMana"]
+    MANA -->|YES| CAD{"콤보 cadence OK?<br/>(ComboChainMs − 지터 허용)"}
+    CAD -->|NO| G2["거부 — A→B→C 즉시 3연타 차단<br/>gate=ComboCadence"]
+    CAD -->|YES| CD{"TryBeginSkill<br/>(쿨다운)?"}
+    CD -->|NO| G3["거부 — 연사 폭딜 차단<br/>gate=OnCooldown"]
+    CD -->|YES| BC["마나 차감 → S_AbilityActivated 브로드캐스트<br/>→ HitboxMath 판정 진행"]
 ```
-[해킹 클라] C_Attack 연사 ──►──►──► (쿨다운 무시)
-[서버 — 현재] 매번 hitbox 평가 → 데미지  ← 뚫림
 
-[서버 — 목표]  ┌─ 발동 게이트 ───────────────────────────┐
-   C_Attack ──►│ skill = SkillTimeline(skillId)          │
-               │ now - actor.LastCast[skill] >= Cooldown?│
-               │   NO  → 드롭(데미지 0)  ← 권위           │
-               │   YES → LastCast=now → 판정 진행          │
-               └─────────────────────────────────────────┘
-```
-
-- `CooldownMs`는 이미 `SkillTimeline`에 **데이터로 존재** — 서버가 안 읽을 뿐.
+- `CooldownMs`·`ComboChainMs`·`ManaCost` 전부 `SkillTimeline` **데이터**(abilities.json) — 이제 서버가 읽는다.
 - 선택: active/recovery 중 재발동 거부까지 더하면 "시전 끝났다"를 서버가 앎.
 - 클라 예측은 유지(손맛). 서버 거부 시 데미지만 안 감(피격 Effect 없음 → 연출 자연 정리).
 - **얇게 한정**: 쿨다운 + 시전중 거부까지. active-window 정밀(서버 tick 시뮬)은 더 큰 부채 → 별도.

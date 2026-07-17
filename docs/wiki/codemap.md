@@ -332,7 +332,7 @@
 - **Main 체력바(H)** = `IMonsterHealth`(Hp/MaxHp/HpChanged) — 구현체 둘(던전 `MonsterEntity`=서버 권위 / Main `LocalMonster`=클라 권위)이라 인터페이스 도입 기준 충족. `MonsterHealthBar` 는 계약만 봐서 **던전·Main 공용**. LocalMonster 도 **사망 시 HP 0 확정**(§2.77 버그의 Main 판 예방). 프리팹은 던전 것 서브트리 복제(`CreepyDemonLocal.prefab`).
 - **저작 파이프 함정 3건(재발 방지)**: ① `spawn-layouts.json`/`drop-tables.json`/`monsters.json` 은 **exporter 생성물** — 직접 편집하면 다음 Export 에 덮인다(→ SO 저작 후 Export 가 유일 경로). ② exporter 의 `Export()` 는 끝에 `DisplayDialog`(모달) → **MCP/자동화가 무기한 블록**(Unity 멈춤의 원인) — 팝업 없는 `BakeAll()` 을 쓴다. ③ Import 왕복 배선 누락 시 bootstrap Import 가 저작값을 0 으로 지운다.
 - **⚠️ 데이터 저작에도 계약 테스트**: leviathan base 를 65 로 착각(그건 arachnya)해 boss 390 = **원본(500)보다 약한 보스**를 저작 → `변종은_별개_ID_로_저작된다_AC_G`(boss.MaxHp > normal×4)가 잡았다. 오타 monsterId 는 Default 폴백으로 **공격 안 하는 유령**이 되므로 `스폰이_지목한_변종이_카탈로그에_존재한다_AC_G` 로 전수 검증.
-- 잔여: dungeon_03~05 `visualPrefab` 없음(에셋) · `tier` 연출 소비자 없음(보스 체력바·등장 연출 후보) · AC-D(전용 애니·P→P 스케일·VFX Cue) · **발견(2026-07-17 검수): `Shared.Gameplay/Abilities/SkillCatalog.cs` 는 죽은코드**(실호출 0 — AC-B 가 AbilityCatalog 로 대체. 삭제는 DLL 재배포 동반이라 승인 대기).
+- 잔여: dungeon_03~05 `visualPrefab` 없음(에셋) · `tier` 연출 소비자 없음(보스 체력바·등장 연출 후보) · AC-D(전용 애니·P→P 스케일·VFX Cue) · **`Shared.Gameplay/Abilities/SkillCatalog.cs` 죽은코드 삭제됨**(승인 후 2026-07-17 — 실호출 0, AC-B 가 AbilityCatalog 로 대체. Release 재빌드 209/209·50/50. ⚠ 클라 `Plugins/Shared.Gameplay.dll` 복사는 권한 정책으로 차단 → 사용자 수동 1회 필요).
 - 검증(최종): SocketServer **209/209** · Shared.Gameplay 50/50 · EditMode **192/192** · PlayMode(anim 3/3 · Main 체력바 3/3) · Docker E2E **31/31**. PR #60 → main `972991e5`.
 
 ### 2.63 캡슐 몬스터 제거 + slime→creepy_demon 전면 교체 (2026-07-16)

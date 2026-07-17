@@ -105,31 +105,36 @@ HP(L) = 100 + 20(L-1) = HP(1)·(1 + 0.2(L-1))
 
 ## 4. 컴포넌트 배치 · 흐름
 
-> ⚠️ **정정(AC-G)**: 아래 흐름의 `T`(등급) 인자와 `spawn.tier` 는 제거됐다. 현행 시그니처:
-> `MonsterLevelScaling.Hp(maxHp₁, L)` · `Damage(base₁, L)` · `Exp(exp₁, L)` · `DropTableCatalog.Roll(id, rng, level)`.
-> 등급 강도는 **변종 ID 의 저작값**이 담당하고, `MonsterState.Tier` 는 카탈로그(monsterId 행)에서 읽는 분류다.
+> ⚠️ **이력(AC-G)**: 구판 다이어그램엔 `T`(등급) 인자와 `spawn.tier` 가 있었다 — 제거됨. 등급 강도는 **변종 ID 의 저작값**이 담당하고, `MonsterState.Tier` 는 카탈로그(monsterId 행)에서 읽는 표시용 분류다. **아래 다이어그램은 현행.**
 
-```
-spawn-layouts.json                     monsters.json           abilities.json        drop-tables.json
-  map.monsterLevel  ──┐                  maxHp(base₁)            baseDamage(base₁)     monsterId → drops
-  spawn.level (0=맵) ─┼─▶ 유효 L        ExpReward                                     
-  spawn.tier        ──┴─▶ 등급 T                                                       
-        │                                                                              
-        ▼                                                                              
-  MonsterLevelScaling (Shared.Infrastructure — 플레이어 곡선 참조)                     
-        ├─ Hp(maxHp₁, L, T)                                                            
-        ├─ Damage(base₁, L, T)                                                         
-        └─ Exp(exp₁, L, T)                                                             
+```mermaid
+flowchart TB
+    subgraph AUTH["저작 데이터 — 전부 SO 저작 → bake JSON"]
+        SL["spawn-layouts.json<br/>map.monsterLevel · spawn.level(0=맵)"]
+        MO["monsters.json<br/>maxHp(base₁) · tier(분류) · 변종 행(leviathan_boss 3000)"]
+        AB["abilities.json<br/>baseDamage(base₁)"]
+        DR["drop-tables.json<br/>monsterId → drops (변종별 자기 테이블)"]
+        LV["level-table.json<br/>플레이어 곡선 HP/AP/DEF"]
+    end
+    SL -->|"MapSpawnLayout.ResolveLevel<br/>(스폰 > 맵 > 1)"| L["유효 레벨 L"]
+    L --> SC["MonsterLevelScaling<br/>(Shared.Infrastructure — 상수 0, LevelTable 직독)"]
+    LV --> SC
+    MO -->|"maxHp₁"| SC
+    AB -->|"base₁"| SC
+    SC -->|"Hp(maxHp₁, L)"| ST["MonsterState — 스폰 시 1회 확정"]
+    SC -->|"Damage(base₁, L)"| DMG["StatCombatMath.MeleeDamage<br/>(산식 무변경 — 입력만 스케일)"]
+    SC -->|"DropQuantityMultiplier(L)"| ROLL["DropTableCatalog.Roll(id, rng, L)"]
+    DR --> ROLL
 ```
 
 ### 4.1 스폰 — 레벨은 **스폰 시 1회 확정**
 
 ```
-Room.SpawnMonsters(defs, bounds, layout)
-   │   L = def.Level > 0 ? def.Level : layout.MonsterLevel     ← 스폰 우선, 없으면 맵 기본
-   │   T = def.Tier
+Room.SpawnMonsters(defs, bounds, mapMonsterLevel)
+   │   L    = MapSpawnLayout.ResolveLevel(def.Level, mapMonsterLevel)   ← 스폰 > 맵 > 1 (단일 구현)
+   │   Tier = MonsterCatalog.Get(def.MonsterId).Tier                    ← 카탈로그 분류(스탯 무관)
    ▼
-MonsterState { Level=L, Tier=T, MaxHp=Scaling.Hp(def.MaxHp, L, T), Hp=MaxHp }
+MonsterState { Level = L, Tier, MaxHp = Scaling.Hp(stats.MaxHp, L), Hp = MaxHp }
 ```
 
 > 매 틱 재계산하지 않는다 — 스탯은 스폰 순간의 값이 진실. (레벨업하는 몬스터는 없다.)
@@ -138,8 +143,8 @@ MonsterState { Level=L, Tier=T, MaxHp=Scaling.Hp(def.MaxHp, L, T), Hp=MaxHp }
 
 ```
 Room.TickMonsters
-   └─▶ StatCombatMath.MeleeDamage( Scaling.Damage(ability.BaseDamage, m.Level, m.Tier), 0, target.Defense )
-                                   └────────── 여기만 바뀐다 ──────────┘
+   └─▶ StatCombatMath.MeleeDamage( Scaling.Damage(chosen.BaseDamage, m.Level), 0, target.Defense )
+                                   └───────── 여기만 바뀐다 ─────────┘
 ```
 
 `StatCombatMath` 는 **손대지 않는다** — 산식(`max(1, base+AP−DEF)`)은 옳고, 틀린 건 base 였다.
@@ -148,10 +153,9 @@ Room.TickMonsters
 
 ```
 CombatHandler.SpawnDrops(room, monster)
-   └─▶ DropTable.Roll(monsterId, monster.Level, monster.Tier)
-         ├─ gold  수량 × (1 + 0.2(L-1))          ← 레벨 비례
-         ├─ 확률  × 등급배율
-         └─ Boss  → 장비 확정
+   └─▶ DropTableCatalog.Roll(monsterId, rng, monster.Level)
+         ├─ 가변 수량(gold 등) × HP(L)/HP(1)   ← 레벨 비례. 장비(1~1)는 제외(검 2자루 방지)
+         └─ 등급별 차이 = 변종 자기 테이블의 저작값 (확률 배율 없음 — AC-G)
 ```
 
 ---
