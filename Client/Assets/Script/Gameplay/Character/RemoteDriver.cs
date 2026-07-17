@@ -18,7 +18,7 @@ namespace Game.Gameplay.Character
     /// ⚠ 원격 프리팹에는 WeaponHitbox/Rigidbody 를 붙이지 않는다 — 무기는 <b>메시(연출)뿐</b>.
     ///    원격이 로컬에서 적중 판정을 하면 서버 권위가 깨진다.
     /// </summary>
-    public class RemoteDriver : MonoBehaviour, IDisposable
+    public class RemoteDriver : MonoBehaviour, IActorView, IDisposable
     {
         [SerializeField] private float lerpSpeed = 15f;
         [Tooltip("Speed 파라미터 평활화 계수. 보간 지터가 Idle/Walk/Run 블렌드를 떨게 하는 것을 막는다.")]
@@ -45,8 +45,9 @@ namespace Game.Gameplay.Character
             _state.OnPlayerMoved    += HandlePlayerMoved;
             _state.OnPlayerDead     += HandlePlayerDead;
             _state.OnPlayerRevived  += HandlePlayerRevived;
-            _state.OnPlayerAttacked += HandlePlayerAttacked;
             _state.OnPlayerDodged   += HandlePlayerDodged;
+            // 공격 연출은 Actor 통합 파이프로 흡수 — S_AbilityActivated → AbilityCueRouter → ActorRegistry → PlayAbilityCue.
+            // (CharacterSpawner 가 이 RemoteDriver 를 ActorId(=UserId)로 레지스트리에 등록한다.)
 
             // 점프/낙하 미동기화 → 지상 가정. Locomotion 이 블렌드에 머물게 한다.
             _animations?.SetBool(AnimationBoolType.Grounded, true);
@@ -75,14 +76,13 @@ namespace Game.Gameplay.Character
             _animations?.SetTrigger(AnimationTriggerType.Revive);
         }
 
-        /// <summary>원격 공격 스윙(연출 전용). 적중·데미지는 서버 권위 — 여기선 애니만 재생한다.
-        /// skillId(서버 CombatHandler.ResolveSkill 규약)로 콤보 단계 선택: 3=B/4=C, 그 외(0/1/2)=A.</summary>
-        private void HandlePlayerAttacked(long attackerId, int skillId)
+        /// <summary>원격 공격 스윙(연출 전용, IActorView). 적중·데미지는 서버 권위 — 여기선 애니만 재생한다.
+        /// AbilityCueRouter 가 ActorId 로 이 뷰를 찾고 **어빌리티 카탈로그에서 Cue 를 해석해** 넘긴다 —
+        /// 과거의 하드코딩 콤보 switch(3→B/4→C)는 제거됐다(AC-B B3: 연출은 Ability SO 저작).</summary>
+        public void PlayAbilityCue(AnimationTriggerType trigger, int comboStep)
         {
-            if (attackerId != UserId) return;
-            int comboStep = skillId switch { 3 => 1, 4 => 2, _ => 0 };
             _animations?.SetInt(AnimationIntType.ComboStep, comboStep);
-            _animations?.SetTrigger(AnimationTriggerType.Attack);
+            _animations?.SetTrigger(trigger);
         }
 
         /// <summary>원격 회피 구르기(연출 전용). 무적 창/피해 무시는 서버 권위 — 여기선 애니만 재생한다.</summary>
@@ -126,7 +126,6 @@ namespace Game.Gameplay.Character
             _state.OnPlayerMoved    -= HandlePlayerMoved;
             _state.OnPlayerDead     -= HandlePlayerDead;
             _state.OnPlayerRevived  -= HandlePlayerRevived;
-            _state.OnPlayerAttacked -= HandlePlayerAttacked;
             _state.OnPlayerDodged   -= HandlePlayerDodged;
         }
 

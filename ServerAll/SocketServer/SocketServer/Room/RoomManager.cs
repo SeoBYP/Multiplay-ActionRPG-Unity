@@ -58,7 +58,7 @@ public class RoomManager
         }
 
         // 몬스터 초기 스폰(서버 권위) — 맵 경계도 함께 보관(이동 clamp 기준).
-        room.SpawnMonsters(layout.Monsters, layout.Bounds);
+        room.SpawnMonsters(layout.Monsters, layout.Bounds, layout.MonsterLevel); // AC-E2: 던전 기본 레벨(0=미저작→L1)
 
         _logger.LogInformation("Room {RoomId} created with {MaxPlayers} players", msgRoomId, msgPlayerIds.Count);
         return room;

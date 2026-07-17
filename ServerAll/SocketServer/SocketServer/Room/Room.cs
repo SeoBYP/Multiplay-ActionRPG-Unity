@@ -1,8 +1,10 @@
 using Script.System.GamePlayAbilitySystem;
 using Server.Combat;
+using Server.Diagnostics;
 using Server.Loot;
 using Server.Monster;
 using Server.Player;
+using Shared.Infrastructure.Abilities;
 using Shared.Infrastructure.Messages;
 using Shared.Infrastructure.Spawn;
 
@@ -339,7 +341,10 @@ public class Room
     /// **반드시 이 메서드를 경유**한다. 원인이 여럿이 되면 이 한 점을 `SpawnSystem`(이벤트 라우터)로
     /// 감싸 "왜 스폰(원인)"과 "어떻게 스폰(여기)"을 분리한다. 설계·승격 트리거 = docs/wiki/spawn-system-evolution.md.
     /// </summary>
-    public void SpawnMonsters(IReadOnlyList<MonsterSpawnDef> defs, MapBounds bounds)
+    /// <param name="mapMonsterLevel">
+    /// 던전 기본 몬스터 레벨(AC-E2). 0 = 미저작 → 스폰별 Level 도 없으면 L1(레벨 도입 전과 동일 동작).
+    /// </param>
+    public void SpawnMonsters(IReadOnlyList<MonsterSpawnDef> defs, MapBounds bounds, int mapMonsterLevel = 0)
     {
         lock (_monsters)
         {
@@ -348,6 +353,12 @@ public class Room
             {
                 var stats = MonsterCatalog.Get(def.MonsterId);
                 int count = Math.Max(1, def.Count);
+
+                // 레벨은 **스폰 시 1회 확정**한다(monster-leveling.md §4.1) — 매 틱 재계산하지 않는다.
+                // 등급은 스폰이 아니라 **카탈로그(monsterId 행)** 에서 온다(AC-G) — monsterId 가 곧 변종이다.
+                int level = MapSpawnLayout.ResolveLevel(def.Level, mapMonsterLevel);
+                int maxHp = Shared.Infrastructure.Monsters.MonsterLevelScaling.Hp(stats.MaxHp, level);
+
                 for (int i = 0; i < count; i++)
                 {
                     int id = ++_nextMonsterInstanceId;
@@ -355,11 +366,15 @@ public class Room
                     {
                         InstanceId = id,
                         MonsterId  = def.MonsterId,
+                        Level = level,
+                        // 등급은 카탈로그(monsterId 행)에서 직접 읽는다(AC-G) — MonsterStats 는 시뮬 전용 뷰라
+                        // 표시·연출용 등급을 담지 않는다.
+                        Tier = Shared.Infrastructure.Monsters.MonsterCatalog.Get(def.MonsterId).Tier,
                         PosX = def.X, PosY = def.Y, PosZ = def.Z,
                         SpawnX = def.X, SpawnZ = def.Z,
                         RotY = def.RotY,
-                        MaxHp = stats.MaxHp,
-                        Hp = stats.MaxHp,
+                        MaxHp = maxHp,
+                        Hp = maxHp,
                         Phase = MonsterPhase.Idle,
                         Patrol = def.Patrol,
                         PatrolIndex = 0,
@@ -580,63 +595,98 @@ public class Room
                 var stats = MonsterCatalog.Get(m.MonsterId);
                 int targetIdx = MonsterAiMath.Step(m, positions, _bounds, stats, dt);
 
-                outPackets.Add(new S_MonsterState
+                // dirty-flag(§5.2): 위치·회전·HP·페이즈가 직전 송신과 같으면 생략 → Idle 경비 몬스터 트래픽 0.
+                // 신규 입장자는 S_SpawnMonster 로스터로 최신 상태를 받으므로 유실 없음. Chase/Patrol 은 매 틱 변해 그대로 송신.
+                if (m.StateDirty())
                 {
-                    InstanceId = m.InstanceId,
-                    PosX = m.PosX, PosY = m.PosY, PosZ = m.PosZ,
-                    RotY = m.RotY,
-                    Hp = m.Hp,
-                    Phase = (byte)m.Phase,
-                });
+                    outPackets.Add(new S_MonsterState
+                    {
+                        InstanceId = m.InstanceId,
+                        PosX = m.PosX, PosY = m.PosY, PosZ = m.PosZ,
+                        RotY = m.RotY,
+                        Hp = m.Hp,
+                        Phase = (byte)m.Phase,
+                        // AC-C3: 여기서 만든 이 패킷은 **RoomTickService 가 나중에** 보낸다. 그 사이 데미지가 끼면
+                        // 이 옛 HP 가 새 HP 뒤에 도착한다 → 클라가 Seq 로 버린다. 생성 시점 스탬프가 핵심.
+                        Seq = m.NextSeq(),
+                    });
+                    m.MarkStateSent();
+                }
 
-                // ⑤b: Attack 페이즈 + 쿨다운 경과 → 최근접 플레이어에 데미지 효과(클라가 ASC에 적용).
-                if (m.Phase == MonsterPhase.Attack
-                    && targetIdx >= 0
-                    && nowMs - m.LastAttackAt >= stats.AttackCooldownMs)
+                // ⑤b/AC-B: Attack 페이즈 → 사거리·쿨다운을 만족하는 **어빌리티**를 골라 발동(보스 다중 스킬 지원).
+                // 발동 게이트 = AbilityActivationMath(플레이어 CombatHandler 와 동일 Shared 규칙). 몬스터는 마나·차단태그 없음.
+                if (m.Phase == MonsterPhase.Attack && targetIdx >= 0)
                 {
-                    m.LastAttackAt = nowMs;
                     var target = players[targetIdx];
-                    long targetUserId = target.UserId;
+                    var chosen = SelectMonsterAbility(m, target, nowMs);
+                    if (chosen is null)
+                        continue; // 사거리 밖이거나 전부 쿨다운 — 이번 틱은 발동 없음
 
-                    // 몬스터 공격 = 이름있는 GameplayAbility('{monsterId}_attack'). 발동(쿨다운 소모) 시점 로그.
-                    // (i-frame 으로 빗나가도 어빌리티는 발동된 것 — 헛스윙.)
-                    _logger.LogInformation("[GameplayAbility] monster {MonsterId} 발동: '{AbilityId}' → user {UserId}",
-                        m.MonsterId, $"{m.MonsterId}_attack", targetUserId);
+                    m.MarkCast(chosen.Id, nowMs); // 쿨다운 시작(어빌리티 단위)
+                    long targetUserId = target.UserId;
+                    long attackerActorId = ActorIds.FromMonster(m.InstanceId); // 부호 규약: 몬스터=음수
+
+                    // AC: 발동 = "이 액터가 스킬을 썼다" 통합 연출 신호. i-frame 으로 빗나가도(헛스윙) 스윙 애니는 나가야 하므로
+                    // 데미지 판정(무적 continue)보다 먼저 broadcast. 클라 라우터가 NetworkId 로 어빌리티 Cue 를 해석해 재생.
+                    outPackets.Add(new S_AbilityActivated { ActorId = attackerActorId, SkillId = chosen.NetworkId });
+
+                    _logger.LogInformation("[GameplayAbility] monster {MonsterId}(actor {ActorId}) 발동: '{AbilityId}' → user {UserId}",
+                        m.MonsterId, attackerActorId, chosen.Id, targetUserId);
 
                     // 회피 무적(i-frame): 무적 창 안이면 이 공격은 빗나간다(피해/effect 없음).
-                    // 쿨다운은 이미 소모(m.LastAttackAt 갱신) — 몬스터가 헛스윙한 것. 던전=서버 권위 게이트.
+                    // 쿨다운은 이미 소모(MarkCast) — 몬스터가 헛스윙한 것. 던전=서버 권위 게이트.
                     if (target.IsInvulnerableAt(nowMs))
                         continue;
 
-                    // 데미지 = 몬스터 AttackDamage − 플레이어 Defense (Shared 결정론, 플레이어→몬스터와 동일 산식).
+                    // 데미지 = 어빌리티 BaseDamage − 플레이어 Defense (Shared 결정론, 플레이어→몬스터와 동일 산식).
                     // 스탯 의존이라 클라가 자체계산 불가 → 서버가 권위 수치를 Amount 로 전달하고, HP 도 같은 값으로 차감.
-                    int finalDamage = StatCombatMath.MeleeDamage(stats.AttackDamage, 0, target.Defense);
+                    const int MonsterAttackPower = 0; // 몬스터 공격력 스탯 미도입 — base 가 곧 공격력
+
+                    // AC-E3: **산식은 그대로, base 만 레벨·등급으로 스케일**한다.
+                    // 원래 버그는 산식이 아니라 base 가 고정이라 플레이어 DEF(+2/L) 성장에 밀린 것이었다
+                    // (C1c 실측: L19 부터 전 몬스터 1 데미지). 유도 = monster-leveling.md §2.
+                    int scaledBase = Shared.Infrastructure.Monsters.MonsterLevelScaling.Damage(
+                        chosen.BaseDamage, m.Level);
+                    int finalDamage = StatCombatMath.MeleeDamage(scaledBase, MonsterAttackPower, target.Defense);
                     var dmgMods = new[]
                     {
                         GameplayAttributeModifier.Create(EGameplayAttribute.Health, -finalDamage, EModifierType.Additive),
                     };
 
+                    // 트레이스(AC-C1a): 플레이어→몬스터와 **같은 산식·다른 입력**(AP=0, DEF=대상). 그 대비가 보여야 밸런스를 논할 수 있다.
+                    // 플레이어 HP 권위는 클라(결정론 lite)라 서버는 before/after 를 모른다 → 0.
+                    CombatTrace.Damage(
+                        CombatPath.MonsterToPlayer, CombatTrace.FormulaMelee,
+                        attackerActorId, ActorIds.FromPlayer(targetUserId),
+                        chosen.Id, chosen.NetworkId,
+                        // 저작값(chosen.BaseDamage)이 아니라 **실제 산식에 들어간 값**을 찍는다 —
+                        // 트레이스가 거짓말하면 진단이 아니라 오도다(C1a 교훈).
+                        scaledBase, MonsterAttackPower, target.Defense, finalDamage,
+                        targetHpBefore: 0, targetHpAfter: 0,
+                        recvMs: nowMs, judgeMs: nowMs, seq: 0); // 틱 경로 = 수신·판정이 같은 틱 시각
+
                     outPackets.Add(new S_ApplyEffect
                     {
                         InstanceId = NextEffectInstanceId(),
-                        EffectId = "monster_attack_dmg",
+                        EffectId = global::Server.PacketHandler.Handler.CombatHandler.AbilityDamageEffectId, // AC-B 안B: 데미지 단일 라벨(수치=ability.BaseDamage → Amount)
                         TargetId = targetUserId,
-                        SourceId = 0, // 0 = 몬스터/환경
+                        SourceId = attackerActorId, // AC: 몬스터 = -instanceId (기존 0 승격)
                         StartTick = nowMs,
                         Stacks = 1,
                         Amount = -finalDamage, // 서버 권위 Health 델타(클라가 그대로 적용)
                     });
 
-                    // CC(상태이상): 몬스터에 OnHitEffectId 가 설정돼 있으면 데미지와 함께 상태효과를 브로드캐스트.
+                    // CC(상태이상): 어빌리티의 OnHitEffectIds(태그/CC 전용)를 데미지와 함께 브로드캐스트.
                     // Amount=0 = HP 변경 없는 상태태그(Duration+GrantedTags) → 클라 EffectReceiver 가 적용 → 입력/이동 게이트.
-                    if (!string.IsNullOrEmpty(stats.OnHitEffectId))
+                    foreach (var ccId in chosen.Timeline.OnHitEffectIds)
                     {
+                        if (string.IsNullOrEmpty(ccId)) continue;
                         outPackets.Add(new S_ApplyEffect
                         {
                             InstanceId = NextEffectInstanceId(),
-                            EffectId = stats.OnHitEffectId,
+                            EffectId = ccId,
                             TargetId = targetUserId,
-                            SourceId = 0,
+                            SourceId = attackerActorId, // AC: 몬스터 = -instanceId
                             StartTick = nowMs,
                             Stacks = 1,
                             Amount = 0,
@@ -653,6 +703,31 @@ public class Room
             }
         }
         return outPackets;
+    }
+
+    /// <summary>
+    /// 이 몬스터가 지금 대상에게 쓸 수 있는 어빌리티를 고른다(AC-B B4). 없으면 null.
+    /// 규칙: 저작 순서(MonsterDefinition.abilityIds) = **우선순위** → 사거리 안 + 쿨다운 경과인 **첫 어빌리티**.
+    /// 보스가 여러 스킬을 가지면 앞에 둔 강한 스킬을 먼저 쓰고, 쿨다운이면 뒤의 평타로 폴백하는 식으로 저작한다.
+    /// (순수 판정 — 상태 변경은 호출자가 MarkCast 로 커밋)
+    /// </summary>
+    private static AbilityDef? SelectMonsterAbility(MonsterState m, PlayerState target, long nowMs)
+    {
+        float dx = target.PosX - m.PosX;
+        float dz = target.PosZ - m.PosZ;
+        float distSq = dx * dx + dz * dz;
+
+        foreach (var ability in MonsterCatalog.GetAbilities(m.MonsterId))
+        {
+            if (distSq > ability.ActivationRange * ability.ActivationRange)
+                continue; // 이 스킬 사거리 밖
+            if (!AbilityActivationMath.CanActivate(
+                    nowMs, m.GetLastCast(ability.Id), ability.Timeline.CooldownMs,
+                    manaCost: 0, currentMana: 0, blocked: false))
+                continue; // 쿨다운 중
+            return ability;
+        }
+        return null;
     }
 
     // ── 바닥 아이템(루트/드랍) ───────────────────────────────

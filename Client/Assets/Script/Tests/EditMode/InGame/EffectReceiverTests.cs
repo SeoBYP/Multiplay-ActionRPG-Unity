@@ -82,7 +82,7 @@ namespace Game.Tests.EditMode.InGame
         }
 
         [Test]
-        public void 서버_basic_attack_dmg_수신시_로컬_HP가_즉발_감소한다()
+        public void 서버_ability_damage_수신시_로컬_HP가_즉발_감소한다()
         {
             var state = new SocketPacketState();
             var asc = CreateAsc();
@@ -90,8 +90,9 @@ namespace Game.Tests.EditMode.InGame
             localPlayer.Set(asc);
             _receiver = Build(state, localPlayer);
 
-            // CA-3: 서버가 적중 판정 후 보낸 basic_attack_dmg(Instant Health -10) 적용 → HP 감소.
-            state.ApplyEffect(new SocketEffectApply("basic_attack_dmg", instanceId: 1, targetId: LocalUserId, sourceId: 200, startTick: 0, stacks: 1));
+            // CA-3 + AC-B: 서버가 적중 판정 후 보낸 ability_damage 적용 → HP 감소.
+            // 수치는 effect 카탈로그가 아니라 **서버 권위 Amount**(=ability.baseDamage 산출) — healthOverride 로 적용된다.
+            state.ApplyEffect(new SocketEffectApply("ability_damage", instanceId: 1, targetId: LocalUserId, sourceId: 200, startTick: 0, stacks: 1, amount: -10));
 
             Assert.AreEqual(90, asc.GetAttribute(EGameplayAttribute.Health).CurrentValue);
             Assert.AreEqual(0, asc.ActiveEffects.Count, "즉발 피해는 ActiveEffect로 추적되지 않는다");
@@ -111,7 +112,7 @@ namespace Game.Tests.EditMode.InGame
             registry.Register(999, remoteAsc);
             _receiver = Build(state, localPlayer, registry);
 
-            state.ApplyEffect(new SocketEffectApply("basic_attack_dmg", instanceId: 5, targetId: 999, sourceId: 200, startTick: 0, stacks: 1));
+            state.ApplyEffect(new SocketEffectApply("ability_damage", instanceId: 5, targetId: 999, sourceId: 200, startTick: 0, stacks: 1, amount: -10));
 
             Assert.AreEqual(90, remoteAsc.GetAttribute(EGameplayAttribute.Health).CurrentValue, "원격 대상 효과는 레지스트리의 원격 ASC 에 적용돼야 한다.");
             Assert.AreEqual(100, localAsc.GetAttribute(EGameplayAttribute.Health).CurrentValue, "원격 대상 효과가 로컬 ASC 에 새면 안 된다.");

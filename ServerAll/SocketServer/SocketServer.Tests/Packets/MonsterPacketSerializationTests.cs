@@ -50,6 +50,7 @@ public class MonsterPacketSerializationTests
             RotY = 45f,
             Hp = 18,
             Phase = 2, // Chase
+            Seq = 42,
         };
 
         byte[] bytes = MemoryPackSerializer.Serialize<Packet>(origin);
@@ -63,6 +64,7 @@ public class MonsterPacketSerializationTests
         Assert.Equal(45f, decoded.RotY);
         Assert.Equal(18, decoded.Hp);
         Assert.Equal((byte)2, decoded.Phase);
+        Assert.Equal(42, decoded.Seq); // AC-C3: 스테일 드롭의 근거 — 유실되면 클라가 순서 역전을 못 거른다.
     }
 
     [Fact]

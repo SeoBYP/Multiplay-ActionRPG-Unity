@@ -49,7 +49,7 @@ namespace Game.GUI
             public const string GradeSpriteCatalog = "Assets/GameData/Item/GradeSpriteCatalog.asset";
             public const string ConsumableCatalog  = "Assets/GameData/Consumable/ConsumableCatalog.asset";
             public const string DialogueCatalog    = "Assets/GameData/Dialogue/DialogueCatalog.asset";
-            public const string SkillCatalog       = "Assets/GameData/Skill/SkillCatalogDefinition.asset";
+            public const string AbilityCatalog     = "Assets/GameData/Ability/AbilityCatalogDefinition.asset";
         }
     }
 }

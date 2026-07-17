@@ -35,24 +35,14 @@ namespace Game.Gameplay.Character
         private ComboDriver _combo;
 
         // 스킬 데이터(쿨다운·마나) 조회 — 클라 예측용. DI 미주입(테스트) 시 null → 게이트 없음.
-        private SkillCatalogProvider _skills;
+        private AbilityCatalogProvider _skills;
         private readonly Dictionary<int, float> _lastCastTime = new();
 
         // 마나 리젠 소수부 누적(프레임 dt 비례 회복을 정수 Mana 로 환산). 서버 _manaRegenAccum 과 동일 방식.
         private float _manaRegenAccum;
 
-        /// <summary>skillId(int) → 스킬 데이터 키. 서버 CombatHandler.ResolveSkill 동일 규약(0=basic·1=heavy·2/3/4=combo_a/b/c).</summary>
-        private static string SkillName(int skillId) => skillId switch
-        {
-            1 => "heavy_swing",
-            2 => "combo_a",
-            3 => "combo_b",
-            4 => "combo_c",
-            _ => "basic_swing",
-        };
-
         [Inject]
-        public void ConstructAbilities(SkillCatalogProvider skills) => _skills = skills;
+        public void ConstructAbilities(AbilityCatalogProvider skills) => _skills = skills;
 
         /// <summary>공격 입력으로 스윙이 발동될 때 발행(인자=skillId: 0=기본/좌클릭, 1=강공격/우클릭).
         /// 던전 `CombatSyncSender`가 C_Attack{SkillId} 송신, Main `LocalCombat`가 그 스킬 hitbox 로 판정.</summary>
@@ -254,7 +244,7 @@ namespace Game.Gameplay.Character
         /// </summary>
         private (float chainSec, float windowSec) ResolveComboTiming(int skillId)
         {
-            var skill = _skills?.Get(SkillName(skillId));
+            var skill = _skills?.GetTimeline(skillId); // networkId 조회(데이터 주도 — 하드코딩 매핑 제거)
             if (skill == null)
                 return (FallbackComboChainSec, FallbackComboWindowSec);
 
@@ -297,7 +287,7 @@ namespace Game.Gameplay.Character
         /// comboStep: 콤보 단계(0=A/1=B/2=C). 음수 = 비콤보(강공격 등)로 A 애니 재생.</summary>
         private void FireSkill(int skillId, int comboStep = -1)
         {
-            var skill = _skills?.Get(SkillName(skillId));
+            var skill = _skills?.GetTimeline(skillId); // networkId 조회(데이터 주도 — 하드코딩 매핑 제거)
             int manaCost = skill?.ManaCost ?? 0;
             if (!HasMana(manaCost))            // 마나 부족 → 발동/송신 안 함(서버도 동일 거부)
                 return;
@@ -306,7 +296,7 @@ namespace Game.Gameplay.Character
             SpendMana(manaCost);               // 예측 차감 — 서버가 S_PlayerMana 로 정정
 
             // 발동한 GameplayAbility(스킬) 식별 로그 — "지금 어떤 어빌리티로 공격하는가".
-            string abilityId = skill?.Id ?? SkillName(skillId);
+            string abilityId = skill?.Id ?? $"(unknown networkId {skillId})";
             Debug.Log($"[GameplayAbility] 발동: '{abilityId}' (mana {manaCost}, cd {skill?.CooldownMs ?? 0}ms)");
 
             // 콤보 단계를 애니 파라미터로 → 컨트롤러가 A/B/C 상태 선택. 비콤보(강공격)는 0(A) 재생.
@@ -370,7 +360,7 @@ namespace Game.Gameplay.Character
         /// <summary>스킬 쿨다운 경과 여부(클라 예측). 통과 시 마지막 발동시각 갱신. 데이터 미주입(테스트)이면 항상 true.</summary>
         private bool SkillCooldownReady(int skillId)
         {
-            var skill = _skills?.Get(SkillName(skillId));
+            var skill = _skills?.GetTimeline(skillId); // networkId 조회(데이터 주도 — 하드코딩 매핑 제거)
             if (skill == null)
                 return true;
 

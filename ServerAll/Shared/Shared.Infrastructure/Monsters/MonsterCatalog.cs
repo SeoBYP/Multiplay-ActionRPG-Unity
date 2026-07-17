@@ -17,8 +17,8 @@ public static class MonsterCatalog
 
     /// <summary>미등록 타입 폴백 — 데이터 누락에도 동작(보상 0, 약한 기본 스탯).</summary>
     public static readonly MonsterDef Default = new(
-        MonsterId: "", MaxHp: 30, MoveSpeed: 2.0f, AggroRange: 6f,
-        AttackRange: 1.2f, AttackCooldownMs: 1500f, AttackDamage: 5, ExpReward: 0, OnHitEffectId: "");
+        MonsterId: "", MaxHp: 30, MoveSpeed: 2.0f, AggroRange: 6f, AbilityIds: Array.Empty<string>(), ExpReward: 0,
+        Tier: MonsterTier.Normal);
 
     private static readonly Lazy<IReadOnlyDictionary<string, MonsterDef>> Table = new(LoadEmbedded);
 
@@ -47,7 +47,8 @@ public static class MonsterCatalog
         {
             result[m.MonsterId] = new MonsterDef(
                 m.MonsterId, m.MaxHp, m.MoveSpeed, m.AggroRange,
-                m.AttackRange, m.AttackCooldownMs, m.AttackDamage, m.ExpReward, m.OnHitEffectId ?? "");
+                m.AbilityIds ?? new List<string>(), m.ExpReward,
+                ParseTier(m.Tier));
         }
         return result;
     }
@@ -63,22 +64,35 @@ public static class MonsterCatalog
         public int MaxHp { get; set; } = 30;
         public float MoveSpeed { get; set; } = 2.0f;
         public float AggroRange { get; set; } = 6f;
-        public float AttackRange { get; set; } = 1.2f;
-        public float AttackCooldownMs { get; set; } = 1500f;
-        public int AttackDamage { get; set; } = 5;
+        public List<string> AbilityIds { get; set; } = new();
         public int ExpReward { get; set; }
-        public string OnHitEffectId { get; set; } = ""; // CC: 적중 시 부여할 효과 id(빈 문자열=없음).
+
+        /// <summary>등급 문자열("Normal"/"Elite"/"Boss"). 누락·오타는 Normal 로 떨어진다.</summary>
+        public string Tier { get; set; } = "Normal";
     }
+
+    /// <summary>등급 문자열 → enum. **문자열 계약**인 이유: JSON 을 사람이 읽을 때 2 보다 "Boss" 가 낫고,
+    /// 등급이 늘어도 숫자 재매핑이 없다. 미상은 Normal(가장 안전한 기본).</summary>
+    private static MonsterTier ParseTier(string? tier)
+        => Enum.TryParse<MonsterTier>(tier, ignoreCase: true, out var t) ? t : MonsterTier.Normal;
 }
 
-/// <summary>한 몬스터 타입의 정의 — 시뮬 스탯 + 보상(exp). 스폰 위치는 MonsterSpawnDef 가 따로 가짐.</summary>
+/// <summary>
+/// 한 몬스터 타입의 정의 — "무엇인가"(체력·이동·시야) + 보상 + **어빌리티 목록**(AC-B B4).
+/// 공격 사거리·쿨다운·데미지·CC 는 전부 <see cref="Shared.Infrastructure.Abilities.AbilityCatalog"/> 의 어빌리티가 갖는다.
+/// 스폰 위치는 MonsterSpawnDef 가 따로 가짐.
+/// </summary>
+/// <param name="AbilityIds">쓸 수 있는 어빌리티 id. **우선순위 = 순서**(서버 AI 가 사거리·쿨다운 만족 첫 어빌리티 발동).</param>
+/// <param name="Tier">
+/// 등급 <b>분류</b>(AC-G). <b>배율이 아니다</b> — 변종은 각자 ID·스탯을 직접 저작한다
+/// (<c>leviathan_boss</c> 는 maxHp 를 그대로 적는다). 이 필드는 표시·연출 분기용이고
+/// 스탯 계산에 곱해지지 않는다.
+/// </param>
 public sealed record MonsterDef(
     string MonsterId,
     int MaxHp,
     float MoveSpeed,
     float AggroRange,
-    float AttackRange,
-    float AttackCooldownMs,
-    int AttackDamage,
+    IReadOnlyList<string> AbilityIds,
     int ExpReward,
-    string OnHitEffectId = ""); // CC: 적중 시 부여할 효과 id(빈 문자열=없음). 던전 TickMonsters 가 S_ApplyEffect 로 브로드캐스트.
+    MonsterTier Tier = MonsterTier.Normal);

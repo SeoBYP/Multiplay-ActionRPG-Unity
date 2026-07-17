@@ -1,0 +1,105 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99d1c56b40bcc36468768a44b739f14e, type: 3}
+  m_Name: dungeon_03
+  m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Spawn.MapDefinition
+  mapId: dungeon_03
+  expReward: 700
+  monsterLevel: 12
+  visualPrefab: {fileID: 0}
+  playerSpawns:
+  - position: {x: -3, y: 0, z: -26}
+    rotationY: 0
+  - position: {x: -1, y: 0, z: -26}
+    rotationY: 0
+  - position: {x: 1, y: 0, z: -26}
+    rotationY: 0
+  - position: {x: 3, y: 0, z: -26}
+    rotationY: 0
+  monsterSpawns:
+  - monsterId: wild_centaur
+    position: {x: -6, y: 0, z: -4}
+    rotationY: 180
+    count: 1
+    wave: 0
+    level: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: wild_centaur
+    position: {x: 6, y: 0, z: -4}
+    rotationY: 180
+    count: 1
+    wave: 0
+    level: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: gargoyle
+    position: {x: -5, y: 0, z: 4}
+    rotationY: 180
+    count: 1
+    wave: 0
+    level: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: gargoyle
+    position: {x: 5, y: 0, z: 4}
+    rotationY: 180
+    count: 1
+    wave: 0
+    level: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: undead_axemaster
+    position: {x: 0, y: 0, z: 8}
+    rotationY: 180
+    count: 1
+    wave: 0
+    level: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: demon_girl
+    position: {x: -8, y: 0, z: 10}
+    rotationY: 180
+    count: 1
+    wave: 0
+    level: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: demon_girl
+    position: {x: 8, y: 0, z: 10}
+    rotationY: 180
+    count: 1
+    wave: 0
+    level: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  - monsterId: undead_axemaster_elite
+    position: {x: 0, y: 0, z: 16}
+    rotationY: 180
+    count: 1
+    wave: 0
+    level: 0
+    slotId: 0
+    respawnCooldownMs: 0
+    patrolPoints: []
+  bounds:
+    centerX: 0
+    centerZ: 0
+    sizeX: 64
+    sizeZ: 64

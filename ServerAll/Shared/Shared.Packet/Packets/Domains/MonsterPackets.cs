@@ -33,6 +33,20 @@ public partial class S_MonsterState : Packet
     public float RotY { get; set; }
     public int Hp { get; set; }
     public byte Phase { get; set; } // 0 Idle / 1 Patrol / 2 Chase / 3 Attack
+
+    /// <summary>
+    /// 몬스터별 단조 증가 상태 버전(AC-C3). 클라는 <c>Seq &lt;= 마지막 적용값</c> 이면 **스테일로 버린다**.
+    /// <para>
+    /// 이 패킷에는 두 생산자가 있다 — 틱(<c>Room.TickMonsters</c>)과 데미지(<c>CombatHandler</c>).
+    /// 틱은 패킷을 **만든 뒤 나중에 송신**하므로(RoomTickService) 그 사이 데미지가 끼면
+    /// **옛 HP 가 새 HP 뒤에 도착**해 클라 HP 가 되돌아간다. Seq 가 그 역전을 클라에서 무효화한다.
+    /// </para>
+    /// <para>
+    /// ⚠️ <b>반드시 스냅샷(생성) 시점에 <c>MonsterState.NextSeq()</c> 로 찍는다.</b> 송신 시점에 찍으면
+    /// Seq 가 도착 순서와 같아져 아무것도 거르지 못한다 — 막으려는 것이 바로 그 순서다.
+    /// </para>
+    /// </summary>
+    public int Seq { get; set; }
 }
 
 /// <summary>

@@ -123,7 +123,7 @@ namespace Game.Tests.EditMode.GamePlayAbilitySystem
         {
             var asc = CreateAsc(); // Health 100/100
             var dmg = new GameplayEffectDefinition(
-                "monster_attack_dmg", EEffectCategory.AttackPower, EDurationPolicy.Instant, 0,
+                "ability_damage", EEffectCategory.AttackPower, EDurationPolicy.Instant, 0,
                 new[] { GameplayAttributeModifier.Create(EGameplayAttribute.Health, -30, EModifierType.Additive) });
 
             // 서버가 Defense 반영해 보낸 -7 을 적용(카탈로그 -30 무시) → 93.

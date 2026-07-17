@@ -19,4 +19,5 @@ public sealed record MonsterSpawnDef(
     int Wave,
     IReadOnlyList<PatrolPoint> Patrol,
     int SlotId = 0,
-    int RespawnCooldownMs = 0);
+    int RespawnCooldownMs = 0,
+    int Level = 0);

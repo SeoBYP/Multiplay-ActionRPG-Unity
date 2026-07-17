@@ -46,7 +46,8 @@ namespace Game.Network.Socket
                 packet.PosX, packet.PosY, packet.PosZ,
                 packet.RotY,
                 packet.Hp,
-                packet.Phase);
+                packet.Phase,
+                packet.Seq); // 스테일 판정은 상태 저장소가 한다(AC-C3) — 핸들러는 전달만.
             return UniTask.CompletedTask;
         }
     }

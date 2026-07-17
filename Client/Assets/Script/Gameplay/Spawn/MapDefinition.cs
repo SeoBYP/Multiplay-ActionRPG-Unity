@@ -22,6 +22,10 @@ namespace Game.Gameplay.Spawn
         [Tooltip("던전 클리어 시 참가자에게 지급할 경험치(서버 권위). 0=보상 없음(Main/아레나 등). spawn-layouts.json 의 expReward 로 bake 되어 서버가 읽는다.")]
         public long expReward;
 
+        [Tooltip("이 던전 몬스터의 기본 레벨(AC-E). 0=L1. 스폰별 level 이 있으면 그쪽이 우선.\n" +
+                 "몬스터 HP·피해·드롭이 이 레벨로 스케일된다(monster-leveling.md). 한 줄로 던전 전체 난이도를 조절한다.")]
+        public int monsterLevel;
+
         [Tooltip("맵 배경 모델 프리팹(클라 전용). 던전 진입 시 MapLoader 가 인스턴스화. 서버는 사용 안 함(JSON에 미포함).")]
         public GameObject visualPrefab;
 
@@ -65,6 +69,10 @@ namespace Game.Gameplay.Spawn
         public int count = 1;
         [Tooltip("웨이브 인덱스(0=시작 시). 미사용 시 0.")]
         public int wave;
+
+        [Tooltip("이 스폰만의 레벨(AC-E). 0=맵 기본(MapDefinition.monsterLevel) 사용.\n" +
+                 "같은 던전 안에서 이 몬스터만 대역을 올릴 때 쓴다(엘리트·보스 배치).")]
+        public int level;
 
         [Tooltip("Main B-lite 클레임 키(슬롯 안정 식별자, 1부터). 0=클레임 불가. 던전은 미사용.")]
         public int slotId;

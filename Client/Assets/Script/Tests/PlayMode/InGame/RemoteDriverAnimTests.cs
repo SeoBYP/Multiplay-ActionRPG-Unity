@@ -86,8 +86,9 @@ namespace Game.Tests.PlayMode.InGame
             driver.Initialize(remoteId, state);
             for (int i = 0; i < 2; i++) yield return null;
 
-            // A: AnyState(Attack && ComboStep==0) → ComboA
-            state.NotifyPlayerAttacked(remoteId, 2); // combo_a
+            // A: AnyState(Attack && ComboStep==0) → ComboA. AC 통합: 발동 Cue 는 IActorView.PlayAbilityCue 로 들어온다
+            // (런타임엔 S_AbilityActivated → AbilityCueRouter → ActorRegistry → 이 driver. 여기선 그 종단 호출을 직접 검증).
+            driver.PlayAbilityCue(AnimationTriggerType.Attack, 0); // combo_a (cueComboStep=0)
             bool inA = false;
             float deadline = Time.time + 1f;
             while (Time.time < deadline && !inA)
@@ -99,7 +100,7 @@ namespace Game.Tests.PlayMode.InGame
 
             // 스윙 도중 B 입력 → ComboA→ComboB 체인(상태→상태). 체인 전이는 hasExitTime=false 라 즉시 시작된다.
             yield return new WaitForSeconds(0.45f);
-            state.NotifyPlayerAttacked(remoteId, 3); // combo_b
+            driver.PlayAbilityCue(AnimationTriggerType.Attack, 1); // combo_b (cueComboStep=1)
             bool inB = false;
             deadline = Time.time + 1f;
             while (Time.time < deadline && !inB)
@@ -111,7 +112,7 @@ namespace Game.Tests.PlayMode.InGame
 
             // 이어서 C 입력 → ComboB→ComboC
             yield return new WaitForSeconds(0.45f);
-            state.NotifyPlayerAttacked(remoteId, 4); // combo_c
+            driver.PlayAbilityCue(AnimationTriggerType.Attack, 2); // combo_c (cueComboStep=2)
             bool inC = false;
             deadline = Time.time + 1f;
             while (Time.time < deadline && !inC)
@@ -145,7 +146,7 @@ namespace Game.Tests.PlayMode.InGame
             driver.Initialize(remoteId, state);
             for (int i = 0; i < 2; i++) yield return null;
 
-            state.NotifyPlayerAttacked(remoteId, 2); // A
+            driver.PlayAbilityCue(AnimationTriggerType.Attack, 0); // A
             bool inA = false;
             float deadline = Time.time + 1f;
             while (Time.time < deadline && !inA) { yield return null; inA = IsEnteringOrIn(animator, "ComboA"); }
@@ -157,7 +158,7 @@ namespace Game.Tests.PlayMode.InGame
                 "전제: ComboA 는 이미 끝나 Locomotion 이어야 한다");
 
             // 늦게 도착한 B — 서브SM 체인은 못 타지만 AnyState 안전망으로 ComboB 가 재생돼야 한다.
-            state.NotifyPlayerAttacked(remoteId, 3);
+            driver.PlayAbilityCue(AnimationTriggerType.Attack, 1);
             bool inB = false;
             deadline = Time.time + 1f;
             while (Time.time < deadline && !inB) { yield return null; inB = IsEnteringOrIn(animator, "ComboB"); }

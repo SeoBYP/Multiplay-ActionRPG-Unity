@@ -25,15 +25,22 @@ public class MonsterDamageTests
         return room;
     }
 
+    /// <summary>basic_swing(baseDamage=10) 의 데미지 모디파이어 — 구 basic_attack_dmg(-10)와 동일 값.</summary>
+    private static System.Collections.Generic.List<GameplayAttributeModifier> DamageMods10()
+        => global::Server.PacketHandler.Handler.CombatHandler.BuildDamageMods(
+            global::Server.PacketHandler.Handler.CombatHandler.ResolveAbility(0)!, attackPower: 0, defense: 0);
+
     [Fact]
-    public void CombatEffectCatalog는_basic_attack_dmg를_Health모디파이어로_해석한다()
+    public void 어빌리티_데미지는_Health_모디파이어로_만들어진다()
     {
-        var mods = CombatEffectCatalog.Resolve("basic_attack_dmg");
+        // AC-B 안B: 데미지 출처 = ability.baseDamage(폐기된 basic_attack_dmg effect 아님).
+        var ability = global::Server.PacketHandler.Handler.CombatHandler.ResolveAbility(0)!;
+        var mods = global::Server.PacketHandler.Handler.CombatHandler.BuildDamageMods(ability, attackPower: 0, defense: 0);
 
         var mod = Assert.Single(mods);
         Assert.Equal(EGameplayAttribute.Health, mod.AttributeType);
         Assert.Equal(EModifierType.Additive, mod.ModifierType);
-        Assert.Equal(-10, mod.Amount);
+        Assert.Equal(-ability.BaseDamage, mod.Amount);
     }
 
     [Fact]
@@ -46,9 +53,9 @@ public class MonsterDamageTests
     public void CombatEffectCatalog는_Shared_단일소스를_위임한다()
     {
         // 수치 진실원은 Shared GameplayEffectCatalog 하나. 서버 접근자는 그 정의를 그대로 꺼낸다.
-        // (예전 자체 Dictionary 이중정의 → 단일소스 위임 회귀 가드)
-        var server = CombatEffectCatalog.Resolve("basic_attack_dmg");
-        var shared = new GameplayEffectCatalog().Get("basic_attack_dmg")!.Modifiers;
+        // (예전 자체 Dictionary 이중정의 → 단일소스 위임 회귀 가드). CC 효과로 검증 — 데미지 effect 는 AC-B B5 에서 폐기됨.
+        var server = CombatEffectCatalog.Resolve("slow_3s");
+        var shared = new GameplayEffectCatalog().Get("slow_3s")!.Modifiers;
 
         Assert.Equal(shared.Count, server.Count);
         for (int i = 0; i < shared.Count; i++)
@@ -64,7 +71,7 @@ public class MonsterDamageTests
     {
         var room = NewRoomWithMonster();
         var id = room.GetAllMonsters()[0].InstanceId;
-        var mods = CombatEffectCatalog.Resolve("basic_attack_dmg"); // Health -10
+        var mods = DamageMods10(); // basic_swing baseDamage=10 → Health -10
 
         var (hit, newHp, dead) = room.DamageMonster(id, mods);
 
@@ -79,7 +86,7 @@ public class MonsterDamageTests
     {
         var room = NewRoomWithMonster();
         var id = room.GetAllMonsters()[0].InstanceId;
-        var mods = CombatEffectCatalog.Resolve("basic_attack_dmg"); // -10 each
+        var mods = DamageMods10(); // -10 each
 
         room.DamageMonster(id, mods); // 40 → 30
         room.DamageMonster(id, mods); // 30 → 20

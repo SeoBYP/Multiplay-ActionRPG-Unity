@@ -377,7 +377,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 482142394370115354}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.000000023755176, y: -0.000000047497007, z: 0.1335459, w: 0.9910426}
+  m_LocalRotation: {x: -0.000000023755177, y: -0.00000004749701, z: 0.13354592, w: 0.9910427}
   m_LocalPosition: {x: -0.10242184, y: 0, z: 0}
   m_LocalScale: {x: 0.9999999, y: 0.9999999, z: 1}
   m_ConstrainProportionsScale: 0
@@ -886,7 +886,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1343758018939698596}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.035515077, y: -0.08636847, z: 0.56135905, w: 0.82228655}
+  m_LocalRotation: {x: 0.03551508, y: -0.08636848, z: 0.5613591, w: 0.8222866}
   m_LocalPosition: {x: -0.34449714, y: 0, z: -0.000000024795533}
   m_LocalScale: {x: 0.999999, y: 0.9999986, z: 1.000002}
   m_ConstrainProportionsScale: 0
@@ -3228,7 +3228,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4344354430925607607}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.0152279595, y: -0.03224332, z: -0.32241115, w: 0.94592786}
+  m_LocalRotation: {x: -0.0152279595, y: -0.032243323, z: -0.32241115, w: 0.9459279}
   m_LocalPosition: {x: -0.3187225, y: -0.000000024795533, z: -0.00000008678437}
   m_LocalScale: {x: 0.99999917, y: 1.000001, z: 1}
   m_ConstrainProportionsScale: 0
@@ -3331,7 +3331,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4613909936123450529}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.000000027854371, y: -0.00000005659322, z: 0.20771681, w: 0.978189}
+  m_LocalRotation: {x: -0.000000027854373, y: -0.000000056593223, z: 0.20771682, w: 0.97818905}
   m_LocalPosition: {x: -0.10454937, y: 0, z: -3.874302e-10}
   m_LocalScale: {x: 1, y: 1.0000001, z: 1.0000001}
   m_ConstrainProportionsScale: 0
@@ -3465,7 +3465,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4741224911498200384}
   serializedVersion: 2
-  m_LocalRotation: {x: 3.7417075e-10, y: 0.00000005825173, z: -0.12290325, w: 0.99241865}
+  m_LocalRotation: {x: 3.7417078e-10, y: 0.000000058251732, z: -0.12290326, w: 0.9924187}
   m_LocalPosition: {x: -0.08492956, y: -0.000000024795533, z: 0}
   m_LocalScale: {x: 0.99999994, y: 1, z: 0.9999999}
   m_ConstrainProportionsScale: 0
@@ -3592,7 +3592,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5116625822389039272}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.082393244, y: -0.15483133, z: -0.50912523, w: 0.84263283}
+  m_LocalRotation: {x: 0.08239325, y: -0.15483133, z: -0.5091253, w: 0.84263283}
   m_LocalPosition: {x: -0.2805302, y: -0.0000004959106, z: 0}
   m_LocalScale: {x: 1.0000035, y: 0.9999979, z: 0.9999991}
   m_ConstrainProportionsScale: 0
@@ -3949,7 +3949,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5910538871495784163}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.01260795, y: -0.00474436, z: -0.15420678, w: 0.98794675}
+  m_LocalRotation: {x: 0.01260795, y: -0.0047443607, z: -0.15420678, w: 0.9879468}
   m_LocalPosition: {x: -0.13660309, y: -0.009209755, z: 0.00087265397}
   m_LocalScale: {x: 1.000001, y: 0.9999992, z: 0.99999994}
   m_ConstrainProportionsScale: 0
@@ -4245,7 +4245,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6651609854331146261}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.03580616, y: -0.027415011, z: -0.06473794, w: 0.9968828}
+  m_LocalRotation: {x: 0.035806164, y: -0.027415011, z: -0.064737946, w: 0.9968828}
   m_LocalPosition: {x: -0.27368322, y: 0.000000049591065, z: 0.000000012397766}
   m_LocalScale: {x: 0.9999999, y: 1.0000002, z: 1.0000001}
   m_ConstrainProportionsScale: 0
@@ -4599,7 +4599,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7127291399683439974}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.00000006401487, y: -0.00000007262296, z: 0.48168972, w: 0.8763418}
+  m_LocalRotation: {x: 0.00000006401488, y: -0.00000007262297, z: 0.48168975, w: 0.8763419}
   m_LocalPosition: {x: -0.13358504, y: 0, z: 0}
   m_LocalScale: {x: 1.0000005, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -4738,7 +4738,7 @@ Animator:
   m_GameObject: {fileID: 7488706101337514711}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: 5240f1c358888b74f84b03a96e44be43, type: 3}
-  m_Controller: {fileID: 9100000, guid: 441e1dd61f0e2ce4eba35f4cd166d700, type: 2}
+  m_Controller: {fileID: 9100000, guid: 513013519c858844d8044681325df968, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 1
@@ -4979,6 +4979,7 @@ GameObject:
   - component: {fileID: 4395984308941795975}
   - component: {fileID: 3918190946655172177}
   - component: {fileID: 2403297384019106330}
+  - component: {fileID: 1051838121856433559}
   m_Layer: 0
   m_Name: Monster_wild_centaur
   m_TagString: Untagged
@@ -5016,13 +5017,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.MonsterEntity
   lerpSpeed: 15
-  animator: {fileID: 2097317541424639534}
-  idleState: idle00
-  walkState: walk
-  dieState: die00
-  walkSpeedThreshold: 0.3
+  speedSmoothing: 10
   deathDespawnDelay: 2
-  crossFadeSec: 0.15
 --- !u!114 &3918190946655172177
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5059,6 +5055,32 @@ CapsuleCollider:
   m_Height: 2.2
   m_Direction: 1
   m_Center: {x: 0, y: 1.1, z: 0}
+--- !u!114 &1051838121856433559
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7968823526451403628}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69a2c0eb64bb45148a00305eb06dceca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.CharacterAgentAnimations
+  m_animationSpeedFloat: Speed
+  m_animationMoveXFloat: 
+  m_animationMoveYFloat: 
+  m_animationComboStepInt: 
+  m_animationGroundedBool: 
+  m_animationStrafeBool: 
+  m_animationFallTrigger: 
+  m_animationJumpTrigger: 
+  m_animationLandTrigger: 
+  m_animationInteractTrigger: 
+  m_animationAttackTrigger: Attack
+  m_animationDeathTrigger: Die
+  m_animationDodgeTrigger: 
+  m_animationReviveTrigger: 
 --- !u!1 &8062666042265146610
 GameObject:
   m_ObjectHideFlags: 0

@@ -105,10 +105,10 @@ public class DungeonLifetimeScope : LifetimeScope
         builder.Register<IStateFactory, StateFactory>(Lifetime.Scoped);
         builder.Register<IStateMachineBuilder, StateMachineBuilder>(Lifetime.Scoped);
 
-        // 스킬 데이터(2.2) — PlayerCharacterAgent 클라 쿨다운 예측용(서버 권위와 동일 skills.json 소스).
-        builder.RegisterInstance(new Game.Gameplay.Abilities.SkillCatalogProvider(
-            LoadData<Game.Gameplay.Abilities.SkillCatalogDefinition>(AddressKeys.Data.SkillCatalog)
-            ?? ScriptableObject.CreateInstance<Game.Gameplay.Abilities.SkillCatalogDefinition>()));
+        // 어빌리티 데이터(AC-B) — 클라 쿨다운·hitbox 예측 + Cue 조회(서버와 동일 abilities.json 저작 소스).
+        builder.RegisterInstance(new Game.Gameplay.Abilities.AbilityCatalogProvider(
+            LoadData<Game.Gameplay.Abilities.AbilityCatalogDefinition>(AddressKeys.Data.AbilityCatalog)
+            ?? ScriptableObject.CreateInstance<Game.Gameplay.Abilities.AbilityCatalogDefinition>()));
 
         // Dungeon 씬은 로컬 + 원격 플레이어 + 몬스터 + 바닥 아이템(드랍) 스폰.
         builder.RegisterInstance(new CharacterPrefabSettings(localPlayerPrefab, remotePlayerPrefab, monsterPrefab, groundItemPrefab));
@@ -120,6 +120,9 @@ public class DungeonLifetimeScope : LifetimeScope
         // 3인칭 카메라 Follow 런타임 바인딩 — 씬의 GameplayCameraRig 가 LocalPlayerContext.OnSet 구독 →
         // 스폰된 로컬 플레이어 CameraFollowTarget 으로 vcam.Follow 세팅(Main 과 동일 구성).
         builder.RegisterComponentInHierarchy<Game.Gameplay.Camera.GameplayCameraRig>();
+        // AC: ActorId→IActorView 레지스트리(발동 신호 라우팅) + 라우터. MonsterSpawner 가 몬스터를 등록, 라우터가 S_AbilityActivated 를 Cue 로.
+        builder.Register<ActorRegistry>(Lifetime.Scoped).AsSelf();
+        builder.RegisterEntryPoint<AbilityCueRouter>(Lifetime.Scoped);
         // M3 ⑥: 서버 권위 몬스터 스폰/보간/디스폰. monsterId → 표시 프리팹은 MonsterVisualCatalog(있으면).
         if (monsterVisualCatalog != null)
             builder.RegisterInstance(monsterVisualCatalog);

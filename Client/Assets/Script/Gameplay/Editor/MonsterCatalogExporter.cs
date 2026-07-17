@@ -84,11 +84,9 @@ namespace Game.Gameplay.Editor
                         maxHp = m.maxHp,
                         moveSpeed = m.moveSpeed,
                         aggroRange = m.aggroRange,
-                        attackRange = m.attackRange,
-                        attackCooldownMs = m.attackCooldownMs,
-                        attackDamage = m.attackDamage,
+                        abilityIds = new List<string>(m.abilityIds ?? new List<string>()),
                         expReward = m.expReward,
-                        onHitEffectId = m.onHitEffectId,
+                        tier = m.tier.ToString(), // AC-G: 문자열 계약 — JSON 을 사람이 읽을 때 2 보다 "Boss" 가 낫다
                     })
                     .ToList()
             };
@@ -132,11 +130,12 @@ namespace Game.Gameplay.Editor
                     maxHp = m.maxHp,
                     moveSpeed = m.moveSpeed,
                     aggroRange = m.aggroRange,
-                    attackRange = m.attackRange,
-                    attackCooldownMs = m.attackCooldownMs,
-                    attackDamage = m.attackDamage,
+                    abilityIds = new List<string>(m.abilityIds ?? new List<string>()),
                     expReward = m.expReward,
-                    onHitEffectId = m.onHitEffectId,
+                    // 왕복 필수 — 빠지면 Import 가 저작한 등급을 Normal 로 지운다.
+                    // global:: 필수 — 프로젝트에 Game.System 이 있어 `System.Enum` 이 Game.System.Enum 으로 해석된다.
+                    tier = global::System.Enum.TryParse<Game.Gameplay.Monster.MonsterTierId>(m.tier, true, out var t)
+                        ? t : Game.Gameplay.Monster.MonsterTierId.Normal,
                 })
                 .ToList();
 
@@ -184,11 +183,9 @@ namespace Game.Gameplay.Editor
             public int maxHp = 30;
             public float moveSpeed = 2.0f;
             public float aggroRange = 6f;
-            public float attackRange = 1.2f;
-            public float attackCooldownMs = 1500f;
-            public int attackDamage = 5;
+            public List<string> abilityIds = new();
             public int expReward = 20;
-            public string onHitEffectId = "";
+            public string tier = "Normal";
         }
     }
 }

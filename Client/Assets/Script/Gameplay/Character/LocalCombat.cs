@@ -19,11 +19,11 @@ namespace Game.Gameplay.Character
     /// </summary>
     public sealed class LocalCombat : MonoBehaviour
     {
-        private const int BaseDamage = 10;      // 스킬 기본값. 던전 GameplayEffectCatalog "basic_attack_dmg"(Instant Health -10)과 정렬
+        private const int BaseDamage = 10;      // Main 폴백 기본값(어빌리티 미조회 시). 던전은 ability.baseDamage(서버 권위) — AC-B
         private const float QueryRadius = 3f;   // 광역 1차 수집 반경(정밀 판정은 HitboxMath)
 
         private PlayerCharacterAgent _agent;
-        private SkillCatalogProvider _skills;   // skillId→hitbox 데이터 진실원(서버 CombatHandler 와 동일 skills.json)
+        private AbilityCatalogProvider _skills; // networkId→hitbox 데이터 진실원(서버 CombatHandler 와 동일 abilities.json)
         private GameplayEffectCatalog _effects; // 스킬 OnHitEffect → 데미지 수치(콤보 단계별 상승, 던전과 동일 단일소스)
         private PlayerProgressionHolder _progression; // Main 클라 스탯 캐시(AttackPower). 동적 부착이라 method 주입.
         private readonly HashSet<LocalMonster> _hitThisSwing = new();
@@ -33,19 +33,9 @@ namespace Game.Gameplay.Character
         private int _swingDamage;      // 이번 스윙 데미지(OnAttackPerformed 에서 확정 → 활성 구간 히트에 적용)
         private string _swingSkillId;  // 로그용
 
-        /// <summary>skillId(int 패킷) → 스킬 데이터 키. 서버 CombatHandler.ResolveSkill 과 동일 규약(0=basic·1=heavy·2/3/4=combo).</summary>
-        private static string SkillName(int skillId) => skillId switch
-        {
-            1 => "heavy_swing",
-            2 => "combo_a",
-            3 => "combo_b",
-            4 => "combo_c",
-            _ => "basic_swing",
-        };
-
         // CharacterSpawner.AttachLocalCombat 에서 AddComponent 후 _container.Inject 로 주입.
         [Inject]
-        public void Construct(PlayerProgressionHolder progression, SkillCatalogProvider skills, GameplayEffectCatalog effects = null)
+        public void Construct(PlayerProgressionHolder progression, AbilityCatalogProvider skills, GameplayEffectCatalog effects = null)
         {
             _progression = progression;
             _skills = skills;
@@ -85,7 +75,7 @@ namespace Game.Gameplay.Character
 
         private void PerformHit(int skillId)
         {
-            var skill = _skills?.Get(SkillName(skillId));
+            var skill = _skills?.GetTimeline(skillId); // networkId 조회(데이터 주도 — 하드코딩 매핑 제거)
             if (skill == null) return; // 데이터 미로드 — 판정 스킵
 
             // 데미지 = 던전(서버 권위)과 동일 산식. 스킬 기준 데미지는 OnHitEffect(콤보 단계별 상승)에서 읽는다.

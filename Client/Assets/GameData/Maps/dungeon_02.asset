@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Spawn.MapDefinition
   mapId: dungeon_02
   expReward: 300
+  monsterLevel: 6
   visualPrefab: {fileID: 395377278721909691, guid: 5b96864f9c019d44784274d95efba9bd, type: 3}
   playerSpawns:
   - position: {x: 0, y: 0, z: -26}
@@ -30,6 +31,7 @@ MonoBehaviour:
     rotationY: 180
     count: 1
     wave: 0
+    level: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -38,6 +40,7 @@ MonoBehaviour:
     rotationY: 180
     count: 1
     wave: 0
+    level: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -46,6 +49,7 @@ MonoBehaviour:
     rotationY: 180
     count: 1
     wave: 0
+    level: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -54,6 +58,7 @@ MonoBehaviour:
     rotationY: 180
     count: 1
     wave: 0
+    level: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -62,6 +67,7 @@ MonoBehaviour:
     rotationY: 180
     count: 1
     wave: 0
+    level: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -70,6 +76,7 @@ MonoBehaviour:
     rotationY: 180
     count: 1
     wave: 0
+    level: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -78,6 +85,7 @@ MonoBehaviour:
     rotationY: 180
     count: 1
     wave: 0
+    level: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -86,6 +94,7 @@ MonoBehaviour:
     rotationY: 180
     count: 1
     wave: 0
+    level: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -94,6 +103,7 @@ MonoBehaviour:
     rotationY: 180
     count: 1
     wave: 0
+    level: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
@@ -102,14 +112,16 @@ MonoBehaviour:
     rotationY: 180
     count: 1
     wave: 0
+    level: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []
-  - monsterId: leviathan
+  - monsterId: leviathan_boss
     position: {x: 0, y: 0, z: 25}
     rotationY: 180
     count: 1
     wave: 0
+    level: 0
     slotId: 0
     respawnCooldownMs: 0
     patrolPoints: []

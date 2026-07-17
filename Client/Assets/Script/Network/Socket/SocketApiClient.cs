@@ -44,6 +44,8 @@ namespace Game.Network.Socket
             builder.Register<IPacketHandler, RevivePacketHandler>(Lifetime.Singleton);
             // 원격 공격 연출: S_Attack 브로드캐스트 → RemoteDriver 스윙 애니(적중은 서버 권위).
             builder.Register<IPacketHandler, AttackPacketHandler>(Lifetime.Singleton);
+            // AC: Actor 통합 발동 연출 — S_AbilityActivated 브로드캐스트 → AbilityCueRouter 가 ActorRegistry 로 대상 Cue 재생(몬스터 공격 등).
+            builder.Register<IPacketHandler, AbilityActivatedPacketHandler>(Lifetime.Singleton);
             // 원격 회피 연출: S_Dodge 브로드캐스트 → RemoteDriver 구르기 애니(무적은 서버 권위).
             builder.Register<IPacketHandler, DodgePacketHandler>(Lifetime.Singleton);
             // 3.3 루트/드랍: 바닥 아이템 스폰/제거 + 줍기 토스트.
@@ -119,6 +121,11 @@ namespace Game.Network.Socket
         event Action<long, int> OnPlayerAttacked;
         void NotifyPlayerAttacked(long attackerId, int skillId);
 
+        // ── Actor 통합 발동 연출(S_AbilityActivated 브로드캐스트) ──
+        /// <summary>S_AbilityActivated 수신 시 발행(actorId, skillId). AbilityCueRouter 가 ActorRegistry 로 대상을 찾아 Cue 재생(적중=서버 권위).</summary>
+        event Action<long, int> OnAbilityActivated;
+        void NotifyAbilityActivated(long actorId, int skillId);
+
         // ── 원격 회피 연출(S_Dodge 브로드캐스트) ──
         /// <summary>S_Dodge 수신 시 발행(userId). RemoteDriver 가 회피(구르기) 애니만 재생한다(무적=서버 권위).</summary>
         event Action<long> OnPlayerDodged;
@@ -137,7 +144,8 @@ namespace Game.Network.Socket
         /// <summary>S_MonsterDead 수신 시 발행(instanceId). MonsterSpawner가 디스폰한다.</summary>
         event Action<int> OnMonsterDead;
         void AddMonster(SocketMonsterSnapshot snapshot);
-        void UpdateMonster(int instanceId, float posX, float posY, float posZ, float rotY, int hp, byte phase);
+        /// <summary>몬스터 상태 반영. <paramref name="seq"/> 가 이미 반영한 값 이하면 **스테일이라 무시**한다(AC-C3).</summary>
+        void UpdateMonster(int instanceId, float posX, float posY, float posZ, float rotY, int hp, byte phase, int seq);
         void RemoveMonster(int instanceId);
         bool TryGetMonster(int instanceId, out SocketMonsterSnapshot snapshot);
         /// <summary>현재 보관 중인 모든 몬스터 스냅샷의 복사본. (스포너 초기 로스터용)</summary>
@@ -180,6 +188,7 @@ namespace Game.Network.Socket
         public event Action                       OnDungeonFailed;
         public event Action<long>                 OnPlayerDead;
         public event Action<long, int>            OnPlayerAttacked;
+        public event Action<long, int>            OnAbilityActivated;
         public event Action<long>                 OnPlayerDodged;
         public event Action<long, int>            OnPlayerRevived;
         public event Action<SocketMonsterSnapshot> OnMonsterSpawned;
@@ -194,6 +203,7 @@ namespace Game.Network.Socket
         public void MarkDungeonFailed() => OnDungeonFailed?.Invoke();
         public void NotifyPlayerDead(long userId) => OnPlayerDead?.Invoke(userId);
         public void NotifyPlayerAttacked(long attackerId, int skillId) => OnPlayerAttacked?.Invoke(attackerId, skillId);
+        public void NotifyAbilityActivated(long actorId, int skillId) => OnAbilityActivated?.Invoke(actorId, skillId);
         public void NotifyPlayerDodged(long userId) => OnPlayerDodged?.Invoke(userId);
         public void NotifyPlayerRevived(long userId, int hp) => OnPlayerRevived?.Invoke(userId, hp);
 
@@ -281,24 +291,46 @@ namespace Game.Network.Socket
             OnMonsterSpawned?.Invoke(snapshot);
         }
 
-        public void UpdateMonster(int instanceId, float posX, float posY, float posZ, float rotY, int hp, byte phase)
+        public void UpdateMonster(int instanceId, float posX, float posY, float posZ, float rotY, int hp, byte phase, int seq)
         {
             SocketMonsterSnapshot updated = null;
+            int hpDelta = 0;
             lock (_sync)
             {
                 if (_monsters.TryGetValue(instanceId, out var existing))
                 {
-                    updated = existing.WithState(posX, posY, posZ, rotY, hp, phase);
+                    // AC-C3 스테일 드롭: 서버는 상태를 **만든 순서대로** Seq 를 찍지만 송신은 그 순서가 아닐 수 있다
+                    // (틱이 먼저 만든 패킷을 나중에 보냄 → 데미지 패킷이 먼저 도착). 이미 더 새 상태를 반영했다면 버린다.
+                    // 버리지 않으면 HP 가 옛 값으로 되돌아가고, 서버는 그 되돌림을 모른다 → 체감상 HP 고착/튐.
+                    if (seq <= existing.Seq)
+                    {
+                        // 진단(AC-C1b): 버린 사건 자체가 "순서 역전이 실재했다"는 증거 — C1c 에서 빈도를 본다.
+                        Diagnostics.CombatTraceRecorder.Shared.RecordStaleDropped(
+                            Diagnostics.CombatTraceRecorder.NowMs, -(long)instanceId, seq, existing.Seq);
+                        return;
+                    }
+
+                    // 진단: HP 델타 = 플레이어→몬스터 스윙의 **유일한 데미지 신호**(몬스터엔 S_ApplyEffect 가 없다).
+                    hpDelta = hp - existing.Hp;
+
+                    updated = existing.WithState(posX, posY, posZ, rotY, hp, phase, seq);
                     _monsters[instanceId] = updated;
                 }
                 else
                 {
                     // 상태가 스폰보다 먼저 도달 — 최소 스냅샷 보관(이름/MaxHp 미상).
                     // OnMonsterMoved는 발행하지 않는다(아직 MonsterEntity 없음). S_SpawnMonster 수신 시 교정.
-                    _monsters[instanceId] = new SocketMonsterSnapshot(instanceId, string.Empty, posX, posY, posZ, rotY, hp, hp, phase);
+                    _monsters[instanceId] = new SocketMonsterSnapshot(instanceId, string.Empty, posX, posY, posZ, rotY, hp, hp, phase, seq);
                 }
             }
-            if (updated != null) OnMonsterMoved?.Invoke(updated);
+
+            if (updated != null)
+            {
+                // 진단은 lock 밖에서 — 기록이 상태 저장소 잠금을 잡고 있을 이유가 없다(§2.3 무할당·저간섭).
+                Diagnostics.CombatTraceRecorder.Shared.RecordMonsterHpApplied(
+                    Diagnostics.CombatTraceRecorder.NowMs, -(long)instanceId, hp, seq, hpDelta);
+                OnMonsterMoved?.Invoke(updated);
+            }
         }
 
         public void RemoveMonster(int instanceId)
@@ -399,7 +431,13 @@ namespace Game.Network.Socket
         public int MaxHp { get; }
         public byte Phase { get; }
 
-        public SocketMonsterSnapshot(int instanceId, string monsterId, float posX, float posY, float posZ, float rotY, int hp, int maxHp, byte phase)
+        /// <summary>
+        /// 반영한 상태의 서버 버전(AC-C3, <see cref="Packets.S_MonsterState.Seq"/>). 이보다 작거나 같은 상태는 스테일이라 버린다.
+        /// 스폰 시점 baseline 은 0 — 서버 첫 발급이 1 이라 첫 상태는 항상 통과한다.
+        /// </summary>
+        public int Seq { get; }
+
+        public SocketMonsterSnapshot(int instanceId, string monsterId, float posX, float posY, float posZ, float rotY, int hp, int maxHp, byte phase, int seq = 0)
         {
             InstanceId = instanceId;
             MonsterId = monsterId ?? string.Empty;
@@ -410,14 +448,15 @@ namespace Game.Network.Socket
             Hp = hp;
             MaxHp = maxHp;
             Phase = phase;
+            Seq = seq;
         }
 
-        /// <summary>식별 정보(MonsterId/MaxHp)는 유지하고 상태(위치/회전/HP/페이즈)만 갱신.</summary>
-        public SocketMonsterSnapshot WithState(float posX, float posY, float posZ, float rotY, int hp, byte phase)
-            => new SocketMonsterSnapshot(InstanceId, MonsterId, posX, posY, posZ, rotY, hp, MaxHp, phase);
+        /// <summary>식별 정보(MonsterId/MaxHp)는 유지하고 상태(위치/회전/HP/페이즈/버전)만 갱신.</summary>
+        public SocketMonsterSnapshot WithState(float posX, float posY, float posZ, float rotY, int hp, byte phase, int seq)
+            => new SocketMonsterSnapshot(InstanceId, MonsterId, posX, posY, posZ, rotY, hp, MaxHp, phase, seq);
 
         public SocketMonsterSnapshot Clone()
-            => new SocketMonsterSnapshot(InstanceId, MonsterId, PosX, PosY, PosZ, RotY, Hp, MaxHp, Phase);
+            => new SocketMonsterSnapshot(InstanceId, MonsterId, PosX, PosY, PosZ, RotY, Hp, MaxHp, Phase, Seq);
     }
 
     /// <summary>

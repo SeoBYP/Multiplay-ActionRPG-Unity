@@ -32,6 +32,7 @@ namespace Game.Gameplay.Character
         private readonly LocalPlayerContext     _localPlayer;
         private readonly SpawnLayoutProvider    _spawnLayouts;
         private readonly PartyAscRegistry       _partyRegistry;
+        private readonly ActorRegistry          _actors;   // ActorId(=UserId) → RemoteDriver, 발동 Cue 라우팅용(몬스터와 공용)
 
         private GameObject _localCharacterGo;
         private readonly Dictionary<long, RemoteDriver> _remotes = new Dictionary<long, RemoteDriver>();
@@ -44,7 +45,8 @@ namespace Game.Gameplay.Character
             CharacterPrefabSettings prefabs,
             LocalPlayerContext      localPlayer,
             SpawnLayoutProvider     spawnLayouts,
-            PartyAscRegistry        partyRegistry)
+            PartyAscRegistry        partyRegistry,
+            ActorRegistry           actors)
         {
             _socketSession = socketSession;
             _packetState   = packetState;
@@ -54,6 +56,7 @@ namespace Game.Gameplay.Character
             _localPlayer   = localPlayer;
             _spawnLayouts  = spawnLayouts;
             _partyRegistry = partyRegistry;
+            _actors        = actors;
         }
 
         public async UniTask StartAsync(CancellationToken ct)
@@ -299,6 +302,8 @@ namespace Game.Gameplay.Character
 
             driver.Initialize(snapshot.UserId, _packetState);
             _remotes[snapshot.UserId] = driver;
+            // AC: ActorId(=UserId, 양수)로 레지스트리 등록 → S_AbilityActivated 발동 신호가 이 원격 플레이어의 스윙 Cue 로 라우팅됨(몬스터와 동일 파이프).
+            _actors.Register(ActorIds.FromPlayer(snapshot.UserId), driver);
 
             // 파티 HP HUD 용 원격 ASC 등록(S_ApplyEffect 를 TargetId 로 라우팅해 HP 추적).
             // 서버 권위 HP 기준선(S_PlayerJoined Hp/MaxHp)으로 정렬 — 이후 델타가 정확한 기준선 위에 얹힌다.
@@ -326,6 +331,7 @@ namespace Game.Gameplay.Character
             if (!_remotes.TryGetValue(userId, out var driver)) return;
             _remotes.Remove(userId);
             _partyRegistry.Unregister(userId);
+            _actors.Unregister(ActorIds.FromPlayer(userId));
             driver.Dispose();
             if (driver != null) UnityEngine.Object.Destroy(driver.gameObject);
             Debug.Log($"[CharacterSpawner] 원격 캐릭터 디스폰 — UserId={userId}");
@@ -342,10 +348,11 @@ namespace Game.Gameplay.Character
             _packetState.OnPlayerDead    -= HandlePlayerDead;
             _packetState.OnPlayerRevived -= HandlePlayerRevived;
 
-            foreach (var driver in _remotes.Values)
+            foreach (var kv in _remotes)
             {
-                driver.Dispose();
-                if (driver != null) UnityEngine.Object.Destroy(driver.gameObject);
+                _actors.Unregister(ActorIds.FromPlayer(kv.Key));
+                kv.Value.Dispose();
+                if (kv.Value != null) UnityEngine.Object.Destroy(kv.Value.gameObject);
             }
             _remotes.Clear();
         }

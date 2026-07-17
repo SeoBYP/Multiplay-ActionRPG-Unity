@@ -44,6 +44,7 @@ GameObject:
   - component: {fileID: 3448384642550520180}
   - component: {fileID: 4302956847542515971}
   - component: {fileID: 1930764790470338316}
+  - component: {fileID: 426355518604914500}
   m_Layer: 0
   m_Name: Monster_undead_axemaster
   m_TagString: Untagged
@@ -81,13 +82,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.MonsterEntity
   lerpSpeed: 15
-  animator: {fileID: 3386771771630657466}
-  idleState: Idle
-  walkState: WalkInPos
-  dieState: Die1
-  walkSpeedThreshold: 0.3
+  speedSmoothing: 10
   deathDespawnDelay: 2
-  crossFadeSec: 0.15
 --- !u!114 &4302956847542515971
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -124,6 +120,32 @@ CapsuleCollider:
   m_Height: 1.9
   m_Direction: 1
   m_Center: {x: 0, y: 0.95, z: 0}
+--- !u!114 &426355518604914500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 623474458626713953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69a2c0eb64bb45148a00305eb06dceca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.CharacterAgentAnimations
+  m_animationSpeedFloat: Speed
+  m_animationMoveXFloat: 
+  m_animationMoveYFloat: 
+  m_animationComboStepInt: 
+  m_animationGroundedBool: 
+  m_animationStrafeBool: 
+  m_animationFallTrigger: 
+  m_animationJumpTrigger: 
+  m_animationLandTrigger: 
+  m_animationInteractTrigger: 
+  m_animationAttackTrigger: Attack
+  m_animationDeathTrigger: Die
+  m_animationDodgeTrigger: 
+  m_animationReviveTrigger: 
 --- !u!1 &913425934975290541
 GameObject:
   m_ObjectHideFlags: 0
@@ -1199,7 +1221,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5189988159879832886}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.11406439, y: -0.0521033, z: -0.8237754, w: 0.5528731}
+  m_LocalRotation: {x: -0.114064395, y: -0.0521033, z: -0.8237755, w: 0.5528731}
   m_LocalPosition: {x: -0.66721666, y: 0.000000023841858, z: 0}
   m_LocalScale: {x: 0.9999983, y: 1.0000014, z: 1}
   m_ConstrainProportionsScale: 0
@@ -1711,7 +1733,7 @@ Animator:
   m_GameObject: {fileID: 7676001761716460956}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: 54f1ac2889137fd43b8243780ef9603f, type: 3}
-  m_Controller: {fileID: 9100000, guid: 7f3b9885f3b0afe4b947caaaf370d24b, type: 2}
+  m_Controller: {fileID: 9100000, guid: 443391e0392b0cb499f66c62fb6f999e, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
   m_ApplyRootMotion: 1

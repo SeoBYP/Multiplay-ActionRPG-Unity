@@ -54,13 +54,29 @@ Unity 멀티플레이 액션 RPG 포트폴리오.
 
 ## 검증 명령
 
-```powershell
-# 클라이언트
-dotnet build Client\Game.Main.csproj --no-restore
+**서버** — `dotnet` 이 권위:
 
-# 서버 (코드젠 스킵)
-dotnet build ServerAll\ServerAll.sln --no-restore -p:SKIP_CODEGEN=true
+```powershell
+dotnet build ServerAll\ServerAll.sln --no-restore -p:SKIP_CODEGEN=true   # 코드젠 스킵
+dotnet test  ServerAll\SocketServer\SocketServer.Tests\SocketServer.Tests.csproj
 ```
+
+**클라이언트 — `dotnet build` 를 쓰지 않는다. Unity 가 유일한 권위다.**
+
+Unity MCP 로 컴파일 → 에러 확인:
+```
+refresh_unity(compile="request", mode="force", scope="scripts")
+read_console(action="get", types=["error"])      # 0 건이어야 통과
+run_tests(mode="EditMode")                        # 컴파일 + 단위 회귀
+```
+
+> ⚠️ **`dotnet build Client\*.csproj` 는 금지**(과거 이 자리에 `Game.Main.csproj` 가 적혀 있었다 — 동작하지 않는다):
+> - `Client/*.csproj`·`Client.sln` 은 **Unity 생성물**(gitignore)이고, Unity 는 **asmdef 가 있는 것만 재생성하며 고아 csproj 를 지우지 않는다.**
+>   `Game.Main`/`Game.Input`/`Game.OutGame`/`Game.InGame`/`Game.System.DungeonLobby` 는 asmdef 가 없는 **2026-05-30 화석**이라 옮겨진 소스를 참조해 CS2001 로 실패한다.
+> - 살아 있는 csproj 도 안 된다: `Game.Gameplay`/`Game.GUI` 는 Unity 패키지(RenderPipelines.Core) 소스를 `dotnet` 의 다른 컴파일러 설정으로 컴파일해 **Unity 코드에서** CS8168/CS8347 이 난다.
+> - `Client.sln` 은 **MSB5004**(Unity.Timeline 중복)로 아예 열리지 않는다.
+>
+> → 클라 컴파일 판정은 **Unity 콘솔**로만 한다.
 
 ## proto 수정 후 클라이언트 재생성 (필수)
 

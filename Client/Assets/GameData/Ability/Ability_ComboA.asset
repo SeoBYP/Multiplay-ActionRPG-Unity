@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bcf2b8705e8051b419e788074ed33a79, type: 3}
+  m_Name: Ability_ComboA
+  m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Abilities.AbilityDefinition
+  id: combo_a
+  networkId: 2
+  startupMs: 150
+  activeMs: 100
+  recoveryMs: 130
+  cooldownMs: 350
+  manaCost: 0
+  hitboxShape: 0
+  hitboxOffset: {x: 0, y: 0.5, z: 0.9}
+  hitboxHalfExtents: {x: 0.55, y: 1, z: 0.65}
+  baseDamage: 10
+  activationRange: 1.55
+  onHitEffectIds: []
+  comboChainMs: 800
+  comboWindowMs: 900
+  cueTrigger: 5
+  cueComboStep: 0
