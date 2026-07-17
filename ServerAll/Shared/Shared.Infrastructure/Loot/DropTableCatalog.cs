@@ -28,6 +28,17 @@ public static class DropTableCatalog
     public static List<DropResult> Roll(string? monsterId, System.Random rng)
         => DropTableRoll.Roll(Get(monsterId), rng);
 
+    /// <summary>
+    /// 레벨·등급을 반영해 굴린다(AC-E4). 배율 계산은 여기가 한다 —
+    /// <see cref="DropTableRoll"/> 는 순수 함수라 플레이어 곡선(<see cref="Monsters.MonsterLevelScaling"/>)을 모른다.
+    /// </summary>
+    public static List<DropResult> Roll(string? monsterId, System.Random rng, int level, Monsters.MonsterTier tier)
+        => DropTableRoll.Roll(
+            Get(monsterId),
+            rng,
+            Monsters.MonsterLevelScaling.DropChanceMultiplier(tier),
+            Monsters.MonsterLevelScaling.DropQuantityMultiplier(level));
+
     private static IReadOnlyDictionary<string, IReadOnlyList<DropEntry>> LoadEmbedded()
     {
         var assembly = Assembly.GetExecutingAssembly();
