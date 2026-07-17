@@ -1,4 +1,4 @@
-# 프로젝트 진행 로드맵 — 마일스톤 요약 (M0 → M4)
+# 프로젝트 진행 로드맵 — 마일스톤 요약 (M0 → M5)
 
 > 이 문서는 [plan.md](../wiki/plan.md)의 실행 이력을 **포트폴리오 관점**(무엇을 만들었고, 왜 그렇게 설계했으며, 어떤 트레이드오프를 택했는가)으로 한 장에 정리한 것이다.
 > 세부 구현·대화 이력은 각 챕터(아래 링크)에서 다룬다.
@@ -36,10 +36,10 @@ Co-op 던전 **버티컬 슬라이스**가 코어. 폴리시(애니메이션·�
 
 ```
 ✅ M0/M1  기반 — 인증·로비·채팅·소켓·DB/캐시·인게임 진입(스폰/이동/HUD)
-🔄 M2     전투 코어 — Character 두 축 분리(GAS) + 서버 권위 Attack/Hit/Damage
+✅ M2     전투 코어 — Character 두 축 분리(GAS) + 서버 권위 Attack/Hit/Damage
 ✅ M3     몬스터 — 스폰·AI 틱·양방향 전투·클라 렌더(2인 검증)
 ✅ M4     던전 루프(DoD) — Clear/Fail → Exp 보상 → 로비 복귀
-⬜ M5     폴리시/콘텐츠 — 애니(MotionMatching V2)·스킬·아이템·PVE 맛보기
+🔄 M5     폴리시/콘텐츠 — 아이템·장비·상점·퀘스트·전투보조·애니 실배선·Actor 통합 전투·몬스터 레벨링·PVE 맛보기
 ⬜ M6     마감 — 데모·부하/E2E·배포 문서
 ```
 
@@ -64,7 +64,7 @@ Co-op 던전 **버티컬 슬라이스**가 코어. 폴리시(애니메이션·�
 
 ---
 
-## 🔄 M2 — 전투 코어 (GAS + 서버 권위)
+## ✅ M2 — 전투 코어 (GAS + 서버 권위)
 
 **무엇** — 캐릭터를 **두 축**으로 분리하고, 기본 공격을 서버 권위로 관통시켰다.
 
@@ -86,7 +86,7 @@ Co-op 던전 **버티컬 슬라이스**가 코어. 폴리시(애니메이션·�
 - **YAGNI 정리**: 서버 권위 이관 후 죽은 로컬 GAS *ability* 경로(HitDetector·BasicAttackAbility 등) 삭제. *effect*(버프/데미지)는 유지.
 
 **관련 챕터**: [10-gameplay-state](./chapter-10-unity-gameplay-state.md), [10-input-system](./chapter-10-unity-input-system.md)
-**남은 것(M5)**: 공유 시계(StartTick 정밀 만료)·클라 예측/정정·스킬 확장.
+**M5에서 완결**: 당시 "남은 것"이던 정밀화·스킬 확장은 M5 AC 트랙에서 닫혔다 — 서버 발동 게이트(쿨다운·콤보 cadence·마나), Ability SO 단일 저작(스킬 추가 = 코드 0), Attack 콤보(타이밍 진실원 = SkillTimeline 공유 데이터). → [챕터 26](./chapter-26-measured-combat-cleanup.md)
 
 ---
 
@@ -137,6 +137,27 @@ Co-op 던전 **버티컬 슬라이스**가 코어. 폴리시(애니메이션·�
 
 ---
 
+## 🔄 M5 — 폴리시 + PVE 맛보기 (진행 중, 대부분 완료)
+
+**무엇** — 코어 루프 위에 콘텐츠·완성도를 얹는 마일스톤. 굵직한 완료 트랙:
+
+| 트랙 | 내용 | 챕터 |
+|------|------|------|
+| 아이템 경제 | 인벤토리·루트/드롭(던전 서버권위 + Main **B-lite ClaimKill 검증**)·장비(정의/소유/착용 3분리)·재화/상점·퀘스트(킬 클레임 funnel 훅) | [15](./chapter-15-loot-drop-inventory.md)·[16](./chapter-16-main-loot-path.md)·[17](./chapter-17-equipment-system.md)·[18](./chapter-18-wallet-shop.md)·[19](./chapter-19-quest-system.md) |
+| 콘텐츠 파이프라인 | 던전 메타(MapId)·Addressables 전환·**게임 데이터 전부 SO 저작→bake**(어빌리티/몬스터/드롭/레벨/스폰) | [20](./chapter-20-content-pipeline-addressables.md)·[26](./chapter-26-measured-combat-cleanup.md) |
+| 생존성·권위 승격 | 하트비트 실배선·플레이어 HP/마나 서버 권위·사망(다운 잠금)·**Co-op 부활** | [21](./chapter-21-connection-liveness-hp-authority.md)·[23](./chapter-23-mana-resource-authority-ability.md)·[24](./chapter-24-coop-revive.md) |
+| 전투 보조·연출 | 회피 i-frame·CC·타겟팅/락온(패킷 0)·HUD 창 MVI·실캐릭터 애니 배선(플레이어/원격/NPC)·Attack 콤보 | [22](./chapter-22-hud-windows-mvi.md)·[25](./chapter-25-lock-on-targeting.md) |
+| **AC 트랙 (전투 정리)** | Actor 통합 발동 파이프(플레이어=몬스터 동일 경로)·**전투 계측(CombatTrace)** → D1 송신큐·D2 Seq 근본 수정 + 틱레이트 조정 "불필요" 판정·**몬스터 레벨링(상수 0 스케일)**·변종=ID 저작·던전 5개(L1→L30) | [26](./chapter-26-measured-combat-cleanup.md) |
+
+**설계 결정 / 트레이드오프**
+- **측정 우선**: "느린 것 같다"는 체감을 계측(서버 구조적 로그 + 클라 링버퍼 + 에디터 창)으로 바꾼 뒤에만 수정 — 실측이 수정 2건(D1/D2)을 특정하고 1건(틱레이트)을 기각했다.
+- **데이터 진실원 교리**: 기획 데이터는 SO 저작 → exporter bake → 서버 임베디드 JSON. 스킬·몬스터·던전 추가에 서버 코드 수정 0. 배율 간접층 대신 **변종 = 별개 ID 직접 저작**.
+- **애니메이션**: MotionMatching은 별도 프로젝트로 외부화(범위 관리) — 클라는 Animator 실배선으로 완성도 확보.
+
+**잔여**: 어빌리티별 전용 애니·VFX/SFX Cue(AC-D), dungeon_03~05 맵 배경(에셋), Main 타이머 리스폰.
+
+---
+
 ## 🧩 전 마일스톤 관통 — 설계 원칙
 
 이 프로젝트가 일관되게 지킨 규칙들(개별 기능보다 이게 포트폴리오의 핵심):
@@ -153,9 +174,9 @@ Co-op 던전 **버티컬 슬라이스**가 코어. 폴리시(애니메이션·�
 
 ## 📌 현재 상태 & 다음
 
-- **완료**: M0·M1·M3·M4(✅), M2 코어 대부분(🔄 — 정밀화·스킬 확장만 M5로). **DoD 루프는 코드·E2E로 관통**.
-- **M5 진행 중**: 인벤토리·루트(던전/Main)·소모품(회복)·**Main 획득 서버 검증(B-lite ClaimKill)**·**사망/리스폰(2.5.1)**·플레이어 HP 서버 권위 승격 = ✅. 데이터 진실원 교리(SO 저작→bake→서버 검증) 정착.
-- **다음(M5 잔여)**: 애니메이션(MotionMatching V2)·스킬1~2·장비/상점·PVE 오픈월드 확장·전투 보조(회피/CC/Co-op 부활). 노드별 진척 = [plan.md](../wiki/plan.md).
+- **완료**: M0~M4 전부 ✅. **DoD 루프는 코드·E2E로 관통**, MPPM 2인 플레이 검증 완료.
+- **M5 진행 중(대부분 완료)**: 아이템 경제(인벤·장비·상점·퀘스트)·생존성/권위 승격(HP·마나·사망·Co-op 부활)·전투 보조(회피·CC·락온)·애니 실배선·**AC 트랙**(Actor 통합 전투·전투 계측·몬스터 레벨링·데이터 전면 SO화) = ✅. 위 M5 섹션 참조.
+- **다음(M5 잔여)**: 어빌리티 전용 애니·VFX Cue(AC-D)·dungeon_03~05 맵 배경·PVE 오픈월드 확장. 노드별 진척 = [plan.md](../wiki/plan.md).
 - **마감(M6)**: 데모 영상·부하/E2E 검증·배포/문서.
 
 > 실시간 진척·이슈는 [GitHub Project #2](https://github.com/users/SeoBYP/projects/2)(plan.md 커밋 시 post-commit 훅 자동 동기화), 설계·이력 진실원은 [plan.md](../wiki/plan.md), 코드 위치·결정 로그는 [codemap.md](../wiki/codemap.md).

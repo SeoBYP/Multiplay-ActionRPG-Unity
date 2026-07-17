@@ -24,9 +24,10 @@
 5. [구현 현황](#-구현-현황)
 6. [개발 로드맵](#-개발-로드맵)
 7. [핵심 설계 결정](#-핵심-설계-결정)
-8. [테스트 & 품질](#-테스트--품질)
-9. [실행 방법](#-실행-방법)
-10. [문서](#-문서)
+8. [문제 → 원인 → 해결 사례](#-문제--원인--해결-사례)
+9. [테스트 & 품질](#-테스트--품질)
+10. [실행 방법](#-실행-방법)
+11. [문서](#-문서)
 
 ---
 
@@ -41,6 +42,15 @@
 - Clean Architecture 기반의 유지보수 가능한 도메인 설계
 - 보안(JWT·DeviceId 바인딩·토큰 로테이션)과 성능(HTTP/2·바이너리 직렬화·캐시)을 모두 고려
 - **테스트 주도** — 단위 / 통합(Testcontainers) / E2E(실서버) 3계층 + 회귀 방지 자동화
+
+**규모 스냅샷** (2026-07 기준)
+
+| 항목 | 규모 |
+|------|------|
+| gRPC | 서비스 **11개** / RPC **31개** (Auth · User · Lobby · Chat · Inventory · Equipment · Progression · Wallet · Shop …) |
+| TCP 패킷 | MemoryPack Union **30종** (인증 / 입·퇴장 / 이동 / 전투 / 라이프사이클 / 던전 이벤트) |
+| 게임 데이터 (SO 저작 → JSON bake) | 어빌리티 **15** · 몬스터 **13종**(엘리트·보스 변종 4 포함) · 드롭 테이블 **12** · 레벨 테이블 **60레벨** · 스폰 레이아웃 **8맵**(플레이용 던전 5, L1→L30) |
+| 테스트 | 서버 xUnit **643개**(GameServer 384 · SocketServer 209 · Shared.Gameplay 50) + Unity **375개**(EditMode 192 · PlayMode 183, 그중 Docker 실서버 E2E 91) ≈ **총 1,000여 개** |
 
 ---
 
@@ -197,7 +207,7 @@ Client/Assets/Script/
 | Unity 클라(OutGame) | ✅ | gRPC 로그인/로비 UI, VContainer DI, MVI |
 | Unity 클라(InGame) | ✅ | 캐릭터 스폰·이동 보간·HUD·타겟팅/락온·애니메이션(파라미터 구동) |
 | 실시간 전투(서버 권위) | ✅ | GAS + **Ability SO 단일 저작**(스킬 추가 = 코드 0) · **Actor 통합 발동 파이프**(플레이어=몬스터 동일 경로) · 서버 게이트(쿨다운·콤보 cadence·마나) · 히트박스 판정 · CC/회피 i-frame · Co-op 부활 |
-| 몬스터·던전 루프 | ✅ | 서버 권위 몬스터 AI(틱) · **레벨 스케일(상수 0 — 플레이어 곡선 직독)** · 변종=ID 직접 저작(보스/엘리트) · 드롭→인벤 지급 · 클리어/실패→보상→로비 복귀 · 던전 5개(L1→L30) |
+| 몬스터·던전 루프 | ✅ | 서버 권위 몬스터 AI(틱) · 몬스터 13종 · **레벨 스케일(상수 0 — 플레이어 곡선 직독)** · 변종=ID 직접 저작(보스/엘리트) · 드롭→인벤 지급 · 클리어/실패→보상→로비 복귀 · 던전 5개(L1→L30) |
 | 전투 진단/무결성 | ✅ | 서버 `[CombatTrace]` + 클라 링버퍼 + 에디터 창 — **측정 우선**으로 D1(송신 직렬화)·D2(상태 시퀀스) 근본 수정, 틱레이트 조정은 "불필요" 판정 |
 
 자세한 “무엇을·왜” 결정 로그는 [`docs/wiki/codemap.md`](docs/wiki/codemap.md), 학습 기록은 [`docs/portfolio/`](docs/portfolio/README.md) 참고.
@@ -250,11 +260,29 @@ flowchart LR
 
 ---
 
+## 🩺 문제 → 원인 → 해결 사례
+
+실제로 겪고 근본 수정한 대표 사례들 — 증상만 덮지 않고 원인을 특정해 구조로 해결한 기록입니다.
+
+| 증상 | 근본 원인 | 해결 |
+|------|-----------|------|
+| 던전 입장이 간헐적으로 안 됨 | 스트리밍 RPC의 long-lived DbContext가 **EF 추적 캐시의 stale 엔티티**를 반환 — 다른 스코프가 쓴 DB 변경을 스트림이 끝날 때까지 못 읽음 | 캐시 미스 DB 폴백은 전부 `AsNoTracking()` 원칙화 — "이벤트는 트리거일 뿐, 최신 상태는 항상 DB에서" |
+| 컨테이너 재시작 후 게임 시작 영구 불가 | Redis `LOADING` 응답에 Stream Consumer가 예외로 **영구 사망** | `ResilientStreamConsumer`로 재시도·복원을 중앙화, 컨슈머 3종 이관 |
+| 몬스터 HP가 줄었다 **되돌아감** | 상태 브로드캐스트 순서 역전 — 오래된 스냅샷이 늦게 도착해 최신 값을 덮음 | `S_MonsterState.Seq`를 **스냅샷 생성 시점**에 스탬프(송신 시점이면 역전을 정당화), 클라는 stale 드롭. 송신 FIFO 도입 후 실측 역전 0건 |
+| 다중 스레드 소켓 송신 → 프레임 손상 위험 | 틱·핸들러 스레드가 한 소켓에 동시 `Send` (Windows에선 WSASend 원자성으로 재현 불가 — **재현 안 됨 ≠ 버그 없음**) | 세션당 bounded Channel(1024) 송신 큐 + 단일 소비자. 생산자는 `TryWrite`만(무블록), 포화 시 그 세션만 끊음(무한 큐 = DoS 벡터) |
+| "체력 동기화가 느린 것 같다" (체감) | 계측 결과 공격→HP 반영 **~37ms, RTT 지배** — 서버 처리는 병목 아님 | 틱레이트 상향을 **데이터로 기각**. 측정이 "고치지 않을 것"을 결정 — 수정 전 계측 원칙 정착 |
+| 측면(90°/270°) 공격이 안 맞음 | 공유 `HitboxMath` 월드→로컬 회전의 **yaw 부호 오류** — 기존 테스트가 0°/180°만 검증한 사각지대 | 부호 교정(서버·클라 공유 수식 한 곳) + 전 방향 판정 테스트 추가 |
+| 콤보가 **던전에서만** 끊김 | 서버 콤보 cadence 검증에 네트워크 지터 허용치 부재 — 정상 입력이 거부돼 데미지 유실 | cadence에 지터 허용치(100ms). 타이밍 진실원은 SkillTimeline 공유 데이터로 단일화 |
+
+> 상세 경위: [`docs/wiki/combat-diagnostics.md`](docs/wiki/combat-diagnostics.md)(계측·D1/D2) · [`docs/portfolio/`](docs/portfolio/README.md) 챕터별 학습 로그 · [`docs/wiki/codemap.md`](docs/wiki/codemap.md) 결정 로그.
+
+---
+
 ## 🧪 테스트 & 품질
 
-- **단위** — GameServer.Tests(Application/Domain, Fake 레포), SocketServer.Tests(RoomManager 등), Unity EditMode
+- **단위** — GameServer.Tests **384**(Application/Domain, Fake 레포), SocketServer.Tests **209**(Room/Session/전투 게이트/레벨링), Shared.Gameplay.Tests **50**(공유 수식 — 서버↔클라 parity), Unity EditMode **192**
 - **통합** — GameServer.Tests/Infrastructure(**Testcontainers** 실제 PostgreSQL+Redis), 인메모리 풀스택(gRPC Host) + Consumer 파이프라인
-- **E2E** — Unity PlayMode가 **Docker 실서버**를 대상으로 검증 (Auth/User/DungeonLobby/Chat/Socket, 던전 퇴장→복원 차단)
+- **E2E** — Unity PlayMode **183**(그중 **91**이 **Docker 실서버** 대상 — Auth/User/DungeonLobby/Chat/Socket, 던전 퇴장→복원 차단, 재접속 유예, 회복/사망/부활)
 - **2-클라 테스트** — 자동(단일 프로세스 다중 소켓) + 수동(Unity MPPM 가상 플레이어)
 - **회귀 방지 자동화** — `.claude/` Hook으로 stale Docker 이미지 가드 / proto 재생성 / 서버 변경 시 테스트·codemap 갱신 유도
 
@@ -301,4 +329,3 @@ dotnet test  ServerAll/SocketServer/SocketServer.Tests/SocketServer.Tests.csproj
 | 전투·GAS 설계(Actor 통합 / Ability SO / 전투 진단 / 몬스터 레벨링) | [`docs/wiki/actor-combat-architecture.md`](docs/wiki/actor-combat-architecture.md) 외 `ability-so-authoring` · `combat-diagnostics` · `monster-leveling` |
 | 포트폴리오 학습 기록(챕터별) | [`docs/portfolio/README.md`](docs/portfolio/README.md) |
 | 기여/작업 규칙 | [`CLAUDE.md`](CLAUDE.md), [`.claude/rules/`](.claude/rules/) |
-```
