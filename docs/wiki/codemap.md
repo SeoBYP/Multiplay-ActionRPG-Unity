@@ -413,6 +413,16 @@ P7 첫 증분(§2.86 = Event 종류+0-인자 호출) 위에 참조 R4/R5 를 마
 - **검증(MCP 실구동)**: 컴파일0 · 다중선택{0,1}→넛지(둘 다 +50)→복제(2→4·새선택{2,3})→다중삭제(4→2) 예외0 · **비파괴**(ability 에셋 git 무변경).
 - **→ CA-5(어빌리티 타임라인 툴) P0~P8 코드 전부 완료.** 백로그 = [ability-timeline-tool.md](ability-timeline-tool.md). 잔여 = 사용자 배선(Phase 1b 에셋·Actor 프리팹) + Main 판정 통일 애니이벤트 실제 제거·플레이검증.
 
+### 2.89 CA-5 W-A — 오른쪽 상세 패널 + 디자인 폴리시(.uss) (2026-07-18)
+
+레퍼런스(Unreal Montage/Unity Timeline)처럼 "선택→안정적 상세 패널 인라인 편집" 구조로. 사용자 지정 우선순위 W-A.
+
+- **좌우 분할**: 루트(column)=툴바 + body(row: 왼쪽 타임라인 가로 `ScrollView`(flexGrow) / 오른쪽 세로 `ScrollView` 상세 패널 300px). 인스펙터를 창 하단→오른쪽으로 이동.
+- **상세 패널 세로 재작성**: `Section(title)`/`Hint`/`RowBtns` 헬퍼로 섹션화. ① 선택 이벤트(어느 kind 든: SFX 클립/VFX 프리팹+소켓/Event 메서드+타입인자/Anim 시각·길이 + 복제/삭제) ② 판정창(startup/active+Export+→Event, 어빌리티 레벨 항상) ③ 고급(선택)=**툴바에서 옮긴 Cue 카탈로그**+폴백 id(직접 리소스가 기본이라 하단). `Bound*` 를 고정폭→패널 채움+`.atl-field` 클래스로 전환, 옛 `BoundInt`(width판) 제거.
+- **디자인 폴리시(.uss)**: `AbilityTimelineWindow.uss` 신설 + `LoadStyleSheet`(AssetDatabase 경로 로드, 없으면 인라인 폴백). `.atl-details/section/section-title/hint/field/btn-row/method-row/marker` — 라벨폭 74px·간격·마커 라운드 등 외형만(동적 위치는 코드). 사용자 "CSS 도 추가해서 이쁘게" 요청.
+- **검증**: 컴파일0 · USS 파싱0 · **EditMode 199/199** · 실구동(styleSheets count=2 로드확인·atl-details 자식3=이벤트/고급/판정창 섹션·VFX/Event 인스펙터 예외0)·비파괴(ability 에셋 git 무변경). 브랜치 `feature/ability-timeline-tool` 커밋 `34bc8e76`.
+- 다음: **W-B 트랙 동적(레인 모델)** · W1 인스펙터 바인딩 등(§ability-timeline-tool.md).
+
 ### 2.63 캡슐 몬스터 제거 + slime→creepy_demon 전면 교체 (2026-07-16)
 
 플레이스홀더 캡슐(`Monster.prefab` 던전 폴백·`LocalMonster.prefab` Main) + `slime` 몬스터를 실모델 몬스터로 대체. 사용자 지시 = "캡슐 3종 안 씀 → 실모델로, slime 데이터는 demon 으로 교체".
