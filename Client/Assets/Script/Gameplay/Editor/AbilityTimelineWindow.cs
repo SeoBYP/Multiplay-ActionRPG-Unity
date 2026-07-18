@@ -299,6 +299,19 @@ namespace Game.Gameplay.Editor
             return m;
         }
 
+        /// <summary>어빌리티의 <b>실제 콘텐츠 끝</b>(ms) = max(startup+active+recovery, 이벤트 끝, 구간 끝). 이 지점 이후는 창 폭 채우기용 빈 확장(어둡게 구분).</summary>
+        private float AbilityEndMs
+        {
+            get
+            {
+                if (_target == null) return 0f;
+                float e = _target.startupMs + _target.activeMs + _target.recoveryMs;
+                foreach (var ev in _target.cueEvents) if (ev != null) e = Mathf.Max(e, ev.timeMs + ev.durationMs);
+                foreach (var s in _target.sections) if (s != null) e = Mathf.Max(e, s.endMs);
+                return e;
+            }
+        }
+
         private float XForTime(float ms) => LeftPad + ms * _pxPerMs;
         private float TimeForX(float x) => Mathf.Max(0f, (x - LeftPad) / _pxPerMs);
         // 편집 격자 = 항상 0.1ms(Snap/FPS 제거됨). 판정창 startup/active 는 int 계약이라 최종 1ms.
@@ -399,6 +412,7 @@ namespace Game.Gameplay.Editor
             BuildAnimAnchor();
             BuildHitboxBar();
             BuildEventClips();
+            BuildOutsideDim(contentW, contentH); // 어빌리티 범위 밖(확장) 어둡게 — 스크럽 아래(스크럽은 밝게 위)
             BuildScrub(contentH);
         }
 
@@ -937,6 +951,25 @@ namespace Game.Gameplay.Editor
             _so.Update();
             _so.FindProperty("cueEvents").GetArrayElementAtIndex(index).FindPropertyRelative(field).floatValue = value;
             _so.ApplyModifiedProperties();
+        }
+
+        /// <summary>어빌리티 범위 <b>밖</b>(콘텐츠 끝~창 폭 확장 구간)을 반투명 어둡게 + 경계선 — Unity Animation 처럼 실제 범위와 빈 확장을 시각 구분. 클릭은 통과(pickingMode=Ignore).</summary>
+        private void BuildOutsideDim(float contentW, float contentH)
+        {
+            float endX = XForTime(AbilityEndMs);
+            if (endX >= contentW - 1f) return; // 확장 영역 없음(어빌리티가 창을 이미 채움)
+
+            var dim = new VisualElement { pickingMode = PickingMode.Ignore };
+            dim.style.position = Position.Absolute;
+            dim.style.left = endX; dim.style.top = 0; dim.style.width = contentW - endX; dim.style.height = contentH;
+            dim.style.backgroundColor = new Color(0f, 0f, 0f, 0.32f); // 범위 밖 = 어둡게
+            _content.Add(dim);
+
+            var line = new VisualElement { pickingMode = PickingMode.Ignore };
+            line.style.position = Position.Absolute;
+            line.style.left = endX; line.style.top = 0; line.style.width = 1; line.style.height = contentH;
+            line.style.backgroundColor = new Color(1f, 1f, 1f, 0.16f); // 경계선
+            _content.Add(line);
         }
 
         private void BuildScrub(float h)
