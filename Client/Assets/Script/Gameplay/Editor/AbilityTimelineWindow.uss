@@ -1,0 +1,113 @@
+/* 어빌리티 타임라인 툴 디자인 폴리시 (W-A 상세 패널 + 마커 + 버튼 hover). 코드가 동적 위치를 잡고, 여기선 외형만. */
+
+.atl-details {
+    padding: 6px 10px 12px 10px;
+}
+
+/* 섹션 = 좌측 액센트 바 + 은은한 배경 카드 */
+.atl-section {
+    margin-top: 9px;
+    padding: 8px 9px 7px 10px;
+    background-color: rgba(255, 255, 255, 0.035);
+    border-radius: 5px;
+    border-left-width: 2px;
+    border-left-color: rgba(120, 165, 225, 0.55);
+}
+
+.atl-section-title {
+    -unity-font-style: bold;
+    font-size: 11px;
+    color: rgba(205, 214, 232, 0.95);
+    margin-bottom: 7px;
+    letter-spacing: 0.4px;
+}
+
+.atl-hint {
+    font-size: 10px;
+    color: rgba(150, 156, 168, 0.72);
+    white-space: normal;
+    margin: 3px 0 2px 0;
+}
+
+.atl-field {
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+.atl-field .unity-base-field__label {
+    min-width: 74px;
+    max-width: 74px;
+    color: rgba(176, 182, 194, 0.92);
+}
+
+.atl-field .unity-base-field__input {
+    border-radius: 3px;
+}
+
+/* 버튼 공통 — 라운드 + hover 밝힘(전환) */
+.atl-details Button,
+.atl-btn-row Button {
+    border-radius: 4px;
+    -unity-font-style: bold;
+    transition-duration: 0.09s;
+    transition-property: background-color, color;
+}
+
+.atl-details Button:hover,
+.atl-btn-row Button:hover {
+    background-color: rgba(255, 255, 255, 0.13);
+}
+
+.atl-btn-row {
+    flex-direction: row;
+    margin-top: 7px;
+}
+
+.atl-btn-row > Button {
+    margin-left: 2px;
+    margin-right: 2px;
+    height: 22px;
+}
+
+/* 위험(삭제) 버튼 — 빨강 액센트 */
+.atl-danger {
+    color: rgb(232, 132, 132);
+}
+
+.atl-danger:hover {
+    background-color: rgba(200, 72, 72, 0.30);
+    color: rgb(255, 200, 200);
+}
+
+/* 강조(Export 등) 버튼 — 청록 액센트 */
+.atl-accent:hover {
+    background-color: rgba(70, 150, 190, 0.30);
+}
+
+.atl-method-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+/* 마커·클립 공통 */
+.atl-marker {
+    border-radius: 4px;
+    font-size: 10px;
+    -unity-text-align: middle-left;
+    overflow: hidden;
+}
+
+/* 트랙 헤더 소형 버튼(M/＋/×) — 라운드 + hover */
+.atl-hdr-btn {
+    border-radius: 3px;
+    -unity-font-style: bold;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-width: 0;
+    transition-duration: 0.09s;
+    transition-property: background-color;
+}
+
+.atl-hdr-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}

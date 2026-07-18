@@ -31,9 +31,14 @@ namespace Game.Gameplay.Character
         private ISocketPacketState _state;
 
         private CharacterAgentAnimations _animations;
+        private AbilityCuePlayer _cuePlayer;
         private float _animSpeed;
 
-        private void Awake() => _animations = GetComponent<CharacterAgentAnimations>();
+        private void Awake()
+        {
+            _animations = GetComponent<CharacterAgentAnimations>();
+            _cuePlayer = GetComponent<AbilityCuePlayer>();
+        }
 
         public void Initialize(long userId, ISocketPacketState state)
         {
@@ -84,6 +89,9 @@ namespace Game.Gameplay.Character
             _animations?.SetInt(AnimationIntType.ComboStep, comboStep);
             _animations?.SetTrigger(trigger);
         }
+
+        /// <summary>연출 타임라인(SFX/VFX) 재생 — 라우터가 어빌리티를 넘긴다. AbilityCuePlayer 미부착이면 무시(IActorView).</summary>
+        public void PlayAbilityCues(Game.Gameplay.Abilities.AbilityDefinition ability) => _cuePlayer?.Play(ability);
 
         /// <summary>원격 회피 구르기(연출 전용). 무적 창/피해 무시는 서버 권위 — 여기선 애니만 재생한다.</summary>
         private void HandlePlayerDodged(long userId)

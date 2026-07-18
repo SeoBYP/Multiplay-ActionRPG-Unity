@@ -14,12 +14,14 @@ namespace Game.Tests.EditMode.Gameplay
         private sealed class FakeActorView : IActorView
         {
             public int CueCount;
+            public int CuesCount; // PlayAbilityCues(타임라인) 호출 수
             public AnimationTriggerType LastTrigger = AnimationTriggerType.None;
             public int LastComboStep = -999;
             public void PlayAbilityCue(AnimationTriggerType trigger, int comboStep)
             {
                 CueCount++; LastTrigger = trigger; LastComboStep = comboStep;
             }
+            public void PlayAbilityCues(Game.Gameplay.Abilities.AbilityDefinition ability) => CuesCount++;
         }
 
         // ── ActorRegistry ──
@@ -86,9 +88,11 @@ namespace Game.Tests.EditMode.Gameplay
             state.NotifyAbilityActivated(monsterActor, skillId: 0); // 서버 브로드캐스트 시뮬
 
             Assert.AreEqual(1, monster.CueCount, "대상 몬스터만 Cue 재생");
+            Assert.AreEqual(1, monster.CuesCount, "SFX/VFX 타임라인 경로(PlayAbilityCues)도 대상 뷰에 위임");
             Assert.AreEqual(AnimationTriggerType.Attack, monster.LastTrigger, "카탈로그 미제공 → 기본 공격 Cue 폴백");
             Assert.AreEqual(0, monster.LastComboStep);
             Assert.AreEqual(0, other.CueCount, "다른 액터는 재생 안 됨");
+            Assert.AreEqual(0, other.CuesCount, "다른 액터는 타임라인도 재생 안 됨");
 
             router.Dispose();
         }
