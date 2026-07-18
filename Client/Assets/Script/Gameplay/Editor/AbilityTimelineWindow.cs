@@ -437,7 +437,7 @@ namespace Game.Gameplay.Editor
                 int index = i;
                 Color col = ColorFor(ev.kind);
 
-                var clip = new VisualElement();
+                var clip = new VisualElement { name = "cue-clip" };
                 clip.style.position = Position.Absolute; clip.style.top = 6; clip.style.height = RowH - 12;
                 clip.style.backgroundColor = col;
                 track.Add(clip);
@@ -689,6 +689,7 @@ namespace Game.Gameplay.Editor
         private VisualElement BoundField(FloatField f, SerializedProperty p, global::System.Action onChanged, float w)
         {
             f.style.width = w; f.value = p.floatValue;
+            f.isDelayed = true; // ★ Enter/blur 에만 커밋 — 매 키 입력마다 RebuildAll 로 필드가 파괴돼 편집 불가하던 것 방지
             f.RegisterValueChangedCallback(e =>
             {
                 _so.Update(); p.floatValue = Mathf.Max(0f, e.newValue); _so.ApplyModifiedProperties(); onChanged?.Invoke();
@@ -726,6 +727,7 @@ namespace Game.Gameplay.Editor
             var methodField = new TextField("메서드 이름")
             { tooltip = "액터 컴포넌트의 public 메서드(예: WeaponHitbox.ActivateWindow → ActivateWindow). ▾ 로 목록에서 선택." };
             methodField.style.width = 260; methodField.value = imProp.stringValue;
+            methodField.isDelayed = true; // ★ 커밋 시에만 RebuildAll — 타이핑 중 필드 파괴 방지
             methodField.RegisterValueChangedCallback(e => { _so.Update(); imProp.stringValue = e.newValue; _so.ApplyModifiedProperties(); RebuildAll(); });
             mrow.Add(methodField);
 
@@ -798,6 +800,7 @@ namespace Game.Gameplay.Editor
         private VisualElement BoundInt(IntegerField f, SerializedProperty p, float w)
         {
             f.style.width = w; f.value = p.intValue;
+            f.isDelayed = true; // ★ 매 키 입력마다 RebuildAll 로 필드 파괴 방지
             f.RegisterValueChangedCallback(e => { _so.Update(); p.intValue = e.newValue; _so.ApplyModifiedProperties(); RebuildAll(); });
             return f;
         }
