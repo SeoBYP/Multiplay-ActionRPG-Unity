@@ -344,13 +344,19 @@ namespace Game.Gameplay.Editor
             var head = new VisualElement();
             head.style.position = Position.Absolute;
             head.style.left = 0; head.style.top = RowTop(r); head.style.width = HeaderW; head.style.height = RowH;
-            head.style.backgroundColor = (r % 2 == 0) ? ColRowB : ColRowA;
+            head.style.backgroundColor = RowTint(kind, lane);
             head.style.flexDirection = FlexDirection.Row; head.style.alignItems = Align.Center;
             _headerColumn.Add(head);
 
+            // 왼쪽 컬러 액센트 바(종류 색) — 한눈에 트랙 종류 구분
+            var accent = new VisualElement();
+            accent.style.width = 4; accent.style.height = RowH; accent.style.flexShrink = 0;
+            accent.style.backgroundColor = KindColor(kind);
+            head.Add(accent);
+
             var name = new Label(kind == KHitbox ? "판정창" : $"{KindName(kind)} {LaneMark(lane)}");
             name.style.flexGrow = 1; name.style.marginLeft = 5; name.style.fontSize = 10;
-            name.style.color = new Color(0.78f, 0.78f, 0.78f);
+            name.style.color = new Color(0.85f, 0.85f, 0.85f);
             head.Add(name);
 
             if (kind != KHitbox)
@@ -409,7 +415,7 @@ namespace Game.Gameplay.Editor
             track.style.position = Position.Absolute;
             track.style.left = 0; track.style.top = RowTop(r);
             track.style.width = w; track.style.height = RowH;
-            track.style.backgroundColor = (r % 2 == 0) ? ColRowB : ColRowA;
+            track.style.backgroundColor = RowTint(kind, lane); // 종류별 색조(헤더와 동일)
             _content.Add(track);
             _rowTracks[r] = track;
 
@@ -1173,6 +1179,17 @@ namespace Game.Gameplay.Editor
         }
 
         private static Color ColorFor(ECueKind k) => k switch { ECueKind.Vfx => ColVfx, ECueKind.Sfx => ColSfx, ECueKind.Event => ColEvent, _ => ColAnim };
+
+        /// <summary>kind 별 밝은 대표색(마커·헤더 액센트). 판정창=주황.</summary>
+        private static Color KindColor(int kind) => kind switch { 0 => ColSfx, 1 => ColVfx, 2 => ColAnim, 3 => ColEvent, _ => ColHitbox };
+
+        /// <summary>트랙 행 배경 = kind 색조를 입힌 어두운 톤(종류 구분). 같은 kind 라도 레인 짝/홀로 살짝 명암 차.</summary>
+        private static Color RowTint(int kind, int lane)
+        {
+            var c = Color.Lerp(new Color(0.19f, 0.19f, 0.19f), KindColor(kind), 0.22f);
+            if (lane % 2 == 1) c = new Color(Mathf.Min(1f, c.r * 1.15f), Mathf.Min(1f, c.g * 1.15f), Mathf.Min(1f, c.b * 1.15f));
+            return c;
+        }
 
         // ── W-B 레인 추가/삭제 ──
         private void AddLane(int kind)
