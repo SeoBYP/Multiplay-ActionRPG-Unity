@@ -102,7 +102,7 @@ namespace Game.Gameplay.Editor
             root.RegisterCallback<KeyDownEvent>(e =>
             {
                 if (_selection.Count == 0) return;
-                float step = _snap ? 1000f / _fps : 1f;
+                float step = _snap ? 1000f / _fps : 0.1f; // Snap OFF = 0.1ms 미세 넛지
                 switch (e.keyCode)
                 {
                     case KeyCode.Delete:      DeleteSelectedEvents(); e.StopPropagation(); break;
@@ -195,7 +195,8 @@ namespace Game.Gameplay.Editor
             fps.RegisterValueChangedCallback(e => { _fps = Mathf.Clamp(e.newValue, 1, 240); });
             bar.Add(fps);
 
-            var snap = new ToolbarToggle { text = "Snap", value = _snap };
+            var snap = new ToolbarToggle { text = "Snap", value = _snap,
+                tooltip = "ON = FPS 격자(1000/fps ms)에 맞춤 · OFF = 0.1ms 미세 편집(드래그·←/→). 판정창은 int 라 최소 1ms." };
             snap.RegisterValueChangedCallback(e => _snap = e.newValue);
             bar.Add(snap);
 
@@ -248,7 +249,8 @@ namespace Game.Gameplay.Editor
 
         private float XForTime(float ms) => LeftPad + ms * _pxPerMs;
         private float TimeForX(float x) => Mathf.Max(0f, (x - LeftPad) / _pxPerMs);
-        private float Snap(float ms) => _snap ? Mathf.Round(ms / (1000f / _fps)) * (1000f / _fps) : ms;
+        // Snap ON = FPS 격자(1000/fps ms) / OFF = 0.1ms 격자(미세 편집). 판정창 startup/active 는 int 계약이라 최종 1ms.
+        private float Snap(float ms) => _snap ? Mathf.Round(ms / (1000f / _fps)) * (1000f / _fps) : Mathf.Round(ms * 10f) / 10f;
         private float RowTop(int row) => RulerH + row * (RowH + RowGap);
 
         // ─────────────────────── 재구성 ───────────────────────
