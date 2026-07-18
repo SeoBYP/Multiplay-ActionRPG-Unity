@@ -89,3 +89,45 @@
 각 Phase 완료 시 codemap §2.8x 추가 + 이 표 갱신.
 
 **→ P0~P8 코드 전부 완료(2026-07-18).** 잔여 = 사용자 배선(Phase 1b: 이벤트에 실 SFX/VFX 드래그·프리팹에 `AbilityCuePlayer`·Event용 Actor 프리팹) + Main 판정 통일의 애니이벤트 실제 제거·플레이검증.
+
+> **편집 불능 버그 수정(2026-07-18, 커밋 `459b1016`)**: 인스펙터 숫자/메서드 필드가 키 입력마다 `RebuildAll` 로 파괴돼 포커스 상실 → 사실상 편집 불가였다. `panel.Pick` 진단으로 클릭 라우팅은 정상(클립 Pick=SELF) 확인 → `isDelayed=true`(Enter/blur 커밋)로 응급 수정. **근본 해결 = W1 인스펙터 바인딩**(아래).
+
+---
+
+## 5. 다음 우선순위 (사용자 지정, 2026-07-18) — **구현 대상**
+
+지금 창의 두 구조적 한계를 사용자가 지목. 이게 다음 실작업이다.
+
+### W-A. 오른쪽 상세 패널 + 전 종류 이벤트 인라인 편집
+- **문제**: 현재 인스펙터가 **창 하단**(root flexDirection=column: 툴바→타임라인→하단 인스펙터). 레퍼런스(Unreal Montage details / Unity Timeline inspector)처럼 **오른쪽 세로 패널**이라야 타임라인을 넓게 쓰며 편집한다.
+- **해야 할 것**: 루트를 `가로 분할`(왼쪽=툴바+타임라인 스크롤 / 오른쪽=details 패널, 고정폭 ~320). 이벤트(SFX/VFX/Anim/Event/판정창) **어느 것을 클릭해도** 오른쪽에서 그 이벤트의 전 필드를 편집. **모든 종류가 편집돼야 함**(현재 Anim 은 "재생 없음" 노트만 — 최소한 kind/time/duration 은 편집 가능해야).
+- **연결**: `RefreshInspector` → `RefreshDetails`(오른쪽 패널 채우기). 선택 변경 시 패널만 갱신(타임라인 리빌드 분리).
+- 규모: 중(레이아웃 재구성 + 인스펙터 이동).
+
+### W-B. 트랙 동적 추가/삭제
+- **문제**: 현재 트랙이 **kind 에 1:1 고정 5행**(Anim/판정창/VFX/SFX/Event). 사용자는 트랙을 **자유롭게 추가·삭제**하고 싶어 함(겹치는 마커를 여러 레인으로 분산 = Unreal Notify 다중행).
+- **설계 결정 필요 (착수 전)**:
+  - **모델 ①(레인, 권장)**: 트랙은 여전히 kind 타입을 갖되 **같은 kind 를 여러 개**(레인) 추가 가능. 이벤트에 `lane`(int) 추가 → 같은 kind·다른 lane 은 다른 행. 판정창(게임플레이)은 단일 유지. 데이터 최소 변경(`AbilityCueEvent.lane`), 런타임 무관(연출 재생은 lane 무시).
+  - **모델 ②(자유 트랙)**: 트랙이 이름·타입 자유. 이벤트가 `trackId` 로 소속. Unity Timeline 식. 데이터·UI 대공사.
+  - → **① 권장**(YAGNI: 목적은 "겹침 분산"이지 임의 트랙 아님). 판정창/Anim 앵커는 고정, VFX/SFX/Event 는 레인 추가/삭제.
+- **해야 할 것**: 트랙 헤더에 `+`(레인 추가)·`×`(빈 레인 삭제) + `AbilityCueEvent.lane` + 행 계산이 kind×lane. 
+- 규모: 중~대(행 레이아웃 동적화).
+
+---
+
+## 6. 개선 백로그 (레퍼런스 분석 → 지금 구현 X, 문서화만)
+
+Unreal Animation Montage + Unity Timeline Editor 분석에서 나온 개선점. **우선순위 W-A/W-B 이후** 필요 시 착수.
+
+| # | 개선 | 레퍼런스 근거 | 규모 |
+|---|------|------|:---:|
+| **W1** | **인스펙터 정식 바인딩**(`rootVisualElement.Bind(so)`) — 값 변경 시 RebuildAll 제거, 자동 동기화. `isDelayed` 응급처치의 근본 해결 | 두 툴 다 "안정적 details, 편집 중 타임라인 안 흔들림" | 중 |
+| **W2** | **라이브 메시 프리뷰** — ▶Preview 가 로그/스폰 대신 액터 프리팹을 뷰포트에 재생하며 스크럽 동조 | Unreal 프리뷰 뷰포트 · Unity PlayableDirector 스크럽 | 대 |
+| **W3** | **Sections/loop 구간** — 이름 붙은 시간 구간(콤보 단계·루프) 저작·점프 | Unreal Montage Sections | 중 |
+| **W4** | **프레임/초 룰러 토글** — ms 외 프레임 눈금 | Unity Timeline 룰러 토글 | 소 |
+| **W5** | **점 vs 구간 시각 구분** — duration 0=diamond, >0=bar | Unreal Point Notify vs Notify State | 소 |
+| **W6** | **트랙 mute/lock/접기** — 트랙 헤더 토글 | Unity Timeline 트랙 헤더 | 소 |
+| **W7** | **Anim 이벤트 실재생** — 지연 애니 트리거(현재 재생 없음) 구현 | — | 소 |
+| **W8** | **커브 트랙**(float 커브) — 필요 시(연출엔 대체로 YAGNI) | Unreal/Unity Curves | 대 |
+
+> 착수 순서 제안: **W-A(오른쪽 패널) → W1(바인딩, W-A 와 합치면 근본적) → W-B(트랙 동적) → 나머지 W2~W8 선택**.
