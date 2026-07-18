@@ -483,6 +483,17 @@ W2a 는 VFX 를 숨김 루트(`_previewRoot`)에 스폰해 뷰포트에 안 보�
 - **위치**: `AbilityTimelineWindow.cs`(`SampleVfx`/`InstantiateVfxPreview`/`ResolveActorSocket`/`SimulateParticles`/`ClearVfx`, `_vfxInstances`).
 - **검증**: 컴파일0 · **EditMode 199/199** · 비파괴 스모크(실제 VFX 프리팹 `SeaTitan_Leviathan_1`+액터, execute_code): 창안(200ms)→`spawned·underActor·hasPS=True` · 창밖(700ms)→`removed=True` · 되감기(300ms)→`respawned=True` · `CleanupViewport`→count 0 · 예외0.
 
+### 2.95 CA-5 W2c — cueTrigger 자동 클립 해석 (2026-07-18)
+
+프리뷰가 샘플할 클립을 `previewClip` 수동 지정 없이도 `cueTrigger`(enum)에서 자동 추론 → 매번 클립 안 붙여도 됨. **폴백**(previewClip 지정 시 그게 우선).
+
+- **`ResolvePreviewClip()`**: `previewClip != null` → 그것 / 없으면 자동 해석(액터·트리거 키로 캐시). `EnsureGraph` 가 이걸 써서 그래프 클립 결정.
+- **해석 경로 `AutoResolveClipFromTrigger`**: ① `TriggerParamName` = enum → `CharacterAgentAnimations` 직렬화 필드(`Attack`→`m_animationAttackTrigger` stringValue, `SerializedObject` 로 읽음 — 컨트롤러마다 파라미터명 달라도 흡수) → ② `AnimatorController`(오버라이드면 base) 순회(`FindStateByTriggerParam`: anyState·state·entry 전이 + 서브머신 재귀)로 그 파라미터를 조건으로 쓰는 전이의 **목적 State** → ③ `state.motion` = `AnimationClip`(BlendTree 면 `FirstClipInBlendTree` 첫 클립). `AnimatorOverrideController` 면 원본→오버라이드 매핑.
+- **표시**: 뷰포트 오버레이 라벨이 샘플 중인 `_graphClip.name` + `(자동)`(previewClip 없을 때) 표기.
+- **한계(문서화된 폴백)**: 상태머신 구조가 특이(트리거 조건 없는 상태 진입 등)하면 못 찾음 → 바인드 포즈. 그럴 땐 previewClip 수동 지정.
+- **위치**: `AbilityTimelineWindow.cs`(`ResolvePreviewClip`/`AutoResolveClipFromTrigger`/`TriggerParamName`/`FindStateByTriggerParam`/`SearchStateMachine`/`UsesParam`/`FirstClipInBlendTree`, `_autoClip` 캐시, `using UnityEditor.Animations` 는 정규화 호출).
+- **검증**: 컴파일0 · **EditMode 199/199** · 비파괴 스모크(실제 `CreepyDemonLocal`, cueTrigger=Attack): `paramName='Attack'`·`autoClip=Attack00`·`ResolvePreview(auto)=Attack00`·`manualOverride=OK` · 예외0.
+
 ### 2.63 캡슐 몬스터 제거 + slime→creepy_demon 전면 교체 (2026-07-16)
 
 플레이스홀더 캡슐(`Monster.prefab` 던전 폴백·`LocalMonster.prefab` Main) + `slime` 몬스터를 실모델 몬스터로 대체. 사용자 지시 = "캡슐 3종 안 씀 → 실모델로, slime 데이터는 demon 으로 교체".

@@ -90,6 +90,9 @@ namespace Game.Gameplay.Editor
         private UnityEngine.Animations.AnimationClipPlayable _clipPlayable;
         private bool _graphValid;
         private AnimationClip _graphClip;
+        private AnimationClip _autoClip;                                  // W2c: cueTrigger 자동 해석 결과 캐시
+        private GameObject _autoClipActor;                                // 어느 액터로 해석했나(캐시 키)
+        private Game.Gameplay.Character.AnimationTriggerType _autoClipTrigger; // 어느 트리거로(캐시 키)
         private RenderTexture _rt;                       // URP 렌더 타겟(빌트인 BeginPreview 경로는 URP 셰이더가 마젠타)
         private Light _previewLight;                     // 프리뷰 씬 직접 조명(PRU 기본 조명은 BeginPreview 경로 전용)
 
@@ -1394,7 +1397,8 @@ namespace Game.Gameplay.Editor
             if (tex != null) GUI.DrawTexture(r, tex, ScaleMode.StretchToFill, false);
 
             var lbl = $"{Mathf.RoundToInt(_scrubMs)} ms";
-            if (_target != null && _target.previewClip == null) lbl += "  (프리뷰 클립 미지정 — 바인드 포즈)";
+            if (_graphClip != null) lbl += "  · " + _graphClip.name + (_target != null && _target.previewClip == null ? " (자동)" : "");
+            else lbl += "  (클립 없음 — 바인드 포즈)";
             GUI.Label(new Rect(r.x + 6, r.y + 3, r.width - 10, 16), lbl, EditorStyles.whiteMiniLabel);
         }
 
@@ -1512,7 +1516,7 @@ namespace Game.Gameplay.Editor
 
         private void EnsureGraph()
         {
-            var clip = _target != null ? _target.previewClip : null;
+            var clip = ResolvePreviewClip();
             var animator = _actorInstance != null ? _actorInstance.GetComponentInChildren<Animator>() : null;
             if (clip == null || animator == null) { DestroyGraph(); return; }
             if (_graphValid && _graphClip == clip) return;
@@ -1531,6 +1535,101 @@ namespace Game.Gameplay.Editor
         {
             if (_graphValid && _graph.IsValid()) _graph.Destroy();
             _graphValid = false; _graphClip = null;
+        }
+
+        // ─────────────────────── W2c cueTrigger 자동 클립 해석 ───────────────────────
+
+        /// <summary>샘플할 클립 = previewClip(수동 지정 우선) → 없으면 cueTrigger 로 액터 AnimatorController 에서 자동 해석(캐시). AC-5 W2c.</summary>
+        private AnimationClip ResolvePreviewClip()
+        {
+            if (_target == null) return null;
+            if (_target.previewClip != null) return _target.previewClip; // 수동 지정 우선
+            if (_autoClipActor == _actorPrefab && _autoClipTrigger == _target.cueTrigger) return _autoClip; // 캐시(액터·트리거 동일)
+            _autoClip = AutoResolveClipFromTrigger(_actorPrefab, _target.cueTrigger);
+            _autoClipActor = _actorPrefab; _autoClipTrigger = _target.cueTrigger;
+            return _autoClip;
+        }
+
+        /// <summary>cueTrigger(enum) → CharacterAgentAnimations 의 파라미터 이름 → AnimatorController 에서 그 트리거를 조건으로 쓰는 전이의 목적 State 의 모션(Clip/BlendTree 첫 클립). 못 찾으면 null(바인드 포즈).</summary>
+        private static AnimationClip AutoResolveClipFromTrigger(GameObject actorPrefab, Game.Gameplay.Character.AnimationTriggerType trigger)
+        {
+            if (actorPrefab == null || trigger == Game.Gameplay.Character.AnimationTriggerType.None) return null;
+            var ca = actorPrefab.GetComponentInChildren<Game.Gameplay.Character.CharacterAgentAnimations>(true);
+            var animator = actorPrefab.GetComponentInChildren<Animator>(true);
+            if (ca == null || animator == null) return null;
+
+            string param = TriggerParamName(ca, trigger);
+            if (string.IsNullOrEmpty(param)) return null;
+
+            var rac = animator.runtimeAnimatorController;
+            var ovr = rac as AnimatorOverrideController;
+            var ac = rac as UnityEditor.Animations.AnimatorController
+                     ?? (ovr != null ? ovr.runtimeAnimatorController as UnityEditor.Animations.AnimatorController : null);
+            if (ac == null) return null;
+
+            var state = FindStateByTriggerParam(ac, param);
+            if (state == null) return null;
+            var clip = state.motion as AnimationClip;
+            if (clip == null && state.motion is UnityEditor.Animations.BlendTree bt) clip = FirstClipInBlendTree(bt);
+            if (clip != null && ovr != null) { var o = ovr[clip]; if (o != null) clip = o; } // 오버라이드 컨트롤러 매핑
+            return clip;
+        }
+
+        /// <summary>enum → CharacterAgentAnimations 직렬화 필드(Animator 파라미터 이름). 컨트롤러마다 파라미터명이 달라도 이 매핑이 흡수(codemap §2.64).</summary>
+        private static string TriggerParamName(Game.Gameplay.Character.CharacterAgentAnimations ca, Game.Gameplay.Character.AnimationTriggerType trigger)
+        {
+            string field = trigger == Game.Gameplay.Character.AnimationTriggerType.Attack ? "m_animationAttackTrigger"
+                         : trigger == Game.Gameplay.Character.AnimationTriggerType.Jump ? "m_animationJumpTrigger"
+                         : trigger == Game.Gameplay.Character.AnimationTriggerType.Fall ? "m_animationFallTrigger"
+                         : trigger == Game.Gameplay.Character.AnimationTriggerType.Land ? "m_animationLandTrigger"
+                         : trigger == Game.Gameplay.Character.AnimationTriggerType.Interact ? "m_animationInteractTrigger"
+                         : trigger == Game.Gameplay.Character.AnimationTriggerType.Dead ? "m_animationDeathTrigger"
+                         : trigger == Game.Gameplay.Character.AnimationTriggerType.Dodge ? "m_animationDodgeTrigger"
+                         : trigger == Game.Gameplay.Character.AnimationTriggerType.Revive ? "m_animationReviveTrigger"
+                         : null;
+            if (field == null) return null;
+            var sp = new SerializedObject(ca).FindProperty(field);
+            return sp != null ? sp.stringValue : null;
+        }
+
+        private static UnityEditor.Animations.AnimatorState FindStateByTriggerParam(UnityEditor.Animations.AnimatorController ac, string param)
+        {
+            foreach (var layer in ac.layers)
+            {
+                var s = SearchStateMachine(layer.stateMachine, param);
+                if (s != null) return s;
+            }
+            return null;
+        }
+
+        private static UnityEditor.Animations.AnimatorState SearchStateMachine(UnityEditor.Animations.AnimatorStateMachine sm, string param)
+        {
+            foreach (var t in sm.anyStateTransitions) if (UsesParam(t, param) && t.destinationState != null) return t.destinationState;
+            foreach (var cs in sm.states)
+                foreach (var t in cs.state.transitions) if (UsesParam(t, param) && t.destinationState != null) return t.destinationState;
+            foreach (var t in sm.entryTransitions) if (UsesParam(t, param) && t.destinationState != null) return t.destinationState;
+            foreach (var ssm in sm.stateMachines)
+            {
+                var s = SearchStateMachine(ssm.stateMachine, param);
+                if (s != null) return s;
+            }
+            return null;
+        }
+
+        private static bool UsesParam(UnityEditor.Animations.AnimatorTransitionBase t, string param)
+        {
+            foreach (var c in t.conditions) if (c.parameter == param) return true;
+            return false;
+        }
+
+        private static AnimationClip FirstClipInBlendTree(UnityEditor.Animations.BlendTree bt)
+        {
+            foreach (var child in bt.children)
+            {
+                if (child.motion is AnimationClip c) return c;
+                if (child.motion is UnityEditor.Animations.BlendTree sub) { var r = FirstClipInBlendTree(sub); if (r != null) return r; }
+            }
+            return null;
         }
 
         private void PositionCamera()
