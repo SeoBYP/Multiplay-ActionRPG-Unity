@@ -2,7 +2,9 @@
 
 > **새 채팅 시작 시 이 파일을 먼저 읽어라.**
 > Phase가 완료될 때마다 즉시 갱신한다.
-> 마지막 갱신: 2026-07-17 — **AC 트랙 전체 완료(PR #60) + 문서 전면 검수·정리**. AC/AC-B(Actor 통합·Ability SO 단일 저작) · AC-C(전투 진단 → D1 송신큐·D2 Seq 근본수정, **측정으로 C2b 불필요 판정**) · AC-E~G(몬스터 레벨링·밸런스 데이터 전면 SO화·던전 5개 L1→L30·**등급은 ID 로**) · AC-H(Main 몬스터 체력바). 잔여 = AC-D(전용 애니·P→P 스케일·VFX Cue)·dungeon_03~05 맵 배경.
+> 마지막 갱신: 2026-07-18 — **CA-5 어빌리티 타임라인 툴 개선 백로그(W1~W8) 완주 → main 병합([PR #62](https://github.com/SeoBYP/Multiplay-ActionRPG-Unity/pull/62), merge commit `d2aefc7b`)**. W1 인스펙터 정식 바인딩(BindProperty+TrackPropertyValue)·W2a/b/c 라이브 3D 프리뷰(PreviewRenderUtility+PlayableGraph 스크럽 샘플·URP SubmitRenderRequest·VFX ParticleSystem.Simulate·cueTrigger 자동 클립 해석)·W3 Sections/loop 구간·W5/6/7(점바 시각·트랙 mute·Anim 재생) + 디자인 폴리시·반응형 레이아웃(창 폭 확장)·어빌리티 범위 안팎 색 구분. 데모 GIF `assets/AbilityEditorWindow.gif`. **CA-5 툴 코드 100% 완료** — 컴파일0·EditMode 199/199·기능별 비파괴 스모크(execute_code). codemap §2.92~2.96. **잔여 = 사용자 에셋 배선(Phase 1b): 이벤트에 실 SFX/VFX·프리팹에 `AbilityCuePlayer`·Actor 프리팹.**
+>
+> 직전: 2026-07-17 — **AC 트랙 전체 완료(PR #60) + 문서 전면 검수·정리**. AC/AC-B(Actor 통합·Ability SO 단일 저작) · AC-C(전투 진단 → D1 송신큐·D2 Seq 근본수정, **측정으로 C2b 불필요 판정**) · AC-E~G(몬스터 레벨링·밸런스 데이터 전면 SO화·던전 5개 L1→L30·**등급은 ID 로**) · AC-H(Main 몬스터 체력바). 잔여 = AC-D(전용 애니·P→P 스케일·VFX Cue)·dungeon_03~05 맵 배경.
 >
 > **문서 정리 라운드(PR #60 이후, main 직접 커밋)** — 코드가 아니라 *문서가 코드와 어긋난 것*을 실측 대조로 고쳤다:
 >
@@ -31,14 +33,14 @@
 >
 > **검증**: 서버 build0 · SocketServer.Tests **126** · Shared.Gameplay.Tests **39** · 클라 컴파일0 · EditMode **167** · PlayMode **8** · Docker E2E `SocketE2ETests` **30/30** · MPPM 2인 던전 플레이 확인(사용자).
 >
-> **CA-5 어빌리티 타임라인 툴 — P0~P8 코드 전부 완료** (2026-07-18): 참조([Fofanius Event Track](https://github.com/Fofanius/unity-tool-timeline-event-track)) 해부 후 **기능 재분할**([ability-timeline-tool.md](ability-timeline-tool.md)). 데이터·런타임·UI Toolkit 창·직접 리소스·선택·리사이즈 클립·스크럽 프리뷰·Event(메서드호출+타입인자+드롭다운+판정창→Event)·QoL(복제·넛지·다중선택). 아키텍처=커스텀 창 강화(서버 권위 유지). codemap §2.81~2.88. **잔여 = 사용자 배선**(Phase 1b: 이벤트에 실 SFX/VFX·프리팹에 `AbilityCuePlayer`·Actor 프리팹) + Main 판정 통일 애니이벤트 실제 제거·플레이검증.
+> **CA-5 어빌리티 타임라인 툴 — 코드 100% 완료 (P0~P8 + 개선 백로그 W1~W8), main 병합(PR #62)** (2026-07-18): 참조([Fofanius Event Track](https://github.com/Fofanius/unity-tool-timeline-event-track)) 해부 후 **기능 재분할**([ability-timeline-tool.md](ability-timeline-tool.md)). 데이터·런타임·UI Toolkit 창·직접 리소스·리사이즈 클립·**라이브 3D 프리뷰(메시·VFX·cueTrigger 자동 클립)**·**Sections/loop**·Event(메서드+타입인자+드롭다운+판정창→Event)·QoL·디자인 폴리시·반응형 레이아웃. 아키텍처=커스텀 창 강화(서버 권위 유지, 연출·프리뷰 데이터는 bake 안 됨). codemap §2.81~2.96. **잔여 = 사용자 배선**(Phase 1b: 이벤트에 실 SFX/VFX·프리팹에 `AbilityCuePlayer`·Actor 프리팹) + Main 판정 통일 애니이벤트 실제 제거·플레이검증.
 >
-> **다음 후보** (T1 잔여 없음. 2.5.1/2.5.2 사망·부활 ✅, 애니 폴리시 백로그 #1~#7 소진):
+> **다음 후보** (T1 잔여 없음. 2.5.1/2.5.2 사망·부활 ✅, 애니 폴리시 #1~#7 소진, **CA-5 툴 코드 완료·병합**):
 > | 후보 | 성격 | 규모 | 비고 |
 > |---|---|---|---|
-> | **CA-5 Phase 1b/2 계속** | 연출 툴 | 중 | 위 진행 중 — 에셋 배선 후 타임라인 편집 창 |
-> | **AC-D1 어빌리티별 전용 애니** | 연출 | 소~중 | 보스 강스킬이 평타와 같은 `Attack` 트리거. 클립은 이미 있음(leviathan `AttackSpecial`/`Roar`). CA-5 Cue 배선과 같은 지점이라 묶으면 효율적 |
-> | **dungeon_03~05 맵 비주얼** | 에셋 | 중 | 데이터·밸런스는 완비, `visualPrefab` 만 비어 회색 평면(아래 AC-D4) |
+> | **AC-D1 어빌리티별 전용 애니** ⭐추천 | 연출(코드) | 소~중 | 보스 강스킬이 평타와 같은 `Attack` 트리거. 클립 이미 있음(leviathan `AttackSpecial`/`Roar`). **CA-5 Cue 배선과 같은 지점** → 이제 툴이 완성됐으니 실제 연출을 채우는 자연스러운 다음 단계 |
+> | **CA-5 Phase 1b 에셋 배선** | 연출(사용자) | 소 | 완성된 툴로 이벤트에 실 SFX/VFX·프리팹 `AbilityCuePlayer`·Actor 지정. 코드 아닌 저작 작업 |
+> | **dungeon_03~05 맵 비주얼** | 에셋 | 중 | 데이터·밸런스 완비, `visualPrefab` 만 비어 회색 평면(AC-D4) |
 > | **4.6 PVE 오픈월드** | 신규 콘텐츠 | 대 | 월드/존·NPC/대화·상호작용 [4.4~4.7] |
 > | **M6 마감** | 포트폴리오 | 중 | 데모 영상·부하 검증·배포 문서. **DoD 는 이미 달성** — 지금 시점에 "보여줄 것"을 만드는 선택지 |
 >
@@ -381,7 +383,7 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 - [ ] 애니메이션 — **⚠️ 2026-07-07 MotionMatching 접고 별도 프로젝트 `C:\Users\user\Github\MotionMatchingProject`로 외부화. 클라=단순 Animator(PlayerController.controller). 애니 폴리시는 추후 재개.** (아래는 외부화 전 MM 이력) (MotionMatchingSystem, 🟣 — **P0~P4+피드백 수정 라운드(2026-07-03)**: 전체 521 FBX Humanoid + DB 149클립(Loop/Start/Stop/Pivot=GASP Dense, 17,376포즈) + **수정 7건**(1프레임 팝 버그·정지 프리즈(BlockTransition+entryExhausted)·SwitchPenalty 구현·미래궤적 가감속 수렴 예측·trajW 2 등 — CSV 실측 근거, design.md §4.5). **정지 계열 완치**(Stop 소진→Idle 정착·33s 안정). **핑퐁 해소 완료(2026-07-05)**: 근본 원인 2건 — ① 전환 클립 자기강화(→ **카테고리 게이팅**: PoseFlags Loop/Start/Stop/Pivot + LocoPhase 상태머신 + 검색기 categoryMask) ② **클립 루트 회전이 모델 transform을 돌려 쿼리 좌표계 오염**(applyRootMotion=false로 안 막힘 — 진단 테스트 실측)(→ 임포터 `lockRootRotation` 전 521클립). 재Bake 후 **실게임 CSV 검증: Idle→[W]Start 과도기 1s→Walk_Loop_F 22초 단일 유지→[정지]Stop→Idle = 요구 시나리오 달성**. **DB 분산 재설계 완료(2026-07-05, 사용자 지시)**: 단일 DB 혼합이 왕복/오선택의 구조 원인 → **521클립 전부를 33개 성격별 DB로 분산 등록**(`Databases/PSD_{그룹}_{종류}s`, DatabaseSetCreator) + `MotionMatchingComponent` 다중 DB 검색(페이즈→DB 목록, `_database`=현재 재생 DB 스위칭, 검색기 per-DB, same-entry 검색 전면 차단, 후보無=-1). 추가 근본수정: Advance를 `GetTime()` 실측화·`cullingMode=AlwaysAnimate`·`updateMode=Fixed`(화면밖/백그라운드 프레임에서 본 동결→cost 오염 실측). 프리팹 재배선(9개 DB). **정적 검증 통과**(DB 무결성·schema 공유·배선·다중 DB 검색 프로브 — 정속 쿼리→Walk Loop 0.029 vs Run 1.99). **테스트 실행=사용자**(PlayMode 3건+EditMode). **완성 로드맵 = `docs/MotionMatchingSystem/fix-plan.md`** — 목표 재정의: UE5 GASP 패리티, "522클립이 실플레이에서 눈에 보이는 것"이 완성. M1 Stand 안정화(현재) → M2 Gait → M3 Arc/Strafe(락온) → M4 TurnInPlace → M5 Crouch → M6 Jump/Air → M7 Traversal → M8 AimOffset → M9 멀티/실전. 상세 진단 이력: design.md §4.5)·HUD 다듬기·스킬1~2·아이템 최소·사운드(8.*)
 - [ ] 장비/루트/재화/상점/소모품 [3.2~3.8] + 관련 UI [7.2~7.8]
 - [x] 전투 보조 — 회피✅·CC✅·**Co-op 부활✅**(2.5.2) · **타겟팅/락온✅**(2.6.3 완료 2026-06-30) [2.6·2.5.2] → **2.6 전체 완료**
-- [ ] **CA-5 / AC-D3 — 어빌리티 연출 타임라인 툴** [2.7] — 사용자 요청. **기능 백로그·재분할 Phase = [ability-timeline-tool.md](ability-timeline-tool.md)**(참조 Fofanius Event Track 해부 + 채택 기능 A~F). 판정=서버 bake·연출=클라 SO(2갈래).
+- [x] **CA-5 / AC-D3 — 어빌리티 연출 타임라인 툴** [2.7] — 사용자 요청. **기능 백로그·재분할 Phase = [ability-timeline-tool.md](ability-timeline-tool.md)**(참조 Fofanius Event Track 해부 + 채택 기능 A~F). 판정=서버 bake·연출=클라 SO(2갈래). **코드 100% 완료(P0~P8 + 개선 백로그 W1~W8), main 병합 PR #62 (2026-07-18). 잔여=사용자 에셋 배선(Phase 1b).**
   - [x] **P0/P1 데이터+런타임** (2026-07-18, codemap §2.81) — `AbilityCueEvent`/`AbilityCuePlan`/`CueCatalog`/`AbilityCuePlayer` + 배선 3자리. `IActorView.PlayAbilityCues`. EditMode 198·컴파일0.
   - [x] **P2 편집 창 기본 (UI Toolkit)** (2026-07-18, codemap §2.82) — 룰러/트랙4/마커 드래그/**우클릭 추가**/스크럽/인스펙터/판정창 엣지. SerializedObject(Undo). 비파괴 실구동 검증.
   - [x] **P3 Cue id 드롭다운** (2026-07-18, codemap §2.83) — 인스펙터 id free text 유지 + ▾ 버튼이 `CueCatalog.IdsFor(kind)` 메뉴(등록 SFX/VFX id). 툴바 Cue 카탈로그 필드(1개면 자동). 발견 결함: `DeleteArrayElementAtIndex` 가 관리 리스트에서 null 만 남기던 것 → 이중삭제 가드.
