@@ -197,7 +197,7 @@ namespace Game.Gameplay.Editor
             bar.Add(new ToolbarSpacer());
             var zoom = new Slider(0.15f, 3f) { value = _pxPerMs };
             zoom.style.width = 110;
-            zoom.RegisterValueChangedCallback(e => { _pxPerMs = e.newValue; RebuildAll(); });
+            zoom.RegisterValueChangedCallback(e => { _pxPerMs = e.newValue; RebuildTimeline(); });
             bar.Add(new Label("Zoom") { style = { unityTextAlign = TextAnchor.MiddleCenter } });
             bar.Add(zoom);
             // ※ Snap/FPS 격자는 제거됨 — 편집은 항상 0.1ms 단위(판정창 int 만 1ms).
@@ -288,13 +288,17 @@ namespace Game.Gameplay.Editor
 
         // ─────────────────────── 재구성 ───────────────────────
 
-        private void RebuildAll()
+        /// <summary>타임라인 + 인스펙터 전체 재구성. 구조 변경(추가·삭제·복제·레인·타겟 교체)에만 쓴다.
+        /// 인스펙터 필드 <b>값</b> 편집에는 쓰지 않는다 — 편집 중 필드가 파괴돼 포커스를 잃기 때문(W1). 그 경우 <see cref="RebuildTimeline"/> 만.</summary>
+        private void RebuildAll() { RebuildTimeline(); RefreshInspector(); }
+
+        /// <summary>왼쪽 헤더 열 + 타임라인 캔버스(룰러·클립·판정창)만 재구성. 오른쪽 인스펙터(_inspectorBody)는 건드리지 않는다.
+        /// 지오메트리 편집(시각·길이·레인·startup·active)·드래그·줌은 이것만 호출 → 바인딩된 인스펙터 필드가 살아남아 포커스 유지(W1).</summary>
+        private void RebuildTimeline()
         {
             if (_content == null) return;
             _content.Clear();
             _headerColumn?.Clear();
-
-            RefreshInspector();
 
             if (_target == null)
             {
@@ -516,7 +520,7 @@ namespace Game.Gameplay.Editor
                 _so.Update(); _so.FindProperty("startupMs").intValue = ns; _so.ApplyModifiedProperties();
                 Layout();
             });
-            bar.RegisterCallback<PointerUpEvent>(e => { if (bar.HasPointerCapture(e.pointerId)) { bar.ReleasePointer(e.pointerId); RebuildAll(); } });
+            bar.RegisterCallback<PointerUpEvent>(e => { if (bar.HasPointerCapture(e.pointerId)) { bar.ReleasePointer(e.pointerId); RebuildTimeline(); } }); // 드래그로 SO 갱신됨 → 타임라인만 재배치(바인딩된 인스펙터는 자동 반영)
 
             WireGrip(gripL, track, isStart: true, Layout);   // 좌 그립 = startup(끝 고정)
             WireGrip(gripR, track, isStart: false, Layout);  // 우 그립 = active(끝)
@@ -554,7 +558,7 @@ namespace Game.Gameplay.Editor
                 _so.ApplyModifiedProperties();
                 layout(); // 리빌드 없이 즉시 재배치 → 부드러운 크기 조절
             });
-            grip.RegisterCallback<PointerUpEvent>(e => { if (grip.HasPointerCapture(e.pointerId)) { grip.ReleasePointer(e.pointerId); RebuildAll(); } });
+            grip.RegisterCallback<PointerUpEvent>(e => { if (grip.HasPointerCapture(e.pointerId)) { grip.ReleasePointer(e.pointerId); RebuildTimeline(); } });
         }
 
         // 모든 이벤트(VFX/SFX/Anim)를 판정창처럼 **리사이즈 가능한 클립**으로 그린다(P6).
@@ -626,7 +630,7 @@ namespace Game.Gameplay.Editor
                     SetEventFloat(index, "timeMs", nt);
                     Layout(); // 리빌드 없이 즉시 재배치(캡처 유지)
                 });
-                clip.RegisterCallback<PointerUpEvent>(e => { if (clip.HasPointerCapture(e.pointerId)) { clip.ReleasePointer(e.pointerId); RebuildAll(); } });
+                clip.RegisterCallback<PointerUpEvent>(e => { if (clip.HasPointerCapture(e.pointerId)) { clip.ReleasePointer(e.pointerId); RebuildTimeline(); } });
 
                 WireEventGrip(gripR, track, index, isEnd: true, Layout);   // 우 = 길이(끝)
                 WireEventGrip(gripL, track, index, isEnd: false, Layout);  // 좌 = 시작(끝 고정)
@@ -669,7 +673,7 @@ namespace Game.Gameplay.Editor
                 }
                 layout();
             });
-            grip.RegisterCallback<PointerUpEvent>(e => { if (grip.HasPointerCapture(e.pointerId)) { grip.ReleasePointer(e.pointerId); RebuildAll(); } });
+            grip.RegisterCallback<PointerUpEvent>(e => { if (grip.HasPointerCapture(e.pointerId)) { grip.ReleasePointer(e.pointerId); RebuildTimeline(); } });
         }
 
         private void SetEventFloat(int index, string field, float value)
@@ -723,6 +727,7 @@ namespace Game.Gameplay.Editor
                 return;
             }
             if (_so == null || _so.targetObject != _target) _so = new SerializedObject(_target);
+            _so.Update(); // 독립 호출(argType/actor/catalog 변경) 시 커밋된 최신값으로 레이아웃 결정
 
             // ── 판정창 선택 시: 그 편집을 맨 위로(클릭 피드백) ──
             if (_hitboxSelected)
@@ -739,10 +744,16 @@ namespace Game.Gameplay.Editor
                 var kind = (ECueKind)el.FindPropertyRelative("kind").enumValueIndex;
 
                 var sec = Section($"{kind} 이벤트 · [{_selected}]");
-                sec.Add(BoundField(new EnumField("종류", ECueKind.Sfx), el.FindPropertyRelative("kind"), RebuildAll));
-                sec.Add(BoundField(new FloatField("시각(ms)"), el.FindPropertyRelative("timeMs"), RebuildAll));
-                sec.Add(BoundField(new FloatField("길이(ms)"), el.FindPropertyRelative("durationMs"), RebuildAll));
-                sec.Add(BoundInt2(new IntegerField("레인") { tooltip = "같은 종류 안의 행(0=첫 레인). 트랙 헤더 ＋/× 로도 레인 관리." }, el.FindPropertyRelative("lane")));
+
+                // 종류 = 레이아웃 교체(Sfx클립↔Vfx프리팹) → 바인딩 대신 수동(변경 시 인스펙터·타임라인 전부 재구성).
+                var kindField = new EnumField("종류", kind); kindField.AddToClassList("atl-field");
+                var kindProp = el.FindPropertyRelative("kind");
+                kindField.RegisterValueChangedCallback(e => { _so.Update(); kindProp.enumValueIndex = (int)(ECueKind)e.newValue; _so.ApplyModifiedProperties(); RebuildAll(); });
+                sec.Add(kindField);
+
+                sec.Add(BoundField(new FloatField("시각(ms)"), el.FindPropertyRelative("timeMs"), RebuildTimeline));
+                sec.Add(BoundField(new FloatField("길이(ms)"), el.FindPropertyRelative("durationMs"), RebuildTimeline));
+                sec.Add(BoundInt2(new IntegerField("레인") { tooltip = "같은 종류 안의 행(0=첫 레인). 트랙 헤더 ＋/× 로도 레인 관리." }, el.FindPropertyRelative("lane"), RebuildTimeline));
 
                 if (kind == ECueKind.Sfx)
                     sec.Add(BoundObject(new ObjectField("SFX 클립") { objectType = typeof(AudioClip) }, el.FindPropertyRelative("sfxClip")));
@@ -756,10 +767,7 @@ namespace Game.Gameplay.Editor
                 else // Anim
                 {
                     var tp = el.FindPropertyRelative("animTrigger");
-                    var af = new EnumField("애니 트리거", (Game.Gameplay.Character.AnimationTriggerType)tp.enumValueIndex);
-                    af.AddToClassList("atl-field");
-                    af.RegisterValueChangedCallback(e => { _so.Update(); tp.enumValueIndex = (int)(Game.Gameplay.Character.AnimationTriggerType)e.newValue; _so.ApplyModifiedProperties(); RebuildAll(); });
-                    sec.Add(af);
+                    sec.Add(BoundField(new EnumField("애니 트리거", (Game.Gameplay.Character.AnimationTriggerType)tp.enumValueIndex), tp, null));
                     sec.Add(Hint("지연 애니 트리거(주 트리거 cueTrigger 는 t=0). 액터 Animator 로 발화(W7)."));
                 }
 
@@ -791,8 +799,8 @@ namespace Game.Gameplay.Editor
         private void BuildHitboxSection(bool selected)
         {
             var gp = Section(selected ? "판정창 (선택됨) · 서버 bake" : "판정창 (서버 bake)");
-            gp.Add(BoundInt2(new IntegerField("startup(ms)"), _so.FindProperty("startupMs")));
-            gp.Add(BoundInt2(new IntegerField("active(ms)"), _so.FindProperty("activeMs")));
+            gp.Add(BoundInt2(new IntegerField("startup(ms)"), _so.FindProperty("startupMs"), RebuildTimeline));
+            gp.Add(BoundInt2(new IntegerField("active(ms)"), _so.FindProperty("activeMs"), RebuildTimeline));
             var gpBtns = RowBtns();
             gpBtns.Add(new Button(AbilityCatalogExporter.Export) { text = "Export", tooltip = "판정창 변경을 서버 abilities.json 에 재bake.", style = { flexGrow = 1 } });
             gpBtns.Add(new Button(GenerateHitWindowEvents) { text = "→ Event", tooltip = "판정창을 Event 2개(ActivateWindow@시작·DeactivateWindow@끝)로 생성 — Main WeaponHitbox 개폐(옛 Phase 3).", style = { flexGrow = 1 } });
@@ -807,54 +815,53 @@ namespace Game.Gameplay.Editor
             return v;
         }
 
-        // 세로 상세 패널용 — 패널 폭을 채우고 .atl-field 클래스로 라벨 폭·간격을 .uss 가 통제(W-A 폴리시).
+        // 세로 상세 패널용 — .atl-field 로 라벨 폭·간격을 .uss 가 통제(W-A). BindProperty 로 SerializedProperty 양방향 바인딩(자동 동기화·Undo, W1).
+        // onChanged 는 지오메트리(시각·길이·레인·startup·active)에만 넘긴다 → TrackPropertyValue 가 값이 실제로 바뀐 뒤(=SO 갱신 후) 호출 → 타임라인만 리빌드(인스펙터 필드는 살려 포커스 유지).
+        // 종류(kind)·인자타입(argType)처럼 인스펙터 레이아웃 자체를 바꾸는 enum 은 여기서 바인딩하지 않는다(리빌드로 즉시 파괴되므로 수동 콜백이 맞다).
         private VisualElement BoundField(EnumField f, SerializedProperty p, global::System.Action onChanged)
         {
             f.AddToClassList("atl-field");
-            f.Init((ECueKind)p.enumValueIndex);
-            f.RegisterValueChangedCallback(e =>
-            {
-                _so.Update(); p.enumValueIndex = (int)(ECueKind)e.newValue; _so.ApplyModifiedProperties(); onChanged?.Invoke();
-            });
+            f.BindProperty(p);
+            if (onChanged != null) f.TrackPropertyValue(p, _ => onChanged());
             return f;
         }
 
         private VisualElement BoundField(FloatField f, SerializedProperty p, global::System.Action onChanged)
         {
-            f.AddToClassList("atl-field"); f.value = p.floatValue;
-            f.isDelayed = true; // ★ Enter/blur 에만 커밋 — 매 키 입력마다 RebuildAll 로 필드가 파괴돼 편집 불가하던 것 방지
-            f.RegisterValueChangedCallback(e =>
-            {
-                _so.Update(); p.floatValue = Mathf.Max(0f, e.newValue); _so.ApplyModifiedProperties(); onChanged?.Invoke();
-            });
+            f.AddToClassList("atl-field");
+            f.isDelayed = true; // Enter/blur 커밋 — 타이핑 중 리빌드로 커서가 튀지 않게
+            f.BindProperty(p);
+            if (onChanged != null) f.TrackPropertyValue(p, _ => onChanged());
             return f;
         }
 
         private VisualElement BoundText(TextField f, SerializedProperty p)
         {
-            f.AddToClassList("atl-field"); f.value = p.stringValue;
-            f.RegisterValueChangedCallback(e => { _so.Update(); p.stringValue = e.newValue; _so.ApplyModifiedProperties(); });
+            f.AddToClassList("atl-field");
+            f.BindProperty(p);
             return f;
         }
 
         private VisualElement BoundObject(ObjectField f, SerializedProperty p)
         {
-            f.AddToClassList("atl-field"); f.value = p.objectReferenceValue;
-            f.RegisterValueChangedCallback(e => { _so.Update(); p.objectReferenceValue = e.newValue; _so.ApplyModifiedProperties(); RebuildAll(); });
+            f.AddToClassList("atl-field");
+            f.BindProperty(p); // sfxClip/vfxPrefab 은 클립 위치·라벨에 영향 없음 → 리빌드 불필요
             return f;
         }
 
-        private VisualElement BoundInt2(IntegerField f, SerializedProperty p)
+        private VisualElement BoundInt2(IntegerField f, SerializedProperty p, global::System.Action onChanged = null)
         {
-            f.AddToClassList("atl-field"); f.value = p.intValue; f.isDelayed = true;
-            f.RegisterValueChangedCallback(e => { _so.Update(); p.intValue = e.newValue; _so.ApplyModifiedProperties(); RebuildAll(); });
+            f.AddToClassList("atl-field");
+            f.isDelayed = true;
+            f.BindProperty(p);
+            if (onChanged != null) f.TrackPropertyValue(p, _ => onChanged());
             return f;
         }
 
         private VisualElement BoundToggle(Toggle f, SerializedProperty p)
         {
-            f.AddToClassList("atl-field"); f.value = p.boolValue;
-            f.RegisterValueChangedCallback(e => { _so.Update(); p.boolValue = e.newValue; _so.ApplyModifiedProperties(); });
+            f.AddToClassList("atl-field");
+            f.BindProperty(p);
             return f;
         }
 
@@ -876,9 +883,9 @@ namespace Game.Gameplay.Editor
             var mrow = new VisualElement(); mrow.AddToClassList("atl-method-row");
             var methodField = new TextField("메서드")
             { tooltip = "액터 컴포넌트의 public 메서드(예: WeaponHitbox.ActivateWindow → ActivateWindow). ▾ 로 목록 선택." };
-            methodField.AddToClassList("atl-field"); methodField.style.flexGrow = 1; methodField.value = imProp.stringValue;
-            methodField.isDelayed = true; // ★ 커밋 시에만 RebuildAll — 타이핑 중 필드 파괴 방지
-            methodField.RegisterValueChangedCallback(e => { _so.Update(); imProp.stringValue = e.newValue; _so.ApplyModifiedProperties(); RebuildAll(); });
+            methodField.AddToClassList("atl-field"); methodField.style.flexGrow = 1;
+            methodField.isDelayed = true;
+            methodField.BindProperty(imProp); // 메서드명은 타임라인 라벨에 안 쓰임 → 리빌드 없이 바인딩만(W1)
             mrow.Add(methodField);
 
             var mpick = new Button(() => ShowMethodMenu(el)) { text = "▾" };
@@ -937,7 +944,7 @@ namespace Game.Gameplay.Editor
                         el.FindPropertyRelative("invokeMethod").stringValue = mName;
                         el.FindPropertyRelative("argType").enumValueIndex = (int)mArg;
                         _so.ApplyModifiedProperties();
-                        RefreshInspector(); RebuildAll();
+                        RebuildAll(); // = RebuildTimeline + RefreshInspector(새 인자타입 필드 반영)
                     });
                 }
             }

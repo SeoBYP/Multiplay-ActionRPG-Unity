@@ -149,7 +149,7 @@ Unreal Animation Montage + Unity Timeline Editor 분석에서 나온 개선점. 
 
 | # | 개선 | 레퍼런스 근거 | 규모 | 상태 |
 |---|------|------|:---:|:---:|
-| **W1** | **인스펙터 정식 바인딩**(`rootVisualElement.Bind(so)`) — 값 변경 시 RebuildAll 제거, 자동 동기화. `isDelayed` 응급처치의 근본 해결 | 두 툴 다 "안정적 details, 편집 중 타임라인 안 흔들림" | 중 | ⬜ |
+| **W1** | **인스펙터 정식 바인딩**(`BindProperty`+`TrackPropertyValue`) — 값 편집 시 `RebuildAll` 제거, `RebuildTimeline`(타임라인만) 로 분리 → 편집 필드 생존. `isDelayed` 응급처치의 근본 해결 | 두 툴 다 "안정적 details, 편집 중 타임라인 안 흔들림" | 중 | ✅ §2.92 |
 | **W2** | **라이브 메시 프리뷰** — ▶Preview 가 로그/스폰 대신 액터 프리팹을 뷰포트에 재생하며 스크럽 동조 | Unreal 프리뷰 뷰포트 · Unity PlayableDirector 스크럽 | 대 | ⬜ |
 | **W3** | **Sections/loop 구간** — 이름 붙은 시간 구간(콤보 단계·루프) 저작·점프 | Unreal Montage Sections | 중 | ⬜ |
 | **W4** | ~~프레임/초 룰러 토글~~ | — | 소 | ⛔ 폐기(Snap/FPS 제거로 프레임 개념 없앰) |
@@ -158,4 +158,4 @@ Unreal Animation Montage + Unity Timeline Editor 분석에서 나온 개선점. 
 | **W7** | **Anim 이벤트 실재생** — `animTrigger` → 액터 Animator SetTrigger(지연) | — | 소 | ✅ §2.91 |
 | **W8** | **커브 트랙**(float 커브) — 연출엔 YAGNI | Unreal/Unity Curves | 대 | ⏸ 보류(YAGNI) |
 
-> 진행: W-A·W-B ✅ + W5·W6·W7 ✅(codemap §2.91). **잔여 = W1(바인딩)·W2(라이브 프리뷰)·W3(Sections)** — 중~대라 착수 전 논의. W4 폐기·W8 YAGNI 보류.
+> 진행: W-A·W-B ✅ + W5·W6·W7 ✅(codemap §2.91) + W1 ✅(codemap §2.92). **잔여 = W2(라이브 프리뷰)·W3(Sections)** — 대~중이라 착수 전 논의. W4 폐기·W8 YAGNI 보류.

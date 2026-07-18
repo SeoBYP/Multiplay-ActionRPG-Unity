@@ -445,6 +445,16 @@ ability-timeline-tool.md §6 백로그 소진(소 3건). 커밋 `dcd04689`.
 - **검증**: 컴파일0 · **EditMode 199/199** · 실구동(Anim animTrigger=Attack 플래너 유지·mute 프리뷰 스킵 예외0) 비파괴.
 - 잔여 = W1(인스펙터 바인딩)·W2(라이브 메시 프리뷰)·W3(Sections) — 중~대, 착수 전 논의.
 
+### 2.92 CA-5 W1 — 인스펙터 정식 바인딩 (2026-07-18)
+
+`AbilityTimelineWindow` 오른쪽 상세 패널을 **UI Toolkit 바인딩**으로 전환. 그동안 필드 값 편집이 매번 `RebuildAll`(타임라인+인스펙터 전체 재구성)을 불러 **편집 중인 필드가 파괴돼 포커스를 잃던** 근본 문제 해결(`isDelayed` 응급처치 대체).
+
+- **핵심 = `RebuildAll` 분리**: `RebuildAll()` = `RebuildTimeline()` + `RefreshInspector()`. **`RebuildTimeline`은 왼쪽 헤더열+캔버스(_content)만 재구성 · `_inspectorBody`는 절대 안 건드림.** 지오메트리 편집(시각·길이·레인·startup·active)·드래그 릴리스·줌은 `RebuildTimeline`만 호출 → 인스펙터 필드 생존.
+- **바인딩(`Bound*` 헬퍼)**: 수동 `_so.Update()/prop=/ApplyModifiedProperties()` 제거 → `field.BindProperty(prop)`(양방향·Undo 자동). 지오메트리 필드만 `field.TrackPropertyValue(prop, _ => RebuildTimeline())` — 값이 **실제로 SO 에 반영된 뒤** 호출돼 클립 위치가 최신(순서 경합 없음).
+- **수동으로 남긴 예외 = 종류(kind)·인자타입(argType)**: 이 둘은 바뀌면 인스펙터 레이아웃 자체를 교체(Sfx클립↔Vfx프리팹 · argType→값 필드) → 바인딩해도 리빌드로 즉시 파괴되므로 무의미. `RegisterValueChangedCallback`+명시적 SO 쓰기+`RebuildAll`/`RefreshInspector`(드롭다운이라 파괴 무해). TrackPropertyValue 초기-fire 리빌드 루프도 이로써 원천 차단.
+- **위치**: `Gameplay/Editor/AbilityTimelineWindow.cs` — `RebuildAll`/`RebuildTimeline`(분리), `RefreshInspector`(`_so.Update()` 추가), `BoundField/BoundText/BoundObject/BoundInt2/BoundToggle`(BindProperty 화), `BuildEventInspector`(메서드=바인딩·argType=수동 유지).
+- **검증**: 컴파일0 · **EditMode 199/199** · 비파괴 스모크(메모리 전용 AbilityDefinition, execute_code): `RebuildTimeline` 전후 `_inspectorBody.childCount` 불변(equal=True) · `boundFields=7`(timeMs·durationMs·lane·sfxClip·id·startupMs·activeMs) · 예외0 · .asset 무오염.
+
 ### 2.63 캡슐 몬스터 제거 + slime→creepy_demon 전면 교체 (2026-07-16)
 
 플레이스홀더 캡슐(`Monster.prefab` 던전 폴백·`LocalMonster.prefab` Main) + `slime` 몬스터를 실모델 몬스터로 대체. 사용자 지시 = "캡슐 3종 안 씀 → 실모델로, slime 데이터는 demon 으로 교체".
