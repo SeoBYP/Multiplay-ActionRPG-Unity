@@ -45,8 +45,6 @@ namespace Game.Gameplay.Editor
         [SerializeField] private GameObject _actorPrefab;  // P7: Event 메서드 드롭다운 소스(액터 프리팹)
         private SerializedObject _so;
         private float _pxPerMs = 0.6f;
-        private int _fps = 30;
-        private bool _snap = true;
         private float _scrubMs;
         private int _selected = -1;                     // primary(인스펙터·드래그·리사이즈 대상)
         private readonly HashSet<int> _selection = new(); // P8 다중 선택(그룹 delete/nudge/duplicate). primary 포함.
@@ -102,7 +100,7 @@ namespace Game.Gameplay.Editor
             root.RegisterCallback<KeyDownEvent>(e =>
             {
                 if (_selection.Count == 0) return;
-                float step = _snap ? 1000f / _fps : 0.1f; // Snap OFF = 0.1ms 미세 넛지
+                float step = 0.1f; // 0.1ms 미세 넛지 (Snap 격자 제거)
                 switch (e.keyCode)
                 {
                     case KeyCode.Delete:      DeleteSelectedEvents(); e.StopPropagation(); break;
@@ -189,16 +187,7 @@ namespace Game.Gameplay.Editor
             zoom.RegisterValueChangedCallback(e => { _pxPerMs = e.newValue; RebuildAll(); });
             bar.Add(new Label("Zoom") { style = { unityTextAlign = TextAnchor.MiddleCenter } });
             bar.Add(zoom);
-
-            var fps = new IntegerField("FPS") { value = _fps };
-            fps.style.width = 78;
-            fps.RegisterValueChangedCallback(e => { _fps = Mathf.Clamp(e.newValue, 1, 240); });
-            bar.Add(fps);
-
-            var snap = new ToolbarToggle { text = "Snap", value = _snap,
-                tooltip = "ON = FPS 격자(1000/fps ms)에 맞춤 · OFF = 0.1ms 미세 편집(드래그·←/→). 판정창은 int 라 최소 1ms." };
-            snap.RegisterValueChangedCallback(e => _snap = e.newValue);
-            bar.Add(snap);
+            // ※ Snap/FPS 격자는 제거됨 — 편집은 항상 0.1ms 단위(판정창 int 만 1ms).
 
             bar.Add(new ToolbarSpacer());
             _previewButton = new ToolbarButton(TogglePreview) { text = "▶ Preview" };
@@ -249,8 +238,8 @@ namespace Game.Gameplay.Editor
 
         private float XForTime(float ms) => LeftPad + ms * _pxPerMs;
         private float TimeForX(float x) => Mathf.Max(0f, (x - LeftPad) / _pxPerMs);
-        // Snap ON = FPS 격자(1000/fps ms) / OFF = 0.1ms 격자(미세 편집). 판정창 startup/active 는 int 계약이라 최종 1ms.
-        private float Snap(float ms) => _snap ? Mathf.Round(ms / (1000f / _fps)) * (1000f / _fps) : Mathf.Round(ms * 10f) / 10f;
+        // 편집 격자 = 항상 0.1ms(Snap/FPS 제거됨). 판정창 startup/active 는 int 계약이라 최종 1ms.
+        private static float Snap(float ms) => Mathf.Round(ms * 10f) / 10f;
         private float RowTop(int row) => RulerH + row * (RowH + RowGap);
 
         // ─────────────────────── 재구성 ───────────────────────
@@ -958,7 +947,7 @@ namespace Game.Gameplay.Editor
             var arr = _so.FindProperty("cueEvents");
             var sources = _selection.Where(i => i >= 0 && i < arr.arraySize).OrderBy(i => i).ToList();
             _selection.Clear();
-            float offset = _snap ? 1000f / _fps : 20f;
+            float offset = 20f; // 복제본 겹침 방지 오프셋
             foreach (var src in sources)
             {
                 int n = arr.arraySize;
