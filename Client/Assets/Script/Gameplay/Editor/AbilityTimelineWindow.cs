@@ -324,6 +324,16 @@ namespace Game.Gameplay.Editor
         /// 인스펙터 필드 <b>값</b> 편집에는 쓰지 않는다 — 편집 중 필드가 파괴돼 포커스를 잃기 때문(W1). 그 경우 <see cref="RebuildTimeline"/> 만.</summary>
         private void RebuildAll() { RebuildTimeline(); RefreshInspector(); }
 
+        /// <summary>드래그(클립·그립·판정창 리사이즈/이동) 중엔 타임라인 재구성을 건너뛴다 — 재구성이 드래그 중인 그립을 파괴해 포인터 캡처를 끊기 때문(W1 회귀 수정).
+        /// 선택된 이벤트의 인스펙터 bound 필드가 <see cref="RebuildTimeline"/> 대신 이걸 호출: TrackPropertyValue 가 드래그의 SO 쓰기에 반응해도 무시.
+        /// 드래그 중엔 각 드래그 핸들러의 <c>layout()</c> 가 라이브 갱신을 담당하고, PointerUp 이 최종 재구성한다.</summary>
+        private void RebuildTimelineUnlessDragging()
+        {
+            var panel = _content?.panel;
+            if (panel != null && panel.GetCapturingElement(PointerId.mousePointerId) != null) return; // 포인터 캡처됨 = 드래그 중
+            RebuildTimeline();
+        }
+
         /// <summary>왼쪽 헤더 열 + 타임라인 캔버스(룰러·클립·판정창)만 재구성. 오른쪽 인스펙터(_inspectorBody)는 건드리지 않는다.
         /// 지오메트리 편집(시각·길이·레인·startup·active)·드래그·줌은 이것만 호출 → 바인딩된 인스펙터 필드가 살아남아 포커스 유지(W1).</summary>
         private void RebuildTimeline()
@@ -784,9 +794,9 @@ namespace Game.Gameplay.Editor
                 kindField.RegisterValueChangedCallback(e => { _so.Update(); kindProp.enumValueIndex = (int)(ECueKind)e.newValue; _so.ApplyModifiedProperties(); RebuildAll(); });
                 sec.Add(kindField);
 
-                sec.Add(BoundField(new FloatField("시각(ms)"), el.FindPropertyRelative("timeMs"), RebuildTimeline));
-                sec.Add(BoundField(new FloatField("길이(ms)"), el.FindPropertyRelative("durationMs"), RebuildTimeline));
-                sec.Add(BoundInt2(new IntegerField("레인") { tooltip = "같은 종류 안의 행(0=첫 레인). 트랙 헤더 ＋/× 로도 레인 관리." }, el.FindPropertyRelative("lane"), RebuildTimeline));
+                sec.Add(BoundField(new FloatField("시각(ms)"), el.FindPropertyRelative("timeMs"), RebuildTimelineUnlessDragging));
+                sec.Add(BoundField(new FloatField("길이(ms)"), el.FindPropertyRelative("durationMs"), RebuildTimelineUnlessDragging));
+                sec.Add(BoundInt2(new IntegerField("레인") { tooltip = "같은 종류 안의 행(0=첫 레인). 트랙 헤더 ＋/× 로도 레인 관리." }, el.FindPropertyRelative("lane"), RebuildTimelineUnlessDragging));
 
                 if (kind == ECueKind.Sfx)
                     sec.Add(BoundObject(new ObjectField("SFX 클립") { objectType = typeof(AudioClip) }, el.FindPropertyRelative("sfxClip")));
@@ -832,8 +842,8 @@ namespace Game.Gameplay.Editor
         private void BuildHitboxSection(bool selected)
         {
             var gp = Section(selected ? "판정창 (선택됨) · 서버 bake" : "판정창 (서버 bake)");
-            gp.Add(BoundInt2(new IntegerField("startup(ms)"), _so.FindProperty("startupMs"), RebuildTimeline));
-            gp.Add(BoundInt2(new IntegerField("active(ms)"), _so.FindProperty("activeMs"), RebuildTimeline));
+            gp.Add(BoundInt2(new IntegerField("startup(ms)"), _so.FindProperty("startupMs"), RebuildTimelineUnlessDragging));
+            gp.Add(BoundInt2(new IntegerField("active(ms)"), _so.FindProperty("activeMs"), RebuildTimelineUnlessDragging));
             var gpBtns = RowBtns();
             gpBtns.Add(new Button(AbilityCatalogExporter.Export) { text = "Export", tooltip = "판정창 변경을 서버 abilities.json 에 재bake.", style = { flexGrow = 1 } });
             gpBtns.Add(new Button(GenerateHitWindowEvents) { text = "→ Event", tooltip = "판정창을 Event 2개(ActivateWindow@시작·DeactivateWindow@끝)로 생성 — Main WeaponHitbox 개폐(옛 Phase 3).", style = { flexGrow = 1 } });
