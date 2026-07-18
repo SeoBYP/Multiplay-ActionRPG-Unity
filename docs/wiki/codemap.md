@@ -423,6 +423,16 @@ P7 첫 증분(§2.86 = Event 종류+0-인자 호출) 위에 참조 R4/R5 를 마
 - **검증**: 컴파일0 · USS 파싱0 · **EditMode 199/199** · 실구동(styleSheets count=2 로드확인·atl-details 자식3=이벤트/고급/판정창 섹션·VFX/Event 인스펙터 예외0)·비파괴(ability 에셋 git 무변경). 브랜치 `feature/ability-timeline-tool` 커밋 `34bc8e76`.
 - 다음: **W-B 트랙 동적(레인 모델)** · W1 인스펙터 바인딩 등(§ability-timeline-tool.md).
 
+### 2.90 CA-5 W-B — 트랙 동적(레인 모델) + Snap 제거 + 판정창 클릭선택 + 0.1ms (2026-07-18)
+
+W-A(오른쪽 패널) 이후 사용자 후속 4건.
+
+- **판정창 클릭 선택**(커밋 `b147ed87`): 노란 판정창 바가 드래그만 되고 클릭 선택이 없어 "편집 불가"로 보였다 → 바/그립 클릭=`SelectHitbox`(이벤트 선택과 배타)+하이라이트, 오른쪽 패널이 판정창 편집을 맨 위로 승격("판정창 (선택됨)"). `_hitboxSelected`+`BuildHitboxSection`.
+- **0.1ms 미세 편집**(`3f4a66bf`) → **Snap/FPS 완전 제거**(`ac45d5d1`, 사용자 "기본 끄고 없애도 됨"): 드래그·리사이즈·넛지가 FPS 격자(33.3ms)로만 되던 것 → `Snap()` 항상 0.1ms 격자. Snap 토글·FPS 필드·`_snap`/`_fps` 삭제. (판정창 startup/active 는 서버 int 계약이라 1ms.)
+- **W-B 트랙 동적(레인 모델 ①)**(`1360cfb6`): 같은 kind 를 여러 레인(행)으로 = Unreal Notify 다중행. `AbilityCueEvent.lane`(int·편집 전용·**런타임 무시**). 고정 5행 상수 폐기 → `BuildRowLayout` 이 `(kind,lane)` 행을 `EffLanes`(저작 `_laneCount` max 사용중 레인)로 계산, `RowIndexOf`/`_rowTracks`. 순서=Anim 레인·판정창(단일)·VFX·SFX·Event 레인. 트랙 헤더 ＋(레인추가)·×(빈 레인만 삭제·상위 레인 하강). 우클릭 추가=그 `(kind,lane)`. 인스펙터 '레인' 필드. `SetTarget` 시 `_laneCount` 초기화(사용중 레인은 EffLanes 복원).
+- **검증**: 컴파일0 · **EditMode 199/199**(각 커밋) · 실구동(판정창 배타선택·Snap 0.1격자·기본5행→레인추가6행→이벤트 레인0/1 분리→이벤트있는레인 삭제거부) 비파괴. **⚠ Game.System 그림자 → `global::System.Collections`/`global::System.Array`**. 브랜치 `feature/ability-timeline-tool`.
+- **→ 사용자 지정 W-A·W-B 완료.** 잔여 = 개선 백로그 W1(바인딩)·W2(라이브 프리뷰)… (ability-timeline-tool.md §6) + Phase 1b 에셋 배선.
+
 ### 2.63 캡슐 몬스터 제거 + slime→creepy_demon 전면 교체 (2026-07-16)
 
 플레이스홀더 캡슐(`Monster.prefab` 던전 폴백·`LocalMonster.prefab` Main) + `slime` 몬스터를 실모델 몬스터로 대체. 사용자 지시 = "캡슐 3종 안 씀 → 실모델로, slime 데이터는 demon 으로 교체".

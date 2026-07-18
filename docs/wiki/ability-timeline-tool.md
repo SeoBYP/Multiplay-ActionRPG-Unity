@@ -104,12 +104,16 @@
 - **디자인 폴리시**: `AbilityTimelineWindow.uss` 신설(라벨폭 74px·섹션·마커 라운드 등) + `LoadStyleSheet`. Cue 카탈로그는 툴바→고급(선택) 섹션 이동.
 - 검증: 컴파일0 · USS 파싱0 · EditMode 199/199 · 실구동 비파괴(styleSheets 로드·상세 3섹션·예외0).
 
-### W-B. 트랙 동적 추가/삭제 — **모델 ① 레인 확정(2026-07-18)**
+### W-B. 트랙 동적 추가/삭제 — ✅ 완료(레인 모델, 2026-07-18, codemap §2.90)
+- `AbilityCueEvent.lane`(int·편집 전용) · 행 동적화(`BuildRowLayout`/`RowIndexOf`/`EffLanes`) · 트랙 헤더 ＋/× · 인스펙터 레인 필드. 실구동 검증(레인 추가/분리/빈레인만 삭제). 커밋 `1360cfb6`.
+
+<details><summary>원래 설계 노트</summary>
 - **문제**: 현재 트랙이 **kind 에 1:1 고정 5행**(Anim/판정창/VFX/SFX/Event). 겹치는 마커를 여러 레인으로 분산하고 싶음(= Unreal Notify 다중행).
 - **확정 = 모델 ①(레인)**: 트랙은 kind 타입 유지 + **같은 kind 를 여러 레인** 추가/삭제. `AbilityCueEvent.lane`(int, 기본 0) 하나만 추가 → 같은 kind·다른 lane = 다른 행. **런타임 무관**(재생은 lane 무시, 플래너도 그대로). 판정창(게임플레이 단일)·Anim 앵커는 고정.
   - (모델 ② 자유트랙은 기각 — YAGNI: 목적은 "겹침 분산"이지 임의 트랙 아님. 데이터·UI 대공사 회피.)
 - **해야 할 것**: 트랙 헤더 `+`(레인 추가)·`×`(빈 레인 삭제) · `AbilityCueEvent.lane` · 행 = (kind, lane) 조합으로 동적 계산 · 우클릭 추가 시 그 레인의 lane 부여 · 넛지/드래그는 lane 무관(시간만).
 - 규모: 중~대(행 레이아웃 동적화).
+</details>
 
 ### UX 도식 (목표 레이아웃)
 
