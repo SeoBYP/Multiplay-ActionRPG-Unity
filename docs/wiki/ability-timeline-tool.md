@@ -151,7 +151,7 @@ Unreal Animation Montage + Unity Timeline Editor 분석에서 나온 개선점. 
 |---|------|------|:---:|:---:|
 | **W1** | **인스펙터 정식 바인딩**(`BindProperty`+`TrackPropertyValue`) — 값 편집 시 `RebuildAll` 제거, `RebuildTimeline`(타임라인만) 로 분리 → 편집 필드 생존. `isDelayed` 응급처치의 근본 해결 | 두 툴 다 "안정적 details, 편집 중 타임라인 안 흔들림" | 중 | ✅ §2.92 |
 | **W2a** | **라이브 메시 프리뷰(MVP)** — 하단 뷰포트(PreviewRenderUtility)에 Actor 프리팹 렌더 · `previewClip` 을 PlayableGraph 로 스크럽/재생 샘플 · 오빗 카메라 | Unreal 프리뷰 뷰포트 · Unity PlayableDirector 스크럽 | 대 | ✅ §2.93 |
-| **W2b** | **VFX 뷰포트 스폰** — VFX 를 프리뷰 씬 소켓에 스폰 + `ParticleSystem.Simulate` 스크럽 동조 | 〃 | 중 | ⬜ |
+| **W2b** | **VFX 뷰포트 스폰** — VFX 를 프리뷰 씬 소켓에 스폰 + `ParticleSystem.Simulate` 스크럽 동조 | 〃 | 중 | ✅ §2.94 |
 | **W2c** | **cueTrigger 자동 클립 해석** — AnimatorController 에서 자동 추론(previewClip 미지정 시 폴백) | 〃 | 소~중 | ⬜ |
 | **W3** | **Sections/loop 구간** — 이름 붙은 시간 구간(콤보 단계·루프) 저작·점프 | Unreal Montage Sections | 중 | ⬜ |
 | **W4** | ~~프레임/초 룰러 토글~~ | — | 소 | ⛔ 폐기(Snap/FPS 제거로 프레임 개념 없앰) |
@@ -160,4 +160,4 @@ Unreal Animation Montage + Unity Timeline Editor 분석에서 나온 개선점. 
 | **W7** | **Anim 이벤트 실재생** — `animTrigger` → 액터 Animator SetTrigger(지연) | — | 소 | ✅ §2.91 |
 | **W8** | **커브 트랙**(float 커브) — 연출엔 YAGNI | Unreal/Unity Curves | 대 | ⏸ 보류(YAGNI) |
 
-> 진행: W-A·W-B ✅ + W5·W6·W7 ✅(§2.91) + W1 ✅(§2.92) + W2a ✅(§2.93). **잔여 = W2b(VFX 뷰포트 스폰)·W2c(자동 클립 해석)·W3(Sections)** — 착수 전 논의. W4 폐기·W8 YAGNI 보류.
+> 진행: W-A·W-B ✅ + W5·W6·W7 ✅(§2.91) + W1 ✅(§2.92) + W2a ✅(§2.93) + W2b ✅(§2.94). **잔여 = W2c(자동 클립 해석)·W3(Sections)** — 착수 전 논의. W4 폐기·W8 YAGNI 보류.

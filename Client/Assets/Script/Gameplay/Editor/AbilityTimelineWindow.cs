@@ -68,8 +68,7 @@ namespace Game.Gameplay.Editor
         private bool _previewNotify = true;
         private double _previewLastTime;
         private float _previewPrevMs;
-        private Transform _previewRoot;
-        private readonly List<GameObject> _previewSpawned = new();
+        private readonly global::System.Collections.Generic.Dictionary<int, GameObject> _vfxInstances = new(); // W2b: cue 인덱스 → 프리뷰 씬 VFX 인스턴스
 
         // W2 라이브 메시 프리뷰 — 격리 PreviewScene 렌더 + previewClip 을 PlayableGraph 로 스크럽 샘플(휴머노이드/제네릭 공용, 전역 AnimationMode 부작용 없음)
         private VisualElement _viewport;
@@ -1177,7 +1176,7 @@ namespace Game.Gameplay.Editor
             if (_previewing) EditorApplication.update -= PreviewTick;
             _previewing = false;
             if (_previewButton != null) _previewButton.text = "▶ Preview";
-            CleanupPreview();
+            // VFX 는 SampleVfx 가 현재 스크럽 시각 기준으로 관리 → 정지해도 그 프레임 상태 유지(뷰포트가 계속 그 시각을 보여줌). 정리는 CleanupViewport.
         }
 
         /// <summary>실시간으로 스크럽을 굴리며, 이 프레임에 지나간 이벤트를 발화한다(참조 R7 = TriggerInEditMode).</summary>
@@ -1207,22 +1206,12 @@ namespace Game.Gameplay.Editor
             if (_previewNotify)
                 Debug.Log($"[TimelinePreview] {Mathf.RoundToInt(ev.timeMs)}ms · {ev.kind} · '{(string.IsNullOrEmpty(ev.id) ? "(id 미정)" : ev.id)}'");
 
-            switch (ev.kind)
+            // SFX 만 실시간 발화(스크럽마다 소리 스팸 방지). VFX 는 SampleVfx(스크럽·재생 공용, 뷰포트 스폰)가 담당 — W2b.
+            if (ev.kind == ECueKind.Sfx)
             {
-                case ECueKind.Sfx:
-                {
-                    var clip = ev.sfxClip != null ? ev.sfxClip
-                             : (_catalog != null && _catalog.TryGetSfx(ev.id, out var s) ? s.clip : null);
-                    if (clip != null) PlayPreviewClip(clip);
-                    break;
-                }
-                case ECueKind.Vfx:
-                {
-                    var prefab = ev.vfxPrefab != null ? ev.vfxPrefab
-                               : (_catalog != null && _catalog.TryGetVfx(ev.id, out var v) ? v.prefab : null);
-                    if (prefab != null) SpawnPreviewVfx(prefab);
-                    break;
-                }
+                var clip = ev.sfxClip != null ? ev.sfxClip
+                         : (_catalog != null && _catalog.TryGetSfx(ev.id, out var s) ? s.clip : null);
+                if (clip != null) PlayPreviewClip(clip);
             }
         }
 
@@ -1239,22 +1228,69 @@ namespace Game.Gameplay.Editor
             catch { /* 프리뷰 오디오 실패는 무해 — Notify 로그로 충분 */ }
         }
 
-        private void SpawnPreviewVfx(GameObject prefab)
+        // ─────────────────────── W2b VFX 뷰포트 스폰(스크럽 동조) ───────────────────────
+
+        private const float DefaultVfxLifeMs = 1500f; // 길이 0(즉발) VFX 의 기본 프리뷰 노출 시간
+
+        /// <summary>스크럽/재생 시각 ms 에 "살아있어야 할" Vfx 큐를 프리뷰 씬 소켓에 확보하고 ParticleSystem 을 그 시각으로 시뮬(앞뒤 동조). 창 밖 인스턴스는 제거.
+        /// 애니(SampleActor)와 나란히 <see cref="DrawViewport"/> 에서 호출 → 실시간 재생·수동 스크럽 공용.</summary>
+        private void SampleVfx(float ms)
         {
-            if (prefab == null) return;
-            if (_previewRoot == null)
-                _previewRoot = new GameObject("[TimelinePreview]") { hideFlags = HideFlags.HideAndDontSave }.transform;
-            var go = UnityEngine.Object.Instantiate(prefab, _previewRoot);
-            go.hideFlags = HideFlags.HideAndDontSave;
-            _previewSpawned.Add(go);
-            // 에디트모드에선 파티클이 자동 시뮬 안 될 수 있다(스폰 가시화까지가 MVP) — 수명 관리는 Stop 에서 일괄 정리.
+            if (_actorInstance == null || _target == null) { ClearVfx(); return; }
+            var events = _target.cueEvents;
+            for (int i = 0; i < events.Count; i++)
+            {
+                var ev = events[i];
+                GameObject prefab = null; float autoLifeMs = 0f;
+                if (ev != null && ev.kind == ECueKind.Vfx && !_mutedLanes.Contains(((int)ev.kind, Mathf.Max(0, ev.lane))))
+                {
+                    prefab = ev.vfxPrefab;
+                    if (prefab == null && _catalog != null && _catalog.TryGetVfx(ev.id, out var v)) { prefab = v.prefab; autoLifeMs = v.autoDestroySec * 1000f; }
+                }
+                float life = ev != null && ev.durationMs > 0f ? ev.durationMs : (autoLifeMs > 0f ? autoLifeMs : DefaultVfxLifeMs);
+                bool show = prefab != null && ms >= ev.timeMs && ms < ev.timeMs + life;
+
+                _vfxInstances.TryGetValue(i, out var inst);
+                if (show)
+                {
+                    if (inst == null) { inst = InstantiateVfxPreview(prefab, ev.socket); _vfxInstances[i] = inst; }
+                    SimulateParticles(inst, (ms - ev.timeMs) / 1000f);
+                }
+                else if (inst != null) { UnityEngine.Object.DestroyImmediate(inst); _vfxInstances[i] = null; }
+            }
         }
 
-        private void CleanupPreview()
+        private GameObject InstantiateVfxPreview(GameObject prefab, string socket)
         {
-            foreach (var go in _previewSpawned) if (go != null) UnityEngine.Object.DestroyImmediate(go);
-            _previewSpawned.Clear();
-            if (_previewRoot != null) { UnityEngine.Object.DestroyImmediate(_previewRoot.gameObject); _previewRoot = null; }
+            var at = ResolveActorSocket(socket);
+            var go = UnityEngine.Object.Instantiate(prefab, at.position, at.rotation, at);
+            go.hideFlags = HideFlags.HideAndDontSave;
+            return go;
+        }
+
+        /// <summary>소켓 이름을 액터 인스턴스에서 조회(런타임 AbilityCuePlayer 와 동일 규칙). 빈 이름/미발견이면 루트.</summary>
+        private Transform ResolveActorSocket(string socket)
+        {
+            if (_actorInstance == null) return null;
+            if (!string.IsNullOrEmpty(socket))
+                foreach (var t in _actorInstance.GetComponentsInChildren<Transform>(true))
+                    if (t.name == socket) return t;
+            return _actorInstance.transform;
+        }
+
+        /// <summary>에디트모드는 파티클을 자동 재생 안 함 → 각 ParticleSystem 을 t 초로 명시 시뮬(restart). 스크럽 앞뒤 이동에 대응.</summary>
+        private static void SimulateParticles(GameObject inst, float t)
+        {
+            if (inst == null) return;
+            t = Mathf.Max(0f, t);
+            foreach (var ps in inst.GetComponentsInChildren<ParticleSystem>())
+                ps.Simulate(t, false, true);
+        }
+
+        private void ClearVfx()
+        {
+            foreach (var kv in _vfxInstances) if (kv.Value != null) UnityEngine.Object.DestroyImmediate(kv.Value);
+            _vfxInstances.Clear();
         }
 
         // ─────────────────────── W2 라이브 메시 프리뷰 뷰포트 ───────────────────────
@@ -1352,7 +1388,7 @@ namespace Game.Gameplay.Editor
             EnsurePreviewScene();
             if (_actorInstance == null) return;
 
-            if (_lastSampledMs != _scrubMs) { SampleActor(_scrubMs); _lastSampledMs = _scrubMs; }
+            if (_lastSampledMs != _scrubMs) { SampleActor(_scrubMs); SampleVfx(_scrubMs); _lastSampledMs = _scrubMs; }
 
             var tex = RenderActor(r);
             if (tex != null) GUI.DrawTexture(r, tex, ScaleMode.StretchToFill, false);
@@ -1388,6 +1424,7 @@ namespace Game.Gameplay.Editor
 
         private void RecreateActor()
         {
+            ClearVfx(); // 옛 액터에 붙은 VFX 인스턴스 정리(액터와 함께 파괴되나 맵을 비워 재조정)
             DestroyGraph();
             if (_actorInstance != null) { UnityEngine.Object.DestroyImmediate(_actorInstance); _actorInstance = null; }
             _sampledActorPrefab = _actorPrefab;
@@ -1558,6 +1595,7 @@ namespace Game.Gameplay.Editor
 
         private void CleanupViewport()
         {
+            ClearVfx();
             DestroyGraph();
             if (_actorInstance != null) { UnityEngine.Object.DestroyImmediate(_actorInstance); _actorInstance = null; }
             _previewLight = null; // PRU.Cleanup 이 프리뷰 씬과 함께 파괴 → 참조만 해제

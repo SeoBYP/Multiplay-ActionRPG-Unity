@@ -470,6 +470,19 @@ ability-timeline-tool.md §6 백로그 소진(소 3건). 커밋 `dcd04689`.
 - **위치**: `AbilityTimelineWindow.cs`(`BuildPreviewPanel`/DrawViewport/RenderActor(URP)/EnsurePreviewScene/RecreateActor/StripRuntimeBehaviours/SampleActor/EnsureGraph/PositionCamera/FrameActor/CleanupViewport/RebindPreviewClip/Load·SaveActorToPrefs, `using UnityEngine.Playables`) · `AbilityDefinition.previewClip`.
 - **검증**: 컴파일0 · **EditMode 199/199** · 비파괴 스모크(execute_code): 초기 `posed=True`·`render=True`(URP `magenta=0`) · **`PlayerCharacter`(MonoBehaviour 13개·RequireComponent 체인) → `mbLeft=0` 에러0** · EditorPrefs 저장/복원 왕복 OK · 예외0 · .asset 무오염.
 
+### 2.94 CA-5 W2b — VFX 뷰포트 스폰(스크럽 동조) (2026-07-18)
+
+W2a 는 VFX 를 숨김 루트(`_previewRoot`)에 스폰해 뷰포트에 안 보였다. W2b 는 **프리뷰 씬 액터 소켓에 스폰 → 뷰포트 가시화 + 스크럽 앞뒤 동조**.
+
+- **샘플 기반(애니와 동일)**: `SampleVfx(ms)` 를 `DrawViewport` 에서 `SampleActor` 옆에 호출. 매 스크럽/틱마다 "그 시각에 살아있어야 할 Vfx 큐"를 재조정 — `ms∈[timeMs, timeMs+life)` 면 소켓에 인스턴스 확보(`_vfxInstances[cueIndex]`), 아니면 `DestroyImmediate`. **실시간 재생·수동 스크럽 공용**(양방향).
+- **소켓**: `ResolveActorSocket(ev.socket)` = 액터 인스턴스 자식에서 이름 매칭(런타임 `AbilityCuePlayer` 규칙), 미발견/빈이름=루트. `Instantiate(prefab, at.position, at.rotation, at)`.
+- **파티클 시뮬**: 에디트모드는 파티클 자동재생 안 함 → `ParticleSystem.Simulate((ms-timeMs)/1000, false, true)`(restart) 로 스크럽 t 상태. (런타임 `Destroy(go,t)` 는 에디트모드에서 inert → VFX 스크립트 잔류 무해.)
+- **life**: `durationMs>0 ? durationMs : (카탈로그 autoDestroySec | 기본 1500ms)`. `_mutedLanes` 제외.
+- **SFX 는 그대로 실시간 ▶Preview 만**(`PreviewFire` 에서 Sfx 케이스만; 스크럽마다 소리 스팸 방지). `PreviewFire` 의 Vfx 케이스·`SpawnPreviewVfx`·`_previewRoot`·`_previewSpawned`·`CleanupPreview` 제거(대체됨).
+- **정리**: `ClearVfx` = `CleanupViewport`(창닫힘/도메인리로드)·`RecreateActor`(액터 교체)·`SampleVfx`(타겟/액터 없음). `StopPreview` 는 VFX 안 지움(정지해도 그 프레임 유지).
+- **위치**: `AbilityTimelineWindow.cs`(`SampleVfx`/`InstantiateVfxPreview`/`ResolveActorSocket`/`SimulateParticles`/`ClearVfx`, `_vfxInstances`).
+- **검증**: 컴파일0 · **EditMode 199/199** · 비파괴 스모크(실제 VFX 프리팹 `SeaTitan_Leviathan_1`+액터, execute_code): 창안(200ms)→`spawned·underActor·hasPS=True` · 창밖(700ms)→`removed=True` · 되감기(300ms)→`respawned=True` · `CleanupViewport`→count 0 · 예외0.
+
 ### 2.63 캡슐 몬스터 제거 + slime→creepy_demon 전면 교체 (2026-07-16)
 
 플레이스홀더 캡슐(`Monster.prefab` 던전 폴백·`LocalMonster.prefab` Main) + `slime` 몬스터를 실모델 몬스터로 대체. 사용자 지시 = "캡슐 3종 안 씀 → 실모델로, slime 데이터는 demon 으로 교체".
