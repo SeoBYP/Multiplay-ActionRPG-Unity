@@ -25,6 +25,7 @@ namespace Game.Gameplay.Editor
         private const float RulerH = 22f;
         private const float RowH = 30f;
         private const float RowGap = 2f;
+        private const float HeaderW = 108f; // 왼쪽 트랙 헤더 열 폭(이름 + ＋/×)
 
         private static readonly Color ColRuler = new(0.18f, 0.18f, 0.18f);
         private static readonly Color ColRowA = new(0.24f, 0.24f, 0.24f);
@@ -52,6 +53,7 @@ namespace Game.Gameplay.Editor
         private bool _hitboxSelected;                     // 판정창 바가 선택됨(이벤트 선택과 배타)
 
         private VisualElement _content;   // 스크롤 내부, width = 타임라인 길이
+        private VisualElement _headerColumn; // 왼쪽 고정 트랙 헤더 열(이름·＋/×)
         private VisualElement _scrub;
         [SerializeField] private int[] _laneCount = { 1, 1, 1, 1 };        // kind별 저작 레인 수(Sfx/Vfx/Anim/Event)
         private readonly global::System.Collections.Generic.List<(int kind, int lane)> _rows = new();
@@ -79,11 +81,18 @@ namespace Game.Gameplay.Editor
 
             BuildToolbar(root);
 
-            // W-A: 본문 = 가로 분할 [왼쪽 타임라인 | 오른쪽 상세 패널]
+            // 본문 = [트랙 헤더(왼쪽 고정) | 클립 영역(가로 스크롤) | 상세 패널(오른쪽)]
             var body = new VisualElement { name = "atl-body" };
             body.style.flexDirection = FlexDirection.Row;
             body.style.flexGrow = 1f;
             root.Add(body);
+
+            // 트랙 헤더 열 = Unity Timeline/언리얼처럼 이름·＋/× 를 왼쪽 고정 열에 두어 스크롤·마커와 겹치지 않게.
+            _headerColumn = new VisualElement { name = "atl-track-heads" };
+            _headerColumn.style.width = HeaderW; _headerColumn.style.flexShrink = 0;
+            _headerColumn.style.position = Position.Relative;
+            _headerColumn.style.borderRightWidth = 1; _headerColumn.style.borderRightColor = new Color(0, 0, 0, 0.35f);
+            body.Add(_headerColumn);
 
             var scroll = new ScrollView(ScrollViewMode.Horizontal) { name = "timeline-scroll" };
             scroll.style.flexGrow = 1f;
@@ -282,6 +291,7 @@ namespace Game.Gameplay.Editor
         {
             if (_content == null) return;
             _content.Clear();
+            _headerColumn?.Clear();
 
             RefreshInspector();
 
@@ -303,14 +313,56 @@ namespace Game.Gameplay.Editor
             float contentH = RulerH + _rows.Count * (RowH + RowGap) + 4f;
             _content.style.width = contentW;
             _content.style.height = contentH;
+            if (_headerColumn != null) _headerColumn.style.height = contentH;
 
+            BuildHeaderCorner();
             BuildRuler(contentW);
-            for (int r = 0; r < _rows.Count; r++) BuildTrackRow(r, contentW);
+            for (int r = 0; r < _rows.Count; r++) { BuildTrackHeader(r); BuildTrackLane(r, contentW); }
 
             BuildAnimAnchor();
             BuildHitboxBar();
             BuildEventClips();
             BuildScrub(contentH);
+        }
+
+        /// <summary>헤더 열 상단 코너(룰러 높이 맞춤).</summary>
+        private void BuildHeaderCorner()
+        {
+            if (_headerColumn == null) return;
+            var corner = new VisualElement();
+            corner.style.position = Position.Absolute;
+            corner.style.left = 0; corner.style.top = 0; corner.style.width = HeaderW; corner.style.height = RulerH;
+            corner.style.backgroundColor = ColRuler;
+            _headerColumn.Add(corner);
+        }
+
+        /// <summary>왼쪽 고정 트랙 헤더 행 — 이름 + (연출 트랙만) ＋레인추가·×빈레인삭제.</summary>
+        private void BuildTrackHeader(int r)
+        {
+            if (_headerColumn == null) return;
+            var (kind, lane) = _rows[r];
+            var head = new VisualElement();
+            head.style.position = Position.Absolute;
+            head.style.left = 0; head.style.top = RowTop(r); head.style.width = HeaderW; head.style.height = RowH;
+            head.style.backgroundColor = (r % 2 == 0) ? ColRowB : ColRowA;
+            head.style.flexDirection = FlexDirection.Row; head.style.alignItems = Align.Center;
+            _headerColumn.Add(head);
+
+            var name = new Label(kind == KHitbox ? "판정창" : $"{KindName(kind)} {LaneMark(lane)}");
+            name.style.flexGrow = 1; name.style.marginLeft = 5; name.style.fontSize = 10;
+            name.style.color = new Color(0.78f, 0.78f, 0.78f);
+            head.Add(name);
+
+            if (kind != KHitbox)
+            {
+                int capKind = kind, capLane = lane;
+                var add = new Button(() => AddLane(capKind)) { text = "＋", tooltip = $"{KindName(kind)} 레인 추가" };
+                add.style.width = 20; add.style.height = 18; add.style.marginRight = 1; add.style.paddingLeft = 0; add.style.paddingRight = 0;
+                head.Add(add);
+                var del = new Button(() => RemoveLane(capKind, capLane)) { text = "×", tooltip = "이 레인 삭제(빈 레인만)" };
+                del.style.width = 20; del.style.height = 18; del.style.marginRight = 4; del.style.paddingLeft = 0; del.style.paddingRight = 0;
+                head.Add(del);
+            }
         }
 
         private void BuildRuler(float w)
@@ -349,7 +401,8 @@ namespace Game.Gameplay.Editor
             });
         }
 
-        private void BuildTrackRow(int r, float w)
+        /// <summary>클립 레인(오른쪽 스크롤 영역) — 배경 + 우클릭 이벤트 추가만. 이름·＋/× 는 왼쪽 헤더 열이 담당.</summary>
+        private void BuildTrackLane(int r, float w)
         {
             var (kind, lane) = _rows[r];
             var track = new VisualElement { name = "cue-track" };
@@ -360,28 +413,8 @@ namespace Game.Gameplay.Editor
             _content.Add(track);
             _rowTracks[r] = track;
 
-            var name = new Label(kind == KHitbox ? "판정창" : $"{KindName(kind)} {LaneMark(lane)}");
-            name.style.position = Position.Absolute;
-            name.style.left = 3; name.style.top = 2; name.style.fontSize = 9;
-            name.style.color = new Color(0.62f, 0.62f, 0.62f);
-            track.Add(name);
-
             if (kind != KHitbox)
             {
-                // ＋ 레인 추가 · × 빈 레인 삭제 (W-B)
-                var add = new Label("＋") { tooltip = $"{KindName(kind)} 레인 추가" };
-                add.style.position = Position.Absolute; add.style.left = 50; add.style.top = 1; add.style.fontSize = 11;
-                add.style.color = new Color(0.5f, 0.75f, 0.5f);
-                add.RegisterCallback<PointerDownEvent>(e => { if (e.button == 0) { AddLane(kind); e.StopPropagation(); } });
-                track.Add(add);
-
-                var del = new Label("×") { tooltip = "이 레인 삭제(빈 레인만)" };
-                del.style.position = Position.Absolute; del.style.left = 66; del.style.top = 1; del.style.fontSize = 11;
-                del.style.color = new Color(0.8f, 0.5f, 0.5f);
-                del.RegisterCallback<PointerDownEvent>(e => { if (e.button == 0) { RemoveLane(kind, lane); e.StopPropagation(); } });
-                track.Add(del);
-
-                // 빈 곳 우클릭 = 이 (kind, lane) 에 이벤트 추가
                 int capKind = kind, capLane = lane;
                 track.AddManipulator(new ContextualMenuManipulator(evt =>
                 {
