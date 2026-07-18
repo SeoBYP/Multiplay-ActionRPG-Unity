@@ -507,6 +507,8 @@ W2a 는 VFX 를 숨김 루트(`_previewRoot`)에 스폰해 뷰포트에 안 보�
 
 > **CA-5 개선 백로그(W1~W8) 전부 소진.** W1(바인딩)·W2a/b/c(라이브 프리뷰·VFX·자동클립)·W3(Sections)·W5/6/7(점바·mute·Anim) ✅ / W4 폐기 · W8 YAGNI 보류.
 
+**디자인 폴리시(2026-07-18, 시각만·기능 불변)**: "너무 밋밋" 피드백 → 클립/판정창/앵커에 상단 광택(`AddGloss`)+어두운 테두리+라운드, 트랙헤더 액센트 알약+종류색 볼드 라벨+행 구분선, 룰러 주(100)/보조(50) 눈금, 스크럽 2px+라운드 헤드, 섹션 세그 테두리+볼드. `.uss` = 섹션 좌액센트 카드·버튼 hover 전환·삭제(`atl-danger` 빨강)·Export(`atl-accent`)·헤더버튼(`atl-hdr-btn`) hover. ⚠ UITK 인라인 스타일이 USS 를 이기므로 hover 는 인라인 미설정 프로퍼티(버튼 bg)에만, 클립류 입체는 인라인 광택으로.
+
 ### 2.63 캡슐 몬스터 제거 + slime→creepy_demon 전면 교체 (2026-07-16)
 
 플레이스홀더 캡슐(`Monster.prefab` 던전 폴백·`LocalMonster.prefab` Main) + `slime` 몬스터를 실모델 몬스터로 대체. 사용자 지시 = "캡슐 3종 안 씀 → 실모델로, slime 데이터는 demon 으로 교체".

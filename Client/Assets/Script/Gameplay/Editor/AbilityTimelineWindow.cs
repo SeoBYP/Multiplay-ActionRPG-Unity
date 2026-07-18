@@ -408,17 +408,20 @@ namespace Game.Gameplay.Editor
             head.style.left = 0; head.style.top = RowTop(r); head.style.width = HeaderW; head.style.height = RowH;
             head.style.backgroundColor = RowTint(kind, lane);
             head.style.flexDirection = FlexDirection.Row; head.style.alignItems = Align.Center;
+            head.style.borderBottomWidth = 1; head.style.borderBottomColor = new Color(0, 0, 0, 0.28f); // 행 구분선
             _headerColumn.Add(head);
 
-            // 왼쪽 컬러 액센트 바(종류 색) — 한눈에 트랙 종류 구분
+            // 왼쪽 컬러 액센트 바(종류 색) — 한눈에 트랙 종류 구분(둥근 알약)
             var accent = new VisualElement();
-            accent.style.width = 4; accent.style.height = RowH; accent.style.flexShrink = 0;
+            accent.style.width = 4; accent.style.height = RowH - 10; accent.style.flexShrink = 0; accent.style.marginLeft = 3;
             accent.style.backgroundColor = KindColor(kind);
+            accent.style.borderTopLeftRadius = accent.style.borderTopRightRadius = accent.style.borderBottomLeftRadius = accent.style.borderBottomRightRadius = 2;
             head.Add(accent);
 
             var name = new Label(kind == KHitbox ? "판정창" : $"{KindName(kind)} {LaneMark(lane)}");
-            name.style.flexGrow = 1; name.style.marginLeft = 5; name.style.fontSize = 10;
-            name.style.color = new Color(0.85f, 0.85f, 0.85f);
+            name.style.flexGrow = 1; name.style.marginLeft = 6; name.style.fontSize = 10;
+            name.style.unityFontStyleAndWeight = FontStyle.Bold;
+            name.style.color = Lighten(KindColor(kind), 0.55f); // 종류색을 밝게 → 헤더에서 톤 통일
             head.Add(name);
 
             if (kind != KHitbox)
@@ -432,14 +435,17 @@ namespace Game.Gameplay.Editor
                     if (!_mutedLanes.Remove((capKind, capLane))) _mutedLanes.Add((capKind, capLane));
                     RebuildAll();
                 }) { text = "M", tooltip = "이 레인 음소거(▶Preview 에서 제외)" };
+                mute.AddToClassList("atl-hdr-btn");
                 mute.style.width = 20; mute.style.height = 18; mute.style.marginRight = 1; mute.style.paddingLeft = 0; mute.style.paddingRight = 0;
-                if (muted) mute.style.color = new Color(0.9f, 0.45f, 0.45f);
+                if (muted) mute.style.color = new Color(0.95f, 0.5f, 0.5f);
                 head.Add(mute);
 
                 var add = new Button(() => AddLane(capKind)) { text = "＋", tooltip = $"{KindName(kind)} 레인 추가" };
+                add.AddToClassList("atl-hdr-btn");
                 add.style.width = 20; add.style.height = 18; add.style.marginRight = 1; add.style.paddingLeft = 0; add.style.paddingRight = 0;
                 head.Add(add);
                 var del = new Button(() => RemoveLane(capKind, capLane)) { text = "×", tooltip = "이 레인 삭제(빈 레인만)" };
+                del.AddToClassList("atl-hdr-btn");
                 del.style.width = 20; del.style.height = 18; del.style.marginRight = 4; del.style.paddingLeft = 0; del.style.paddingRight = 0;
                 head.Add(del);
             }
@@ -452,23 +458,26 @@ namespace Game.Gameplay.Editor
             ruler.style.left = 0; ruler.style.top = 0;
             ruler.style.width = w; ruler.style.height = RulerH;
             ruler.style.backgroundColor = ColRuler;
+            ruler.style.borderBottomWidth = 1; ruler.style.borderBottomColor = new Color(0, 0, 0, 0.35f);
             _content.Add(ruler);
 
-            for (int ms = 0; ms <= TotalMs; ms += 100)
+            for (int ms = 0; ms <= TotalMs; ms += 50)
             {
+                bool major = ms % 100 == 0;
                 float x = XForTime(ms);
                 var tick = new VisualElement();
                 tick.style.position = Position.Absolute;
-                tick.style.left = x; tick.style.top = 0;
-                tick.style.width = 1; tick.style.height = RulerH;
-                tick.style.backgroundColor = new Color(1, 1, 1, 0.3f);
+                tick.style.left = x; tick.style.top = major ? 0 : RulerH * 0.5f;
+                tick.style.width = 1; tick.style.height = major ? RulerH : RulerH * 0.5f;
+                tick.style.backgroundColor = new Color(1, 1, 1, major ? 0.32f : 0.13f);
                 ruler.Add(tick);
 
+                if (!major) continue;
                 var lbl = new Label($"{ms}");
                 lbl.style.position = Position.Absolute;
                 lbl.style.left = x + 3; lbl.style.top = 3;
                 lbl.style.fontSize = 9;
-                lbl.style.color = new Color(0.85f, 0.85f, 0.85f);
+                lbl.style.color = new Color(0.9f, 0.9f, 0.93f);
                 ruler.Add(lbl);
             }
 
@@ -510,14 +519,17 @@ namespace Game.Gameplay.Editor
                 if (s == null) continue;
                 int index = i;
 
+                var segColor = SectionColors[i % SectionColors.Length];
                 var seg = new VisualElement();
                 seg.style.position = Position.Absolute; seg.style.top = 1; seg.style.height = SectionsH - 2;
-                seg.style.backgroundColor = SectionColors[i % SectionColors.Length];
-                seg.style.borderTopLeftRadius = seg.style.borderTopRightRadius = seg.style.borderBottomLeftRadius = seg.style.borderBottomRightRadius = 2;
+                seg.style.backgroundColor = segColor;
+                seg.style.borderTopLeftRadius = seg.style.borderTopRightRadius = seg.style.borderBottomLeftRadius = seg.style.borderBottomRightRadius = 3;
+                seg.style.borderTopWidth = seg.style.borderBottomWidth = seg.style.borderLeftWidth = seg.style.borderRightWidth = 1;
+                seg.style.borderTopColor = seg.style.borderBottomColor = seg.style.borderLeftColor = seg.style.borderRightColor = Lighten(segColor, 0.25f);
                 seg.style.overflow = Overflow.Hidden;
                 band.Add(seg);
 
-                var lbl = new Label(); lbl.style.fontSize = 9; lbl.style.marginLeft = 4; lbl.style.color = Color.white; lbl.pickingMode = PickingMode.Ignore;
+                var lbl = new Label(); lbl.style.fontSize = 9; lbl.style.marginLeft = 4; lbl.style.color = Color.white; lbl.style.unityFontStyleAndWeight = FontStyle.Bold; lbl.pickingMode = PickingMode.Ignore;
                 var gripL = MakeSectionGrip(band); var gripR = MakeSectionGrip(band);
 
                 void Layout()
@@ -670,14 +682,20 @@ namespace Game.Gameplay.Editor
             anchor.style.left = XForTime(0); anchor.style.top = 6;
             anchor.style.width = 10; anchor.style.height = RowH - 12;
             anchor.style.backgroundColor = ColAnim;
+            anchor.style.borderTopLeftRadius = anchor.style.borderTopRightRadius = anchor.style.borderBottomLeftRadius = anchor.style.borderBottomRightRadius = 3;
+            anchor.style.borderTopWidth = anchor.style.borderBottomWidth = anchor.style.borderLeftWidth = anchor.style.borderRightWidth = 1;
+            anchor.style.borderTopColor = anchor.style.borderBottomColor = anchor.style.borderLeftColor = anchor.style.borderRightColor = Darken(ColAnim, 0.42f);
             anchor.tooltip = $"주 애니(cueTrigger): {_target.cueTrigger} · t=0 발동 (편집=AbilityDefinition 인스펙터)";
             int animRow = RowIndexOf(2, 0); // Anim 첫 레인
             if (animRow < 0) return;
             _rowTracks[animRow].Add(anchor);
+            AddGloss(anchor, ColAnim);
 
             var lbl = new Label($"▶ {_target.cueTrigger}");
             lbl.style.position = Position.Absolute;
-            lbl.style.left = 14; lbl.style.top = 8; lbl.style.fontSize = 9;
+            lbl.style.left = 16; lbl.style.top = 8; lbl.style.fontSize = 9;
+            lbl.style.unityFontStyleAndWeight = FontStyle.Bold;
+            lbl.style.color = Lighten(ColAnim, 0.45f);
             _rowTracks[animRow].Add(lbl);
         }
 
@@ -690,8 +708,10 @@ namespace Game.Gameplay.Editor
             var bar = new VisualElement();
             bar.style.position = Position.Absolute;
             bar.style.top = 6; bar.style.height = RowH - 12;
-            bar.style.backgroundColor = new Color(ColHitbox.r, ColHitbox.g, ColHitbox.b, 0.85f);
+            bar.style.backgroundColor = new Color(ColHitbox.r, ColHitbox.g, ColHitbox.b, 0.9f);
+            bar.style.borderTopLeftRadius = bar.style.borderTopRightRadius = bar.style.borderBottomLeftRadius = bar.style.borderBottomRightRadius = 4;
             track.Add(bar);
+            AddGloss(bar, ColHitbox);
 
             var lbl = new Label();
             lbl.style.position = Position.Absolute;
@@ -712,9 +732,10 @@ namespace Game.Gameplay.Editor
                 lbl.text = $"{s}~{s + a}ms (서버 bake)";
                 string tip = $"판정창 {s}~{s + a}ms · 클릭=선택(오른쪽 편집) · 드래그=이동 · 그립=크기";
                 bar.tooltip = gripL.tooltip = gripR.tooltip = tip;
-                float bw = _hitboxSelected ? 2 : 0; // 선택 하이라이트
+                float bw = _hitboxSelected ? 2 : 1; // 선택 하이라이트(평상시 어두운 테두리)
+                var bc = _hitboxSelected ? ColSel : Darken(ColHitbox, 0.42f);
                 bar.style.borderTopWidth = bar.style.borderBottomWidth = bar.style.borderLeftWidth = bar.style.borderRightWidth = bw;
-                bar.style.borderTopColor = bar.style.borderBottomColor = bar.style.borderLeftColor = bar.style.borderRightColor = ColSel;
+                bar.style.borderTopColor = bar.style.borderBottomColor = bar.style.borderLeftColor = bar.style.borderRightColor = bc;
             }
             Layout();
 
@@ -795,6 +816,7 @@ namespace Game.Gameplay.Editor
                 clip.style.position = Position.Absolute; clip.style.top = 6; clip.style.height = RowH - 12;
                 clip.style.backgroundColor = col;
                 track.Add(clip);
+                AddGloss(clip, col); // 상단 광택으로 입체감
 
                 var lbl = new Label();
                 lbl.style.position = Position.Absolute; lbl.style.left = 10; lbl.style.top = 1; lbl.style.fontSize = 9;
@@ -821,9 +843,11 @@ namespace Game.Gameplay.Editor
                     lbl.text = string.IsNullOrEmpty(e2.id) ? "(id 미정)" : e2.id;
                     clip.tooltip = $"{e2.kind} · {(string.IsNullOrEmpty(e2.id) ? "(id 미정)" : e2.id)} · {Mathf.RoundToInt(e2.timeMs)}~{Mathf.RoundToInt(e2.timeMs + e2.durationMs)}ms"
                                  + (e2.kind == ECueKind.Vfx && !string.IsNullOrEmpty(e2.socket) ? $" @ {e2.socket}" : "");
-                    float bw = _selection.Contains(index) ? 2 : 0; // P8: 다중 선택 전부 하이라이트
+                    bool selc = _selection.Contains(index); // P8: 다중 선택 전부 하이라이트
+                    float bw = selc ? 2 : 1;
+                    var bc = selc ? ColSel : Darken(col, 0.42f); // 평상시엔 어두운 테두리로 입체, 선택 시 흰색
                     clip.style.borderTopWidth = clip.style.borderBottomWidth = clip.style.borderLeftWidth = clip.style.borderRightWidth = bw;
-                    clip.style.borderTopColor = clip.style.borderBottomColor = clip.style.borderLeftColor = clip.style.borderRightColor = ColSel;
+                    clip.style.borderTopColor = clip.style.borderBottomColor = clip.style.borderLeftColor = clip.style.borderRightColor = bc;
                 }
                 Layout();
 
@@ -901,14 +925,17 @@ namespace Game.Gameplay.Editor
         {
             _scrub = new VisualElement();
             _scrub.style.position = Position.Absolute;
-            _scrub.style.top = 0; _scrub.style.width = 1; _scrub.style.height = h;
+            _scrub.style.top = 0; _scrub.style.width = 2; _scrub.style.height = h;
             _scrub.style.backgroundColor = ColScrub;
             _content.Add(_scrub);
 
             var head = new VisualElement();
             head.style.position = Position.Absolute;
-            head.style.left = -5; head.style.top = 0; head.style.width = 11; head.style.height = 11;
+            head.style.left = -5; head.style.top = 0; head.style.width = 12; head.style.height = 12;
             head.style.backgroundColor = ColScrub;
+            head.style.borderTopLeftRadius = head.style.borderTopRightRadius = head.style.borderBottomLeftRadius = head.style.borderBottomRightRadius = 3;
+            head.style.borderTopWidth = head.style.borderBottomWidth = head.style.borderLeftWidth = head.style.borderRightWidth = 1;
+            head.style.borderTopColor = head.style.borderBottomColor = head.style.borderLeftColor = head.style.borderRightColor = Darken(ColScrub, 0.3f);
             _scrub.Add(head);
 
             head.RegisterCallback<PointerDownEvent>(e => { head.CapturePointer(e.pointerId); e.StopPropagation(); });
@@ -989,7 +1016,9 @@ namespace Game.Gameplay.Editor
                 int selCount = _selection.Count;
                 var actions = RowBtns();
                 actions.Add(new Button(DuplicateSelected) { text = selCount > 1 ? $"복제 ({selCount})" : "복제", style = { flexGrow = 1 } });
-                actions.Add(new Button(DeleteSelectedEvents) { text = selCount > 1 ? $"삭제 ({selCount})" : "삭제", style = { flexGrow = 1 } });
+                var delBtn = new Button(DeleteSelectedEvents) { text = selCount > 1 ? $"삭제 ({selCount})" : "삭제", style = { flexGrow = 1 } };
+                delBtn.AddToClassList("atl-danger");
+                actions.Add(delBtn);
                 sec.Add(actions);
                 if (selCount > 1) sec.Add(Hint($"다중 {selCount}개 — Ctrl+클릭 토글 · ←/→ 넛지 · Ctrl+D 복제 · Del 삭제"));
 
@@ -1017,7 +1046,9 @@ namespace Game.Gameplay.Editor
             gp.Add(BoundInt2(new IntegerField("startup(ms)"), _so.FindProperty("startupMs"), RebuildTimelineUnlessDragging));
             gp.Add(BoundInt2(new IntegerField("active(ms)"), _so.FindProperty("activeMs"), RebuildTimelineUnlessDragging));
             var gpBtns = RowBtns();
-            gpBtns.Add(new Button(AbilityCatalogExporter.Export) { text = "Export", tooltip = "판정창 변경을 서버 abilities.json 에 재bake.", style = { flexGrow = 1 } });
+            var exportBtn = new Button(AbilityCatalogExporter.Export) { text = "Export", tooltip = "판정창 변경을 서버 abilities.json 에 재bake.", style = { flexGrow = 1 } };
+            exportBtn.AddToClassList("atl-accent");
+            gpBtns.Add(exportBtn);
             gpBtns.Add(new Button(GenerateHitWindowEvents) { text = "→ Event", tooltip = "판정창을 Event 2개(ActivateWindow@시작·DeactivateWindow@끝)로 생성 — Main WeaponHitbox 개폐(옛 Phase 3).", style = { flexGrow = 1 } });
             gp.Add(gpBtns);
             gp.Add(Hint("startup/active 는 서버가 읽는 값 → Export 후 서버 재빌드. SFX/VFX 는 bake 없이 즉시."));
@@ -1882,6 +1913,20 @@ namespace Game.Gameplay.Editor
         }
 
         private static Color ColorFor(ECueKind k) => k switch { ECueKind.Vfx => ColVfx, ECueKind.Sfx => ColSfx, ECueKind.Event => ColEvent, _ => ColAnim };
+
+        private static Color Lighten(Color c, float t) => Color.Lerp(c, Color.white, t); // 광택 하이라이트용
+        private static Color Darken(Color c, float t) => Color.Lerp(c, Color.black, t);  // 테두리·그림자용
+
+        /// <summary>클립·바에 얹는 상단 광택 스트립(위쪽 밝은 하이라이트). 밋밋한 단색을 입체감 있게.</summary>
+        private static void AddGloss(VisualElement el, Color baseColor)
+        {
+            var gloss = new VisualElement { pickingMode = PickingMode.Ignore };
+            gloss.style.position = Position.Absolute;
+            gloss.style.left = 0; gloss.style.right = 0; gloss.style.top = 0; gloss.style.height = Length.Percent(45);
+            gloss.style.backgroundColor = new Color(1f, 1f, 1f, 0.12f);
+            gloss.style.borderTopLeftRadius = gloss.style.borderTopRightRadius = 3;
+            el.Add(gloss);
+        }
 
         /// <summary>kind 별 밝은 대표색(마커·헤더 액센트). 판정창=주황.</summary>
         private static Color KindColor(int kind) => kind switch { 0 => ColSfx, 1 => ColVfx, 2 => ColAnim, 3 => ColEvent, _ => ColHitbox };
