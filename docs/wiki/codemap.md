@@ -432,6 +432,7 @@ W-A(오른쪽 패널) 이후 사용자 후속 4건.
 - **W-B 트랙 동적(레인 모델 ①)**(`1360cfb6`): 같은 kind 를 여러 레인(행)으로 = Unreal Notify 다중행. `AbilityCueEvent.lane`(int·편집 전용·**런타임 무시**). 고정 5행 상수 폐기 → `BuildRowLayout` 이 `(kind,lane)` 행을 `EffLanes`(저작 `_laneCount` max 사용중 레인)로 계산, `RowIndexOf`/`_rowTracks`. 순서=Anim 레인·판정창(단일)·VFX·SFX·Event 레인. 트랙 헤더 ＋(레인추가)·×(빈 레인만 삭제·상위 레인 하강). 우클릭 추가=그 `(kind,lane)`. 인스펙터 '레인' 필드. `SetTarget` 시 `_laneCount` 초기화(사용중 레인은 EffLanes 복원).
 - **검증**: 컴파일0 · **EditMode 199/199**(각 커밋) · 실구동(판정창 배타선택·Snap 0.1격자·기본5행→레인추가6행→이벤트 레인0/1 분리→이벤트있는레인 삭제거부) 비파괴. **⚠ Game.System 그림자 → `global::System.Collections`/`global::System.Array`**. 브랜치 `feature/ability-timeline-tool`.
 - **→ 사용자 지정 W-A·W-B 완료.** 잔여 = 개선 백로그 W1(바인딩)·W2(라이브 프리뷰)… (ability-timeline-tool.md §6) + Phase 1b 에셋 배선.
+- **W-B 후속 UX(같은 날)**: ① **왼쪽 고정 트랙 헤더 열**(커밋 `d80d9347`) — 레인 ＋/× 가 스크롤되는 클립 영역 Label 이라 마커에 가려/스크롤로 밀려 안 눌리던 것 → 본문 3열화 `[헤더(고정 108px)|클립(가로스크롤)|상세]`, `BuildTrackHeader`(이름+실제 Button ＋/×)/`BuildTrackLane`(배경+우클릭 추가) 분리(Unity Timeline/언리얼식). ② **종류별 트랙 색조**(`ac327c9f`) — 전부 회색이라 구분 안 되던 것 → `RowTint(kind,lane)`(어두운 톤+kind색 22%: SFX초록·VFX파랑·Anim보라·Event황·판정창주황, 레인 짝/홀 명암차) + 헤더 4px 컬러 액센트 바.
 
 ### 2.63 캡슐 몬스터 제거 + slime→creepy_demon 전면 교체 (2026-07-16)
 
