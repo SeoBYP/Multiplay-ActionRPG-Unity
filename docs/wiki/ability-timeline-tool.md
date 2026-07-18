@@ -153,11 +153,11 @@ Unreal Animation Montage + Unity Timeline Editor 분석에서 나온 개선점. 
 | **W2a** | **라이브 메시 프리뷰(MVP)** — 하단 뷰포트(PreviewRenderUtility)에 Actor 프리팹 렌더 · `previewClip` 을 PlayableGraph 로 스크럽/재생 샘플 · 오빗 카메라 | Unreal 프리뷰 뷰포트 · Unity PlayableDirector 스크럽 | 대 | ✅ §2.93 |
 | **W2b** | **VFX 뷰포트 스폰** — VFX 를 프리뷰 씬 소켓에 스폰 + `ParticleSystem.Simulate` 스크럽 동조 | 〃 | 중 | ✅ §2.94 |
 | **W2c** | **cueTrigger 자동 클립 해석** — AnimatorController 에서 자동 추론(previewClip 미지정 시 폴백) | 〃 | 소~중 | ✅ §2.95 |
-| **W3** | **Sections/loop 구간** — 이름 붙은 시간 구간(콤보 단계·루프) 저작·점프 | Unreal Montage Sections | 중 | ⬜ |
+| **W3** | **Sections/loop 구간** — 이름 붙은 시간 구간(콤보 단계·루프) 저작·점프 | Unreal Montage Sections | 중 | ✅ §2.96 |
 | **W4** | ~~프레임/초 룰러 토글~~ | — | 소 | ⛔ 폐기(Snap/FPS 제거로 프레임 개념 없앰) |
 | **W5** | **점 vs 구간 시각 구분** — 즉발(길이0)=둥근 점, 지속=바 | Unreal Point Notify vs Notify State | 소 | ✅ §2.91 |
 | **W6** | **트랙 mute** — 레인 헤더 M 토글 → ▶Preview 제외 + 흐리게 | Unity Timeline 트랙 헤더 | 소 | ✅ §2.91 |
 | **W7** | **Anim 이벤트 실재생** — `animTrigger` → 액터 Animator SetTrigger(지연) | — | 소 | ✅ §2.91 |
 | **W8** | **커브 트랙**(float 커브) — 연출엔 YAGNI | Unreal/Unity Curves | 대 | ⏸ 보류(YAGNI) |
 
-> 진행: W-A·W-B ✅ + W5·W6·W7 ✅(§2.91) + W1 ✅(§2.92) + W2a·b·c ✅(§2.93~95). **잔여 = W3(Sections)** — 착수 전 논의. W4 폐기·W8 YAGNI 보류.
+> 진행: **개선 백로그 전부 소진** — W-A·W-B ✅ + W1·W2a·b·c·W3 ✅(§2.92~96) + W5·W6·W7 ✅(§2.91). W4 폐기(Snap/FPS 제거)·W8 YAGNI 보류. 추가 요구 시 새 항목으로.

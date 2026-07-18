@@ -75,6 +75,10 @@ namespace Game.Gameplay.Abilities
                  "cueTrigger 가 재생하는 그 클립을 지정하면 스크럽 시 뷰포트의 액터가 그 동작을 재생한다(없으면 바인드 포즈). CA-5 W2.")]
         public AnimationClip previewClip;
 
+        [Tooltip("타임라인 저작·프리뷰용 이름 구간(콤보 단계·루프). **에디터 전용 · bake 안 됨 · 게임플레이 무관** — 콤보 타이밍은 comboChainMs 가 담당.\n" +
+                 "구간 클릭=플레이헤드 점프, loop 구간은 ▶Preview 가 반복. CA-5 W3.")]
+        public List<AbilitySection> sections = new();
+
         /// <summary>Shared.Gameplay 순수 타입으로 변환(서버와 동일 판정 데이터). 게임플레이만 — Cue 미포함.</summary>
         public SkillTimeline ToTimeline() => new SkillTimeline(
             id, startupMs, activeMs, recoveryMs, cooldownMs,
@@ -83,5 +87,15 @@ namespace Game.Gameplay.Abilities
                 new NVector3(hitboxOffset.x, hitboxOffset.y, hitboxOffset.z),
                 new NVector3(hitboxHalfExtents.x, hitboxHalfExtents.y, hitboxHalfExtents.z)),
             onHitEffectIds, manaCost, comboChainMs, comboWindowMs);
+    }
+
+    /// <summary>타임라인 저작·프리뷰용 이름 구간(CA-5 W3). 에디터 전용 — bake 되지 않고 런타임도 사용 안 함(콤보 타이밍은 <see cref="AbilityDefinition.comboChainMs"/>).</summary>
+    [global::System.Serializable]
+    public class AbilitySection
+    {
+        public string name = "Section";
+        public float startMs;
+        public float endMs;
+        public bool loop;
     }
 }

@@ -24,6 +24,7 @@ namespace Game.Gameplay.Editor
     {
         private const float LeftPad = 8f;
         private const float RulerH = 22f;
+        private const float SectionsH = 16f; // W3: 룰러 아래 이름 구간 밴드 높이
         private const float RowH = 30f;
         private const float RowGap = 2f;
         private const float HeaderW = 108f; // 왼쪽 트랙 헤더 열 폭(이름 + ＋/×)
@@ -57,6 +58,7 @@ namespace Game.Gameplay.Editor
         private VisualElement _content;   // 스크롤 내부, width = 타임라인 길이
         private VisualElement _headerColumn; // 왼쪽 고정 트랙 헤더 열(이름·＋/×)
         private VisualElement _scrub;
+        private int _renamingSection = -1; // W3: 인라인 이름변경 중인 구간(-1=없음)
         [SerializeField] private int[] _laneCount = { 1, 1, 1, 1 };        // kind별 저작 레인 수(Sfx/Vfx/Anim/Event)
         private readonly global::System.Collections.Generic.List<(int kind, int lane)> _rows = new();
         private VisualElement[] _rowTracks = global::System.Array.Empty<VisualElement>();
@@ -274,7 +276,7 @@ namespace Game.Gameplay.Editor
         // ─────────────────────── 좌표 ───────────────────────
 
         private float TotalMs => _target == null ? 400f
-            : Mathf.Max(_target.startupMs + _target.activeMs + _target.recoveryMs, MaxEventMs() + 50, 400);
+            : Mathf.Max(_target.startupMs + _target.activeMs + _target.recoveryMs, MaxEventMs() + 50, MaxSectionMs() + 50, 400);
 
         private float MaxEventMs()
         {
@@ -284,11 +286,19 @@ namespace Game.Gameplay.Editor
             return m;
         }
 
+        private float MaxSectionMs() // W3: 구간이 타임라인 끝을 넘어도 룰러/밴드가 덮도록
+        {
+            float m = 0;
+            if (_target != null)
+                foreach (var s in _target.sections) if (s != null) m = Mathf.Max(m, s.endMs);
+            return m;
+        }
+
         private float XForTime(float ms) => LeftPad + ms * _pxPerMs;
         private float TimeForX(float x) => Mathf.Max(0f, (x - LeftPad) / _pxPerMs);
         // 편집 격자 = 항상 0.1ms(Snap/FPS 제거됨). 판정창 startup/active 는 int 계약이라 최종 1ms.
         private static float Snap(float ms) => Mathf.Round(ms * 10f) / 10f;
-        private float RowTop(int row) => RulerH + row * (RowH + RowGap);
+        private float RowTop(int row) => RulerH + SectionsH + row * (RowH + RowGap); // W3: 구간 밴드만큼 하향
 
         // ── W-B 레인 행 레이아웃 ──
         private int EffLanes(int kind)
@@ -359,13 +369,14 @@ namespace Game.Gameplay.Editor
             BuildRowLayout();
             _rowTracks = new VisualElement[_rows.Count];
             float contentW = XForTime(TotalMs) + 40f;
-            float contentH = RulerH + _rows.Count * (RowH + RowGap) + 4f;
+            float contentH = RulerH + SectionsH + _rows.Count * (RowH + RowGap) + 4f;
             _content.style.width = contentW;
             _content.style.height = contentH;
             if (_headerColumn != null) _headerColumn.style.height = contentH;
 
             BuildHeaderCorner();
             BuildRuler(contentW);
+            BuildSectionsBand(contentW); // W3 이름 구간 밴드
             for (int r = 0; r < _rows.Count; r++) { BuildTrackHeader(r); BuildTrackLane(r, contentW); }
 
             BuildAnimAnchor();
@@ -380,8 +391,10 @@ namespace Game.Gameplay.Editor
             if (_headerColumn == null) return;
             var corner = new VisualElement();
             corner.style.position = Position.Absolute;
-            corner.style.left = 0; corner.style.top = 0; corner.style.width = HeaderW; corner.style.height = RulerH;
+            corner.style.left = 0; corner.style.top = 0; corner.style.width = HeaderW; corner.style.height = RulerH + SectionsH; // W3: 룰러+구간밴드 커버
             corner.style.backgroundColor = ColRuler;
+            var cornerLbl = new Label("구간") { style = { position = Position.Absolute, left = 5, top = RulerH, fontSize = 9, color = new Color(0.6f, 0.6f, 0.6f) } };
+            corner.Add(cornerLbl);
             _headerColumn.Add(corner);
         }
 
@@ -466,6 +479,163 @@ namespace Game.Gameplay.Editor
                 PositionScrub();
                 e.StopPropagation();
             });
+        }
+
+        // ─────────────────────── W3 이름 구간(Sections) 밴드 ───────────────────────
+
+        private static readonly Color[] SectionColors =
+        {
+            new(0.30f, 0.45f, 0.65f), new(0.55f, 0.40f, 0.62f), new(0.34f, 0.56f, 0.46f),
+            new(0.66f, 0.50f, 0.30f), new(0.58f, 0.36f, 0.42f),
+        };
+
+        /// <summary>룰러 아래 이름 구간 밴드(Unreal Montage Sections). 빈 곳 우클릭=추가 · 구간 클릭=플레이헤드 점프 · 좌/우 그립=리사이즈 · 우클릭=이름/루프/삭제.</summary>
+        private void BuildSectionsBand(float w)
+        {
+            var band = new VisualElement { name = "atl-sections" };
+            band.style.position = Position.Absolute;
+            band.style.left = 0; band.style.top = RulerH; band.style.width = w; band.style.height = SectionsH;
+            band.style.backgroundColor = new Color(0.14f, 0.14f, 0.16f);
+            _content.Add(band);
+            band.AddManipulator(new ContextualMenuManipulator(evt =>
+            {
+                float t = Snap(TimeForX(evt.localMousePosition.x));
+                evt.menu.AppendAction($"구간 추가 ({Mathf.RoundToInt(t)}ms)", _ => AddSection(t));
+            }));
+
+            var sections = _target.sections;
+            for (int i = 0; i < sections.Count; i++)
+            {
+                var s = sections[i];
+                if (s == null) continue;
+                int index = i;
+
+                var seg = new VisualElement();
+                seg.style.position = Position.Absolute; seg.style.top = 1; seg.style.height = SectionsH - 2;
+                seg.style.backgroundColor = SectionColors[i % SectionColors.Length];
+                seg.style.borderTopLeftRadius = seg.style.borderTopRightRadius = seg.style.borderBottomLeftRadius = seg.style.borderBottomRightRadius = 2;
+                seg.style.overflow = Overflow.Hidden;
+                band.Add(seg);
+
+                var lbl = new Label(); lbl.style.fontSize = 9; lbl.style.marginLeft = 4; lbl.style.color = Color.white; lbl.pickingMode = PickingMode.Ignore;
+                var gripL = MakeSectionGrip(band); var gripR = MakeSectionGrip(band);
+
+                void Layout()
+                {
+                    var s2 = index < _target.sections.Count ? _target.sections[index] : null;
+                    if (s2 == null) return;
+                    float x0 = XForTime(s2.startMs), x1 = XForTime(Mathf.Max(s2.startMs, s2.endMs));
+                    seg.style.left = x0; seg.style.width = Mathf.Max(12, x1 - x0);
+                    gripL.style.left = x0 - 2; gripR.style.left = x1 - 3;
+                    lbl.text = (s2.loop ? "⟲ " : "") + s2.name;
+                    seg.tooltip = $"{s2.name} · {Mathf.RoundToInt(s2.startMs)}~{Mathf.RoundToInt(s2.endMs)}ms · 클릭=점프" + (s2.loop ? " · ⟲루프" : "");
+                }
+                Layout();
+
+                // 인라인 이름변경 중이면 TextField, 아니면 라벨
+                if (_renamingSection == index)
+                {
+                    var tf = new TextField { value = s.name }; tf.style.flexGrow = 1; tf.style.marginLeft = 2; tf.style.marginTop = -1;
+                    tf.RegisterCallback<FocusOutEvent>(_ =>
+                    {
+                        _so.Update(); _so.FindProperty("sections").GetArrayElementAtIndex(index).FindPropertyRelative("name").stringValue = tf.value; _so.ApplyModifiedProperties();
+                        _renamingSection = -1; RebuildTimeline();
+                    });
+                    tf.RegisterCallback<KeyDownEvent>(e => { if (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.Escape) tf.Blur(); });
+                    seg.Add(tf);
+                    tf.schedule.Execute(() => { tf.Focus(); tf.SelectAll(); }).ExecuteLater(1);
+                }
+                else seg.Add(lbl);
+
+                // 본체 클릭 = 플레이헤드 그 구간 start 로 점프
+                seg.RegisterCallback<PointerDownEvent>(e =>
+                {
+                    if (e.button != 0 || _renamingSection == index) return;
+                    var s2 = index < _target.sections.Count ? _target.sections[index] : null;
+                    if (s2 != null) { _scrubMs = Snap(s2.startMs); PositionScrub(); }
+                    e.StopPropagation();
+                });
+
+                WireSectionGrip(gripL, band, index, isStart: true, Layout);
+                WireSectionGrip(gripR, band, index, isStart: false, Layout);
+
+                seg.AddManipulator(new ContextualMenuManipulator(evt =>
+                {
+                    evt.menu.AppendAction("이름 변경", _ => { _renamingSection = index; RebuildTimeline(); });
+                    evt.menu.AppendAction(s.loop ? "루프 해제" : "루프 설정", _ => ToggleSectionLoop(index));
+                    evt.menu.AppendAction("삭제", _ => DeleteSection(index));
+                }));
+            }
+        }
+
+        private VisualElement MakeSectionGrip(VisualElement band)
+        {
+            var g = new VisualElement();
+            g.style.position = Position.Absolute; g.style.top = 1; g.style.width = 5; g.style.height = SectionsH - 2;
+            g.style.backgroundColor = new Color(0, 0, 0, 0.35f);
+            band.Add(g);
+            return g;
+        }
+
+        private void WireSectionGrip(VisualElement grip, VisualElement band, int index, bool isStart, global::System.Action layout)
+        {
+            grip.RegisterCallback<PointerDownEvent>(e => { if (e.button == 0) { grip.CapturePointer(e.pointerId); e.StopPropagation(); } });
+            grip.RegisterCallback<PointerMoveEvent>(e =>
+            {
+                if (!grip.HasPointerCapture(e.pointerId)) return;
+                float t = Snap(TimeForX(band.WorldToLocal(e.position).x));
+                _so.Update();
+                var el = _so.FindProperty("sections").GetArrayElementAtIndex(index);
+                var sp = el.FindPropertyRelative("startMs"); var ep = el.FindPropertyRelative("endMs");
+                if (isStart) sp.floatValue = Mathf.Clamp(t, 0f, ep.floatValue);
+                else ep.floatValue = Mathf.Max(t, sp.floatValue);
+                _so.ApplyModifiedProperties();
+                layout(); // 리빌드 없이 즉시 재배치(캡처 유지)
+            });
+            grip.RegisterCallback<PointerUpEvent>(e => { if (grip.HasPointerCapture(e.pointerId)) { grip.ReleasePointer(e.pointerId); RebuildTimeline(); } });
+        }
+
+        private void AddSection(float startMs)
+        {
+            if (_so == null) return;
+            var arr = _so.FindProperty("sections");
+            int i = arr.arraySize; arr.arraySize++;
+            var el = arr.GetArrayElementAtIndex(i);
+            el.FindPropertyRelative("name").stringValue = $"Section {i + 1}";
+            el.FindPropertyRelative("startMs").floatValue = startMs;
+            el.FindPropertyRelative("endMs").floatValue = startMs + 200f;
+            el.FindPropertyRelative("loop").boolValue = false;
+            _so.ApplyModifiedProperties();
+            RebuildTimeline();
+        }
+
+        private void DeleteSection(int index)
+        {
+            if (_so == null) return;
+            var arr = _so.FindProperty("sections");
+            if (index < 0 || index >= arr.arraySize) return;
+            DeleteArrayItem(arr, index); // sections 는 List<class> — 1차 삭제가 null 로만 → 헬퍼가 실제 제거
+            _so.ApplyModifiedProperties();
+            if (_renamingSection == index) _renamingSection = -1;
+            RebuildTimeline();
+        }
+
+        private void ToggleSectionLoop(int index)
+        {
+            if (_so == null) return;
+            _so.Update();
+            var lp = _so.FindProperty("sections").GetArrayElementAtIndex(index).FindPropertyRelative("loop");
+            lp.boolValue = !lp.boolValue;
+            _so.ApplyModifiedProperties();
+            RebuildTimeline();
+        }
+
+        /// <summary>첫 유효 루프 구간(있으면 ▶Preview 가 그 [start,end) 를 반복). W3.</summary>
+        private AbilitySection FindLoopSection()
+        {
+            if (_target == null) return null;
+            foreach (var s in _target.sections) if (s != null && s.loop && s.endMs > s.startMs) return s;
+            return null;
         }
 
         /// <summary>클립 레인(오른쪽 스크롤 영역) — 배경 + 우클릭 이벤트 추가만. 이름·＋/× 는 왼쪽 헤더 열이 담당.</summary>
@@ -1191,6 +1361,14 @@ namespace Game.Gameplay.Editor
             _scrubMs += (float)((now - _previewLastTime) * 1000.0);
             _previewLastTime = now;
 
+            // W3: 루프 구간이 있으면 그 [start,end) 안에서 반복(scrubMs 랩 + 이벤트 재발화)
+            var loopSec = FindLoopSection();
+            if (loopSec != null && _scrubMs >= loopSec.endMs)
+            {
+                _scrubMs = loopSec.startMs;
+                _previewPrevMs = loopSec.startMs - 1f;
+            }
+
             foreach (var ev in _target.cueEvents)
                 if (ev != null && ev.timeMs > _previewPrevMs && ev.timeMs <= _scrubMs)
                     PreviewFire(ev);
@@ -1199,7 +1377,7 @@ namespace Game.Gameplay.Editor
             PositionScrub();
             Repaint();
 
-            if (_scrubMs >= TotalMs) StopPreview();
+            if (loopSec == null && _scrubMs >= TotalMs) StopPreview(); // 루프 없을 때만 끝에서 정지
         }
 
         private void PreviewFire(AbilityCueEvent ev)

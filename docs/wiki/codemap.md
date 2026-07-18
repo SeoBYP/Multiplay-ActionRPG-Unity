@@ -494,6 +494,19 @@ W2a 는 VFX 를 숨김 루트(`_previewRoot`)에 스폰해 뷰포트에 안 보�
 - **위치**: `AbilityTimelineWindow.cs`(`ResolvePreviewClip`/`AutoResolveClipFromTrigger`/`TriggerParamName`/`FindStateByTriggerParam`/`SearchStateMachine`/`UsesParam`/`FirstClipInBlendTree`, `_autoClip` 캐시, `using UnityEditor.Animations` 는 정규화 호출).
 - **검증**: 컴파일0 · **EditMode 199/199** · 비파괴 스모크(실제 `CreepyDemonLocal`, cueTrigger=Attack): `paramName='Attack'`·`autoClip=Attack00`·`ResolvePreview(auto)=Attack00`·`manualOverride=OK` · 예외0.
 
+### 2.96 CA-5 W3 — Sections/loop 구간 (2026-07-18) · 개선 백로그 완주
+
+룰러 아래 **이름 구간 밴드**(Unreal Montage Sections) — 콤보 단계·루프를 저작·점프·프리뷰 반복. **에디터 전용·게임플레이 무관**(콤보 타이밍은 여전히 `comboChainMs`/`comboWindowMs`). 사용자 결정 = 전체 MVP.
+
+- **데이터 = `AbilityDefinition.sections`(List&lt;AbilitySection{name,startMs,endMs,loop}&gt;)** — 신규 필드, **bake 안 됨**(exporter allowlist 제외). `AbilitySection` 은 `[global::System.Serializable]`(⚠ `Game.System` shadow → `System.Serializable` 이 `Game.System.Serializable` 로 오해석되어 CS0234, `global::` 필수).
+- **레이아웃**: `SectionsH=16` 상수 → `RowTop = RulerH + SectionsH + …`, contentH·헤더코너 높이에 반영(밴드가 룰러와 트랙 사이). `TotalMs` 에 `MaxSectionMs` 포함(구간이 끝 넘어도 밴드 덮음).
+- **`BuildSectionsBand`**: 빈 곳 우클릭=추가 · 구간 클릭=플레이헤드 `startMs` 점프 · 좌/우 그립=start/end 리사이즈(클립 그립과 동일 `layout()` 즉시재배치 패턴 — 드래그 중 RebuildTimeline 안 함) · 우클릭=이름변경(인라인 TextField, `_renamingSection`)/루프토글/삭제. 삭제는 `DeleteArrayItem`(List&lt;class&gt; 이중삭제).
+- **루프 프리뷰**: `FindLoopSection`(첫 loop 구간) → `PreviewTick` 에서 `scrubMs≥endMs` 면 `startMs` 로 랩 + `_previewPrevMs` 리셋(구간 이벤트 재발화). 루프 있으면 TotalMs 에서 안 멈춤.
+- **위치**: `AbilityTimelineWindow.cs`(`BuildSectionsBand`/`MakeSectionGrip`/`WireSectionGrip`/`AddSection`/`DeleteSection`/`ToggleSectionLoop`/`FindLoopSection`, `SectionColors`, `_renamingSection`) · `AbilityDefinition.sections`/`AbilitySection`.
+- **검증**: 컴파일0 · **EditMode 199/199** · 비파괴 스모크(execute_code): AddSection→`Section 1`(100~300)·ToggleSectionLoop→loop·`FindLoopSection` 탐지·밴드+세그먼트 렌더·이름 증가(`Section 2`)·DeleteSection count1 · 예외0.
+
+> **CA-5 개선 백로그(W1~W8) 전부 소진.** W1(바인딩)·W2a/b/c(라이브 프리뷰·VFX·자동클립)·W3(Sections)·W5/6/7(점바·mute·Anim) ✅ / W4 폐기 · W8 YAGNI 보류.
+
 ### 2.63 캡슐 몬스터 제거 + slime→creepy_demon 전면 교체 (2026-07-16)
 
 플레이스홀더 캡슐(`Monster.prefab` 던전 폴백·`LocalMonster.prefab` Main) + `slime` 몬스터를 실모델 몬스터로 대체. 사용자 지시 = "캡슐 3종 안 씀 → 실모델로, slime 데이터는 demon 으로 교체".
