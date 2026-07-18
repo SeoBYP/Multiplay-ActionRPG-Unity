@@ -22,12 +22,13 @@
 3. [기술 스택](#-기술-스택)
 4. [프로젝트 구조](#-프로젝트-구조)
 5. [구현 현황](#-구현-현황)
-6. [개발 로드맵](#-개발-로드맵)
-7. [핵심 설계 결정](#-핵심-설계-결정)
-8. [문제 → 원인 → 해결 사례](#-문제--원인--해결-사례)
-9. [테스트 & 품질](#-테스트--품질)
-10. [실행 방법](#-실행-방법)
-11. [문서](#-문서)
+6. [어빌리티 연출 타임라인 툴](#-어빌리티-연출-타임라인-툴)
+7. [개발 로드맵](#-개발-로드맵)
+8. [핵심 설계 결정](#-핵심-설계-결정)
+9. [문제 → 원인 → 해결 사례](#-문제--원인--해결-사례)
+10. [테스트 & 품질](#-테스트--품질)
+11. [실행 방법](#-실행-방법)
+12. [문서](#-문서)
 
 ---
 
@@ -211,6 +212,24 @@ Client/Assets/Script/
 | 전투 진단/무결성 | ✅ | 서버 `[CombatTrace]` + 클라 링버퍼 + 에디터 창 — **측정 우선**으로 D1(송신 직렬화)·D2(상태 시퀀스) 근본 수정, 틱레이트 조정은 "불필요" 판정 |
 
 자세한 “무엇을·왜” 결정 로그는 [`docs/wiki/codemap.md`](docs/wiki/codemap.md), 학습 기록은 [`docs/portfolio/`](docs/portfolio/README.md) 참고.
+
+---
+
+## 🛠 어빌리티 연출 타임라인 툴
+
+게임 데이터를 **ScriptableObject 로 저작 → JSON bake** 하는 파이프라인(어빌리티·몬스터·드롭·레벨·스폰) 위에, **어빌리티 연출을 시간축에서 저작**하는 커스텀 Unity 에디터를 직접 만들었습니다. (Unreal *Animation Montage* · Unity *Timeline* 참고)
+
+![Ability Timeline Editor](assets/AbilityEditorWindow.gif)
+
+한 `AbilityDefinition` 의 **SFX · VFX · 애니 · 메서드 호출(Event) · 판정창** 타이밍을 타임라인에서 편집하고, **라이브 3D 프리뷰**로 스크럽하며 프레임 단위로 연출을 맞춥니다.
+
+- **시각 편집** — 종류별 트랙, 클립 드래그/리사이즈, 우클릭 추가, 다중 선택·복제·넛지, 이름 구간(Sections)·루프, 창 폭에 맞춘 반응형 룰러
+- **라이브 3D 프리뷰** — `PreviewRenderUtility` 뷰포트에 액터 메시 렌더 → `PlayableGraph` 로 애니 클립을 스크럽 시각에 **양방향 샘플**(휴머노이드/제네릭 공용) → VFX 는 프리뷰 씬 소켓에 스폰 + `ParticleSystem.Simulate` 동조. **URP 는 `RenderPipeline.SubmitRenderRequest`** 로 렌더(빌트인 경로가 URP 셰이더를 마젠타로 그리는 문제를 픽셀 리드백으로 진단·회피)
+- **자동화** — `cueTrigger`(enum) → `CharacterAgentAnimations` 파라미터 → AnimatorController 상태를 추론해 프리뷰 클립을 자동 해석(수동 지정 시 그게 우선)
+- **2층 교리 준수** — **판정창(startup/active)은 서버로 bake**(서버 권위) · **연출(SFX/VFX/Anim/Event)은 클라 전용 — bake 안 됨.** exporter 의 allowlist 로 강제해 *"서버는 연출을 하나도 모른다"* 를 코드로 보장
+
+> **기술**: UI Toolkit(+`.uss`) · `SerializedObject` 바인딩(`BindProperty`/`TrackPropertyValue` — 편집 중 필드 파괴 회피) · `PreviewRenderUtility` + URP Render Request · `PlayableGraph` 수동 스크럽 샘플 · 리플렉션 기반 메서드 호출(Event).
+> 상세 설계·기능 백로그: [`docs/wiki/ability-timeline-tool.md`](docs/wiki/ability-timeline-tool.md)
 
 ---
 
