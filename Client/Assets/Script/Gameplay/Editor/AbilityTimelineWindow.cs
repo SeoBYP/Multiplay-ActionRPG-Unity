@@ -50,6 +50,7 @@ namespace Game.Gameplay.Editor
         private float _scrubMs;
         private int _selected = -1;                     // primary(인스펙터·드래그·리사이즈 대상)
         private readonly HashSet<int> _selection = new(); // P8 다중 선택(그룹 delete/nudge/duplicate). primary 포함.
+        private bool _hitboxSelected;                     // 판정창 바가 선택됨(이벤트 선택과 배타)
 
         private VisualElement _content;   // 스크롤 내부, width = 타임라인 길이
         private VisualElement _scrub;
@@ -227,7 +228,7 @@ namespace Game.Gameplay.Editor
             if (_previewing) StopPreview();
             _target = a;
             _so = a != null ? new SerializedObject(a) : null;
-            _selected = -1; _selection.Clear();
+            _selected = -1; _selection.Clear(); _hitboxSelected = false;
             _scrubMs = 0;
             RebuildAll();
         }
@@ -398,16 +399,20 @@ namespace Game.Gameplay.Editor
                 bar.style.left = x0; bar.style.width = Mathf.Max(8, x1 - x0);
                 gripL.style.left = x0 - 3; gripR.style.left = x1 - 3;
                 lbl.text = $"{s}~{s + a}ms (서버 bake)";
-                string tip = $"판정창 {s}~{s + a}ms · 서버가 읽는 값 — Export(재bake) 필요";
+                string tip = $"판정창 {s}~{s + a}ms · 클릭=선택(오른쪽 편집) · 드래그=이동 · 그립=크기";
                 bar.tooltip = gripL.tooltip = gripR.tooltip = tip;
+                float bw = _hitboxSelected ? 2 : 0; // 선택 하이라이트
+                bar.style.borderTopWidth = bar.style.borderBottomWidth = bar.style.borderLeftWidth = bar.style.borderRightWidth = bw;
+                bar.style.borderTopColor = bar.style.borderBottomColor = bar.style.borderLeftColor = bar.style.borderRightColor = ColSel;
             }
             Layout();
 
-            // 본체 드래그 = 이동(startup 이동, active 길이 유지)
+            // 본체: 클릭=선택(오른쪽 패널 편집) + 드래그=이동(startup 이동, active 길이 유지)
             float grab = 0;
             bar.RegisterCallback<PointerDownEvent>(e =>
             {
                 if (e.button != 0) return;
+                SelectHitbox(); Layout(); // 즉시 하이라이트 + 오른쪽 패널에 판정창 편집 표시
                 grab = TimeForX(track.WorldToLocal(e.position).x) - _target.startupMs;
                 bar.CapturePointer(e.pointerId); e.StopPropagation();
             });
@@ -436,7 +441,7 @@ namespace Game.Gameplay.Editor
 
         private void WireGrip(VisualElement grip, VisualElement track, bool isStart, global::System.Action layout)
         {
-            grip.RegisterCallback<PointerDownEvent>(e => { if (e.button == 0) { grip.CapturePointer(e.pointerId); e.StopPropagation(); } });
+            grip.RegisterCallback<PointerDownEvent>(e => { if (e.button == 0) { SelectHitbox(); grip.CapturePointer(e.pointerId); e.StopPropagation(); } });
             grip.RegisterCallback<PointerMoveEvent>(e =>
             {
                 if (!grip.HasPointerCapture(e.pointerId)) return;
@@ -619,6 +624,14 @@ namespace Game.Gameplay.Editor
             }
             if (_so == null || _so.targetObject != _target) _so = new SerializedObject(_target);
 
+            // ── 판정창 선택 시: 그 편집을 맨 위로(클릭 피드백) ──
+            if (_hitboxSelected)
+            {
+                BuildHitboxSection(true);
+                _inspectorBody.Add(Hint("이벤트를 클릭하면 그 이벤트를 여기서 편집합니다."));
+                return;
+            }
+
             // ── 선택 이벤트 (W-A: 어느 kind 든 오른쪽에서 전 필드 편집) ──
             if (ValidSel())
             {
@@ -662,8 +675,14 @@ namespace Game.Gameplay.Editor
                 _inspectorBody.Add(Hint("이벤트를 클릭해 선택 · 트랙 빈 곳 우클릭=추가."));
             }
 
-            // ── 판정창 (어빌리티 레벨 · 서버 bake · 항상 표시) ──
-            var gp = Section("판정창 (서버 bake)");
+            // ── 판정창 (어빌리티 레벨 · 서버 bake · 이벤트 미선택 시에도 참조용으로 항상 표시) ──
+            BuildHitboxSection(false);
+        }
+
+        /// <summary>판정창(startup/active·Export·→Event) 섹션. selected=true 면 "선택됨" 강조.</summary>
+        private void BuildHitboxSection(bool selected)
+        {
+            var gp = Section(selected ? "판정창 (선택됨) · 서버 bake" : "판정창 (서버 bake)");
             gp.Add(BoundInt2(new IntegerField("startup(ms)"), _so.FindProperty("startupMs")));
             gp.Add(BoundInt2(new IntegerField("active(ms)"), _so.FindProperty("activeMs")));
             var gpBtns = RowBtns();
@@ -891,13 +910,17 @@ namespace Game.Gameplay.Editor
 
         // ─────────────────────── P8 선택 집합 + 그룹 연산 ───────────────────────
 
-        private void SelectSingle(int i) { _selection.Clear(); _selection.Add(i); _selected = i; }
+        private void SelectSingle(int i) { _hitboxSelected = false; _selection.Clear(); _selection.Add(i); _selected = i; }
 
         private void ToggleSelect(int i)
         {
+            _hitboxSelected = false;
             if (!_selection.Remove(i)) { _selection.Add(i); _selected = i; }
             else if (_selected == i) _selected = _selection.Count > 0 ? _selection.First() : -1;
         }
+
+        /// <summary>판정창 바 선택(이벤트 선택과 배타) → 오른쪽 패널이 판정창 편집을 위로 올린다.</summary>
+        private void SelectHitbox() { _hitboxSelected = true; _selected = -1; _selection.Clear(); RefreshInspector(); }
 
         /// <summary>선택 집합 전체 삭제(내림차순 — 인덱스 밀림 방지).</summary>
         private void DeleteSelectedEvents()
