@@ -56,6 +56,7 @@ namespace Game.Gameplay.Editor
         private readonly global::System.Collections.Generic.HashSet<(int kind, int lane)> _mutedLanes = new(); // W6: 프리뷰 음소거 레인
 
         private VisualElement _content;   // 스크롤 내부, width = 타임라인 길이
+        private ScrollView _timelineScroll; // 가운데 가로 스크롤(내용 폭에 맞춤 → 프리뷰가 바로 뒤에 붙음)
         private VisualElement _headerColumn; // 왼쪽 고정 트랙 헤더 열(이름·＋/×)
         private VisualElement _scrub;
         private int _renamingSection = -1; // W3: 인라인 이름변경 중인 구간(-1=없음)
@@ -125,7 +126,9 @@ namespace Game.Gameplay.Editor
             body.Add(_headerColumn);
 
             var scroll = new ScrollView(ScrollViewMode.Horizontal) { name = "timeline-scroll" };
-            scroll.style.flexGrow = 1f;
+            scroll.style.flexGrow = 0f; scroll.style.flexShrink = 1f; // 내용 폭에 맞춤(넘치면 shrink→가로 스크롤). flexGrow 로 채우면 프리뷰와 사이가 비어 보임.
+            scroll.style.marginRight = 6f; // 타임라인↔프리뷰 고정 간격
+            _timelineScroll = scroll;
             _content = new VisualElement { name = "timeline-content" };
             _content.style.position = Position.Relative;
             scroll.Add(_content);
@@ -361,6 +364,7 @@ namespace Game.Gameplay.Editor
                 _content.Add(msg);
                 _content.style.width = 400;
                 _content.style.height = 60;
+                if (_timelineScroll != null) _timelineScroll.style.width = 400;
                 return;
             }
             if (_so == null || _so.targetObject != _target) _so = new SerializedObject(_target);
@@ -372,6 +376,7 @@ namespace Game.Gameplay.Editor
             float contentH = RulerH + SectionsH + _rows.Count * (RowH + RowGap) + 4f;
             _content.style.width = contentW;
             _content.style.height = contentH;
+            if (_timelineScroll != null) _timelineScroll.style.width = contentW; // 스크롤 폭=내용 폭(작으면 프리뷰가 바로 뒤, 크면 flexShrink 로 가로 스크롤)
             if (_headerColumn != null) _headerColumn.style.height = contentH;
 
             BuildHeaderCorner();
