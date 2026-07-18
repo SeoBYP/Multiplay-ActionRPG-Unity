@@ -75,7 +75,10 @@ namespace Game.Gameplay.Editor
         private VisualElement _viewport;
         private IMGUIContainer _viewportGui;
         private Button _viewFoldButton;
+        private ObjectField _actorField;                // 오른쪽 프리뷰 패널의 Actor 필드(툴바에서 이동)
+        private ObjectField _previewClipField;          // 오른쪽 프리뷰 패널의 Clip 필드(타겟별 재바인딩)
         [SerializeField] private bool _viewportOpen = true;
+        private const string ActorPrefKey = "AbilityTimeline.ActorGuid"; // Actor 프리팹 GUID 영속(에디터 재시작에도 유지)
         private UnityEditor.PreviewRenderUtility _pru;
         private GameObject _actorInstance;              // 프리뷰 씬 인스턴스(HideAndDontSave, 게임 스크립트 제거)
         private GameObject _sampledActorPrefab;         // 현재 인스턴스의 원본(툴바 Actor 변경 감지)
@@ -100,6 +103,7 @@ namespace Game.Gameplay.Editor
             root.Clear();
             root.style.flexDirection = FlexDirection.Column;
             LoadStyleSheet(root); // 디자인 폴리시(.uss)
+            LoadActorFromPrefs(); // 저장된 Actor 프리팹 복원(요청 ②)
 
             BuildToolbar(root);
 
@@ -123,14 +127,22 @@ namespace Game.Gameplay.Editor
             scroll.Add(_content);
             body.Add(scroll);
 
+            // 오른쪽 열 = [프리뷰 패널(위) | 인스펙터(아래)]. 타임라인과 배경색으로 구분(요청 ③).
+            var rightColumn = new VisualElement { name = "atl-rightcol" };
+            rightColumn.style.width = 340; rightColumn.style.flexShrink = 0;
+            rightColumn.style.flexDirection = FlexDirection.Column;
+            rightColumn.style.backgroundColor = new Color(0.135f, 0.15f, 0.18f); // 청록빛 다크 = 타임라인과 구분
+            rightColumn.style.borderLeftWidth = 1; rightColumn.style.borderLeftColor = new Color(0, 0, 0, 0.4f);
+            body.Add(rightColumn);
+
+            BuildPreviewPanel(rightColumn); // W2: Actor+Clip 필드 + 라이브 프리뷰 뷰포트(요청 ①)
+
             var detailsScroll = new ScrollView(ScrollViewMode.Vertical) { name = "atl-details-scroll" };
-            detailsScroll.style.width = 300; detailsScroll.style.flexShrink = 0;
+            detailsScroll.style.flexGrow = 1;
             _inspectorBody = new VisualElement { name = "atl-details" };
             _inspectorBody.AddToClassList("atl-details");
             detailsScroll.Add(_inspectorBody);
-            body.Add(detailsScroll);
-
-            BuildViewport(root); // W2 하단 라이브 프리뷰 뷰포트
+            rightColumn.Add(detailsScroll);
 
             // P8 단축키: Delete=삭제 · ←/→=넛지 · Ctrl+D=복제 (선택 집합 전체)
             root.RegisterCallback<KeyDownEvent>(e =>
@@ -148,6 +160,7 @@ namespace Game.Gameplay.Editor
 
             if (_catalog == null) _catalog = FindSingleCatalog(); // 프로젝트에 CueCatalog 1개면 자동
             RebuildAll();
+            RebindPreviewClip(); // 초기 타겟의 previewClip 을 프리뷰 패널 Clip 필드에 바인딩
         }
 
         /// <summary>프로젝트의 CueCatalog 가 정확히 1개면 반환(자동 지정). 여러 개/없음이면 null(수동 지정).</summary>
@@ -232,14 +245,8 @@ namespace Game.Gameplay.Editor
             notify.RegisterValueChangedCallback(e => _previewNotify = e.newValue);
             bar.Add(notify);
 
-            // ※ Cue 카탈로그 필드는 상세 패널 '고급(선택)'으로 이동(직접 리소스가 기본이므로).
+            // ※ Cue 카탈로그·Actor 필드는 오른쪽 프리뷰 패널로 이동(직접 리소스·프리뷰가 기본이므로).
             bar.Add(new ToolbarSpacer());
-            var actor = new ObjectField("Actor") { objectType = typeof(GameObject), value = _actorPrefab,
-                tooltip = "Event 이벤트의 메서드 드롭다운 소스 — 이 프리팹의 컴포넌트 메서드를 나열." };
-            actor.style.width = 190;
-            actor.RegisterValueChangedCallback(e => { _actorPrefab = e.newValue as GameObject; RefreshInspector(); _viewportGui?.MarkDirtyRepaint(); }); // W2: Actor 변경 → 인스턴스 재생성
-            bar.Add(actor);
-
             var hint = new Label("트랙 빈 곳 우클릭=추가 · Ctrl+클릭=다중선택 · ←/→ 넛지 · Ctrl+D 복제 · Del 삭제");
             hint.style.marginLeft = 10;
             hint.style.unityTextAlign = TextAnchor.MiddleLeft;
@@ -258,6 +265,8 @@ namespace Game.Gameplay.Editor
             _laneCount = new[] { 1, 1, 1, 1 }; // 어빌리티 바뀌면 빈 레인 초기화(사용 중 레인은 EffLanes 가 복원)
             _scrubMs = 0;
             RebuildAll();
+            RebindPreviewClip();       // 프리뷰 패널 Clip 필드를 새 어빌리티에 재바인딩
+            _viewportGui?.MarkDirtyRepaint();
         }
 
         // ─────────────────────── 좌표 ───────────────────────
@@ -753,8 +762,6 @@ namespace Game.Gameplay.Editor
             if (_so == null || _so.targetObject != _target) _so = new SerializedObject(_target);
             _so.Update(); // 독립 호출(argType/actor/catalog 변경) 시 커밋된 최신값으로 레이아웃 결정
 
-            BuildPreviewClipSection(); // W2 프리뷰 클립(항상 상단)
-
             // ── 판정창 선택 시: 그 편집을 맨 위로(클릭 피드백) ──
             if (_hitboxSelected)
             {
@@ -819,19 +826,6 @@ namespace Game.Gameplay.Editor
 
             // ── 판정창 (어빌리티 레벨 · 서버 bake · 이벤트 미선택 시에도 참조용으로 항상 표시) ──
             BuildHitboxSection(false);
-        }
-
-        /// <summary>W2 프리뷰 클립(에디터 전용·bake 안 함) — 하단 뷰포트가 스크럽/재생 시 샘플. 변경 시 그래프 무효화+뷰포트 리페인트.</summary>
-        private void BuildPreviewClipSection()
-        {
-            var pv = Section("프리뷰 (에디터 전용 · bake 안 함)");
-            var clipField = new ObjectField("애니 클립") { objectType = typeof(AnimationClip),
-                tooltip = "cueTrigger 가 재생하는 그 클립. 하단 뷰포트가 스크럽 시 샘플. 없으면 바인드 포즈." };
-            clipField.AddToClassList("atl-field");
-            clipField.BindProperty(_so.FindProperty("previewClip"));
-            clipField.RegisterValueChangedCallback(_ => { _graphValid = false; _lastSampledMs = float.NaN; _viewportGui?.MarkDirtyRepaint(); });
-            pv.Add(clipField);
-            pv.Add(Hint("액터 = 툴바 Actor 프리팹. 지정 후 ▶Preview 또는 플레이헤드 드래그로 애니 확인."));
         }
 
         /// <summary>판정창(startup/active·Export·→Event) 섹션. selected=true 면 "선택됨" 강조.</summary>
@@ -1255,39 +1249,82 @@ namespace Game.Gameplay.Editor
 
         // ─────────────────────── W2 라이브 메시 프리뷰 뷰포트 ───────────────────────
 
-        /// <summary>하단 프리뷰 패널(액터 메시 + previewClip 샘플). 접힘 토글. IMGUIContainer 로 PreviewRenderUtility 텍스처를 그린다.</summary>
-        private void BuildViewport(VisualElement root)
+        /// <summary>오른쪽 열 상단 프리뷰 패널 — Actor(영속) + Clip(타겟별) 필드 + 라이브 뷰포트(IMGUIContainer→URP 렌더). 접힘 토글.</summary>
+        private void BuildPreviewPanel(VisualElement parent)
         {
             _viewport = new VisualElement { name = "atl-viewport" };
             _viewport.style.flexShrink = 0;
-            _viewport.style.borderTopWidth = 1;
-            _viewport.style.borderTopColor = new Color(0, 0, 0, 0.4f);
+            _viewport.style.backgroundColor = new Color(0.11f, 0.12f, 0.15f);
+            _viewport.style.borderBottomWidth = 1; _viewport.style.borderBottomColor = new Color(0, 0, 0, 0.45f);
+            _viewport.style.paddingTop = 3; _viewport.style.paddingLeft = 4; _viewport.style.paddingRight = 4; _viewport.style.paddingBottom = 4;
 
-            var bar = new VisualElement();
-            bar.style.flexDirection = FlexDirection.Row;
-            bar.style.height = 20;
-            bar.style.backgroundColor = new Color(0.16f, 0.16f, 0.16f);
-            _viewFoldButton = new Button(ToggleViewport) { text = _viewportOpen ? "▾ 프리뷰" : "▸ 프리뷰" };
-            _viewFoldButton.style.height = 18; _viewFoldButton.style.marginLeft = 2; _viewFoldButton.style.marginTop = 1;
-            bar.Add(_viewFoldButton);
-            var hint = new Label("드래그=회전 · 휠=줌 · ▶Preview/스크럽에 애니 동조 (프리뷰 클립 지정 시)") { style = { marginLeft = 8, unityTextAlign = TextAnchor.MiddleLeft, color = new Color(0.6f, 0.6f, 0.6f) } };
-            bar.Add(hint);
-            _viewport.Add(bar);
+            var head = new VisualElement { style = { flexDirection = FlexDirection.Row } };
+            _viewFoldButton = new Button(ToggleViewport) { text = _viewportOpen ? "▾" : "▸", tooltip = "프리뷰 뷰포트 접기/펼치기" };
+            _viewFoldButton.style.width = 20; _viewFoldButton.style.height = 18;
+            head.Add(_viewFoldButton);
+            head.Add(new Label("라이브 프리뷰") { style = { unityTextAlign = TextAnchor.MiddleLeft, marginLeft = 4, unityFontStyleAndWeight = FontStyle.Bold } });
+            _viewport.Add(head);
+
+            _actorField = new ObjectField("Actor") { objectType = typeof(GameObject), value = _actorPrefab,
+                tooltip = "프리뷰·Event 메서드 소스. EditorPrefs 에 저장돼 다음에도 유지(요청 ②)." };
+            _actorField.AddToClassList("atl-field");
+            _actorField.RegisterValueChangedCallback(e =>
+            {
+                _actorPrefab = e.newValue as GameObject; SaveActorToPrefs();
+                RefreshInspector(); _viewportGui?.MarkDirtyRepaint(); // Actor 변경 → 인스턴스 재생성(DrawViewport)
+            });
+            _viewport.Add(_actorField);
+
+            _previewClipField = new ObjectField("클립") { objectType = typeof(AnimationClip),
+                tooltip = "cueTrigger 가 재생하는 클립. 어빌리티 에셋에 저장돼 어빌리티별 유지." };
+            _previewClipField.AddToClassList("atl-field");
+            _previewClipField.RegisterValueChangedCallback(_ => { _graphValid = false; _lastSampledMs = float.NaN; _viewportGui?.MarkDirtyRepaint(); });
+            _viewport.Add(_previewClipField);
 
             _viewportGui = new IMGUIContainer(DrawViewport);
-            _viewportGui.style.height = 220;
+            _viewportGui.style.height = 240;
+            _viewportGui.style.marginTop = 3;
             _viewportGui.style.display = _viewportOpen ? DisplayStyle.Flex : DisplayStyle.None;
             _viewport.Add(_viewportGui);
 
-            root.Add(_viewport);
+            var tip = new Label("드래그=회전 · 휠=줌 · ▶Preview/스크럽에 애니 동조") { style = { unityTextAlign = TextAnchor.MiddleLeft, color = new Color(0.55f, 0.55f, 0.55f), fontSize = 10 } };
+            _viewport.Add(tip);
+
+            parent.Add(_viewport);
         }
 
         private void ToggleViewport()
         {
             _viewportOpen = !_viewportOpen;
             if (_viewportGui != null) _viewportGui.style.display = _viewportOpen ? DisplayStyle.Flex : DisplayStyle.None;
-            if (_viewFoldButton != null) _viewFoldButton.text = _viewportOpen ? "▾ 프리뷰" : "▸ 프리뷰";
+            if (_viewFoldButton != null) _viewFoldButton.text = _viewportOpen ? "▾" : "▸";
             Repaint();
+        }
+
+        /// <summary>프리뷰 패널 Clip 필드를 현재 어빌리티의 previewClip 에 바인딩(타겟 교체 시 재호출). 타겟 없으면 비활성.</summary>
+        private void RebindPreviewClip()
+        {
+            if (_previewClipField == null) return;
+            if (_so != null) _previewClipField.BindProperty(_so.FindProperty("previewClip"));
+            else _previewClipField.SetValueWithoutNotify(null);
+            _previewClipField.SetEnabled(_so != null);
+        }
+
+        /// <summary>저장된 Actor 프리팹 GUID → 로드(요청 ②, 에디터 재시작에도 유지). 이미 있으면(도메인 리로드 생존) 스킵.</summary>
+        private void LoadActorFromPrefs()
+        {
+            if (_actorPrefab != null) return;
+            var guid = EditorPrefs.GetString(ActorPrefKey, "");
+            if (string.IsNullOrEmpty(guid)) return;
+            var path = AssetDatabase.GUIDToAssetPath(guid);
+            if (!string.IsNullOrEmpty(path)) _actorPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        }
+
+        private void SaveActorToPrefs()
+        {
+            if (_actorPrefab == null) { EditorPrefs.DeleteKey(ActorPrefKey); return; }
+            var guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(_actorPrefab));
+            if (!string.IsNullOrEmpty(guid)) EditorPrefs.SetString(ActorPrefKey, guid);
         }
 
         private void DrawViewport()
@@ -1352,8 +1389,7 @@ namespace Game.Gameplay.Editor
             var holder = new GameObject("ATL-holder") { hideFlags = HideFlags.HideAndDontSave };
             holder.SetActive(false);
             _actorInstance = UnityEngine.Object.Instantiate(_actorPrefab, holder.transform);
-            foreach (var mb in _actorInstance.GetComponentsInChildren<MonoBehaviour>(true))
-                if (mb != null) UnityEngine.Object.DestroyImmediate(mb);
+            StripRuntimeBehaviours(_actorInstance);
             _actorInstance.transform.SetParent(null, false);
             _actorInstance.hideFlags = HideFlags.HideAndDontSave;
             _actorInstance.SetActive(true);
@@ -1373,6 +1409,46 @@ namespace Game.Gameplay.Editor
                 _previewLight.intensity = 1.2f;
                 _pru.AddSingleGO(lgo);
             }
+        }
+
+        /// <summary>프리뷰 인스턴스의 게임 스크립트(MonoBehaviour) 전부 제거 — 순수 렌더/애니만 남긴다.
+        /// <b>[RequireComponent] 의존을 존중해</b> "다른 살아있는 컴포넌트가 요구하지 않는 것"부터 제거(요구하는 쪽 먼저) → "제거 불가" 에러 방지.</summary>
+        private static void StripRuntimeBehaviours(GameObject root)
+        {
+            var list = new global::System.Collections.Generic.List<MonoBehaviour>(root.GetComponentsInChildren<MonoBehaviour>(true));
+            int guard = list.Count * list.Count + 8;
+            while (list.Count > 0 && guard-- > 0)
+            {
+                bool removed = false;
+                for (int i = list.Count - 1; i >= 0; i--)
+                {
+                    var c = list[i];
+                    if (c == null) { list.RemoveAt(i); continue; }
+                    if (RequiredBySibling(c, list)) continue; // 아직 형제가 요구 → 나중 패스에서
+                    UnityEngine.Object.DestroyImmediate(c);
+                    list.RemoveAt(i); removed = true;
+                }
+                if (!removed) break; // 순환/불가(비정상) — 남은 건 그대로 둔다
+            }
+        }
+
+        /// <summary>같은 GameObject 의 다른 살아있는 MonoBehaviour 가 <c>[RequireComponent]</c> 로 target 타입을 요구하는가.</summary>
+        private static bool RequiredBySibling(MonoBehaviour target, global::System.Collections.Generic.List<MonoBehaviour> remaining)
+        {
+            var t = target.GetType();
+            var go = target.gameObject;
+            foreach (var other in remaining)
+            {
+                if (other == null || ReferenceEquals(other, target) || other.gameObject != go) continue;
+                foreach (var a in other.GetType().GetCustomAttributes(typeof(RequireComponent), true))
+                {
+                    var rc = (RequireComponent)a;
+                    if ((rc.m_Type0 != null && rc.m_Type0.IsAssignableFrom(t)) ||
+                        (rc.m_Type1 != null && rc.m_Type1.IsAssignableFrom(t)) ||
+                        (rc.m_Type2 != null && rc.m_Type2.IsAssignableFrom(t))) return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>previewClip 을 PlayableGraph 로 액터 Animator 에 스크럽 샘플(휴머노이드/제네릭 공용). 클립/인스턴스 바뀌면 그래프 재생성.</summary>
