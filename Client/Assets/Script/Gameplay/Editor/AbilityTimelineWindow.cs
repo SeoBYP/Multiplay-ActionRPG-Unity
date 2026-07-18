@@ -4,6 +4,7 @@ using Game.Gameplay.Abilities;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
+using UnityEngine.Playables;   // W2 프리뷰: PlayableExtensions(SetTime/SetSourcePlayable) 확장 메서드
 using UnityEngine.UIElements;
 
 namespace Game.Gameplay.Editor
@@ -70,6 +71,24 @@ namespace Game.Gameplay.Editor
         private Transform _previewRoot;
         private readonly List<GameObject> _previewSpawned = new();
 
+        // W2 라이브 메시 프리뷰 — 격리 PreviewScene 렌더 + previewClip 을 PlayableGraph 로 스크럽 샘플(휴머노이드/제네릭 공용, 전역 AnimationMode 부작용 없음)
+        private VisualElement _viewport;
+        private IMGUIContainer _viewportGui;
+        private Button _viewFoldButton;
+        [SerializeField] private bool _viewportOpen = true;
+        private UnityEditor.PreviewRenderUtility _pru;
+        private GameObject _actorInstance;              // 프리뷰 씬 인스턴스(HideAndDontSave, 게임 스크립트 제거)
+        private GameObject _sampledActorPrefab;         // 현재 인스턴스의 원본(툴바 Actor 변경 감지)
+        private float _lastSampledMs = float.NaN;
+        private Vector2 _viewOrbit = new(130f, 12f);    // yaw, pitch(도)
+        private float _viewDist;                        // 카메라 거리(오토프레임 후 휠로 조절)
+        private Vector3 _viewPivot;                      // 액터 바운즈 중심
+        private bool _viewFramed;                       // 오토프레임 1회 완료
+        private UnityEngine.Playables.PlayableGraph _graph;
+        private UnityEngine.Animations.AnimationClipPlayable _clipPlayable;
+        private bool _graphValid;
+        private AnimationClip _graphClip;
+
         [MenuItem("Tools/Ability/Ability Timeline")]
         private static void Open() => GetWindow<AbilityTimelineWindow>("Ability Timeline").minSize = new Vector2(760, 440);
 
@@ -108,6 +127,8 @@ namespace Game.Gameplay.Editor
             _inspectorBody.AddToClassList("atl-details");
             detailsScroll.Add(_inspectorBody);
             body.Add(detailsScroll);
+
+            BuildViewport(root); // W2 하단 라이브 프리뷰 뷰포트
 
             // P8 단축키: Delete=삭제 · ←/→=넛지 · Ctrl+D=복제 (선택 집합 전체)
             root.RegisterCallback<KeyDownEvent>(e =>
@@ -214,7 +235,7 @@ namespace Game.Gameplay.Editor
             var actor = new ObjectField("Actor") { objectType = typeof(GameObject), value = _actorPrefab,
                 tooltip = "Event 이벤트의 메서드 드롭다운 소스 — 이 프리팹의 컴포넌트 메서드를 나열." };
             actor.style.width = 190;
-            actor.RegisterValueChangedCallback(e => { _actorPrefab = e.newValue as GameObject; RefreshInspector(); });
+            actor.RegisterValueChangedCallback(e => { _actorPrefab = e.newValue as GameObject; RefreshInspector(); _viewportGui?.MarkDirtyRepaint(); }); // W2: Actor 변경 → 인스턴스 재생성
             bar.Add(actor);
 
             var hint = new Label("트랙 빈 곳 우클릭=추가 · Ctrl+클릭=다중선택 · ←/→ 넛지 · Ctrl+D 복제 · Del 삭제");
@@ -712,6 +733,7 @@ namespace Game.Gameplay.Editor
         private void PositionScrub()
         {
             if (_scrub != null) _scrub.style.left = XForTime(_scrubMs);
+            _viewportGui?.MarkDirtyRepaint(); // W2: 스크럽 이동 → 뷰포트 재샘플·재렌더
         }
 
         // ─────────────────────── 인스펙터 ───────────────────────
@@ -728,6 +750,8 @@ namespace Game.Gameplay.Editor
             }
             if (_so == null || _so.targetObject != _target) _so = new SerializedObject(_target);
             _so.Update(); // 독립 호출(argType/actor/catalog 변경) 시 커밋된 최신값으로 레이아웃 결정
+
+            BuildPreviewClipSection(); // W2 프리뷰 클립(항상 상단)
 
             // ── 판정창 선택 시: 그 편집을 맨 위로(클릭 피드백) ──
             if (_hitboxSelected)
@@ -793,6 +817,19 @@ namespace Game.Gameplay.Editor
 
             // ── 판정창 (어빌리티 레벨 · 서버 bake · 이벤트 미선택 시에도 참조용으로 항상 표시) ──
             BuildHitboxSection(false);
+        }
+
+        /// <summary>W2 프리뷰 클립(에디터 전용·bake 안 함) — 하단 뷰포트가 스크럽/재생 시 샘플. 변경 시 그래프 무효화+뷰포트 리페인트.</summary>
+        private void BuildPreviewClipSection()
+        {
+            var pv = Section("프리뷰 (에디터 전용 · bake 안 함)");
+            var clipField = new ObjectField("애니 클립") { objectType = typeof(AnimationClip),
+                tooltip = "cueTrigger 가 재생하는 그 클립. 하단 뷰포트가 스크럽 시 샘플. 없으면 바인드 포즈." };
+            clipField.AddToClassList("atl-field");
+            clipField.BindProperty(_so.FindProperty("previewClip"));
+            clipField.RegisterValueChangedCallback(_ => { _graphValid = false; _lastSampledMs = float.NaN; _viewportGui?.MarkDirtyRepaint(); });
+            pv.Add(clipField);
+            pv.Add(Hint("액터 = 툴바 Actor 프리팹. 지정 후 ▶Preview 또는 플레이헤드 드래그로 애니 확인."));
         }
 
         /// <summary>판정창(startup/active·Export·→Event) 섹션. selected=true 면 "선택됨" 강조.</summary>
@@ -1111,7 +1148,7 @@ namespace Game.Gameplay.Editor
 
         // ─────────────────────── P5 프리뷰(에디트모드) ───────────────────────
 
-        private void OnDisable() => StopPreview(); // 창 닫힘/도메인 리로드 시 update 해제 + 스폰 정리
+        private void OnDisable() { StopPreview(); CleanupViewport(); } // 창 닫힘/도메인 리로드 시 update 해제 + 스폰/뷰포트 정리
 
         private void TogglePreview()
         {
@@ -1212,6 +1249,198 @@ namespace Game.Gameplay.Editor
             foreach (var go in _previewSpawned) if (go != null) UnityEngine.Object.DestroyImmediate(go);
             _previewSpawned.Clear();
             if (_previewRoot != null) { UnityEngine.Object.DestroyImmediate(_previewRoot.gameObject); _previewRoot = null; }
+        }
+
+        // ─────────────────────── W2 라이브 메시 프리뷰 뷰포트 ───────────────────────
+
+        /// <summary>하단 프리뷰 패널(액터 메시 + previewClip 샘플). 접힘 토글. IMGUIContainer 로 PreviewRenderUtility 텍스처를 그린다.</summary>
+        private void BuildViewport(VisualElement root)
+        {
+            _viewport = new VisualElement { name = "atl-viewport" };
+            _viewport.style.flexShrink = 0;
+            _viewport.style.borderTopWidth = 1;
+            _viewport.style.borderTopColor = new Color(0, 0, 0, 0.4f);
+
+            var bar = new VisualElement();
+            bar.style.flexDirection = FlexDirection.Row;
+            bar.style.height = 20;
+            bar.style.backgroundColor = new Color(0.16f, 0.16f, 0.16f);
+            _viewFoldButton = new Button(ToggleViewport) { text = _viewportOpen ? "▾ 프리뷰" : "▸ 프리뷰" };
+            _viewFoldButton.style.height = 18; _viewFoldButton.style.marginLeft = 2; _viewFoldButton.style.marginTop = 1;
+            bar.Add(_viewFoldButton);
+            var hint = new Label("드래그=회전 · 휠=줌 · ▶Preview/스크럽에 애니 동조 (프리뷰 클립 지정 시)") { style = { marginLeft = 8, unityTextAlign = TextAnchor.MiddleLeft, color = new Color(0.6f, 0.6f, 0.6f) } };
+            bar.Add(hint);
+            _viewport.Add(bar);
+
+            _viewportGui = new IMGUIContainer(DrawViewport);
+            _viewportGui.style.height = 220;
+            _viewportGui.style.display = _viewportOpen ? DisplayStyle.Flex : DisplayStyle.None;
+            _viewport.Add(_viewportGui);
+
+            root.Add(_viewport);
+        }
+
+        private void ToggleViewport()
+        {
+            _viewportOpen = !_viewportOpen;
+            if (_viewportGui != null) _viewportGui.style.display = _viewportOpen ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_viewFoldButton != null) _viewFoldButton.text = _viewportOpen ? "▾ 프리뷰" : "▸ 프리뷰";
+            Repaint();
+        }
+
+        private void DrawViewport()
+        {
+            var r = _viewportGui.contentRect;
+            if (r.width < 8 || r.height < 8) return;
+
+            if (_actorPrefab == null)
+            {
+                GUI.Label(r, "툴바 Actor 에 프리팹을 지정하면 메시가 표시됩니다.", EditorStyles.centeredGreyMiniLabel);
+                return;
+            }
+
+            HandleViewportInput(r);
+            EnsurePreviewScene();
+            if (_actorInstance == null) return;
+
+            if (_lastSampledMs != _scrubMs) { SampleActor(_scrubMs); _lastSampledMs = _scrubMs; }
+
+            _pru.BeginPreview(r, GUIStyle.none);
+            PositionCamera();
+            _pru.Render();
+            var tex = _pru.EndPreview();
+            GUI.DrawTexture(r, tex, ScaleMode.StretchToFill, false);
+
+            var lbl = $"{Mathf.RoundToInt(_scrubMs)} ms";
+            if (_target != null && _target.previewClip == null) lbl += "  (프리뷰 클립 미지정 — 바인드 포즈)";
+            GUI.Label(new Rect(r.x + 6, r.y + 3, r.width - 10, 16), lbl, EditorStyles.whiteMiniLabel);
+        }
+
+        private void HandleViewportInput(Rect r)
+        {
+            var e = Event.current;
+            if (e == null) return;
+            if (e.type == EventType.MouseDrag && e.button == 0 && r.Contains(e.mousePosition))
+            {
+                _viewOrbit.x += e.delta.x * 0.5f;
+                _viewOrbit.y = Mathf.Clamp(_viewOrbit.y + e.delta.y * 0.5f, -85f, 85f);
+                e.Use();
+            }
+            else if (e.type == EventType.ScrollWheel && r.Contains(e.mousePosition))
+            {
+                _viewDist = Mathf.Clamp(_viewDist * (1f + e.delta.y * 0.05f), 0.4f, 100f);
+                e.Use();
+            }
+        }
+
+        /// <summary>PreviewRenderUtility 준비 + 툴바 Actor 가 바뀌었으면 인스턴스 재생성.</summary>
+        private void EnsurePreviewScene()
+        {
+            if (_pru == null) _pru = new UnityEditor.PreviewRenderUtility();
+            if (_actorInstance == null || _sampledActorPrefab != _actorPrefab) RecreateActor();
+        }
+
+        private void RecreateActor()
+        {
+            DestroyGraph();
+            if (_actorInstance != null) { UnityEngine.Object.DestroyImmediate(_actorInstance); _actorInstance = null; }
+            _sampledActorPrefab = _actorPrefab;
+            _viewFramed = false;
+            _lastSampledMs = float.NaN;
+            if (_actorPrefab == null) return;
+
+            // 비활성 홀더 아래로 Instantiate → 게임 스크립트 Awake 가 돌기 전에 전부 제거(네트워크·DI 없이 순수 렌더/애니만).
+            var holder = new GameObject("ATL-holder") { hideFlags = HideFlags.HideAndDontSave };
+            holder.SetActive(false);
+            _actorInstance = UnityEngine.Object.Instantiate(_actorPrefab, holder.transform);
+            foreach (var mb in _actorInstance.GetComponentsInChildren<MonoBehaviour>(true))
+                if (mb != null) UnityEngine.Object.DestroyImmediate(mb);
+            _actorInstance.transform.SetParent(null, false);
+            _actorInstance.hideFlags = HideFlags.HideAndDontSave;
+            _actorInstance.SetActive(true);
+            UnityEngine.Object.DestroyImmediate(holder);
+
+            var animator = _actorInstance.GetComponentInChildren<Animator>();
+            if (animator != null) { animator.enabled = true; animator.cullingMode = AnimatorCullingMode.AlwaysAnimate; }
+
+            _pru.AddSingleGO(_actorInstance);
+        }
+
+        /// <summary>previewClip 을 PlayableGraph 로 액터 Animator 에 스크럽 샘플(휴머노이드/제네릭 공용). 클립/인스턴스 바뀌면 그래프 재생성.</summary>
+        private void SampleActor(float ms)
+        {
+            EnsureGraph();
+            if (!_graphValid) return;
+            float len = _graphClip.length;
+            float t = len > 0f ? Mathf.Clamp(ms / 1000f, 0f, len) : 0f;
+            _clipPlayable.SetTime(t);
+            _clipPlayable.SetTime(t); // 2회 = 프레임 보간 잔상 제거(Timeline 관용)
+            _graph.Evaluate();
+        }
+
+        private void EnsureGraph()
+        {
+            var clip = _target != null ? _target.previewClip : null;
+            var animator = _actorInstance != null ? _actorInstance.GetComponentInChildren<Animator>() : null;
+            if (clip == null || animator == null) { DestroyGraph(); return; }
+            if (_graphValid && _graphClip == clip) return;
+
+            DestroyGraph();
+            _graph = UnityEngine.Playables.PlayableGraph.Create("ATL-Preview");
+            _graph.SetTimeUpdateMode(UnityEngine.Playables.DirectorUpdateMode.Manual);
+            var output = UnityEngine.Animations.AnimationPlayableOutput.Create(_graph, "out", animator);
+            _clipPlayable = UnityEngine.Animations.AnimationClipPlayable.Create(_graph, clip);
+            _clipPlayable.SetApplyFootIK(false);
+            output.SetSourcePlayable(_clipPlayable);
+            _graphClip = clip; _graphValid = true;
+        }
+
+        private void DestroyGraph()
+        {
+            if (_graphValid && _graph.IsValid()) _graph.Destroy();
+            _graphValid = false; _graphClip = null;
+        }
+
+        private void PositionCamera()
+        {
+            if (!_viewFramed) FrameActor();
+            var cam = _pru.camera;
+            var rot = Quaternion.Euler(_viewOrbit.y, _viewOrbit.x, 0f);
+            cam.transform.position = _viewPivot - (rot * Vector3.forward) * _viewDist;
+            cam.transform.rotation = rot;
+            cam.nearClipPlane = 0.05f;
+            cam.farClipPlane = Mathf.Max(50f, _viewDist * 6f);
+            cam.fieldOfView = 40f;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0.13f, 0.13f, 0.14f);
+            _pru.ambientColor = new Color(0.35f, 0.35f, 0.35f);
+            if (_pru.lights.Length > 0) { _pru.lights[0].intensity = 1.2f; _pru.lights[0].transform.rotation = Quaternion.Euler(40f, 40f, 0f); }
+            if (_pru.lights.Length > 1) { _pru.lights[1].intensity = 0.7f; _pru.lights[1].transform.rotation = Quaternion.Euler(-20f, -120f, 0f); }
+        }
+
+        private void FrameActor()
+        {
+            var b = ComputeBounds(_actorInstance);
+            _viewPivot = b.center;
+            _viewDist = Mathf.Max(1.5f, b.size.magnitude * 1.1f);
+            _viewFramed = true;
+        }
+
+        private static Bounds ComputeBounds(GameObject go)
+        {
+            var rs = go.GetComponentsInChildren<Renderer>();
+            if (rs.Length == 0) return new Bounds(go.transform.position + Vector3.up, Vector3.one);
+            var b = rs[0].bounds;
+            for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
+            return b;
+        }
+
+        private void CleanupViewport()
+        {
+            DestroyGraph();
+            if (_actorInstance != null) { UnityEngine.Object.DestroyImmediate(_actorInstance); _actorInstance = null; }
+            _sampledActorPrefab = null; _viewFramed = false; _lastSampledMs = float.NaN;
+            if (_pru != null) { _pru.Cleanup(); _pru = null; }
         }
 
         private static Color ColorFor(ECueKind k) => k switch { ECueKind.Vfx => ColVfx, ECueKind.Sfx => ColSfx, ECueKind.Event => ColEvent, _ => ColAnim };

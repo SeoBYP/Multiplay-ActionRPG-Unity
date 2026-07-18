@@ -455,6 +455,18 @@ ability-timeline-tool.md §6 백로그 소진(소 3건). 커밋 `dcd04689`.
 - **위치**: `Gameplay/Editor/AbilityTimelineWindow.cs` — `RebuildAll`/`RebuildTimeline`(분리), `RefreshInspector`(`_so.Update()` 추가), `BoundField/BoundText/BoundObject/BoundInt2/BoundToggle`(BindProperty 화), `BuildEventInspector`(메서드=바인딩·argType=수동 유지).
 - **검증**: 컴파일0 · **EditMode 199/199** · 비파괴 스모크(메모리 전용 AbilityDefinition, execute_code): `RebuildTimeline` 전후 `_inspectorBody.childCount` 불변(equal=True) · `boundFields=7`(timeMs·durationMs·lane·sfxClip·id·startupMs·activeMs) · 예외0 · .asset 무오염.
 
+### 2.93 CA-5 W2a — 라이브 메시 프리뷰(MVP) (2026-07-18)
+
+타임라인 창 하단에 **액터 메시를 실제로 렌더링**하는 뷰포트 추가. ▶Preview/플레이헤드 스크럽에 맞춰 캐릭터가 애니를 재생 → 기획자가 "이 애니 프레임에 SFX/VFX 를 맞춘다"를 눈으로 정렬. 사용자 결정 = **A(previewClip 필드) + MVP만**.
+
+- **애니 소스 = `AbilityDefinition.previewClip`(AnimationClip 신규 필드)**: 어빌리티는 클립을 직접 안 갖고 `cueTrigger`(enum)만 가짐 → 스크럽(앞뒤) 프리뷰엔 클립이 필요. **에디터 전용·bake 안 됨**(exporter `AbilityDto` allowlist 가 cue 필드 제외 → "서버는 Cue 를 모른다" 교리 보존). "Cue(연출)—클라 전용" 섹션에 위치.
+- **렌더 = `PreviewRenderUtility`**(격리 씬, 사용자 씬 무오염). 하단 `IMGUIContainer`(`_viewportGui`)가 텍스처를 그림. 접힘 토글·오빗(드래그) ·줌(휠)·오토프레임(Renderer bounds).
+- **샘플 = PlayableGraph(Manual)**: `AnimationClipPlayable` → `AnimationPlayableOutput`(액터 Animator) → `SetTime(t)`×2 + `Evaluate()`. **휴머노이드·제네릭 공용, 전역 AnimationMode 부작용 없음**(스크럽 잦은 툴에 적합). 클립/인스턴스 바뀌면 그래프 재생성.
+- **안전한 인스턴스화**: 비활성 홀더 아래로 `Instantiate` → 게임 스크립트(`MonoBehaviour`) Awake 전에 전부 `DestroyImmediate` → 활성화. 네트워크·VContainer 없이 순수 렌더/애니만(스모크 `mbLeft=0`). `AnimatorCullingMode.AlwaysAnimate`.
+- **연결**: `PositionScrub()` 에 `_viewportGui.MarkDirtyRepaint()` 추가 → 모든 스크럽 변경(드래그·룰러클릭·PreviewTick)이 뷰포트 재샘플. 툴바 Actor 변경도 리페인트→`RecreateActor`. `OnDisable`=`CleanupViewport`(그래프·인스턴스·PRU 정리). SFX/VFX 발화는 W2a 범위 밖(기존대로) → W2b 에서 뷰포트 스폰.
+- **위치**: `AbilityTimelineWindow.cs`(BuildViewport/DrawViewport/HandleViewportInput/EnsurePreviewScene/RecreateActor/SampleActor/EnsureGraph/DestroyGraph/PositionCamera/FrameActor/ComputeBounds/CleanupViewport, `using UnityEngine.Playables`) · 인스펙터 `BuildPreviewClipSection`(previewClip 바인딩) · `AbilityDefinition.previewClip`.
+- **검증**: 컴파일0 · **EditMode 199/199** · 비파괴 스모크(실제 프리팹 `NPC_Beggar_01_01`+클립 `Dead_01`, execute_code): `graphValid=True`·**`posed=True`**(t=0 vs 중간프레임 포즈 시그니처 변화 = 샘플링 실동작)·`render=True`(PRU 텍스처 non-null)·`mbLeft=0`·예외0·.asset 무오염.
+
 ### 2.63 캡슐 몬스터 제거 + slime→creepy_demon 전면 교체 (2026-07-16)
 
 플레이스홀더 캡슐(`Monster.prefab` 던전 폴백·`LocalMonster.prefab` Main) + `slime` 몬스터를 실모델 몬스터로 대체. 사용자 지시 = "캡슐 3종 안 씀 → 실모델로, slime 데이터는 demon 으로 교체".

@@ -71,6 +71,10 @@ namespace Game.Gameplay.Abilities
                  "cueTrigger 는 주 애니(t=0)를, 이 리스트는 그 위에 얹는 소리·이펙트를 담당한다. bake 안 됨(서버 무지).")]
         public List<AbilityCueEvent> cueEvents = new();
 
+        [Tooltip("타임라인 창 라이브 프리뷰가 샘플링할 애니 클립. **에디터 전용 · bake 안 됨 · 네트워크 무관** — 런타임은 cueTrigger 로 재생(이 필드 미사용).\n" +
+                 "cueTrigger 가 재생하는 그 클립을 지정하면 스크럽 시 뷰포트의 액터가 그 동작을 재생한다(없으면 바인드 포즈). CA-5 W2.")]
+        public AnimationClip previewClip;
+
         /// <summary>Shared.Gameplay 순수 타입으로 변환(서버와 동일 판정 데이터). 게임플레이만 — Cue 미포함.</summary>
         public SkillTimeline ToTimeline() => new SkillTimeline(
             id, startupMs, activeMs, recoveryMs, cooldownMs,
