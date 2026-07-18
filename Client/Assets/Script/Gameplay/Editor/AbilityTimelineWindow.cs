@@ -56,7 +56,8 @@ namespace Game.Gameplay.Editor
         private readonly global::System.Collections.Generic.HashSet<(int kind, int lane)> _mutedLanes = new(); // W6: 프리뷰 음소거 레인
 
         private VisualElement _content;   // 스크롤 내부, width = 타임라인 길이
-        private ScrollView _timelineScroll; // 가운데 가로 스크롤(내용 폭에 맞춤 → 프리뷰가 바로 뒤에 붙음)
+        private ScrollView _timelineScroll; // 가운데 가로 스크롤(남은 폭 채움 → 프리뷰 오른쪽 도킹, 타임라인은 그 폭까지 확장)
+        private float _lastViewportW = -1f; // 마지막 뷰포트 폭(리사이즈 재구성 루프 방지)
         private VisualElement _headerColumn; // 왼쪽 고정 트랙 헤더 열(이름·＋/×)
         private VisualElement _scrub;
         private int _renamingSection = -1; // W3: 인라인 이름변경 중인 구간(-1=없음)
@@ -126,13 +127,14 @@ namespace Game.Gameplay.Editor
             body.Add(_headerColumn);
 
             var scroll = new ScrollView(ScrollViewMode.Horizontal) { name = "timeline-scroll" };
-            scroll.style.flexGrow = 0f; scroll.style.flexShrink = 1f; // 내용 폭에 맞춤(넘치면 shrink→가로 스크롤). flexGrow 로 채우면 프리뷰와 사이가 비어 보임.
-            scroll.style.marginRight = 6f; // 타임라인↔프리뷰 고정 간격
+            scroll.style.flexGrow = 1f; scroll.style.flexShrink = 1f; // 남은 폭을 채움 → 프리뷰가 오른쪽에 도킹. 타임라인은 그 폭까지 확장(Unity Animator 식).
             _timelineScroll = scroll;
             _content = new VisualElement { name = "timeline-content" };
             _content.style.position = Position.Relative;
             scroll.Add(_content);
             body.Add(scroll);
+            // 반응형: 뷰포트 폭 변화(창 리사이즈)에 맞춰 타임라인을 그 폭까지 재확장
+            scroll.contentViewport.RegisterCallback<GeometryChangedEvent>(_ => OnViewportResized());
 
             // 오른쪽 열 = [프리뷰 패널(위) | 인스펙터(아래)]. 타임라인과 배경색으로 구분(요청 ③).
             var rightColumn = new VisualElement { name = "atl-rightcol" };
@@ -342,6 +344,15 @@ namespace Game.Gameplay.Editor
         /// <summary>드래그(클립·그립·판정창 리사이즈/이동) 중엔 타임라인 재구성을 건너뛴다 — 재구성이 드래그 중인 그립을 파괴해 포인터 캡처를 끊기 때문(W1 회귀 수정).
         /// 선택된 이벤트의 인스펙터 bound 필드가 <see cref="RebuildTimeline"/> 대신 이걸 호출: TrackPropertyValue 가 드래그의 SO 쓰기에 반응해도 무시.
         /// 드래그 중엔 각 드래그 핸들러의 <c>layout()</c> 가 라이브 갱신을 담당하고, PointerUp 이 최종 재구성한다.</summary>
+        /// <summary>뷰포트(가운데 스크롤) 폭이 창 리사이즈로 바뀌면 타임라인을 그 폭까지 재확장. 폭 변화 없으면 무시(재구성 루프 방지).</summary>
+        private void OnViewportResized()
+        {
+            if (_timelineScroll == null || _target == null) return;
+            float w = _timelineScroll.contentViewport.resolvedStyle.width;
+            if (w <= 0f || Mathf.Abs(w - _lastViewportW) < 1f) return;
+            RebuildTimeline();
+        }
+
         private void RebuildTimelineUnlessDragging()
         {
             var panel = _content?.panel;
@@ -364,7 +375,6 @@ namespace Game.Gameplay.Editor
                 _content.Add(msg);
                 _content.style.width = 400;
                 _content.style.height = 60;
-                if (_timelineScroll != null) _timelineScroll.style.width = 400;
                 return;
             }
             if (_so == null || _so.targetObject != _target) _so = new SerializedObject(_target);
@@ -372,11 +382,13 @@ namespace Game.Gameplay.Editor
 
             BuildRowLayout();
             _rowTracks = new VisualElement[_rows.Count];
-            float contentW = XForTime(TotalMs) + 40f;
+            // 반응형: 어빌리티 실제 폭과 뷰포트(창) 폭 중 큰 값 → 짧은 어빌리티도 룰러·트랙이 창 끝까지 확장(Unity Animator 식). 실제 tick 은 그대로.
+            float viewW = _timelineScroll != null ? _timelineScroll.contentViewport.resolvedStyle.width : 0f;
+            _lastViewportW = viewW;
+            float contentW = Mathf.Max(XForTime(TotalMs) + 40f, viewW);
             float contentH = RulerH + SectionsH + _rows.Count * (RowH + RowGap) + 4f;
             _content.style.width = contentW;
             _content.style.height = contentH;
-            if (_timelineScroll != null) _timelineScroll.style.width = contentW; // 스크롤 폭=내용 폭(작으면 프리뷰가 바로 뒤, 크면 flexShrink 로 가로 스크롤)
             if (_headerColumn != null) _headerColumn.style.height = contentH;
 
             BuildHeaderCorner();
@@ -466,7 +478,8 @@ namespace Game.Gameplay.Editor
             ruler.style.borderBottomWidth = 1; ruler.style.borderBottomColor = new Color(0, 0, 0, 0.35f);
             _content.Add(ruler);
 
-            for (int ms = 0; ms <= TotalMs; ms += 50)
+            int endMs = Mathf.CeilToInt(TimeForX(w) / 50f) * 50; // 뷰포트 끝까지 눈금(짧은 어빌리티도 룰러가 창 폭을 채움)
+            for (int ms = 0; ms <= endMs; ms += 50)
             {
                 bool major = ms % 100 == 0;
                 float x = XForTime(ms);
