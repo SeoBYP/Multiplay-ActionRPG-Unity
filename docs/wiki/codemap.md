@@ -434,6 +434,17 @@ W-A(오른쪽 패널) 이후 사용자 후속 4건.
 - **→ 사용자 지정 W-A·W-B 완료.** 잔여 = 개선 백로그 W1(바인딩)·W2(라이브 프리뷰)… (ability-timeline-tool.md §6) + Phase 1b 에셋 배선.
 - **W-B 후속 UX(같은 날)**: ① **왼쪽 고정 트랙 헤더 열**(커밋 `d80d9347`) — 레인 ＋/× 가 스크롤되는 클립 영역 Label 이라 마커에 가려/스크롤로 밀려 안 눌리던 것 → 본문 3열화 `[헤더(고정 108px)|클립(가로스크롤)|상세]`, `BuildTrackHeader`(이름+실제 Button ＋/×)/`BuildTrackLane`(배경+우클릭 추가) 분리(Unity Timeline/언리얼식). ② **종류별 트랙 색조**(`ac327c9f`) — 전부 회색이라 구분 안 되던 것 → `RowTint(kind,lane)`(어두운 톤+kind색 22%: SFX초록·VFX파랑·Anim보라·Event황·판정창주황, 레인 짝/홀 명암차) + 헤더 4px 컬러 액센트 바.
 
+### 2.91 CA-5 개선 백로그 W5·W6·W7 (2026-07-18)
+
+ability-timeline-tool.md §6 백로그 소진(소 3건). 커밋 `dcd04689`.
+
+- **W5 점 vs 구간 시각 구분**: 클립 Layout 이 `durationMs<=0.5`=**둥근 점**(border-radius 반), `>0`=**바**(참조 Unreal Point Notify vs Notify State). 라벨은 마커 오른쪽.
+- **W6 트랙 mute**: 레인 헤더 **M 버튼** → `_mutedLanes`(HashSet<(kind,lane)>) 토글. 음소거 레인은 `PreviewFire` 스킵 + 트랙/헤더 흐리게(opacity 0.45). `SetTarget` 시 초기화.
+- **W7 Anim 이벤트 실재생**: `AbilityCueEvent.animTrigger`(AnimationTriggerType) → 런타임 `AbilityCuePlayer._anim.SetTrigger`(주 cueTrigger 는 t=0, 이건 지연). 플래너 payload(`(int)animTrigger!=0`)/copy/reset·인스펙터 EnumField. 그동안 Anim 이벤트는 재생 없는 플레이스홀더였음.
+- **폐기/보류**: W4(프레임 룰러)=Snap/FPS 제거로 프레임 개념 없앰. W8(커브)=연출 YAGNI 보류.
+- **검증**: 컴파일0 · **EditMode 199/199** · 실구동(Anim animTrigger=Attack 플래너 유지·mute 프리뷰 스킵 예외0) 비파괴.
+- 잔여 = W1(인스펙터 바인딩)·W2(라이브 메시 프리뷰)·W3(Sections) — 중~대, 착수 전 논의.
+
 ### 2.63 캡슐 몬스터 제거 + slime→creepy_demon 전면 교체 (2026-07-16)
 
 플레이스홀더 캡슐(`Monster.prefab` 던전 폴백·`LocalMonster.prefab` Main) + `slime` 몬스터를 실모델 몬스터로 대체. 사용자 지시 = "캡슐 3종 안 씀 → 실모델로, slime 데이터는 demon 으로 교체".

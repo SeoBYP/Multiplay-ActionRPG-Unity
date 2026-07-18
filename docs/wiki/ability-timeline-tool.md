@@ -147,15 +147,15 @@
 
 Unreal Animation Montage + Unity Timeline Editor 분석에서 나온 개선점. **우선순위 W-A/W-B 이후** 필요 시 착수.
 
-| # | 개선 | 레퍼런스 근거 | 규모 |
-|---|------|------|:---:|
-| **W1** | **인스펙터 정식 바인딩**(`rootVisualElement.Bind(so)`) — 값 변경 시 RebuildAll 제거, 자동 동기화. `isDelayed` 응급처치의 근본 해결 | 두 툴 다 "안정적 details, 편집 중 타임라인 안 흔들림" | 중 |
-| **W2** | **라이브 메시 프리뷰** — ▶Preview 가 로그/스폰 대신 액터 프리팹을 뷰포트에 재생하며 스크럽 동조 | Unreal 프리뷰 뷰포트 · Unity PlayableDirector 스크럽 | 대 |
-| **W3** | **Sections/loop 구간** — 이름 붙은 시간 구간(콤보 단계·루프) 저작·점프 | Unreal Montage Sections | 중 |
-| **W4** | **프레임/초 룰러 토글** — ms 외 프레임 눈금 | Unity Timeline 룰러 토글 | 소 |
-| **W5** | **점 vs 구간 시각 구분** — duration 0=diamond, >0=bar | Unreal Point Notify vs Notify State | 소 |
-| **W6** | **트랙 mute/lock/접기** — 트랙 헤더 토글 | Unity Timeline 트랙 헤더 | 소 |
-| **W7** | **Anim 이벤트 실재생** — 지연 애니 트리거(현재 재생 없음) 구현 | — | 소 |
-| **W8** | **커브 트랙**(float 커브) — 필요 시(연출엔 대체로 YAGNI) | Unreal/Unity Curves | 대 |
+| # | 개선 | 레퍼런스 근거 | 규모 | 상태 |
+|---|------|------|:---:|:---:|
+| **W1** | **인스펙터 정식 바인딩**(`rootVisualElement.Bind(so)`) — 값 변경 시 RebuildAll 제거, 자동 동기화. `isDelayed` 응급처치의 근본 해결 | 두 툴 다 "안정적 details, 편집 중 타임라인 안 흔들림" | 중 | ⬜ |
+| **W2** | **라이브 메시 프리뷰** — ▶Preview 가 로그/스폰 대신 액터 프리팹을 뷰포트에 재생하며 스크럽 동조 | Unreal 프리뷰 뷰포트 · Unity PlayableDirector 스크럽 | 대 | ⬜ |
+| **W3** | **Sections/loop 구간** — 이름 붙은 시간 구간(콤보 단계·루프) 저작·점프 | Unreal Montage Sections | 중 | ⬜ |
+| **W4** | ~~프레임/초 룰러 토글~~ | — | 소 | ⛔ 폐기(Snap/FPS 제거로 프레임 개념 없앰) |
+| **W5** | **점 vs 구간 시각 구분** — 즉발(길이0)=둥근 점, 지속=바 | Unreal Point Notify vs Notify State | 소 | ✅ §2.91 |
+| **W6** | **트랙 mute** — 레인 헤더 M 토글 → ▶Preview 제외 + 흐리게 | Unity Timeline 트랙 헤더 | 소 | ✅ §2.91 |
+| **W7** | **Anim 이벤트 실재생** — `animTrigger` → 액터 Animator SetTrigger(지연) | — | 소 | ✅ §2.91 |
+| **W8** | **커브 트랙**(float 커브) — 연출엔 YAGNI | Unreal/Unity Curves | 대 | ⏸ 보류(YAGNI) |
 
-> 착수 순서 제안: **W-A(오른쪽 패널) → W1(바인딩, W-A 와 합치면 근본적) → W-B(트랙 동적) → 나머지 W2~W8 선택**.
+> 진행: W-A·W-B ✅ + W5·W6·W7 ✅(codemap §2.91). **잔여 = W1(바인딩)·W2(라이브 프리뷰)·W3(Sections)** — 중~대라 착수 전 논의. W4 폐기·W8 YAGNI 보류.
