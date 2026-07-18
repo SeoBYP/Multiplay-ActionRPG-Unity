@@ -43,6 +43,9 @@ namespace Game.Gameplay.Abilities
         /// SFX/Anim 은 즉발이라 길이는 편집·표시용(타임라인 클립 폭). 음수는 플래너가 0 으로 클램프.</summary>
         public float durationMs;
 
+        /// <summary>같은 종류(kind) 안에서 어느 <b>레인(행)</b>에 놓일지(W-B). 0=첫 레인. <b>편집 전용</b> — 런타임 재생은 무시.</summary>
+        public int lane;
+
         /// <summary>재생 종류(SFX/VFX/추가 Anim).</summary>
         public ECueKind kind;
 

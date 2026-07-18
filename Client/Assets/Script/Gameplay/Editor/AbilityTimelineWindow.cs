@@ -36,8 +36,9 @@ namespace Game.Gameplay.Editor
         private static readonly Color ColScrub = new(0.95f, 0.30f, 0.30f);
         private static readonly Color ColSel = new(1f, 1f, 1f);
 
-        private const int RowAnim = 0, RowHitbox = 1, RowVfx = 2, RowSfx = 3, RowEvent = 4, RowCount = 5;
         private static readonly Color ColEvent = new(0.85f, 0.75f, 0.30f); // Event(메서드 호출) = 노란
+        // W-B: 행은 (kind, lane) 조합으로 동적. kind 인덱스 = ECueKind 값(Sfx0/Vfx1/Anim2/Event3), 판정창=-1.
+        private const int KHitbox = -1;
 
 
         [SerializeField] private AbilityDefinition _target;
@@ -52,7 +53,9 @@ namespace Game.Gameplay.Editor
 
         private VisualElement _content;   // 스크롤 내부, width = 타임라인 길이
         private VisualElement _scrub;
-        private readonly VisualElement[] _tracks = new VisualElement[RowCount];
+        [SerializeField] private int[] _laneCount = { 1, 1, 1, 1 };        // kind별 저작 레인 수(Sfx/Vfx/Anim/Event)
+        private readonly global::System.Collections.Generic.List<(int kind, int lane)> _rows = new();
+        private VisualElement[] _rowTracks = global::System.Array.Empty<VisualElement>();
         private VisualElement _inspectorBody;
         private ToolbarButton _previewButton;
 
@@ -219,6 +222,7 @@ namespace Game.Gameplay.Editor
             _target = a;
             _so = a != null ? new SerializedObject(a) : null;
             _selected = -1; _selection.Clear(); _hitboxSelected = false;
+            _laneCount = new[] { 1, 1, 1, 1 }; // 어빌리티 바뀌면 빈 레인 초기화(사용 중 레인은 EffLanes 가 복원)
             _scrubMs = 0;
             RebuildAll();
         }
@@ -242,6 +246,36 @@ namespace Game.Gameplay.Editor
         private static float Snap(float ms) => Mathf.Round(ms * 10f) / 10f;
         private float RowTop(int row) => RulerH + row * (RowH + RowGap);
 
+        // ── W-B 레인 행 레이아웃 ──
+        private int EffLanes(int kind)
+        {
+            int n = Mathf.Max(1, _laneCount[kind]);
+            foreach (var e in _target.cueEvents)
+                if (e != null && (int)e.kind == kind) n = Mathf.Max(n, Mathf.Max(0, e.lane) + 1);
+            return n;
+        }
+
+        /// <summary>행 순서 = Anim 레인 · 판정창 · VFX 레인 · SFX 레인 · Event 레인.</summary>
+        private void BuildRowLayout()
+        {
+            _rows.Clear();
+            for (int l = 0; l < EffLanes(2); l++) _rows.Add((2, l)); // Anim
+            _rows.Add((KHitbox, 0));                                 // 판정창(단일)
+            for (int l = 0; l < EffLanes(1); l++) _rows.Add((1, l)); // VFX
+            for (int l = 0; l < EffLanes(0); l++) _rows.Add((0, l)); // SFX
+            for (int l = 0; l < EffLanes(3); l++) _rows.Add((3, l)); // Event
+        }
+
+        private int RowIndexOf(int kind, int lane)
+        {
+            for (int i = 0; i < _rows.Count; i++)
+                if (_rows[i].kind == kind && _rows[i].lane == lane) return i;
+            return -1;
+        }
+
+        private static string KindName(int kind) => kind switch { 0 => "SFX", 1 => "VFX", 2 => "Anim", 3 => "Event", _ => "판정창" };
+        private static string LaneMark(int lane) => lane < 9 ? ((char)('①' + lane)).ToString() : $"#{lane + 1}";
+
         // ─────────────────────── 재구성 ───────────────────────
 
         private void RebuildAll()
@@ -263,17 +297,15 @@ namespace Game.Gameplay.Editor
             if (_so == null || _so.targetObject != _target) _so = new SerializedObject(_target);
             _so.Update();
 
+            BuildRowLayout();
+            _rowTracks = new VisualElement[_rows.Count];
             float contentW = XForTime(TotalMs) + 40f;
-            float contentH = RulerH + RowCount * (RowH + RowGap) + 4f;
+            float contentH = RulerH + _rows.Count * (RowH + RowGap) + 4f;
             _content.style.width = contentW;
             _content.style.height = contentH;
 
             BuildRuler(contentW);
-            BuildTrack(RowAnim, "Anim", ColRowB, contentW, ECueKind.Anim);
-            BuildTrack(RowHitbox, "판정창", ColRowA, contentW, null);
-            BuildTrack(RowVfx, "VFX", ColRowB, contentW, ECueKind.Vfx);
-            BuildTrack(RowSfx, "SFX", ColRowA, contentW, ECueKind.Sfx);
-            BuildTrack(RowEvent, "Event", ColRowB, contentW, ECueKind.Event);
+            for (int r = 0; r < _rows.Count; r++) BuildTrackRow(r, contentW);
 
             BuildAnimAnchor();
             BuildHitboxBar();
@@ -317,31 +349,44 @@ namespace Game.Gameplay.Editor
             });
         }
 
-        private void BuildTrack(int row, string label, Color bg, float w, ECueKind? addKind)
+        private void BuildTrackRow(int r, float w)
         {
-            var track = new VisualElement();
+            var (kind, lane) = _rows[r];
+            var track = new VisualElement { name = "cue-track" };
             track.style.position = Position.Absolute;
-            track.style.left = 0; track.style.top = RowTop(row);
+            track.style.left = 0; track.style.top = RowTop(r);
             track.style.width = w; track.style.height = RowH;
-            track.style.backgroundColor = bg;
+            track.style.backgroundColor = (r % 2 == 0) ? ColRowB : ColRowA;
             _content.Add(track);
-            _tracks[row] = track;
+            _rowTracks[r] = track;
 
-            var name = new Label(label);
+            var name = new Label(kind == KHitbox ? "판정창" : $"{KindName(kind)} {LaneMark(lane)}");
             name.style.position = Position.Absolute;
-            name.style.left = 3; name.style.top = 2;
-            name.style.fontSize = 9;
-            name.style.color = new Color(0.6f, 0.6f, 0.6f);
+            name.style.left = 3; name.style.top = 2; name.style.fontSize = 9;
+            name.style.color = new Color(0.62f, 0.62f, 0.62f);
             track.Add(name);
 
-            // 빈 곳 우클릭 = 그 시간에 이벤트 추가(연출 트랙만). 판정창(addKind=null)은 추가 대상 아님.
-            if (addKind.HasValue)
+            if (kind != KHitbox)
             {
-                var kind = addKind.Value;
+                // ＋ 레인 추가 · × 빈 레인 삭제 (W-B)
+                var add = new Label("＋") { tooltip = $"{KindName(kind)} 레인 추가" };
+                add.style.position = Position.Absolute; add.style.left = 50; add.style.top = 1; add.style.fontSize = 11;
+                add.style.color = new Color(0.5f, 0.75f, 0.5f);
+                add.RegisterCallback<PointerDownEvent>(e => { if (e.button == 0) { AddLane(kind); e.StopPropagation(); } });
+                track.Add(add);
+
+                var del = new Label("×") { tooltip = "이 레인 삭제(빈 레인만)" };
+                del.style.position = Position.Absolute; del.style.left = 66; del.style.top = 1; del.style.fontSize = 11;
+                del.style.color = new Color(0.8f, 0.5f, 0.5f);
+                del.RegisterCallback<PointerDownEvent>(e => { if (e.button == 0) { RemoveLane(kind, lane); e.StopPropagation(); } });
+                track.Add(del);
+
+                // 빈 곳 우클릭 = 이 (kind, lane) 에 이벤트 추가
+                int capKind = kind, capLane = lane;
                 track.AddManipulator(new ContextualMenuManipulator(evt =>
                 {
                     float t = Snap(TimeForX(evt.localMousePosition.x));
-                    evt.menu.AppendAction($"{kind} 이벤트 추가 ({Mathf.RoundToInt(t)}ms)", _ => AddEvent(kind, t));
+                    evt.menu.AppendAction($"{KindName(capKind)} 이벤트 추가 ({Mathf.RoundToInt(t)}ms)", _ => AddEvent((ECueKind)capKind, t, capLane));
                 }));
             }
         }
@@ -355,17 +400,21 @@ namespace Game.Gameplay.Editor
             anchor.style.width = 10; anchor.style.height = RowH - 12;
             anchor.style.backgroundColor = ColAnim;
             anchor.tooltip = $"주 애니(cueTrigger): {_target.cueTrigger} · t=0 발동 (편집=AbilityDefinition 인스펙터)";
-            _tracks[RowAnim].Add(anchor);
+            int animRow = RowIndexOf(2, 0); // Anim 첫 레인
+            if (animRow < 0) return;
+            _rowTracks[animRow].Add(anchor);
 
             var lbl = new Label($"▶ {_target.cueTrigger}");
             lbl.style.position = Position.Absolute;
             lbl.style.left = 14; lbl.style.top = 8; lbl.style.fontSize = 9;
-            _tracks[RowAnim].Add(lbl);
+            _rowTracks[animRow].Add(lbl);
         }
 
         private void BuildHitboxBar()
         {
-            var track = _tracks[RowHitbox];
+            int hbRow = RowIndexOf(KHitbox, 0);
+            if (hbRow < 0) return;
+            var track = _rowTracks[hbRow];
 
             var bar = new VisualElement();
             bar.style.position = Position.Absolute;
@@ -464,7 +513,9 @@ namespace Game.Gameplay.Editor
             {
                 var ev = events[i];
                 if (ev == null) continue;
-                var track = _tracks[RowFor(ev.kind)];
+                int row = RowIndexOf((int)ev.kind, Mathf.Max(0, ev.lane));
+                if (row < 0) continue; // 레이아웃 밖(방어)
+                var track = _rowTracks[row];
                 int index = i;
                 Color col = ColorFor(ev.kind);
 
@@ -633,6 +684,7 @@ namespace Game.Gameplay.Editor
                 sec.Add(BoundField(new EnumField("종류", ECueKind.Sfx), el.FindPropertyRelative("kind"), RebuildAll));
                 sec.Add(BoundField(new FloatField("시각(ms)"), el.FindPropertyRelative("timeMs"), RebuildAll));
                 sec.Add(BoundField(new FloatField("길이(ms)"), el.FindPropertyRelative("durationMs"), RebuildAll));
+                sec.Add(BoundInt2(new IntegerField("레인") { tooltip = "같은 종류 안의 행(0=첫 레인). 트랙 헤더 ＋/× 로도 레인 관리." }, el.FindPropertyRelative("lane")));
 
                 if (kind == ECueKind.Sfx)
                     sec.Add(BoundObject(new ObjectField("SFX 클립") { objectType = typeof(AudioClip) }, el.FindPropertyRelative("sfxClip")));
@@ -833,13 +885,15 @@ namespace Game.Gameplay.Editor
 
         private bool ValidSel() => _target != null && _selected >= 0 && _selected < _target.cueEvents.Count;
 
-        private void AddEvent(ECueKind kind, float timeMs)
+        private void AddEvent(ECueKind kind, float timeMs, int lane = 0)
         {
             if (_so == null) return;
             var arr = _so.FindProperty("cueEvents");
             int i = arr.arraySize;
             arr.arraySize++;
-            ResetEvent(arr.GetArrayElementAtIndex(i), kind, timeMs); // 새 요소는 이전 값을 상속 → 전 필드 초기화
+            var e = arr.GetArrayElementAtIndex(i);
+            ResetEvent(e, kind, timeMs); // 새 요소는 이전 값을 상속 → 전 필드 초기화
+            e.FindPropertyRelative("lane").intValue = lane; // W-B: 추가한 레인
             _so.ApplyModifiedProperties();
             SelectSingle(i);
             RebuildAll();
@@ -862,6 +916,7 @@ namespace Game.Gameplay.Editor
             e.FindPropertyRelative("timeMs").floatValue = timeMs;
             e.FindPropertyRelative("durationMs").floatValue = 0f;
             e.FindPropertyRelative("kind").enumValueIndex = (int)kind;
+            e.FindPropertyRelative("lane").intValue = 0;
             e.FindPropertyRelative("sfxClip").objectReferenceValue = null;
             e.FindPropertyRelative("vfxPrefab").objectReferenceValue = null;
             e.FindPropertyRelative("id").stringValue = "";
@@ -964,7 +1019,7 @@ namespace Game.Gameplay.Editor
 
         private static void CopyEvent(SerializedProperty s, SerializedProperty d)
         {
-            string[] fields = { "timeMs", "durationMs", "kind", "sfxClip", "vfxPrefab", "id", "socket", "invokeMethod", "argType", "argFloat", "argInt", "argBool", "argString" };
+            string[] fields = { "timeMs", "durationMs", "kind", "lane", "sfxClip", "vfxPrefab", "id", "socket", "invokeMethod", "argType", "argFloat", "argInt", "argBool", "argString" };
             foreach (var fn in fields)
             {
                 var sp = s.FindPropertyRelative(fn);
@@ -1084,7 +1139,40 @@ namespace Game.Gameplay.Editor
             if (_previewRoot != null) { UnityEngine.Object.DestroyImmediate(_previewRoot.gameObject); _previewRoot = null; }
         }
 
-        private static int RowFor(ECueKind k) => k switch { ECueKind.Vfx => RowVfx, ECueKind.Sfx => RowSfx, ECueKind.Event => RowEvent, _ => RowAnim };
         private static Color ColorFor(ECueKind k) => k switch { ECueKind.Vfx => ColVfx, ECueKind.Sfx => ColSfx, ECueKind.Event => ColEvent, _ => ColAnim };
+
+        // ── W-B 레인 추가/삭제 ──
+        private void AddLane(int kind)
+        {
+            _laneCount[kind] = EffLanes(kind) + 1; // 맨 아래 빈 레인 하나 추가
+            RebuildAll();
+        }
+
+        private void RemoveLane(int kind, int lane)
+        {
+            // 이 레인에 이벤트가 있으면 삭제 불가
+            foreach (var e in _target.cueEvents)
+                if (e != null && (int)e.kind == kind && Mathf.Max(0, e.lane) == lane)
+                {
+                    Debug.LogWarning($"[Timeline] {KindName(kind)} 레인 {LaneMark(lane)} 에 이벤트가 있어 삭제할 수 없습니다.");
+                    return;
+                }
+            if (EffLanes(kind) <= 1) return; // 마지막 하나는 유지
+            // 상위 레인 이벤트를 한 칸 내림
+            _so.Update();
+            var arr = _so.FindProperty("cueEvents");
+            for (int i = 0; i < arr.arraySize; i++)
+            {
+                var e = arr.GetArrayElementAtIndex(i);
+                if (e.FindPropertyRelative("kind").enumValueIndex == kind)
+                {
+                    var lp = e.FindPropertyRelative("lane");
+                    if (lp.intValue > lane) lp.intValue--;
+                }
+            }
+            _so.ApplyModifiedProperties();
+            _laneCount[kind] = Mathf.Max(1, EffLanes(kind) - 1);
+            RebuildAll();
+        }
     }
 }
