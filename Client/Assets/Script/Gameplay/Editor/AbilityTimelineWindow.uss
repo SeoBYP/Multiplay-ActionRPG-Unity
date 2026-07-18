@@ -1,0 +1,59 @@
+/* 어빌리티 타임라인 툴 디자인 폴리시 (W-A 상세 패널 + 마커). 코드가 동적 위치를 잡고, 여기선 외형만. */
+
+.atl-details {
+    padding: 8px 10px;
+}
+
+.atl-section {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top-width: 1px;
+    border-top-color: rgba(128, 128, 128, 0.22);
+}
+
+.atl-section-title {
+    -unity-font-style: bold;
+    font-size: 11px;
+    color: rgba(150, 150, 150, 0.92);
+    margin-bottom: 6px;
+}
+
+.atl-hint {
+    font-size: 10px;
+    color: rgba(150, 150, 150, 0.75);
+    white-space: normal;
+    margin: 2px 0 4px 0;
+}
+
+.atl-field {
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+.atl-field .unity-base-field__label {
+    min-width: 74px;
+    max-width: 74px;
+}
+
+.atl-btn-row {
+    flex-direction: row;
+    margin-top: 6px;
+}
+
+.atl-btn-row > Button {
+    margin-left: 2px;
+    margin-right: 2px;
+}
+
+.atl-method-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.atl-marker {
+    border-radius: 3px;
+    font-size: 10px;
+    -unity-text-align: middle-left;
+    overflow: hidden;
+}

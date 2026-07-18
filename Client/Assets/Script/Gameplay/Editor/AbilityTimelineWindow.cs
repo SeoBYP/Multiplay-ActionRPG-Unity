@@ -73,24 +73,29 @@ namespace Game.Gameplay.Editor
             var root = rootVisualElement;
             root.Clear();
             root.style.flexDirection = FlexDirection.Column;
+            LoadStyleSheet(root); // 디자인 폴리시(.uss)
 
             BuildToolbar(root);
+
+            // W-A: 본문 = 가로 분할 [왼쪽 타임라인 | 오른쪽 상세 패널]
+            var body = new VisualElement { name = "atl-body" };
+            body.style.flexDirection = FlexDirection.Row;
+            body.style.flexGrow = 1f;
+            root.Add(body);
 
             var scroll = new ScrollView(ScrollViewMode.Horizontal) { name = "timeline-scroll" };
             scroll.style.flexGrow = 1f;
             _content = new VisualElement { name = "timeline-content" };
             _content.style.position = Position.Relative;
             scroll.Add(_content);
-            root.Add(scroll);
+            body.Add(scroll);
 
-            _inspectorBody = new VisualElement();
-            _inspectorBody.style.borderTopWidth = 1;
-            _inspectorBody.style.borderTopColor = new Color(0, 0, 0, 0.4f);
-            _inspectorBody.style.paddingTop = 4;
-            _inspectorBody.style.paddingLeft = 6;
-            _inspectorBody.style.paddingRight = 6;
-            _inspectorBody.style.paddingBottom = 6;
-            root.Add(_inspectorBody);
+            var detailsScroll = new ScrollView(ScrollViewMode.Vertical) { name = "atl-details-scroll" };
+            detailsScroll.style.width = 300; detailsScroll.style.flexShrink = 0;
+            _inspectorBody = new VisualElement { name = "atl-details" };
+            _inspectorBody.AddToClassList("atl-details");
+            detailsScroll.Add(_inspectorBody);
+            body.Add(detailsScroll);
 
             // P8 단축키: Delete=삭제 · ←/→=넛지 · Ctrl+D=복제 (선택 집합 전체)
             root.RegisterCallback<KeyDownEvent>(e =>
@@ -110,11 +115,45 @@ namespace Game.Gameplay.Editor
             RebuildAll();
         }
 
-        /// <summary>프로젝트의 CueCatalog 가 정확히 1개면 반환(자동 지정). 여러 개/없음이면 null(툴바에서 수동 지정).</summary>
+        /// <summary>프로젝트의 CueCatalog 가 정확히 1개면 반환(자동 지정). 여러 개/없음이면 null(수동 지정).</summary>
         private static CueCatalog FindSingleCatalog()
         {
             var guids = AssetDatabase.FindAssets("t:CueCatalog");
             return guids.Length == 1 ? AssetDatabase.LoadAssetAtPath<CueCatalog>(AssetDatabase.GUIDToAssetPath(guids[0])) : null;
+        }
+
+        /// <summary>디자인 폴리시 스타일시트(.uss) 로드. 없으면 인라인 스타일로 폴백(치명적 아님).</summary>
+        private static void LoadStyleSheet(VisualElement root)
+        {
+            const string ussPath = "Assets/Script/Gameplay/Editor/AbilityTimelineWindow.uss";
+            var sheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(ussPath);
+            if (sheet != null && !root.styleSheets.Contains(sheet)) root.styleSheets.Add(sheet);
+        }
+
+        // ── 상세 패널(W-A) 폴리시 헬퍼 ──
+        private VisualElement Section(string title)
+        {
+            var sec = new VisualElement();
+            sec.AddToClassList("atl-section");
+            var t = new Label(title);
+            t.AddToClassList("atl-section-title");
+            sec.Add(t);
+            _inspectorBody.Add(sec);
+            return sec;
+        }
+
+        private static Label Hint(string text)
+        {
+            var l = new Label(text);
+            l.AddToClassList("atl-hint");
+            return l;
+        }
+
+        private static VisualElement RowBtns()
+        {
+            var v = new VisualElement();
+            v.AddToClassList("atl-btn-row");
+            return v;
         }
 
         // ─────────────────────── 툴바 ───────────────────────
@@ -166,12 +205,8 @@ namespace Game.Gameplay.Editor
             notify.RegisterValueChangedCallback(e => _previewNotify = e.newValue);
             bar.Add(notify);
 
+            // ※ Cue 카탈로그 필드는 상세 패널 '고급(선택)'으로 이동(직접 리소스가 기본이므로).
             bar.Add(new ToolbarSpacer());
-            var cat = new ObjectField("Cue") { objectType = typeof(CueCatalog), value = _catalog };
-            cat.style.width = 190;
-            cat.RegisterValueChangedCallback(e => { _catalog = e.newValue as CueCatalog; RefreshInspector(); });
-            bar.Add(cat);
-
             var actor = new ObjectField("Actor") { objectType = typeof(GameObject), value = _actorPrefab,
                 tooltip = "Event 이벤트의 메서드 드롭다운 소스 — 이 프리팹의 컴포넌트 메서드를 나열." };
             actor.style.width = 190;
@@ -438,6 +473,7 @@ namespace Game.Gameplay.Editor
                 Color col = ColorFor(ev.kind);
 
                 var clip = new VisualElement { name = "cue-clip" };
+                clip.AddToClassList("atl-marker");
                 clip.style.position = Position.Absolute; clip.style.top = 6; clip.style.height = RowH - 12;
                 clip.style.backgroundColor = col;
                 track.Add(clip);
@@ -583,89 +619,58 @@ namespace Game.Gameplay.Editor
             }
             if (_so == null || _so.targetObject != _target) _so = new SerializedObject(_target);
 
+            // ── 선택 이벤트 (W-A: 어느 kind 든 오른쪽에서 전 필드 편집) ──
             if (ValidSel())
             {
                 var el = _so.FindProperty("cueEvents").GetArrayElementAtIndex(_selected);
-                var head = new Label($"선택: cueEvents[{_selected}]");
-                head.style.unityFontStyleAndWeight = FontStyle.Bold;
-                _inspectorBody.Add(head);
-
-                var row1 = Horizontal();
-                row1.Add(BoundField(new EnumField("종류", ECueKind.Sfx), el.FindPropertyRelative("kind"), () => RebuildAll(), 170));
-                row1.Add(BoundField(new FloatField("시각(ms)"), el.FindPropertyRelative("timeMs"), () => RebuildAll(), 170));
-                row1.Add(BoundField(new FloatField("길이(ms)"), el.FindPropertyRelative("durationMs"), () => RebuildAll(), 170));
-                _inspectorBody.Add(row1);
-
                 var kind = (ECueKind)el.FindPropertyRelative("kind").enumValueIndex;
 
-                // 리소스 = 직접 드래그(카탈로그 선택 아님). SFX=AudioClip / VFX=프리팹.
-                var row2 = Horizontal();
+                var sec = Section($"{kind} 이벤트 · [{_selected}]");
+                sec.Add(BoundField(new EnumField("종류", ECueKind.Sfx), el.FindPropertyRelative("kind"), RebuildAll));
+                sec.Add(BoundField(new FloatField("시각(ms)"), el.FindPropertyRelative("timeMs"), RebuildAll));
+                sec.Add(BoundField(new FloatField("길이(ms)"), el.FindPropertyRelative("durationMs"), RebuildAll));
+
                 if (kind == ECueKind.Sfx)
-                {
-                    row2.Add(BoundObject(new ObjectField("SFX 클립") { objectType = typeof(AudioClip) },
-                                         el.FindPropertyRelative("sfxClip"), 320));
-                }
+                    sec.Add(BoundObject(new ObjectField("SFX 클립") { objectType = typeof(AudioClip) }, el.FindPropertyRelative("sfxClip")));
                 else if (kind == ECueKind.Vfx)
                 {
-                    row2.Add(BoundObject(new ObjectField("VFX 프리팹") { objectType = typeof(GameObject) },
-                                         el.FindPropertyRelative("vfxPrefab"), 320));
-                    row2.Add(BoundText(new TextField("소켓"), el.FindPropertyRelative("socket"), 180));
+                    sec.Add(BoundObject(new ObjectField("VFX 프리팹") { objectType = typeof(GameObject) }, el.FindPropertyRelative("vfxPrefab")));
+                    sec.Add(BoundText(new TextField("소켓"), el.FindPropertyRelative("socket")));
                 }
                 else if (kind == ECueKind.Event)
-                {
-                    var note = new Label("메서드 호출(아래) — 인스펙터의 메서드/인자 참조.");
-                    note.style.unityTextAlign = TextAnchor.MiddleLeft; note.style.color = new Color(0.7f, 0.7f, 0.7f);
-                    row2.Add(note);
-                }
+                    BuildEventInspector(el, sec); // 메서드 드롭다운 + 타입 인자
                 else
-                {
-                    var note = new Label("Anim 이벤트 = 지연 애니 트리거(확장점) — 현재 재생 없음.");
-                    note.style.unityTextAlign = TextAnchor.MiddleLeft; note.style.color = new Color(0.7f, 0.7f, 0.7f);
-                    row2.Add(note);
-                }
-                _inspectorBody.Add(row2);
+                    sec.Add(Hint("Anim = 지연 애니 트리거(현재 재생 없음). 시각·길이만 유효."));
 
-                // (선택) 카탈로그 id — 직접 리소스 대신 여러 어빌리티가 공유할 때만.
+                int selCount = _selection.Count;
+                var actions = RowBtns();
+                actions.Add(new Button(DuplicateSelected) { text = selCount > 1 ? $"복제 ({selCount})" : "복제", style = { flexGrow = 1 } });
+                actions.Add(new Button(DeleteSelectedEvents) { text = selCount > 1 ? $"삭제 ({selCount})" : "삭제", style = { flexGrow = 1 } });
+                sec.Add(actions);
+                if (selCount > 1) sec.Add(Hint($"다중 {selCount}개 — Ctrl+클릭 토글 · ←/→ 넛지 · Ctrl+D 복제 · Del 삭제"));
+
+                // 고급(선택) — Cue 카탈로그(툴바에서 이동) + 폴백 id
                 if (kind == ECueKind.Sfx || kind == ECueKind.Vfx)
                 {
-                    var row3 = Horizontal();
-                    row3.Add(BoundText(new TextField("(선택) 카탈로그 id") { tooltip = "직접 리소스가 없을 때만 폴백 조회. 보통 비워둔다." },
-                                       el.FindPropertyRelative("id"), 320));
-                    _inspectorBody.Add(row3);
+                    var adv = Section("고급 (선택) — 직접 리소스 없을 때만");
+                    adv.Add(CueCatalogField());
+                    adv.Add(BoundText(new TextField("카탈로그 id") { tooltip = "직접 리소스가 없을 때만 폴백 조회. 보통 비워둔다." }, el.FindPropertyRelative("id")));
                 }
-
-                if (kind == ECueKind.Event) BuildEventInspector(el); // P7: 메서드 드롭다운 + 타입 인자
-
-                var actions = Horizontal();
-                int selCount = _selection.Count;
-                actions.Add(new Button(DuplicateSelected) { text = selCount > 1 ? $"복제 ({selCount})" : "복제 (Ctrl+D)", style = { width = 130 } });
-                actions.Add(new Button(DeleteSelectedEvents) { text = selCount > 1 ? $"삭제 ({selCount})" : "삭제 (Del)", style = { width = 130 } });
-                _inspectorBody.Add(actions);
-                if (selCount > 1)
-                    _inspectorBody.Add(new Label($"다중 선택 {selCount}개 — Ctrl+클릭 토글 · ←/→ 넛지 · Ctrl+D 복제 · Del 삭제") { style = { fontSize = 10, color = new Color(0.7f, 0.7f, 0.7f) } });
             }
             else
             {
-                _inspectorBody.Add(new Label("마커 클릭=선택 · 트랙 빈 곳 우클릭=추가(id 미정으로 생성 후 여기서 채움)."));
+                _inspectorBody.Add(Hint("이벤트를 클릭해 선택 · 트랙 빈 곳 우클릭=추가."));
             }
 
-            // 판정창(게임플레이) — 서버 bake
-            var gp = Horizontal();
-            gp.Add(new Label("판정창(서버 bake):") { style = { unityFontStyleAndWeight = FontStyle.Bold, width = 120, unityTextAlign = TextAnchor.MiddleLeft } });
-            gp.Add(BoundInt(new IntegerField("startup"), _so.FindProperty("startupMs"), 150));
-            gp.Add(BoundInt(new IntegerField("active"), _so.FindProperty("activeMs"), 150));
-            gp.Add(new Button(AbilityCatalogExporter.Export) { text = "Export(재bake)", style = { width = 120 } });
-            gp.Add(new Button(GenerateHitWindowEvents)
-            {
-                text = "→ Event(개폐)",
-                tooltip = "판정창을 Event 2개(ActivateWindow@시작 · DeactivateWindow@끝)로 생성 — Main WeaponHitbox 를 타임라인이 개폐(옛 Phase 3).",
-                style = { width = 110 }
-            });
-            _inspectorBody.Add(gp);
-
-            var warn = new Label("판정창(startup/active) 변경은 서버가 읽는 값 — Export 후 서버 재빌드 필요. SFX/VFX 는 bake 없이 즉시 유효.");
-            warn.style.fontSize = 10; warn.style.color = new Color(0.7f, 0.7f, 0.7f); warn.style.whiteSpace = WhiteSpace.Normal;
-            _inspectorBody.Add(warn);
+            // ── 판정창 (어빌리티 레벨 · 서버 bake · 항상 표시) ──
+            var gp = Section("판정창 (서버 bake)");
+            gp.Add(BoundInt2(new IntegerField("startup(ms)"), _so.FindProperty("startupMs")));
+            gp.Add(BoundInt2(new IntegerField("active(ms)"), _so.FindProperty("activeMs")));
+            var gpBtns = RowBtns();
+            gpBtns.Add(new Button(AbilityCatalogExporter.Export) { text = "Export", tooltip = "판정창 변경을 서버 abilities.json 에 재bake.", style = { flexGrow = 1 } });
+            gpBtns.Add(new Button(GenerateHitWindowEvents) { text = "→ Event", tooltip = "판정창을 Event 2개(ActivateWindow@시작·DeactivateWindow@끝)로 생성 — Main WeaponHitbox 개폐(옛 Phase 3).", style = { flexGrow = 1 } });
+            gp.Add(gpBtns);
+            gp.Add(Hint("startup/active 는 서버가 읽는 값 → Export 후 서버 재빌드. SFX/VFX 는 bake 없이 즉시."));
         }
 
         private static VisualElement Horizontal()
@@ -675,9 +680,10 @@ namespace Game.Gameplay.Editor
             return v;
         }
 
-        private VisualElement BoundField(EnumField f, SerializedProperty p, global::System.Action onChanged, float w)
+        // 세로 상세 패널용 — 패널 폭을 채우고 .atl-field 클래스로 라벨 폭·간격을 .uss 가 통제(W-A 폴리시).
+        private VisualElement BoundField(EnumField f, SerializedProperty p, global::System.Action onChanged)
         {
-            f.style.width = w;
+            f.AddToClassList("atl-field");
             f.Init((ECueKind)p.enumValueIndex);
             f.RegisterValueChangedCallback(e =>
             {
@@ -686,9 +692,9 @@ namespace Game.Gameplay.Editor
             return f;
         }
 
-        private VisualElement BoundField(FloatField f, SerializedProperty p, global::System.Action onChanged, float w)
+        private VisualElement BoundField(FloatField f, SerializedProperty p, global::System.Action onChanged)
         {
-            f.style.width = w; f.value = p.floatValue;
+            f.AddToClassList("atl-field"); f.value = p.floatValue;
             f.isDelayed = true; // ★ Enter/blur 에만 커밋 — 매 키 입력마다 RebuildAll 로 필드가 파괴돼 편집 불가하던 것 방지
             f.RegisterValueChangedCallback(e =>
             {
@@ -697,36 +703,53 @@ namespace Game.Gameplay.Editor
             return f;
         }
 
-        private VisualElement BoundText(TextField f, SerializedProperty p, float w)
+        private VisualElement BoundText(TextField f, SerializedProperty p)
         {
-            f.style.width = w; f.value = p.stringValue;
+            f.AddToClassList("atl-field"); f.value = p.stringValue;
             f.RegisterValueChangedCallback(e => { _so.Update(); p.stringValue = e.newValue; _so.ApplyModifiedProperties(); });
             return f;
         }
 
-        private VisualElement BoundObject(ObjectField f, SerializedProperty p, float w)
+        private VisualElement BoundObject(ObjectField f, SerializedProperty p)
         {
-            f.style.width = w; f.value = p.objectReferenceValue;
+            f.AddToClassList("atl-field"); f.value = p.objectReferenceValue;
             f.RegisterValueChangedCallback(e => { _so.Update(); p.objectReferenceValue = e.newValue; _so.ApplyModifiedProperties(); RebuildAll(); });
+            return f;
+        }
+
+        private VisualElement BoundInt2(IntegerField f, SerializedProperty p)
+        {
+            f.AddToClassList("atl-field"); f.value = p.intValue; f.isDelayed = true;
+            f.RegisterValueChangedCallback(e => { _so.Update(); p.intValue = e.newValue; _so.ApplyModifiedProperties(); RebuildAll(); });
             return f;
         }
 
         private VisualElement BoundToggle(Toggle f, SerializedProperty p)
         {
-            f.value = p.boolValue;
+            f.AddToClassList("atl-field"); f.value = p.boolValue;
             f.RegisterValueChangedCallback(e => { _so.Update(); p.boolValue = e.newValue; _so.ApplyModifiedProperties(); });
+            return f;
+        }
+
+        /// <summary>window-level CueCatalog 폴백 필드(고급 섹션). 변경 시 인스펙터 갱신.</summary>
+        private VisualElement CueCatalogField()
+        {
+            var f = new ObjectField("Cue 카탈로그") { objectType = typeof(CueCatalog), value = _catalog,
+                tooltip = "직접 리소스 대신 id 로 조회할 때만. 보통 비워둔다." };
+            f.AddToClassList("atl-field");
+            f.RegisterValueChangedCallback(e => { _catalog = e.newValue as CueCatalog; RefreshInspector(); });
             return f;
         }
 
         // ─────────────────────── P7 Event 인스펙터(메서드 + 타입 인자) ───────────────────────
 
-        private void BuildEventInspector(SerializedProperty el)
+        private void BuildEventInspector(SerializedProperty el, VisualElement sec)
         {
             var imProp = el.FindPropertyRelative("invokeMethod");
-            var mrow = Horizontal();
-            var methodField = new TextField("메서드 이름")
-            { tooltip = "액터 컴포넌트의 public 메서드(예: WeaponHitbox.ActivateWindow → ActivateWindow). ▾ 로 목록에서 선택." };
-            methodField.style.width = 260; methodField.value = imProp.stringValue;
+            var mrow = new VisualElement(); mrow.AddToClassList("atl-method-row");
+            var methodField = new TextField("메서드")
+            { tooltip = "액터 컴포넌트의 public 메서드(예: WeaponHitbox.ActivateWindow → ActivateWindow). ▾ 로 목록 선택." };
+            methodField.AddToClassList("atl-field"); methodField.style.flexGrow = 1; methodField.value = imProp.stringValue;
             methodField.isDelayed = true; // ★ 커밋 시에만 RebuildAll — 타이핑 중 필드 파괴 방지
             methodField.RegisterValueChangedCallback(e => { _so.Update(); imProp.stringValue = e.newValue; _so.ApplyModifiedProperties(); RebuildAll(); });
             mrow.Add(methodField);
@@ -736,23 +759,21 @@ namespace Game.Gameplay.Editor
             mpick.SetEnabled(_actorPrefab != null);
             mpick.tooltip = _actorPrefab == null ? "툴바 Actor 에 프리팹을 지정하면 호출 가능 메서드 목록이 뜹니다." : "Actor 의 호출 가능 메서드(void, 0/1 인자)";
             mrow.Add(mpick);
-            _inspectorBody.Add(mrow);
+            sec.Add(mrow);
 
-            // 타입 인자(참조 R5 의 우리 판): None/Float/Int/Bool/String.
+            // 타입 인자(참조 R5): None/Float/Int/Bool/String.
             var atProp = el.FindPropertyRelative("argType");
             var argType = (EInvokeArgType)atProp.enumValueIndex;
-            var arow = Horizontal();
-            var at = new EnumField("인자", argType); at.style.width = 160;
+            var at = new EnumField("인자", argType); at.AddToClassList("atl-field");
             at.RegisterValueChangedCallback(e => { _so.Update(); atProp.enumValueIndex = (int)(EInvokeArgType)e.newValue; _so.ApplyModifiedProperties(); RefreshInspector(); });
-            arow.Add(at);
+            sec.Add(at);
             switch (argType)
             {
-                case EInvokeArgType.Float:  arow.Add(BoundField(new FloatField("값"), el.FindPropertyRelative("argFloat"), null, 160)); break;
-                case EInvokeArgType.Int:    arow.Add(BoundInt(new IntegerField("값"), el.FindPropertyRelative("argInt"), 160)); break;
-                case EInvokeArgType.Bool:   arow.Add(BoundToggle(new Toggle("값"), el.FindPropertyRelative("argBool"))); break;
-                case EInvokeArgType.String: arow.Add(BoundText(new TextField("값"), el.FindPropertyRelative("argString"), 220)); break;
+                case EInvokeArgType.Float:  sec.Add(BoundField(new FloatField("값"), el.FindPropertyRelative("argFloat"), null)); break;
+                case EInvokeArgType.Int:    sec.Add(BoundInt2(new IntegerField("값"), el.FindPropertyRelative("argInt"))); break;
+                case EInvokeArgType.Bool:   sec.Add(BoundToggle(new Toggle("값"), el.FindPropertyRelative("argBool"))); break;
+                case EInvokeArgType.String: sec.Add(BoundText(new TextField("값"), el.FindPropertyRelative("argString"))); break;
             }
-            _inspectorBody.Add(arow);
         }
 
         /// <summary>Actor 프리팹의 컴포넌트에서 호출 가능(void · 0/1 지원-타입 인자) public 메서드를 나열(참조 R4). 선택 시 메서드+인자타입 세팅.</summary>
@@ -797,13 +818,6 @@ namespace Game.Gameplay.Editor
             menu.ShowAsContext();
         }
 
-        private VisualElement BoundInt(IntegerField f, SerializedProperty p, float w)
-        {
-            f.style.width = w; f.value = p.intValue;
-            f.isDelayed = true; // ★ 매 키 입력마다 RebuildAll 로 필드 파괴 방지
-            f.RegisterValueChangedCallback(e => { _so.Update(); p.intValue = e.newValue; _so.ApplyModifiedProperties(); RebuildAll(); });
-            return f;
-        }
 
         // ─────────────────────── 편집 ───────────────────────
 
