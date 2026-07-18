@@ -38,9 +38,14 @@ namespace Game.Gameplay.Character
         private bool _dead;
 
         private CharacterAgentAnimations _animations;
+        private AbilityCuePlayer _cuePlayer;
         private float _animSpeed;
 
-        private void Awake() => _animations = GetComponent<CharacterAgentAnimations>();
+        private void Awake()
+        {
+            _animations = GetComponent<CharacterAgentAnimations>();
+            _cuePlayer = GetComponent<AbilityCuePlayer>();
+        }
 
         public void Initialize(int instanceId, ISocketPacketState state)
         {
@@ -140,6 +145,13 @@ namespace Game.Gameplay.Character
             if (_dead) return;
             _animations?.SetInt(AnimationIntType.ComboStep, comboStep);
             _animations?.SetTrigger(trigger);
+        }
+
+        /// <summary>연출 타임라인(SFX/VFX) 재생 — 라우터가 어빌리티를 넘긴다. 죽었거나 미부착이면 무시(IActorView).</summary>
+        public void PlayAbilityCues(Game.Gameplay.Abilities.AbilityDefinition ability)
+        {
+            if (_dead) return;
+            _cuePlayer?.Play(ability);
         }
 
         public void Dispose()

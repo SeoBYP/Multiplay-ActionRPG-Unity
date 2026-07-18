@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game.Gameplay.Abilities;
 using Game.System.Player;
 using Game.System.Progression;
 using Script.System.GamePlayAbilitySystem;
@@ -55,6 +56,10 @@ namespace Game.Gameplay.Character
         [Tooltip("die 애니 재생 후 파괴까지 지연(초).")]
         [SerializeField] private float deathDespawnDelay = 2.0f;
 
+        [Tooltip("연출용 — 이 몬스터의 주공격 어빌리티(SFX/VFX 타임라인 저작처). 지정하면 공격 시 cueEvents 를 재생한다.\n" +
+                 "Main 은 라우터가 없어 AI 가 직접 넘긴다(던전 몬스터는 라우터가 카탈로그에서 해석). 미지정이면 애니만.")]
+        [SerializeField] private AbilityDefinition attackAbility;
+
         [Inject] private readonly LocalPlayerContext _localPlayer = null;
         // CC 효과 정의 조회(Main 클라 권위). 던전은 서버 S_ApplyEffect 경로. 미주입 시 CC 미적용(데미지만).
         [Inject] private readonly GameplayEffectCatalog _effectCatalog = null;
@@ -74,6 +79,7 @@ namespace Game.Gameplay.Character
         private long _lastAttackMs;      // 발동 게이트(AbilityActivationMath)용 마지막 공격 시각(ms)
         private Vector3 _prevPos;
         private CharacterAgentAnimations _animations;
+        private AbilityCuePlayer _cuePlayer;
         private float _animSpeed;
 
         /// <summary>사망 시 발행(자기 자신 전달). MainMonsterSpawner 가 디스폰·드랍(B-lite 클레임)에 사용.</summary>
@@ -104,6 +110,7 @@ namespace Game.Gameplay.Character
         {
             _hp = maxHp;
             _animations = GetComponent<CharacterAgentAnimations>();
+            _cuePlayer = GetComponent<AbilityCuePlayer>();
             _prevPos = transform.position;
             HpChanged?.Invoke(this); // 체력바 최초 표시(구독 전이면 Start 의 seed 가 받는다)
         }
@@ -160,6 +167,7 @@ namespace Game.Gameplay.Character
             // AC: 발동 = 스윙 애니(헛스윙 포함). i-frame 판정보다 먼저 재생한다(던전 MonsterEntity 와 동일).
             // 몬스터 주공격은 아직 카탈로그 밖(어빌리티화 = B4) → 기본 공격 Cue 고정.
             PlayAbilityCue(AnimationTriggerType.Attack, comboStep: 0);
+            if (attackAbility != null) PlayAbilityCues(attackAbility); // SFX/VFX 타임라인(지정 시). Main 은 라우터 없어 AI 가 직접.
 
             // 회피 무적(i-frame): 무적 중이면 이 공격은 빗나간다(쿨다운은 소모 = 헛스윙). Main 클라 권위 게이트.
             // 던전(서버 권위)은 서버 TickMonsters 가 동일하게 막는다(authority-model 정합).
@@ -234,6 +242,13 @@ namespace Game.Gameplay.Character
             if (IsDead) return;
             _animations?.SetInt(AnimationIntType.ComboStep, comboStep);
             _animations?.SetTrigger(trigger);
+        }
+
+        /// <summary>연출 타임라인(SFX/VFX) 재생 — Main 은 AI(TryAttack)가 attackAbility 를 직접 넘긴다. 사망/미부착이면 무시(IActorView).</summary>
+        public void PlayAbilityCues(AbilityDefinition ability)
+        {
+            if (IsDead) return;
+            _cuePlayer?.Play(ability);
         }
     }
 }

@@ -67,6 +67,10 @@ namespace Game.Gameplay.Abilities
         [Tooltip("ComboStep int 파라미터에 실을 값(콤보 A=0/B=1/C=2). 콤보 미사용이면 0.")]
         public int cueComboStep = 0;
 
+        [Tooltip("타임라인 위의 연출 이벤트(발동 t=0 기준 ms 오프셋에 SFX/VFX 재생). CA-5 타임라인 창에서 편집.\n" +
+                 "cueTrigger 는 주 애니(t=0)를, 이 리스트는 그 위에 얹는 소리·이펙트를 담당한다. bake 안 됨(서버 무지).")]
+        public List<AbilityCueEvent> cueEvents = new();
+
         /// <summary>Shared.Gameplay 순수 타입으로 변환(서버와 동일 판정 데이터). 게임플레이만 — Cue 미포함.</summary>
         public SkillTimeline ToTimeline() => new SkillTimeline(
             id, startupMs, activeMs, recoveryMs, cooldownMs,

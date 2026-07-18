@@ -42,7 +42,8 @@ namespace Game.Gameplay.Character
             var trigger = ability?.cueTrigger ?? AnimationTriggerType.Attack;
             int comboStep = ability?.cueComboStep ?? 0;
 
-            view.PlayAbilityCue(trigger, comboStep);
+            view.PlayAbilityCue(trigger, comboStep);        // 주 애니(t=0)
+            view.PlayAbilityCues(ability);                  // SFX/VFX 타임라인(ms 오프셋). ability=null 이면 뷰가 무시.
         }
     }
 }

@@ -36,6 +36,7 @@ namespace Game.Gameplay.Character
 
         // 스킬 데이터(쿨다운·마나) 조회 — 클라 예측용. DI 미주입(테스트) 시 null → 게이트 없음.
         private AbilityCatalogProvider _skills;
+        private AbilityCuePlayer _cuePlayer; // 로컬 플레이어 발동 시 SFX/VFX 즉발(RTT 없이). 라우터는 원격만 담당.
         private readonly Dictionary<int, float> _lastCastTime = new();
 
         // 마나 리젠 소수부 누적(프레임 dt 비례 회복을 정수 Mana 로 환산). 서버 _manaRegenAccum 과 동일 방식.
@@ -61,6 +62,7 @@ namespace Game.Gameplay.Character
         {
             base.Awake();
             _interactionDetector = this.GetAroundComponent<InteractionDetector>();
+            _cuePlayer = GetComponent<AbilityCuePlayer>(); // 로컬 플레이어 연출(SFX/VFX). 미부착이면 null → 무시.
 
             // 자기 HP 를 관찰해 0 이하가 되면 State.Dead 를 세운다(클라 결정론 HP 기준).
             if (AbilitySystem != null)
@@ -303,6 +305,7 @@ namespace Game.Gameplay.Character
             AgentAnimations?.SetInt(AnimationIntType.ComboStep, comboStep < 0 ? 0 : comboStep);
             AgentAnimations?.SetTrigger(AnimationTriggerType.Attack);
             OnAttackPerformed?.Invoke(skillId);
+            _cuePlayer?.Play(_skills?.Get(skillId)); // SFX/VFX 타임라인 즉발(로컬 권위 연출). 라우터는 원격만.
 
             // 공격 발동 = Action 이동잠금. 스킬 타임라인(startup+active+recovery) 동안 수평 이동 금지(GroundState 폴링).
             float attackRootSec = skill != null ? (skill.StartupMs + skill.ActiveMs + skill.RecoveryMs) / 1000f : 0.4f;

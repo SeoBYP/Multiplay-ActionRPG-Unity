@@ -1,3 +1,5 @@
+using Game.Gameplay.Abilities;
+
 namespace Game.Gameplay.Character
 {
     /// <summary>
@@ -15,5 +17,12 @@ namespace Game.Gameplay.Character
     {
         /// <summary>어빌리티 발동 연출 재생. trigger=재생할 트리거의 의미, comboStep=ComboStep 파라미터 값(콤보 미사용=0).</summary>
         void PlayAbilityCue(AnimationTriggerType trigger, int comboStep);
+
+        /// <summary>
+        /// 어빌리티의 연출 타임라인(SFX/VFX = <see cref="AbilityDefinition.cueEvents"/>)을 발동 기준 ms 오프셋에 재생(CA-5 Phase 1).
+        /// 주 애니(t=0)는 <see cref="PlayAbilityCue"/> 가 담당 — 이건 그 위에 얹는 소리·이펙트. <b>연출 전용·네트워크 0.</b>
+        /// ability=null 이거나 AbilityCuePlayer 미부착이면 조용히 무시.
+        /// </summary>
+        void PlayAbilityCues(AbilityDefinition ability);
     }
 }

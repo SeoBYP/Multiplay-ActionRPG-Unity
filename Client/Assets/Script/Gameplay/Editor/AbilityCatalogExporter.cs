@@ -90,7 +90,7 @@ namespace Game.Gameplay.Editor
                     activationRange = a.activationRange,
                     onHitEffectIds = new List<string>(a.onHitEffectIds ?? new List<string>()),
                     comboChainMs = a.comboChainMs, comboWindowMs = a.comboWindowMs,
-                    // ※ cueTrigger/cueComboStep 은 의도적으로 제외 — 서버는 연출을 모른다.
+                    // ※ cueTrigger/cueComboStep/cueEvents(SFX·VFX 타임라인)은 의도적으로 제외 — 서버는 연출을 모른다.
                 });
             }
 

@@ -335,6 +335,84 @@
 - 잔여: dungeon_03~05 `visualPrefab` 없음(에셋) · `tier` 연출 소비자 없음(보스 체력바·등장 연출 후보) · AC-D(전용 애니·P→P 스케일·VFX Cue) · **`Shared.Gameplay/Abilities/SkillCatalog.cs` 죽은코드 삭제됨**(승인 후 2026-07-17 — 실호출 0, AC-B 가 AbilityCatalog 로 대체. Release 재빌드 209/209·50/50. ⚠ 클라 `Plugins/Shared.Gameplay.dll` 복사는 권한 정책으로 차단 → 사용자 수동 1회 필요).
 - 검증(최종): SocketServer **209/209** · Shared.Gameplay 50/50 · EditMode **192/192** · PlayMode(anim 3/3 · Main 체력바 3/3) · Docker E2E **31/31**. PR #60 → main `972991e5`.
 
+### 2.81 CA-5/AC-D3 Phase 1 — 어빌리티 연출 타임라인 데이터+런타임 (SFX/VFX) (2026-07-18)
+
+전투가 "소리·이펙트 0"이던 것을 데이터 주도 연출 타임라인으로 연다. 사용자 요청 = "언제 Sound/VFX/판정을 편집할지 Timeline 툴로"(이미지 첨부). 설계 합의: **UI=커스텀 창 / 착수=Phase 1(데이터+런타임) 먼저**. **Phase 1a = 코드**(창은 Phase 2).
+
+- **왜 두 갈래인가(핵심 제약)** — 판정창은 서버가 읽어야 하고(권위·치팅), SFX/VFX 는 클라 로컬(권위 없음). gas-architecture §2.5 그대로: **게임플레이 필드만 bake, 연출은 SO 에만**. 시계는 ms 오프셋 단일(서버 헤드리스도 같은 값 읽음).
+- **데이터(신규, 클라 전용)**: `Gameplay/Abilities/AbilityCueEvent.cs`(`{timeMs, kind=Sfx|Vfx|Anim, id, socket}`, 순수) + `AbilityCuePlan.cs`(순수 플래너 — 빈id제거·음수클램프·안정 시간정렬) + `AbilityDefinition.cueEvents` 필드 추가(연출 헤더, **bake 제외**) + `CueCatalog.cs`(SO, id→AudioClip/VFX 프리팹).
+- **런타임(신규)**: `Gameplay/Character/AbilityCuePlayer.cs`(MB) — `Play(ability)` 가 플랜을 timeMs 에 맞춰 발화(SFX=PlayOneShot·VFX=소켓 스폰+자동파괴). UniTask, 파괴 시 취소, **스케일드 타임**(Animator·HitStop 동조). 주 애니(t=0)는 기존 `PlayAbilityCue` 경로 유지 — 이 컴포넌트는 그 위에 얹는 소리·이펙트만.
+- **배선(발동 시점에 이미 ability 를 쥔 3자리)**: ① 던전 원격/몬스터 = `AbilityCueRouter.Route` 가 `view.PlayAbilityCues(ability)` 추가 호출 → **`IActorView` 에 메서드 1개 확장**(문서가 예고한 plug-in 확장점), 구현체 3종(`RemoteDriver`/`MonsterEntity`/`LocalMonster`)이 co-located `AbilityCuePlayer` 로 위임. ② 로컬 플레이어 = `PlayerCharacterAgent.FireSkill` 에서 즉발(RTT 없이, 라우터는 로컬 미등록이라 이중발화 없음 — `CharacterSpawner` 가 RemoteDriver·MonsterEntity 만 `ActorRegistry` 등록 확인). ③ Main 몬스터 = `LocalMonster.TryAttack` 이 선택적 `attackAbility`(SerializeField) 지정 시 자기 큐 재생(Main 은 라우터 없음).
+- **exporter 무변경**: `AbilityCatalogExporter` 는 명시적 `AbilityDto` allowlist → cueEvents 자동 제외(주석 보강만). **서버·`abilities.json`·DLL 무변경**(순수 클라 연출 증분).
+- **테스트**: `AbilityCuePlanTests`(6 — 정렬·클램프·빈id·안정성·원본불변·빈리스트) + `ActorCombatRoutingTests` 강화(라우터가 PlayAbilityCues 도 대상 뷰에만 위임). **EditMode 192→198**, 컴파일 0.
+- **잔여**: Phase 1b(사용자·에셋) = CueCatalog 에셋 생성·실제 SFX/VFX 할당·프리팹에 `AbilityCuePlayer` 부착·어빌리티 1~2개 cueEvents 저작 → 실제로 소리·이펙트가 남. Phase 2(§2.82)=창. Phase 3 = Main `WeaponHitbox` 를 타임라인 active 창으로 구동(애니이벤트 대체 → 던전과 판정 통일).
+
+### 2.82 CA-5 Phase 2 — 어빌리티 타임라인 편집 창 (UI Toolkit) (2026-07-18)
+
+Phase 1a(데이터) 위의 "이미지처럼" 편집 UI. `Gameplay/Editor/AbilityTimelineWindow.cs`(**UI Toolkit** `EditorWindow`, 메뉴 `Tools/Ability/Ability Timeline`). ※ 최초 IMGUI 로 지었으나 **사용자 요청으로 UI Toolkit 전면 재작성**.
+
+- **한 화면·두 갈래 편집**: 트랙 4행(Anim=cueTrigger 앵커+지연 Anim / **판정창**=startup~active / VFX / SFX). **판정창(주황)=게임플레이 → 편집 시 "Export(재bake)·서버 재빌드 필요" 경고**(서버가 읽는 값). SFX/VFX(청록·초록) 마커=연출 → bake 없이 즉시 유효. gas §2.5 두갈래를 UI 로도 시각화.
+- **이벤트 추가 = 트랙 빈 곳 우클릭**(사용자 요청 "SFX/VFX 뭘 쓸지 아직 모름"): `ContextualMenuManipulator` 가 클릭한 시간에 그 트랙 종류의 이벤트를 **id 미정으로 생성** → 인스펙터에서 나중에 채운다. (툴바 +버튼 폐기.) 마커 우클릭=삭제, 좌클릭=선택, 드래그=timeMs(FPS 스냅).
+- **편집 = SerializedObject**: cueEvents/startup/active 를 `SerializedProperty` 로 조작 → **Undo·dirty 자동**(SO 직접 변조 금지). 판정창 좌/우 엣지 드래그=startup/active(끝 고정). 룰러 클릭·헤드 드래그=스크럽. 인스펙터=EnumField/FloatField/TextField 바인딩 + 게임플레이 IntegerField + Export/삭제 버튼.
+- **UI Toolkit 요령**: 마커·엣지·스크럽은 절대배치 `VisualElement` + `PointerDown/Move/Up`+`CapturePointer` 로 드래그. 좌표는 `track.WorldToLocal(e.position)` 로 트랙 로컬 변환(스크롤/패널 오프셋 흡수). 트랙 영역은 가로 `ScrollView`. 상태 변경(추가/삭제/줌/판정창)은 `RebuildAll`(타임라인 작아 전면 재구성이 단순·충분), 드래그는 `style.left` 만 갱신.
+- **⚠ 네임스페이스 함정**: `Game.System` 이 `System` 을 가려 `System.Action` 이 `Game.System.Action` 으로 오해석(CS0234) → `global::System.Action` (메모리 unity-meta 계열 함정 재현). exporter 의 `global::System.IO` 선례와 동일.
+- **검증(EditorWindow=단위테스트 불가 → MCP 실구동)**: 컴파일0 · 창 오픈 예외0(무타겟 안내 경로) · `execute_code` 로 실 `AbilityDefinition`(arachnya_attack, 판정창 200~300) 물려 `SetTarget`→`RebuildAll`(룰러·트랙·앵커·판정창 바·스크럽·인스펙터 바인딩) 예외0 · **우클릭 추가 경로**(`AddEvent(Vfx,150)`)→마커+선택+인스펙터 재구성 예외0 → **삭제+ForceUpdate 비파괴 복원**(에셋 git 무변경). 런타임 무관(에디터 asmdef)=EditMode 198 불변.
+- **잔여**: 재분할 백로그 = [ability-timeline-tool.md](ability-timeline-tool.md)(참조 Fofanius Event Track 해부 → 채택 P3~P8).
+
+### 2.83 CA-5 P3 — Cue id 드롭다운 + 삭제 결함 수정 (2026-07-18)
+
+타임라인 툴을 참조([Fofanius Event Track](https://github.com/Fofanius/unity-tool-timeline-event-track))의 기능으로 구체화하는 재분할 백로그(ability-timeline-tool.md) 첫 항목. **아키텍처=커스텀 창 강화**(서버 권위 bake 유지 — Timeline 은 헤드리스 서버서 못 돎), 사용자 결정.
+
+- **P3 = 참조 R4(메서드 드롭다운)의 우리 판**: 인스펙터 id 는 free text 유지(커스텀 항상 가능) + 옆 **▾ 버튼 → `CueCatalog.IdsFor(kind)` GenericMenu**(그 이벤트 종류의 등록 SFX/VFX id). "뭘 쓸지 모름"을 목록으로 좁히되 자유 입력 보존. 툴바에 **Cue 카탈로그 ObjectField**(프로젝트에 1개면 `FindSingleCatalog` 자동). `CueCatalog.IdsFor(ECueKind)` 공개 접근자 추가(Anim=빈 목록).
+- **⚠ 발견·수정한 결함(원칙 6)**: 창의 `DeleteEvent` 가 쓰는 `SerializedProperty.DeleteArrayElementAtIndex` 는 **관리 참조 리스트(List<AbilityCueEvent>=class)에서 1차 호출이 요소를 null 로만 만들고 크기를 안 줄인다** → 삭제해도 이벤트가 남는 유령. 크기 불변이면 한 번 더 삭제하는 가드 추가(검증: 추가2→삭제1→남음1·null없음). runtime 은 `AbilityCuePlan`/`BuildMarkers` 가 null 을 걸러 무해했으나 데이터가 지저분해짐.
+- **검증(MCP 실구동)**: 컴파일0 · `CueCatalog.IdsFor` kind 분기(SFX 2·VFX 1·Anim 0) · 창에 카탈로그 물려 `RefreshInspector`(▾ 활성/툴팁) 동기 빌드 예외0 · 삭제 가드 실동작 · **비파괴**(임시 카탈로그 in-memory·ClearArray+ClearDirty 로 ability 에셋 git 무변경 확인). ※ 검증 중 `DeleteArrayElementAtIndex` 유령이 인메모리 dirty 로 남아 도메인 리로드 시 저장될 뻔 → `ClearArray`+`ClearDirty` 로 봉합(디스크 0 유지).
+- 다음: P4 마커 툴팁 → P5 스크럽 프리뷰(참조 R7) → P6 윈도우 이벤트 → P7 Invoke(참조 핵심)+Main 판정 통일 → P8 QoL.
+
+### 2.84 CA-5 P4 — 마커 툴팁 + 판정창 바 리사이즈 결함 수정 (2026-07-18)
+
+- **P4(참조 R8)**: 마커·판정창 바·Anim 앵커에 hover `tooltip`(종류·id·시각·소켓 / 판정창 범위·bake 경고 / 주 애니 트리거). 라벨은 짧게, 상세는 툴팁.
+- **⚠ 리사이즈 결함 수정(사용자 지적 "노란 바 좌우 드래그 크기 조절")**: 판정창 엣지 드래그가 **PointerMove 마다 `RebuildAll`** 을 불러 → 엣지 VisualElement 파괴·재생성 → **포인터 캡처 상실**로 한 프레임만 이동하고 끊겼다(찔끔찔끔). 수정: 드래그 중엔 **`Layout()` 로 위치만 즉시 갱신(리빌드 없음)**, `RebuildAll` 은 **PointerUp 에서만**. UI Toolkit 드래그 불변식으로 박제 = "캡처한 엘리먼트를 드래그 중 재생성하지 말 것"(마커 드래그는 원래 `style.left` 만 갱신해 무사했음 — 엣지만 위반).
+- **판정창을 정식 클립화**: 좌/우 **가시 그립**(진한 주황, 6px)=startup/active 리사이즈(끝 고정 규칙 유지), **바 본체 드래그=이동**(startup 이동·active 길이 유지). `MakeGrip`/`WireGrip` 재사용 헬퍼(P6 윈도우 이벤트가 이 위에 올라감).
+- **검증**: 컴파일0 · 창에 실 타겟 물려 RebuildAll(새 바·그립·툴팁) 예외0 · 에셋 무변경(읽기). 드래그 부드러움은 구조적 보장(리빌드 제거)·속성 write 로직은 기존과 동일(원래 값 갱신은 맞았고 캡처만 끊겼음).
+
+### 2.85 CA-5 P5(스크럽 프리뷰) + P6(윈도우 이벤트) (2026-07-18)
+
+사용자 지적 "이거(판정창) 잡고 늘리는 거 모든 것에 다 추가 / VFX 는 안 됨" → **모든 이벤트를 리사이즈 클립화**(P6) + **에디트모드 프리뷰**(P5).
+
+- **P6 = 왜 VFX 가 "안 됐나"**: VFX/SFX/Anim 마커는 **점(크기 0)**이라 잡아 늘릴 게 없었다(판정창 바만 duration 보유). → `AbilityCueEvent.durationMs` 추가(순수, 플래너가 음수 클램프·보존, `AbilityCuePlanTests` +1) → 창의 `BuildEventClips` 가 **모든 이벤트를 판정창과 동일한 클립**으로: 본체 드래그=이동(시각), **우 그립=길이(durationMs)**, 좌 그립=시작(끝 고정). `WireEventGrip`/`SetEventFloat` 헬퍼(판정창의 `WireGrip` 과 형제, 둘 다 드래그 중 `Layout()` 만·놓을 때 RebuildAll = §2.84 캡처 불변식). 인스펙터에 길이(ms) 필드. **런타임**: `AbilityCuePlayer` VFX 수명 = `durationMs`(있으면) else 카탈로그 autoDestroySec.
+- **P5(참조 R7 = TriggerInEditMode)**: 툴바 ▶Preview(토글 ■Stop) + Notify. `StartPreview` → `EditorApplication.update`(`PreviewTick`)가 `timeSinceStartup` 델타로 스크럽을 실시간 전진, **직전 프레임~현재 사이 시각의 이벤트를 발화**(`PreviewFire`): SFX=내부 `UnityEditor.AudioUtil.PlayPreviewClip`(리플렉션·버전차 대비·실패 무해), VFX=씬에 `[TimelinePreview]`(HideAndDontSave) 하위 스폰. 끝(TotalMs)·창 닫힘(`OnDisable`)·타겟 교체 시 `StopPreview`→`CleanupPreview`(스폰·루트 DestroyImmediate). Notify 로그로 카탈로그 없이도 타임라인 확인. ⚠ 에디트모드 파티클 자동 시뮬은 미보장(스폰 가시화까지가 MVP — 파티클 `Simulate` 는 Phase 확장).
+- **검증(MCP 실구동)**: 컴파일0 · **EditMode 198→199**(durationMs 테스트) · 창에 실 타겟 물려 VFX 이벤트 추가→duration 200 부여→`RebuildAll`(클립 폭) 예외0 · 프리뷰 start(True)→tick→fire→stop(False) 예외0 · **비파괴**(ClearArray+ClearDirty, ability 에셋 git 무변경).
+- 다음: P7 Invoke 이벤트(참조 핵심 R3~R6)+Main 판정 통일 → P8 QoL.
+
+### 2.86 CA-5 — Cue 직접 리소스화 + 선택 즉시반영 + P7 착수(Event 이벤트) (2026-07-18)
+
+사용자 3건: ① "Cue 선택 말고 VFX/SFX 처럼 추가", ② "이벤트 클릭 선택 전환 안 됨", ③ P7 착수.
+
+- **① Cue = 직접 리소스**(카탈로그 선택 폐기): `AbilityCueEvent` 에 `sfxClip`(AudioClip)·`vfxPrefab`(GameObject) 추가 → 인스펙터에서 **직접 드래그**(kind 별 ObjectField). `id`+`CueCatalog` 는 **폴백**으로 강등(여러 어빌리티 리소스 공유 시만). `AbilityCuePlan` 필터를 "직접 리소스·id·invokeMethod 중 하나라도 있으면 유지"로, `AbilityCuePlayer`/프리뷰가 **직접 리소스 우선→카탈로그 폴백**. `AbilityCuePlayer.Play` 의 `_catalog==null` 가드 제거(카탈로그 없이도 재생). 인스펙터 ▾ 카탈로그 id 피커(P3) 제거. ⚠ AbilityCueEvent/Plan 이 UnityEngine 의존 얻음(클라 데이터라 무해, 플래너 정규화 로직·테스트는 그대로).
+- **② 선택 즉시반영**: 클릭이 인스펙터는 갱신했으나 **타임라인 하이라이트는 다음 RebuildAll(PointerUp)까지 지연** + 점 이벤트가 그립에 가려 본체 클릭이 어려웠다 → 클립/그립 PointerDown 에서 `_selected=index` 직후 **`Layout()` 즉시 호출**(리빌드 없이 테두리 표시) + 클립 **최소 폭 10→20**(그립 사이 클릭 영역 확보). 그립도 선택 발생.
+- **③ P7 첫 증분(참조 R3~R6 의 우리 판, 대상=self)**: `ECueKind.Event`(=3) + `AbilityCueEvent.invokeMethod` → 런타임 `AbilityCuePlayer` 가 액터 컴포넌트의 **public 0-인자 메서드**를 이름으로 리플렉션 호출(`InvokeOnActor`, `global::System.Reflection` — Game.System 그림자 회피). 창에 **5행 Event 트랙**(노란) + 우클릭 추가 + 인스펙터 메서드 이름 필드. **잔여**: 타입 인자(참조 R5)·메서드 드롭다운(R4)·**Main `WeaponHitbox.ActivateWindow/DeactivateWindow` 배선(판정 통일=옛 Phase 3)**.
+- **검증(MCP 실구동)**: 컴파일0 · **EditMode 199/199** · 직접 프리팹 이벤트 id 없이 유지(planLen=1) · Event 추가+invokeMethod 유지+5행 트랙·인스펙터 예외0 · **비파괴**(ability 에셋 git 무변경). ⚠ 리플렉션 실호출·씬 파티클은 PlayMode 확인 영역(코드 경로 검증까지).
+
+### 2.87 CA-5 P7 잔여 — 타입 인자 · 메서드 드롭다운 · 판정창→Event 헬퍼 (2026-07-18)
+
+P7 첫 증분(§2.86 = Event 종류+0-인자 호출) 위에 참조 R4/R5 를 마저 채우고 Main 판정 통일의 코드조각을 얹었다.
+
+- **타입 인자(참조 R5)**: `EInvokeArgType`(None/Float/Int/Bool/String — 대상=self 라 참조 8종 중 스칼라/문자열만, Vector/Object/Color 는 YAGNI) + `AbilityCueEvent.argFloat/argInt/argBool/argString`. 런타임 `AbilityCuePlayer.InvokeOnActor(ev)` 가 argType 으로 **시그니처를 골라**(0/1-인자) 리플렉션 호출. 플래너가 arg 필드 캐리.
+- **메서드 드롭다운(참조 R4)**: 툴바 **Actor 프리팹** 필드 신설 → Event 인스펙터 ▾ 가 그 프리팹 `GetComponentsInChildren<Component>` 의 **void·0/1 지원-타입 인자 public 메서드**를 나열(`ShowMethodMenu`, IsSpecialName/제네릭 제외 = 참조 HasExpectedSignature 대응). 선택 시 메서드명+인자타입 자동 세팅. 편집 시점 액터 부재를 프리팹 지정으로 해소(런타임 대상은 여전히 self).
+- **판정창→Event 헬퍼(옛 Phase 3 = Main 판정 통일 코드조각)**: 인스펙터 `→ Event(개폐)` 버튼이 판정창(startup/active)을 **Event 2개**(`ActivateWindow`@시작·`DeactivateWindow`@끝)로 굽는다 → Main `WeaponHitbox`(이미 public `ActivateWindow`/`DeactivateWindow` 보유)를 타임라인이 개폐. **코드 변경 0 으로 판정 통일 저작 가능** — 잔여(애니이벤트 실제 제거·Actor 프리팹 배선·플레이 검증)는 실동작 변경이라 사용자.
+- **⚠ 발견·수정한 결함(원칙 6)**: `AddEvent` 가 새 배열 요소의 리소스/메서드 필드를 초기화 안 해 **Unity 배열 증가가 이전 요소 값을 복사**(VFX+프리팹 뒤 SFX 추가 시 프리팹 상속) → 공용 `ResetEvent` 로 전 필드 초기화(검증: 새 SFX 의 vfxPrefab=null).
+- **검증(MCP 실구동)**: 컴파일0 · **EditMode 199/199** · 헬퍼 2이벤트(ActivateWindow@200·DeactivateWindow@300) · 필드초기화 정상 · 타입인자 캐리(Float 1.5) · Event 인스펙터(드롭다운+인자) 예외0 · **비파괴**(ability 에셋 git 무변경). ⚠ 리플렉션 실호출·메서드메뉴 팝업·씬 파티클은 PlayMode 영역. **→ CA-5 P0~P7 코드 완료**(P8 QoL·Phase 1b 에셋 배선 잔여).
+
+### 2.88 CA-5 P8 — QoL(복제·넛지·다중 선택) · CA-5 P0~P8 코드 완료 (2026-07-18)
+
+타임라인 툴 마지막 편의 기능(참조 F). **다중 선택은 그룹 delete/nudge/duplicate 에 적용, 드래그/리사이즈는 단일(primary) 유지**(과설계 방지 — 드래그 중 그룹 재배치는 캡처 불변식과 충돌).
+
+- **선택 집합**: `_selected`(primary=인스펙터·드래그·리사이즈 대상) + `HashSet<int> _selection`(그룹). 클립 클릭=`SelectSingle`, **Ctrl/⌘+클릭=`ToggleSelect`**. Layout 하이라이트가 `_selection.Contains` 로 다중 표시. 그립(리사이즈)은 항상 단일.
+- **단축키(root KeyDown)**: `Del`=그룹 삭제 · `←/→`=그룹 넛지(스냅 시 1프레임=1000/fps, 아니면 1ms) · `Ctrl+D`=그룹 복제. 인스펙터 복제/삭제 버튼 + 클립 우클릭 복제/삭제(다중이면 그룹, 아니면 그 클립).
+- **복제**: `DuplicateSelected` 가 소스들을 끝에 추가(살짝 오프셋으로 겹침 방지) → 복제본이 새 선택. `CopyEvent` 가 13필드를 propertyType 별로 복사. **삭제는 내림차순**(인덱스 밀림 방지) + `DeleteArrayItem`(관리 리스트 이중삭제 가드 = §2.83 재사용).
+- **검증(MCP 실구동)**: 컴파일0 · 다중선택{0,1}→넛지(둘 다 +50)→복제(2→4·새선택{2,3})→다중삭제(4→2) 예외0 · **비파괴**(ability 에셋 git 무변경).
+- **→ CA-5(어빌리티 타임라인 툴) P0~P8 코드 전부 완료.** 백로그 = [ability-timeline-tool.md](ability-timeline-tool.md). 잔여 = 사용자 배선(Phase 1b 에셋·Actor 프리팹) + Main 판정 통일 애니이벤트 실제 제거·플레이검증.
+
 ### 2.63 캡슐 몬스터 제거 + slime→creepy_demon 전면 교체 (2026-07-16)
 
 플레이스홀더 캡슐(`Monster.prefab` 던전 폴백·`LocalMonster.prefab` Main) + `slime` 몬스터를 실모델 몬스터로 대체. 사용자 지시 = "캡슐 3종 안 씀 → 실모델로, slime 데이터는 demon 으로 교체".
