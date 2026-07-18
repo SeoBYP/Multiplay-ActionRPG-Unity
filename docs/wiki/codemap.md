@@ -460,7 +460,7 @@ ability-timeline-tool.md §6 백로그 소진(소 3건). 커밋 `dcd04689`.
 타임라인 창 하단에 **액터 메시를 실제로 렌더링**하는 뷰포트 추가. ▶Preview/플레이헤드 스크럽에 맞춰 캐릭터가 애니를 재생 → 기획자가 "이 애니 프레임에 SFX/VFX 를 맞춘다"를 눈으로 정렬. 사용자 결정 = **A(previewClip 필드) + MVP만**.
 
 - **애니 소스 = `AbilityDefinition.previewClip`(AnimationClip 신규 필드)**: 어빌리티는 클립을 직접 안 갖고 `cueTrigger`(enum)만 가짐 → 스크럽(앞뒤) 프리뷰엔 클립이 필요. **에디터 전용·bake 안 됨**(exporter `AbilityDto` allowlist 가 cue 필드 제외 → "서버는 Cue 를 모른다" 교리 보존). "Cue(연출)—클라 전용" 섹션에 위치.
-- **렌더 = `PreviewRenderUtility`**(격리 씬, 사용자 씬 무오염). 하단 `IMGUIContainer`(`_viewportGui`)가 텍스처를 그림. 접힘 토글·오빗(드래그) ·줌(휠)·오토프레임(Renderer bounds).
+- **렌더 = `PreviewRenderUtility`**(격리 씬, 사용자 씬 무오염) + **URP `RenderPipeline.SubmitRenderRequest`**(`RenderActor`). ⚠ **URP(17.4) 주의**: PRU 기본 경로(`BeginPreview/Render/EndPreview`)는 빌트인 파이프라인이라 **URP 셰이더가 전부 마젠타**로 나온다(플레이테스트에서 발견 — 픽셀 리드백 magenta=314/314). → 카메라를 URP 로 RT 에 SubmitRenderRequest(magenta=0/183). SubmitRenderRequest 는 PRU 기본 조명을 안 쓰므로 **프리뷰 씬에 직접 디렉셔널 라이트**(`_previewLight`) 추가. 빌트인 프로젝트면 예전 경로로 폴백. 하단 `IMGUIContainer`(`_viewportGui`)가 텍스처를 그림. 접힘 토글·오빗(드래그)·줌(휠)·오토프레임(Renderer bounds).
 - **샘플 = PlayableGraph(Manual)**: `AnimationClipPlayable` → `AnimationPlayableOutput`(액터 Animator) → `SetTime(t)`×2 + `Evaluate()`. **휴머노이드·제네릭 공용, 전역 AnimationMode 부작용 없음**(스크럽 잦은 툴에 적합). 클립/인스턴스 바뀌면 그래프 재생성.
 - **안전한 인스턴스화**: 비활성 홀더 아래로 `Instantiate` → 게임 스크립트(`MonoBehaviour`) Awake 전에 전부 `DestroyImmediate` → 활성화. 네트워크·VContainer 없이 순수 렌더/애니만(스모크 `mbLeft=0`). `AnimatorCullingMode.AlwaysAnimate`.
 - **연결**: `PositionScrub()` 에 `_viewportGui.MarkDirtyRepaint()` 추가 → 모든 스크럽 변경(드래그·룰러클릭·PreviewTick)이 뷰포트 재샘플. 툴바 Actor 변경도 리페인트→`RecreateActor`. `OnDisable`=`CleanupViewport`(그래프·인스턴스·PRU 정리). SFX/VFX 발화는 W2a 범위 밖(기존대로) → W2b 에서 뷰포트 스폰.

@@ -88,6 +88,8 @@ namespace Game.Gameplay.Editor
         private UnityEngine.Animations.AnimationClipPlayable _clipPlayable;
         private bool _graphValid;
         private AnimationClip _graphClip;
+        private RenderTexture _rt;                       // URP 렌더 타겟(빌트인 BeginPreview 경로는 URP 셰이더가 마젠타)
+        private Light _previewLight;                     // 프리뷰 씬 직접 조명(PRU 기본 조명은 BeginPreview 경로 전용)
 
         [MenuItem("Tools/Ability/Ability Timeline")]
         private static void Open() => GetWindow<AbilityTimelineWindow>("Ability Timeline").minSize = new Vector2(760, 440);
@@ -1305,11 +1307,8 @@ namespace Game.Gameplay.Editor
 
             if (_lastSampledMs != _scrubMs) { SampleActor(_scrubMs); _lastSampledMs = _scrubMs; }
 
-            _pru.BeginPreview(r, GUIStyle.none);
-            PositionCamera();
-            _pru.Render();
-            var tex = _pru.EndPreview();
-            GUI.DrawTexture(r, tex, ScaleMode.StretchToFill, false);
+            var tex = RenderActor(r);
+            if (tex != null) GUI.DrawTexture(r, tex, ScaleMode.StretchToFill, false);
 
             var lbl = $"{Mathf.RoundToInt(_scrubMs)} ms";
             if (_target != null && _target.previewClip == null) lbl += "  (프리뷰 클립 미지정 — 바인드 포즈)";
@@ -1364,6 +1363,16 @@ namespace Game.Gameplay.Editor
             if (animator != null) { animator.enabled = true; animator.cullingMode = AnimatorCullingMode.AlwaysAnimate; }
 
             _pru.AddSingleGO(_actorInstance);
+
+            // URP SubmitRenderRequest 경로는 PRU 기본 조명을 안 쓴다 → 프리뷰 씬에 직접 디렉셔널 라이트 추가.
+            if (_previewLight == null)
+            {
+                var lgo = new GameObject("ATL-preview-light") { hideFlags = HideFlags.HideAndDontSave };
+                _previewLight = lgo.AddComponent<Light>();
+                _previewLight.type = LightType.Directional;
+                _previewLight.intensity = 1.2f;
+                _pru.AddSingleGO(lgo);
+            }
         }
 
         /// <summary>previewClip 을 PlayableGraph 로 액터 Animator 에 스크럽 샘플(휴머노이드/제네릭 공용). 클립/인스턴스 바뀌면 그래프 재생성.</summary>
@@ -1413,9 +1422,35 @@ namespace Game.Gameplay.Editor
             cam.fieldOfView = 40f;
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.13f, 0.13f, 0.14f);
-            _pru.ambientColor = new Color(0.35f, 0.35f, 0.35f);
-            if (_pru.lights.Length > 0) { _pru.lights[0].intensity = 1.2f; _pru.lights[0].transform.rotation = Quaternion.Euler(40f, 40f, 0f); }
-            if (_pru.lights.Length > 1) { _pru.lights[1].intensity = 0.7f; _pru.lights[1].transform.rotation = Quaternion.Euler(-20f, -120f, 0f); }
+            if (_previewLight != null) _previewLight.transform.rotation = Quaternion.Euler(40f, 40f, 0f);
+        }
+
+        /// <summary>프리뷰 카메라를 <b>URP 파이프라인</b>으로 RT 에 렌더한다. 빌트인 경로(BeginPreview/Render)는 URP 셰이더가 마젠타로 나오므로
+        /// <c>RenderPipeline.SubmitRenderRequest</c> 를 쓴다. 미지원(빌트인 프로젝트)이면 예전 경로로 폴백.</summary>
+        private Texture RenderActor(Rect r)
+        {
+            int w = Mathf.Max(8, (int)r.width), h = Mathf.Max(8, (int)r.height);
+            if (_rt == null || _rt.width != w || _rt.height != h)
+            {
+                if (_rt != null) _rt.Release();
+                _rt = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32) { hideFlags = HideFlags.HideAndDontSave };
+            }
+            var cam = _pru.camera;
+            cam.aspect = (float)w / h;
+            PositionCamera();
+
+            var req = new UnityEngine.Rendering.RenderPipeline.StandardRequest { destination = _rt };
+            if (UnityEngine.Rendering.RenderPipeline.SupportsRenderRequest(cam, req))
+            {
+                cam.targetTexture = _rt;
+                UnityEngine.Rendering.RenderPipeline.SubmitRenderRequest(cam, req);
+                cam.targetTexture = null;
+                return _rt;
+            }
+            // 빌트인 폴백(URP 아닌 프로젝트)
+            _pru.BeginPreview(r, GUIStyle.none);
+            _pru.Render();
+            return _pru.EndPreview();
         }
 
         private void FrameActor()
@@ -1439,7 +1474,9 @@ namespace Game.Gameplay.Editor
         {
             DestroyGraph();
             if (_actorInstance != null) { UnityEngine.Object.DestroyImmediate(_actorInstance); _actorInstance = null; }
+            _previewLight = null; // PRU.Cleanup 이 프리뷰 씬과 함께 파괴 → 참조만 해제
             _sampledActorPrefab = null; _viewFramed = false; _lastSampledMs = float.NaN;
+            if (_rt != null) { _rt.Release(); _rt = null; }
             if (_pru != null) { _pru.Cleanup(); _pru = null; }
         }
 
