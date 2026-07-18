@@ -26,6 +26,8 @@ namespace Game.Gameplay.Character
         /// <summary>DI/테스트용 런타임 주입(프리팹 SerializeField 대신 코드로 지정).</summary>
         public void SetCatalog(CueCatalog catalog) => _catalog = catalog;
 
+        private CharacterAgentAnimations _anim;
+
         private void Awake()
         {
             _audio = GetComponent<AudioSource>();
@@ -35,6 +37,7 @@ namespace Game.Gameplay.Character
                 _audio.playOnAwake = false;
                 _audio.spatialBlend = 1f; // 3D 위치 기반
             }
+            _anim = GetComponent<CharacterAgentAnimations>(); // W7: 지연 Anim 트리거 발화용
         }
 
         /// <summary>어빌리티 연출 재생. cueEvents 가 없거나 카탈로그 미지정이면 조용히 아무것도 안 한다.</summary>
@@ -91,7 +94,8 @@ namespace Game.Gameplay.Character
                     break;
                 }
                 case ECueKind.Anim:
-                    // 지연 애니 트리거는 확장점(Phase). 주 애니(t=0)는 cueTrigger 경로가 담당하므로 지금은 무시.
+                    // W7: 지연 애니 트리거를 액터 Animator 로 발화(주 애니 t=0 는 cueTrigger 경로).
+                    _anim?.SetTrigger(ev.animTrigger);
                     break;
 
                 case ECueKind.Event:

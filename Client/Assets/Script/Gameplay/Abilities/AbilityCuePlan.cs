@@ -28,9 +28,10 @@ namespace Game.Gameplay.Abilities
             foreach (var e in events)
             {
                 if (e == null) continue;
-                // 재생 수단이 하나도 없으면 제거(직접 클립/프리팹·카탈로그 id·Event 메서드 중 무엇도 없음 = 무의미).
+                // 재생 수단이 하나도 없으면 제거(직접 클립/프리팹·카탈로그 id·Event 메서드·Anim 트리거 중 무엇도 없음 = 무의미).
                 bool hasPayload = e.sfxClip != null || e.vfxPrefab != null
-                                  || !string.IsNullOrEmpty(e.id) || !string.IsNullOrEmpty(e.invokeMethod);
+                                  || !string.IsNullOrEmpty(e.id) || !string.IsNullOrEmpty(e.invokeMethod)
+                                  || (int)e.animTrigger != 0; // AnimationTriggerType.None = 0
                 if (!hasPayload) continue;
                 list.Add(new AbilityCueEvent
                 {
@@ -41,6 +42,7 @@ namespace Game.Gameplay.Abilities
                     vfxPrefab = e.vfxPrefab,
                     id = e.id,
                     socket = e.socket,
+                    animTrigger = e.animTrigger,
                     invokeMethod = e.invokeMethod,
                     argType = e.argType,
                     argFloat = e.argFloat,

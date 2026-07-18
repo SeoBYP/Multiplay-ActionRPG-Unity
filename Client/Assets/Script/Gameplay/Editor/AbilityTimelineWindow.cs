@@ -51,6 +51,7 @@ namespace Game.Gameplay.Editor
         private int _selected = -1;                     // primary(인스펙터·드래그·리사이즈 대상)
         private readonly HashSet<int> _selection = new(); // P8 다중 선택(그룹 delete/nudge/duplicate). primary 포함.
         private bool _hitboxSelected;                     // 판정창 바가 선택됨(이벤트 선택과 배타)
+        private readonly global::System.Collections.Generic.HashSet<(int kind, int lane)> _mutedLanes = new(); // W6: 프리뷰 음소거 레인
 
         private VisualElement _content;   // 스크롤 내부, width = 타임라인 길이
         private VisualElement _headerColumn; // 왼쪽 고정 트랙 헤더 열(이름·＋/×)
@@ -230,7 +231,7 @@ namespace Game.Gameplay.Editor
             if (_previewing) StopPreview();
             _target = a;
             _so = a != null ? new SerializedObject(a) : null;
-            _selected = -1; _selection.Clear(); _hitboxSelected = false;
+            _selected = -1; _selection.Clear(); _hitboxSelected = false; _mutedLanes.Clear();
             _laneCount = new[] { 1, 1, 1, 1 }; // 어빌리티 바뀌면 빈 레인 초기화(사용 중 레인은 EffLanes 가 복원)
             _scrubMs = 0;
             RebuildAll();
@@ -362,6 +363,18 @@ namespace Game.Gameplay.Editor
             if (kind != KHitbox)
             {
                 int capKind = kind, capLane = lane;
+                bool muted = _mutedLanes.Contains((kind, lane));
+                if (muted) name.style.color = new Color(0.5f, 0.5f, 0.5f); // W6: 음소거 레인 흐리게
+
+                var mute = new Button(() =>
+                {
+                    if (!_mutedLanes.Remove((capKind, capLane))) _mutedLanes.Add((capKind, capLane));
+                    RebuildAll();
+                }) { text = "M", tooltip = "이 레인 음소거(▶Preview 에서 제외)" };
+                mute.style.width = 20; mute.style.height = 18; mute.style.marginRight = 1; mute.style.paddingLeft = 0; mute.style.paddingRight = 0;
+                if (muted) mute.style.color = new Color(0.9f, 0.45f, 0.45f);
+                head.Add(mute);
+
                 var add = new Button(() => AddLane(capKind)) { text = "＋", tooltip = $"{KindName(kind)} 레인 추가" };
                 add.style.width = 20; add.style.height = 18; add.style.marginRight = 1; add.style.paddingLeft = 0; add.style.paddingRight = 0;
                 head.Add(add);
@@ -416,6 +429,7 @@ namespace Game.Gameplay.Editor
             track.style.left = 0; track.style.top = RowTop(r);
             track.style.width = w; track.style.height = RowH;
             track.style.backgroundColor = RowTint(kind, lane); // 종류별 색조(헤더와 동일)
+            if (kind != KHitbox && _mutedLanes.Contains((kind, lane))) track.style.opacity = 0.45f; // W6: 음소거 레인 흐리게(클립 포함)
             _content.Add(track);
             _rowTracks[r] = track;
 
@@ -577,10 +591,15 @@ namespace Game.Gameplay.Editor
                     var e2 = index < _target.cueEvents.Count ? _target.cueEvents[index] : null;
                     if (e2 == null) return;
                     float x0 = XForTime(e2.timeMs);
-                    float w = Mathf.Max(20, e2.durationMs * _pxPerMs); // 최소 폭(즉발도 본체 클릭·선택되게 — 그립 사이 여유)
+                    // W5: 즉발(길이 0)=둥근 점 · 지속(길이>0)=바 로 시각 구분.
+                    bool isPoint = e2.durationMs <= 0.5f;
+                    float w = isPoint ? 14f : Mathf.Max(20, e2.durationMs * _pxPerMs);
                     clip.style.left = x0; clip.style.width = w;
+                    float rad = isPoint ? (RowH - 12) / 2f : 3f;
+                    clip.style.borderTopLeftRadius = clip.style.borderTopRightRadius = rad;
+                    clip.style.borderBottomLeftRadius = clip.style.borderBottomRightRadius = rad;
                     gripL.style.left = x0 - 3; gripR.style.left = x0 + w - 3;
-                    lbl.style.left = x0 + 10;
+                    lbl.style.left = x0 + w + 3;
                     lbl.text = string.IsNullOrEmpty(e2.id) ? "(id 미정)" : e2.id;
                     clip.tooltip = $"{e2.kind} · {(string.IsNullOrEmpty(e2.id) ? "(id 미정)" : e2.id)} · {Mathf.RoundToInt(e2.timeMs)}~{Mathf.RoundToInt(e2.timeMs + e2.durationMs)}ms"
                                  + (e2.kind == ECueKind.Vfx && !string.IsNullOrEmpty(e2.socket) ? $" @ {e2.socket}" : "");
@@ -734,8 +753,15 @@ namespace Game.Gameplay.Editor
                 }
                 else if (kind == ECueKind.Event)
                     BuildEventInspector(el, sec); // 메서드 드롭다운 + 타입 인자
-                else
-                    sec.Add(Hint("Anim = 지연 애니 트리거(현재 재생 없음). 시각·길이만 유효."));
+                else // Anim
+                {
+                    var tp = el.FindPropertyRelative("animTrigger");
+                    var af = new EnumField("애니 트리거", (Game.Gameplay.Character.AnimationTriggerType)tp.enumValueIndex);
+                    af.AddToClassList("atl-field");
+                    af.RegisterValueChangedCallback(e => { _so.Update(); tp.enumValueIndex = (int)(Game.Gameplay.Character.AnimationTriggerType)e.newValue; _so.ApplyModifiedProperties(); RebuildAll(); });
+                    sec.Add(af);
+                    sec.Add(Hint("지연 애니 트리거(주 트리거 cueTrigger 는 t=0). 액터 Animator 로 발화(W7)."));
+                }
 
                 int selCount = _selection.Count;
                 var actions = RowBtns();
@@ -960,6 +986,7 @@ namespace Game.Gameplay.Editor
             e.FindPropertyRelative("vfxPrefab").objectReferenceValue = null;
             e.FindPropertyRelative("id").stringValue = "";
             e.FindPropertyRelative("socket").stringValue = "";
+            e.FindPropertyRelative("animTrigger").enumValueIndex = 0; // None
             e.FindPropertyRelative("invokeMethod").stringValue = "";
             e.FindPropertyRelative("argType").enumValueIndex = (int)EInvokeArgType.None;
             e.FindPropertyRelative("argString").stringValue = "";
@@ -1058,7 +1085,7 @@ namespace Game.Gameplay.Editor
 
         private static void CopyEvent(SerializedProperty s, SerializedProperty d)
         {
-            string[] fields = { "timeMs", "durationMs", "kind", "lane", "sfxClip", "vfxPrefab", "id", "socket", "invokeMethod", "argType", "argFloat", "argInt", "argBool", "argString" };
+            string[] fields = { "timeMs", "durationMs", "kind", "lane", "sfxClip", "vfxPrefab", "id", "socket", "animTrigger", "invokeMethod", "argType", "argFloat", "argInt", "argBool", "argString" };
             foreach (var fn in fields)
             {
                 var sp = s.FindPropertyRelative(fn);
@@ -1125,6 +1152,8 @@ namespace Game.Gameplay.Editor
 
         private void PreviewFire(AbilityCueEvent ev)
         {
+            if (_mutedLanes.Contains(((int)ev.kind, Mathf.Max(0, ev.lane)))) return; // W6: 음소거 레인은 프리뷰 제외
+
             if (_previewNotify)
                 Debug.Log($"[TimelinePreview] {Mathf.RoundToInt(ev.timeMs)}ms · {ev.kind} · '{(string.IsNullOrEmpty(ev.id) ? "(id 미정)" : ev.id)}'");
 

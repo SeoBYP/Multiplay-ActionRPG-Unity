@@ -1,4 +1,5 @@
 using System;
+using Game.Gameplay.Character;
 using UnityEngine;
 
 namespace Game.Gameplay.Abilities
@@ -61,6 +62,9 @@ namespace Game.Gameplay.Abilities
 
         /// <summary>VFX 부착 소켓(자식 Transform 이름, 예: hand_r). 빈 문자열=루트. SFX 는 무시.</summary>
         public string socket;
+
+        /// <summary>Anim 종류일 때 발동할 애니 트리거(주 cueTrigger 는 t=0, 이건 지연 발화 — W7). 액터 CharacterAgentAnimations 로 전달.</summary>
+        public AnimationTriggerType animTrigger;
 
         /// <summary>Event 종류일 때 호출할 <b>액터 컴포넌트의 public 메서드 이름</b>(예: ActivateWindow). P7.</summary>
         public string invokeMethod;
