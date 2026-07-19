@@ -15,7 +15,7 @@ MonoBehaviour:
   mapId: dungeon_03
   expReward: 700
   monsterLevel: 12
-  visualPrefab: {fileID: 0}
+  visualPrefab: {fileID: 395377278721909691, guid: 5b96864f9c019d44784274d95efba9bd, type: 3}
   playerSpawns:
   - position: {x: -3, y: 0, z: -26}
     rotationY: 0
