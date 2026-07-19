@@ -5858,6 +5858,7 @@ MonoBehaviour:
   m_animationDeathTrigger: Die
   m_animationDodgeTrigger: 
   m_animationReviveTrigger: 
+  m_animationAttackSpecialTrigger: AttackSpecial
 --- !u!1 &1772817591172337522
 GameObject:
   m_ObjectHideFlags: 0

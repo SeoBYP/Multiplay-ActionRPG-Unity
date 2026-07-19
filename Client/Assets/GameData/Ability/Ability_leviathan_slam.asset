@@ -28,5 +28,8 @@ MonoBehaviour:
   - stun_1_5s
   comboChainMs: 0
   comboWindowMs: 0
-  cueTrigger: 5
+  cueTrigger: 9
   cueComboStep: 0
+  cueEvents: []
+  previewClip: {fileID: 1827226128182048838, guid: e4ea632cace9728478aefc57257fbf6b, type: 3}
+  sections: []

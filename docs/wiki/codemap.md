@@ -509,6 +509,16 @@ W2a 는 VFX 를 숨김 루트(`_previewRoot`)에 스폰해 뷰포트에 안 보�
 
 **디자인 폴리시(2026-07-18, 시각만·기능 불변)**: "너무 밋밋" 피드백 → 클립/판정창/앵커에 상단 광택(`AddGloss`)+어두운 테두리+라운드, 트랙헤더 액센트 알약+종류색 볼드 라벨+행 구분선, 룰러 주(100)/보조(50) 눈금, 스크럽 2px+라운드 헤드, 섹션 세그 테두리+볼드. `.uss` = 섹션 좌액센트 카드·버튼 hover 전환·삭제(`atl-danger` 빨강)·Export(`atl-accent`)·헤더버튼(`atl-hdr-btn`) hover. ⚠ UITK 인라인 스타일이 USS 를 이기므로 hover 는 인라인 미설정 프로퍼티(버튼 bg)에만, 클립류 입체는 인라인 광택으로. **레이아웃(반응형, Unity Animator 식)**: 가운데 타임라인 `ScrollView` `flexGrow=1`(남은 폭 채움 → 프리뷰 오른쪽 도킹). `contentW = max(어빌리티 실폭, 뷰포트 폭)` → 짧은 어빌리티도 룰러·트랙이 창 끝까지 확장(빈 눈금 포함, 실제 tick 은 그대로). `BuildRuler` 눈금은 `TimeForX(w)` 까지. 창 리사이즈 반응 = `scroll.contentViewport` `GeometryChangedEvent`→`OnViewportResized`(폭 변화 시만 `RebuildTimeline`, `_lastViewportW` 가드로 루프 방지). (중간에 `flexGrow=0`+내용폭 시도했으나 프리뷰가 가운데로 와 오른쪽이 비어 반응형으로 재수정.) **범위 밖 구분(Unity Animation 식)**: `AbilityEndMs`(=max(startup+active+recovery, 이벤트끝, 구간끝)) 이후 확장 영역을 `BuildOutsideDim` 이 반투명 검정(a0.32)+경계선으로 덮어 실제 범위와 빈 확장을 시각 구분(스크럽 아래·pickingMode Ignore 로 클릭 통과).
 
+### 2.97 AC-D1 어빌리티별 전용 애니 — leviathan 슬램 (2026-07-20)
+
+보스 강스킬이 평타와 같은 `Attack` 트리거를 써서 슬램이 평타처럼 보이던 문제 해결. **유일한 다중-어빌리티 몬스터 = leviathan_boss**(`leviathan_attack`+`leviathan_slam`, 둘 다 cueTrigger=Attack). 다른 몬스터는 어빌리티 1개=Attack이 이미 전용이라 대상 아님(8종 컨트롤러 감사로 확인).
+
+- **흐름**: `AbilityCueRouter`가 ability.cueTrigger(기본 Attack)를 `IActorView.PlayAbilityCue`로 넘김 → `CharacterAgentAnimations.SetTrigger` → 컨트롤러 파라미터.
+- **변경 4곳**: ① `AnimationTriggerType`에 `AttackSpecial` **끝에 추가**(=9, 기존 직렬화 인덱스 불변) + `CharacterAgentAnimations.m_animationAttackSpecialTrigger` 필드·매핑 ② `Ability_leviathan_slam.cueTrigger=AttackSpecial`(연출 필드, **bake 안 됨**) ③ `Monster_leviathan_AC.controller`에 `AttackSpecial` 상태(`Leviathan@AttackHard` 클립)+trigger 파라미터+AnyState→AttackSpecial→Idle(exitTime 0.85) ④ `Monster_leviathan.prefab` CAA `m_animationAttackSpecialTrigger="AttackSpecial"`.
+- **리타게팅 무관**: leviathan 클립은 leviathan 스켈레톤 전용(generic) — 같은 스켈레톤 컨트롤러라 그대로 재생(플레이어 IdaFaber 스왑과 달리 문제없음).
+- **미배선 캐릭터 안전**: CAA는 파라미터명 빈 값이면 SetTrigger 조용히 스킵 → AttackSpecial 안 쓰는 다른 몬스터/플레이어 영향 0.
+- **검증**: 컴파일0 · EditMode 199/199 · 배선 체인 검증(cueTrigger=AttackSpecial→param→상태(AttackHard)→AnyState전이). 실제 재생은 던전 leviathan_boss 플레이(서버가 leviathan_slam 발동 시) 확인 필요.
+
 ### 2.63 캡슐 몬스터 제거 + slime→creepy_demon 전면 교체 (2026-07-16)
 
 플레이스홀더 캡슐(`Monster.prefab` 던전 폴백·`LocalMonster.prefab` Main) + `slime` 몬스터를 실모델 몬스터로 대체. 사용자 지시 = "캡슐 3종 안 씀 → 실모델로, slime 데이터는 demon 으로 교체".

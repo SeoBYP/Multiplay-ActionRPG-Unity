@@ -14,6 +14,7 @@ namespace Game.Gameplay.Character
         Dead, // 사망(다운) 포즈. HP≤0 시 PlayerCharacterAgent 가 트리거. 리스폰 시 ResetTrigger.
         Dodge, // 회피/구르기. 입력 시 DodgeDriver 가 트리거(클립 미배선이면 조용히 스킵).
         Revive, // 부활 — Dead 포즈에서 로코모션으로 복귀. 부활 시 트리거(Dead 는 나가는 전이가 없어 양성 신호 필요).
+        AttackSpecial, // AC-D1: 강스킬 전용 공격(보스 슬램 등) — 평타 Attack 과 구분되는 별도 클립. 미배선 몬스터/캐릭터는 조용히 스킵(파라미터명 빈 값).
     }
 
     public enum AnimationFloatType
@@ -59,6 +60,7 @@ namespace Game.Gameplay.Character
         [SerializeField] private string m_animationDeathTrigger;
         [SerializeField] private string m_animationDodgeTrigger;
         [SerializeField] private string m_animationReviveTrigger;
+        [SerializeField] private string m_animationAttackSpecialTrigger; // AC-D1: 강스킬 전용 공격(보스 슬램 등). 컨트롤러마다 파라미터명 다를 수 있어 여기서 흡수.
 
         // Mapping enums to animator parameter names
         private Dictionary<AnimationFloatType, string> floatParameters;
@@ -100,7 +102,8 @@ namespace Game.Gameplay.Character
                 { AnimationTriggerType.Attack , m_animationAttackTrigger},
                 { AnimationTriggerType.Dead , m_animationDeathTrigger},
                 { AnimationTriggerType.Dodge , m_animationDodgeTrigger},
-                { AnimationTriggerType.Revive , m_animationReviveTrigger}
+                { AnimationTriggerType.Revive , m_animationReviveTrigger},
+                { AnimationTriggerType.AttackSpecial, m_animationAttackSpecialTrigger } // AC-D1
                 // Add more mappings here
             };
         }
