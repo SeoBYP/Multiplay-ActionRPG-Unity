@@ -29,3 +29,21 @@ MonoBehaviour:
   comboWindowMs: 900
   cueTrigger: 5
   cueComboStep: 0
+  cueEvents:
+  - timeMs: 156.9
+    durationMs: 90.8
+    lane: 1
+    kind: 1
+    sfxClip: {fileID: 0}
+    vfxPrefab: {fileID: 0}
+    id: 
+    socket: 
+    animTrigger: 0
+    invokeMethod: 
+    argType: 0
+    argFloat: 0
+    argInt: 0
+    argBool: 0
+    argString: 
+  previewClip: {fileID: 1827226128182048838, guid: 5db0450747b926a47a30edb047aa2bb1, type: 3}
+  sections: []

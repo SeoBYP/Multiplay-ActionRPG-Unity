@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Abilities.AbilityDefinition
   id: basic_swing
   networkId: 0
-  startupMs: 200
-  activeMs: 100
+  startupMs: 167
+  activeMs: 125
   recoveryMs: 150
   cooldownMs: 400
   manaCost: 0
@@ -29,3 +29,51 @@ MonoBehaviour:
   comboWindowMs: 0
   cueTrigger: 5
   cueComboStep: 0
+  cueEvents:
+  - timeMs: 200
+    durationMs: 166.66666
+    lane: 0
+    kind: 1
+    sfxClip: {fileID: 0}
+    vfxPrefab: {fileID: 0}
+    id: 
+    socket: 
+    animTrigger: 0
+    invokeMethod: 
+    argType: 0
+    argFloat: 0
+    argInt: 0
+    argBool: 0
+    argString: 
+  - timeMs: 150.4
+    durationMs: 158.5
+    lane: 0
+    kind: 0
+    sfxClip: {fileID: 8300000, guid: ab38c8f953789430691b634dd685119b, type: 3}
+    vfxPrefab: {fileID: 0}
+    id: 
+    socket: 
+    animTrigger: 0
+    invokeMethod: 
+    argType: 0
+    argFloat: 0
+    argInt: 0
+    argBool: 0
+    argString: 
+  - timeMs: 95.1
+    durationMs: 123.6
+    lane: 0
+    kind: 3
+    sfxClip: {fileID: 0}
+    vfxPrefab: {fileID: 0}
+    id: 
+    socket: 
+    animTrigger: 0
+    invokeMethod: 
+    argType: 0
+    argFloat: 0
+    argInt: 0
+    argBool: 0
+    argString: 
+  previewClip: {fileID: 0}
+  sections: []

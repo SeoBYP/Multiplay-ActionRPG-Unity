@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Abilities.AbilityDefinition
   id: leviathan_attack
   networkId: 104
-  startupMs: 200
-  activeMs: 100
+  startupMs: 213
+  activeMs: 87
   recoveryMs: 150
   cooldownMs: 1800
   manaCost: 0
@@ -30,3 +30,6 @@ MonoBehaviour:
   comboWindowMs: 0
   cueTrigger: 5
   cueComboStep: 0
+  cueEvents: []
+  previewClip: {fileID: 0}
+  sections: []
