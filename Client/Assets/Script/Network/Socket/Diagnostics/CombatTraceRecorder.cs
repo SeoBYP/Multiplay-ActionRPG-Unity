@@ -16,6 +16,12 @@ namespace Game.Network.Socket.Diagnostics
         MonsterHpApplied = 3,
         /// <summary>Seq 로 스테일을 버림(AC-C3). 순서 역전이 실제로 일어났다는 증거.</summary>
         StaleDropped = 4,
+        /// <summary>
+        /// 플레이어 HP 반영(t_apply) — ASC 가 실제로 값을 바꾼 순간 = <b>내 체력바가 움직인 시각</b>.
+        /// <para>C1c 측정이 남긴 공백을 메운다: 몬스터 스윙은 <see cref="MonsterHpApplied"/> 가 안 잡혀
+        /// <c>activateToHpMs=-1</c> 이었다(몬스터→플레이어 지연을 아예 못 쟀다).</para>
+        /// </summary>
+        PlayerHpApplied = 5,
     }
 
     /// <summary>
@@ -156,6 +162,23 @@ namespace Game.Network.Socket.Diagnostics
 
             if (amount != 0)
                 Write(CombatTraceKind.MonsterHpApplied, timeMs, actorId: 0, targetId, networkId: 0, amount, hp, seq);
+        }
+
+        /// <summary>
+        /// 플레이어 HP 반영(t_apply) — <c>EffectReceiver</c> 가 ASC 에 적용을 <b>끝낸 뒤</b> 호출한다.
+        /// 이 시각이 곧 체력바가 다시 그려지는 시각이라 "맞을 때 내 체력바 반응"의 종점이 된다.
+        ///
+        /// <para><paramref name="amount"/> = 실측 HP 델타(적용 전후 차). <b>패킷의 Amount 가 아니다</b> —
+        /// Amount=0 이어도 카탈로그 고정값 효과(회복 물약 등)는 HP 를 바꾸고, 반대로 CC 는 Amount=0 이면서
+        /// HP 를 안 바꾼다. 관측하려는 건 "값이 실제로 변했나"이므로 전후 차를 쓴다.</para>
+        ///
+        /// <para>델타 0(순수 CC·버프)은 링에 넣지 않는다 — <see cref="RecordMonsterHpApplied"/> 의 이동 틱 필터와 같은 이유
+        /// (지속효과 틱이 링을 채워 정작 스윙을 덮는다).</para>
+        /// </summary>
+        public void RecordPlayerHpApplied(long timeMs, long targetId, int hp, int amount)
+        {
+            if (amount == 0) return;
+            Write(CombatTraceKind.PlayerHpApplied, timeMs, actorId: 0, targetId, networkId: 0, amount, hp, seq: 0);
         }
 
         /// <summary>스테일 드롭(AC-C3) — 순서 역전이 실제로 일어난 증거. 드물어서 링에도 항상 남긴다.</summary>

@@ -184,6 +184,18 @@ namespace Game.Network.Socket.Diagnostics
                         }
                         break;
 
+                    case CombatTraceKind.PlayerHpApplied:
+                        // 대상이 플레이어인 스윙(몬스터→플레이어, 플레이어→플레이어)의 종점.
+                        // 시전자는 S_ApplyEffect(SourceId)로 이미 특정됐으므로 여기선 **대상 일치**만 본다
+                        // — ASC 적용 시점엔 누가 때렸는지 정보가 없다(EffectReceiver 는 SourceId 를 쓰지 않는다).
+                        if (rec.HpAppliedMs >= 0) break;
+                        if (rec.TargetId != 0 && e.TargetId == rec.TargetId)
+                        {
+                            rec.HpAppliedMs = e.TimeMs;
+                            rec.HpAfter = e.Hp;
+                        }
+                        break;
+
                     case CombatTraceKind.MonsterHpApplied:
                         if (rec.HpAppliedMs >= 0) break;
 

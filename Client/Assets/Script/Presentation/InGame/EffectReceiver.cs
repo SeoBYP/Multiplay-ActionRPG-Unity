@@ -58,11 +58,21 @@ namespace Game.Presentation.InGame
                 return;
             }
 
+            // 진단(AC-C1c 후속): "맞을 때 내 체력바가 언제 반응했나"의 종점을 여기서만 알 수 있다.
+            // 적용 전후를 재는 이유 = 패킷 Amount 로는 판별이 안 된다(Amount=0 이어도 카탈로그 고정값 효과는
+            // HP 를 바꾸고, CC 는 Amount=0 이면서 안 바꾼다). 관측 대상은 "실제로 변했나"다.
+            var hp = target.GetAttribute(EGameplayAttribute.Health);
+            float hpBefore = hp?.CurrentValue ?? 0f;
+
             // 서버가 Amount(스탯 반영 Health 델타)를 보냈으면 카탈로그 고정값 대신 그 값을 적용(서버 권위).
             target.ApplyEffectAuthoritative(def, data.InstanceId, data.Stacks, data.Amount);
 
+            float hpAfter = hp?.CurrentValue ?? 0f;
+            Game.Network.Socket.Diagnostics.CombatTraceRecorder.Shared.RecordPlayerHpApplied(
+                Game.Network.Socket.Diagnostics.CombatTraceRecorder.NowMs,
+                data.TargetId, (int)hpAfter, (int)(hpAfter - hpBefore));
+
             // 로컬 플레이어가 받은 효과(데미지/회복)와 적용 후 HP 로그.
-            var hp = target.GetAttribute(EGameplayAttribute.Health);
             Debug.Log($"[EffectReceiver] 효과 적용 — EffectId={data.EffectId} amount={data.Amount} → HP={hp?.CurrentValue}/{hp?.MaxValue}");
         }
 

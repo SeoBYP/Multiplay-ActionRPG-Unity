@@ -240,6 +240,49 @@ namespace Game.Tests.EditMode.Socket
         }
 
         [Test]
+        public void 몬스터_스윙도_플레이어_HP_반영까지_구간이_측정된다()
+        {
+            // C1c 가 남긴 공백: 몬스터 스윙은 종점(내 체력바가 움직인 시각)을 아무도 안 기록해
+            // activateToHpMs 가 항상 -1 이었다. EffectReceiver 가 ASC 적용 직후 기록하면서 메워진다.
+            var r = new CombatTraceRecorder { Enabled = true };
+            r.RecordAbilityActivated(2000, Monster, networkId: 101);
+            r.RecordDamageReceived(2018, Monster, targetId: Actor, amount: -9);
+            r.RecordPlayerHpApplied(2024, targetId: Actor, hp: 41, amount: -9);
+
+            var rec = CombatTraceJoin.Build(r.Snapshot(), localActorId: Actor).Single();
+
+            Assert.AreEqual(24, rec.ActivateToHpMs, "발동 통지 → 내 HP 반영 구간이 측정돼야 한다");
+            Assert.AreEqual(6, rec.DamageToHpMs, "데미지 수신 → ASC 적용 구간(클라 디스패치 비용)");
+            Assert.AreEqual(41, rec.HpAfter);
+        }
+
+        [Test]
+        public void HP가_실제로_변하지_않은_효과는_링에_남지_않는다()
+        {
+            // 순수 CC/버프(슬로우·스턴)는 태그만 부여하고 HP 를 안 바꾼다. 지속효과 틱까지 링에 넣으면
+            // 이동 틱 노이즈와 같은 이유로 정작 스윙이 덮인다.
+            var r = new CombatTraceRecorder { Enabled = true };
+            r.RecordPlayerHpApplied(3000, targetId: Actor, hp: 50, amount: 0);
+
+            Assert.AreEqual(0, r.Count, "델타 0 은 기록 대상이 아니다");
+        }
+
+        [Test]
+        public void 다른_대상의_HP_반영은_이_스윙에_귀속되지_않는다()
+        {
+            // 파티원이 동시에 맞으면 PlayerHpApplied 가 여러 건 온다. 대상이 다르면 남의 것이다.
+            const int Ally = 200;
+            var r = new CombatTraceRecorder { Enabled = true };
+            r.RecordAbilityActivated(2000, Monster, networkId: 101);
+            r.RecordDamageReceived(2018, Monster, targetId: Actor, amount: -9);
+            r.RecordPlayerHpApplied(2020, targetId: Ally, hp: 33, amount: -7); // 아군이 맞은 것
+
+            var rec = CombatTraceJoin.Build(r.Snapshot(), localActorId: Actor).Single();
+
+            Assert.AreEqual(-1, rec.ActivateToHpMs, "대상이 다른 HP 반영을 끌어오면 지연이 거짓말이 된다");
+        }
+
+        [Test]
         public void 모든_몬스터의_동기화가_집계된다_한대도_안맞아도()
         {
             // 동기화 검수: 스윙과 무관하게 상태를 받은 모든 몬스터가 나와야 한다.
