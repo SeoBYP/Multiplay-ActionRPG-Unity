@@ -1,5 +1,7 @@
 using System.Collections;
+using Game.Gameplay.Abilities;
 using Game.Gameplay.Character;
+using Game.Gameplay.Monster;
 using Game.Network.Socket;
 using NUnit.Framework;
 using Script.System.GamePlayAbilitySystem;
@@ -112,6 +114,69 @@ namespace Game.Tests.PlayMode.InGame
 
             Assert.IsTrue(enteredWalk,
                 "서버 이동 수신 시 Speed 파라미터가 올라 Animator 가 Walk 로 전이해야 한다 — CharacterAgentAnimations 의 Speed 파라미터명 배선 확인.");
+        }
+
+        [UnityTest]
+        public IEnumerator 보스_슬램_발동신호는_평타가_아닌_AttackSpecial_상태로_전이한다()
+        {
+            // AC-D1 회귀 고정. 체인 전체를 실물로 관통시킨다:
+            //   MonsterVisualCatalog("leviathan_boss") → 프리팹 → AbilityCatalog(networkId 109 → cueTrigger AttackSpecial)
+            //   → AbilityCueRouter → MonsterEntity.PlayAbilityCue → CAA 트리거명 → 컨트롤러 AttackSpecial 상태
+            // 어느 고리든 끊기면 조용히 평타(Attack)로 폴백하거나 아무것도 안 나온다 — 그게 "슬램이 평타처럼 보이던" 증상.
+            MonsterVisualCatalog visuals = null;
+            AbilityCatalogDefinition abilityCatalog = null;
+#if UNITY_EDITOR
+            visuals = UnityEditor.AssetDatabase.LoadAssetAtPath<MonsterVisualCatalog>(
+                "Assets/GameData/Monster/MonsterVisualCatalog.asset");
+            abilityCatalog = UnityEditor.AssetDatabase.LoadAssetAtPath<AbilityCatalogDefinition>(
+                "Assets/GameData/Ability/AbilityCatalogDefinition.asset");
+#endif
+            Assume.That(visuals, Is.Not.Null, "MonsterVisualCatalog 로드 실패(에디터 외 실행)");
+            Assume.That(abilityCatalog, Is.Not.Null, "AbilityCatalogDefinition 로드 실패(에디터 외 실행)");
+
+            // 스포너와 동일한 해석 경로. 미등록이면 여기서 null → 런타임엔 기본 캡슐 폴백(=슬램 애니 도달 불가).
+            var prefab = visuals.GetPrefab("leviathan_boss");
+            Assert.IsNotNull(prefab, "leviathan_boss 표시 프리팹 미등록 — MonsterSpawner 가 캡슐로 폴백한다");
+
+            var abilities = new AbilityCatalogProvider(abilityCatalog);
+            var slam = abilities.Get("leviathan_slam");
+            Assert.IsNotNull(slam, "leviathan_slam 어빌리티가 카탈로그에 없다");
+            Assert.AreEqual(AnimationTriggerType.AttackSpecial, slam.cueTrigger,
+                "슬램의 cueTrigger 가 AttackSpecial 이 아니면 평타와 같은 애니가 나온다");
+
+            const int instanceId = 4;
+            _instance = Object.Instantiate(prefab);
+            var entity = _instance.GetComponent<MonsterEntity>();
+            Assert.IsNotNull(entity, "leviathan 프리팹에 MonsterEntity 가 있어야 한다");
+
+            var animator = _instance.GetComponentInChildren<Animator>();
+            Assume.That(animator?.runtimeAnimatorController, Is.Not.Null, "leviathan Animator Controller 미배선");
+
+            var state = new SocketPacketState();
+            var registry = new ActorRegistry();
+            long actorId = ActorIds.FromMonster(instanceId);
+            registry.Register(actorId, entity);
+            var router = new AbilityCueRouter(state, registry, abilities);
+            router.Initialize();
+
+            entity.Initialize(instanceId, state);
+            for (int i = 0; i < 2; i++) yield return null;
+
+            state.NotifyAbilityActivated(actorId, slam.networkId);
+
+            bool enteredSpecial = false;
+            for (int i = 0; i < 30 && !enteredSpecial; i++)
+            {
+                yield return null;
+                var st = animator.GetCurrentAnimatorStateInfo(0);
+                var next = animator.GetNextAnimatorStateInfo(0);
+                if (st.IsName("AttackSpecial") || (animator.IsInTransition(0) && next.IsName("AttackSpecial")))
+                    enteredSpecial = true;
+            }
+
+            router.Dispose();
+            Assert.IsTrue(enteredSpecial,
+                "슬램 발동 시 Animator 가 AttackSpecial 로 전이해야 한다 — 프리팹 m_animationAttackSpecialTrigger 와 컨트롤러 파라미터 배선 확인.");
         }
 
         [UnityTest]

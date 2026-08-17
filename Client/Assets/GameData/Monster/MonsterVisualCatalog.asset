@@ -29,3 +29,11 @@ MonoBehaviour:
     prefab: {fileID: 623474458626713953, guid: 608042ab9306ed64591387f44372db0c, type: 3}
   - monsterId: leviathan
     prefab: {fileID: 1735641650104681035, guid: 06898f3216170f843ac1e65d79d03b1e, type: 3}
+  - monsterId: undead_axemaster_elite
+    prefab: {fileID: 623474458626713953, guid: 608042ab9306ed64591387f44372db0c, type: 3}
+  - monsterId: wild_centaur_elite
+    prefab: {fileID: 7968823526451403628, guid: 622bdf1b1292ffe4cb61bc53513b359f, type: 3}
+  - monsterId: gargoyle_elite
+    prefab: {fileID: 2851327131514382044, guid: 4ac8d897375d93e4baee03929b57bd10, type: 3}
+  - monsterId: leviathan_boss
+    prefab: {fileID: 1735641650104681035, guid: 06898f3216170f843ac1e65d79d03b1e, type: 3}
