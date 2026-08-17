@@ -519,6 +519,67 @@ W2a 는 VFX 를 숨김 루트(`_previewRoot`)에 스폰해 뷰포트에 안 보�
 - **미배선 캐릭터 안전**: CAA는 파라미터명 빈 값이면 SetTrigger 조용히 스킵 → AttackSpecial 안 쓰는 다른 몬스터/플레이어 영향 0.
 - **검증**: 컴파일0 · EditMode 199/199 · 배선 체인 검증(cueTrigger=AttackSpecial→param→상태(AttackHard)→AnyState전이). 실제 재생은 던전 leviathan_boss 플레이(서버가 leviathan_slam 발동 시) 확인 필요.
 
+### 2.98 몬스터 표시 카탈로그 누락 — 변종이 캡슐로 폴백하던 구멍 (2026-08-17)
+
+§2.97(AC-D1)의 "실제 재생 확인"을 하다 **배선 체인이 런타임에선 끊겨 있었음**을 발견. 코드·컨트롤러·프리팹·SO 는 전부 옳았는데 그 프리팹이 **스폰되지 않고 있었다**.
+
+- **원인**: AC-G(§등급=ID)가 변종을 별개 ID로 만들고 던전 스폰을 `leviathan_boss`/`*_elite` 로 재배치했는데, 클라 표시 카탈로그 `MonsterVisualCatalog` 에는 안 넣었다. `MonsterSpawner` 는 미등록이면 **기본 캡슐로 폴백**(설계된 정상 경로) → 예외도 에러 로그도 없다.
+- **파급**: 등록돼 있던 `leviathan` 은 AC-G 이후 **어느 던전도 스폰하지 않는다** → 모든 던전에서 leviathan 모델이 안 뜨고, 그 프리팹에 달린 AC-D1 슬램 트리거는 도달 불가. `dungeon_02/04/05`(boss)·`03/04/05`(elite) 전부 해당.
+- **왜 안 잡혔나**: 두 카탈로그가 **다른 파일**이고 링크가 문자열 ID 라, 컴파일·기존 테스트 어디에도 대조 지점이 없었다. 폴백이 "정상 동작"이라 로그도 침묵.
+- **수정**: `MonsterVisualCatalog.asset` 에 변종 4종 → 각 원본 프리팹 매핑(`undead_axemaster_elite`·`wild_centaur_elite`·`gargoyle_elite`·`leviathan_boss`). 변종 전용 모델·색 구분은 폴리싱(AC-D4)으로 분리.
+- **가드**(같은 구멍 재발 방지):
+  - EditMode `Tests/EditMode/Gameplay/MonsterVisualCatalogTests.cs` — ① 저작 카탈로그(`MonsterCatalogDefinition`)의 모든 monsterId 가 표시 프리팹을 갖는다(서버 픽스처 `test_brute` 만 명시 제외) ② `leviathan_boss` 프리팹의 `m_animationAttackSpecialTrigger`(private SerializeField → `SerializedObject` 로 읽음)가 비어있지 않고 그 이름의 Trigger 파라미터가 컨트롤러에 실재한다.
+  - PlayMode `MonsterEntityAnimTests.보스_슬램_발동신호는_평타가_아닌_AttackSpecial_상태로_전이한다` — 카탈로그 조회→프리팹→`AbilityCatalogProvider`(networkId 109)→`AbilityCueRouter`→Animator 까지 실물 관통.
+- **회귀 포착 실측**: 수정을 되돌린 상태로 가드를 돌려 **0/2 통과·2 실패**(`leviathan_boss 표시 프리팹 미등록`)를 확인한 뒤 복원. 수정 후 EditMode **201/201**·PlayMode `MonsterEntityAnimTests` **4/4**.
+- **교훈**: 서로 다른 파일의 카탈로그를 문자열 ID 로 잇고 **미등록 시 조용한 폴백**을 두면, 한쪽만 갱신되는 순간 기능이 통째로 사라져도 아무 신호가 없다. 폴백을 유지하려면 **저작 시점 대조 테스트**가 짝으로 있어야 한다.
+
+### 2.99 몬스터→플레이어 지연 관측 — PlayerHpApplied (2026-08-17)
+
+AC-C1c 측정이 남긴 공백. 몬스터 스윙 행은 `activateToHpMs=-1` 이라 "맞을 때 내 체력바가 언제 반응하나"를 못 쟀다.
+
+- **왜 비어 있었나**: 링에 있던 종점은 `MonsterHpApplied` 하나뿐이고 그건 `S_MonsterState` 경로(**플레이어→몬스터**)다. 플레이어 HP 는 `S_ApplyEffect` → `EffectReceiver` → ASC 가 바꾸는데 **그 시점을 아무도 기록하지 않았다**. `DamageReceived`(패킷 도착)까지만 보여서 클라 디스패치·적용 구간이 통째로 안 보였다.
+- **변경 3곳**: ① `CombatTraceKind.PlayerHpApplied`(=5, **끝에 추가**) + `CombatTraceRecorder.RecordPlayerHpApplied` ② `EffectReceiver.OnEffectApplied` 가 `ApplyEffectAuthoritative` **직후** 기록 ③ `CombatTraceJoin.Attach` 에 대응 case — 시전자는 `S_ApplyEffect.SourceId` 로 이미 특정됐으므로 여기선 **대상 일치만** 본다(ASC 적용 시점엔 누가 때렸는지 정보가 없다).
+- **델타 = 적용 전후 실측차**(패킷 `Amount` 아님). `Amount=0` 이어도 카탈로그 고정값 효과(회복 물약)는 HP 를 바꾸고, CC 는 `Amount=0` 이면서 안 바꾼다 → "값이 실제로 변했나"를 봐야 관측이 정확하다. 델타 0 은 링에서 제외(§2.98 이동 틱 필터와 동일 논리 — 지속효과 틱이 스윙을 덮는다).
+- **창·CSV 무변경**: `CombatTraceWindow` 는 이미 `ActivateToHpMs`/`DamageToHpMs` 를 그리고 CSV 에 쓰고 있었다. 값이 -1 이던 것이 채워질 뿐이라 UI 작업이 없다(YAGNI).
+- **검증**: EditMode `CombatTraceRecorderTests` 21/21(신규 3). ⚠ **실측 지연 수치는 아직 없다** — 기록은 기본 Off 라 `Tools/Combat/Combat Trace` 에서 Record 를 켜고 던전을 플레이해야 나온다.
+
+### 2.100 GetRooms 페이징 (9.6, 2026-08-17)
+
+- **부채의 실체**: `GetRoomsRequest.room_count` 가 **완전히 무시**되고 `GetActiveDungeonRoomsAsync()` 의 전체 활성 방이 그대로 직렬화됐다. 필드는 2026-06 부터 있었지만 서버가 읽지 않았다.
+- **정렬이 페이징의 전제**(설계의 핵심): 소스가 Redis `room:active` = **Set(무순서)** 다. `SetMembersAsync` 순서는 보장이 없어 정렬 없이 Skip/Take 하면 **같은 페이지를 두 번 불러도 다른 방이 나오고 페이지 경계에서 방이 새거나 중복된다.** → 서비스가 `OrderByDescending(RoomId)`(최신 먼저)로 고정한 뒤 페이징.
+- **계약**: `lobby.proto` 에 **필드 추가만** — `GetRoomsRequest.offset`(=2), `GetRoomsResponse.total_count`(=3). 기존 태그 불변이라 와이어 호환. 클라 `Generated/` protoc 재생성.
+- **권위**: clamp 는 서버(`GameServer.Application.Domains.DungeonLobby.DungeonLobbyPaging` — 기본 20 · 상한 50 · 음수 offset→0). 클라에도 같은 이름의 상수 클래스가 있지만 그건 **요청 기본값**일 뿐이고, 어긋나도 안전하다(서버가 자른다).
+- **반환 타입**: `ActiveRoomPage(Rooms, TotalCount)` — 값 튜플로 시작했다가 `ToGrpcResult<T>` 가 `where T : class` 라 못 실어서 record 로 바꿨다.
+- **동반 수정**: 실패 Result 에 `throw new InvalidOperationException("Room List is null")` 하던 코드를 `if (!result.IsSuccess) return response` 로. 정상적인 실패 응답을 미처리 예외로 승격시키던 경로였다.
+- **UI 는 안 붙였다**: `LobbyModel` 은 첫 페이지만 요청한다(offset 항상 0). 목록이 서버 페이지 크기를 넘기 시작하면 그때 페이저를 붙인다(YAGNI). 페이징 자체는 `GetRoomsAsync(offset, limit)` 로 이미 도달 가능.
+- **남는 한계**(업그레이드 경로): 리포지토리는 여전히 전체 활성 방을 읽고 메모리에서 자른다 — 진짜 O(page) 로 가려면 `room:active` 를 Sorted Set 으로 옮겨야 한다(Redis 키 계약 변경 + 마이그레이션이라 지금은 과함). 페이징으로 줄어든 것 = **응답 크기 + 플레이어/유저 배치 쿼리 범위**.
+- **검증**: GameServer **391/391**(신규 7 — 페이지 크기·비중복 전수·최신순·기본값·상한·음수 offset·범위 초과) · SocketServer **209/209** · EditMode **204/204** · `DungeonLobbyE2ETests` **14/14**(신규 1 = 실서버가 room_count 를 지키고 offset 이 다음 방을 가리킨다, 신선 Docker).
+
+### 2.101 CA-5 Phase 1b — Cue 파이프가 조용히 죽어 있던 두 곳 (2026-08-17)
+
+타임라인 툴(§2.81~2.96)은 완성돼 있었지만 **실행 경로가 무음**이었다. 원인이 둘 다 "없으면 아무것도 안 한다"라 로그·에러가 전혀 없었다.
+
+- ① `Ability_*` 의 `cueEvents` 는 저작돼 있는데 `sfxClip`/`vfxPrefab` 이 전부 `None`(`{fileID: 0}`) → `AbilityCuePlayer.Fire` 가 그냥 지나간다.
+- ② `PlayerCharacter.prefab` 에 `AbilityCuePlayer` **미부착** → `PlayerCharacterAgent:308` 의 `_cuePlayer?.Play(...)` 가 null 조건부로 스킵.
+- **최소 배선으로 관통 확인**: `Ability_BasicSwing` 의 Sfx 이벤트(t=150.4ms)에 실 클립 할당 + 프리팹에 컴포넌트 부착 → PlayMode `AbilityCuePlayerSmokeTests` 2/2(`AudioSource.isPlaying` 으로 실제 재생 확인).
+- ⚠️ 스모크에 쓴 클립은 **미커밋 아트 팩**(`Book of the Dead - URP`) 소속 — 팩을 커밋하지 않으면 GUID 가 깨진다. 정식 SFX 로 교체할 것.
+- **테스트 하네스 함정**: 재생 검증에 `PlayerCharacter.prefab` 을 통째로 `Instantiate` 하면 DI 가 없어 `CharacterAgent.Start()` 가 NRE 를 던지고, Unity 는 그 예외 로그만으로 테스트를 실패시킨다. → 재생은 **컴포넌트 단독**으로 검증하고, 프리팹 부착 여부는 별도 테스트로 고정했다.
+
+### 2.102 PlayMode 기존 실패 8건 해소 — 테스트가 코드를 못 따라간 사례집 (2026-08-17)
+
+Unity CLI 로 **PlayMode 전체 스위트를 처음 통째로** 돌려 드러난 8건. stash 로 당일 변경을 되돌려 동일 실패(177/185)를 실측한 뒤 착수했다. **프로덕션 버그는 0건** — 전부 테스트 쪽이 낡았다. 유형이 서로 달라 사례로 남긴다.
+
+1. **의존성 추가를 테스트 스코프가 못 따라감** (`CharacterSpawnMultiClientTests`·`GameHud*IntegrationTests`) — 프로덕션 타입이 생성자 의존을 얻은 날짜 > 테스트 최종 수정일. ⚠ **VContainer 는 C# 기본값 매개변수를 무시**한다(`InGameModel` 의 optional 의존도 전부 등록 필요) — 테스트 파일 주석이 이미 경고하고 있었는데 새 의존 2개(`ItemDisplayCatalog`·`ItemPickupNotifier`)가 빠졌다.
+2. **저작 데이터 좌표를 하드코딩** (`CharacterSpawnMultiClientTests`) — DI 를 고치자 드러난 2차 실패. `dungeon_01` 이 재기획으로 Z-16 으로 옮겨졌는데 EditMode `SpawnResolverTests` 만 갱신됐다. → 기대값을 **같은 리졸버에서 유도**하고, 스냅샷(0,0,0)과 다름을 병기해 "로컬은 결정론 좌표를 쓴다"는 불변식 자체는 그대로 지켰다(맵 재저작에 안 깨진다).
+3. **Animator 판정을 현재 상태만으로** (`RemoteDriverAnimTests`) — 블렌드 중엔 `GetCurrentAnimatorStateInfo` 가 여전히 이전 상태다. 같은 파일의 콤보 테스트는 `IsEnteringOrIn`(현재 + `GetNextAnimatorStateInfo`)을 쓰고 이유까지 주석에 적혀 있었는데 Dodge 테스트만 옛 방식이 남아 있었다.
+4. **프레임레이트 의존 테스트** (`ActionRootTests`) — `CharacterMotor.Move` 의 변위는 실제 `Time.deltaTime` 기반인데 테스트는 로직에만 고정 `0.02f` 를 넣고 **20프레임**만 돌렸다. 에디터가 빠르면 20프레임 = 실시간 수 ms → 거의 안 움직여 "Rooted 아닌데 이동 없음"으로 오판(실측 0.0015m). → 프레임 수가 아니라 **실시간 예산**으로 구동(`DriveFor`)하고 상태에도 그 프레임의 실제 dt 를 넘겨 두 계층의 시간축을 맞췄다.
+   - ※ 근본적으로는 `CharacterMotor.Move` 가 `Time.deltaTime` 을 직접 읽는 게 상태머신(deltaTime 전달)과 불일치다. 프로덕션 시그니처 변경은 이동 감각에 영향이 가므로 **하지 않았다** — 별도 논의 대상.
+5. **보상 수치를 하드코딩** (`CharacterPersistenceE2ETests`) — `exp == 20`. slime→creepy_demon 교체(§2.63)로 `expReward` 가 18 이 됐고 저작 SO·bake JSON 은 서로 일치(서버가 옳았다). → 응답 `ExpGained` 기준 단언으로 교체. 이 테스트의 대상은 "재접속해도 보존된다"이지 "그 값이 20"이 아니다.
+
+**실패가 실패를 가린다**: 위 8건을 고치자 9번째(`SocketSessionHeartbeatTests`)가 나왔다. 단독 실행은 2/2 통과 — `UiInputCaptureBehaviourTests` 가 `PlayerInputActions.Player.Enable()` 후 `Disable()` 없이 asset 을 파괴해 **누수 assert 로그가 뒤에 실행되는 무관한 테스트에 붙는** 교차 오염이었다(3곳에 `Disable()` 추가). 기존 8건이 그 로그를 흡수하고 있었다.
+
+**검증**: PlayMode **187/187** · EditMode **204/204**.
+
 ### 2.63 캡슐 몬스터 제거 + slime→creepy_demon 전면 교체 (2026-07-16)
 
 플레이스홀더 캡슐(`Monster.prefab` 던전 폴백·`LocalMonster.prefab` Main) + `slime` 몬스터를 실모델 몬스터로 대체. 사용자 지시 = "캡슐 3종 안 씀 → 실모델로, slime 데이터는 demon 으로 교체".

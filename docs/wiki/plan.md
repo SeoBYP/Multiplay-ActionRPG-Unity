@@ -38,7 +38,7 @@
 > **다음 후보** (T1 잔여 없음. 2.5.1/2.5.2 사망·부활 ✅, 애니 폴리시 #1~#7 소진, **CA-5 툴 코드 완료·병합**):
 > | 후보 | 성격 | 규모 | 비고 |
 > |---|---|---|---|
-> | ~~**AC-D1 어빌리티별 전용 애니**~~ ✅(2026-07-20) | 연출(코드) | 소~중 | **완료** — leviathan_boss 슬램을 `AttackSpecial` 트리거로 분리(enum+CAA+컨트롤러 AttackHard 클립+SO). 다른 몬스터는 어빌리티 1개=Attack이 이미 전용(8종 감사). codemap §2.97. 잔여=던전 leviathan 플레이 확인 |
+> | ~~**AC-D1 어빌리티별 전용 애니**~~ ✅(2026-08-17 확정) | 연출(코드) | 소~중 | **완료** — leviathan_boss 슬램을 `AttackSpecial` 트리거로 분리(enum+CAA+컨트롤러 AttackHard 클립+SO). **08-17 검증에서 `MonsterVisualCatalog` 변종 4종 누락(캡슐 폴백)을 발견·수정 + 가드 3종 신설** → 그 전엔 슬램 애니 도달 불가였다. codemap §2.97·§2.98 |
 > | **CA-5 Phase 1b 에셋 배선** | 연출(사용자) | 소 | 완성된 툴로 이벤트에 실 SFX/VFX·프리팹 `AbilityCuePlayer`·Actor 지정. 코드 아닌 저작 작업 |
 > | ~~**dungeon_03~05 맵 비주얼**~~ ✅(2026-07-20) | 에셋 | 중 | **placeholder 완료** — `visualPrefab`=`Plane.prefab`(01/02와 동일, 100×100 이 각 bounds 64/72/80 덮음) → void 방지. ⚠ 실제 던전 환경 아트 팩은 프로젝트에 없음 → 진짜 아트는 팩 임포트 후 별도(AC-D4) |
 > | **4.6 PVE 오픈월드** | 신규 콘텐츠 | 대 | 월드/존·NPC/대화·상호작용 [4.4~4.7] |
@@ -229,8 +229,12 @@
 - **9.3** Auth: 로그인 시 이전 세션 강제 만료 — ✅ | 중간 | 🟢 (2026-06-07: **이미 end-to-end 구현 확인 + 회귀 테스트 추가**. ① 로그인=`UserSessionRepository.CreateSessionAsync`가 기존 세션 DB+캐시 제거 ② **`ValidateTokenAsync`가 매 요청 sid 클레임→세션 저장소 존재 검증**(`AuthService.cs:242`), `AuthInterceptor`가 호출 → 기기A 세션 제거 즉시 다음 요청 거부(**15분 창 없음**) ③ refresh 바인딩 실패도 세션 제거. 테스트: `새_기기_로그인_시_이전_세션은_강제_만료된다` + Fake 충실도 수정)
 - **9.4** `Room.Leave` 시 `_playerStates` 정리 누락 — ✅ | 낮음 | ⚪ (2026-06-07: `Room.Leave`가 session.UserId로 `_playerStates.Remove` — 떠난 플레이어 유령 잔류(AI 타깃/위치) 차단. SocketServer.Tests +1)
 - **9.5** Redis Consumer name `socket-1` 고정 → 동적 생성 — ✅ | 낮음 | ⚪ (2026-06-07: `socket-{Environment.MachineName}` — 수평 확장 시 PEL 충돌 방지, 컨테이너 hostname 안정적이라 재시작 PEL 복구 유지)
-- **9.6** `GetRooms` count/페이징 정책 — 🔄 | 낮음 | ⚪ (2026-06-07: **N+1 해소 완료** — 방마다 2왕복 → `GetPlayersByRoomIdsAsync` 1쿼리 + 유저 1쿼리 배치.
-  **잔여(보류 — 방 수 적어 YAGNI, 필요 시 착수)**: 페이징/총개수. 계획 = `lobby.proto` `GetRoomsRequest`에 `page`/`pageSize`, `GetRoomsResponse`에 `total_count` 추가(공개계약 변경 → **클라 `Generated/` 재생성 필수**) → `IDungeonLobbyService.GetActiveDungeonRoomsAsync(skip, take)` + 전체 카운트 반환. proto 수정 동반이라 명시 승인 후 진행)
+- **9.6** `GetRooms` count/페이징 정책 — ✅ | 낮음 | 🟢 (2026-06-07 **N+1 해소** — 방마다 2왕복 → `GetPlayersByRoomIdsAsync` 1쿼리 + 유저 1쿼리 배치.
+  **2026-08-17 페이징 완료**(사용자 승인). 부채의 실체 = `GetRoomsRequest.room_count` 가 **완전히 무시되고 전체 활성 방이 반환**되던 것. proto 는 **필드 추가만**(`offset`=2, `total_count`=3 — 태그 불변이라 와이어 호환) + 클라 `Generated/` 재생성.
+  ⚠️ **정렬이 페이징의 전제**: 소스가 Redis `room:active`=**Set(무순서)** 이라 정렬 없이 Skip/Take 하면 호출마다 순서가 달라져 페이지 간 중복·누락이 난다 → 서버가 **RoomId 내림차순(최신 먼저)** 으로 고정한다.
+  clamp 는 서버 권위(`DungeonLobbyPaging`: 기본 20 · 상한 50 · 음수 offset→0) — 클라가 큰 값을 보내도 잘린다. `IDungeonLobbyService.GetActiveDungeonRoomsAsync(offset, limit)` → `ActiveRoomPage(Rooms, TotalCount)`.
+  동반 수정: 실패 Result 에 `throw new InvalidOperationException("Room List is null")` 하던 것 → `if (!result.IsSuccess) return response`(정상 실패를 미처리 예외로 만들던 경로).
+  UI 페이저는 안 붙였다 — `LobbyModel` 은 첫 페이지만 요청(YAGNI, 목록이 20을 넘으면 그때). 검증: GameServer **391/391**(신규 7) · SocketServer **209/209** · EditMode **204/204** · `DungeonLobbyE2ETests` **14/14**(신규 1, 신선 Docker). codemap §2.100)
 - **9.7** status.md stale → plan.md 일원화 — ✅ | 낮음 | 🟢 (2026-06-07: stale status.md **삭제** + 참조(CLAUDE.md·AGENTS.md·plan.md) 정리. 현황 진실원 = plan.md 단일화)
 - **9.8** 부하 테스트 + 전체 E2E 회귀 자동화 — ⬜ | 마감 | ⚪
 - **9.9** 배포 문서 + 포트폴리오 챕터 마감 — ⬜ | 마감 | ⚪
@@ -368,7 +372,7 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 > 5. **3.5 상점(Shop)** — ✅ **완료 2026-06-17**. 구매/판매(서버) + 구매 UI(클라) + 골드 항상드랍 밸런스. 판매 UI 후속.
 > 6. **6.1 캐릭터 진행 영속 합류** — ✅ **완료 2026-06-17**(재접속 E2E로 레벨/exp/인벤/골드 보존 검증, 장비는 통합테스트).
 > 7. **3.7 아이템 등급/도감** — ✅ 등급 완료(보류=도감). **4.3/9.2 던전메타(`MapId`)** — ✅ **완료 2026-06-25**(던전선택 UI 포함, 헤더 참조). **서버 도메인 완성 트랙 닫힘** → 다음은 폴리시/콘텐츠(2.6 전투보조·2.5.2 부활·4.6 오픈월드·애니).
-> 8. 부채 정리(잔여): **9.6 GetRooms 페이징**(proto 변경 동반 — 승인 후).
+> 8. 부채 정리: **9.6 GetRooms 페이징** — ✅ 완료 2026-08-17(위 9.6 항목 참조).
 >
 > **✅ 완료(2026-06-14): 몬스터 카탈로그(SO) + Main 킬 Exp 보상** — ① 몬스터 정의를 SO 저작 카탈로그로 승격(`MonsterCatalogDefinition`→bake `monsters.json`→`Shared.Infrastructure.Monsters.MonsterCatalog`, 하드코딩 `Server.Monster.MonsterCatalog` 어댑터화). exp/스탯은 몬스터 정의에 — 스포너는 위치/슬롯만(비대 X). ② Main 처치 = **킬 즉시 exp(`ClaimMonsterExp`)** + 아이템은 줍기(`ClaimKill`) — exp/아이템 **독립 청구·독립 쿨다운**(사용자 결정: "쓰러트리면 즉시 exp, 아이템은 오브 줍기 유지"). 클라 킬 즉시 `MainMonsterSpawner`→exp 로그. **검증 완료: Shared 34·SocketServer 101·GameServer 전체 278(통합+E2E) + PlayMode `MainLootE2ETests` 통과 + 플레이 확인(킬 즉시 exp 로그, 사용자 2026-06-14).** 상세 codemap §2.24.
 >
@@ -402,7 +406,11 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
   - [x] **W2c cueTrigger 자동 클립 해석** (2026-07-18, codemap §2.95) — previewClip 미지정 시 cueTrigger→CharacterAgentAnimations 파라미터→AnimatorController State→클립 자동 추론(폴백). 컴파일0·EditMode 199/199·비파괴 스모크(CreepyDemonLocal Attack→Attack00).
   - [x] **W3 Sections/loop 구간** (2026-07-18, codemap §2.96) — 룰러 아래 이름 구간 밴드(추가/삭제/이름변경/리사이즈/클릭점프/루프토글) + ▶Preview 루프 반복. 데이터=`AbilityDefinition.sections`(에디터 전용·bake 안 됨). 컴파일0·EditMode 199/199·비파괴 스모크.
   - [x] **개선 백로그 전부 소진** — W1·W2a·b·c·W3·W5·W6·W7 ✅ / W4 폐기 · W8 YAGNI 보류. = [ability-timeline-tool.md](ability-timeline-tool.md) §6.
-  - [ ] **Phase 1b 에셋·배선(사용자)** — 이벤트에 SFX 클립/VFX 프리팹 직접 드래그 + 프리팹에 `AbilityCuePlayer` 부착(+Event용 Actor 프리팹 배선).
+  - [~] **Phase 1b 에셋·배선** — **파이프 관통 확인 완료(2026-08-17)**, 나머지 저작은 사용자 몫.
+    - 실측한 상태: 타임라인 툴로 찍은 `cueEvents` 는 있는데 **리소스가 전부 비어 있고**(`sfxClip: {fileID: 0}`) **`PlayerCharacter.prefab` 에 `AbilityCuePlayer` 가 미부착**이었다 → `PlayerCharacterAgent:308` 의 `_cuePlayer?.Play(...)` 가 null 조건부로 통째로 스킵. 둘 다 "없으면 아무것도 안 한다"가 정상 동작이라 **로그도 에러도 안 난다**.
+    - 최소 배선: `Ability_BasicSwing` 의 Sfx 이벤트(t=150.4ms)에 실제 클립 할당 + 프리팹에 `AbilityCuePlayer` 부착 → PlayMode `AbilityCuePlayerSmokeTests` **2/2**(프리팹 부착 고정 · 저작 SFX 가 시각에 맞춰 실제 재생).
+    - ⚠️ 쓴 클립이 **미커밋 아트 팩**(`Book of the Dead - URP`) 소속이라 그 팩을 커밋하지 않으면 GUID 가 깨진다 — 정식 SFX 로 교체 필요.
+    - 잔여(사용자): 나머지 어빌리티 이벤트에 실 SFX/VFX 할당 · 원격/몬스터 프리팹 `AbilityCuePlayer` 부착 · Event 큐용 Actor 배선.
 - [x] **AC — 몬스터·플레이어 Actor 통합 전투(GAS)** [2.6·4.1] — 설계 [actor-combat-architecture.md](actor-combat-architecture.md). 계기=몬스터 공격 모션 부재(발동 신호 경로 부재). ActorId 통합 파이프(`S_AbilityActivated`)로 플레이어·몬스터 발동·연출·조회 단일화 + 대량 몬스터 O(N) 라우팅. 증분: **[x] 1** `ActorIds`+`AbilityActivationMath`(Shared 순수, `Shared.Gameplay.Tests` 50/50) · **[x] 2** 패킷 `S_AbilityActivated`(1604)+codegen 미러(`SocketServer.Tests` 130/130·Unity 0오류) · **[x] 3** 서버 `Room.TickMonsters` 게이트(MonsterDef)+`S_AbilityActivated` broadcast+SourceId 승격(SocketServer.Tests 132/132) · **[x] 4** 클라 `ActorRegistry`+`IActorView`+`AbilityCueRouter`+`MonsterEntity.PlayAbilityCue`(**몬스터 공격 모션 해소**, EditMode 172/172·PlayMode 애니·Docker E2E 31/31) · **[x] 5** 플레이어 흡수(`CombatHandler` S_Attack→S_AbilityActivated·`RemoteDriver` IActorView·Docker E2E 31/31, 1601 타입 보존) · **[x] 6** Main `LocalMonster` 승격(인라인→`AbilityActivationMath`+`PlayAbilityCue`, Main 모션 해소, PlayMode 5/5) · **[x] 7** 스케일 = 서버 dirty-flag(Idle 몬스터 트래픽 0, SocketServer.Tests 134/134·Docker E2E 31/31). ※클라 이동 Registry 라우팅은 보류(YAGNI — fan-out 병목 아님, 실비용은 엔티티 Update). **→ AC 트랙 완료**
 - [x] **AC-A 몬스터 애니 파라미터 구동 전환** (2026-07-16) — **Walk 버그 근본 수정**: 컨트롤러는 `Speed` 파라미터 전이인데 코드는 상태이름 CrossFade + `Speed` 미세팅 → Walk 진입 즉시 `Walk→Idle[Speed<0.1]` 로 튕김. `MonsterEntity`/`LocalMonster` 를 `CharacterAgentAnimations`(플레이어와 동일 어댑터) 파라미터 구동으로 통일(Speed/Attack/Die), 상태이름 필드·attack lock 제거, 프리팹 9종 배선. PlayMode 애니 6/6(Walk 회귀 신규)·EditMode 172/172. 상세 = [codemap §2.64](codemap.md)
 - [x] **AC-B Ability SO 통합 저작** — 설계 ✅ [ability-so-authoring.md](ability-so-authoring.md) (2026-07-16). 모든 GAS 공격·스킬을 **Ability SO 한 곳에서 편집**(게임플레이 + Cue 트리거) → `abilities.json` bake 로 `skills.json`·몬스터 `attack*` 필드 대체, `ResolveSkill` 하드코딩 switch 제거, **몬스터 다중 스킬(보스)** 개방. 증분: **[x] B1**(2026-07-16) SO 2종(`AbilityDefinition`/`AbilityCatalogDefinition`)+`AbilityCatalogExporter`+서버 `Shared.Infrastructure.Abilities.AbilityCatalog`+**5스킬 SO 이관·bake**(`Assets/GameData/Ability/`, 읽기만·미사용). Cue 는 bake 제외(서버 무지). `AbilityCatalogTests` 7·SocketServer.Tests 141/141 · **[x] B2**(2026-07-16) `CombatHandler.ResolveSkill` 하드코딩 switch **제거**→`AbilityCatalog.Get(networkId)`(=**스킬 추가에 서버 코드 수정 불필요 달성**), `skills.json`+`Skills/SkillCatalog.cs`+`SkillCatalogExporter` 삭제. 동작 무변경(데미지는 B5 까지 onHit 유지). SocketServer.Tests 137/137·Docker E2E 31/31 · **[x] B3**(2026-07-16) 클라 Cue 데이터화 + **클라·서버 저작 단일화**: `AbilityCatalogProvider` 신설, `IActorView.PlayAbilityCue(trigger, comboStep)`(라우터가 카탈로그로 해석) → `RemoteDriver` 콤보 switch·`LocalCombat`/`PlayerCharacterAgent` `SkillName` switch **제거**, Skill 계열(SO 2종·Provider·5 에셋·Exporter·테스트) **전량 삭제**. EditMode 170/170·PlayMode 애니 6/6·Docker E2E 31/31 · **[x] B4**(2026-07-16) 몬스터 어빌리티화 — `MonsterDefinition.abilityIds[]`(공격 수치 4필드 제거)·`MonsterStats.AttackRange`=어빌리티 최대사거리 파생·`Room.SelectMonsterAbility`(사거리+쿨다운 만족 첫 어빌리티, 저작순=우선순위)·`MonsterState` 어빌리티별 쿨다운·몬스터 9종 Ability SO(networkId 100+, 밸런스 무변경). **→ 보스 다중 스킬 개방.** SocketServer.Tests 145/145·Docker E2E 31/31 · **[x] B5**(2026-07-16) 데미지 출처 일원화(안B 완결) — 플레이어·몬스터 모두 `ability.BaseDamage` 기준(`BuildDamageMods`), `basic_attack_dmg`/`combo_*_dmg`/`monster_attack_dmg` **폐기** → 데미지 라벨 `ability_damage` 단일(수치=서버 권위 Amount), onHit=**CC 전용**. 밸런스 무변경 이관. SocketServer 146/146·Shared 50/50·EditMode 170/170·Docker E2E 31/31 · **[x] B6**(2026-07-16) 보스 다중스킬 실증 — `leviathan.abilityIds=[leviathan_slam(강·cd6000·dmg90·stun), leviathan_attack(평타)]`, **코드 변경 0**으로 강스킬→쿨다운이면 평타 폴백. `BossMultiAbilityTests` 8·SocketServer.Tests 154/154·Docker E2E 31/31. **→ AC-B 트랙 완료**(스킬 추가 = SO 저작+Export+서버 재빌드, 코드 수정 없음).
@@ -428,7 +436,9 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 
 **AC-C1c 가 드러낸 후속 (측정 근거 있음)**
 - [x] **트레이스 링버퍼 포화 — 해소(안ⓒ, 2026-07-17)**. ① 이동 틱(HP 델타 0)은 **링에 안 넣는다**(실측 89% 노이즈 제거) ② 용량 512→**4096**(~200KB) ③ **동기화 집계를 링에서 분리** — 몬스터당 1행 맵(`CombatTraceRecorder.MonsterSync()`)이라 링이 돌아도 유실 없고(예전엔 m3 가 49건 증발), **한 대도 안 맞은 몬스터도 계속 보인다**(필터만 했으면 사라졌을 요구사항). 검증: EditMode **192/192**(+4, 노이즈 필터·델타 보존·집계 무유실).
-- [ ] **몬스터→플레이어 지연 관측 불가** — 몬스터 스윙 행은 `activateToHpMs=-1`. 플레이어 HP 는 ASC 가 적용하는데 그 시점을 기록하지 않는다(`MonsterHpApplied` 는 몬스터 전용). "맞을 때 내 체력바 반응"을 재려면 `EffectReceiver` 적용 시점 기록이 필요.
+- [x] **몬스터→플레이어 지연 관측 불가 — 해소(2026-08-17)**. 원인은 종점 부재였다: 몬스터 스윙은 `MonsterHpApplied`(몬스터 전용)가 안 잡혀 `activateToHpMs=-1`. → `CombatTraceKind.PlayerHpApplied`(=5) 신설 + `EffectReceiver.OnEffectApplied` 가 **ASC 적용 직후** 기록(= 체력바가 다시 그려지는 시각) + `CombatTraceJoin.Attach` 가 대상 일치로 `HpAppliedMs` 를 채운다 → 몬스터·플레이어→플레이어 스윙에서 `ActivateToHpMs`·`DamageToHpMs` 측정 가능. **창(`CombatTraceWindow`)·CSV 는 무변경** — 이미 그 필드를 그리고 있었고 값이 -1 이었을 뿐.
+  - **델타는 패킷 `Amount` 가 아니라 적용 전후 실측차**를 쓴다. Amount=0 이어도 카탈로그 고정값 효과(회복)는 HP 를 바꾸고, CC 는 Amount=0 이면서 안 바꾼다 — 관측 대상은 "실제로 변했나"다. 델타 0 은 링에 안 넣는다(이동 틱 필터와 같은 이유: 지속효과 틱이 스윙을 덮는다).
+  - 검증: EditMode `CombatTraceRecorderTests` **21/21**(신규 3 = 구간 측정·델타0 제외·대상 불일치 비귀속). ⚠️ **실측 수치는 아직 없음** — 트레이스는 기본 Off 라 사용자가 창에서 Record 켜고 플레이해야 숫자가 나온다. 상세 codemap §2.99.
 - [x] **밸런스: 몬스터 피해가 바닥(1~5)** → **AC-E 트랙으로 해결**(아래).
 
 **AC-E — 몬스터 레벨링 · 드롭 정리 (✅ 2026-07-17 완료)** — 설계 [monster-leveling.md](monster-leveling.md). C1c 측정(몬스터 피해 1~5 바닥)의 뿌리 = **몬스터에 레벨이 없어 스탯 고정**인데 플레이어만 선형 성장(DEF +2/L) → L19 부터 전 몬스터 1 데미지.
@@ -468,8 +478,30 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 - [x] `CreepyDemonLocal.prefab` 에 던전 프리팹의 HealthBar 서브트리 복제(손으로 Canvas 재구성하면 앵커·스케일이 어긋난다).
 - 검증: PlayMode **3/3**(프리팹 배선·피격 fill 감소·사망 0) · EditMode **192/192** · 컴파일 0오류.
 
+**✅ PlayMode 기존 실패 8건 — 전부 해소 (2026-08-17)**
+> Unity CLI 도입으로 **PlayMode 전체 스위트를 처음 통째로** 돌려 8건이 드러났다(그동안 `--filter` 실행만 해서 안 보였다). **내 당일 변경을 stash 로 되돌린 상태에서 같은 8건이 동일하게 실패**함을 실측(177/185 일치)해 기존 결함으로 확정한 뒤 고쳤다. **전부 테스트가 코드/데이터 변화를 못 따라간 경우로, 프로덕션 버그는 0건이었다.**
+>
+> | 실패 | 원인 | 수정 |
+> |---|---|---|
+> | `CharacterSpawnMultiClientTests` 3건 | 테스트 스코프에 `ActorRegistry` 미등록 → `CharacterSpawner` resolve 실패. `CharacterSpawner` 가 AC 트랙(07-17)에 의존성을 얻었는데 테스트는 07-12 이후 미갱신 | 스코프에 `ActorRegistry` 등록(던전 스코프와 같은 Scoped) |
+> | 위 중 1건(추가로 드러남) | DI 가 풀리자 **다음 단계 실패**가 나옴 — 기대 좌표 `(2,0,0)` 하드코딩. `dungeon_01` 이 2026-07 재기획으로 Z-16 으로 이동(EditMode `SpawnResolverTests` 만 갱신됨) | 기대값을 하드코딩 대신 **같은 리졸버에서 유도** + 스냅샷(0,0,0)과 다름을 병기해 "결정론 좌표를 쓴다" 불변식은 유지 |
+> | `GameHudBuffIntegrationTests` · `GameHudIntegrationTests` | 테스트 스코프에 `ItemDisplayCatalog`·`ItemPickupNotifier` 미등록 → `InGameModel` resolve 실패(**VContainer 는 C# 기본값을 무시** — 파일 안 주석이 이미 경고하고 있었다). `InGameModel` 이 07-12 에 의존성 획득 | 두 타입 등록 |
+> | `RemoteDriverAnimTests` 원격 회피 | 판정이 `GetCurrentAnimatorStateInfo` **단독** — 블렌드 구간엔 이전 상태로 읽힌다. 같은 파일의 콤보 테스트들은 `IsEnteringOrIn`(현재+전이대상)을 쓰고 이유까지 주석에 있었는데 이 테스트만 남아 있었다 | `IsEnteringOrIn` 으로 통일 |
+> | `ActionRootTests` Rooted | **프레임레이트 의존 테스트**. `CharacterMotor.Move` 변위는 실제 `Time.deltaTime` 기반인데 테스트는 로직에만 고정 `0.02f` 를 넣고 20프레임만 돌렸다 → 에디터가 빠르면 20프레임=실시간 수 ms 라 거의 안 움직임(실측 0.0015m) | 프레임 수 대신 **실시간 예산**(`DriveFor`)으로 구동 + 상태에도 그 프레임의 실제 dt 전달 |
+> | `CharacterPersistenceE2ETests` | `exp == 20` 하드코딩. slime→creepy_demon 교체(§2.63)로 `expReward` 가 18 이 됐고 **저작 SO·bake JSON 은 서로 일치**(서버가 옳았다) | 응답 `ExpGained` 기준으로 단언 — 이 테스트의 대상은 "재접속해도 보존된다"이지 "그 값이 20"이 아니다 |
+>
+> **덤으로 드러난 교차 오염 1건**: 위 8건을 고치자 `SocketSessionHeartbeatTests` 가 실패했는데, 단독 실행은 2/2 통과였다. 원인은 `UiInputCaptureBehaviourTests` 가 `PlayerInputActions.Player.Enable()` 후 `Disable()` 없이 asset 을 파괴해 **누수 assert 로그가 뒤에 실행되는 무관한 테스트에 붙는** 것(`InputSystemIntegrationTests` 가 같은 함정을 주석으로 남겨 뒀다). 3곳에 `Disable()` 추가. → 기존 8건이 이 로그를 흡수하고 있어 가려져 있었다.
+>
+> **교훈**: 필터 실행만 하면 스위트 전체의 초록을 본 적이 없게 되고, DI 회귀·저작 데이터 드리프트·테스트 간 오염이 정확히 그 사각지대에서 자란다(2026-06-29 에 같은 교훈을 얻고도 재발). 실패가 실패를 가리기도 한다 — 8건을 고치자 9번째가 나왔다.
+>
+> 검증: **PlayMode 187/187** · EditMode 204/204.
+
 **AC-D — 연출/밸런스 잔여 (AC-B에서 확장점으로 남긴 것들)**
-- [ ] **AC-D1 어빌리티별 전용 애니** — 지금은 보스 강스킬도 `Attack` 트리거 공유(`AnimationTriggerType` enum에 Attack/Dodge/Dead…만 존재). 필요 작업: enum 값 추가(예: `AbilitySpecial`) + `CharacterAgentAnimations` 파라미터 필드 + 몬스터 컨트롤러 상태/트리거 + `AbilityDefinition.cueTrigger` 저작. **소재는 이미 있음** — leviathan FBX 에 `AttackSpecial`/`AttackHard`/`Roar` 클립 존재. 설계 = [ability-so-authoring.md](ability-so-authoring.md) §남은 확장점.
+- [x] **AC-D1 어빌리티별 전용 애니** — ✅ 코드·데이터 완료(2026-07-20, 커밋 `f43da207`) + **배선 구멍 발견·수정(2026-08-17)**. enum `AttackSpecial`(=9, 끝에 추가라 기존 직렬화 인덱스 불변) + `CharacterAgentAnimations.m_animationAttackSpecialTrigger` + `Monster_leviathan_AC`(AttackSpecial 상태=`AttackHard` 클립, AnyState→AttackSpecial `hasExitTime=false`) + `Ability_leviathan_slam.cueTrigger=9`.
+  - ⚠️ **`MonsterVisualCatalog` 에 AC-G 변종 4종이 누락돼 있었다** — AC-G 가 던전 스폰을 변종 ID(`leviathan_boss` 등)로 재배치했는데 표시 카탈로그엔 안 넣어서 `MonsterSpawner` 가 **기본 캡슐로 폴백**했다. 등록돼 있던 `leviathan` 은 어느 던전도 더 이상 스폰하지 않아 **모든 던전에서 leviathan 모델이 안 뜨고, 프리팹에 달린 AC-D1 슬램 애니가 통째로 도달 불가**였다. 폴백이 예외가 아니라 정상 경로라 컴파일·기존 테스트로는 안 잡힌다.
+  - 수정: `undead_axemaster_elite`·`wild_centaur_elite`·`gargoyle_elite`·`leviathan_boss` → 각 원본 프리팹 매핑(변종 전용 모델은 폴리싱 단계 = AC-D4).
+  - 가드 신설: EditMode `MonsterVisualCatalogTests` 2종(저작 카탈로그 전 ID 표시 프리팹 등록 / 슬램 트리거명↔컨트롤러 파라미터 일치) — **수정 전 0/2 통과·2 실패로 회귀 포착을 실측**. PlayMode `보스_슬램_발동신호는_평타가_아닌_AttackSpecial_상태로_전이한다` = 카탈로그→프리팹→AbilityCatalog(109)→라우터→Animator 전 구간 관통.
+  - 검증: 컴파일 0 · EditMode **201/201**(199+2) · PlayMode `MonsterEntityAnimTests` **4/4**. 잔여 = MPPM 실플레이 육안 확인(사용자).
 - [ ] **AC-D2 플레이어→플레이어 데미지 스탯 스케일** — 현재 **플랫 피해**(AP·Defense 미반영). 몬스터→플레이어/플레이어→몬스터는 스탯 스케일이라 **비대칭**. 전환은 밸런스 결정이라 보류 중(B5 는 출처 일원화만 하고 동작 보존). ※ 코옵에서 friendly fire 를 유지할지 자체가 선행 결정.
 - [~] **AC-D3 VFX/SFX Cue** — **CA-5 로 합류·Phase 1a 완료**(2026-07-18, codemap §2.81): `AbilityCueEvent`/`CueCatalog`/`AbilityCuePlayer` + 배선 3자리. 잔여 = 에셋 할당(Phase 1b)·타임라인 창(Phase 2). 위 CA-5 항목 참조.
 - [ ] **AC-D4 dungeon_03~05 맵 비주얼** — `DungeonCatalog` 는 던전 5개를 **전부 선택 가능**하게 노출하는데 `dungeon_03/04/05` 의 `MapDefinition.visualPrefab` 이 비어 있다 → `MapLoader` 가 경고만 남기고 배경 없이 진행 → **씬 기본 Plane(100×100) 위 회색 평면에서 전투**. 낙사는 아님(모든 맵 bounds ≤80 이 Plane 안). `dungeon_02` 는 `dungeon_01` 비주얼을 재사용하는데 bounds 가 44→64 로 커져 **배경이 플레이 영역을 다 못 덮을 수 있음**. 에셋 작업(맵 프리팹 3종 + 02 재점검).
