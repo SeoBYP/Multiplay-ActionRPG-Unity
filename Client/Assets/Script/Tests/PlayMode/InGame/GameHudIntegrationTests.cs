@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -97,6 +97,9 @@ namespace Game.Tests.PlayMode.InGame
             builder.RegisterInstance(new PlayerProgressionHolder(new FakeProgressionService()));
             // InGameModel ctor의 IInputContext(C# 기본값이지만 VContainer가 무시) — no-op 으로 충족.
             builder.RegisterInstance<Game.System.Input.IInputContext>(new NoopInputContext());
+            // 아이템 획득 토스트 의존(2026-07-12 추가). 역시 C# 기본값이지만 VContainer 가 무시하므로 등록 필요.
+            builder.RegisterInstance(ScriptableObject.CreateInstance<Game.Presentation.Inventory.ItemDisplayCatalog>());
+            builder.RegisterInstance(new Game.System.Player.ItemPickupNotifier());
             builder.Register<InGameModel>(Lifetime.Singleton).AsSelf();
             _resolver = builder.Build();
             return localPlayer;

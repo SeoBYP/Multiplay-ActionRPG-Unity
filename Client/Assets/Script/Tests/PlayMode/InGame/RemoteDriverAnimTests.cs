@@ -52,11 +52,13 @@ namespace Game.Tests.PlayMode.InGame
             // 서버 S_Dodge → OnPlayerDodged → RemoteDriver.HandlePlayerDodged → CAA.SetTrigger(Dodge) → AnyState→Dodge
             state.NotifyPlayerDodged(remoteId);
 
+            // 같은 파일의 콤보 테스트와 동일하게 InState 로 판정한다 — 현재 상태만 보면 블렌드 구간에서
+            // 계속 이전 상태로 읽혀 "전이했는데 실패"가 난다(이 테스트만 그 함정에 남아 있었다).
             bool enteredDodge = false;
             for (int i = 0; i < 30 && !enteredDodge; i++)
             {
                 yield return null;
-                if (animator.GetCurrentAnimatorStateInfo(0).IsName("Dodge")) enteredDodge = true;
+                if (IsEnteringOrIn(animator, "Dodge")) enteredDodge = true;
             }
 
             Assert.IsTrue(enteredDodge,

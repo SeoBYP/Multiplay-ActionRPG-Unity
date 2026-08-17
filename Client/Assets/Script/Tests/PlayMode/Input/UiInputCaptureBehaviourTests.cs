@@ -1,4 +1,4 @@
-using Game.GUI;
+﻿using Game.GUI;
 using Game.Gameplay.Input;
 using NUnit.Framework;
 using UnityEngine;
@@ -72,6 +72,9 @@ namespace Game.Tests.PlayMode.Input
             _go.SetActive(false); // X 닫기
             Assert.IsTrue(actions.Player.enabled, "숨기면 Player 맵 복구 → 플레이어 다시 움직임");
 
+            // Disable 없이 asset 만 파괴하면 PlayerInputActions 종료자가 맵 누수 assert 를 띄우고,
+            // 그 로그가 **뒤에 실행되는 무관한 테스트**에 붙어 실패시킨다(InputSystemIntegrationTests 가 같은 함정을 주석으로 남겼다).
+            actions.Disable();
             Object.DestroyImmediate(actions.asset);
         }
 
@@ -93,6 +96,7 @@ namespace Game.Tests.PlayMode.Input
             _go.SetActive(true);  // L 재표시
             Assert.IsFalse(actions.Player.enabled, "재표시 → 다시 OFF");
 
+            actions.Disable(); // 위와 동일 — 누수 assert 방지
             Object.DestroyImmediate(actions.asset);
         }
 
@@ -116,6 +120,7 @@ namespace Game.Tests.PlayMode.Input
             Object.DestroyImmediate(lobby); // depth 0
             Assert.IsTrue(actions.Player.enabled, "둘 다 닫히면 복구");
 
+            actions.Disable(); // 위와 동일 — 누수 assert 방지
             Object.DestroyImmediate(actions.asset);
         }
     }

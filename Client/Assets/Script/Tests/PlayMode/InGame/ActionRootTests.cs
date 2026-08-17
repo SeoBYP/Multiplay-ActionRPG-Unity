@@ -89,9 +89,12 @@ namespace Game.Tests.PlayMode.InGame
             var state = new GroundState(motor, ground, anims, input, settings, asc);
             state.Enter();
 
-            // (1) Rooted 없음 → 수평 이동해야 한다.
+            // ⚠️ 고정 프레임 수로 돌리면 안 된다: `CharacterMotor.Move` 의 변위는 실제 `Time.deltaTime` 기반인데
+            // 테스트가 로직에만 고정 dt 를 넣으면, 에디터가 빠르게 렌더링할 때 20프레임 = 실시간 수 ms 라
+            // 거의 안 움직여 "Rooted 가 아닌데 이동 없음"으로 오판한다(실측 0.0015m 로 이 테스트가 깨져 있었다).
+            // → 실시간 예산으로 돌리고, 상태에도 그 프레임의 실제 dt 를 넘겨 두 계층의 시간축을 일치시킨다.
             var start = go.transform.position;
-            for (int i = 0; i < 20; i++) { state.Update(0.02f); yield return null; }
+            yield return DriveFor(state, 0.5f);
             var moved = go.transform.position;
             float freeHoriz = new Vector2(moved.x - start.x, moved.z - start.z).magnitude;
             Assert.Greater(freeHoriz, 0.01f, $"Rooted 가 없으면 수평 이동해야 한다(실측 {freeHoriz:F3}m).");
@@ -99,7 +102,7 @@ namespace Game.Tests.PlayMode.InGame
             // (2) Rooted 부여 → 수평 이동이 멈춰야 한다(중력=수직은 허용).
             asc.AddTag(ActionTags.Rooted);
             var before = go.transform.position;
-            for (int i = 0; i < 20; i++) { state.Update(0.02f); yield return null; }
+            yield return DriveFor(state, 0.5f);
             var after = go.transform.position;
             float rootedHoriz = new Vector2(after.x - before.x, after.z - before.z).magnitude;
             Assert.Less(rootedHoriz, 0.001f, $"Rooted 중에는 수평 이동이 없어야 한다(실측 {rootedHoriz:F4}m).");
@@ -212,6 +215,22 @@ namespace Game.Tests.PlayMode.InGame
 
             go.SetActive(true);
             return (agent, input, asc);
+        }
+
+        /// <summary>
+        /// 상태를 <paramref name="seconds"/> 만큼 <b>실시간</b> 구동한다. 프레임 수가 아니라 시간으로 도는 이유:
+        /// <see cref="CharacterMotor.Move"/> 의 변위가 <c>Time.deltaTime</c> 기반이라, 고정 프레임 수로 돌리면
+        /// 결과가 에디터 FPS 에 좌우된다(빠를수록 덜 움직인다). 상태에도 같은 프레임의 실제 dt 를 넘겨 시간축을 맞춘다.
+        /// </summary>
+        private static IEnumerator DriveFor(State state, float seconds)
+        {
+            float elapsed = 0f;
+            while (elapsed < seconds)
+            {
+                state.Update(Time.deltaTime);
+                yield return null;
+                elapsed += Time.deltaTime;
+            }
         }
 
         private sealed class FakeInteractable : MonoBehaviour, IInteractable

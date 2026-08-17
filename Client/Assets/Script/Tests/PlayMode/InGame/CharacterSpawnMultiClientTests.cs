@@ -63,7 +63,7 @@ namespace Game.Tests.PlayMode.InGame
         public IEnumerator 다중클라_로컬1_원격2가_각자_위치에_스폰된다() => UniTask.ToCoroutine(async () =>
         {
             var state = new SocketPacketState();
-            // self: SpawnIndex 1 → Resolve → (2,0,0). 스냅샷 Pos(0,0,0)는 로컬 스폰에 안 쓰임(결정론).
+            // self: SpawnIndex 1 → Resolve 좌표. 스냅샷 Pos(0,0,0)는 로컬 스폰에 안 쓰인다(결정론) — 그게 이 테스트의 불변식.
             state.UpsertPlayer(SelfId, "me", 1, MapId, 0, 0, 0, 0);
             // 원격 2명: 서버가 보낸 "현재 위치"에 스폰돼야 한다.
             state.UpsertPlayer(201, "r1", 2, MapId, 5f, 0f, 5f, 0f);
@@ -77,7 +77,13 @@ namespace Game.Tests.PlayMode.InGame
             var locals = NonTemplate(Object.FindObjectsByType<AbilitySystemComponent>(FindObjectsSortMode.None)
                 .Select(c => c.gameObject));
             Assert.AreEqual(1, locals.Count, "로컬 캐릭터는 1개여야 한다");
-            AssertPos(locals[0], 2f, 0f, 0f);
+            // 기대 좌표를 하드코딩하지 않는다 — 스폰 포인트는 저작 데이터(spawn-layouts)라 맵을 재기획하면 바뀐다.
+            // (실제로 dungeon_01 이 2026-07 에 Z-16 으로 옮겨졌는데 이 테스트만 옛 (2,0,0) 을 들고 있어 깨져 있었다.)
+            // 프로덕션과 같은 리졸버에서 유도하되, 스냅샷(0,0,0)과 다름을 함께 단언해 "결정론 좌표를 쓴다"를 지킨다.
+            var expected = SpawnResolver.Resolve(new SpawnLayoutProvider().Get(MapId), 1);
+            Assert.AreNotEqual(Vector3.zero, new Vector3(expected.X, expected.Y, expected.Z),
+                "선행 조건: 결정론 좌표가 스냅샷(0,0,0)과 달라야 이 불변식이 성립한다");
+            AssertPos(locals[0], expected.X, expected.Y, expected.Z);
 
             // 원격 = RemoteDriver 보유(템플릿 제외) 2개, 각자 서버 현재 위치
             var remotes = NonTemplate(Object.FindObjectsByType<RemoteDriver>(FindObjectsSortMode.None)
@@ -182,6 +188,9 @@ namespace Game.Tests.PlayMode.InGame
             builder.Register<LocalPlayerContext>(Lifetime.Scoped).AsSelf();
             // CharacterSpawner 가 로컬/원격 ASC 를 파티 레지스트리에 등록하므로 필수 의존.
             builder.Register<PartyAscRegistry>(Lifetime.Scoped).AsSelf();
+            // AC 트랙(2026-07-17)에서 CharacterSpawner 가 얻은 의존 — 스폰한 액터를 ActorId 로 등록해
+            // AbilityCueRouter 가 발동 신호를 라우팅한다. DungeonLifetimeScope 와 같은 Scoped 로 맞춘다.
+            builder.Register<ActorRegistry>(Lifetime.Scoped).AsSelf();
             builder.Register<SpawnLayoutProvider>(Lifetime.Scoped).AsSelf();
             return builder;
         }
