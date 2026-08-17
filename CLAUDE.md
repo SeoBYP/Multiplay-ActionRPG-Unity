@@ -138,6 +138,7 @@ Application이 Infrastructure를 직접 참조하면 위반.
 | 인증 초기화 순서 | [docs/portfolio/chapter-10-lifetime-auth.md](docs/portfolio/chapter-10-lifetime-auth.md) |
 | **멀티플레이 테스트 (MPPM 2-창 / E2E)** | [docs/wiki/mppm-testing.md](docs/wiki/mppm-testing.md) |
 | 현황 확인 | [docs/wiki/plan.md](docs/wiki/plan.md) |
+| **미해결 결함·정리 대상 (착수 전 확인)** | [docs/wiki/cleanup-backlog.md](docs/wiki/cleanup-backlog.md) |
 
 ## 세부 규칙 인덱스
 

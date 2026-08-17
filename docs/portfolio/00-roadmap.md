@@ -176,7 +176,9 @@ Co-op 던전 **버티컬 슬라이스**가 코어. 폴리시(애니메이션·�
 
 - **완료**: M0~M4 전부 ✅. **DoD 루프는 코드·E2E로 관통**, MPPM 2인 플레이 검증 완료.
 - **M5 진행 중(대부분 완료)**: 아이템 경제(인벤·장비·상점·퀘스트)·생존성/권위 승격(HP·마나·사망·Co-op 부활)·전투 보조(회피·CC·락온)·애니 실배선·**AC 트랙**(Actor 통합 전투·전투 계측·몬스터 레벨링·데이터 전면 SO화) = ✅. 위 M5 섹션 참조.
-- **다음(M5 잔여)**: 어빌리티 전용 애니·VFX Cue(AC-D)·dungeon_03~05 맵 배경·PVE 오픈월드 확장. 노드별 진척 = [plan.md](../wiki/plan.md).
+- **검증 인프라 정비(2026-08-17~18)**: Unity CLI + Pipeline 패키지로 **컴파일·EditMode/PlayMode를 CLI에서 직접** 구동. 그 결과 **PlayMode 전체 스위트를 처음 완주**해 기존 실패 8건(+가려져 있던 1건)을 발견·전부 해소. 현재 **PlayMode 187/187 · EditMode 204/204 · GameServer 391/391 · SocketServer 209/209 · 컴파일 0오류**. 같은 라운드에서 "완성 기록된 기능이 실제로는 실행된 적 없던" 조용한 실패 2건을 잡았다 — [챕터 27](./chapter-27-silent-failure.md).
+- **다음(M5 잔여)**: VFX/SFX Cue 저작(CA-5 1b, 파이프는 관통 확인됨)·dungeon_03~05 실제 맵 배경(AC-D4)·PVE 오픈월드 확장. 노드별 진척 = [plan.md](../wiki/plan.md).
+- **미해결(추적 중)**: `abilities.json` 저작↔bake 드리프트(재Export 필요) · `RemotePlayerCharacter` 머티리얼 누락 · 디스크 포화로 아트 팩 커밋 7/34 중단.
 - **마감(M6)**: 데모 영상·부하/E2E 검증·배포/문서.
 
 > 실시간 진척·이슈는 [GitHub Project #2](https://github.com/users/SeoBYP/projects/2)(plan.md 커밋 시 post-commit 훅 자동 동기화), 설계·이력 진실원은 [plan.md](../wiki/plan.md), 코드 위치·결정 로그는 [codemap.md](../wiki/codemap.md).

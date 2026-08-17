@@ -496,7 +496,7 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 >
 > 검증: **PlayMode 187/187** · EditMode 204/204.
 
-**⚠️ 미해결 결함 (2026-08-18 커밋 정리 중 발견 — 다음 "코드 정리" 트랙의 입력)**
+**⚠️ 미해결 결함 (2026-08-18 커밋 정리 중 발견) — 전체 목록·우선순위 = [cleanup-backlog.md](cleanup-backlog.md)**
 - [ ] **abilities.json 드리프트 (높음)** — 클라 SO 저작값이 서버 bake 와 어긋난다: `basic_swing` startup/active **167/125 (SO) vs 200/100 (bake)**, `leviathan_attack` **213/87 vs 200/100**. `abilities.json` 은 서버가 임베디드로 읽는 **판정 창·쿨다운의 권위**라, 클라가 167ms 에 히트박스를 열고 서버는 200ms 기준으로 검증하면 던전에서 데미지가 유실·거부될 수 있다. **재Export + 서버 재빌드 필요.** ⚠ exporter 가 끝에 `EditorUtility.DisplayDialog`(모달)를 띄워 자동화가 그 자리에서 블록된다(AC-E5 함정 기록) → 팝업 없는 경로로 호출할 것.
   - 참고: 같은 방식으로 `monsters.json` 은 대조 결과 **불일치 0건**(정상). 나머지 bake 산출물(drop-tables·consumable-effects·spawn-layouts·level-table)은 **미대조**.
 - [ ] **RemotePlayerCharacter 머티리얼 누락 (중간)** — 프리팹의 SkinnedMeshRenderer `m_Materials` 가 guid `31321ba15b8f8eb4c954353edc038b1d` 를 참조하는데 **프로젝트 어디에도 없다**(Assets 전체·Packages·임포트 아트 팩 3종을 .meta 기준 전수 검색). 런타임 머티리얼 누락으로 렌더된다. 나머지 14개 참조는 정상.
