@@ -54,17 +54,30 @@ public class DungeonLobbyService(
         }
     }
 
-    public async Task<Result<IEnumerable<DungeonRoom>>> GetActiveDungeonRoomsAsync(CancellationToken ct = default)
+    public async Task<Result<ActiveRoomPage>> GetActiveDungeonRoomsAsync(
+        int offset, int limit, CancellationToken ct = default)
     {
         try
         {
-            var result = await dungeonRoomRepository.GetAllActiveRoomsAsync(ct);
-            return Result<IEnumerable<DungeonRoom>>.Success(result.Where(data => data.Status != RoomStatus.Closed));
+            var all = (await dungeonRoomRepository.GetAllActiveRoomsAsync(ct))
+                .Where(data => data.Status != RoomStatus.Closed)
+                // 안정 정렬이 페이징의 전제다. 소스가 Redis Set(무순서)이라 정렬 없이 Skip/Take 하면
+                // 같은 페이지를 두 번 불러도 다른 방이 나오고 페이지 경계에서 방이 새거나 중복된다.
+                // RoomId 내림차순 = 최신 방 먼저(로비가 원하는 순서).
+                .OrderByDescending(data => data.RoomId)
+                .ToList();
+
+            var page = all
+                .Skip(DungeonLobbyPaging.ClampOffset(offset))
+                .Take(DungeonLobbyPaging.ClampLimit(limit))
+                .ToList();
+
+            return Result<ActiveRoomPage>.Success(new ActiveRoomPage(page, all.Count))!;
         }
         catch (Exception e)
         {
             logger.LogError(e, "Failed to get active dungeon rooms");
-            return Result<IEnumerable<DungeonRoom>>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
+            return Result<ActiveRoomPage>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -23,7 +23,12 @@ namespace Game.System.DungeonLobby
         /// </summary>
         event Action<string, int, long> OnGameSessionReady;
 
-        UniTask<(DungeonLobbyResult, IReadOnlyList<RoomInfo>)> GetRoomsAsync(CancellationToken ct = default);
+        /// <summary>
+        /// 활성 방 목록을 한 페이지 조회한다(9.6). <paramref name="limit"/> 상한·정렬(최신 먼저)은 서버가 강제한다.
+        /// </summary>
+        /// <returns>결과 · 해당 페이지 방 목록 · <b>전체</b> 활성 방 수(페이저용).</returns>
+        UniTask<(DungeonLobbyResult, IReadOnlyList<RoomInfo>, int TotalCount)> GetRoomsAsync(
+            int offset = 0, int limit = DungeonLobbyPaging.DefaultPageSize, CancellationToken ct = default);
         UniTask<DungeonLobbyResult> CreateRoomAsync(string roomName, int maxPlayers, string mapId = "", CancellationToken ct = default);
         UniTask<DungeonLobbyResult> JoinRoomAsync(long roomId, CancellationToken ct = default);
         UniTask<DungeonLobbyResult> LeaveRoomAsync(CancellationToken ct = default);

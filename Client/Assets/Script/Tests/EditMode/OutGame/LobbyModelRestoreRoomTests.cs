@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -39,8 +39,9 @@ namespace Game.Tests.EditMode.OutGame
                 OnGameSessionReady?.Invoke("", 0, 0);
             }
 
-            public UniTask<(DungeonLobbyResult, IReadOnlyList<RoomInfo>)> GetRoomsAsync(CancellationToken ct = default)
-                => UniTask.FromResult((DungeonLobbyResult.Success, (IReadOnlyList<RoomInfo>)new List<RoomInfo>()));
+            public UniTask<(DungeonLobbyResult, IReadOnlyList<RoomInfo>, int TotalCount)> GetRoomsAsync(
+                int offset = 0, int limit = DungeonLobbyPaging.DefaultPageSize, CancellationToken ct = default)
+                => UniTask.FromResult((DungeonLobbyResult.Success, (IReadOnlyList<RoomInfo>)new List<RoomInfo>(), 0));
 
             /// <summary>마지막 CreateRoom 호출에 전달된 mapId(던전 선택 전파 검증용).</summary>
             public string LastCreateMapId { get; private set; }

@@ -73,12 +73,20 @@ message GetRoomResponse{
 }
 
 message GetRoomsRequest{
-  int32 room_count = 1; // 가져올 방 목록 갯수
+  // 한 페이지 크기. 0 이하면 서버 기본값(20), 서버 상한(50)으로 clamp 된다.
+  // (9.6 이전엔 이 값이 무시되고 전체 방이 반환됐다)
+  int32 room_count = 1;
+  // 건너뛸 방 수(페이지 시작 위치). 음수는 0 으로 clamp.
+  // 정렬 = RoomId 내림차순(최신 방 먼저) — 서버가 고정한다. Redis `room:active` 는 Set(무순서)이라
+  // 정렬 없이 offset 을 쓰면 페이지 간 중복·누락이 난다.
+  int32 offset = 2;
 }
 
 message GetRoomsResponse{
   gameserver.common.Result result = 1;
   repeated RoomInfo room_infos = 2;
+  // 페이지가 아니라 **전체 활성 방 수**. 클라 페이저가 "N개 중 M개"를 그릴 수 있게 한다.
+  int32 total_count = 3;
 }
 
 message StartRoomRequest{

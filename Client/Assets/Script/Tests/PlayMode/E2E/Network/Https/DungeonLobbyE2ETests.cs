@@ -85,6 +85,45 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
+        public IEnumerator GetRooms_요청한_페이지_크기를_서버가_지킨다() => UniTask.ToCoroutine(async () =>
+        {
+            // 9.6 회귀 고정: 예전 서버는 room_count 를 **완전히 무시**하고 전체 활성 방을 반환했다.
+            // 방이 2개 이상인 상태에서 1개만 요청해 그 계약을 실서버로 확인한다.
+            await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
+            await LobbyService.CreateRoomAsync(new CreateRoomRequest
+            {
+                RoomName = "E2E Paging A", MaxPlayers = 4
+            }, Timeout());
+
+            // 한 유저는 한 방만 가질 수 있어 두 번째 방은 다른 계정으로 만든다.
+            await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
+            await LobbyService.CreateRoomAsync(new CreateRoomRequest
+            {
+                RoomName = "E2E Paging B", MaxPlayers = 4
+            }, Timeout());
+
+            var page = await LobbyService.GetRoomsAsync(new GetRoomsRequest
+            {
+                RoomCount = 1, Offset = 0
+            }, Timeout());
+
+            Assert.IsTrue(page.Result.Success, page.Result.Message);
+            Assert.AreEqual(1, page.RoomInfos.Count, "서버가 요청한 페이지 크기를 지켜야 한다");
+            Assert.GreaterOrEqual(page.TotalCount, 2, "전체 활성 방 수는 페이지 크기와 무관하게 알려줘야 한다");
+
+            // 다음 페이지는 앞 페이지와 다른 방이어야 한다(안정 정렬이 없으면 여기서 겹친다).
+            var next = await LobbyService.GetRoomsAsync(new GetRoomsRequest
+            {
+                RoomCount = 1, Offset = 1
+            }, Timeout());
+
+            Assert.IsTrue(next.Result.Success, next.Result.Message);
+            Assert.AreEqual(1, next.RoomInfos.Count);
+            Assert.AreNotEqual(page.RoomInfos[0].RoomId, next.RoomInfos[0].RoomId,
+                "offset 이 실제로 다음 방을 가리켜야 한다");
+        });
+
+        [UnityTest]
         public IEnumerator JoinRoom_다른_유저_입장_성공() => UniTask.ToCoroutine(async () =>
         {
             await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -46,17 +46,18 @@ namespace Game.System.DungeonLobby
 
         // ── Public API ────────────────────────────────────────────────────
 
-        public async UniTask<(DungeonLobbyResult, IReadOnlyList<RoomInfo>)> GetRoomsAsync(CancellationToken ct = default)
+        public async UniTask<(DungeonLobbyResult, IReadOnlyList<RoomInfo>, int TotalCount)> GetRoomsAsync(
+            int offset = 0, int limit = DungeonLobbyPaging.DefaultPageSize, CancellationToken ct = default)
         {
-            var res = await _grpc.GetRoomsAsync(new GetRoomsRequest { RoomCount = 20 }, ct);
+            var res = await _grpc.GetRoomsAsync(new GetRoomsRequest { RoomCount = limit, Offset = offset }, ct);
             if (!res.Result.Success)
-                return (MapError(res.Result.ErrorCode), Array.Empty<RoomInfo>());
+                return (MapError(res.Result.ErrorCode), Array.Empty<RoomInfo>(), 0);
 
-            Debug.Log($"[DungeonLobby] 방 목록 수신: {res.RoomInfos.Count}개");
+            Debug.Log($"[DungeonLobby] 방 목록 수신: {res.RoomInfos.Count}개 (offset {offset}, 전체 {res.TotalCount})");
             foreach (var room in res.RoomInfos)
                 Debug.Log($"  └ [{room.RoomId}] {room.RoomName} ({room.CurrentPlayers.Count}/{room.MaxPlayers}) {room.Status}");
 
-            return (DungeonLobbyResult.Success, res.RoomInfos);
+            return (DungeonLobbyResult.Success, res.RoomInfos, res.TotalCount);
         }
 
         public async UniTask<DungeonLobbyResult> CreateRoomAsync(string roomName, int maxPlayers, string mapId = "", CancellationToken ct = default)

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
@@ -95,8 +95,9 @@ namespace Game.Tests.PlayMode.InGame
             public void FireGameSessionReady(string ip, int port, long roomId)
                 => OnGameSessionReady?.Invoke(ip, port, roomId);
 
-            public UniTask<(DungeonLobbyResult, IReadOnlyList<RoomInfo>)> GetRoomsAsync(CancellationToken ct = default)
-                => UniTask.FromResult<(DungeonLobbyResult, IReadOnlyList<RoomInfo>)>((DungeonLobbyResult.Success, Array.Empty<RoomInfo>()));
+            public UniTask<(DungeonLobbyResult, IReadOnlyList<RoomInfo>, int TotalCount)> GetRoomsAsync(
+                int offset = 0, int limit = DungeonLobbyPaging.DefaultPageSize, CancellationToken ct = default)
+                => UniTask.FromResult<(DungeonLobbyResult, IReadOnlyList<RoomInfo>, int)>((DungeonLobbyResult.Success, Array.Empty<RoomInfo>(), 0));
 
             public UniTask<DungeonLobbyResult> CreateRoomAsync(string roomName, int maxPlayers, string mapId = "", CancellationToken ct = default)
                 => UniTask.FromResult(DungeonLobbyResult.Success);

@@ -39,55 +39,56 @@ namespace GameServer.Grpc.DungeonLobby {
             "ZXRSb29tUmVxdWVzdBIPCgdyb29tX2lkGAEgASgDIm4KD0dldFJvb21SZXNw",
             "b25zZRIpCgZyZXN1bHQYASABKAsyGS5nYW1lc2VydmVyLmNvbW1vbi5SZXN1",
             "bHQSMAoJcm9vbV9pbmZvGAIgASgLMh0uZ2FtZXNlcnZlci5sb2JieS52MS5S",
-            "b29tSW5mbyIlCg9HZXRSb29tc1JlcXVlc3QSEgoKcm9vbV9jb3VudBgBIAEo",
-            "BSJwChBHZXRSb29tc1Jlc3BvbnNlEikKBnJlc3VsdBgBIAEoCzIZLmdhbWVz",
-            "ZXJ2ZXIuY29tbW9uLlJlc3VsdBIxCgpyb29tX2luZm9zGAIgAygLMh0uZ2Ft",
-            "ZXNlcnZlci5sb2JieS52MS5Sb29tSW5mbyIzChBTdGFydFJvb21SZXF1ZXN0",
-            "Eg8KB3Jvb21faWQYASABKAMSDgoGbWFwX2lkGAIgASgJInAKEVN0YXJ0Um9v",
-            "bVJlc3BvbnNlEikKBnJlc3VsdBgBIAEoCzIZLmdhbWVzZXJ2ZXIuY29tbW9u",
-            "LlJlc3VsdBIwCglyb29tX2luZm8YAiABKAsyHS5nYW1lc2VydmVyLmxvYmJ5",
-            "LnYxLlJvb21JbmZvIkwKEVVwZGF0ZVJvb21SZXF1ZXN0Eg8KB3Jvb21faWQY",
-            "ASABKAMSEQoJcm9vbV9uYW1lGAIgASgJEhMKC21heF9wbGF5ZXJzGAMgASgF",
-            "InEKElVwZGF0ZVJvb21SZXNwb25zZRIpCgZyZXN1bHQYASABKAsyGS5nYW1l",
-            "c2VydmVyLmNvbW1vbi5SZXN1bHQSMAoJcm9vbV9pbmZvGAIgASgLMh0uZ2Ft",
-            "ZXNlcnZlci5sb2JieS52MS5Sb29tSW5mbyInChRTdWJzY3JpYmVSb29tUmVx",
-            "dWVzdBIPCgdyb29tX2lkGAEgASgDIukBChVTdWJzY3JpYmVSb29tUmVzcG9u",
-            "c2USPQoMdXBkYXRlX2V2ZW50GAEgASgLMiUuZ2FtZXNlcnZlci5sb2JieS52",
-            "MS5Sb29tVXBkYXRlZEV2ZW50SAASPAoLc3RhcnRfZXZlbnQYAiABKAsyJS5n",
-            "YW1lc2VydmVyLmxvYmJ5LnYxLkdhbWVTdGFydGVkRXZlbnRIABJIChJnYW1l",
-            "X3Nlc3Npb25fZXZlbnQYAyABKAsyKi5nYW1lc2VydmVyLmxvYmJ5LnYxLkdh",
-            "bWVTZXNzaW9uUmVhZHlFdmVudEgAQgkKB3BheWxvYWQiRAoQUm9vbVVwZGF0",
-            "ZWRFdmVudBIwCglyb29tX2luZm8YASABKAsyHS5nYW1lc2VydmVyLmxvYmJ5",
-            "LnYxLlJvb21JbmZvIkQKEEdhbWVTdGFydGVkRXZlbnQSMAoJcm9vbV9pbmZv",
-            "GAEgASgLMh0uZ2FtZXNlcnZlci5sb2JieS52MS5Sb29tSW5mbyIxChVHYW1l",
-            "U2Vzc2lvblJlYWR5RXZlbnQSCgoCaXAYASABKAkSDAoEcG9ydBgCIAEoBSLV",
-            "AQoIUm9vbUluZm8SDwoHcm9vbV9pZBgBIAEoAxIRCglyb29tX25hbWUYAiAB",
-            "KAkSFAoMaG9zdF91c2VyX2lkGAMgASgDEjUKD2N1cnJlbnRfcGxheWVycxgE",
-            "IAMoCzIcLmdhbWVzZXJ2ZXIudXNlci52MS5Vc2VySW5mbxITCgttYXhfcGxh",
-            "eWVycxgFIAEoBRIzCgZzdGF0dXMYBiABKA4yIy5nYW1lc2VydmVyLmxvYmJ5",
-            "LnYxLlJvb21TdGF0dXNUeXBlEg4KBm1hcF9pZBgHIAEoCSqqAQoOUm9vbVN0",
-            "YXR1c1R5cGUSIAocUk9PTV9TVEFUVVNfVFlQRV9VTlNQRUNJRklFRBAAEhwK",
-            "GFJPT01fU1RBVFVTX1RZUEVfV0FJVElORxABEh0KGVJPT01fU1RBVFVTX1RZ",
-            "UEVfU1RBUlRJTkcQAhIcChhST09NX1NUQVRVU19UWVBFX1BMQVlJTkcQAxIb",
-            "ChdST09NX1NUQVRVU19UWVBFX0NMT1NFRBAEMv0FChNEdW5nZW9uTG9iYnlT",
-            "ZXJ2aWNlEl0KCkNyZWF0ZVJvb20SJi5nYW1lc2VydmVyLmxvYmJ5LnYxLkNy",
-            "ZWF0ZVJvb21SZXF1ZXN0GicuZ2FtZXNlcnZlci5sb2JieS52MS5DcmVhdGVS",
-            "b29tUmVzcG9uc2USVAoHR2V0Um9vbRIjLmdhbWVzZXJ2ZXIubG9iYnkudjEu",
-            "R2V0Um9vbVJlcXVlc3QaJC5nYW1lc2VydmVyLmxvYmJ5LnYxLkdldFJvb21S",
-            "ZXNwb25zZRJXCghHZXRSb29tcxIkLmdhbWVzZXJ2ZXIubG9iYnkudjEuR2V0",
-            "Um9vbXNSZXF1ZXN0GiUuZ2FtZXNlcnZlci5sb2JieS52MS5HZXRSb29tc1Jl",
-            "c3BvbnNlEl0KClVwZGF0ZVJvb20SJi5nYW1lc2VydmVyLmxvYmJ5LnYxLlVw",
-            "ZGF0ZVJvb21SZXF1ZXN0GicuZ2FtZXNlcnZlci5sb2JieS52MS5VcGRhdGVS",
-            "b29tUmVzcG9uc2USVwoISm9pblJvb20SJC5nYW1lc2VydmVyLmxvYmJ5LnYx",
-            "LkpvaW5Sb29tUmVxdWVzdBolLmdhbWVzZXJ2ZXIubG9iYnkudjEuSm9pblJv",
-            "b21SZXNwb25zZRJaCglMZWF2ZVJvb20SJS5nYW1lc2VydmVyLmxvYmJ5LnYx",
-            "LkxlYXZlUm9vbVJlcXVlc3QaJi5nYW1lc2VydmVyLmxvYmJ5LnYxLkxlYXZl",
-            "Um9vbVJlc3BvbnNlEloKCVN0YXJ0Um9vbRIlLmdhbWVzZXJ2ZXIubG9iYnku",
-            "djEuU3RhcnRSb29tUmVxdWVzdBomLmdhbWVzZXJ2ZXIubG9iYnkudjEuU3Rh",
-            "cnRSb29tUmVzcG9uc2USaAoNU3Vic2NyaWJlUm9vbRIpLmdhbWVzZXJ2ZXIu",
-            "bG9iYnkudjEuU3Vic2NyaWJlUm9vbVJlcXVlc3QaKi5nYW1lc2VydmVyLmxv",
-            "YmJ5LnYxLlN1YnNjcmliZVJvb21SZXNwb25zZTABQh+qAhxHYW1lU2VydmVy",
-            "LkdycGMuRHVuZ2VvbkxvYmJ5YgZwcm90bzM="));
+            "b29tSW5mbyI1Cg9HZXRSb29tc1JlcXVlc3QSEgoKcm9vbV9jb3VudBgBIAEo",
+            "BRIOCgZvZmZzZXQYAiABKAUihQEKEEdldFJvb21zUmVzcG9uc2USKQoGcmVz",
+            "dWx0GAEgASgLMhkuZ2FtZXNlcnZlci5jb21tb24uUmVzdWx0EjEKCnJvb21f",
+            "aW5mb3MYAiADKAsyHS5nYW1lc2VydmVyLmxvYmJ5LnYxLlJvb21JbmZvEhMK",
+            "C3RvdGFsX2NvdW50GAMgASgFIjMKEFN0YXJ0Um9vbVJlcXVlc3QSDwoHcm9v",
+            "bV9pZBgBIAEoAxIOCgZtYXBfaWQYAiABKAkicAoRU3RhcnRSb29tUmVzcG9u",
+            "c2USKQoGcmVzdWx0GAEgASgLMhkuZ2FtZXNlcnZlci5jb21tb24uUmVzdWx0",
+            "EjAKCXJvb21faW5mbxgCIAEoCzIdLmdhbWVzZXJ2ZXIubG9iYnkudjEuUm9v",
+            "bUluZm8iTAoRVXBkYXRlUm9vbVJlcXVlc3QSDwoHcm9vbV9pZBgBIAEoAxIR",
+            "Cglyb29tX25hbWUYAiABKAkSEwoLbWF4X3BsYXllcnMYAyABKAUicQoSVXBk",
+            "YXRlUm9vbVJlc3BvbnNlEikKBnJlc3VsdBgBIAEoCzIZLmdhbWVzZXJ2ZXIu",
+            "Y29tbW9uLlJlc3VsdBIwCglyb29tX2luZm8YAiABKAsyHS5nYW1lc2VydmVy",
+            "LmxvYmJ5LnYxLlJvb21JbmZvIicKFFN1YnNjcmliZVJvb21SZXF1ZXN0Eg8K",
+            "B3Jvb21faWQYASABKAMi6QEKFVN1YnNjcmliZVJvb21SZXNwb25zZRI9Cgx1",
+            "cGRhdGVfZXZlbnQYASABKAsyJS5nYW1lc2VydmVyLmxvYmJ5LnYxLlJvb21V",
+            "cGRhdGVkRXZlbnRIABI8CgtzdGFydF9ldmVudBgCIAEoCzIlLmdhbWVzZXJ2",
+            "ZXIubG9iYnkudjEuR2FtZVN0YXJ0ZWRFdmVudEgAEkgKEmdhbWVfc2Vzc2lv",
+            "bl9ldmVudBgDIAEoCzIqLmdhbWVzZXJ2ZXIubG9iYnkudjEuR2FtZVNlc3Np",
+            "b25SZWFkeUV2ZW50SABCCQoHcGF5bG9hZCJEChBSb29tVXBkYXRlZEV2ZW50",
+            "EjAKCXJvb21faW5mbxgBIAEoCzIdLmdhbWVzZXJ2ZXIubG9iYnkudjEuUm9v",
+            "bUluZm8iRAoQR2FtZVN0YXJ0ZWRFdmVudBIwCglyb29tX2luZm8YASABKAsy",
+            "HS5nYW1lc2VydmVyLmxvYmJ5LnYxLlJvb21JbmZvIjEKFUdhbWVTZXNzaW9u",
+            "UmVhZHlFdmVudBIKCgJpcBgBIAEoCRIMCgRwb3J0GAIgASgFItUBCghSb29t",
+            "SW5mbxIPCgdyb29tX2lkGAEgASgDEhEKCXJvb21fbmFtZRgCIAEoCRIUCgxo",
+            "b3N0X3VzZXJfaWQYAyABKAMSNQoPY3VycmVudF9wbGF5ZXJzGAQgAygLMhwu",
+            "Z2FtZXNlcnZlci51c2VyLnYxLlVzZXJJbmZvEhMKC21heF9wbGF5ZXJzGAUg",
+            "ASgFEjMKBnN0YXR1cxgGIAEoDjIjLmdhbWVzZXJ2ZXIubG9iYnkudjEuUm9v",
+            "bVN0YXR1c1R5cGUSDgoGbWFwX2lkGAcgASgJKqoBCg5Sb29tU3RhdHVzVHlw",
+            "ZRIgChxST09NX1NUQVRVU19UWVBFX1VOU1BFQ0lGSUVEEAASHAoYUk9PTV9T",
+            "VEFUVVNfVFlQRV9XQUlUSU5HEAESHQoZUk9PTV9TVEFUVVNfVFlQRV9TVEFS",
+            "VElORxACEhwKGFJPT01fU1RBVFVTX1RZUEVfUExBWUlORxADEhsKF1JPT01f",
+            "U1RBVFVTX1RZUEVfQ0xPU0VEEAQy/QUKE0R1bmdlb25Mb2JieVNlcnZpY2US",
+            "XQoKQ3JlYXRlUm9vbRImLmdhbWVzZXJ2ZXIubG9iYnkudjEuQ3JlYXRlUm9v",
+            "bVJlcXVlc3QaJy5nYW1lc2VydmVyLmxvYmJ5LnYxLkNyZWF0ZVJvb21SZXNw",
+            "b25zZRJUCgdHZXRSb29tEiMuZ2FtZXNlcnZlci5sb2JieS52MS5HZXRSb29t",
+            "UmVxdWVzdBokLmdhbWVzZXJ2ZXIubG9iYnkudjEuR2V0Um9vbVJlc3BvbnNl",
+            "ElcKCEdldFJvb21zEiQuZ2FtZXNlcnZlci5sb2JieS52MS5HZXRSb29tc1Jl",
+            "cXVlc3QaJS5nYW1lc2VydmVyLmxvYmJ5LnYxLkdldFJvb21zUmVzcG9uc2US",
+            "XQoKVXBkYXRlUm9vbRImLmdhbWVzZXJ2ZXIubG9iYnkudjEuVXBkYXRlUm9v",
+            "bVJlcXVlc3QaJy5nYW1lc2VydmVyLmxvYmJ5LnYxLlVwZGF0ZVJvb21SZXNw",
+            "b25zZRJXCghKb2luUm9vbRIkLmdhbWVzZXJ2ZXIubG9iYnkudjEuSm9pblJv",
+            "b21SZXF1ZXN0GiUuZ2FtZXNlcnZlci5sb2JieS52MS5Kb2luUm9vbVJlc3Bv",
+            "bnNlEloKCUxlYXZlUm9vbRIlLmdhbWVzZXJ2ZXIubG9iYnkudjEuTGVhdmVS",
+            "b29tUmVxdWVzdBomLmdhbWVzZXJ2ZXIubG9iYnkudjEuTGVhdmVSb29tUmVz",
+            "cG9uc2USWgoJU3RhcnRSb29tEiUuZ2FtZXNlcnZlci5sb2JieS52MS5TdGFy",
+            "dFJvb21SZXF1ZXN0GiYuZ2FtZXNlcnZlci5sb2JieS52MS5TdGFydFJvb21S",
+            "ZXNwb25zZRJoCg1TdWJzY3JpYmVSb29tEikuZ2FtZXNlcnZlci5sb2JieS52",
+            "MS5TdWJzY3JpYmVSb29tUmVxdWVzdBoqLmdhbWVzZXJ2ZXIubG9iYnkudjEu",
+            "U3Vic2NyaWJlUm9vbVJlc3BvbnNlMAFCH6oCHEdhbWVTZXJ2ZXIuR3JwYy5E",
+            "dW5nZW9uTG9iYnliBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::GameServer.Grpc.Common.CommonReflection.Descriptor, global::GameServer.Grpc.Auth.AuthReflection.Descriptor, global::GameServer.Grpc.User.UserReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::GameServer.Grpc.DungeonLobby.RoomStatusType), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -99,8 +100,8 @@ namespace GameServer.Grpc.DungeonLobby {
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.LeaveRoomResponse), global::GameServer.Grpc.DungeonLobby.LeaveRoomResponse.Parser, new[]{ "Result" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.GetRoomRequest), global::GameServer.Grpc.DungeonLobby.GetRoomRequest.Parser, new[]{ "RoomId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.GetRoomResponse), global::GameServer.Grpc.DungeonLobby.GetRoomResponse.Parser, new[]{ "Result", "RoomInfo" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.GetRoomsRequest), global::GameServer.Grpc.DungeonLobby.GetRoomsRequest.Parser, new[]{ "RoomCount" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.GetRoomsResponse), global::GameServer.Grpc.DungeonLobby.GetRoomsResponse.Parser, new[]{ "Result", "RoomInfos" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.GetRoomsRequest), global::GameServer.Grpc.DungeonLobby.GetRoomsRequest.Parser, new[]{ "RoomCount", "Offset" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.GetRoomsResponse), global::GameServer.Grpc.DungeonLobby.GetRoomsResponse.Parser, new[]{ "Result", "RoomInfos", "TotalCount" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.StartRoomRequest), global::GameServer.Grpc.DungeonLobby.StartRoomRequest.Parser, new[]{ "RoomId", "MapId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.StartRoomResponse), global::GameServer.Grpc.DungeonLobby.StartRoomResponse.Parser, new[]{ "Result", "RoomInfo" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.UpdateRoomRequest), global::GameServer.Grpc.DungeonLobby.UpdateRoomRequest.Parser, new[]{ "RoomId", "RoomName", "MaxPlayers" }, null, null, null, null),
@@ -2040,6 +2041,7 @@ namespace GameServer.Grpc.DungeonLobby {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public GetRoomsRequest(GetRoomsRequest other) : this() {
       roomCount_ = other.roomCount_;
+      offset_ = other.offset_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -2053,7 +2055,8 @@ namespace GameServer.Grpc.DungeonLobby {
     public const int RoomCountFieldNumber = 1;
     private int roomCount_;
     /// <summary>
-    /// 가져올 방 목록 갯수
+    /// 한 페이지 크기. 0 이하면 서버 기본값(20), 서버 상한(50)으로 clamp 된다.
+    /// (9.6 이전엔 이 값이 무시되고 전체 방이 반환됐다)
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -2061,6 +2064,23 @@ namespace GameServer.Grpc.DungeonLobby {
       get { return roomCount_; }
       set {
         roomCount_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "offset" field.</summary>
+    public const int OffsetFieldNumber = 2;
+    private int offset_;
+    /// <summary>
+    /// 건너뛸 방 수(페이지 시작 위치). 음수는 0 으로 clamp.
+    /// 정렬 = RoomId 내림차순(최신 방 먼저) — 서버가 고정한다. Redis `room:active` 는 Set(무순서)이라
+    /// 정렬 없이 offset 을 쓰면 페이지 간 중복·누락이 난다.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int Offset {
+      get { return offset_; }
+      set {
+        offset_ = value;
       }
     }
 
@@ -2080,6 +2100,7 @@ namespace GameServer.Grpc.DungeonLobby {
         return true;
       }
       if (RoomCount != other.RoomCount) return false;
+      if (Offset != other.Offset) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -2088,6 +2109,7 @@ namespace GameServer.Grpc.DungeonLobby {
     public override int GetHashCode() {
       int hash = 1;
       if (RoomCount != 0) hash ^= RoomCount.GetHashCode();
+      if (Offset != 0) hash ^= Offset.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -2110,6 +2132,10 @@ namespace GameServer.Grpc.DungeonLobby {
         output.WriteRawTag(8);
         output.WriteInt32(RoomCount);
       }
+      if (Offset != 0) {
+        output.WriteRawTag(16);
+        output.WriteInt32(Offset);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -2124,6 +2150,10 @@ namespace GameServer.Grpc.DungeonLobby {
         output.WriteRawTag(8);
         output.WriteInt32(RoomCount);
       }
+      if (Offset != 0) {
+        output.WriteRawTag(16);
+        output.WriteInt32(Offset);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -2136,6 +2166,9 @@ namespace GameServer.Grpc.DungeonLobby {
       int size = 0;
       if (RoomCount != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(RoomCount);
+      }
+      if (Offset != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(Offset);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -2151,6 +2184,9 @@ namespace GameServer.Grpc.DungeonLobby {
       }
       if (other.RoomCount != 0) {
         RoomCount = other.RoomCount;
+      }
+      if (other.Offset != 0) {
+        Offset = other.Offset;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -2175,6 +2211,10 @@ namespace GameServer.Grpc.DungeonLobby {
             RoomCount = input.ReadInt32();
             break;
           }
+          case 16: {
+            Offset = input.ReadInt32();
+            break;
+          }
         }
       }
     #endif
@@ -2196,6 +2236,10 @@ namespace GameServer.Grpc.DungeonLobby {
             break;
           case 8: {
             RoomCount = input.ReadInt32();
+            break;
+          }
+          case 16: {
+            Offset = input.ReadInt32();
             break;
           }
         }
@@ -2242,6 +2286,7 @@ namespace GameServer.Grpc.DungeonLobby {
     public GetRoomsResponse(GetRoomsResponse other) : this() {
       result_ = other.result_ != null ? other.result_.Clone() : null;
       roomInfos_ = other.roomInfos_.Clone();
+      totalCount_ = other.totalCount_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -2274,6 +2319,21 @@ namespace GameServer.Grpc.DungeonLobby {
       get { return roomInfos_; }
     }
 
+    /// <summary>Field number for the "total_count" field.</summary>
+    public const int TotalCountFieldNumber = 3;
+    private int totalCount_;
+    /// <summary>
+    /// 페이지가 아니라 **전체 활성 방 수**. 클라 페이저가 "N개 중 M개"를 그릴 수 있게 한다.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int TotalCount {
+      get { return totalCount_; }
+      set {
+        totalCount_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -2291,6 +2351,7 @@ namespace GameServer.Grpc.DungeonLobby {
       }
       if (!object.Equals(Result, other.Result)) return false;
       if(!roomInfos_.Equals(other.roomInfos_)) return false;
+      if (TotalCount != other.TotalCount) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -2300,6 +2361,7 @@ namespace GameServer.Grpc.DungeonLobby {
       int hash = 1;
       if (result_ != null) hash ^= Result.GetHashCode();
       hash ^= roomInfos_.GetHashCode();
+      if (TotalCount != 0) hash ^= TotalCount.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -2323,6 +2385,10 @@ namespace GameServer.Grpc.DungeonLobby {
         output.WriteMessage(Result);
       }
       roomInfos_.WriteTo(output, _repeated_roomInfos_codec);
+      if (TotalCount != 0) {
+        output.WriteRawTag(24);
+        output.WriteInt32(TotalCount);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -2338,6 +2404,10 @@ namespace GameServer.Grpc.DungeonLobby {
         output.WriteMessage(Result);
       }
       roomInfos_.WriteTo(ref output, _repeated_roomInfos_codec);
+      if (TotalCount != 0) {
+        output.WriteRawTag(24);
+        output.WriteInt32(TotalCount);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -2352,6 +2422,9 @@ namespace GameServer.Grpc.DungeonLobby {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Result);
       }
       size += roomInfos_.CalculateSize(_repeated_roomInfos_codec);
+      if (TotalCount != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(TotalCount);
+      }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -2371,6 +2444,9 @@ namespace GameServer.Grpc.DungeonLobby {
         Result.MergeFrom(other.Result);
       }
       roomInfos_.Add(other.roomInfos_);
+      if (other.TotalCount != 0) {
+        TotalCount = other.TotalCount;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -2401,6 +2477,10 @@ namespace GameServer.Grpc.DungeonLobby {
             roomInfos_.AddEntriesFrom(input, _repeated_roomInfos_codec);
             break;
           }
+          case 24: {
+            TotalCount = input.ReadInt32();
+            break;
+          }
         }
       }
     #endif
@@ -2429,6 +2509,10 @@ namespace GameServer.Grpc.DungeonLobby {
           }
           case 18: {
             roomInfos_.AddEntriesFrom(ref input, _repeated_roomInfos_codec);
+            break;
+          }
+          case 24: {
+            TotalCount = input.ReadInt32();
             break;
           }
         }

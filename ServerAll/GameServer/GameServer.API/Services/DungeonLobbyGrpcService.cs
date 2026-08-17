@@ -92,18 +92,25 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
             };
         }
 
-        logger.LogInformation("GetRooms request received for session {SessionId}", sessionId);
-        var result = await dungeonLobbyService.GetActiveDungeonRoomsAsync(context.CancellationToken);
-        
+        logger.LogInformation("GetRooms request received for session {SessionId} (offset {Offset}, count {Count})",
+            sessionId, request.Offset, request.RoomCount);
+
+        // 페이징(9.6): 이전엔 request.RoomCount 를 무시하고 전체 활성 방을 반환했다.
+        // 크기·오프셋 clamp 는 서비스가 한다(서버가 진실원 — 클라 값 그대로 신뢰 금지).
+        var result = await dungeonLobbyService.GetActiveDungeonRoomsAsync(
+            request.Offset, request.RoomCount, context.CancellationToken);
+
         var response = new GetRoomsResponse
         {
             Result = result.ToGrpcResult(),
         };
 
-        if (result.Value is null)
-            throw new InvalidOperationException("Room List is null");
+        if (!result.IsSuccess)
+            return response;
 
-        var rooms = result.Value.ToList();
+        var page = result.Value!;
+        var rooms = page.Rooms;
+        response.TotalCount = page.TotalCount;
 
         // N+1 회피: 방마다 (플레이어+유저) 2왕복하던 것을 → 플레이어 1쿼리 + 유저 1쿼리로 배치.
         var roomIds = rooms.Select(r => r.RoomId).ToList();

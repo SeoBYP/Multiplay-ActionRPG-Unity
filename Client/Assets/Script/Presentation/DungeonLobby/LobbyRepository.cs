@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using GameServer.Grpc.DungeonLobby;
@@ -20,15 +20,16 @@ namespace Game.Presentation.DungeonLobby
             _service = service;
         }
 
-        public async UniTask<(bool IsSuccess, IReadOnlyList<RoomInfo> Rooms, string Error)>
-            GetRoomsAsync(CancellationToken ct = default)
+        /// <summary>방 목록 한 페이지(9.6). <c>TotalCount</c> = 전체 활성 방 수(페이저용).</summary>
+        public async UniTask<(bool IsSuccess, IReadOnlyList<RoomInfo> Rooms, int TotalCount, string Error)>
+            GetRoomsAsync(int offset = 0, int limit = DungeonLobbyPaging.DefaultPageSize, CancellationToken ct = default)
         {
-            Debug.Log("[LobbyRepository] GetRooms 요청");
-            var (result, rooms) = await _service.GetRoomsAsync(ct);
-            Debug.Log($"[LobbyRepository] GetRooms 응답: {result} ({rooms?.Count ?? 0}개)");
+            Debug.Log($"[LobbyRepository] GetRooms 요청 offset={offset} limit={limit}");
+            var (result, rooms, total) = await _service.GetRoomsAsync(offset, limit, ct);
+            Debug.Log($"[LobbyRepository] GetRooms 응답: {result} ({rooms?.Count ?? 0}개 / 전체 {total})");
             return result == DungeonLobbyResult.Success
-                ? (true, rooms, null)
-                : (false, null, result.ToString());
+                ? (true, rooms, total, null)
+                : (false, null, 0, result.ToString());
         }
 
         public async UniTask<(bool IsSuccess, RoomInfo Room, string Error)>

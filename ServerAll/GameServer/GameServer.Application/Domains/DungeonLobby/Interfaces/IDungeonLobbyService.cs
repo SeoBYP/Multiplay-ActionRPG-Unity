@@ -16,10 +16,16 @@ public interface IDungeonLobbyService
     Task<Result<DungeonRoom>> CreateDungeonRoomAsync(string sessionId, string roomName, int maxPlayers, string mapId = "", CancellationToken ct = default);
 
     /// <summary>
-    /// 활성 방 목록을 조회합니다
+    /// 활성 방 목록을 한 페이지 조회합니다(9.6).
     /// </summary>
-    /// <returns>활성 방 목록</returns>
-    Task<Result<IEnumerable<DungeonRoom>>> GetActiveDungeonRoomsAsync(CancellationToken ct = default);
+    /// <param name="offset">건너뛸 방 수. 음수는 0 으로 clamp.</param>
+    /// <param name="limit">가져올 방 수. 0 이하면 <see cref="DungeonLobbyPaging.DefaultPageSize"/>, 상한은 <see cref="DungeonLobbyPaging.MaxPageSize"/>.</param>
+    /// <returns>해당 페이지의 방 목록 + <b>전체</b> 활성 방 수(페이저용).</returns>
+    /// <remarks>
+    /// 정렬은 <b>RoomId 내림차순(최신 먼저)</b> 으로 서버가 고정한다. Redis <c>room:active</c> 가 Set(무순서)이라
+    /// 정렬 없이 offset 을 적용하면 호출마다 순서가 달라져 페이지 간 중복·누락이 발생한다.
+    /// </remarks>
+    Task<Result<ActiveRoomPage>> GetActiveDungeonRoomsAsync(int offset, int limit, CancellationToken ct = default);
 
     /// <summary>
     /// 특정 방 정보를 조회합니다

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using GameServer.Application.Common;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.DungeonLobby;
@@ -218,10 +218,11 @@ public class DungeonLobbyServiceTests
     [Fact]
     public async Task GetActiveDungeonRooms_방이_없으면_빈_목록_반환()
     {
-        var result = await _service.GetActiveDungeonRoomsAsync();
+        var result = await _service.GetActiveDungeonRoomsAsync(offset: 0, limit: 20);
 
         Assert.True(result.IsSuccess);
-        Assert.Empty(result.Value!);
+        Assert.Empty(result.Value!.Rooms);
+        Assert.Equal(0, result.Value!.TotalCount);
     }
 
     [Fact]
@@ -232,10 +233,108 @@ public class DungeonLobbyServiceTests
         await _service.CreateDungeonRoomAsync(session1!.SessionId, "Room A", 4);
         await _service.CreateDungeonRoomAsync(session2!.SessionId, "Room B", 4);
 
-        var result = await _service.GetActiveDungeonRoomsAsync();
+        var result = await _service.GetActiveDungeonRoomsAsync(offset: 0, limit: 20);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(2, result.Value!.Count());
+        Assert.Equal(2, result.Value!.Rooms.Count);
+        Assert.Equal(2, result.Value!.TotalCount);
+    }
+
+    // ── GetActiveDungeonRooms 페이징 (9.6) ─────────────────────────
+
+    [Fact]
+    public async Task GetActiveDungeonRooms_요청한_페이지_크기만큼만_반환하고_전체수는_따로_준다()
+    {
+        await CreateRoomsAsync(5);
+
+        var result = await _service.GetActiveDungeonRoomsAsync(offset: 0, limit: 2);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.Value!.Rooms.Count);
+        Assert.Equal(5, result.Value!.TotalCount);
+    }
+
+    [Fact]
+    public async Task GetActiveDungeonRooms_페이지들이_겹치지_않고_전체를_덮는다()
+    {
+        // 안정 정렬이 없으면(Redis room:active 는 Set=무순서) 여기서 중복·누락이 난다.
+        await CreateRoomsAsync(5);
+
+        var page1 = await _service.GetActiveDungeonRoomsAsync(offset: 0, limit: 2);
+        var page2 = await _service.GetActiveDungeonRoomsAsync(offset: 2, limit: 2);
+        var page3 = await _service.GetActiveDungeonRoomsAsync(offset: 4, limit: 2);
+
+        var ids = page1.Value!.Rooms.Concat(page2.Value!.Rooms).Concat(page3.Value!.Rooms)
+            .Select(r => r.RoomId).ToList();
+
+        Assert.Equal(5, ids.Count);
+        Assert.Equal(5, ids.Distinct().Count());
+    }
+
+    [Fact]
+    public async Task GetActiveDungeonRooms_최신_방이_먼저_온다()
+    {
+        var created = await CreateRoomsAsync(3);
+
+        var result = await _service.GetActiveDungeonRoomsAsync(offset: 0, limit: 20);
+
+        var expected = created.OrderByDescending(id => id).ToList();
+        Assert.Equal(expected, result.Value!.Rooms.Select(r => r.RoomId).ToList());
+    }
+
+    [Fact]
+    public async Task GetActiveDungeonRooms_크기를_안보내면_기본값이_적용된다()
+    {
+        await CreateRoomsAsync(3);
+
+        var result = await _service.GetActiveDungeonRoomsAsync(offset: 0, limit: 0);
+
+        Assert.Equal(3, result.Value!.Rooms.Count); // 3 < DefaultPageSize(20)
+    }
+
+    [Fact]
+    public async Task GetActiveDungeonRooms_과도한_요청_크기는_상한으로_잘린다()
+    {
+        await CreateRoomsAsync(DungeonLobbyPaging.MaxPageSize + 5);
+
+        var result = await _service.GetActiveDungeonRoomsAsync(offset: 0, limit: int.MaxValue);
+
+        Assert.Equal(DungeonLobbyPaging.MaxPageSize, result.Value!.Rooms.Count);
+        Assert.Equal(DungeonLobbyPaging.MaxPageSize + 5, result.Value!.TotalCount);
+    }
+
+    [Fact]
+    public async Task GetActiveDungeonRooms_음수_오프셋은_처음부터로_취급한다()
+    {
+        await CreateRoomsAsync(3);
+
+        var result = await _service.GetActiveDungeonRoomsAsync(offset: -10, limit: 20);
+
+        Assert.Equal(3, result.Value!.Rooms.Count);
+    }
+
+    [Fact]
+    public async Task GetActiveDungeonRooms_범위를_넘은_오프셋은_빈_페이지다()
+    {
+        await CreateRoomsAsync(3);
+
+        var result = await _service.GetActiveDungeonRoomsAsync(offset: 100, limit: 20);
+
+        Assert.Empty(result.Value!.Rooms);
+        Assert.Equal(3, result.Value!.TotalCount); // 전체수는 여전히 알려준다
+    }
+
+    /// <summary>방 N 개 생성(방장은 각각 다른 유저 — 한 유저는 한 방만 가질 수 있다). 생성된 RoomId 목록 반환.</summary>
+    private async Task<List<long>> CreateRoomsAsync(int count)
+    {
+        var ids = new List<long>(count);
+        for (int i = 0; i < count; i++)
+        {
+            var session = await _sessionRepository.CreateSessionAsync(1000 + i);
+            var created = await _service.CreateDungeonRoomAsync(session!.SessionId, $"Room {i}", 4);
+            ids.Add(created.Value!.RoomId);
+        }
+        return ids;
     }
 
     // ── GetDungeonRoom ─────────────────────────────────────────────

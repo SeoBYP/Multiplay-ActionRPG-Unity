@@ -175,7 +175,9 @@ namespace Game.Presentation.DungeonLobby
             Dispatch(LobbyResult.Loading.Instance);
             try
             {
-                var res = await _repository.GetRoomsAsync(_cts.Token);
+                // 9.6: 첫 페이지만 받는다(서버가 크기 상한·최신순 정렬을 강제). 페이저 UI 는 아직 없어
+                // offset 은 항상 0 — 목록이 서버 페이지 크기를 넘으면 그때 UI 를 붙인다(YAGNI).
+                var res = await _repository.GetRoomsAsync(ct: _cts.Token);
                 Dispatch(res.IsSuccess
                     ? (LobbyResult)new LobbyResult.RoomsLoaded(res.Rooms)
                     : new LobbyResult.Failed(res.Error));
