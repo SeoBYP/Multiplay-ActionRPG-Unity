@@ -38,6 +38,23 @@ mtime 전부 갱신 확인(= 실행 확증) · 내용 diff 0
 - **교훈**: "diff 가 없다"를 곧바로 "드리프트 없음"으로 읽지 말 것. 첫 시도에서 5개 Exporter 가 **모달에 막혀 실행조차 안 됐는데** diff 가 없어 정상으로 오독할 뻔했다. **mtime 으로 실행 자체를 확증**한 뒤 diff 를 판정한다.
 - **잔여 제안**: 이 대조를 EditMode 테스트로 상시화(사람 기억에 의존하지 않게).
 
+### A4. `items.json` 만 Exporter 부재 → 클라·서버 아이템 카탈로그 드리프트 — ⬜ **높음** (2026-08-18 발견)
+
+bake 산출물 7종 중 **`items.json` 하나만 Exporter 가 없다**. 나머지 6종(abilities·consumable-effects·drop-tables·monsters·level-table·spawn-layouts)은 전부 `Tools/…/Export` 가 있어 SO→bake 로 강제되지만, 아이템만 **서버 `items.json` 수기 + 클라 `ItemDisplayCatalog.asset` 수기**로 이중 저작이다.
+
+실측 대조 (2026-08-18):
+
+```
+서버 items.json  10개        클라 ItemDisplayCatalog  11개
+                             3. gold_pouch          ← 클라에만 존재(서버 없음)
+순서: 3번 이후 전부 1칸씩 어긋남
+```
+
+- **왜 문제인가**: ① `gold_pouch` 는 `ItemCatalogData.cs:13-15` 가 기록한 그 사고("gold_pouch 고아")의 **잔재** — 서버만 정리되고 클라는 안 됐다. ② `ItemCatalogData.cs:17` 이 **"파일 순서 = 상점 진열 순서"** 를 명시하는데 두 파일의 순서가 이미 다르다. 지금은 문자열 룩업이라 안 드러나지만 **인덱스·ID 순서에 의존하는 코드가 생기면 즉시 깨진다**.
+- **왜 A2 에서 못 잡았나**: A2 는 "Exporter 를 재실행해 diff 를 본다" 방식이었다. `items.json` 은 **Exporter 자체가 없어 대조 대상에서 빠졌다** — 방법론의 사각지대였다.
+- **조치**: `ItemCatalogDefinition`(SO) + `ItemCatalogExporter` 신설 → 다른 6종과 동일 교리로 일원화. `ItemDisplayCatalog` 은 표시 전용으로 두되 정의 SO 를 진실원으로 참조. `gold_pouch` 존치 여부 결정 필요.
+- **선행 관계**: **ItemId int 전환(사용자 결정 2026-08-18)의 0단계.** 어긋난 상태로 numericId 를 부여하면 드리프트를 숫자로 굳히게 된다.
+
 ### A3. `RemotePlayerCharacter` 머티리얼 누락 — ✅ **해소 2026-08-18** (재직렬화로 고아 블록 제거)
 
 - YAML 텍스트엔 `Capsule` GameObject + MeshRenderer 가 guid `31321ba15b8f8eb4c954353edc038b1d` 를 참조하는 채로 남아 있다.
