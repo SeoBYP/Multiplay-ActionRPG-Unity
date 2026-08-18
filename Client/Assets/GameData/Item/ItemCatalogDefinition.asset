@@ -1,0 +1,203 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1614212ae4390244bdaf2722c5d3356, type: 3}
+  m_Name: ItemCatalogDefinition
+  m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Items.ItemCatalogDefinition
+  items:
+  - itemId: potion_hp_small
+    stackable: 1
+    maxStack: 99
+    isEquipment: 0
+    equipSlot: 0
+    equipStats:
+      maxHealth: 0
+      maxMana: 0
+      attackPower: 0
+      defense: 0
+      strength: 0
+      dexterity: 0
+      intelligence: 0
+    isShopItem: 1
+    buyPrice: 50
+    sellPrice: 10
+    shopCategory: 4
+    consumeEffects:
+    - stat: 0
+      amount: 100
+      policy: 0
+      durationMs: 0
+  - itemId: potion_mp_small
+    stackable: 1
+    maxStack: 99
+    isEquipment: 0
+    equipSlot: 0
+    equipStats:
+      maxHealth: 0
+      maxMana: 0
+      attackPower: 0
+      defense: 0
+      strength: 0
+      dexterity: 0
+      intelligence: 0
+    isShopItem: 1
+    buyPrice: 50
+    sellPrice: 10
+    shopCategory: 4
+    consumeEffects:
+    - stat: 2
+      amount: 100
+      policy: 0
+      durationMs: 0
+  - itemId: sword_basic
+    stackable: 0
+    maxStack: 1
+    isEquipment: 1
+    equipSlot: 6
+    equipStats:
+      maxHealth: 0
+      maxMana: 0
+      attackPower: 5
+      defense: 0
+      strength: 0
+      dexterity: 0
+      intelligence: 0
+    isShopItem: 1
+    buyPrice: 200
+    sellPrice: 50
+    shopCategory: 1
+    consumeEffects: []
+  - itemId: armor_leather
+    stackable: 0
+    maxStack: 1
+    isEquipment: 1
+    equipSlot: 2
+    equipStats:
+      maxHealth: 0
+      maxMana: 0
+      attackPower: 0
+      defense: 3
+      strength: 0
+      dexterity: 0
+      intelligence: 0
+    isShopItem: 1
+    buyPrice: 150
+    sellPrice: 40
+    shopCategory: 2
+    consumeEffects: []
+  - itemId: helmet_iron
+    stackable: 0
+    maxStack: 1
+    isEquipment: 1
+    equipSlot: 1
+    equipStats:
+      maxHealth: 5
+      maxMana: 0
+      attackPower: 0
+      defense: 2
+      strength: 0
+      dexterity: 0
+      intelligence: 0
+    isShopItem: 1
+    buyPrice: 120
+    sellPrice: 30
+    shopCategory: 2
+    consumeEffects: []
+  - itemId: boots_leather
+    stackable: 0
+    maxStack: 1
+    isEquipment: 1
+    equipSlot: 3
+    equipStats:
+      maxHealth: 0
+      maxMana: 0
+      attackPower: 0
+      defense: 1
+      strength: 0
+      dexterity: 2
+      intelligence: 0
+    isShopItem: 1
+    buyPrice: 100
+    sellPrice: 25
+    shopCategory: 2
+    consumeEffects: []
+  - itemId: gloves_leather
+    stackable: 0
+    maxStack: 1
+    isEquipment: 1
+    equipSlot: 4
+    equipStats:
+      maxHealth: 0
+      maxMana: 0
+      attackPower: 2
+      defense: 0
+      strength: 0
+      dexterity: 0
+      intelligence: 0
+    isShopItem: 1
+    buyPrice: 100
+    sellPrice: 25
+    shopCategory: 2
+    consumeEffects: []
+  - itemId: shield_wooden
+    stackable: 0
+    maxStack: 1
+    isEquipment: 1
+    equipSlot: 5
+    equipStats:
+      maxHealth: 0
+      maxMana: 0
+      attackPower: 0
+      defense: 4
+      strength: 0
+      dexterity: 0
+      intelligence: 0
+    isShopItem: 1
+    buyPrice: 130
+    sellPrice: 35
+    shopCategory: 2
+    consumeEffects: []
+  - itemId: ring_power
+    stackable: 0
+    maxStack: 1
+    isEquipment: 1
+    equipSlot: 7
+    equipStats:
+      maxHealth: 0
+      maxMana: 0
+      attackPower: 3
+      defense: 0
+      strength: 2
+      dexterity: 0
+      intelligence: 0
+    isShopItem: 1
+    buyPrice: 300
+    sellPrice: 80
+    shopCategory: 3
+    consumeEffects: []
+  - itemId: necklace_vitality
+    stackable: 0
+    maxStack: 1
+    isEquipment: 1
+    equipSlot: 8
+    equipStats:
+      maxHealth: 20
+      maxMana: 0
+      attackPower: 0
+      defense: 0
+      strength: 0
+      dexterity: 0
+      intelligence: 0
+    isShopItem: 1
+    buyPrice: 300
+    sellPrice: 80
+    shopCategory: 3
+    consumeEffects: []

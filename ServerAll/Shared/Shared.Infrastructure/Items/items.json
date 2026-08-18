@@ -47,7 +47,14 @@
             "buyPrice": 50,
             "sellPrice": 10,
             "shopCategory": "Potion",
-            "consumeEffects": []
+            "consumeEffects": [
+                {
+                    "stat": "Mana",
+                    "amount": 100,
+                    "policy": "Instant",
+                    "durationMs": 0
+                }
+            ]
         },
         {
             "itemId": "sword_basic",

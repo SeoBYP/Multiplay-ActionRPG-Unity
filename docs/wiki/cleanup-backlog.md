@@ -38,7 +38,7 @@ mtime 전부 갱신 확인(= 실행 확증) · 내용 diff 0
 - **교훈**: "diff 가 없다"를 곧바로 "드리프트 없음"으로 읽지 말 것. 첫 시도에서 5개 Exporter 가 **모달에 막혀 실행조차 안 됐는데** diff 가 없어 정상으로 오독할 뻔했다. **mtime 으로 실행 자체를 확증**한 뒤 diff 를 판정한다.
 - **잔여 제안**: 이 대조를 EditMode 테스트로 상시화(사람 기억에 의존하지 않게).
 
-### A4. `items.json` 만 Exporter 부재 → 클라·서버 아이템 카탈로그 드리프트 — ⬜ **높음** (2026-08-18 발견)
+### A4. `items.json` 만 Exporter 부재 → 클라·서버 아이템 카탈로그 드리프트 — ✅ **해소 2026-08-18**
 
 bake 산출물 7종 중 **`items.json` 하나만 Exporter 가 없다**. 나머지 6종(abilities·consumable-effects·drop-tables·monsters·level-table·spawn-layouts)은 전부 `Tools/…/Export` 가 있어 SO→bake 로 강제되지만, 아이템만 **서버 `items.json` 수기 + 클라 `ItemDisplayCatalog.asset` 수기**로 이중 저작이다.
 
@@ -54,6 +54,19 @@ bake 산출물 7종 중 **`items.json` 하나만 Exporter 가 없다**. 나머�
 - **왜 A2 에서 못 잡았나**: A2 는 "Exporter 를 재실행해 diff 를 본다" 방식이었다. `items.json` 은 **Exporter 자체가 없어 대조 대상에서 빠졌다** — 방법론의 사각지대였다.
 - **조치**: `ItemCatalogDefinition`(SO) + `ItemCatalogExporter` 신설 → 다른 6종과 동일 교리로 일원화. `ItemDisplayCatalog` 은 표시 전용으로 두되 정의 SO 를 진실원으로 참조. `gold_pouch` 존치 여부 결정 필요.
 - **선행 관계**: **ItemId int 전환(사용자 결정 2026-08-18)의 0단계.** 어긋난 상태로 numericId 를 부여하면 드리프트를 숫자로 굳히게 된다.
+
+**해소 내역 (2026-08-18)**
+
+- `ItemCatalogDefinition`(SO, `Game.Gameplay.Items`) + `ItemCatalogExporter`(Tools/Item/Export·Import) 신설 → 다른 6종과 동일 교리로 일원화. **정렬 금지**(저작 순서 = 상점 진열 순서)를 코드 주석으로 못박음.
+- 왕복 검증: items.json → Import → SO → Export → items.json, **10종 순서 동일·필드 불일치 0**.
+- `gold_pouch` 제거(코드 참조 0건 실측) · `potion_mp_small` 에 Mana +100 Instant 부여(주석이 "과거 사고"로 적었던 효과 누락이 실제로 남아 있었다).
+- 재대조: 서버 10 / 클라 10, **구성·순서 모두 일치**.
+- 죽은 `ConsumableEffectExporter` 제거 — 서버엔 `ConsumableEffectCatalog` 가 없고 소비 효과는 items.json 의 `consumeEffects` 로 통합됐는데 Exporter 만 남아 아무도 안 읽는 JSON 을 계속 생성했다(실제로 조사 중 오독을 유발).
+- 검증: Unity 컴파일 0 · 서버 빌드 0오류 · 테스트 **659/659**(Shared 50 · SocketServer 210 · GameServer 399).
+
+**부수 발견 — 저장소 자체가 깨져 있었다**: `items.json`·`quests.json` 이 `EmbeddedResource` 인데 **미커밋**이었고, 그것을 읽는 `Shared.Infrastructure/{Items,Quests}/*.cs` 와 `Shared.Gameplay/Items/*.cs` 도 미커밋이었다(Domain→Shared.Infrastructure 이동 리팩터가 삭제만 커밋된 상태). 클론하면 빌드 실패. `8438d721`·`402eb438`·`99bed9b4` 로 복구.
+
+**검증 방법 교훈**: 로컬 `dotnet build` 는 미커밋 파일이 디스크에 있어 **항상 통과**하므로 이 부류를 절대 못 잡는다. `git archive HEAD ServerAll | tar -x -C <tmp>` 로 **커밋본만 꺼내 빌드**하는 것이 진짜 검증이다(전체 `git clone` 은 `.git` 20GB vs 여유 20GB 로 디스크 부족 실패).
 
 ### A3. `RemotePlayerCharacter` 머티리얼 누락 — ✅ **해소 2026-08-18** (재직렬화로 고아 블록 제거)
 
@@ -140,6 +153,15 @@ Assets/Art/Magic Pig Games (Infinity PBR)/.../v2_DemoEnvironment.prefab
   1. ✅ **완료 2026-08-18**: `.gitignore` 의 `*.meta` 제거. **원인 규명 — 이 규칙은 `# Files built by Visual Studio` 블록(`*.ilk`·`*.obj`·`*.pch` 사이)에 있었다. VS 템플릿의 빌드 산출물 규칙이 Unity 에셋 `.meta` 까지 삼킨 것**이지 의도된 Unity 설정이 아니었다. 제거 사유를 파일에 주석으로 남김.
      - 실측: 제거 후 새로 노출된 `.meta` 는 **1,019개**(예상 8,593 아님). 나머지는 `Client/Assets/Packages/` 등 **다른 ignore 규칙**에 여전히 걸려 있다 → 2단계에서 함께 다뤄야 한다.
   2. **선행 정리 후**: 데모 폴더(`_DEMO SOURCE FILES`·`LP Files` 등) 정리 → 콘솔 error 0 확인 → 기존 고아 메타 커밋.
+
+### A5. Editor Exporter 5종이 `DisplayDialog` 로 메인 스레드를 붙잡는다 — ⬜ 중간 (2026-08-18 발견)
+
+`EditorUtility.DisplayDialog` 는 **사람이 클릭할 때까지 에디터 메인 스레드를 점유**한다. Unity CLI(`unity command`)로 메뉴를 호출하면 bake 는 끝났는데 응답이 다이얼로그에 막혀 타임아웃되고, 더 나쁜 것은 **그 뒤의 모든 Pipeline 명령이 다이얼로그를 닫을 때까지 연쇄 타임아웃**한다(실측: eval 5s · menu 30s · exec 60s 연속 실패).
+
+- 실제 피해: A2 대조 때 Exporter 5개가 **실행조차 안 됐는데** diff 가 없어 "드리프트 0"으로 오독할 뻔했다. `BakeAll` 자체는 **149ms** 로, 느려서가 아니었다.
+- `ItemCatalogExporter` 는 해결됨 — `EditorApplication.delayCall` 로 알림을 다음 프레임에 미루고(`ReportLater`), `ImportAll()` 다이얼로그 없는 코어를 `BakeAll()` 과 대칭으로 분리.
+- **남은 5종**: `DropTableExporter`(5) · `MonsterCatalogExporter`(5) · `LevelTableExporter`(6) · `MapDataExporter`(5) · (`ConsumableEffectExporter` 는 제거됨). 같은 패턴이라 동일 피해가 재발한다.
+- **조치**: `ReportLater` 를 공용 헬퍼로 빼고 5종에 적용 + Import 계열도 다이얼로그 없는 코어 분리.
 
 ### C3. CA-5 스모크 SFX 가 미커밋 팩에 의존 — ⬜ 중간
 

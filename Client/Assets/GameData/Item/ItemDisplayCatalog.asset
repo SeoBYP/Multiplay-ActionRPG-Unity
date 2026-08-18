@@ -15,58 +15,77 @@ MonoBehaviour:
   entries:
   - itemId: potion_hp_small
     displayName: "\uC18C\uD615 \uCCB4\uB825 \uBB3C\uC57D"
-    description: "체력을 소량 회복하는 기본 물약. 위급할 때 빠르게 들이켜 위기를 넘긴다."
+    description: "\uCCB4\uB825\uC744 \uC18C\uB7C9 \uD68C\uBCF5\uD558\uB294 \uAE30\uBCF8
+      \uBB3C\uC57D. \uC704\uAE09\uD560 \uB54C \uBE60\uB974\uAC8C \uB4E4\uC774\uCF1C
+      \uC704\uAE30\uB97C \uB118\uAE34\uB2E4."
     icon: {fileID: 21300000, guid: d14fff145ee98c1479d6facdc81ec637, type: 3}
     category: 1
+    grade: 0
   - itemId: potion_mp_small
     displayName: "\uC18C\uD615 \uB9C8\uB098 \uBB3C\uC57D"
-    description: "마나를 소량 회복하는 기본 물약. 스킬을 연달아 쓸 때 요긴하다."
+    description: "\uB9C8\uB098\uB97C \uC18C\uB7C9 \uD68C\uBCF5\uD558\uB294 \uAE30\uBCF8
+      \uBB3C\uC57D. \uC2A4\uD0AC\uC744 \uC5F0\uB2EC\uC544 \uC4F8 \uB54C \uC694\uAE34\uD558\uB2E4."
     icon: {fileID: 21300000, guid: a83f2f1c539a71b4a88a8de9f3d341e8, type: 3}
     category: 1
-  - itemId: gold_pouch
-    displayName: "\uACE8\uB4DC \uC8FC\uBA38\uB2C8"
-    description: "여행 중 모은 골드 꾸러미. 상점 거래에 쓰인다."
-    icon: {fileID: 21300000, guid: d2540639e3c96f141ba2fcccebd3011f, type: 3}
-    category: 4
+    grade: 0
   - itemId: sword_basic
     displayName: "\uAE30\uBCF8 \uAC80"
-    description: "가장 기본적인 한손검. 모험을 막 시작한 이에게 알맞은 균형 잡힌 무기다."
+    description: "\uAC00\uC7A5 \uAE30\uBCF8\uC801\uC778 \uD55C\uC190\uAC80. \uBAA8\uD5D8\uC744
+      \uB9C9 \uC2DC\uC791\uD55C \uC774\uC5D0\uAC8C \uC54C\uB9DE\uC740 \uADE0\uD615
+      \uC7A1\uD78C \uBB34\uAE30\uB2E4."
     icon: {fileID: 21300000, guid: 096b7612cf58371479d83df3c357ba26, type: 3}
     category: 0
+    grade: 0
   - itemId: armor_leather
     displayName: "\uAC00\uC8FD \uAC11\uC637"
-    description: "질긴 가죽으로 만든 갑옷. 가볍게 움직이면서도 기본적인 방어를 제공한다."
+    description: "\uC9C8\uAE34 \uAC00\uC8FD\uC73C\uB85C \uB9CC\uB4E0 \uAC11\uC637.
+      \uAC00\uBCCD\uAC8C \uC6C0\uC9C1\uC774\uBA74\uC11C\uB3C4 \uAE30\uBCF8\uC801\uC778
+      \uBC29\uC5B4\uB97C \uC81C\uACF5\uD55C\uB2E4."
     icon: {fileID: 21300000, guid: 5236511f86e716d45af9fc52fc6cfa08, type: 3}
     category: 0
+    grade: 0
   - itemId: helmet_iron
     displayName: "\uCCA0 \uD22C\uAD6C"
-    description: "단단한 철로 두드려 만든 투구. 머리를 노리는 일격을 막아준다."
+    description: "\uB2E8\uB2E8\uD55C \uCCA0\uB85C \uB450\uB4DC\uB824 \uB9CC\uB4E0
+      \uD22C\uAD6C. \uBA38\uB9AC\uB97C \uB178\uB9AC\uB294 \uC77C\uACA9\uC744 \uB9C9\uC544\uC900\uB2E4."
     icon: {fileID: 21300000, guid: 20bc7fb7dc490db4a942c4316689f8a8, type: 3}
     category: 0
+    grade: 0
   - itemId: boots_leather
     displayName: "\uAC00\uC8FD \uBD80\uCE20"
-    description: "발을 감싸는 가죽 부츠. 거친 지형에서도 발걸음을 안정시킨다."
+    description: "\uBC1C\uC744 \uAC10\uC2F8\uB294 \uAC00\uC8FD \uBD80\uCE20. \uAC70\uCE5C
+      \uC9C0\uD615\uC5D0\uC11C\uB3C4 \uBC1C\uAC78\uC74C\uC744 \uC548\uC815\uC2DC\uD0A8\uB2E4."
     icon: {fileID: 21300000, guid: f40d6d5bf7d0eac47bd135de003008e3, type: 3}
     category: 0
+    grade: 0
   - itemId: gloves_leather
     displayName: "\uAC00\uC8FD \uC7A5\uAC11"
-    description: "손을 보호하는 가죽 장갑. 무기를 한층 단단히 쥘 수 있게 해준다."
+    description: "\uC190\uC744 \uBCF4\uD638\uD558\uB294 \uAC00\uC8FD \uC7A5\uAC11.
+      \uBB34\uAE30\uB97C \uD55C\uCE35 \uB2E8\uB2E8\uD788 \uC958 \uC218 \uC788\uAC8C
+      \uD574\uC900\uB2E4."
     icon: {fileID: 21300000, guid: 703c5ca9cc5560941ade9874770e590f, type: 3}
     category: 0
+    grade: 0
   - itemId: shield_wooden
     displayName: "\uB098\uBB34 \uBC29\uD328"
-    description: "튼튼한 나무로 만든 방패. 정면의 공격을 받아내 피해를 줄인다."
+    description: "\uD2BC\uD2BC\uD55C \uB098\uBB34\uB85C \uB9CC\uB4E0 \uBC29\uD328.
+      \uC815\uBA74\uC758 \uACF5\uACA9\uC744 \uBC1B\uC544\uB0B4 \uD53C\uD574\uB97C
+      \uC904\uC778\uB2E4."
     icon: {fileID: 21300000, guid: cbe2728c62612cf419cf95a3b59dd841, type: 3}
     category: 0
+    grade: 0
   - itemId: ring_power
     displayName: "\uD798\uC758 \uBC18\uC9C0"
-    description: "힘이 깃든 희귀한 반지. 착용자의 공격력을 끌어올린다."
+    description: "\uD798\uC774 \uAE43\uB4E0 \uD76C\uADC0\uD55C \uBC18\uC9C0. \uCC29\uC6A9\uC790\uC758
+      \uACF5\uACA9\uB825\uC744 \uB04C\uC5B4\uC62C\uB9B0\uB2E4."
     icon: {fileID: 21300000, guid: 1782f761a728c1b4ca122487fcf43af0, type: 3}
     category: 0
     grade: 1
   - itemId: necklace_vitality
     displayName: "\uD65C\uB825\uC758 \uBAA9\uAC78\uC774"
-    description: "생명력이 감도는 희귀한 목걸이. 착용자의 최대 체력을 늘려준다."
+    description: "\uC0DD\uBA85\uB825\uC774 \uAC10\uB3C4\uB294 \uD76C\uADC0\uD55C
+      \uBAA9\uAC78\uC774. \uCC29\uC6A9\uC790\uC758 \uCD5C\uB300 \uCCB4\uB825\uC744
+      \uB298\uB824\uC900\uB2E4."
     icon: {fileID: 21300000, guid: 94a253c6219cb5841b614e71b6b657fa, type: 3}
     category: 0
     grade: 1
