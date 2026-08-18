@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: fccee9a572a079f4cabc3295e94d11b5
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 285285
+  packageName: Fantasy RPG GUI
+  packageVersion: 2.1
+  assetPath: Assets/Artsystack - Fantasy RPG GUI/Resources/Prefabs/Panels/GameScene/Compass.prefab
+  uploadId: 879878

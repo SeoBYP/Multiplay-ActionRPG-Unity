@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 08a9dddd5524d474db4faf7eedf21db3
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 285285
+  packageName: Fantasy RPG GUI
+  packageVersion: 2.1
+  assetPath: Assets/Artsystack - Fantasy RPG GUI/Resources/Prefabs/Common/Layouts/Tab-Toggle-Item.prefab
+  uploadId: 879878

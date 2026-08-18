@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 063b21c3ea1d25c478c0152092c77fbe
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 285285
+  packageName: Fantasy RPG GUI
+  packageVersion: 2.1
+  assetPath: Assets/Artsystack - Fantasy RPG GUI/Resources/Prefabs/Panels/Inventory/Display-Item.prefab
+  uploadId: 879878

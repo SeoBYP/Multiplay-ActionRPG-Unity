@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: ea0c32a70c785ce4c93518f4b1999b69
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 285285
+  packageName: Fantasy RPG GUI
+  packageVersion: 2.1
+  assetPath: Assets/Artsystack - Fantasy RPG GUI/Resources/Prefabs/Panels/Character/Character-Display.prefab
+  uploadId: 879878

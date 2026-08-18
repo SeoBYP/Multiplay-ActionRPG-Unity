@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: e02f50b7bfc635449a35070fb57e2613
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 285285
+  packageName: Fantasy RPG GUI
+  packageVersion: 2.1
+  assetPath: Assets/Artsystack - Fantasy RPG GUI/Resources/Prefabs/Common/Elements/InputField.prefab
+  uploadId: 879878
