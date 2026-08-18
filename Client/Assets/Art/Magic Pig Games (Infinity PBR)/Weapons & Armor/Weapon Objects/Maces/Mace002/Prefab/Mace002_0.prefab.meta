@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 58d9b203f093b47098aa3cf7aa137849
+labels:
+- Infinity
+- Mace
+- Weapon
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 44714
+  packageName: Weapons & Armor PBR Pack #1 - Fantasy RPG
+  packageVersion: 4.3.3
+  assetPath: Assets/Magic Pig Games (Infinity PBR)/Weapons & Armor/Weapon Objects/Maces/Mace002/Prefab/Mace002_0.prefab
+  uploadId: 934212

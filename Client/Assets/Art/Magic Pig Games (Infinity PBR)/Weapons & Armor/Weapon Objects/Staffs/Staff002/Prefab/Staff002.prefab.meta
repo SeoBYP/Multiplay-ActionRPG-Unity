@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: e47b2e6ca0f624a2589c962a59438968
+labels:
+- Infinity
+- Staff
+- Weapon
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 44714
+  packageName: Weapons & Armor PBR Pack #1 - Fantasy RPG
+  packageVersion: 4.3.3
+  assetPath: Assets/Magic Pig Games (Infinity PBR)/Weapons & Armor/Weapon Objects/Staffs/Staff002/Prefab/Staff002.prefab
+  uploadId: 934212

@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 0bff458e001464a7e854a7e34d2a93e1
+labels:
+- Hammer
+- Infinity
+- Weapon
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 44714
+  packageName: Weapons & Armor PBR Pack #1 - Fantasy RPG
+  packageVersion: 4.3.3
+  assetPath: Assets/Magic Pig Games (Infinity PBR)/Weapons & Armor/Weapon Objects/Hammers/Hammer001/Prefab/Hammer001b.prefab
+  uploadId: 934212
