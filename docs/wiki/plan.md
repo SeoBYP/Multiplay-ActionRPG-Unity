@@ -497,8 +497,10 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 > 검증: **PlayMode 187/187** · EditMode 204/204.
 
 **⚠️ 미해결 결함 (2026-08-18 커밋 정리 중 발견) — 전체 목록·우선순위 = [cleanup-backlog.md](cleanup-backlog.md)**
-- [ ] **abilities.json 드리프트 (높음)** — 클라 SO 저작값이 서버 bake 와 어긋난다: `basic_swing` startup/active **167/125 (SO) vs 200/100 (bake)**, `leviathan_attack` **213/87 vs 200/100**. `abilities.json` 은 서버가 임베디드로 읽는 **판정 창·쿨다운의 권위**라, 클라가 167ms 에 히트박스를 열고 서버는 200ms 기준으로 검증하면 던전에서 데미지가 유실·거부될 수 있다. **재Export + 서버 재빌드 필요.** ⚠ exporter 가 끝에 `EditorUtility.DisplayDialog`(모달)를 띄워 자동화가 그 자리에서 블록된다(AC-E5 함정 기록) → 팝업 없는 경로로 호출할 것.
-  - 참고: 같은 방식으로 `monsters.json` 은 대조 결과 **불일치 0건**(정상). 나머지 bake 산출물(drop-tables·consumable-effects·spawn-layouts·level-table)은 **미대조**.
+- [x] **abilities.json 드리프트 (높음)** — ✅ **해소 2026-08-18**. 원인 = `7f5d9754`(CA-5 Phase 1b)에서 타임라인 툴로 SO 만 바꾸고 Export 미실행 → 서버가 옛 200/100 으로 판정하고 있었다. `AbilityCatalogExporter` 재실행 후 SO↔bake **불일치 0건**(15어빌×15필드 재대조). 검증 = 서버 빌드 0오류 + SocketServer.Tests **209/209**.
+  - bake 산출물 **6종 전부 대조 완료** — abilities 외 5종(drop-tables·consumable-effects·spawn-layouts·level-table·monsters)은 재Export 후에도 수치 변경 **0건**(개행 차이만, 되돌림).
+  - **모달 우회법(재사용)**: `unity command --project-path . eval_file --file <cs>` 로 `Exporter.BakeAll()` 직접 호출. 메뉴 경로는 `DisplayDialog` 가 에디터 메인스레드를 잡아 **이후 모든 CLI 명령까지 타임아웃**시킨다.
+  - **감지 가드**: `AbilityCatalogTests.게임플레이_수치가_현재_저작값으로_bake_돼_있다`(167/125 고정). ⚠ 밸런스 조정 시 Export 후 이 기대값도 갱신한다. 상시 대조의 테스트화는 [cleanup-backlog.md](cleanup-backlog.md) A2 잔여 제안.
 - [ ] **RemotePlayerCharacter 머티리얼 누락 (중간)** — 프리팹의 SkinnedMeshRenderer `m_Materials` 가 guid `31321ba15b8f8eb4c954353edc038b1d` 를 참조하는데 **프로젝트 어디에도 없다**(Assets 전체·Packages·임포트 아트 팩 3종을 .meta 기준 전수 검색). 런타임 머티리얼 누락으로 렌더된다. 나머지 14개 참조는 정상.
 - [ ] **디스크 포화 (환경)** — C: 931G 중 여유 **108MB**. `.git` 이 이미 14GB(과거 대용량 에셋 이력). 아트 팩 커밋이 7/34 청크(~620MB)에서 중단됐다. Docker(Postgres/Redis)·Unity 가 도는 환경이라 공간 확보 전에는 추가 커밋 위험.
 

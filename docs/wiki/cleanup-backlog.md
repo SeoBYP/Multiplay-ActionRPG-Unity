@@ -11,7 +11,7 @@
 
 ## A. 데이터 정합성 (가장 위험 — 조용히 갈라진다)
 
-### A1. `abilities.json` 저작↔bake 드리프트 — ⬜ **높음**
+### A1. `abilities.json` 저작↔bake 드리프트 — ✅ **해소 2026-08-18**
 
 | 값 | 클라 SO(저작) | 서버 bake | 상태 |
 |---|---|---|---|
@@ -22,12 +22,21 @@
 - **왜 문제인가**: `abilities.json` 은 서버가 임베디드로 읽는 **판정 창·쿨다운의 권위**다. 클라가 167ms 에 히트박스를 열고 서버는 200ms 기준으로 검증하면 던전에서 데미지가 유실·거부될 수 있다.
 - **조치**: `Tools/Ability/Export` 재실행 + 서버 재빌드 + Docker 재배포. ⚠ exporter 가 끝에 `EditorUtility.DisplayDialog`(모달)를 띄워 자동화가 그 자리에서 블록된다(AC-E5 함정) → 팝업 없는 경로로 호출.
 - **동반 제안**: bake 드리프트를 **CI/테스트로 감지**. 사람이 "export 했나?"를 기억하는 구조는 반드시 한 번은 잊는다.
+- **결과(2026-08-18)**: `AbilityCatalogExporter` 재실행으로 bake 갱신 → SO↔bake 불일치 **0건**(15어빌×15필드 재대조). 원인은 `7f5d9754`(CA-5 Phase 1b)에서 타임라인 툴로 SO 만 바꾸고 Export 를 안 돌린 것.
+  - 모달 우회법 확립: Unity CLI `unity command --project-path . eval_file --file <cs>` 로 `Exporter.BakeAll()` 직접 호출(메뉴 경로는 `DisplayDialog` 가 에디터 메인스레드를 잡아 이후 명령까지 전부 타임아웃시킨다).
+  - `AbilityCatalogTests.게임플레이_수치가_현재_저작값으로_bake_돼_있다` 를 현재 저작값(167/125)으로 갱신 — 이 테스트가 곧 드리프트 감지 가드다. **밸런스 조정 시 Export 후 기대값도 갱신**.
 
-### A2. 나머지 bake 산출물 4종 미대조 — ⬜ 중간
+### A2. 나머지 bake 산출물 4종 미대조 — ✅ **대조 완료 2026-08-18 (드리프트 0)**
 
-`drop-tables.json` · `consumable-effects.json` · `spawn-layouts.json` · `level-table.json` 은 이번에 **대조하지 않았다**(미실측). `monsters.json` 은 대조 결과 **불일치 0건**.
+`drop-tables.json` · `consumable-effects.json` · `spawn-layouts.json` · `level-table.json` + `monsters.json` 을 **각 Exporter 재실행 후 diff** 로 대조 — 게임플레이 수치 변경 **0건**(파일 끝 개행 차이만, 되돌림).
 
-- **조치**: A1 과 같은 대조 스크립트를 4종으로 확장 → 그대로 EditMode 테스트화.
+```
+eval_file → consumables=1 droptables=12 monsters=13 leveltable=60 mapdata=8
+mtime 전부 갱신 확인(= 실행 확증) · 내용 diff 0
+```
+
+- **교훈**: "diff 가 없다"를 곧바로 "드리프트 없음"으로 읽지 말 것. 첫 시도에서 5개 Exporter 가 **모달에 막혀 실행조차 안 됐는데** diff 가 없어 정상으로 오독할 뻔했다. **mtime 으로 실행 자체를 확증**한 뒤 diff 를 판정한다.
+- **잔여 제안**: 이 대조를 EditMode 테스트로 상시화(사람 기억에 의존하지 않게).
 
 ### A3. `RemotePlayerCharacter` 머티리얼 누락 — ⬜ 중간
 

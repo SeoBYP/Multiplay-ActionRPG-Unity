@@ -42,12 +42,15 @@ public class AbilityCatalogTests
     }
 
     [Fact]
-    public void 게임플레이_수치가_기존_skills_json_과_동일하다()
+    public void 게임플레이_수치가_현재_저작값으로_bake_돼_있다()
     {
-        // 이관은 값 변경 없이(밸런스 무변경). 기존 SkillCatalogTests 가 고정하던 값과 같아야 한다.
+        // bake 동기화 가드 — 서버 임베디드 abilities.json 이 클라 SO 저작값과 일치하는지 고정한다.
+        // (CA-2 이관기엔 "값 무변경"을 증명했지만 이관은 끝났고, 지금 역할은 Export 누락 탐지다.
+        //  실제로 CA-5 Phase 1b 에서 SO 만 바뀌고 bake 를 안 돌려 200/100 ↔ 167/125 로 갈라졌다.)
+        // ⚠️ 밸런스를 조정하면 Export 후 여기 기대값도 함께 갱신한다.
         var basic = AbilityCatalog.Get("basic_swing")!;
-        Assert.Equal(200, basic.Timeline.StartupMs);
-        Assert.Equal(100, basic.Timeline.ActiveMs);
+        Assert.Equal(167, basic.Timeline.StartupMs);
+        Assert.Equal(125, basic.Timeline.ActiveMs);
         Assert.Equal(150, basic.Timeline.RecoveryMs);
         Assert.Equal(400, basic.Timeline.CooldownMs);
         Assert.Equal(0, basic.Timeline.ManaCost);
