@@ -20,6 +20,9 @@ public static class DropTableCatalog
 
     private static readonly IReadOnlyList<DropEntry> Empty = new List<DropEntry>();
 
+    /// <summary>전체 드랍 테이블(monsterId → 후보). 카탈로그 정합성 검증·디버그용.</summary>
+    public static IReadOnlyDictionary<string, IReadOnlyList<DropEntry>> All => Tables.Value;
+
     /// <summary>몬스터 타입의 드랍 후보. 미등록이면 빈 목록(드랍 없음).</summary>
     public static IReadOnlyList<DropEntry> Get(string? monsterId)
         => monsterId != null && Tables.Value.TryGetValue(monsterId, out var list) ? list : Empty;

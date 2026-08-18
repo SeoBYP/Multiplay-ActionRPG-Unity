@@ -14,7 +14,8 @@
   <ItemGroup>
     <EmbeddedResource Include="Spawn/spawn-layouts.json" />
     <EmbeddedResource Include="Loot/drop-tables.json" />
-    <EmbeddedResource Include="Consumables/consumable-effects.json" />
+    <EmbeddedResource Include="Items/items.json" />
+    <EmbeddedResource Include="Quests/quests.json" />
     <EmbeddedResource Include="Progression/level-table.json" />
     <EmbeddedResource Include="Monsters/monsters.json" />
     <EmbeddedResource Include="Abilities/abilities.json" />
