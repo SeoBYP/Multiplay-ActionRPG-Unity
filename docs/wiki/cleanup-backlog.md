@@ -154,14 +154,16 @@ Assets/Art/Magic Pig Games (Infinity PBR)/.../v2_DemoEnvironment.prefab
      - 실측: 제거 후 새로 노출된 `.meta` 는 **1,019개**(예상 8,593 아님). 나머지는 `Client/Assets/Packages/` 등 **다른 ignore 규칙**에 여전히 걸려 있다 → 2단계에서 함께 다뤄야 한다.
   2. **선행 정리 후**: 데모 폴더(`_DEMO SOURCE FILES`·`LP Files` 등) 정리 → 콘솔 error 0 확인 → 기존 고아 메타 커밋.
 
-### A5. Editor Exporter 5종이 `DisplayDialog` 로 메인 스레드를 붙잡는다 — ⬜ 중간 (2026-08-18 발견)
+### A5. Editor Exporter 5종이 `DisplayDialog` 로 메인 스레드를 붙잡는다 — ✅ **해소 2026-08-18**
 
 `EditorUtility.DisplayDialog` 는 **사람이 클릭할 때까지 에디터 메인 스레드를 점유**한다. Unity CLI(`unity command`)로 메뉴를 호출하면 bake 는 끝났는데 응답이 다이얼로그에 막혀 타임아웃되고, 더 나쁜 것은 **그 뒤의 모든 Pipeline 명령이 다이얼로그를 닫을 때까지 연쇄 타임아웃**한다(실측: eval 5s · menu 30s · exec 60s 연속 실패).
 
 - 실제 피해: A2 대조 때 Exporter 5개가 **실행조차 안 됐는데** diff 가 없어 "드리프트 0"으로 오독할 뻔했다. `BakeAll` 자체는 **149ms** 로, 느려서가 아니었다.
 - `ItemCatalogExporter` 는 해결됨 — `EditorApplication.delayCall` 로 알림을 다음 프레임에 미루고(`ReportLater`), `ImportAll()` 다이얼로그 없는 코어를 `BakeAll()` 과 대칭으로 분리.
 - **남은 5종**: `DropTableExporter`(5) · `MonsterCatalogExporter`(5) · `LevelTableExporter`(6) · `MapDataExporter`(5) · (`ConsumableEffectExporter` 는 제거됨). 같은 패턴이라 동일 피해가 재발한다.
-- **조치**: `ReportLater` 를 공용 헬퍼로 빼고 5종에 적용 + Import 계열도 다이얼로그 없는 코어 분리.
+- **해소**: `EditorToolReport`(공용 헬퍼) 신설 — `Later`/`ErrorLater` 가 `EditorApplication.delayCall` 로 다음 프레임에 다이얼로그를 띄운다. 명령은 즉시 반환되고 사람은 그대로 확인창을 본다. 5종 전부 적용(치환 21건, 잔여 `DisplayDialog` 0건). `ItemCatalogExporter` 는 `ImportAll()` 다이얼로그 없는 코어도 `BakeAll()` 과 대칭으로 분리.
+- **검증**: `eval_file` 로 **5종 연속 BakeAll 성공** — items 10(159ms) · droptables 12(28ms) · monsters 13(25ms) · leveltable 60(24ms) · mapdata 8(65ms), 합계 2.0초. 수정 전에는 첫 호출부터 5초 타임아웃이었다. 재bake 산출물 **비공백 변경 0줄**(드리프트 없음 재확인). Unity 컴파일 0 · 서버 테스트 659/659.
+- **규칙**: 자동화가 부르는 로직(`BakeAll`/`ImportAll` 류)엔 다이얼로그를 두지 않는다. 다이얼로그는 `[MenuItem]` 래퍼에서 `EditorToolReport` 로만 띄운다(헬퍼 주석에 명시).
 
 ### C3. CA-5 스모크 SFX 가 미커밋 팩에 의존 — ⬜ 중간
 

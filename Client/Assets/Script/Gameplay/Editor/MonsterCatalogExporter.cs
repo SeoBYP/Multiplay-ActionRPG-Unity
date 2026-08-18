@@ -30,12 +30,12 @@ namespace Game.Gameplay.Editor
             if (count < 0) return; // 검증 실패 — 콘솔에 사유
             if (count == 0)
             {
-                EditorUtility.DisplayDialog("Export Monster Catalog",
-                    "MonsterCatalogDefinition 에셋이 없습니다. 먼저 'Import' 로 부트스트랩하거나 SO를 생성하세요.", "확인");
+                EditorToolReport.Later("Export Monster Catalog",
+                    "MonsterCatalogDefinition 에셋이 없습니다. 먼저 'Import' 로 부트스트랩하거나 SO를 생성하세요.");
                 return;
             }
-            EditorUtility.DisplayDialog("Export Monster Catalog",
-                $"몬스터 {count}종을 서버 JSON 에 기록했습니다.\n서버 반영은 서버 재빌드가 필요합니다.", "확인");
+            EditorToolReport.Later("Export Monster Catalog",
+                $"몬스터 {count}종을 서버 JSON 에 기록했습니다.\n서버 반영은 서버 재빌드가 필요합니다.");
         }
 
         /// <summary>MonsterCatalogDefinition → monsters.json bake. 반환: 몬스터 종 수 / 0(에셋없음) / -1(검증실패).</summary>
@@ -106,14 +106,14 @@ namespace Game.Gameplay.Editor
             var serverPath = Path.Combine(RepoRoot(), ServerJsonRelative);
             if (!File.Exists(serverPath))
             {
-                EditorUtility.DisplayDialog("Import Monster Catalog", "monsters.json 을 찾지 못했습니다.", "확인");
+                EditorToolReport.Later("Import Monster Catalog", "monsters.json 을 찾지 못했습니다.");
                 return;
             }
 
             var file = JsonUtility.FromJson<FileDto>(File.ReadAllText(serverPath));
             if (file?.monsters == null || file.monsters.Count == 0)
             {
-                EditorUtility.DisplayDialog("Import Monster Catalog", "JSON 파싱 실패 또는 몬스터가 없습니다.", "확인");
+                EditorToolReport.Later("Import Monster Catalog", "JSON 파싱 실패 또는 몬스터가 없습니다.");
                 return;
             }
 
@@ -145,8 +145,8 @@ namespace Game.Gameplay.Editor
             AssetDatabase.Refresh();
 
             Debug.Log($"[MonsterCatalogExporter] Import 완료 — 몬스터 {def.monsters.Count}종 ({assetPath})");
-            EditorUtility.DisplayDialog("Import Monster Catalog",
-                $"부트스트랩 완료 — 몬스터 {def.monsters.Count}종\n위치: {assetPath}", "확인");
+            EditorToolReport.Later("Import Monster Catalog",
+                $"부트스트랩 완료 — 몬스터 {def.monsters.Count}종\n위치: {assetPath}");
         }
 
         private static void EnsureAssetFolder(string assetFolder)

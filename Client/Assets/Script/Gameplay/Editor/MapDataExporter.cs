@@ -32,12 +32,12 @@ namespace Game.Gameplay.Editor
             if (count < 0) return; // 검증 실패 — 콘솔에 사유 출력됨
             if (count == 0)
             {
-                EditorUtility.DisplayDialog("Export Map Data",
-                    "MapDefinition 에셋이 없습니다. 먼저 'Import Map Data from JSON' 으로 부트스트랩하거나 SO를 생성하세요.", "확인");
+                EditorToolReport.Later("Export Map Data",
+                    "MapDefinition 에셋이 없습니다. 먼저 'Import Map Data from JSON' 으로 부트스트랩하거나 SO를 생성하세요.");
                 return;
             }
-            EditorUtility.DisplayDialog("Export Map Data",
-                $"맵 {count}개를 클라/서버 JSON 에 기록했습니다.\n서버 반영은 서버 재빌드가 필요합니다.", "확인");
+            EditorToolReport.Later("Export Map Data",
+                $"맵 {count}개를 클라/서버 JSON 에 기록했습니다.\n서버 반영은 서버 재빌드가 필요합니다.");
         }
 
         /// <summary>
@@ -128,14 +128,14 @@ namespace Game.Gameplay.Editor
 
             if (sourcePath == null)
             {
-                EditorUtility.DisplayDialog("Import Map Data", "spawn-layouts.json 을 찾지 못했습니다.", "확인");
+                EditorToolReport.Later("Import Map Data", "spawn-layouts.json 을 찾지 못했습니다.");
                 return;
             }
 
             var file = JsonUtility.FromJson<FileDto>(File.ReadAllText(sourcePath));
             if (file?.maps == null || file.maps.Count == 0)
             {
-                EditorUtility.DisplayDialog("Import Map Data", "JSON 파싱 실패 또는 맵이 없습니다.", "확인");
+                EditorToolReport.Later("Import Map Data", "JSON 파싱 실패 또는 맵이 없습니다.");
                 return;
             }
 
@@ -194,8 +194,8 @@ namespace Game.Gameplay.Editor
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log($"[MapDataExporter] Import 완료 — 신규 {created}, 갱신 {updated} ({MapAssetDir})");
-            EditorUtility.DisplayDialog("Import Map Data",
-                $"부트스트랩 완료 — 신규 {created}, 갱신 {updated}\n위치: {MapAssetDir}", "확인");
+            EditorToolReport.Later("Import Map Data",
+                $"부트스트랩 완료 — 신규 {created}, 갱신 {updated}\n위치: {MapAssetDir}");
         }
 
         private static List<MapDefinition> LoadAllMapDefinitions()

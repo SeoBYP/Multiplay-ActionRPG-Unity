@@ -35,24 +35,9 @@ namespace Game.Gameplay.Editor
         {
             var count = BakeAll();
             if (count < 0) return; // 검증 실패 — 콘솔에 사유
-            ReportLater("Export Item Catalog", count == 0
+            EditorToolReport.Later("Export Item Catalog", count == 0
                 ? "ItemCatalogDefinition 에셋이 없습니다. 먼저 'Import' 로 부트스트랩하거나 SO를 생성하세요."
                 : $"아이템 {count}종을 서버 JSON 에 기록했습니다.\n서버 반영은 서버 재빌드가 필요합니다.");
-        }
-
-        /// <summary>
-        /// 결과 알림을 <b>다음 에디터 프레임으로 미뤄</b> 띄운다.
-        /// <para><c>EditorUtility.DisplayDialog</c> 는 사람이 클릭할 때까지 <b>메인 스레드를 붙잡는다</b>.
-        /// 메뉴 항목을 Unity CLI(<c>unity command … menu</c>)로 호출하면 bake 는 끝났는데 응답이 다이얼로그에
-        /// 막혀 <c>Main thread operation timed out</c> 이 나고, 더 나쁜 것은 <b>그 뒤의 모든 Pipeline 명령이
-        /// 다이얼로그를 닫을 때까지 전부 타임아웃</b>한다는 점이다(실측 2026-08-18: eval 5s·menu 30s·exec 60s 연쇄 실패).</para>
-        /// <para>delayCall 로 미루면 명령은 즉시 반환되고 다이얼로그는 에디터 자체 update 루프에서 뜬다 —
-        /// 사람은 그대로 확인창을 보고, 자동화는 막히지 않는다.</para>
-        /// </summary>
-        private static void ReportLater(string title, string message)
-        {
-            Debug.Log($"[ItemCatalogExporter] {title}: {message}");
-            EditorApplication.delayCall += () => EditorUtility.DisplayDialog(title, message, "확인");
         }
 
         /// <summary>ItemCatalogDefinition → items.json bake. 반환: 아이템 수 / 0(에셋없음) / -1(검증실패).</summary>
@@ -122,7 +107,7 @@ namespace Game.Gameplay.Editor
         {
             var count = ImportAll();
             if (count < 0) return; // 실패 사유는 콘솔
-            ReportLater("Import Item Catalog", $"아이템 {count}종을 SO 로 가져왔습니다.\n{AssetDir}/{AssetName}.asset");
+            EditorToolReport.Later("Import Item Catalog", $"아이템 {count}종을 SO 로 가져왔습니다.\n{AssetDir}/{AssetName}.asset");
         }
 
         /// <summary>items.json → ItemCatalogDefinition 부트스트랩. 반환: 아이템 수 / -1(실패).

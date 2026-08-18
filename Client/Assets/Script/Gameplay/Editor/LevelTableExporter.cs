@@ -42,8 +42,8 @@ namespace Game.Gameplay.Editor
             AssetDatabase.Refresh();
 
             Debug.Log($"[LevelTableExporter] 기본 곡선 {def.rows.Count}행 시드 완료 ({assetPath}). 조정 후 Export 하세요.");
-            EditorUtility.DisplayDialog("Generate Level Curve",
-                $"1~{MaxLevel} 기본 곡선 시드 완료.\n위치: {assetPath}\nInspector 에서 조정 후 Export 하세요.", "확인");
+            EditorToolReport.Later("Generate Level Curve",
+                $"1~{MaxLevel} 기본 곡선 시드 완료.\n위치: {assetPath}\nInspector 에서 조정 후 Export 하세요.");
         }
 
         /// <summary>거듭제곱 Exp + 선형 스탯 기본 곡선(서버 커밋 JSON 과 동일 산식). 단위 테스트/검증용으로 공개.</summary>
@@ -75,12 +75,12 @@ namespace Game.Gameplay.Editor
             if (count < 0) return; // 검증 실패 — 콘솔에 사유
             if (count == 0)
             {
-                EditorUtility.DisplayDialog("Export Level Table",
-                    "LevelTableDefinition 에셋이 없습니다. 먼저 'Generate Default Curve' 또는 'Import' 로 부트스트랩하세요.", "확인");
+                EditorToolReport.Later("Export Level Table",
+                    "LevelTableDefinition 에셋이 없습니다. 먼저 'Generate Default Curve' 또는 'Import' 로 부트스트랩하세요.");
                 return;
             }
-            EditorUtility.DisplayDialog("Export Level Table",
-                $"레벨 {count}행을 서버 JSON 에 기록했습니다.\n서버 반영은 서버 재빌드가 필요합니다.", "확인");
+            EditorToolReport.Later("Export Level Table",
+                $"레벨 {count}행을 서버 JSON 에 기록했습니다.\n서버 반영은 서버 재빌드가 필요합니다.");
         }
 
         /// <summary>LevelTableDefinition → level-table.json bake. 반환: 행 수 / 0(에셋없음) / -1(검증실패).</summary>
@@ -152,14 +152,14 @@ namespace Game.Gameplay.Editor
             var serverPath = Path.Combine(RepoRoot(), ServerJsonRelative);
             if (!File.Exists(serverPath))
             {
-                EditorUtility.DisplayDialog("Import Level Table", "level-table.json 을 찾지 못했습니다.", "확인");
+                EditorToolReport.Later("Import Level Table", "level-table.json 을 찾지 못했습니다.");
                 return;
             }
 
             var file = JsonUtility.FromJson<FileDto>(File.ReadAllText(serverPath));
             if (file?.levels == null || file.levels.Count == 0)
             {
-                EditorUtility.DisplayDialog("Import Level Table", "JSON 파싱 실패 또는 레벨이 없습니다.", "확인");
+                EditorToolReport.Later("Import Level Table", "JSON 파싱 실패 또는 레벨이 없습니다.");
                 return;
             }
 
@@ -191,8 +191,8 @@ namespace Game.Gameplay.Editor
             AssetDatabase.Refresh();
 
             Debug.Log($"[LevelTableExporter] Import 완료 — 레벨 {def.rows.Count}행 ({assetPath})");
-            EditorUtility.DisplayDialog("Import Level Table",
-                $"부트스트랩 완료 — 레벨 {def.rows.Count}행\n위치: {assetPath}", "확인");
+            EditorToolReport.Later("Import Level Table",
+                $"부트스트랩 완료 — 레벨 {def.rows.Count}행\n위치: {assetPath}");
         }
 
         private static void EnsureAssetFolder(string assetFolder)
