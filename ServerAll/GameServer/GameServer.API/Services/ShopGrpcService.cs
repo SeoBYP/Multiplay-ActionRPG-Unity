@@ -2,12 +2,11 @@ using GameServer.API.Extension;
 using GameServer.API.Extensions;
 using GameServer.Application.Common;
 using GameServer.Application.Domains.Shop.Interfaces;
-using GameServer.Domain.Entities.Equipment;
-using GameServer.Domain.Entities.Shop;
+using Shared.Infrastructure.Items;
 using GameServer.Grpc.Shop;
 using Grpc.Core;
 using ShopGrpc = GameServer.Grpc.Shop.ShopService;
-using DomainShopCategory = GameServer.Domain.Entities.Shop.ShopCategory;
+using DomainShopCategory = Shared.Gameplay.Items.ShopCategory;
 using ProtoShopCategory = GameServer.Grpc.Shop.ShopCategory;
 
 namespace GameServer.API.Services;

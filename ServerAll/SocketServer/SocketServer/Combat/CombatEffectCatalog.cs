@@ -1,5 +1,5 @@
 using Script.System.GamePlayAbilitySystem;
-using Shared.Infrastructure.Consumables;
+using Shared.Infrastructure.Items;
 
 namespace Server.Combat;
 
@@ -9,7 +9,7 @@ namespace Server.Combat;
 ///
 /// 수치 진실원(이원화):
 ///   - 전투 효과(basic_attack_dmg/monster_attack_dmg 등) = 코드 시드 `GameplayEffectCatalog`(서버 게임밸런스 권위).
-///   - 소모품 회복(potion_*) = 클라 `ConsumableCatalog` SO 저작 → bake → `ConsumableEffectCatalog`(임베디드 JSON).
+///   - 소모품 회복(potion_*) = 클라 아이템 SO 저작 → bake → `ItemCatalogData`(임베디드 items.json 의 consumeEffects).
 ///     static ctor 가 그 정의를 같은 `Register` API 로 흡수해 effectId 단일 조회로 합류시킨다(GameplayEffectCatalog 의 "2단계 JSON 로더").
 /// ※ 플레이어 HP 는 클라가 같은 카탈로그로 결정론 계산(여기 미사용, 몬스터 HP·서버 회복 적용 전용).
 /// </summary>
@@ -21,7 +21,7 @@ public static class CombatEffectCatalog
     static CombatEffectCatalog()
     {
         // 소모품 회복 = 클라 SO 에서 bake 된 JSON 을 같은 카탈로그에 흡수(effectId == itemId).
-        foreach (var def in ConsumableEffectCatalog.LoadDefinitions())
+        foreach (var def in ItemCatalogData.Current.Consumables)
             _shared.Register(def);
     }
 

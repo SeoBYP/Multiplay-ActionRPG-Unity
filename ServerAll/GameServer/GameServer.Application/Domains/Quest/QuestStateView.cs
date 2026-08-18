@@ -1,4 +1,5 @@
 using GameServer.Domain.Entities.Quest;
+using Shared.Infrastructure.Quests;
 
 namespace GameServer.Application.Domains.Quest;
 

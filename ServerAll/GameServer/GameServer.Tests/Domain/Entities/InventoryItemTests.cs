@@ -1,4 +1,5 @@
 using GameServer.Domain.Entities.Inventory;
+using Shared.Infrastructure.Items;
 
 namespace GameServer.Tests.Domain.Entities;
 

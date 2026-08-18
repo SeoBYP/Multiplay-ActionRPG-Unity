@@ -1,5 +1,5 @@
 using GameServer.Application.Domains.Progression;
-using GameServer.Domain.Entities.Equipment;
+using Shared.Infrastructure.Items;
 using GameServer.Tests.Infrastructure.Fakes.Repositories;
 using GameServer.Tests.Infrastructure.Fakes.Services;
 

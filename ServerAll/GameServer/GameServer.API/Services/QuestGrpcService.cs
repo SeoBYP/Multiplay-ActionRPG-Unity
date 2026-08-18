@@ -5,7 +5,7 @@ using GameServer.Application.Domains.Quest;
 using GameServer.Application.Domains.Quest.Interfaces;
 using GameServer.Grpc.Quest;
 using Grpc.Core;
-using DomainObjective = GameServer.Domain.Entities.Quest.QuestObjectiveType;
+using DomainObjective = Shared.Infrastructure.Quests.QuestObjectiveType;
 using AppStatus = GameServer.Application.Domains.Quest.QuestProgressStatus;
 using GrpcStatus = GameServer.Grpc.Quest.QuestProgressStatus;
 using QuestGrpc = GameServer.Grpc.Quest.QuestService;
@@ -91,7 +91,7 @@ public class QuestGrpcService(
         Reward = ToReward(v.Def.Reward),
     };
 
-    private static QuestReward ToReward(GameServer.Domain.Entities.Quest.QuestReward r) => new()
+    private static QuestReward ToReward(Shared.Infrastructure.Quests.QuestReward r) => new()
     {
         Exp = r.Exp,
         Gold = r.Gold,

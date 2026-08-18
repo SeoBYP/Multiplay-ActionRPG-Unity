@@ -1,4 +1,4 @@
-using GameServer.Domain.Entities.Shop;
+using Shared.Infrastructure.Items;
 
 namespace GameServer.Application.Domains.Shop.Interfaces;
 

@@ -1,6 +1,7 @@
 using GameServer.Domain.Entities.Equipment;
 using GameServer.Domain.Entities.Inventory;
 using Shared.Gameplay.Equipment;
+using Shared.Infrastructure.Items;
 
 namespace GameServer.Tests.Domain.Entities;
 

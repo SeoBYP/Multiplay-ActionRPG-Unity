@@ -3,6 +3,7 @@ using GameServer.Application.Domains.Inventory;
 using GameServer.Application.Domains.Progression;
 using GameServer.Application.Domains.Quest;
 using GameServer.Domain.Entities.Quest;
+using Shared.Infrastructure.Quests;
 using GameServer.Tests.Infrastructure.Fakes.Repositories;
 using GameServer.Tests.Infrastructure.Fakes.Services;
 using AppWalletService = GameServer.Application.Domains.Wallet.WalletService;

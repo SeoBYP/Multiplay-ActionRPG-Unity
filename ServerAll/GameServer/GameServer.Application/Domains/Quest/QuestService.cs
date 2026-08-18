@@ -3,6 +3,7 @@ using GameServer.Application.Domains.Progression.Interfaces;
 using GameServer.Application.Domains.Quest.Interfaces;
 using GameServer.Application.Domains.Wallet.Interfaces;
 using GameServer.Domain.Entities.Quest;
+using Shared.Infrastructure.Quests;
 
 namespace GameServer.Application.Domains.Quest;
 

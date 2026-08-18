@@ -4,6 +4,7 @@ using GameServer.Application.Domains.Inventory;
 using GameServer.Domain.Entities.Equipment;
 using Shared.Gameplay.Equipment;
 using GameServer.Domain.Entities.Inventory;
+using Shared.Infrastructure.Items;
 using GameServer.Tests.Infrastructure.Fakes.Repositories;
 
 namespace GameServer.Tests.Application.Services;

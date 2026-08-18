@@ -1,7 +1,7 @@
 using GameServer.Application.Domains.Inventory.Interfaces;
 using GameServer.Application.Domains.Shop.Interfaces;
 using GameServer.Application.Domains.Wallet.Interfaces;
-using GameServer.Domain.Entities.Shop;
+using Shared.Infrastructure.Items;
 
 namespace GameServer.Application.Domains.Shop;
 

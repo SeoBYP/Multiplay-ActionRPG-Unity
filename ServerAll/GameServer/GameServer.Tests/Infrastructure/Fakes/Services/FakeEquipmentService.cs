@@ -2,6 +2,7 @@ using GameServer.Application.Domains.Equipment;
 using GameServer.Application.Domains.Equipment.Interfaces;
 using GameServer.Domain.Entities.Equipment;
 using Shared.Gameplay.Equipment;
+using Shared.Infrastructure.Items;
 
 namespace GameServer.Tests.Infrastructure.Fakes.Services;
 

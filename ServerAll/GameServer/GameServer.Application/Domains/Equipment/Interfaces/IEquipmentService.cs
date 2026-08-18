@@ -1,5 +1,6 @@
 using GameServer.Domain.Entities.Equipment;
 using Shared.Gameplay.Equipment;
+using Shared.Infrastructure.Items;
 
 namespace GameServer.Application.Domains.Equipment.Interfaces;
 
