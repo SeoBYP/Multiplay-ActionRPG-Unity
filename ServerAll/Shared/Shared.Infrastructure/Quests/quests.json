@@ -1,0 +1,40 @@
+{
+    "quests": [
+        {
+            "questId": "quest_slime_hunt",
+            "name": "데몬 사냥",
+            "description": "들판의 데몬 3마리를 처치하라.",
+            "objectiveType": "KillMonster",
+            "targetId": "creepy_demon",
+            "requiredCount": 3,
+            "reward": { "exp": 50, "gold": 100, "itemId": "", "itemQty": 0 }
+        },
+        {
+            "questId": "quest_slime_slayer",
+            "name": "데몬 토벌대",
+            "description": "데몬 5마리를 더 처치해 토벌대에 합류하라.",
+            "objectiveType": "KillMonster",
+            "targetId": "creepy_demon",
+            "requiredCount": 5,
+            "reward": { "exp": 80, "gold": 0, "itemId": "potion_hp_small", "itemQty": 2 }
+        },
+        {
+            "questId": "quest_potion_collect",
+            "name": "물약 수집",
+            "description": "소형 체력 물약 3개를 모아라.",
+            "objectiveType": "CollectItem",
+            "targetId": "potion_hp_small",
+            "requiredCount": 3,
+            "reward": { "exp": 30, "gold": 50, "itemId": "", "itemQty": 0 }
+        },
+        {
+            "questId": "quest_greet_elder",
+            "name": "마을 어르신께 인사",
+            "description": "마을 어르신(npc_elder)과 대화하라.",
+            "objectiveType": "TalkToNpc",
+            "targetId": "npc_elder",
+            "requiredCount": 1,
+            "reward": { "exp": 30, "gold": 50, "itemId": "", "itemQty": 0 }
+        }
+    ]
+}

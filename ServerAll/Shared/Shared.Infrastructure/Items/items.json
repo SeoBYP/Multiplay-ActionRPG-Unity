@@ -1,0 +1,221 @@
+{
+    "items": [
+        {
+            "itemId": "potion_hp_small",
+            "stackable": true,
+            "maxStack": 99,
+            "isEquipment": false,
+            "equipSlot": "None",
+            "equipStats": {
+                "maxHealth": 0,
+                "maxMana": 0,
+                "attackPower": 0,
+                "defense": 0,
+                "strength": 0,
+                "dexterity": 0,
+                "intelligence": 0
+            },
+            "isShopItem": true,
+            "buyPrice": 50,
+            "sellPrice": 10,
+            "shopCategory": "Potion",
+            "consumeEffects": [
+                {
+                    "stat": "Health",
+                    "amount": 100,
+                    "policy": "Instant",
+                    "durationMs": 0
+                }
+            ]
+        },
+        {
+            "itemId": "potion_mp_small",
+            "stackable": true,
+            "maxStack": 99,
+            "isEquipment": false,
+            "equipSlot": "None",
+            "equipStats": {
+                "maxHealth": 0,
+                "maxMana": 0,
+                "attackPower": 0,
+                "defense": 0,
+                "strength": 0,
+                "dexterity": 0,
+                "intelligence": 0
+            },
+            "isShopItem": true,
+            "buyPrice": 50,
+            "sellPrice": 10,
+            "shopCategory": "Potion",
+            "consumeEffects": []
+        },
+        {
+            "itemId": "sword_basic",
+            "stackable": false,
+            "maxStack": 1,
+            "isEquipment": true,
+            "equipSlot": "Weapon",
+            "equipStats": {
+                "maxHealth": 0,
+                "maxMana": 0,
+                "attackPower": 5,
+                "defense": 0,
+                "strength": 0,
+                "dexterity": 0,
+                "intelligence": 0
+            },
+            "isShopItem": true,
+            "buyPrice": 200,
+            "sellPrice": 50,
+            "shopCategory": "Weapon",
+            "consumeEffects": []
+        },
+        {
+            "itemId": "armor_leather",
+            "stackable": false,
+            "maxStack": 1,
+            "isEquipment": true,
+            "equipSlot": "Armor",
+            "equipStats": {
+                "maxHealth": 0,
+                "maxMana": 0,
+                "attackPower": 0,
+                "defense": 3,
+                "strength": 0,
+                "dexterity": 0,
+                "intelligence": 0
+            },
+            "isShopItem": true,
+            "buyPrice": 150,
+            "sellPrice": 40,
+            "shopCategory": "Armor",
+            "consumeEffects": []
+        },
+        {
+            "itemId": "helmet_iron",
+            "stackable": false,
+            "maxStack": 1,
+            "isEquipment": true,
+            "equipSlot": "Header",
+            "equipStats": {
+                "maxHealth": 5,
+                "maxMana": 0,
+                "attackPower": 0,
+                "defense": 2,
+                "strength": 0,
+                "dexterity": 0,
+                "intelligence": 0
+            },
+            "isShopItem": true,
+            "buyPrice": 120,
+            "sellPrice": 30,
+            "shopCategory": "Armor",
+            "consumeEffects": []
+        },
+        {
+            "itemId": "boots_leather",
+            "stackable": false,
+            "maxStack": 1,
+            "isEquipment": true,
+            "equipSlot": "Shoose",
+            "equipStats": {
+                "maxHealth": 0,
+                "maxMana": 0,
+                "attackPower": 0,
+                "defense": 1,
+                "strength": 0,
+                "dexterity": 2,
+                "intelligence": 0
+            },
+            "isShopItem": true,
+            "buyPrice": 100,
+            "sellPrice": 25,
+            "shopCategory": "Armor",
+            "consumeEffects": []
+        },
+        {
+            "itemId": "gloves_leather",
+            "stackable": false,
+            "maxStack": 1,
+            "isEquipment": true,
+            "equipSlot": "Glove",
+            "equipStats": {
+                "maxHealth": 0,
+                "maxMana": 0,
+                "attackPower": 2,
+                "defense": 0,
+                "strength": 0,
+                "dexterity": 0,
+                "intelligence": 0
+            },
+            "isShopItem": true,
+            "buyPrice": 100,
+            "sellPrice": 25,
+            "shopCategory": "Armor",
+            "consumeEffects": []
+        },
+        {
+            "itemId": "shield_wooden",
+            "stackable": false,
+            "maxStack": 1,
+            "isEquipment": true,
+            "equipSlot": "Shield",
+            "equipStats": {
+                "maxHealth": 0,
+                "maxMana": 0,
+                "attackPower": 0,
+                "defense": 4,
+                "strength": 0,
+                "dexterity": 0,
+                "intelligence": 0
+            },
+            "isShopItem": true,
+            "buyPrice": 130,
+            "sellPrice": 35,
+            "shopCategory": "Armor",
+            "consumeEffects": []
+        },
+        {
+            "itemId": "ring_power",
+            "stackable": false,
+            "maxStack": 1,
+            "isEquipment": true,
+            "equipSlot": "Ring",
+            "equipStats": {
+                "maxHealth": 0,
+                "maxMana": 0,
+                "attackPower": 3,
+                "defense": 0,
+                "strength": 2,
+                "dexterity": 0,
+                "intelligence": 0
+            },
+            "isShopItem": true,
+            "buyPrice": 300,
+            "sellPrice": 80,
+            "shopCategory": "Accessory",
+            "consumeEffects": []
+        },
+        {
+            "itemId": "necklace_vitality",
+            "stackable": false,
+            "maxStack": 1,
+            "isEquipment": true,
+            "equipSlot": "Necklace",
+            "equipStats": {
+                "maxHealth": 20,
+                "maxMana": 0,
+                "attackPower": 0,
+                "defense": 0,
+                "strength": 0,
+                "dexterity": 0,
+                "intelligence": 0
+            },
+            "isShopItem": true,
+            "buyPrice": 300,
+            "sellPrice": 80,
+            "shopCategory": "Accessory",
+            "consumeEffects": []
+        }
+    ]
+}
