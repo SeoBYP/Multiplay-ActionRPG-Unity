@@ -123,7 +123,7 @@ namespace Game.Tests.PlayMode.Inventory
             Assert.AreEqual(1001, latest.Items[0].ItemId);
             Assert.AreEqual(3, latest.Items[0].Quantity);
             // 카탈로그 없음 → 폴백: 이름=itemId, 분류=Etc.
-            Assert.AreEqual(1001, latest.Items[0].DisplayName);
+            Assert.AreEqual("1001", latest.Items[0].DisplayName);
             Assert.AreEqual(ItemCategory.Etc, latest.Items[0].Category);
 
             model.Dispose();

@@ -12,14 +12,16 @@ namespace Server.Tests.Items;
 ///
 /// 진실원 = 클라 아이템 SO → Tools/Items/Export bake → 이 임베디드 JSON.
 /// 서버는 `GameplayEffectCatalog` 코드 시드가 아니라 **이 JSON 에서만** 소모품 회복을 읽는다.
-/// → 코드 시드 제거 후에도 `CombatEffectCatalog.Resolve("potion_hp_small")` 가 동작해야 단일소스 배선이 옳다.
+/// → 코드 시드 제거 후에도 `CombatEffectCatalog.Resolve("1001")` 가 동작해야 단일소스 배선이 옳다.
+/// (효과 id = **numericId 의 문자열** — gRPC 가 request.ItemId.ToString() 으로 보내는 값과 같아야 한다.)
 /// </summary>
 public class ItemCatalogDataTests
 {
     [Fact]
     public void 임베디드_potion_hp_small_이_Health_100_즉발로_로드된다()
     {
-        var potion = ItemCatalogData.Current.Consumables.Single(d => d.Id == "potion_hp_small");
+        // 1001 = potion_hp_small. 효과 id 는 numericId 의 문자열(gRPC 가 보내는 값과 동일 계약).
+        var potion = ItemCatalogData.Current.Consumables.Single(d => d.Id == "1001");
 
         Assert.Equal(EDurationPolicy.Instant, potion.Policy);
         var mod = Assert.Single(potion.Modifiers);
@@ -32,7 +34,7 @@ public class ItemCatalogDataTests
     {
         // potion_hp_small 은 GameplayEffectCatalog 코드 시드에서 제거됐다.
         // CombatEffectCatalog static ctor 가 bake JSON 을 Register 로 흡수해야 이 조회가 성립한다(단일소스 배선).
-        var mods = CombatEffectCatalog.Resolve("potion_hp_small");
+        var mods = CombatEffectCatalog.Resolve("1001");
 
         var mod = Assert.Single(mods);
         Assert.Equal(EGameplayAttribute.Health, mod.AttributeType);
@@ -81,7 +83,7 @@ public class ItemCatalogDataTests
 
         var def = ItemCatalogData.Parse(stream).Consumables.Single();
 
-        Assert.Equal("potion_mp_small", def.Id);
+        Assert.Equal("1002", def.Id);
         Assert.Equal(EDurationPolicy.Duration, def.Policy);
         Assert.Equal(5000, def.DurationMs);
         var mod = Assert.Single(def.Modifiers);
@@ -95,6 +97,7 @@ public class ItemCatalogDataTests
       "items": [
         {
           "itemId": "potion_mp_small",
+          "numericId": 1002,
           "stackable": true,
           "maxStack": 99,
           "isEquipment": false,
@@ -108,6 +111,7 @@ public class ItemCatalogDataTests
         },
         {
           "itemId": "sword_test",
+          "numericId": 2191,
           "stackable": false,
           "maxStack": 1,
           "isEquipment": true,

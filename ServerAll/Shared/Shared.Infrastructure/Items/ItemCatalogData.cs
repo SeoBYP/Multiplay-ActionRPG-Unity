@@ -78,6 +78,9 @@ public static class ItemCatalogData
             if (dto.ConsumeEffects.Count > 0)
             {
                 // effectId == itemId 규칙: 소비 통지(PlayerConsumedMessage.EffectId)가 곧 itemId 라 별도 매핑 불필요.
+                // ⚠ id 는 **numericId 의 문자열**이다 — ItemId 가 int 로 바뀐 뒤 gRPC 가 보내는 값이
+                //   request.ItemId.ToString() 이므로 등록 키도 같아야 조회가 맞는다. 저작 문자열
+                //   ("potion_hp_small")로 등록하면 소비해도 효과가 안 붙는다(E2E 가 이 불일치를 잡았다).
                 // policy/durationMs 를 그대로 싣는다 — 구 ConsumableEffectExporter 는 이 둘을 bake 에서 누락시켰고
                 // 서버가 Instant/0 으로 하드코딩해, 지속형 버프 물약을 저작해도 서버에선 즉발이 되는 버그가 있었다.
                 var first = dto.ConsumeEffects[0];
@@ -87,7 +90,7 @@ public static class ItemCatalogData
                     .ToList();
 
                 consumables.Add(new GameplayEffectDefinition(
-                    id: dto.ItemId,
+                    id: dto.NumericId.ToString(),
                     category: EEffectCategory.AttackPower, // 소모품은 버프 아이콘 미사용(cosmetic)
                     policy: Enum.Parse<EDurationPolicy>(first.Policy, ignoreCase: true),
                     durationMs: first.DurationMs,
