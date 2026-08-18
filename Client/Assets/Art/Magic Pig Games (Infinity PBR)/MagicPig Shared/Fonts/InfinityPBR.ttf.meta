@@ -1,0 +1,27 @@
+fileFormatVersion: 2
+guid: 346b8f649af0b4fc3bc05bf03232285d
+timeCreated: 1486702034
+licenseType: Store
+TrueTypeFontImporter:
+  serializedVersion: 3
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 1
+  characterPadding: 0
+  includeFontData: 1
+  fontNames: []
+  fallbackFontReferences: []
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176417
+  packageName: Battle Sound Library - Magic & Melee - Human Made Audio - Fantasy
+    RPG
+  packageVersion: 4.3.2
+  assetPath: Assets/Art/Magic Pig Games (Infinity PBR)/MagicPig Shared/Fonts/InfinityPBR.ttf
+  uploadId: 934130

@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: cabf8a7d8c9e24dc8885618739148378
+timeCreated: 1512447226
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176417
+  packageName: Battle Sound Library - Magic & Melee - Human Made Audio - Fantasy
+    RPG
+  packageVersion: 4.3.2
+  assetPath: Assets/Art/Magic Pig Games (Infinity PBR)/MagicPig Shared/Scripts/Demo
+    Scripts/SFB_ToggleOpposite.cs
+  uploadId: 934130

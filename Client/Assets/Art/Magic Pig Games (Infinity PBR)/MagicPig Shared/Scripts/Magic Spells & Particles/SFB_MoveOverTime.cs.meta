@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: c2d68084b839a4753a4cc761214d8132
+timeCreated: 1512791620
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176417
+  packageName: Battle Sound Library - Magic & Melee - Human Made Audio - Fantasy
+    RPG
+  packageVersion: 4.3.2
+  assetPath: Assets/Art/Magic Pig Games (Infinity PBR)/MagicPig Shared/Scripts/Magic
+    Spells & Particles/SFB_MoveOverTime.cs
+  uploadId: 934130

@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: ff45213d95c558d4e9c23d915dffd2a3
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176417
+  packageName: Battle Sound Library - Magic & Melee - Human Made Audio - Fantasy
+    RPG
+  packageVersion: 4.3.2
+  assetPath: Assets/Art/Magic Pig Games (Infinity PBR)/MagicPig Shared/Shaders/Shader
+    Functions/Remap To 0-1.asset
+  uploadId: 934130

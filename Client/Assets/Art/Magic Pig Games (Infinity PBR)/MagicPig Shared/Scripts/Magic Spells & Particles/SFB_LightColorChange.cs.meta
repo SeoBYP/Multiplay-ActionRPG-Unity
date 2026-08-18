@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: 5d18a559bab304d1d8c1e294f284608f
+timeCreated: 1512791042
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176417
+  packageName: Battle Sound Library - Magic & Melee - Human Made Audio - Fantasy
+    RPG
+  packageVersion: 4.3.2
+  assetPath: Assets/Art/Magic Pig Games (Infinity PBR)/MagicPig Shared/Scripts/Magic
+    Spells & Particles/SFB_LightColorChange.cs
+  uploadId: 934130

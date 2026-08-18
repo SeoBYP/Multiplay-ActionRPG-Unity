@@ -1,0 +1,20 @@
+fileFormatVersion: 2
+guid: fbca1b3fd0f974c81b6891cc7168090e
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176417
+  packageName: Battle Sound Library - Magic & Melee - Human Made Audio - Fantasy
+    RPG
+  packageVersion: 4.3.2
+  assetPath: Assets/Art/Magic Pig Games (Infinity PBR)/MagicPig Shared/Editor/Low
+    Poly Support Files/ColorShiftRuntimeEditor.cs
+  uploadId: 934130

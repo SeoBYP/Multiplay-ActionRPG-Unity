@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: d6af448f9f0a3473a9247884adc66af4
+timeCreated: 1486192617
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176417
+  packageName: Battle Sound Library - Magic & Melee - Human Made Audio - Fantasy
+    RPG
+  packageVersion: 4.3.2
+  assetPath: Assets/Art/Magic Pig Games (Infinity PBR)/MagicPig Shared/Scripts/Audio
+    Snapshot Exporter/SFB_AudioSnapshotExporter.cs
+  uploadId: 934130

@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 2d13dc268de5b4c5a8a557104d573716
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176417
+  packageName: Battle Sound Library - Magic & Melee - Human Made Audio - Fantasy
+    RPG
+  packageVersion: 4.3.2
+  assetPath: Assets/Art/Magic Pig Games (Infinity PBR)/MagicPig Shared/Shaders/IPBR_DiffuseHSL_Transparent.shader
+  uploadId: 934130

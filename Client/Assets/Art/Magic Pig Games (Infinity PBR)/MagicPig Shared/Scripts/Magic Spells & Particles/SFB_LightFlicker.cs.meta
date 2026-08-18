@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: 6b859768f03c74991a95479b0f70203d
+timeCreated: 1512791388
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176417
+  packageName: Battle Sound Library - Magic & Melee - Human Made Audio - Fantasy
+    RPG
+  packageVersion: 4.3.2
+  assetPath: Assets/Art/Magic Pig Games (Infinity PBR)/MagicPig Shared/Scripts/Magic
+    Spells & Particles/SFB_LightFlicker.cs
+  uploadId: 934130
