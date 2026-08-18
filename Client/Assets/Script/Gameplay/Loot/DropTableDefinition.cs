@@ -39,11 +39,12 @@ namespace Game.Gameplay.Loot
         public List<DropEntryDef> drops = new();
     }
 
-    /// <summary>드랍 후보 1개 — itemId 가 chance 확률로 [minQty, maxQty] 수량 떨어진다.</summary>
+    /// <summary>드랍 후보 1개 — itemId(numericId)가 chance 확률로 [minQty, maxQty] 수량 떨어진다.</summary>
     [Serializable]
     public sealed class DropEntryDef
     {
-        public string itemId;
+        [Tooltip("드랍 아이템의 numericId(ItemCatalogDefinition). 대역: 1000 소모품 / 2100 무기 / 2200 방어구 / 2300 장신구 / 3000 재화. 재화 대역(3000~3999)은 인벤토리가 아니라 지갑으로 라우팅된다(Currencies.IsCurrency).")]
+        public int itemId;
         [Range(0f, 1f)] public float chance = 1f;
         public int minQty = 1;
         public int maxQty = 1;

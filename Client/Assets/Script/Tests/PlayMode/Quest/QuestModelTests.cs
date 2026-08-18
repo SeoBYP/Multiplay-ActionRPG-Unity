@@ -51,7 +51,7 @@ namespace Game.Tests.PlayMode.Quest
 
         private static QuestData Quest(string id, QuestProgressState status, int cur, int req)
             => new(id, id, "desc", QuestObjectiveKind.KillMonster, "creepy_demon", req, cur, status,
-                   new QuestRewardData(50, 100, "", 0));
+                   new QuestRewardData(50, 100, 0, 0));
 
         [UnityTest]
         public IEnumerator Refresh_하면_퀘스트가_State에_병합된다() => UniTask.ToCoroutine(async () =>

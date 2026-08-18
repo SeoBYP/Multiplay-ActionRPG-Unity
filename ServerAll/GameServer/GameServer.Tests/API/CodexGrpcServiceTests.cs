@@ -28,15 +28,15 @@ public class CodexGrpcServiceTests
     [Fact]
     public async Task 발견한_아이템_목록을_반환한다()
     {
-        await _repository.AddDiscoveredAsync(7L, "potion_hp_small");
-        await _repository.AddDiscoveredAsync(7L, "sword_basic");
+        await _repository.AddDiscoveredAsync(7L, 1001);
+        await _repository.AddDiscoveredAsync(7L, 2101);
 
         var res = await _service.GetCodex(new GetCodexRequest(), Authed(7L));
 
         Assert.True(res.Result.Success, res.Result.Message);
         Assert.Equal(2, res.DiscoveredItemIds.Count);
-        Assert.Contains("potion_hp_small", res.DiscoveredItemIds);
-        Assert.Contains("sword_basic", res.DiscoveredItemIds);
+        Assert.Contains(1001, res.DiscoveredItemIds);
+        Assert.Contains(2101, res.DiscoveredItemIds);
     }
 
     [Fact]

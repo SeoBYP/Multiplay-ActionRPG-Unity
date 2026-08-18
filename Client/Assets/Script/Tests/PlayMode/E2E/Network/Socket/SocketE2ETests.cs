@@ -539,11 +539,11 @@ namespace Game.Tests.PlayMode.E2E
                     await UniTask.Delay(TimeSpan.FromMilliseconds(200));
 
                     // 입장 시 바닥 로스터는 비어 있으므로(시드 0), 유일한 S_SpawnGroundItem = 이번 처치 드랍.
-                    host.TryGetLatest<S_SpawnGroundItem>(p => p.ItemId == "potion_hp_small", out ground);
+                    host.TryGetLatest<S_SpawnGroundItem>(p => p.ItemId == 1001, out ground);
                 }
 
                 Assert.IsNotNull(ground, "슬라임 처치 시 보장 드랍(potion_hp_small)이 바닥에 스폰돼야 한다");
-                Assert.AreEqual("potion_hp_small", ground.ItemId);
+                Assert.AreEqual(1001, ground.ItemId);
                 Assert.GreaterOrEqual(ground.Qty, 1);
 
                 // ② 드랍 위치로 이동(서버측 거리 검증 통과 = 거리 0) 후 줍기.
@@ -552,7 +552,7 @@ namespace Game.Tests.PlayMode.E2E
                 await host.SendAsync(new C_PickupItem { GroundId = ground.GroundId }, Timeout());
 
                 // 줍기 확정 토스트 + 바닥 제거 브로드캐스트.
-                var picked = await host.WaitForPacketAsync<S_ItemPickedUp>(p => p.ItemId == "potion_hp_small", Timeout());
+                var picked = await host.WaitForPacketAsync<S_ItemPickedUp>(p => p.ItemId == 1001, Timeout());
                 Assert.AreEqual(ground.Qty, picked.Qty, "줍은 수량은 바닥 아이템 수량과 일치해야 한다");
                 await host.WaitForPacketAsync<S_GroundItemRemoved>(p => p.GroundId == ground.GroundId, Timeout());
 
@@ -564,7 +564,7 @@ namespace Game.Tests.PlayMode.E2E
                 {
                     var inventory = await InventoryService.GetInventoryAsync(new GetInventoryRequest(), Timeout());
                     Assert.IsTrue(inventory.Result.Success, inventory.Result.Message);
-                    var slot = inventory.Items.FirstOrDefault(i => i.ItemId == "potion_hp_small");
+                    var slot = inventory.Items.FirstOrDefault(i => i.ItemId == 1001);
                     grantedQty = slot?.Quantity ?? 0;
                     if (grantedQty < ground.Qty)
                         await UniTask.Delay(TimeSpan.FromMilliseconds(300));
@@ -599,17 +599,17 @@ namespace Game.Tests.PlayMode.E2E
                 var grant = await InventoryService.ClaimKillAsync(
                     new ClaimKillRequest { MapId = "main_field_01", SlotId = 1 }, Timeout());
                 Assert.IsTrue(grant.Result.Success, grant.Result.Message);
-                Assert.IsTrue(grant.Granted.Any(g => g.ItemId == "potion_hp_small"), "slime 보장 드랍 potion 시드 실패");
+                Assert.IsTrue(grant.Granted.Any(g => g.ItemId == 1001), "slime 보장 드랍 potion 시드 실패");
 
                 var consume = await InventoryService.ConsumeItemAsync(
-                    new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Timeout());
+                    new ConsumeItemRequest { ItemId = 1001, Qty = 1 }, Timeout());
                 Assert.IsTrue(consume.Result.Success, consume.Result.Message);
 
                 // 크로스-서버 회복 통지 → 서버가 던전 방의 호스트에게 회복 효과를 브로드캐스트.
                 var heal = await host.WaitForPacketAsync<S_ApplyEffect>(
-                    p => p.EffectId == "potion_hp_small" && p.TargetId == room.HostUserId, Timeout());
+                    p => p.EffectId == "1001" && p.TargetId == room.HostUserId, Timeout());
 
-                Assert.AreEqual("potion_hp_small", heal.EffectId);
+                Assert.AreEqual("1001", heal.EffectId);   // GAS 효과 id 는 문자열 체계(numericId 를 문자열로 싣는다)
                 Assert.AreEqual(room.HostUserId, heal.TargetId, "회복 대상은 소비한 호스트여야 한다");
             }
             finally

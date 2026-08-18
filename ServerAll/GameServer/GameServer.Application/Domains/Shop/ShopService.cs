@@ -16,7 +16,7 @@ public sealed class ShopService(IWalletService wallet, IInventoryService invento
 {
     public IReadOnlyCollection<ShopItemDef> GetItems() => ShopCatalog.All;
 
-    public async Task<ShopBuyResult> BuyAsync(long userId, string itemId, int qty, CancellationToken ct = default)
+    public async Task<ShopBuyResult> BuyAsync(long userId, int itemId, int qty, CancellationToken ct = default)
     {
         if (qty <= 0)
             return ShopBuyResult.Fail("qty must be positive");
@@ -43,7 +43,7 @@ public sealed class ShopService(IWalletService wallet, IInventoryService invento
         return ShopBuyResult.Ok(spend.Balance, grant.NewQuantity);
     }
 
-    public async Task<ShopSellResult> SellAsync(long userId, string itemId, int qty, CancellationToken ct = default)
+    public async Task<ShopSellResult> SellAsync(long userId, int itemId, int qty, CancellationToken ct = default)
     {
         if (qty <= 0)
             return ShopSellResult.Fail("qty must be positive");

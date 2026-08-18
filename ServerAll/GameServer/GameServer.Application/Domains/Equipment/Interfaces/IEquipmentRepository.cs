@@ -13,7 +13,7 @@ public interface IEquipmentRepository
     Task<List<UserEquipment>> GetEquippedAsync(long userId, CancellationToken ct = default);
 
     /// <summary>(userId, slot)에 itemId 를 착용(upsert — 기존 착용 교체). DB 저장 후 캐시 DEL.</summary>
-    Task SetAsync(long userId, EquipmentType slot, string itemId, CancellationToken ct = default);
+    Task SetAsync(long userId, EquipmentType slot, int itemId, CancellationToken ct = default);
 
     /// <summary>(userId, slot) 착용을 해제(행 삭제). 착용분이 있었으면 true. DB 저장 후 캐시 DEL.</summary>
     Task<bool> ClearAsync(long userId, EquipmentType slot, CancellationToken ct = default);

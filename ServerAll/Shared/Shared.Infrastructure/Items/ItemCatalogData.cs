@@ -58,6 +58,7 @@ public static class ItemCatalogData
                 var s = dto.EquipStats;
                 equipment.Add(new EquipmentDef(
                     dto.ItemId,
+                    dto.NumericId,
                     Enum.Parse<EquipmentType>(dto.EquipSlot, ignoreCase: true),
                     new EquipmentStatModifier(
                         s.MaxHealth, s.MaxMana, s.AttackPower, s.Defense,
@@ -68,6 +69,7 @@ public static class ItemCatalogData
             {
                 shop.Add(new ShopItemDef(
                     dto.ItemId,
+                    dto.NumericId,
                     dto.BuyPrice,
                     dto.SellPrice,
                     Enum.Parse<ShopCategory>(dto.ShopCategory, ignoreCase: true)));
@@ -121,6 +123,14 @@ public static class ItemCatalogData
             ItemsByNumericId = byNumeric;
             EquipmentById = equipment.ToDictionary(e => e.ItemId, StringComparer.Ordinal);
             ShopById = shop.ToDictionary(s => s.ItemId, StringComparer.Ordinal);
+
+            // numericId 키 — ItemsByNumericId 와 같은 방어 규칙(미배정 0·중복은 건너뛴다).
+            var eqByNum = new Dictionary<int, EquipmentDef>();
+            foreach (var e in equipment) if (e.NumericId > 0) eqByNum.TryAdd(e.NumericId, e);
+            EquipmentByNumericId = eqByNum;
+            var shopByNum = new Dictionary<int, ShopItemDef>();
+            foreach (var s2 in shop) if (s2.NumericId > 0) shopByNum.TryAdd(s2.NumericId, s2);
+            ShopByNumericId = shopByNum;
         }
 
         public IReadOnlyList<ItemDef> Items { get; }
@@ -132,6 +142,8 @@ public static class ItemCatalogData
 
         /// <summary>숫자 ID 조회. ItemId 를 int 로 옮기는 전환(2단계)의 진입점.</summary>
         public IReadOnlyDictionary<int, ItemDef> ItemsByNumericId { get; }
+        public IReadOnlyDictionary<int, EquipmentDef> EquipmentByNumericId { get; }
+        public IReadOnlyDictionary<int, ShopItemDef> ShopByNumericId { get; }
         public IReadOnlyDictionary<string, EquipmentDef> EquipmentById { get; }
         public IReadOnlyDictionary<string, ShopItemDef> ShopById { get; }
     }

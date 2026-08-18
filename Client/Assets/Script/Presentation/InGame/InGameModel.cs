@@ -173,10 +173,10 @@ namespace Game.Presentation.InGame
         }
 
         /// <summary>서버 권위 획득 확정(S_ItemPickedUp) → 획득 토스트 메시지 발행. 이름은 표시 카탈로그, 없으면 itemId.</summary>
-        private void OnItemPickedUp(string itemId, int qty)
+        private void OnItemPickedUp(int itemId, int qty)
         {
             string name = _itemDisplay?.Get(itemId)?.displayName;
-            if (string.IsNullOrEmpty(name)) name = itemId;
+            if (string.IsNullOrEmpty(name)) name = itemId.ToString();
             string text = qty > 1 ? $"{name} x{qty} 획득" : $"{name} 획득";
             _itemPickup.OnNext(new ItemToastMessage(text));
         }

@@ -30,12 +30,12 @@ public class ShopGrpcService(
         {
             var info = new ShopItemInfo
             {
-                ItemId = def.ItemId,
+                ItemId = def.NumericId,
                 BuyPrice = def.BuyPrice,
                 SellPrice = def.SellPrice,
                 Category = ToProtoCategory(def.Category),
             };
-            AppendStatPreview(info, def.ItemId);
+            AppendStatPreview(info, def.NumericId);
             response.Items.Add(info);
         }
 
@@ -96,7 +96,7 @@ public class ShopGrpcService(
     };
 
     /// <summary>장비면 EquipmentCatalog 의 가산 스탯(비0)을 미리보기로 채운다. 소모품이면 빈 목록.</summary>
-    private static void AppendStatPreview(ShopItemInfo info, string itemId)
+    private static void AppendStatPreview(ShopItemInfo info, int itemId)
     {
         var def = EquipmentCatalog.Get(itemId);
         if (def is null)

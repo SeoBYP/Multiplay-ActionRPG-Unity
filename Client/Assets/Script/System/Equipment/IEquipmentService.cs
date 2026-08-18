@@ -18,7 +18,7 @@ namespace Game.System.Equipment
         UniTask<(EquipmentResult Result, IReadOnlyList<EquippedItemData> Items)> GetEquippedAsync(CancellationToken ct = default);
 
         /// <summary>아이템 장착(슬롯은 서버가 결정). 성공 시 장착된 슬롯.</summary>
-        UniTask<(EquipmentResult Result, EquipmentType Slot)> EquipAsync(string itemId, CancellationToken ct = default);
+        UniTask<(EquipmentResult Result, EquipmentType Slot)> EquipAsync(int itemId, CancellationToken ct = default);
 
         /// <summary>슬롯 해제(멱등).</summary>
         UniTask<EquipmentResult> UnequipAsync(EquipmentType slot, CancellationToken ct = default);

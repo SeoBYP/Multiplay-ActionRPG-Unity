@@ -49,7 +49,7 @@ namespace Game.System.Equipment
             }
         }
 
-        public async UniTask<(EquipmentResult Result, DomainType Slot)> EquipAsync(string itemId, CancellationToken ct = default)
+        public async UniTask<(EquipmentResult Result, DomainType Slot)> EquipAsync(int itemId, CancellationToken ct = default)
         {
             try
             {

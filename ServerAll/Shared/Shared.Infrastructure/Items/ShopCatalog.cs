@@ -13,6 +13,10 @@ public static class ShopCatalog
     /// <summary>진열 정의를 반환. 안 파는 itemId 면 null.</summary>
     public static ShopItemDef? Get(string itemId) => ItemCatalogData.Current.ShopById.GetValueOrDefault(itemId);
 
+    /// <summary>numericId 로 상점 정의를 반환. 없으면 null.
+    /// <para>서버 내부는 numericId(int)가 키다 — 문자열 조회는 proto·로그 경계에만 남는다.</para></summary>
+    public static ShopItemDef? Get(int numericId) => ItemCatalogData.Current.ShopByNumericId.GetValueOrDefault(numericId);
+
     /// <summary>전체 진열(저작 순서 = 진열 순서).</summary>
     public static IReadOnlyCollection<ShopItemDef> All => ItemCatalogData.Current.Shop;
 }

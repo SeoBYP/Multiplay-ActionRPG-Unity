@@ -7,7 +7,12 @@
             "objectiveType": "KillMonster",
             "targetId": "creepy_demon",
             "requiredCount": 3,
-            "reward": { "exp": 50, "gold": 100, "itemId": "", "itemQty": 0 }
+            "reward": {
+                "exp": 50,
+                "gold": 100,
+                "itemId": 0,
+                "itemQty": 0
+            }
         },
         {
             "questId": "quest_slime_slayer",
@@ -16,7 +21,12 @@
             "objectiveType": "KillMonster",
             "targetId": "creepy_demon",
             "requiredCount": 5,
-            "reward": { "exp": 80, "gold": 0, "itemId": "potion_hp_small", "itemQty": 2 }
+            "reward": {
+                "exp": 80,
+                "gold": 0,
+                "itemId": 1001,
+                "itemQty": 2
+            }
         },
         {
             "questId": "quest_potion_collect",
@@ -25,7 +35,12 @@
             "objectiveType": "CollectItem",
             "targetId": "potion_hp_small",
             "requiredCount": 3,
-            "reward": { "exp": 30, "gold": 50, "itemId": "", "itemQty": 0 }
+            "reward": {
+                "exp": 30,
+                "gold": 50,
+                "itemId": 0,
+                "itemQty": 0
+            }
         },
         {
             "questId": "quest_greet_elder",
@@ -34,7 +49,12 @@
             "objectiveType": "TalkToNpc",
             "targetId": "npc_elder",
             "requiredCount": 1,
-            "reward": { "exp": 30, "gold": 50, "itemId": "", "itemQty": 0 }
+            "reward": {
+                "exp": 30,
+                "gold": 50,
+                "itemId": 0,
+                "itemQty": 0
+            }
         }
     ]
 }

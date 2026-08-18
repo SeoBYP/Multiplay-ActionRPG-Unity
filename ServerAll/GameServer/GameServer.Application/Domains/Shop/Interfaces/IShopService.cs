@@ -12,8 +12,8 @@ public interface IShopService
     IReadOnlyCollection<ShopItemDef> GetItems();
 
     /// <summary>구매: 골드 차감(부족 시 거부) → 아이템 지급. 지급 실패 시 환불. 안 파는 itemId·qty≤0 거부.</summary>
-    Task<ShopBuyResult> BuyAsync(long userId, string itemId, int qty, CancellationToken ct = default);
+    Task<ShopBuyResult> BuyAsync(long userId, int itemId, int qty, CancellationToken ct = default);
 
     /// <summary>판매: 아이템 차감(미보유/부족 시 거부) → 골드 적립. 안 파는 itemId·qty≤0 거부.</summary>
-    Task<ShopSellResult> SellAsync(long userId, string itemId, int qty, CancellationToken ct = default);
+    Task<ShopSellResult> SellAsync(long userId, int itemId, int qty, CancellationToken ct = default);
 }

@@ -233,6 +233,28 @@
             "sellPrice": 80,
             "shopCategory": "Accessory",
             "consumeEffects": []
+        },
+        {
+            "itemId": "gold",
+            "numericId": 3001,
+            "stackable": true,
+            "maxStack": 2147483647,
+            "isEquipment": false,
+            "equipSlot": "None",
+            "equipStats": {
+                "maxHealth": 0,
+                "maxMana": 0,
+                "attackPower": 0,
+                "defense": 0,
+                "strength": 0,
+                "dexterity": 0,
+                "intelligence": 0
+            },
+            "isShopItem": false,
+            "buyPrice": 0,
+            "sellPrice": 0,
+            "shopCategory": "Unspecified",
+            "consumeEffects": []
         }
     ]
 }

@@ -16,7 +16,6 @@ public class InventoryItemConfiguration : IEntityTypeConfiguration<InventoryItem
             .IsRequired();
 
         builder.Property(i => i.ItemId)
-            .HasMaxLength(64)
             .IsRequired();
 
         builder.Property(i => i.Quantity)

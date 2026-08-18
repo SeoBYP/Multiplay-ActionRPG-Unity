@@ -18,7 +18,7 @@ public sealed record MainClaimResult(bool Success, IReadOnlyList<GrantedItem> Gr
 }
 
 /// <summary>ClaimKill 로 실제 지급된 한 항목.</summary>
-public sealed record GrantedItem(string ItemId, int Qty, int NewQuantity);
+public sealed record GrantedItem(int ItemId, int Qty, int NewQuantity);
 
 /// <summary>
 /// Main 킬 경험치 청구(킬 즉시) 결과. ExpGained = 적립된 exp(쿨다운 중이면 0, 에러 아님).

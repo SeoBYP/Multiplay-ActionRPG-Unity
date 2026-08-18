@@ -31,7 +31,7 @@ namespace Game.Presentation.Inventory
 
             foreach (var item in _catalog.items)
             {
-                if (item == null || string.IsNullOrEmpty(item.itemId) || item.effects == null)
+                if (item == null || item.itemId <= 0 || item.effects == null)
                     continue;
 
                 // 소모품 = 즉발 회복(서버 ConsumableEffectCatalog 와 동일하게 Instant 로 흡수). 다중 효과는 mod 로 평탄화.
@@ -40,7 +40,7 @@ namespace Game.Presentation.Inventory
                     mods.Add(GameplayAttributeModifier.Create(e.stat, e.amount, EModifierType.Additive));
 
                 _effectCatalog.Register(new GameplayEffectDefinition(
-                    id: item.itemId,
+                    id: item.itemId.ToString(),   // GAS 효과 id 는 문자열 체계(effectId == itemId 규칙)
                     category: EEffectCategory.AttackPower, // Instant 회복 = 버프 아이콘 없음(cosmetic)
                     policy: EDurationPolicy.Instant,
                     durationMs: 0,

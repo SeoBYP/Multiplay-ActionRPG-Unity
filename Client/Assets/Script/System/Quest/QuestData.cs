@@ -33,10 +33,10 @@ namespace Game.System.Quest
     {
         public readonly long Exp;
         public readonly long Gold;
-        public readonly string ItemId;
+        public readonly int ItemId;
         public readonly int ItemQty;
 
-        public QuestRewardData(long exp, long gold, string itemId, int itemQty)
+        public QuestRewardData(long exp, long gold, int itemId, int itemQty)
         {
             Exp = exp;
             Gold = gold;

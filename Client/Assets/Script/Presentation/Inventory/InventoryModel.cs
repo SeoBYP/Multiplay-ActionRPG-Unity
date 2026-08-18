@@ -37,18 +37,18 @@ namespace Game.Presentation.Inventory
         private readonly CancellationTokenSource _cts = new();
 
         // 판매가 캐시(itemId→sell_price). 서버 GetShop 1회 결과를 보관 — 확인 팝업에 표시. null=미조회.
-        private Dictionary<string, long> _sellPrices;
+        private Dictionary<int, long> _sellPrices;
 
         private readonly ReactiveProperty<InventoryState> _state = new(InventoryState.Initial);
         public ReadOnlyReactiveProperty<InventoryState> State => _state.ToReadOnlyReactiveProperty();
 
         // ── Side Effect 채널 (State 아님 — 일회성 외부 효과) ──
         // 차감 성공 후에만 발행. LobbyModel.NavigateToRoom 과 동일 패턴(Subject→Observable, 구독자가 처리).
-        private readonly Subject<string> _onConsumableUsed = new(); // itemId → 회복 핸들러가 GAS 적용
+        private readonly Subject<int> _onConsumableUsed = new(); // itemId → 회복 핸들러가 GAS 적용
         private readonly Subject<InventoryToast> _onToast = new();   // 토스트(성공/실패) → View 표시(실패=팝업)
 
         /// <summary>소모품 사용 확정(차감 성공) — 구독자가 회복 효과를 ASC 에 적용(클라 권위).</summary>
-        public Observable<string> OnConsumableUsed => _onConsumableUsed;
+        public Observable<int> OnConsumableUsed => _onConsumableUsed;
 
         /// <summary>일회성 토스트(성공/실패) — View 가 표시(실패는 팝업), 사이클 종료.</summary>
         public Observable<InventoryToast> OnToast => _onToast;
@@ -100,13 +100,13 @@ namespace Game.Presentation.Inventory
         }
 
         /// <summary>판매가(서버 sell_price) 조회 — 확인 팝업 표시용. GetShop 1회 캐시 후 룩업. 미주입/미조회면 0.</summary>
-        public async UniTask<long> GetSellPriceAsync(string itemId)
+        public async UniTask<long> GetSellPriceAsync(int itemId)
         {
             if (_shop == null) return 0;
             if (_sellPrices == null)
             {
                 var (result, items) = await _shop.GetShopAsync(_cts.Token);
-                _sellPrices = new Dictionary<string, long>();
+                _sellPrices = new Dictionary<int, long>();
                 if (result == ShopResult.Success)
                     foreach (var it in items)
                         _sellPrices[it.ItemId] = it.SellPrice;
@@ -115,7 +115,7 @@ namespace Game.Presentation.Inventory
         }
 
         /// <summary>판매(서버 권위, 1개): Sell → 성공 시 인벤/골드 갱신 + 토스트. 가격 확인은 View 가 먼저 처리.</summary>
-        private async UniTaskVoid SellItemAsync(string itemId)
+        private async UniTaskVoid SellItemAsync(int itemId)
         {
             if (_shop == null)
             {
@@ -145,7 +145,7 @@ namespace Game.Presentation.Inventory
         /// 장비 장착: IEquipmentService.EquipAsync(서버 권위, 슬롯은 서버 결정) → 성공 시 토스트.
         /// 장비창 갱신은 IEquipmentService.OnChanged 가 EquipmentModel 에 통지(여기서 직접 안 건드림).
         /// </summary>
-        private async UniTaskVoid EquipItemAsync(string itemId)
+        private async UniTaskVoid EquipItemAsync(int itemId)
         {
             if (_equipment == null)
             {
@@ -170,7 +170,7 @@ namespace Game.Presentation.Inventory
         /// 소모품 사용: ① consume(서버 권위 차감) → ② 성공 시에만 Side Effect 발행(회복 신호 + 토스트) → ③ 수량 갱신.
         /// 회복 자체는 OnConsumableUsed 구독자(ConsumableEffectHandler)가 GAS 로 적용한다(Model 은 신호만).
         /// </summary>
-        private async UniTaskVoid UseItemAsync(string itemId)
+        private async UniTaskVoid UseItemAsync(int itemId)
         {
             try
             {
@@ -191,8 +191,8 @@ namespace Game.Presentation.Inventory
             }
         }
 
-        private string DisplayName(string itemId)
-            => (_catalog != null ? _catalog.Get(itemId)?.displayName : null) ?? itemId;
+        private string DisplayName(int itemId)
+            => (_catalog != null ? _catalog.Get(itemId)?.displayName : null) ?? itemId.ToString();
 
         /// <summary>현재 골드 잔액(지갑 미주입이면 기존 상태값 유지 — null-safe).</summary>
         private async UniTask<long> GetGoldAsync()
@@ -205,9 +205,9 @@ namespace Game.Presentation.Inventory
         }
 
         /// <summary>현재 착용 중인 itemId 집합(없거나 장비 시스템 미주입이면 빈 집합).</summary>
-        private async UniTask<HashSet<string>> GetEquippedIdsAsync()
+        private async UniTask<HashSet<int>> GetEquippedIdsAsync()
         {
-            var ids = new HashSet<string>();
+            var ids = new HashSet<int>();
             if (_equipment == null)
                 return ids;
 
@@ -244,7 +244,7 @@ namespace Game.Presentation.Inventory
                     models.Add(new InventoryItemModel(
                         data.ItemId,
                         data.Quantity,
-                        entry?.displayName ?? data.ItemId,
+                        entry?.displayName ?? data.ItemId.ToString(),
                         entry?.icon,
                         entry?.category ?? ItemCategory.Etc,
                         grade,

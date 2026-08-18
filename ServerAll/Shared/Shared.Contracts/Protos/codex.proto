@@ -18,5 +18,5 @@ message GetCodexRequest {}
 
 message GetCodexResponse {
   gameserver.common.Result result = 1;
-  repeated string discovered_item_ids = 2;  // 발견(획득)한 itemId 목록(서버 권위). 클라가 자기 카탈로그와 대조해 완성도 산출.
+  repeated int32 discovered_item_ids = 2;  // 발견(획득)한 itemId(numericId) 목록(서버 권위). 클라가 자기 카탈로그와 대조해 완성도 산출.
 }

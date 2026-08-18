@@ -33,15 +33,15 @@ namespace GameServer.Grpc.Inventory {
             "UmVxdWVzdBIOCgZtYXBfaWQYASABKAkSDwoHc2xvdF9pZBgCIAEoBSJYChdD",
             "bGFpbU1vbnN0ZXJFeHBSZXNwb25zZRIpCgZyZXN1bHQYASABKAsyGS5nYW1l",
             "c2VydmVyLmNvbW1vbi5SZXN1bHQSEgoKZXhwX2dhaW5lZBgCIAEoAyJBCgtH",
-            "cmFudGVkSXRlbRIPCgdpdGVtX2lkGAEgASgJEgsKA3F0eRgCIAEoBRIUCgxu",
+            "cmFudGVkSXRlbRIPCgdpdGVtX2lkGAEgASgFEgsKA3F0eRgCIAEoBRIUCgxu",
             "ZXdfcXVhbnRpdHkYAyABKAUiMgoSQ29uc3VtZUl0ZW1SZXF1ZXN0Eg8KB2l0",
-            "ZW1faWQYASABKAkSCwoDcXR5GAIgASgFIlwKE0NvbnN1bWVJdGVtUmVzcG9u",
+            "ZW1faWQYASABKAUSCwoDcXR5GAIgASgFIlwKE0NvbnN1bWVJdGVtUmVzcG9u",
             "c2USKQoGcmVzdWx0GAEgASgLMhkuZ2FtZXNlcnZlci5jb21tb24uUmVzdWx0",
             "EhoKEnJlbWFpbmluZ19xdWFudGl0eRgCIAEoBSJ8ChRHZXRJbnZlbnRvcnlS",
             "ZXNwb25zZRIpCgZyZXN1bHQYASABKAsyGS5nYW1lc2VydmVyLmNvbW1vbi5S",
             "ZXN1bHQSOQoFaXRlbXMYAiADKAsyKi5nYW1lc2VydmVyLmludmVudG9yeS52",
             "MS5JbnZlbnRvcnlJdGVtSW5mbyI2ChFJbnZlbnRvcnlJdGVtSW5mbxIPCgdp",
-            "dGVtX2lkGAEgASgJEhAKCHF1YW50aXR5GAIgASgFMsMDChBJbnZlbnRvcnlT",
+            "dGVtX2lkGAEgASgFEhAKCHF1YW50aXR5GAIgASgFMsMDChBJbnZlbnRvcnlT",
             "ZXJ2aWNlEmsKDEdldEludmVudG9yeRIsLmdhbWVzZXJ2ZXIuaW52ZW50b3J5",
             "LnYxLkdldEludmVudG9yeVJlcXVlc3QaLS5nYW1lc2VydmVyLmludmVudG9y",
             "eS52MS5HZXRJbnZlbnRvcnlSZXNwb25zZRJiCglDbGFpbUtpbGwSKS5nYW1l",
@@ -1250,13 +1250,13 @@ namespace GameServer.Grpc.Inventory {
 
     /// <summary>Field number for the "item_id" field.</summary>
     public const int ItemIdFieldNumber = 1;
-    private string itemId_ = "";
+    private int itemId_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string ItemId {
+    public int ItemId {
       get { return itemId_; }
       set {
-        itemId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        itemId_ = value;
       }
     }
 
@@ -1315,7 +1315,7 @@ namespace GameServer.Grpc.Inventory {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (ItemId.Length != 0) hash ^= ItemId.GetHashCode();
+      if (ItemId != 0) hash ^= ItemId.GetHashCode();
       if (Qty != 0) hash ^= Qty.GetHashCode();
       if (NewQuantity != 0) hash ^= NewQuantity.GetHashCode();
       if (_unknownFields != null) {
@@ -1336,9 +1336,9 @@ namespace GameServer.Grpc.Inventory {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (ItemId.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(ItemId);
+      if (ItemId != 0) {
+        output.WriteRawTag(8);
+        output.WriteInt32(ItemId);
       }
       if (Qty != 0) {
         output.WriteRawTag(16);
@@ -1358,9 +1358,9 @@ namespace GameServer.Grpc.Inventory {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (ItemId.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(ItemId);
+      if (ItemId != 0) {
+        output.WriteRawTag(8);
+        output.WriteInt32(ItemId);
       }
       if (Qty != 0) {
         output.WriteRawTag(16);
@@ -1380,8 +1380,8 @@ namespace GameServer.Grpc.Inventory {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (ItemId.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(ItemId);
+      if (ItemId != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(ItemId);
       }
       if (Qty != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(Qty);
@@ -1401,7 +1401,7 @@ namespace GameServer.Grpc.Inventory {
       if (other == null) {
         return;
       }
-      if (other.ItemId.Length != 0) {
+      if (other.ItemId != 0) {
         ItemId = other.ItemId;
       }
       if (other.Qty != 0) {
@@ -1429,8 +1429,8 @@ namespace GameServer.Grpc.Inventory {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
-          case 10: {
-            ItemId = input.ReadString();
+          case 8: {
+            ItemId = input.ReadInt32();
             break;
           }
           case 16: {
@@ -1460,8 +1460,8 @@ namespace GameServer.Grpc.Inventory {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 10: {
-            ItemId = input.ReadString();
+          case 8: {
+            ItemId = input.ReadInt32();
             break;
           }
           case 16: {
@@ -1527,13 +1527,13 @@ namespace GameServer.Grpc.Inventory {
 
     /// <summary>Field number for the "item_id" field.</summary>
     public const int ItemIdFieldNumber = 1;
-    private string itemId_ = "";
+    private int itemId_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string ItemId {
+    public int ItemId {
       get { return itemId_; }
       set {
-        itemId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        itemId_ = value;
       }
     }
 
@@ -1573,7 +1573,7 @@ namespace GameServer.Grpc.Inventory {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (ItemId.Length != 0) hash ^= ItemId.GetHashCode();
+      if (ItemId != 0) hash ^= ItemId.GetHashCode();
       if (Qty != 0) hash ^= Qty.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -1593,9 +1593,9 @@ namespace GameServer.Grpc.Inventory {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (ItemId.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(ItemId);
+      if (ItemId != 0) {
+        output.WriteRawTag(8);
+        output.WriteInt32(ItemId);
       }
       if (Qty != 0) {
         output.WriteRawTag(16);
@@ -1611,9 +1611,9 @@ namespace GameServer.Grpc.Inventory {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (ItemId.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(ItemId);
+      if (ItemId != 0) {
+        output.WriteRawTag(8);
+        output.WriteInt32(ItemId);
       }
       if (Qty != 0) {
         output.WriteRawTag(16);
@@ -1629,8 +1629,8 @@ namespace GameServer.Grpc.Inventory {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (ItemId.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(ItemId);
+      if (ItemId != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(ItemId);
       }
       if (Qty != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(Qty);
@@ -1647,7 +1647,7 @@ namespace GameServer.Grpc.Inventory {
       if (other == null) {
         return;
       }
-      if (other.ItemId.Length != 0) {
+      if (other.ItemId != 0) {
         ItemId = other.ItemId;
       }
       if (other.Qty != 0) {
@@ -1672,8 +1672,8 @@ namespace GameServer.Grpc.Inventory {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
-          case 10: {
-            ItemId = input.ReadString();
+          case 8: {
+            ItemId = input.ReadInt32();
             break;
           }
           case 16: {
@@ -1699,8 +1699,8 @@ namespace GameServer.Grpc.Inventory {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 10: {
-            ItemId = input.ReadString();
+          case 8: {
+            ItemId = input.ReadInt32();
             break;
           }
           case 16: {
@@ -2245,13 +2245,13 @@ namespace GameServer.Grpc.Inventory {
 
     /// <summary>Field number for the "item_id" field.</summary>
     public const int ItemIdFieldNumber = 1;
-    private string itemId_ = "";
+    private int itemId_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string ItemId {
+    public int ItemId {
       get { return itemId_; }
       set {
-        itemId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        itemId_ = value;
       }
     }
 
@@ -2291,7 +2291,7 @@ namespace GameServer.Grpc.Inventory {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (ItemId.Length != 0) hash ^= ItemId.GetHashCode();
+      if (ItemId != 0) hash ^= ItemId.GetHashCode();
       if (Quantity != 0) hash ^= Quantity.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -2311,9 +2311,9 @@ namespace GameServer.Grpc.Inventory {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (ItemId.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(ItemId);
+      if (ItemId != 0) {
+        output.WriteRawTag(8);
+        output.WriteInt32(ItemId);
       }
       if (Quantity != 0) {
         output.WriteRawTag(16);
@@ -2329,9 +2329,9 @@ namespace GameServer.Grpc.Inventory {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (ItemId.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(ItemId);
+      if (ItemId != 0) {
+        output.WriteRawTag(8);
+        output.WriteInt32(ItemId);
       }
       if (Quantity != 0) {
         output.WriteRawTag(16);
@@ -2347,8 +2347,8 @@ namespace GameServer.Grpc.Inventory {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (ItemId.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(ItemId);
+      if (ItemId != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(ItemId);
       }
       if (Quantity != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(Quantity);
@@ -2365,7 +2365,7 @@ namespace GameServer.Grpc.Inventory {
       if (other == null) {
         return;
       }
-      if (other.ItemId.Length != 0) {
+      if (other.ItemId != 0) {
         ItemId = other.ItemId;
       }
       if (other.Quantity != 0) {
@@ -2390,8 +2390,8 @@ namespace GameServer.Grpc.Inventory {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
-          case 10: {
-            ItemId = input.ReadString();
+          case 8: {
+            ItemId = input.ReadInt32();
             break;
           }
           case 16: {
@@ -2417,8 +2417,8 @@ namespace GameServer.Grpc.Inventory {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 10: {
-            ItemId = input.ReadString();
+          case 8: {
+            ItemId = input.ReadInt32();
             break;
           }
           case 16: {

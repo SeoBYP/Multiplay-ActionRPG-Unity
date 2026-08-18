@@ -39,7 +39,7 @@ enum QuestProgressStatus {
 message QuestReward {
   int64 exp = 1;
   int64 gold = 2;
-  string item_id = 3;   // 빈 문자열이면 아이템 보상 없음
+  int32 item_id = 3;   // numericId. 0 이면 아이템 보상 없음
   int32 item_qty = 4;
 }
 

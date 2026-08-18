@@ -17,7 +17,7 @@ public sealed class EquipmentService(
     public Task<List<UserEquipment>> GetEquippedAsync(long userId, CancellationToken ct = default)
         => repository.GetEquippedAsync(userId, ct);
 
-    public async Task<EquipResult> EquipAsync(long userId, string itemId, CancellationToken ct = default)
+    public async Task<EquipResult> EquipAsync(long userId, int itemId, CancellationToken ct = default)
     {
         var def = EquipmentCatalog.Get(itemId);
         if (def is null)
@@ -35,9 +35,9 @@ public sealed class EquipmentService(
 
     public async Task<EquipResult> UnequipAsync(long userId, EquipmentType slot, CancellationToken ct = default)
     {
-        // 멱등 — 비어 있어도 성공(빈 슬롯 = ItemId 빈 문자열).
+        // 멱등 — 비어 있어도 성공(빈 슬롯 = ItemId 0).
         await repository.ClearAsync(userId, slot, ct);
-        return EquipResult.Ok(slot, string.Empty);
+        return EquipResult.Ok(slot, 0);
     }
 
     public async Task<EquipmentStatModifier> GetEquippedStatsAsync(long userId, CancellationToken ct = default)

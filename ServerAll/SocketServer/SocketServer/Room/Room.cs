@@ -736,7 +736,7 @@ public class Room
     /// 드랍 roll 결과 1건을 바닥에 스폰(서버 권위). GroundId 는 방 단위 순차 발급.
     /// 브로드캐스트(S_SpawnGroundItem)는 호출자 책임 — 여기선 상태 추가만.
     /// </summary>
-    public GroundItem SpawnGroundItem(string itemId, int qty, float x, float y, float z)
+    public GroundItem SpawnGroundItem(int itemId, int qty, float x, float y, float z)
     {
         lock (_groundItems)
         {

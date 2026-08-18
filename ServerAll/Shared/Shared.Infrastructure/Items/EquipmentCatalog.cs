@@ -13,6 +13,13 @@ public static class EquipmentCatalog
     /// <summary>장비 정의를 반환. 장비가 아니면 null.</summary>
     public static EquipmentDef? Get(string itemId) => ItemCatalogData.Current.EquipmentById.GetValueOrDefault(itemId);
 
+    /// <summary>장비 정의가 존재하는 numericId 인지(= 장착 가능한가).</summary>
+    public static bool IsEquippable(int numericId) => ItemCatalogData.Current.EquipmentByNumericId.ContainsKey(numericId);
+
+    /// <summary>numericId 로 장비 정의를 반환. 없으면 null.
+    /// <para>서버 내부는 numericId(int)가 키다 — 문자열 조회는 proto·로그 경계에만 남는다.</para></summary>
+    public static EquipmentDef? Get(int numericId) => ItemCatalogData.Current.EquipmentByNumericId.GetValueOrDefault(numericId);
+
     /// <summary>전체 정의(저작 순서).</summary>
     public static IReadOnlyCollection<EquipmentDef> All => ItemCatalogData.Current.Equipment;
 }

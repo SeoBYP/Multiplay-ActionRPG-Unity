@@ -12,9 +12,9 @@ namespace Game.System.Shop
         UniTask<(ShopResult Result, IReadOnlyList<ShopItemData> Items)> GetShopAsync(CancellationToken ct = default);
 
         /// <summary>구매. 성공 시 (구매후 골드 잔액, 구매후 보유 수량). 잔액부족/실패면 Failed.</summary>
-        UniTask<(ShopResult Result, long Gold, int NewQuantity)> BuyAsync(string itemId, int qty, CancellationToken ct = default);
+        UniTask<(ShopResult Result, long Gold, int NewQuantity)> BuyAsync(int itemId, int qty, CancellationToken ct = default);
 
         /// <summary>판매. 성공 시 (판매후 골드 잔액, 남은 수량). 미보유/부족/실패면 Failed.</summary>
-        UniTask<(ShopResult Result, long Gold, int RemainingQuantity)> SellAsync(string itemId, int qty, CancellationToken ct = default);
+        UniTask<(ShopResult Result, long Gold, int RemainingQuantity)> SellAsync(int itemId, int qty, CancellationToken ct = default);
     }
 }

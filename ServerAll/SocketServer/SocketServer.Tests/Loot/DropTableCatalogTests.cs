@@ -24,9 +24,9 @@ public class DropTableCatalogTests
     {
         var entries = DropTableCatalog.Get("creepy_demon");
 
-        Assert.Contains(entries, e => e.ItemId == "potion_hp_small" && e.Chance == 1.0 && e.MinQty == 1 && e.MaxQty == 1);
+        Assert.Contains(entries, e => e.ItemId == 1001 && e.Chance == 1.0 && e.MinQty == 1 && e.MaxQty == 1);
         // 골드는 통화 — 항상 드랍(확률 1.0) + 의미 있는 수량(10~30).
-        Assert.Contains(entries, e => e.ItemId == "gold" && e.Chance == 1.0 && e.MinQty == 10 && e.MaxQty == 30);
+        Assert.Contains(entries, e => e.ItemId == 3001 && e.Chance == 1.0 && e.MinQty == 10 && e.MaxQty == 30);
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public class DropTableCatalogTests
         var entries = DropTableCatalog.Get("leviathan");
 
         Assert.NotEmpty(entries);
-        Assert.Contains(entries, e => e.ItemId == "sword_basic" && e.Chance == 1.0); // 보스 = 장비 확정
+        Assert.Contains(entries, e => e.ItemId == 2101 && e.Chance == 1.0); // 보스 = 장비 확정
     }
 
     [Fact]
@@ -58,8 +58,8 @@ public class DropTableCatalogTests
         var drops = DropTableCatalog.Roll("creepy_demon", rng);
 
         Assert.Equal(2, drops.Count);
-        Assert.Contains(drops, d => d.ItemId == "potion_hp_small");
-        Assert.Contains(drops, d => d.ItemId == "gold" && d.Qty == 20);
+        Assert.Contains(drops, d => d.ItemId == 1001);
+        Assert.Contains(drops, d => d.ItemId == 3001 && d.Qty == 20);
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public class DropTableCatalogTests
         {
           "tables": [
             { "monsterId": "goblin", "drops": [
-              { "itemId": "coin", "chance": 0.75, "minQty": 2, "maxQty": 5 }
+              { "itemId": 1921, "chance": 0.75, "minQty": 2, "maxQty": 5 }
             ] }
           ]
         }
@@ -88,7 +88,7 @@ public class DropTableCatalogTests
         Assert.True(tables.ContainsKey("goblin"));
         var goblin = tables["goblin"];
         Assert.Single(goblin);
-        Assert.Equal("coin", goblin[0].ItemId);
+        Assert.Equal(1921, goblin[0].ItemId);
         Assert.Equal(0.75, goblin[0].Chance);
         Assert.Equal(2, goblin[0].MinQty);
         Assert.Equal(5, goblin[0].MaxQty);

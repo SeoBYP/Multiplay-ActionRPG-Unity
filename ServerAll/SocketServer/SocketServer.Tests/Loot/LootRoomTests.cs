@@ -26,8 +26,8 @@ public class LootRoomTests
     {
         var room = NewRoom(100);
 
-        var a = room.SpawnGroundItem("potion_hp_small", 1, 0f, 0f, 0f);
-        var b = room.SpawnGroundItem("gold", 3, 0f, 0f, 0f);
+        var a = room.SpawnGroundItem(1001, 1, 0f, 0f, 0f);
+        var b = room.SpawnGroundItem(3001, 3, 0f, 0f, 0f);
 
         Assert.Equal(1, a.GroundId);
         Assert.Equal(2, b.GroundId);
@@ -38,12 +38,12 @@ public class LootRoomTests
     public void 범위_안_줍기는_성공하고_바닥에서_제거된다()
     {
         var room = NewRoom(100);
-        var ground = room.SpawnGroundItem("potion_hp_small", 1, 1f, 0f, 1f); // 원점에서 √2 < 3
+        var ground = room.SpawnGroundItem(1001, 1, 1f, 0f, 1f); // 원점에서 √2 < 3
 
         var picked = room.TryPickup(100, ground.GroundId);
 
         Assert.NotNull(picked);
-        Assert.Equal("potion_hp_small", picked!.ItemId);
+        Assert.Equal(1001, picked!.ItemId);
         Assert.Empty(room.GetAllGroundItems());
     }
 
@@ -51,7 +51,7 @@ public class LootRoomTests
     public void 동시_줍기는_한_명만_성공한다_경쟁중재()
     {
         var room = NewRoom(100);
-        var ground = room.SpawnGroundItem("gold", 3, 0f, 0f, 0f);
+        var ground = room.SpawnGroundItem(3001, 3, 0f, 0f, 0f);
 
         var first = room.TryPickup(100, ground.GroundId);
         var second = room.TryPickup(100, ground.GroundId); // 이미 제거됨 = 경쟁 패배
@@ -64,7 +64,7 @@ public class LootRoomTests
     public void 범위_밖_줍기는_실패하고_바닥에_남는다()
     {
         var room = NewRoom(100);
-        var ground = room.SpawnGroundItem("potion_hp_small", 1, 10f, 0f, 10f); // PickupRange(3) 밖
+        var ground = room.SpawnGroundItem(1001, 1, 10f, 0f, 10f); // PickupRange(3) 밖
 
         var picked = room.TryPickup(100, ground.GroundId);
 

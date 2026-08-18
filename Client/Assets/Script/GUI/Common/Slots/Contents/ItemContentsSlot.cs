@@ -20,15 +20,15 @@ namespace Game.GUI.Common
         [SerializeField] private Button itemButton;
         [SerializeField] private Image gradeBackground;          // 등급 배경(선택) — 미할당이면 무시. Sprite 는 호출자가 해석.
 
-        private string _itemId;
-        private Action<string> _onClick;
+        private int _itemId;
+        private Action<int> _onClick;
         private bool _wired;
 
         /// <summary>
         /// 슬롯 1칸 바인딩. count≤1=수량 숨김, displayName=null=이름 숨김, gradeBackground=null=배경 끔.
         /// 슬롯은 도메인/enum 을 모르고 Sprite·문자열만 받는다(decoupled — grade 해석은 Model 책임).
         /// </summary>
-        public void Bind(string itemId, Sprite icon, int count, Action<string> onClick = null,
+        public void Bind(int itemId, Sprite icon, int count, Action<int> onClick = null,
             Sprite gradeBackgroundSprite = null, string displayName = null)
         {
             _itemId  = itemId;

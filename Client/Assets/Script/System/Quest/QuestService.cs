@@ -120,7 +120,7 @@ namespace Game.System.Quest
             q.QuestId, q.Name, q.Description,
             MapObjective(q.ObjectiveType), q.TargetId, q.RequiredCount, q.CurrentProgress,
             MapStatus(q.Status),
-            new QuestRewardData(q.Reward?.Exp ?? 0, q.Reward?.Gold ?? 0, q.Reward?.ItemId ?? string.Empty, q.Reward?.ItemQty ?? 0));
+            new QuestRewardData(q.Reward?.Exp ?? 0, q.Reward?.Gold ?? 0, q.Reward?.ItemId ?? 0, q.Reward?.ItemQty ?? 0));
 
         private static QuestObjectiveKind MapObjective(GrpcObjective o) => o switch
         {

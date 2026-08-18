@@ -84,7 +84,7 @@ namespace Game.Presentation.Equipment
                     models.Add(new EquipmentSlotModel(
                         data.Slot,
                         data.ItemId,
-                        entry?.displayName ?? data.ItemId,
+                        entry?.displayName ?? data.ItemId.ToString(),
                         entry?.icon,
                         gradeBg));
                 }

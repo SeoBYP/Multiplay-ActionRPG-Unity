@@ -121,11 +121,11 @@ namespace Game.Tests.EditMode.InGame
             string msg = null;
             using var sub = model.OnItemPickup.Subscribe(m => msg = m.Message);
 
-            state.NotifyItemPickedUp("potion_hp_small", 2);
-            Assert.AreEqual("potion_hp_small x2 획득", msg, "복수 획득은 수량을 표기해야 한다(표시명 카탈로그 없으면 itemId).");
+            state.NotifyItemPickedUp(1001, 2);
+            Assert.AreEqual("1001 x2 획득", msg, "복수 획득은 수량을 표기해야 한다(표시명 카탈로그 없으면 numericId 를 그대로 보여준다).");
 
-            state.NotifyItemPickedUp("sword_iron", 1);
-            Assert.AreEqual("sword_iron 획득", msg, "단일 획득은 수량을 생략해야 한다.");
+            state.NotifyItemPickedUp(2101, 1);
+            Assert.AreEqual("2101 획득", msg, "단일 획득은 수량을 생략해야 한다.");
 
             model.Dispose();
         }
@@ -142,8 +142,8 @@ namespace Game.Tests.EditMode.InGame
             string msg = null;
             using var sub = model.OnItemPickup.Subscribe(m => msg = m.Message);
 
-            notifier.Notify("gold_coin", 3);
-            Assert.AreEqual("gold_coin x3 획득", msg, "Main 로컬 줍기도 동일 획득 토스트로 병합돼야 한다.");
+            notifier.Notify(3001, 3);
+            Assert.AreEqual("3001 x3 획득", msg, "Main 로컬 줍기도 동일 획득 토스트로 병합돼야 한다.");
 
             model.Dispose();
         }

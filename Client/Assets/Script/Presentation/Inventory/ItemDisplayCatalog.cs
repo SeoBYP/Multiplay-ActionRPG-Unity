@@ -15,6 +15,10 @@ namespace Game.Presentation.Inventory
         [Serializable]
         public sealed class Entry
         {
+            [Tooltip("서버·DB·패킷이 쓰는 키. ItemCatalogDefinition 의 numericId 와 같아야 한다.")]
+            public int numericId;
+
+            [Tooltip("저작·로그용 문자열 키. 식별자가 아니라 사람이 읽기 위한 이름이다.")]
             public string itemId;
             public string displayName;
             [TextArea(2, 4)] public string description; // 상점 선택 패널 등 표시용 설명(플레이버/용도). 비우면 빈 문자열.
@@ -28,27 +32,32 @@ namespace Game.Presentation.Inventory
 
         [SerializeField] private Entry[] entries = Array.Empty<Entry>();
 
-        private Dictionary<string, Entry> _byId;
+        private Dictionary<int, Entry> _byNumericId;
 
         /// <summary>전체 정의(도감 — 미발견 포함 전체 목록·완성도 산출용).</summary>
         public IReadOnlyList<Entry> All => entries;
 
-        public Entry Get(string itemId)
+        /// <summary>
+        /// numericId 로 표시 정보를 찾는다. 서버·DB·패킷이 전부 int 키를 쓰므로 조회도 int 다.
+        /// <para>문자열 <c>itemId</c> 는 저작·로그용으로 남겨두되 <b>조회 키가 아니다</b> — 키가 둘이면
+        /// 다시 갈라진다(items.json 이 Exporter 없이 이중 저작되며 갈라졌던 A4 의 재발 방지).</para>
+        /// </summary>
+        public Entry Get(int numericId)
         {
-            if (string.IsNullOrEmpty(itemId))
+            if (numericId <= 0)
                 return null;
 
-            _byId ??= BuildIndex();
-            return _byId.GetValueOrDefault(itemId);
+            _byNumericId ??= BuildIndex();
+            return _byNumericId.GetValueOrDefault(numericId);
         }
 
-        private Dictionary<string, Entry> BuildIndex()
+        private Dictionary<int, Entry> BuildIndex()
         {
-            var dict = new Dictionary<string, Entry>(entries.Length);
+            var dict = new Dictionary<int, Entry>(entries.Length);
             foreach (var e in entries)
             {
-                if (e != null && !string.IsNullOrEmpty(e.itemId))
-                    dict[e.itemId] = e;
+                if (e != null && e.numericId > 0)
+                    dict[e.numericId] = e;
             }
             return dict;
         }

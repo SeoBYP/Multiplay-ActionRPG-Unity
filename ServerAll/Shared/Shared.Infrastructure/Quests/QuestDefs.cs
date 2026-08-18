@@ -34,6 +34,6 @@ public sealed record QuestDef(
 /// <summary>퀘스트 완료 보상(조합). 0/빈 값은 해당 보상 없음.</summary>
 /// <param name="Exp">경험치(Progression).</param>
 /// <param name="Gold">골드(Wallet).</param>
-/// <param name="ItemId">지급 아이템(Inventory). null/빈 문자열이면 아이템 없음.</param>
+/// <param name="ItemId">지급 아이템의 numericId(Inventory). 0 이면 아이템 보상 없음.</param>
 /// <param name="ItemQty">지급 아이템 수량.</param>
-public sealed record QuestReward(long Exp, long Gold, string? ItemId, int ItemQty);
+public sealed record QuestReward(long Exp, long Gold, int ItemId, int ItemQty);

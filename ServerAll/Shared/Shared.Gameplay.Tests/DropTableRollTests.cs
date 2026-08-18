@@ -21,8 +21,8 @@ public class DropTableRollTests
     // slime 후보: potion_hp_small(보장 1.0), gold(0.2, 1~3)
     private static readonly List<DropEntry> Slime = new()
     {
-        new DropEntry("potion_hp_small", 1.0, 1, 1),
-        new DropEntry("gold", 0.2, 1, 3),
+        new DropEntry(1001, 1.0, 1, 1),
+        new DropEntry(3001, 0.2, 1, 3),
     };
 
     [Fact]
@@ -32,8 +32,8 @@ public class DropTableRollTests
         var drops = DropTableRoll.Roll(Slime, rng);
 
         Assert.Equal(2, drops.Count);
-        Assert.Contains(drops, d => d.ItemId == "potion_hp_small" && d.Qty == 1);
-        Assert.Contains(drops, d => d.ItemId == "gold" && d.Qty == 3);
+        Assert.Contains(drops, d => d.ItemId == 1001 && d.Qty == 1);
+        Assert.Contains(drops, d => d.ItemId == 3001 && d.Qty == 3);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public class DropTableRollTests
         var drops = DropTableRoll.Roll(Slime, rng);
 
         Assert.Single(drops);
-        Assert.Equal("potion_hp_small", drops[0].ItemId);
+        Assert.Equal(1001, drops[0].ItemId);
     }
 
     [Fact]
@@ -53,8 +53,8 @@ public class DropTableRollTests
         var rng = new StubRandom(doubles: [0.999999, 0.999999], ints: []);
         var drops = DropTableRoll.Roll(Slime, rng);
 
-        Assert.Contains(drops, d => d.ItemId == "potion_hp_small" && d.Qty == 1);
-        Assert.DoesNotContain(drops, d => d.ItemId == "gold");
+        Assert.Contains(drops, d => d.ItemId == 1001 && d.Qty == 1);
+        Assert.DoesNotContain(drops, d => d.ItemId == 3001);
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class DropTableRollTests
         var drops = DropTableRoll.Roll(Slime, rng);
 
         Assert.Single(drops);
-        Assert.Equal("potion_hp_small", drops[0].ItemId);
+        Assert.Equal(1001, drops[0].ItemId);
         Assert.Equal(1, drops[0].Qty);
     }
 

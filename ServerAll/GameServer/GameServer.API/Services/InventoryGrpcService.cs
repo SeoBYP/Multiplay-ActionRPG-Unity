@@ -129,7 +129,9 @@ public class InventoryGrpcService(
             await playerConsumedQueue.EnqueueAsync(new Shared.Infrastructure.Messages.PlayerConsumedMessage
             {
                 UserId = userId.Value,
-                EffectId = request.ItemId,
+                // effectId == itemId 규칙(ItemCatalogData). 소비 통지는 문자열 effectId 계약이라
+                // numericId 를 문자열로 싣는다 — GAS 효과 id 체계는 별도(전환 대상 아님).
+                EffectId = request.ItemId.ToString(),
             });
         }
         catch (Exception ex)

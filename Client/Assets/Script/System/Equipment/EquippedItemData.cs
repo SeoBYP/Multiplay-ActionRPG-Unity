@@ -9,9 +9,9 @@ namespace Game.System.Equipment
     public readonly struct EquippedItemData
     {
         public readonly EquipmentType Slot;
-        public readonly string ItemId;
+        public readonly int ItemId;
 
-        public EquippedItemData(EquipmentType slot, string itemId)
+        public EquippedItemData(EquipmentType slot, int itemId)
         {
             Slot = slot;
             ItemId = itemId;

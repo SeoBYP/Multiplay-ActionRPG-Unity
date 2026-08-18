@@ -14,7 +14,7 @@ public class CodexRepository(
     GameServerDbContext context,
     ILogger<CodexRepository> logger) : ICodexRepository
 {
-    public async Task<List<string>> GetDiscoveredItemIdsAsync(long userId, CancellationToken ct = default)
+    public async Task<List<int>> GetDiscoveredItemIdsAsync(long userId, CancellationToken ct = default)
     {
         try
         {
@@ -31,7 +31,7 @@ public class CodexRepository(
         }
     }
 
-    public async Task<bool> AddDiscoveredAsync(long userId, string itemId, CancellationToken ct = default)
+    public async Task<bool> AddDiscoveredAsync(long userId, int itemId, CancellationToken ct = default)
     {
         try
         {

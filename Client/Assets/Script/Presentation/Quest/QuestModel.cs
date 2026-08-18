@@ -141,7 +141,7 @@ namespace Game.Presentation.Quest
             var sb = new StringBuilder("보상:");
             if (r.Exp > 0) sb.Append($" 경험치 {r.Exp}");
             if (r.Gold > 0) sb.Append($" 골드 {r.Gold}");
-            if (!string.IsNullOrEmpty(r.ItemId) && r.ItemQty > 0) sb.Append($" {r.ItemId} x{r.ItemQty}");
+            if (r.ItemId != 0 && r.ItemQty > 0) sb.Append($" {r.ItemId} x{r.ItemQty}");
             return sb.ToString();
         }
 
@@ -151,7 +151,7 @@ namespace Game.Presentation.Quest
             var lines = new List<string>(3);
             if (r.Exp > 0) lines.Add($"경험치 {r.Exp}");
             if (r.Gold > 0) lines.Add($"골드 {r.Gold}");
-            if (!string.IsNullOrEmpty(r.ItemId) && r.ItemQty > 0) lines.Add($"{r.ItemId} x{r.ItemQty}");
+            if (r.ItemId != 0 && r.ItemQty > 0) lines.Add($"{r.ItemId} x{r.ItemQty}");
             return lines;
         }
 

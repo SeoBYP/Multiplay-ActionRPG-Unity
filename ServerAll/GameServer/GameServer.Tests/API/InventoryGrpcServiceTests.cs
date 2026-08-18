@@ -38,13 +38,13 @@ public class InventoryGrpcServiceTests
     [Fact]
     public async Task ClaimKill_성공시_서버가_roll한_보상을_매핑해_반환한다()
     {
-        _claim.Result = MainClaimResult.Ok(new[] { new AppGrantedItem("potion_hp_small", 2, 5) });
+        _claim.Result = MainClaimResult.Ok(new[] { new AppGrantedItem(1001, 2, 5) });
 
         var res = await _service.ClaimKill(new ClaimKillRequest { MapId = "main_field_01", SlotId = 1 }, Authed(7L));
 
         Assert.True(res.Result.Success, res.Result.Message);
         var g = Assert.Single(res.Granted);
-        Assert.Equal("potion_hp_small", g.ItemId);
+        Assert.Equal(1001, g.ItemId);
         Assert.Equal(2, g.Qty);
         Assert.Equal(5, g.NewQuantity);
         Assert.Equal((7L, "main_field_01", 1), _claim.LastCall); // 진입점이 userId(JWT)·요청을 그대로 위임
@@ -106,9 +106,9 @@ public class InventoryGrpcServiceTests
     [Fact]
     public async Task 보유한_소모품_사용은_성공하고_남은수량을_반환한다()
     {
-        await _inventory.GrantItemAsync(1L, "potion_hp_small", 3);
+        await _inventory.GrantItemAsync(1L, 1001, 3);
 
-        var res = await _service.ConsumeItem(new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Authed(1L));
+        var res = await _service.ConsumeItem(new ConsumeItemRequest { ItemId = 1001, Qty = 1 }, Authed(1L));
 
         Assert.True(res.Result.Success, res.Result.Message);
         Assert.Equal(2, res.RemainingQuantity);
@@ -117,7 +117,7 @@ public class InventoryGrpcServiceTests
     [Fact]
     public async Task 미보유_소모품_사용은_거부된다()
     {
-        var res = await _service.ConsumeItem(new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Authed(1L));
+        var res = await _service.ConsumeItem(new ConsumeItemRequest { ItemId = 1001, Qty = 1 }, Authed(1L));
 
         Assert.False(res.Result.Success);
     }
@@ -125,20 +125,20 @@ public class InventoryGrpcServiceTests
     [Fact]
     public async Task 소비_성공시_PlayerConsumed를_발행한다_EffectId는_itemId()
     {
-        await _inventory.GrantItemAsync(1L, "potion_hp_small", 1);
+        await _inventory.GrantItemAsync(1L, 1001, 1);
 
-        await _service.ConsumeItem(new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Authed(1L));
+        await _service.ConsumeItem(new ConsumeItemRequest { ItemId = 1001, Qty = 1 }, Authed(1L));
 
         var msg = Assert.Single(_consumeQueue.Sent);
         Assert.Equal(1L, msg.UserId);
-        Assert.Equal("potion_hp_small", msg.EffectId); // EffectId == itemId 규칙
+        Assert.Equal("1001", msg.EffectId); // EffectId == itemId 규칙(문자열 계약 — numericId 를 문자열로 싣는다)
     }
 
     [Fact]
     public async Task 소비_실패시_PlayerConsumed를_발행하지_않는다()
     {
         // 미보유 → 차감 실패 → 발행 없음(서버 권위 회복이 위조되지 않도록).
-        await _service.ConsumeItem(new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Authed(1L));
+        await _service.ConsumeItem(new ConsumeItemRequest { ItemId = 1001, Qty = 1 }, Authed(1L));
 
         Assert.Empty(_consumeQueue.Sent);
     }
@@ -146,9 +146,9 @@ public class InventoryGrpcServiceTests
     [Fact]
     public async Task 보유보다_많이_사용하면_거부되고_변화가_없다()
     {
-        await _inventory.GrantItemAsync(1L, "potion_hp_small", 2);
+        await _inventory.GrantItemAsync(1L, 1001, 2);
 
-        var res = await _service.ConsumeItem(new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 5 }, Authed(1L));
+        var res = await _service.ConsumeItem(new ConsumeItemRequest { ItemId = 1001, Qty = 5 }, Authed(1L));
 
         Assert.False(res.Result.Success);
         var inv = await _repository.GetAllAsync(1L);
@@ -158,7 +158,7 @@ public class InventoryGrpcServiceTests
     [Fact]
     public async Task 미인증_사용은_거부된다()
     {
-        var res = await _service.ConsumeItem(new ConsumeItemRequest { ItemId = "potion_hp_small", Qty = 1 }, Anonymous());
+        var res = await _service.ConsumeItem(new ConsumeItemRequest { ItemId = 1001, Qty = 1 }, Anonymous());
 
         Assert.False(res.Result.Success);
     }

@@ -26,7 +26,7 @@ public class ShopCatalogTests
     [Fact]
     public void Get은_안파는_itemId에_null을_반환한다()
     {
-        Assert.NotNull(ShopCatalog.Get("potion_hp_small"));
-        Assert.Null(ShopCatalog.Get("no_such_item"));
+        Assert.NotNull(ShopCatalog.Get(1001));
+        Assert.Null(ShopCatalog.Get(1931));
     }
 }

@@ -22,7 +22,7 @@ public class EquipmentServiceTests
         return (svc, invRepo);
     }
 
-    private static async Task GrantAsync(FakeInventoryRepository inv, string itemId)
+    private static async Task GrantAsync(FakeInventoryRepository inv, int itemId)
     {
         var def = ItemCatalog.Get(itemId)!;
         await inv.AddQuantityAsync(UserId, itemId, 1, def.MaxStack);
@@ -32,16 +32,16 @@ public class EquipmentServiceTests
     public async Task 보유한_장비는_해당_슬롯에_장착된다()
     {
         var (svc, inv) = Build();
-        await GrantAsync(inv, "sword_basic");
+        await GrantAsync(inv, 2101);
 
-        var result = await svc.EquipAsync(UserId, "sword_basic");
+        var result = await svc.EquipAsync(UserId, 2101);
 
         Assert.True(result.Success);
         Assert.Equal(EquipmentType.Weapon, result.Slot);
 
         var equipped = await svc.GetEquippedAsync(UserId);
         Assert.Single(equipped);
-        Assert.Equal("sword_basic", equipped[0].ItemId);
+        Assert.Equal(2101, equipped[0].ItemId);
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public class EquipmentServiceTests
     {
         var (svc, _) = Build();
 
-        var result = await svc.EquipAsync(UserId, "sword_basic");
+        var result = await svc.EquipAsync(UserId, 2101);
 
         Assert.False(result.Success);
         Assert.Equal("not owned", result.FailReason);
@@ -60,9 +60,9 @@ public class EquipmentServiceTests
     public async Task 장비가_아닌_아이템은_장착에_실패한다()
     {
         var (svc, inv) = Build();
-        await GrantAsync(inv, "potion_hp_small");
+        await GrantAsync(inv, 1001);
 
-        var result = await svc.EquipAsync(UserId, "potion_hp_small");
+        var result = await svc.EquipAsync(UserId, 1001);
 
         Assert.False(result.Success);
         Assert.Empty(await svc.GetEquippedAsync(UserId));
@@ -72,13 +72,13 @@ public class EquipmentServiceTests
     public async Task 같은_슬롯_재장착은_기존_장비를_교체한다()
     {
         var (svc, inv) = Build();
-        await GrantAsync(inv, "sword_basic");
-        await GrantAsync(inv, "armor_leather");
-        await svc.EquipAsync(UserId, "sword_basic");
+        await GrantAsync(inv, 2101);
+        await GrantAsync(inv, 2201);
+        await svc.EquipAsync(UserId, 2101);
 
         // armor_leather 는 Armor 슬롯이라 무기와 공존 → 교체 검증을 위해 같은 슬롯 두 무기가 필요.
         // 시드에 무기가 하나뿐이므로 동일 itemId 재장착으로 슬롯 단일성만 확인한다.
-        await svc.EquipAsync(UserId, "armor_leather");
+        await svc.EquipAsync(UserId, 2201);
         var equipped = await svc.GetEquippedAsync(UserId);
 
         Assert.Equal(2, equipped.Count); // Weapon + Armor 각각 하나씩
@@ -90,8 +90,8 @@ public class EquipmentServiceTests
     public async Task 해제하면_슬롯이_비고_스탯에서_빠진다()
     {
         var (svc, inv) = Build();
-        await GrantAsync(inv, "armor_leather");
-        await svc.EquipAsync(UserId, "armor_leather");
+        await GrantAsync(inv, 2201);
+        await svc.EquipAsync(UserId, 2201);
 
         var result = await svc.UnequipAsync(UserId, EquipmentType.Armor);
 
@@ -113,10 +113,10 @@ public class EquipmentServiceTests
     public async Task 착용_세트의_스탯이_합산된다()
     {
         var (svc, inv) = Build();
-        await GrantAsync(inv, "sword_basic");
-        await GrantAsync(inv, "armor_leather");
-        await svc.EquipAsync(UserId, "sword_basic");
-        await svc.EquipAsync(UserId, "armor_leather");
+        await GrantAsync(inv, 2101);
+        await GrantAsync(inv, 2201);
+        await svc.EquipAsync(UserId, 2101);
+        await svc.EquipAsync(UserId, 2201);
 
         var stats = await svc.GetEquippedStatsAsync(UserId);
 

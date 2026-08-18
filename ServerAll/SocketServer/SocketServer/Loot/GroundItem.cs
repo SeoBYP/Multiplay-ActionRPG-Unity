@@ -8,7 +8,7 @@ namespace Server.Loot;
 public sealed class GroundItem
 {
     public int GroundId { get; init; }
-    public string ItemId { get; init; } = "";
+    public int ItemId { get; init; }   // numericId(ItemCatalog). 대역 3000~3999 = 재화
     public int Qty { get; init; }
     public float PosX { get; init; }
     public float PosY { get; init; }

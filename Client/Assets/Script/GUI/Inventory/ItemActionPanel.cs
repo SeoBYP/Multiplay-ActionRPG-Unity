@@ -19,11 +19,11 @@ namespace Script.GUI.Inventory
         [SerializeField] private Button unEquipButton;
         [SerializeField] private Button sellButton;
 
-        private string _itemId;
-        private Action<string> _onUse;
-        private Action<string> _onEquip;
-        private Action<string> _onUnequip;
-        private Action<string> _onSell;
+        private int _itemId;
+        private Action<int> _onUse;
+        private Action<int> _onEquip;
+        private Action<int> _onUnequip;
+        private Action<int> _onSell;
 
         /// <summary>닫기 요청(버튼 사용 후). View 가 구독해 팝업+백드롭을 파괴한다.</summary>
         public event Action OnCloseRequested;
@@ -33,8 +33,8 @@ namespace Script.GUI.Inventory
         ///   - 인벤토리: 소모품=use, 장비=equip / 장비창: unequip
         /// 클릭 → 콜백(itemId) + 닫기 요청.
         /// </summary>
-        public void Bind(string itemId,
-            Action<string> onUse, Action<string> onEquip, Action<string> onUnequip, Action<string> onSell,
+        public void Bind(int itemId,
+            Action<int> onUse, Action<int> onEquip, Action<int> onUnequip, Action<int> onSell,
             bool canUse, bool canEquip, bool canUnequip, bool canSell)
         {
             _itemId = itemId;

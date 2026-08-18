@@ -20,7 +20,6 @@ public class UserEquipmentConfiguration : IEntityTypeConfiguration<UserEquipment
             .IsRequired();
 
         builder.Property(e => e.ItemId)
-            .HasMaxLength(64)
             .IsRequired();
 
         builder.Property(e => e.UpdatedAt)

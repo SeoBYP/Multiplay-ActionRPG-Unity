@@ -9,10 +9,10 @@ namespace GameServer.Application.Domains.Codex;
 /// </summary>
 public sealed class CodexService(ICodexRepository repository) : ICodexService
 {
-    public Task<List<string>> GetDiscoveredAsync(long userId, CancellationToken ct = default)
+    public Task<List<int>> GetDiscoveredAsync(long userId, CancellationToken ct = default)
         => repository.GetDiscoveredItemIdsAsync(userId, ct);
 
-    public Task<bool> MarkDiscoveredAsync(long userId, string itemId, CancellationToken ct = default)
+    public Task<bool> MarkDiscoveredAsync(long userId, int itemId, CancellationToken ct = default)
     {
         // 정의가 없는 itemId 는 도감 대상 아님(GrantItemAsync 는 카탈로그 검증 후 호출하지만 방어적으로 한 번 더).
         if (!ItemCatalog.Contains(itemId))

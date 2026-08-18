@@ -11,19 +11,19 @@ public class UserCodexEntry
 {
     public long UserId { get; private set; }
 
-    public string ItemId { get; private set; } = string.Empty;
+    public int ItemId { get; private set; }
 
     /// <summary>최초 발견(획득) 시각.</summary>
     public DateTime DiscoveredAt { get; private set; }
 
     private UserCodexEntry() { }
 
-    public static UserCodexEntry Create(long userId, string itemId)
+    public static UserCodexEntry Create(long userId, int itemId)
     {
         if (userId <= 0)
             throw new ArgumentException("UserId must be positive", nameof(userId));
-        if (string.IsNullOrWhiteSpace(itemId))
-            throw new ArgumentException("ItemId is required", nameof(itemId));
+        if (itemId <= 0)
+            throw new ArgumentException("ItemId must be positive", nameof(itemId));
 
         return new UserCodexEntry
         {

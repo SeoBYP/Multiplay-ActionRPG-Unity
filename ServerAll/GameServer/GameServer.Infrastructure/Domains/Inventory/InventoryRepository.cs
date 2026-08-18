@@ -48,7 +48,7 @@ public class InventoryRepository(
         }
     }
 
-    public async Task<InventoryItem> AddQuantityAsync(long userId, string itemId, int amount, int maxStack, CancellationToken ct = default)
+    public async Task<InventoryItem> AddQuantityAsync(long userId, int itemId, int amount, int maxStack, CancellationToken ct = default)
     {
         try
         {
@@ -82,7 +82,7 @@ public class InventoryRepository(
         }
     }
 
-    public async Task<int?> RemoveQuantityAsync(long userId, string itemId, int amount, CancellationToken ct = default)
+    public async Task<int?> RemoveQuantityAsync(long userId, int itemId, int amount, CancellationToken ct = default)
     {
         if (amount <= 0)
             return null;
@@ -142,8 +142,10 @@ public class InventoryRepository(
         var items = new List<InventoryItem>(entries.Length);
         foreach (var entry in entries)
         {
-            if (int.TryParse(entry.Value.ToString(), out var quantity) && quantity > 0)
-                items.Add(InventoryItem.FromRedis(userId, entry.Name.ToString(), quantity));
+            // field = numericId(int), value = 수량. 둘 다 파싱돼야 유효한 행이다.
+            if (int.TryParse(entry.Name.ToString(), out var itemId) && itemId > 0
+                && int.TryParse(entry.Value.ToString(), out var quantity) && quantity > 0)
+                items.Add(InventoryItem.FromRedis(userId, itemId, quantity));
         }
 
         return items;

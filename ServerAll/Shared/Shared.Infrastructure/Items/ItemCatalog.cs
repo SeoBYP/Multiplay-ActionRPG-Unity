@@ -12,6 +12,13 @@ public static class ItemCatalog
     /// <summary>정의를 반환. 없으면 null.</summary>
     public static ItemDef? Get(string itemId) => ItemCatalogData.Current.ItemsById.GetValueOrDefault(itemId);
 
+    /// <summary>정의가 존재하는 numericId 인지.</summary>
+    public static bool Contains(int numericId) => ItemCatalogData.Current.ItemsByNumericId.ContainsKey(numericId);
+
+    /// <summary>numericId 로 아이템 정의를 반환. 없으면 null.
+    /// <para>서버 내부는 numericId(int)가 키다 — 문자열 조회는 proto·로그 경계에만 남는다.</para></summary>
+    public static ItemDef? Get(int numericId) => ItemCatalogData.Current.ItemsByNumericId.GetValueOrDefault(numericId);
+
     /// <summary>전체 정의(저작 순서).</summary>
     public static IReadOnlyCollection<ItemDef> All => ItemCatalogData.Current.Items;
 }

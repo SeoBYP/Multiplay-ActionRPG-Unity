@@ -51,7 +51,7 @@ namespace Game.Tests.PlayMode.E2E
             await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
 
             // 보유하지 않은 장비 → 서버가 소유 검증으로 거부(Result.Success=false, 예외 아님).
-            var response = await EquipmentService.EquipAsync(new EquipRequest { ItemId = "sword_basic" }, Timeout());
+            var response = await EquipmentService.EquipAsync(new EquipRequest { ItemId = 2101 }, Timeout());
 
             Assert.IsNotNull(response);
             Assert.IsFalse(response.Result.Success, "미보유 장비인데 장착이 성공했다");
@@ -63,7 +63,7 @@ namespace Game.Tests.PlayMode.E2E
             RpcException caught = null;
             try
             {
-                await EquipmentService.EquipAsync(new EquipRequest { ItemId = "sword_basic" }, Timeout());
+                await EquipmentService.EquipAsync(new EquipRequest { ItemId = 2101 }, Timeout());
             }
             catch (RpcException e)
             {

@@ -12,7 +12,7 @@ namespace Game.Network.Socket.Packets
     public partial class S_SpawnGroundItem : Packet
     {
         public int GroundId { get; set; }                    // 방 내 고유 ID(서버 발급)
-        public string ItemId { get; set; } = string.Empty;   // 정의 키(GameServer ItemCatalog 와 공유)
+        public int ItemId { get; set; }   // 정의 키 = numericId(GameServer ItemCatalog 와 공유). 대역 3000~3999 = 재화
         public int Qty { get; set; }
         public float PosX { get; set; }
         public float PosY { get; set; }
@@ -43,7 +43,7 @@ namespace Game.Network.Socket.Packets
     [MemoryPackable]
     public partial class S_ItemPickedUp : Packet
     {
-        public string ItemId { get; set; } = string.Empty;
+        public int ItemId { get; set; }
         public int Qty { get; set; }
     }
 }

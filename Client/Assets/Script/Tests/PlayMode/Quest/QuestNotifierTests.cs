@@ -13,7 +13,7 @@ namespace Game.Tests.PlayMode.Quest
         private static QuestData Q(string id, QuestProgressState status,
             string name = "quest", int exp = 0, int gold = 0)
             => new(id, name, "desc", QuestObjectiveKind.KillMonster, "creepy_demon", 3, 0, status,
-                   new QuestRewardData(exp, gold, "", 0));
+                   new QuestRewardData(exp, gold, 0, 0));
 
         [Test]
         public void 완료로_전이할때만_완료알림이_뜬다()

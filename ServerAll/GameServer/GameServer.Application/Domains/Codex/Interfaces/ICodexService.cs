@@ -7,8 +7,8 @@ namespace GameServer.Application.Domains.Codex.Interfaces;
 public interface ICodexService
 {
     /// <summary>유저가 발견한 itemId 집합.</summary>
-    Task<List<string>> GetDiscoveredAsync(long userId, CancellationToken ct = default);
+    Task<List<int>> GetDiscoveredAsync(long userId, CancellationToken ct = default);
 
     /// <summary>아이템을 발견 처리(획득 시 호출). 멱등 — 이미 발견했으면 무변동. 신규 발견이면 true.</summary>
-    Task<bool> MarkDiscoveredAsync(long userId, string itemId, CancellationToken ct = default);
+    Task<bool> MarkDiscoveredAsync(long userId, int itemId, CancellationToken ct = default);
 }

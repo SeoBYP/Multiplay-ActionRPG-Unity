@@ -2,6 +2,7 @@ namespace GameServer.Domain.Entities.Inventory;
 
 /// <summary>
 /// 아이템 *소유*(영속 엔티티). (UserId, ItemId) 복합키 → Quantity 스택형.
+/// ItemId = numericId(int). 대역이 곧 분류다 — 1000 소모품 / 2100 무기 / 2200 방어구 / 2300 장신구.
 ///
 /// 키 = user_id (지금). 미래 캐릭터 교체 시 character_id 로 이관(Progression 과 동일). [[character-swap-direction]]
 /// 정의(이름·등급·MaxStack)는 ItemCatalog 가 소유 — 이 엔티티는 수량만 관리(MaxStack clamp 는 서비스 책임).
@@ -10,7 +11,7 @@ public class InventoryItem
 {
     public long UserId { get; private set; }
 
-    public string ItemId { get; private set; } = string.Empty;
+    public int ItemId { get; private set; }
 
     public int Quantity { get; private set; }
 
@@ -18,12 +19,12 @@ public class InventoryItem
 
     private InventoryItem() { }
 
-    public static InventoryItem Create(long userId, string itemId, int quantity)
+    public static InventoryItem Create(long userId, int itemId, int quantity)
     {
         if (userId <= 0)
             throw new ArgumentException("UserId must be positive", nameof(userId));
-        if (string.IsNullOrWhiteSpace(itemId))
-            throw new ArgumentException("ItemId is required", nameof(itemId));
+        if (itemId <= 0)
+            throw new ArgumentException("ItemId must be positive", nameof(itemId));
         if (quantity <= 0)
             throw new ArgumentException("Quantity must be positive", nameof(quantity));
 
@@ -37,7 +38,7 @@ public class InventoryItem
     }
 
     /// <summary>캐시(Redis Hash: itemId→qty)에서 복원. UpdatedAt 은 캐시에 없으므로 의미 없음(표시 미사용).</summary>
-    public static InventoryItem FromRedis(long userId, string itemId, int quantity)
+    public static InventoryItem FromRedis(long userId, int itemId, int quantity)
         => new()
         {
             UserId = userId,

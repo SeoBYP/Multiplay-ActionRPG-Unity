@@ -13,11 +13,11 @@ namespace Game.System.Player
     public sealed class ItemPickupNotifier
     {
         /// <summary>(itemId, qty). InGameModel 이 구독해 이름 조회 후 획득 토스트로 재발행.</summary>
-        public event Action<string, int> OnPickup;
+        public event Action<int, int> OnPickup;
 
-        public void Notify(string itemId, int qty)
+        public void Notify(int itemId, int qty)
         {
-            if (string.IsNullOrEmpty(itemId) || qty <= 0) return;
+            if (itemId <= 0 || qty <= 0) return;
             OnPickup?.Invoke(itemId, qty);
         }
     }

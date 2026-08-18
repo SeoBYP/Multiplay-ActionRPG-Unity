@@ -47,10 +47,12 @@ public readonly record struct EquipmentStatModifier(
 /// 둘 다 같은 itemId 로 묶인다(items.json 의 한 항목에서 파생).
 /// </summary>
 /// <param name="ItemId">카탈로그 키. ItemDef/InventoryItem 과 동일 식별자.</param>
+/// <param name="NumericId">숫자 ID(ItemDef.NumericId 와 동일). DB·패킷이 쓰는 키.</param>
 /// <param name="Slot">착용 슬롯(공통 EquipmentType).</param>
 /// <param name="Stats">착용 시 더해지는 가산 스탯.</param>
 public sealed record EquipmentDef(
     string ItemId,
+    int NumericId,
     EquipmentType Slot,
     EquipmentStatModifier Stats);
 
@@ -59,11 +61,13 @@ public sealed record EquipmentDef(
 /// 스탯 미리보기는 EquipmentDef 에서 파생(중복 저작 금지) — 여기엔 가격·분류만.
 /// </summary>
 /// <param name="ItemId">카탈로그 키.</param>
+/// <param name="NumericId">숫자 ID(ItemDef.NumericId 와 동일). DB·패킷이 쓰는 키.</param>
 /// <param name="BuyPrice">구매가(골드). 양수.</param>
 /// <param name="SellPrice">판매가(골드). 보통 BuyPrice 미만.</param>
 /// <param name="Category">진열 분류(클라 탭). proto enum 과 정수값 1:1.</param>
 public sealed record ShopItemDef(
     string ItemId,
+    int NumericId,
     long BuyPrice,
     long SellPrice,
     ShopCategory Category);

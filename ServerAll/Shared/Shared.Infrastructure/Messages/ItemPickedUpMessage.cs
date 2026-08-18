@@ -13,7 +13,7 @@ namespace Shared.Infrastructure.Messages;
 public sealed class ItemPickedUpMessage
 {
     public long UserId { get; init; }
-    public string ItemId { get; init; } = "";
+    public int ItemId { get; init; }   // numericId. 대역 3000~3999 = 재화(지갑 라우팅)
     public int Qty { get; init; }
     public string PickupId { get; init; } = "";
     public string TraceId { get; init; } = "";

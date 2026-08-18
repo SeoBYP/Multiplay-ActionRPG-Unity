@@ -29,7 +29,7 @@ namespace Game.Tests.PlayMode.Shop
             private readonly int _buyQty;
 
             public int BuyCallCount { get; private set; }
-            public string LastBoughtItemId { get; private set; }
+            public int LastBoughtItemId { get; private set; }
 
             public FakeShopService(ShopResult getResult, IReadOnlyList<ShopItemData> items,
                 ShopResult buyResult = ShopResult.Success, long buyGold = 0, int buyQty = 0)
@@ -45,21 +45,21 @@ namespace Game.Tests.PlayMode.Shop
                 => UniTask.FromResult<(ShopResult, IReadOnlyList<ShopItemData>)>(
                     (_getResult, _getResult == ShopResult.Success ? _items : Array.Empty<ShopItemData>()));
 
-            public UniTask<(ShopResult Result, long Gold, int NewQuantity)> BuyAsync(string itemId, int qty, CancellationToken ct = default)
+            public UniTask<(ShopResult Result, long Gold, int NewQuantity)> BuyAsync(int itemId, int qty, CancellationToken ct = default)
             {
                 BuyCallCount++;
                 LastBoughtItemId = itemId;
                 return UniTask.FromResult((_buyResult, _buyGold, _buyQty));
             }
 
-            public UniTask<(ShopResult Result, long Gold, int RemainingQuantity)> SellAsync(string itemId, int qty, CancellationToken ct = default)
+            public UniTask<(ShopResult Result, long Gold, int RemainingQuantity)> SellAsync(int itemId, int qty, CancellationToken ct = default)
                 => UniTask.FromResult((ShopResult.Success, 0L, 0));
         }
 
         private static List<ShopItemData> Sample() => new()
         {
-            new ShopItemData("sword_basic", 200, 50, SysShopCategory.Weapon, Array.Empty<ShopStatData>()),
-            new ShopItemData("potion_hp_small", 50, 10, SysShopCategory.Potion, Array.Empty<ShopStatData>()),
+            new ShopItemData(2101, 200, 50, SysShopCategory.Weapon, Array.Empty<ShopStatData>()),
+            new ShopItemData(1001, 50, 10, SysShopCategory.Potion, Array.Empty<ShopStatData>()),
         };
 
         private static async UniTask Settle()
@@ -96,12 +96,12 @@ namespace Game.Tests.PlayMode.Shop
 
             model.Accept(ShopIntent.Refresh.Instance);
             await Settle();
-            model.Accept(new ShopIntent.SelectItem("sword_basic"));
+            model.Accept(new ShopIntent.SelectItem(2101));
             model.Accept(ShopIntent.Buy.Instance);
             await Settle();
 
             Assert.AreEqual(1, fake.BuyCallCount);
-            Assert.AreEqual("sword_basic", fake.LastBoughtItemId);
+            Assert.AreEqual(2101, fake.LastBoughtItemId);
             Assert.IsTrue(toast.HasValue);
             Assert.IsTrue(toast.Value.Success);          // 성공 토스트
             Assert.AreEqual(800, latest.Gold);           // 서버 권위 잔액 반영
@@ -121,7 +121,7 @@ namespace Game.Tests.PlayMode.Shop
 
             model.Accept(ShopIntent.Refresh.Instance);
             await Settle();
-            model.Accept(new ShopIntent.SelectItem("potion_hp_small"));
+            model.Accept(new ShopIntent.SelectItem(1001));
             model.Accept(ShopIntent.Buy.Instance);
             await Settle();
 
@@ -162,9 +162,9 @@ namespace Game.Tests.PlayMode.Shop
             model.Accept(ShopIntent.Refresh.Instance);
             await Settle();
             model.Accept(new ShopIntent.SetQuantity(5));
-            model.Accept(new ShopIntent.SelectItem("sword_basic"));
+            model.Accept(new ShopIntent.SelectItem(2101));
 
-            Assert.AreEqual("sword_basic", latest.SelectedItemId);
+            Assert.AreEqual(2101, latest.SelectedItemId);
             Assert.AreEqual(1, latest.Quantity); // 선택 시 1로 초기화
 
             model.Dispose();

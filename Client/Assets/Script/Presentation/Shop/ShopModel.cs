@@ -92,7 +92,7 @@ namespace Game.Presentation.Shop
                     var gradeBg = _gradeCatalog != null && entry != null ? _gradeCatalog.Get(entry.grade) : null;
                     models.Add(new ShopItemModel(
                         data.ItemId,
-                        entry?.displayName ?? data.ItemId,
+                        entry?.displayName ?? data.ItemId.ToString(),
                         entry?.icon,
                         data.BuyPrice,
                         data.SellPrice,

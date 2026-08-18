@@ -7,7 +7,7 @@ namespace GameServer.Tests.Infrastructure.Fakes.Repositories;
 /// <summary>실제 EquipmentRepository 의 착용 upsert/clear 동작을 인메모리로 모사.</summary>
 public class FakeEquipmentRepository : IEquipmentRepository
 {
-    private readonly Dictionary<(long UserId, EquipmentType Slot), string> _equipped = new();
+    private readonly Dictionary<(long UserId, EquipmentType Slot), int> _equipped = new();
 
     public Task<List<UserEquipment>> GetEquippedAsync(long userId, CancellationToken ct = default)
         => Task.FromResult(_equipped
@@ -15,7 +15,7 @@ public class FakeEquipmentRepository : IEquipmentRepository
             .Select(kv => UserEquipment.Create(userId, kv.Key.Slot, kv.Value))
             .ToList());
 
-    public Task SetAsync(long userId, EquipmentType slot, string itemId, CancellationToken ct = default)
+    public Task SetAsync(long userId, EquipmentType slot, int itemId, CancellationToken ct = default)
     {
         _equipped[(userId, slot)] = itemId;
         return Task.CompletedTask;

@@ -12,8 +12,8 @@ public interface IInventoryService
     Task<List<InventoryItem>> GetInventoryAsync(long userId, CancellationToken ct = default);
 
     /// <summary>아이템을 지급(적립). itemId 가 카탈로그에 없거나 amount≤0 이면 실패.</summary>
-    Task<ItemGrantResult> GrantItemAsync(long userId, string itemId, int amount, CancellationToken ct = default);
+    Task<ItemGrantResult> GrantItemAsync(long userId, int itemId, int amount, CancellationToken ct = default);
 
     /// <summary>아이템을 소비(차감). 미보유·보유부족·amount≤0 이면 실패. 성공 시 남은 수량 반환.</summary>
-    Task<ItemConsumeResult> ConsumeItemAsync(long userId, string itemId, int amount, CancellationToken ct = default);
+    Task<ItemConsumeResult> ConsumeItemAsync(long userId, int itemId, int amount, CancellationToken ct = default);
 }

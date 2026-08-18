@@ -22,8 +22,8 @@ public class CatalogIntegrityTests
     public void 퀘스트_보상_아이템은_모두_아이템_카탈로그에_있다()
     {
         var missing = QuestCatalog.All
-            .Where(q => !string.IsNullOrEmpty(q.Reward.ItemId))
-            .Select(q => (q.QuestId, q.Reward.ItemId!))
+            .Where(q => q.Reward.ItemId != 0)   // 0 = 아이템 보상 없음
+            .Select(q => (q.QuestId, q.Reward.ItemId))
             .Where(x => !ItemCatalog.Contains(x.Item2))
             .ToList();
 
@@ -47,7 +47,7 @@ public class CatalogIntegrityTests
     [Fact]
     public void 드랍_테이블의_아이템은_통화를_빼면_모두_아이템_카탈로그에_있다()
     {
-        // "gold" 는 인벤토리 아이템이 아니라 지갑으로 가는 통화(Currencies.Gold) — 카탈로그에 없는 게 정상이다.
+        // 3001 는 인벤토리 아이템이 아니라 지갑으로 가는 통화(Currencies.Gold) — 카탈로그에 없는 게 정상이다.
         var missing = DropTableCatalog.All
             .SelectMany(kv => kv.Value.Select(e => (Monster: kv.Key, e.ItemId)))
             .Where(x => !Currencies.IsCurrency(x.ItemId) && !ItemCatalog.Contains(x.ItemId))

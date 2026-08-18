@@ -211,3 +211,22 @@ MonoBehaviour:
     sellPrice: 80
     shopCategory: 3
     consumeEffects: []
+  - itemId: gold
+    numericId: 3001
+    stackable: 1
+    maxStack: 2147483647
+    isEquipment: 0
+    equipSlot: 0
+    equipStats:
+      maxHealth: 0
+      maxMana: 0
+      attackPower: 0
+      defense: 0
+      strength: 0
+      dexterity: 0
+      intelligence: 0
+    isShopItem: 0
+    buyPrice: 0
+    sellPrice: 0
+    shopCategory: 0
+    consumeEffects: []

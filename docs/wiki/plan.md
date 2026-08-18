@@ -509,6 +509,14 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
   - bake 산출물 **6종 전부 대조 완료** — abilities 외 5종(drop-tables·consumable-effects·spawn-layouts·level-table·monsters)은 재Export 후에도 수치 변경 **0건**(개행 차이만, 되돌림).
   - **모달 우회법(재사용)**: `unity command --project-path . eval_file --file <cs>` 로 `Exporter.BakeAll()` 직접 호출. 메뉴 경로는 `DisplayDialog` 가 에디터 메인스레드를 잡아 **이후 모든 CLI 명령까지 타임아웃**시킨다.
   - **감지 가드**: `AbilityCatalogTests.게임플레이_수치가_현재_저작값으로_bake_돼_있다`(167/125 고정). ⚠ 밸런스 조정 시 Export 후 이 기대값도 갱신한다. 상시 대조의 테스트화는 [cleanup-backlog.md](cleanup-backlog.md) A2 잔여 제안.
+- [x] **ItemId int 전환 2단계 — DB·Redis·proto·패킷·클라 (완료 2026-08-19)** — 문자열 `ItemId` 를 **식별자에서 완전히 제거**하고 numericId(int)로 전환했다. 문자열은 카탈로그의 저작·로그용 이름으로만 남는다.
+  - **경계 전부**: 도메인 3엔티티 · EF 설정 3 + 마이그레이션(`ItemIdToInt`) · Redis Hash 파싱 3 · proto 5파일 11필드(`string`→`int32`) + 클라 Generated 재생성 · `LootPackets` · `DropEntry`/`DropResult` · `QuestReward` · 서버 서비스/테스트 · 클라 39파일.
+  - **`gold` 처리(설계 결정)**: 드랍 테이블이 `"gold"` 라는 **카탈로그에 없는 의사 아이템**을 문자열로 끼워 넣고 있었다(문자열 키의 단점이 드러난 지점). `gold` 를 **3001 로 카탈로그에 정식 등록**하고, 통화 판별을 문자열 비교 → **대역(3000~3999)** 으로 바꿨다(`Currencies.IsCurrency`). 대역 규칙이 실제 동작을 결정하게 됐다.
+  - **DB 마이그레이션**: 기존 행은 폐기(사용자 결정 — 대부분 E2E 임시 계정). Postgres 는 varchar→int 에 암시적 캐스팅이 없어 **테이블이 비어 있어도** `USING` 절을 요구하므로(42804) `AlterColumn` 대신 원시 SQL 로 작성. 운영 데이터가 생긴 뒤엔 신규 컬럼→매핑 UPDATE→PK 재구성→구 컬럼 제거의 4단계로 가야 한다(마이그레이션 주석에 기록).
+  - **GAS 효과 id 는 문자열 유지**: `effectId == itemId` 규칙상 numericId 를 `ToString()` 으로 싣는다. GAS 효과 체계는 별도라 전환 대상이 아니다.
+  - 검증: 서버 빌드 0오류 · 서버 테스트 **666/666** · Unity 컴파일 0에러 · EditMode **204/204** · DB 스키마 3테이블 `integer` 확인 · Redis flush.
+  - **Unity CLI 함정(기록)**: `console` 명령이 **낡은 컴파일 결과를 계속 반환**해 이미 고친 에러를 반복 보고했다(파일 바이트 대조로 확인). 실제 에러는 `%LOCALAPPDATA%/Unity/Editor/Editor.log` 를 `tail` 하면 정확히 읽힌다 — 앞으로 클라 컴파일 판정은 이 로그를 쓴다.
+
 - [x] **ItemId int 전환 1단계 — numericId 부여** — ✅ **2026-08-18**. `items.json`·SO 에 `numericId` 추가, **런타임 동작 변화 0**(DB·proto·패킷 무변경). 대역이 곧 분류다: **1000~1999 소모품 / 2100~2199 무기 / 2200~2299 방어구 / 2300~2399 장신구 / 3000~3999 재화·기타**. 10종 배정(1001·1002 / 2101 / 2201~2205 / 2301·2302).
   - 이중 가드: 저작 시점 = `ItemCatalogExporter` 가 **중복·대역 위반 시 bake 거부**, 커밋 시점 = `ItemNumericIdTests` 4종(전원 배정·중복 없음·대역 일치·양방향 조회 동일).
   - 서버 `ItemDef.NumericId` + `CatalogTables.ItemsByNumericId` 추가(2단계 진입점). **미배정(0)·중복이 있어도 서버가 죽지 않게** 방어적으로 구성 — 데이터 한 줄로 서버 전체가 내려가면 안 되고, 이 값은 아직 어떤 런타임 경로도 쓰지 않는다.

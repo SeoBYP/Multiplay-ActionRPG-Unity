@@ -38,7 +38,7 @@ mtime 전부 갱신 확인(= 실행 확증) · 내용 diff 0
 - **교훈**: "diff 가 없다"를 곧바로 "드리프트 없음"으로 읽지 말 것. 첫 시도에서 5개 Exporter 가 **모달에 막혀 실행조차 안 됐는데** diff 가 없어 정상으로 오독할 뻔했다. **mtime 으로 실행 자체를 확증**한 뒤 diff 를 판정한다.
 - **잔여 제안**: 이 대조를 EditMode 테스트로 상시화(사람 기억에 의존하지 않게).
 
-### A4. `items.json` 만 Exporter 부재 → 클라·서버 아이템 카탈로그 드리프트 — ✅ **해소 2026-08-18**
+### A4. `items.json`·`quests.json` Exporter 부재 → 카탈로그 드리프트 — ✅ **해소 2026-08-18/19**
 
 bake 산출물 7종 중 **`items.json` 하나만 Exporter 가 없다**. 나머지 6종(abilities·consumable-effects·drop-tables·monsters·level-table·spawn-layouts)은 전부 `Tools/…/Export` 가 있어 SO→bake 로 강제되지만, 아이템만 **서버 `items.json` 수기 + 클라 `ItemDisplayCatalog.asset` 수기**로 이중 저작이다.
 
@@ -63,6 +63,8 @@ bake 산출물 7종 중 **`items.json` 하나만 Exporter 가 없다**. 나머�
 - 재대조: 서버 10 / 클라 10, **구성·순서 모두 일치**.
 - 죽은 `ConsumableEffectExporter` 제거 — 서버엔 `ConsumableEffectCatalog` 가 없고 소비 효과는 items.json 의 `consumeEffects` 로 통합됐는데 Exporter 만 남아 아무도 안 읽는 JSON 을 계속 생성했다(실제로 조사 중 오독을 유발).
 - 검증: Unity 컴파일 0 · 서버 빌드 0오류 · 테스트 **659/659**(Shared 50 · SocketServer 210 · GameServer 399).
+
+**후속(2026-08-19) — 마지막 수기 저작까지 제거**: `quests.json` 도 Exporter 가 없어 손으로 저작하고 있었다(A4 조사 당시엔 items 만 봤다). `QuestCatalogDefinition`+`QuestCatalogExporter` 신설로 편입 → **bake 산출물 7종 전부 SO→bake 강제**. 추가로 `BakeAllExporter`(`Tools/Bake/Export ALL`)로 7종 일괄 bake + 결과 요약을 제공 — "Export 했나?"를 사람이 기억하는 구조를 없앤다. `BakeAllExporter.BakeAll()` 은 다이얼로그가 없어 CLI 로 호출 가능하므로, `git diff --exit-code` 와 묶으면 드리프트 점검을 자동화할 수 있다.
 
 **부수 발견 — 저장소 자체가 깨져 있었다**: `items.json`·`quests.json` 이 `EmbeddedResource` 인데 **미커밋**이었고, 그것을 읽는 `Shared.Infrastructure/{Items,Quests}/*.cs` 와 `Shared.Gameplay/Items/*.cs` 도 미커밋이었다(Domain→Shared.Infrastructure 이동 리팩터가 삭제만 커밋된 상태). 클론하면 빌드 실패. `8438d721`·`402eb438`·`99bed9b4` 로 복구.
 

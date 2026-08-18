@@ -20,8 +20,8 @@ public class DropLevelTierTests
         public override int Next(int minValue, int maxValue) => minValue; // 수량은 항상 하한
     }
 
-    private static readonly DropEntry Gold = new("gold", chance: 0.5, minQty: 10, maxQty: 30);
-    private static readonly DropEntry Sword = new("sword_basic", chance: 0.5, minQty: 1, maxQty: 1);
+    private static readonly DropEntry Gold = new(3001, chance: 0.5, minQty: 10, maxQty: 30);
+    private static readonly DropEntry Sword = new(2101, chance: 0.5, minQty: 1, maxQty: 1);
 
     [Fact]
     public void 확률은_1을_넘지_않는다()
@@ -39,8 +39,8 @@ public class DropLevelTierTests
 
         var results = DropTableRoll.Roll(new[] { Gold, Sword }, rng, quantityMultiplier: 2.0);
 
-        Assert.Equal(20, results.Single(r => r.ItemId == "gold").Qty);        // 10 × 2
-        Assert.Equal(1, results.Single(r => r.ItemId == "sword_basic").Qty);  // 1 (스케일 제외)
+        Assert.Equal(20, results.Single(r => r.ItemId == 3001).Qty);        // 10 × 2
+        Assert.Equal(1, results.Single(r => r.ItemId == 2101).Qty);  // 1 (스케일 제외)
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public class DropLevelTierTests
         {
             foreach (var e in Shared.Infrastructure.Loot.DropTableCatalog.Get(id))
             {
-                Assert.False(string.IsNullOrWhiteSpace(e.ItemId), $"{id}: itemId 가 비었다");
+                Assert.True(e.ItemId > 0, $"{id}: itemId 가 미배정(0)이다");
                 Assert.InRange(e.Chance, 0.0001, 1.0);
                 Assert.InRange(e.MinQty, 1, e.MaxQty);
             }

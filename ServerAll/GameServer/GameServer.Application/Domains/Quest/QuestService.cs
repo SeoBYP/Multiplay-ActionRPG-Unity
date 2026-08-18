@@ -98,8 +98,8 @@ public sealed class QuestService(
             await progression.AddExpAsync(userId, def.Reward.Exp, ct);
         if (def.Reward.Gold > 0)
             await wallet.AddAsync(userId, def.Reward.Gold, ct);
-        if (!string.IsNullOrEmpty(def.Reward.ItemId) && def.Reward.ItemQty > 0)
-            await inventory.GrantItemAsync(userId, def.Reward.ItemId!, def.Reward.ItemQty, ct);
+        if (def.Reward.ItemId != 0 && def.Reward.ItemQty > 0)
+            await inventory.GrantItemAsync(userId, def.Reward.ItemId, def.Reward.ItemQty, ct);
 
         return QuestClaimResult.Ok(def.Reward);
     }

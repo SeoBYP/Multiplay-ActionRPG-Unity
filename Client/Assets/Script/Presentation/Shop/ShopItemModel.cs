@@ -6,7 +6,7 @@ namespace Game.Presentation.Shop
     /// <summary>상점 진열 한 항목(View 표시용). 서버 가격/분류/스탯 + 클라 카탈로그 이름·아이콘 합성.</summary>
     public sealed class ShopItemModel
     {
-        public string ItemId { get; }
+        public int ItemId { get; }
         public string DisplayName { get; }
         public string Description { get; }
         public Sprite Icon { get; }
@@ -16,7 +16,7 @@ namespace Game.Presentation.Shop
         public IReadOnlyList<ShopStatLine> Stats { get; }
         public Sprite GradeBackground { get; } // 등급 배경(Model이 GradeSpriteCatalog로 해석). null이면 배경 없음.
 
-        public ShopItemModel(string itemId, string displayName, Sprite icon, long buyPrice, long sellPrice,
+        public ShopItemModel(int itemId, string displayName, Sprite icon, long buyPrice, long sellPrice,
             ShopCategory category, IReadOnlyList<ShopStatLine> stats, Sprite gradeBackground = null, string description = null)
         {
             ItemId = itemId;

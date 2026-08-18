@@ -30,25 +30,25 @@ public class EquipmentGrpcServiceTests
         _service = new EquipmentGrpcService(equipment, NullLogger<EquipmentGrpcService>.Instance);
     }
 
-    private async Task GrantAsync(long userId, string itemId)
+    private async Task GrantAsync(long userId, int itemId)
         => await _inventoryRepo.AddQuantityAsync(userId, itemId, 1, maxStack: 1);
 
     [Fact]
     public async Task 보유한_장비_장착은_성공하고_서버가_결정한_슬롯을_반환한다()
     {
-        await GrantAsync(1L, "sword_basic");
+        await GrantAsync(1L, 2101);
 
-        var res = await _service.Equip(new EquipRequest { ItemId = "sword_basic" }, Authed(1L));
+        var res = await _service.Equip(new EquipRequest { ItemId = 2101 }, Authed(1L));
 
         Assert.True(res.Result.Success, res.Result.Message);
         Assert.Equal(EquipmentType.Weapon, res.Slot);
-        Assert.Equal("sword_basic", res.ItemId);
+        Assert.Equal(2101, res.ItemId);
     }
 
     [Fact]
     public async Task 미보유_장비_장착은_거부된다()
     {
-        var res = await _service.Equip(new EquipRequest { ItemId = "sword_basic" }, Authed(1L));
+        var res = await _service.Equip(new EquipRequest { ItemId = 2101 }, Authed(1L));
 
         Assert.False(res.Result.Success);
     }
@@ -56,7 +56,7 @@ public class EquipmentGrpcServiceTests
     [Fact]
     public async Task 장착_미인증은_거부된다()
     {
-        var res = await _service.Equip(new EquipRequest { ItemId = "sword_basic" }, Anonymous());
+        var res = await _service.Equip(new EquipRequest { ItemId = 2101 }, Anonymous());
 
         Assert.False(res.Result.Success);
     }
@@ -64,8 +64,8 @@ public class EquipmentGrpcServiceTests
     [Fact]
     public async Task 해제는_슬롯을_비우고_성공한다()
     {
-        await GrantAsync(1L, "armor_leather");
-        await _service.Equip(new EquipRequest { ItemId = "armor_leather" }, Authed(1L));
+        await GrantAsync(1L, 2201);
+        await _service.Equip(new EquipRequest { ItemId = 2201 }, Authed(1L));
 
         var res = await _service.Unequip(new UnequipRequest { Slot = EquipmentType.Armor }, Authed(1L));
 
@@ -85,17 +85,17 @@ public class EquipmentGrpcServiceTests
     [Fact]
     public async Task GetEquipment는_착용_세트를_슬롯과_함께_반환한다()
     {
-        await GrantAsync(1L, "sword_basic");
-        await GrantAsync(1L, "armor_leather");
-        await _service.Equip(new EquipRequest { ItemId = "sword_basic" }, Authed(1L));
-        await _service.Equip(new EquipRequest { ItemId = "armor_leather" }, Authed(1L));
+        await GrantAsync(1L, 2101);
+        await GrantAsync(1L, 2201);
+        await _service.Equip(new EquipRequest { ItemId = 2101 }, Authed(1L));
+        await _service.Equip(new EquipRequest { ItemId = 2201 }, Authed(1L));
 
         var res = await _service.GetEquipment(new GetEquipmentRequest(), Authed(1L));
 
         Assert.True(res.Result.Success);
         Assert.Equal(2, res.Items.Count);
-        Assert.Contains(res.Items, i => i.Slot == EquipmentType.Weapon && i.ItemId == "sword_basic");
-        Assert.Contains(res.Items, i => i.Slot == EquipmentType.Armor && i.ItemId == "armor_leather");
+        Assert.Contains(res.Items, i => i.Slot == EquipmentType.Weapon && i.ItemId == 2101);
+        Assert.Contains(res.Items, i => i.Slot == EquipmentType.Armor && i.ItemId == 2201);
     }
 
     [Fact]

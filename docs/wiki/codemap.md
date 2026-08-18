@@ -61,6 +61,7 @@
 | SocketServer(TCP/방/세션) | `ServerAll/SocketServer/SocketServer/{Room,Session,PacketHandler}` | [socketserver.md](socketserver.md) |
 | Redis 스트림/큐 | `Shared/Shared.Infrastructure/MessageQueue/`, `Messages/` | [redis.md](redis.md) |
 | **루트/드랍(던전 경로)** | 드랍 롤 = `Shared.Gameplay/Loot/DropTable`(순수)+`Shared.Infrastructure/Loot/DropTableCatalog`(drop-tables.json, 레벨 반영 §2.80) · 줍기 = `SocketServer/Loot/GroundItem`·`Handler/{CombatHandler.SpawnDrops,LootHandler}`·`Room`(GroundItem·TryPickup) / 지급 = `GameServer.Infrastructure/Common/{Consumer/LootGrantConsumer,MessageQueue/LootPickupMessageQueue}` → `IInventoryService.GrantItemAsync`. 아래 §2.16. **Main(싱글) 경로 지급 = `GameServer.API/Services/InventoryGrpcService.GrantItem`(gRPC+가드, §2.18)** | [loot-drop.md](loot-drop.md) |
+| **아이템·장비·상점·퀘스트 정적 데이터** | 데이터 `Shared.Infrastructure/{Items/items.json,Quests/quests.json}`(임베디드) · 리더 `Items/ItemCatalogData`+파사드 `{ItemCatalog,EquipmentCatalog,ShopCatalog}` · `Quests/QuestCatalog` · 공유 enum `Shared.Gameplay/Items/{ItemGrade,ShopCategory}`. 저작=클라 SO→bake(잔여). **하드코딩 Domain 카탈로그는 2026-08-18 전량 삭제** — §2.103 | §2.103 |
 | 클라 gRPC | `Client/Assets/Script/Network/Https/` | [unity-client.md](unity-client.md) |
 | 클라 소켓 | `Client/Assets/Script/Network/Socket/` | `.claude/rules/networking.md` |
 | 클라 MVI 모델 (타이틀·로비·인게임) | `Client/Assets/Script/Presentation/{Title,DungeonLobby,InGame}` (asmdef `Game.Presentation`, ns `Game.Presentation.*`) — GUI가 바인딩하는 MVI 모델 레이어 | `.claude/rules/unity-client.md` |
@@ -1491,6 +1492,35 @@ Unity CLI 로 **PlayMode 전체 스위트를 처음 통째로** 돌려 드러난
 - **왜**: SocketServer가 `GameStartRequested`를 소비해 방을 만드는 시점과 클라 접속 사이 **레이스**. 단발 실패 시 옛 코드는 포기 → `Failed`. 분산 connect/create 순서는 본질적으로 재시도가 정답.
 
 ---
+
+### 2.103 정적 기획데이터 단일 저작 통합 — 서버 하드코딩 카탈로그 4종 제거 (2026-08-18, 서버 파트)
+
+**문제**: 같은 `itemId` 목록을 **5곳에 따로 저작**하고 있었다 — 서버 `GameServer.Domain` 의 `ItemCatalog`(10종)·`EquipmentCatalog`(8종)·`ShopCatalog`(10종)·`QuestCatalog`(4종) 하드코딩 Dictionary + 클라 `ItemDisplayCatalog` SO. 동기화를 강제하는 장치가 없어 **실제로 갈라져 있었다**: ① 클라에 `gold_pouch` 고아(서버는 3.4 에서 통화로 이동하며 제거) ② `potion_mp_small` 이 상점에서 50골드에 팔리는데 `consumable-effects.json` 에 효과가 없음 ③ 구 `ConsumableEffectExporter` 가 `policy`/`durationMs` 를 bake 에서 빠뜨리고 서버가 `Instant/0` 을 하드코딩 → **지속형 버프 소모품을 저작해도 서버에선 즉발**. 나머지 정적 데이터 6종(abilities·monsters·drop-tables·level-table·spawn-layouts·consumables)은 이미 `SO → bake json` 파이프라인인데 아이템 계열만 그 밖에 있었다.
+
+**제약이 위치를 결정했다**: `GameServer.Domain.csproj` 는 `Shared.Gameplay` 만 참조하고 `Shared.Infrastructure` 를 참조하지 않는다(Clean Architecture). 그래서 "Domain 의 Dictionary 만 json 읽기로 교체"는 불가능 — 카탈로그 **위치 자체**가 `Shared.Infrastructure` 로 가야 기존 6종과 동형이 된다. 착수 전 확인: Domain 엔티티(`InventoryItem`·`UserCodexEntry`)의 카탈로그 참조는 **주석뿐, 코드 0건**이라 이동이 안전했다.
+
+**위치(신규)**
+- 데이터 = `Shared.Infrastructure/Items/items.json` · `Shared.Infrastructure/Quests/quests.json` (둘 다 `EmbeddedResource`).
+- 리더 = `Shared.Infrastructure/Items/ItemCatalogData.cs`(`Lazy` 1회 로드 + `Parse(Stream)` 공개 — MonsterCatalog 동형) · `Quests/QuestCatalog.cs`.
+- 파사드 = `Items/{ItemCatalog,EquipmentCatalog,ShopCatalog}.cs` — **공개 API 를 구 Domain 카탈로그와 동일하게 유지**해 호출부 12곳은 `using` 만 바뀌었다.
+- 레코드 = `Items/ItemDefs.cs`(`ItemDef`·`EquipmentDef`·`EquipmentStatModifier`·`ShopItemDef`) · `Quests/QuestDefs.cs`(`QuestDef`·`QuestReward`·`QuestObjectiveType`).
+- 공유 enum = `Shared.Gameplay/Items/{ItemGrade,ShopCategory}.cs` — 클라가 `Plugins/Shared.Gameplay.dll` 로 **타입만** 참조하고 데이터 로드는 각자(클라=SO, 서버=json). `Shared.Gameplay` 는 netstandard2.1 이라 `record` 가 컴파일되지 않아(`IsExternalInit` 없음) **enum 만** 올렸다.
+
+**삭제**: Domain 12파일(`ItemCatalog`/`ItemDef`/`ItemGrade`/`EquipmentCatalog`/`EquipmentDef`/`EquipmentStatModifier`/`ShopCatalog`/`ShopItemDef`/`ShopCategory`/`QuestCatalog`/`QuestDef`/`QuestObjectiveType`) + `Shared.Infrastructure/Consumables/`(`ConsumableEffectCatalog.cs`·`consumable-effects.json` — items.json 의 `consumeEffects` 로 흡수, `CombatEffectCatalog` 가 `ItemCatalogData.Current.Consumables` 를 읽는다).
+
+**설계 결정 3개**
+1. **`ShopCategory` 를 proto 와 정수 1:1 로 정렬**(`Unspecified=0`). 구 도메인 enum 은 `Weapon=0` 이라 proto 와 1 offset 이었고 gRPC 서비스가 수동 switch 로 흡수하고 있었다. `EquipmentType` 이 이미 쓰는 규약을 따랐다. DB 영속이 없어 값 변경이 안전함을 먼저 확인했다.
+2. **서버가 안 쓰는 필드는 bake 하지 않는다**(사용자 지시 Q3). `IconKey`(사용처 **0건**)·`Name`·`Grade` 는 서버 프로덕션 사용 0건이라 제외 → 클라 SO 전용. 단 **퀘스트** `Name`/`Description` 은 서버가 proto `QuestInfo` 로 클라에 보내므로 포함한다(아이템과 다름).
+3. **파일 순서 = 저작 순서 = 표시 순서**. `ShopCatalog.All` 이 곧 상점 진열 순서, `QuestCatalog.All` 이 퀘스트 목록 순서라 알파벳 정렬하면 UI 가 바뀐다. 처음에 정렬해뒀다가 되돌렸다 — exporter 도 정렬 금지.
+
+**검증(실측)**: 서버 솔루션 빌드 **오류 0** · `GameServer.Tests` **399/399** · `SocketServer.Tests` **210/210** · `Shared.Gameplay.Tests` **50/50**. 이관 드리프트 0(items 10 / equip 8 / shop 10 / consume 1 = 구 카탈로그와 동일 개수).
+
+**신규 가드**: `GameServer.Tests/Catalogs/CatalogIntegrityTests`(8) — quests.json·drop-tables.json 이 items.json 에 없는 `itemId` 를 가리키는지(`gold` 는 `Currencies.IsCurrency` 로 예외), 가격 0 상품, `Unspecified` 분류, 슬롯 없는 장비, 전 스탯 0 장비, 스택형 장비. `SocketServer.Tests/Items/ItemCatalogDataTests`(5) — 임베디드 로드 + 합성 JSON 파싱 + **policy/durationMs 유실 회귀 가드**. `DropTableCatalog.All` 접근자를 이 검증용으로 추가했다.
+
+**잔여(클라 파트)**: 저작 SO 통합(`ItemDisplayCatalog`+`ConsumableCatalog` → 단일 SO) + `ItemCatalogExporter` + 클라 중복 enum 제거(`ItemGrade`·`ShopCategory`×2) + SO↔bake 드리프트 EditMode 테스트 + Docker 리빌드 후 E2E. **`potion_mp_small` 회복 수치는 사용자 결정 대기** — 임의 수치를 넣지 않고 현 상태(효과 없음) 그대로 이관했다.
+
+---
+
 
 ## 3. 테스트 하네스 (어디에/어떻게)
 

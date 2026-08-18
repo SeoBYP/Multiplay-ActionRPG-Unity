@@ -86,7 +86,7 @@ public static class DropTableCatalog
 
     private sealed class DropDto
     {
-        public string ItemId { get; set; } = "";
+        public int ItemId { get; set; }
         public double Chance { get; set; }
         public int MinQty { get; set; } = 1;
         public int MaxQty { get; set; } = 1;

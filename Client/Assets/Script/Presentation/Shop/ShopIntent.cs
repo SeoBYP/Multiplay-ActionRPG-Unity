@@ -20,8 +20,8 @@ namespace Game.Presentation.Shop
         /// <summary>리스트 항목 선택 → 선택 패널 표시. 수량은 1로 초기화.</summary>
         public sealed class SelectItem : ShopIntent
         {
-            public readonly string ItemId;
-            public SelectItem(string itemId) => ItemId = itemId;
+            public readonly int ItemId;
+            public SelectItem(int itemId) => ItemId = itemId;
         }
 
         /// <summary>구매 수량 설정(1 미만은 1로 클램프). +/- 버튼·입력칸이 사용.</summary>

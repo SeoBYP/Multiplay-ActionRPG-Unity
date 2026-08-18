@@ -95,7 +95,7 @@ public class QuestGrpcService(
     {
         Exp = r.Exp,
         Gold = r.Gold,
-        ItemId = r.ItemId ?? string.Empty,
+        ItemId = r.ItemId,   // 0 = 아이템 보상 없음
         ItemQty = r.ItemQty,
     };
 

@@ -8,7 +8,7 @@ namespace Game.Presentation.Inventory
     /// </summary>
     public sealed class InventoryItemModel
     {
-        public string ItemId { get; }
+        public int ItemId { get; }
         public int Quantity { get; }
         public string DisplayName { get; }
         public Sprite Icon { get; }
@@ -16,7 +16,7 @@ namespace Game.Presentation.Inventory
         public ItemGrade Grade { get; }
         public Sprite GradeBackground { get; } // 등급 배경 스프라이트(Model이 GradeSpriteCatalog로 해석). null이면 배경 없음.
 
-        public InventoryItemModel(string itemId, int quantity, string displayName, Sprite icon,
+        public InventoryItemModel(int itemId, int quantity, string displayName, Sprite icon,
             ItemCategory category, ItemGrade grade = ItemGrade.Common, Sprite gradeBackground = null)
         {
             ItemId = itemId;

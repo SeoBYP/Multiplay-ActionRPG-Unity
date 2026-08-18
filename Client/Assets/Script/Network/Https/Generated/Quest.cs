@@ -26,7 +26,7 @@ namespace GameServer.Grpc.Quest {
           string.Concat(
             "CgtxdWVzdC5wcm90bxITZ2FtZXNlcnZlci5xdWVzdC52MRoMY29tbW9uLnBy",
             "b3RvIksKC1F1ZXN0UmV3YXJkEgsKA2V4cBgBIAEoAxIMCgRnb2xkGAIgASgD",
-            "Eg8KB2l0ZW1faWQYAyABKAkSEAoIaXRlbV9xdHkYBCABKAUirgIKCVF1ZXN0",
+            "Eg8KB2l0ZW1faWQYAyABKAUSEAoIaXRlbV9xdHkYBCABKAUirgIKCVF1ZXN0",
             "SW5mbxIQCghxdWVzdF9pZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2Ny",
             "aXB0aW9uGAMgASgJEjsKDm9iamVjdGl2ZV90eXBlGAQgASgOMiMuZ2FtZXNl",
             "cnZlci5xdWVzdC52MS5RdWVzdE9iamVjdGl2ZRIRCgl0YXJnZXRfaWQYBSAB",
@@ -177,16 +177,16 @@ namespace GameServer.Grpc.Quest {
 
     /// <summary>Field number for the "item_id" field.</summary>
     public const int ItemIdFieldNumber = 3;
-    private string itemId_ = "";
+    private int itemId_;
     /// <summary>
-    /// 빈 문자열이면 아이템 보상 없음
+    /// numericId. 0 이면 아이템 보상 없음
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string ItemId {
+    public int ItemId {
       get { return itemId_; }
       set {
-        itemId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        itemId_ = value;
       }
     }
 
@@ -230,7 +230,7 @@ namespace GameServer.Grpc.Quest {
       int hash = 1;
       if (Exp != 0L) hash ^= Exp.GetHashCode();
       if (Gold != 0L) hash ^= Gold.GetHashCode();
-      if (ItemId.Length != 0) hash ^= ItemId.GetHashCode();
+      if (ItemId != 0) hash ^= ItemId.GetHashCode();
       if (ItemQty != 0) hash ^= ItemQty.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -258,9 +258,9 @@ namespace GameServer.Grpc.Quest {
         output.WriteRawTag(16);
         output.WriteInt64(Gold);
       }
-      if (ItemId.Length != 0) {
-        output.WriteRawTag(26);
-        output.WriteString(ItemId);
+      if (ItemId != 0) {
+        output.WriteRawTag(24);
+        output.WriteInt32(ItemId);
       }
       if (ItemQty != 0) {
         output.WriteRawTag(32);
@@ -284,9 +284,9 @@ namespace GameServer.Grpc.Quest {
         output.WriteRawTag(16);
         output.WriteInt64(Gold);
       }
-      if (ItemId.Length != 0) {
-        output.WriteRawTag(26);
-        output.WriteString(ItemId);
+      if (ItemId != 0) {
+        output.WriteRawTag(24);
+        output.WriteInt32(ItemId);
       }
       if (ItemQty != 0) {
         output.WriteRawTag(32);
@@ -308,8 +308,8 @@ namespace GameServer.Grpc.Quest {
       if (Gold != 0L) {
         size += 1 + pb::CodedOutputStream.ComputeInt64Size(Gold);
       }
-      if (ItemId.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(ItemId);
+      if (ItemId != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(ItemId);
       }
       if (ItemQty != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(ItemQty);
@@ -332,7 +332,7 @@ namespace GameServer.Grpc.Quest {
       if (other.Gold != 0L) {
         Gold = other.Gold;
       }
-      if (other.ItemId.Length != 0) {
+      if (other.ItemId != 0) {
         ItemId = other.ItemId;
       }
       if (other.ItemQty != 0) {
@@ -365,8 +365,8 @@ namespace GameServer.Grpc.Quest {
             Gold = input.ReadInt64();
             break;
           }
-          case 26: {
-            ItemId = input.ReadString();
+          case 24: {
+            ItemId = input.ReadInt32();
             break;
           }
           case 32: {
@@ -400,8 +400,8 @@ namespace GameServer.Grpc.Quest {
             Gold = input.ReadInt64();
             break;
           }
-          case 26: {
-            ItemId = input.ReadString();
+          case 24: {
+            ItemId = input.ReadInt32();
             break;
           }
           case 32: {

@@ -4,13 +4,13 @@
             "monsterId": "arachnya",
             "drops": [
                 {
-                    "itemId": "gold",
+                    "itemId": 3001,
                     "chance": 1.0,
                     "minQty": 8,
                     "maxQty": 20
                 },
                 {
-                    "itemId": "potion_hp_small",
+                    "itemId": 1001,
                     "chance": 0.3499999940395355,
                     "minQty": 1,
                     "maxQty": 1
@@ -21,26 +21,26 @@
             "monsterId": "creepy_demon",
             "drops": [
                 {
-                    "itemId": "gold",
+                    "itemId": 3001,
                     "chance": 1.0,
                     "minQty": 10,
                     "maxQty": 30
                 },
                 {
-                    "itemId": "potion_hp_small",
+                    "itemId": 1001,
                     "chance": 1.0,
                     "minQty": 1,
                     "maxQty": 1
                 },
                 {
-                    "itemId": "sword_basic",
-                    "chance": 0.30000001192092898,
+                    "itemId": 2101,
+                    "chance": 0.30000001192092896,
                     "minQty": 1,
                     "maxQty": 1
                 },
                 {
-                    "itemId": "armor_leather",
-                    "chance": 0.20000000298023225,
+                    "itemId": 2201,
+                    "chance": 0.20000000298023224,
                     "minQty": 1,
                     "maxQty": 1
                 }
@@ -50,19 +50,19 @@
             "monsterId": "demon_girl",
             "drops": [
                 {
-                    "itemId": "gold",
+                    "itemId": 3001,
                     "chance": 1.0,
                     "minQty": 12,
                     "maxQty": 28
                 },
                 {
-                    "itemId": "potion_hp_small",
-                    "chance": 0.30000001192092898,
+                    "itemId": 1001,
+                    "chance": 0.30000001192092896,
                     "minQty": 1,
                     "maxQty": 1
                 },
                 {
-                    "itemId": "ring_power",
+                    "itemId": 2301,
                     "chance": 0.07999999821186066,
                     "minQty": 1,
                     "maxQty": 1
@@ -73,19 +73,19 @@
             "monsterId": "gargoyle",
             "drops": [
                 {
-                    "itemId": "gold",
+                    "itemId": 3001,
                     "chance": 1.0,
                     "minQty": 18,
                     "maxQty": 40
                 },
                 {
-                    "itemId": "shield_wooden",
+                    "itemId": 2205,
                     "chance": 0.2199999988079071,
                     "minQty": 1,
                     "maxQty": 1
                 },
                 {
-                    "itemId": "helmet_iron",
+                    "itemId": 2202,
                     "chance": 0.11999999731779099,
                     "minQty": 1,
                     "maxQty": 1
@@ -96,20 +96,20 @@
             "monsterId": "gargoyle_elite",
             "drops": [
                 {
-                    "itemId": "gold",
+                    "itemId": 3001,
                     "chance": 1.0,
                     "minQty": 36,
                     "maxQty": 80
                 },
                 {
-                    "itemId": "shield_wooden",
+                    "itemId": 2205,
                     "chance": 0.4399999976158142,
                     "minQty": 1,
                     "maxQty": 1
                 },
                 {
-                    "itemId": "helmet_iron",
-                    "chance": 0.23999999463558198,
+                    "itemId": 2202,
+                    "chance": 0.23999999463558197,
                     "minQty": 1,
                     "maxQty": 1
                 }
@@ -119,25 +119,25 @@
             "monsterId": "leviathan",
             "drops": [
                 {
-                    "itemId": "gold",
+                    "itemId": 3001,
                     "chance": 1.0,
                     "minQty": 80,
                     "maxQty": 150
                 },
                 {
-                    "itemId": "sword_basic",
+                    "itemId": 2101,
                     "chance": 1.0,
                     "minQty": 1,
                     "maxQty": 1
                 },
                 {
-                    "itemId": "necklace_vitality",
+                    "itemId": 2302,
                     "chance": 0.5,
                     "minQty": 1,
                     "maxQty": 1
                 },
                 {
-                    "itemId": "ring_power",
+                    "itemId": 2301,
                     "chance": 0.3499999940395355,
                     "minQty": 1,
                     "maxQty": 1
@@ -148,25 +148,25 @@
             "monsterId": "leviathan_boss",
             "drops": [
                 {
-                    "itemId": "gold",
+                    "itemId": 3001,
                     "chance": 1.0,
                     "minQty": 240,
                     "maxQty": 450
                 },
                 {
-                    "itemId": "sword_basic",
+                    "itemId": 2101,
                     "chance": 1.0,
                     "minQty": 1,
                     "maxQty": 1
                 },
                 {
-                    "itemId": "necklace_vitality",
+                    "itemId": 2302,
                     "chance": 1.0,
                     "minQty": 1,
                     "maxQty": 1
                 },
                 {
-                    "itemId": "ring_power",
+                    "itemId": 2301,
                     "chance": 0.800000011920929,
                     "minQty": 1,
                     "maxQty": 1
@@ -177,25 +177,25 @@
             "monsterId": "undead_axemaster",
             "drops": [
                 {
-                    "itemId": "gold",
+                    "itemId": 3001,
                     "chance": 1.0,
                     "minQty": 30,
                     "maxQty": 60
                 },
                 {
-                    "itemId": "sword_basic",
+                    "itemId": 2101,
                     "chance": 0.3499999940395355,
                     "minQty": 1,
                     "maxQty": 1
                 },
                 {
-                    "itemId": "helmet_iron",
-                    "chance": 0.20000000298023225,
+                    "itemId": 2202,
+                    "chance": 0.20000000298023224,
                     "minQty": 1,
                     "maxQty": 1
                 },
                 {
-                    "itemId": "potion_hp_small",
+                    "itemId": 1001,
                     "chance": 0.5,
                     "minQty": 1,
                     "maxQty": 2
@@ -206,25 +206,25 @@
             "monsterId": "undead_axemaster_elite",
             "drops": [
                 {
-                    "itemId": "gold",
+                    "itemId": 3001,
                     "chance": 1.0,
                     "minQty": 60,
                     "maxQty": 120
                 },
                 {
-                    "itemId": "sword_basic",
+                    "itemId": 2101,
                     "chance": 0.699999988079071,
                     "minQty": 1,
                     "maxQty": 1
                 },
                 {
-                    "itemId": "helmet_iron",
+                    "itemId": 2202,
                     "chance": 0.4000000059604645,
                     "minQty": 1,
                     "maxQty": 1
                 },
                 {
-                    "itemId": "potion_hp_small",
+                    "itemId": 1001,
                     "chance": 1.0,
                     "minQty": 1,
                     "maxQty": 2
@@ -235,14 +235,14 @@
             "monsterId": "vampire_bat",
             "drops": [
                 {
-                    "itemId": "gold",
+                    "itemId": 3001,
                     "chance": 1.0,
                     "minQty": 3,
                     "maxQty": 8
                 },
                 {
-                    "itemId": "potion_hp_small",
-                    "chance": 0.15000000596046449,
+                    "itemId": 1001,
+                    "chance": 0.15000000596046448,
                     "minQty": 1,
                     "maxQty": 1
                 }
@@ -252,20 +252,20 @@
             "monsterId": "wild_centaur",
             "drops": [
                 {
-                    "itemId": "gold",
+                    "itemId": 3001,
                     "chance": 1.0,
                     "minQty": 15,
                     "maxQty": 35
                 },
                 {
-                    "itemId": "boots_leather",
-                    "chance": 0.18000000715255738,
+                    "itemId": 2203,
+                    "chance": 0.18000000715255737,
                     "minQty": 1,
                     "maxQty": 1
                 },
                 {
-                    "itemId": "gloves_leather",
-                    "chance": 0.18000000715255738,
+                    "itemId": 2204,
+                    "chance": 0.18000000715255737,
                     "minQty": 1,
                     "maxQty": 1
                 }
@@ -275,20 +275,20 @@
             "monsterId": "wild_centaur_elite",
             "drops": [
                 {
-                    "itemId": "gold",
+                    "itemId": 3001,
                     "chance": 1.0,
                     "minQty": 30,
                     "maxQty": 70
                 },
                 {
-                    "itemId": "boots_leather",
-                    "chance": 0.36000001430511477,
+                    "itemId": 2203,
+                    "chance": 0.36000001430511475,
                     "minQty": 1,
                     "maxQty": 1
                 },
                 {
-                    "itemId": "gloves_leather",
-                    "chance": 0.36000001430511477,
+                    "itemId": 2204,
+                    "chance": 0.36000001430511475,
                     "minQty": 1,
                     "maxQty": 1
                 }

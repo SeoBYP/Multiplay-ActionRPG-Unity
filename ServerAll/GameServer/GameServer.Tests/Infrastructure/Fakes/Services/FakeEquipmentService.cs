@@ -21,9 +21,9 @@ public class FakeEquipmentService : IEquipmentService
     public Task<List<UserEquipment>> GetEquippedAsync(long userId, CancellationToken ct = default)
         => Task.FromResult(new List<UserEquipment>());
 
-    public Task<EquipResult> EquipAsync(long userId, string itemId, CancellationToken ct = default)
+    public Task<EquipResult> EquipAsync(long userId, int itemId, CancellationToken ct = default)
         => Task.FromResult(EquipResult.Ok(default, itemId));
 
     public Task<EquipResult> UnequipAsync(long userId, EquipmentType slot, CancellationToken ct = default)
-        => Task.FromResult(EquipResult.Ok(slot, string.Empty));
+        => Task.FromResult(EquipResult.Ok(slot, 0));   // 0 = 빈 슬롯
 }

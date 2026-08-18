@@ -69,9 +69,8 @@ namespace GameServer.Infrastructure.Persistence.Migrations
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("ItemId")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                    b.Property<int>("ItemId")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("DiscoveredAt")
                         .HasColumnType("timestamp with time zone");
@@ -143,10 +142,8 @@ namespace GameServer.Infrastructure.Persistence.Migrations
                     b.Property<int>("Slot")
                         .HasColumnType("integer");
 
-                    b.Property<string>("ItemId")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                    b.Property<int>("ItemId")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -214,9 +211,8 @@ namespace GameServer.Infrastructure.Persistence.Migrations
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("ItemId")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                    b.Property<int>("ItemId")
+                        .HasColumnType("integer");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");

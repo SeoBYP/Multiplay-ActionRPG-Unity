@@ -37,12 +37,12 @@ public class EquipmentRepositoryIntegrationTests
         var userId = await CreateUserAsync();
         var repository = CreateRepository();
 
-        await repository.SetAsync(userId, EquipmentType.Weapon, "sword_basic");
+        await repository.SetAsync(userId, EquipmentType.Weapon, 2101);
 
         using var ctx = _fixture.CreateDbContext();
         var dbRow = await ctx.UserEquipments.FindAsync(userId, EquipmentType.Weapon);
         Assert.NotNull(dbRow);
-        Assert.Equal("sword_basic", dbRow!.ItemId);
+        Assert.Equal(2101, dbRow!.ItemId);
     }
 
     [Fact]
@@ -51,12 +51,12 @@ public class EquipmentRepositoryIntegrationTests
         var userId = await CreateUserAsync();
         var repository = CreateRepository();
 
-        await repository.SetAsync(userId, EquipmentType.Weapon, "sword_basic");
-        await repository.SetAsync(userId, EquipmentType.Weapon, "armor_leather"); // 비현실 조합이지만 upsert 교체만 검증
+        await repository.SetAsync(userId, EquipmentType.Weapon, 2101);
+        await repository.SetAsync(userId, EquipmentType.Weapon, 2201); // 비현실 조합이지만 upsert 교체만 검증
 
         var equipped = await repository.GetEquippedAsync(userId);
         Assert.Single(equipped);
-        Assert.Equal("armor_leather", equipped[0].ItemId);
+        Assert.Equal(2201, equipped[0].ItemId);
     }
 
     [Fact]
@@ -66,11 +66,11 @@ public class EquipmentRepositoryIntegrationTests
         var repository = CreateRepository();
         var db = _fixture.RedisConnection.GetDatabase();
 
-        await repository.SetAsync(userId, EquipmentType.Weapon, "sword_basic");
+        await repository.SetAsync(userId, EquipmentType.Weapon, 2101);
         await repository.GetEquippedAsync(userId); // 캐시 적재
         Assert.True(await db.KeyExistsAsync(RedisKeys.UserEquipment(userId)));
 
-        await repository.SetAsync(userId, EquipmentType.Armor, "armor_leather");
+        await repository.SetAsync(userId, EquipmentType.Armor, 2201);
 
         Assert.False(await db.KeyExistsAsync(RedisKeys.UserEquipment(userId)));
     }
@@ -81,7 +81,7 @@ public class EquipmentRepositoryIntegrationTests
         var userId = await CreateUserAsync();
         var repository = CreateRepository();
 
-        await repository.SetAsync(userId, EquipmentType.Armor, "armor_leather");
+        await repository.SetAsync(userId, EquipmentType.Armor, 2201);
         await repository.GetEquippedAsync(userId); // 캐시 적재
 
         // DB row 삭제 — 캐시에서 와야 함
@@ -95,7 +95,7 @@ public class EquipmentRepositoryIntegrationTests
         var equipped = await repository.GetEquippedAsync(userId);
 
         Assert.Single(equipped);
-        Assert.Equal("armor_leather", equipped[0].ItemId);
+        Assert.Equal(2201, equipped[0].ItemId);
         Assert.Equal(EquipmentType.Armor, equipped[0].Slot);
     }
 
@@ -106,7 +106,7 @@ public class EquipmentRepositoryIntegrationTests
         var repository = CreateRepository();
         var db = _fixture.RedisConnection.GetDatabase();
 
-        await repository.SetAsync(userId, EquipmentType.Weapon, "sword_basic"); // Set 이 캐시 DEL
+        await repository.SetAsync(userId, EquipmentType.Weapon, 2101); // Set 이 캐시 DEL
         Assert.False(await db.KeyExistsAsync(RedisKeys.UserEquipment(userId)));
 
         var equipped = await repository.GetEquippedAsync(userId);
@@ -126,7 +126,7 @@ public class EquipmentRepositoryIntegrationTests
         var repository = CreateRepository();
         var db = _fixture.RedisConnection.GetDatabase();
 
-        await repository.SetAsync(userId, EquipmentType.Weapon, "sword_basic");
+        await repository.SetAsync(userId, EquipmentType.Weapon, 2101);
         await repository.GetEquippedAsync(userId); // 캐시 적재
         Assert.True(await db.KeyExistsAsync(RedisKeys.UserEquipment(userId)));
 

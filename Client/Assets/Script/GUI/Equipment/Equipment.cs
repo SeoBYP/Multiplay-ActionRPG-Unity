@@ -138,7 +138,7 @@ namespace Game.GUI.Equipment
             OpenActionPanel(slotView.type, equipped.ItemId, slotRect).Forget();
         }
 
-        private async UniTask OpenActionPanel(EquipmentType slot, string itemId, RectTransform slotRect)
+        private async UniTask OpenActionPanel(EquipmentType slot, int itemId, RectTransform slotRect)
         {
             await _actionPanel.OpenAsync(ResolveCanvas(), slotRect, panel => panel.Bind(
                 itemId,

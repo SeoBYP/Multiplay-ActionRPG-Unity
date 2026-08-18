@@ -49,13 +49,13 @@ message ClaimMonsterExpResponse {
 
 // ClaimKill 로 실제 지급된 한 항목.
 message GrantedItem {
-  string item_id = 1;
+  int32 item_id = 1;
   int32 qty = 2;            // 이번에 지급된 수량
   int32 new_quantity = 3;   // 지급 후 보유 총량
 }
 
 message ConsumeItemRequest {
-  string item_id = 1;
+  int32 item_id = 1;
   int32 qty = 2;
 }
 
@@ -71,6 +71,6 @@ message GetInventoryResponse {
 
 // 소유 아이템(수량). 정의(이름·등급·아이콘)는 클라가 itemId 로 자기 카탈로그에서 룩업.
 message InventoryItemInfo {
-  string item_id = 1;
+  int32 item_id = 1;
   int32 quantity = 2;
 }

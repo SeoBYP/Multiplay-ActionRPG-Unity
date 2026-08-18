@@ -178,6 +178,6 @@ namespace Game.Gameplay.Editor
         // ── JSON DTO (서버 DropTableCatalog.Parse 와 동일 형식) ──
         [Serializable] private sealed class FileDto { public List<TableDto> tables = new(); }
         [Serializable] private sealed class TableDto { public string monsterId; public List<DropDto> drops = new(); }
-        [Serializable] private sealed class DropDto { public string itemId; public float chance = 1f; public int minQty = 1; public int maxQty = 1; }
+        [Serializable] private sealed class DropDto { public int itemId; public float chance = 1f; public int minQty = 1; public int maxQty = 1; }
     }
 }

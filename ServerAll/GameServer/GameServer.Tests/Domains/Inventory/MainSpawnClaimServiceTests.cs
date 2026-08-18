@@ -78,9 +78,9 @@ public class MainSpawnClaimServiceTests
         var res = await _service.ClaimKillAsync(1L, MainMap, slotId: 1);
 
         Assert.True(res.Success, res.FailReason);
-        Assert.Contains(res.Granted, g => g.ItemId == "potion_hp_small"); // slime 보장 드랍(서버 roll)
+        Assert.Contains(res.Granted, g => g.ItemId == 1001); // slime 보장 드랍(서버 roll)
         var inv = await _repository.GetAllAsync(1L);
-        Assert.Contains(inv, i => i.ItemId == "potion_hp_small" && i.Quantity >= 1);
+        Assert.Contains(inv, i => i.ItemId == 1001 && i.Quantity >= 1);
     }
 
     [Fact]
@@ -135,14 +135,14 @@ public class MainSpawnClaimServiceTests
         // 1회차: 정상 지급(슬롯 점유).
         var first = await _service.ClaimKillAsync(1L, MainMap, slotId: 1);
         Assert.NotEmpty(first.Granted);
-        var afterFirst = (await _repository.GetAllAsync(1L)).Single(i => i.ItemId == "potion_hp_small").Quantity;
+        var afterFirst = (await _repository.GetAllAsync(1L)).Single(i => i.ItemId == 1001).Quantity;
 
         // 2회차(쿨다운 내, 무한 스폰 후 재청구 시도): 보상 없음 → 인벤토리 불변 = 무한파밍 차단.
         var second = await _service.ClaimKillAsync(1L, MainMap, slotId: 1);
 
         Assert.True(second.Success);        // 쿨다운은 에러 아님
         Assert.Empty(second.Granted);       // 보상 0
-        var afterSecond = (await _repository.GetAllAsync(1L)).Single(i => i.ItemId == "potion_hp_small").Quantity;
+        var afterSecond = (await _repository.GetAllAsync(1L)).Single(i => i.ItemId == 1001).Quantity;
         Assert.Equal(afterFirst, afterSecond);
     }
 

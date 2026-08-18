@@ -157,10 +157,10 @@ namespace Game.Network.Socket
         /// <summary>S_GroundItemRemoved 수신 시 발행(groundId). GroundItemSpawner가 디스폰한다.</summary>
         event Action<int> OnGroundItemRemoved;
         /// <summary>S_ItemPickedUp 수신 시 발행(itemId, qty). 획득 토스트 표시에 사용.</summary>
-        event Action<string, int> OnItemPickedUp;
+        event Action<int, int> OnItemPickedUp;
         void AddGroundItem(SocketGroundItemSnapshot snapshot);
         void RemoveGroundItem(int groundId);
-        void NotifyItemPickedUp(string itemId, int qty);
+        void NotifyItemPickedUp(int itemId, int qty);
         /// <summary>현재 보관 중인 모든 바닥 아이템 스냅샷의 복사본. (스포너 초기 로스터용)</summary>
         IReadOnlyList<SocketGroundItemSnapshot> GetAllGroundItems();
     }
@@ -196,7 +196,7 @@ namespace Game.Network.Socket
         public event Action<int>                   OnMonsterDead;
         public event Action<SocketGroundItemSnapshot> OnGroundItemSpawned;
         public event Action<int>                      OnGroundItemRemoved;
-        public event Action<string, int>             OnItemPickedUp;
+        public event Action<int, int>                OnItemPickedUp;
 
         public void MarkDungeonReady() => OnDungeonReady?.Invoke();
         public void MarkDungeonCleared(long rewardExp) => OnDungeonCleared?.Invoke(rewardExp);
@@ -378,8 +378,8 @@ namespace Game.Network.Socket
             if (removed) OnGroundItemRemoved?.Invoke(groundId);
         }
 
-        public void NotifyItemPickedUp(string itemId, int qty)
-            => OnItemPickedUp?.Invoke(itemId ?? string.Empty, qty);
+        public void NotifyItemPickedUp(int itemId, int qty)
+            => OnItemPickedUp?.Invoke(itemId, qty);
 
         public IReadOnlyList<SocketGroundItemSnapshot> GetAllGroundItems()
         {
@@ -396,16 +396,16 @@ namespace Game.Network.Socket
     public sealed class SocketGroundItemSnapshot
     {
         public int GroundId { get; }
-        public string ItemId { get; }
+        public int ItemId { get; }
         public int Qty { get; }
         public float PosX { get; }
         public float PosY { get; }
         public float PosZ { get; }
 
-        public SocketGroundItemSnapshot(int groundId, string itemId, int qty, float posX, float posY, float posZ)
+        public SocketGroundItemSnapshot(int groundId, int itemId, int qty, float posX, float posY, float posZ)
         {
             GroundId = groundId;
-            ItemId = itemId ?? string.Empty;
+            ItemId = itemId;
             Qty = qty;
             PosX = posX;
             PosY = posY;

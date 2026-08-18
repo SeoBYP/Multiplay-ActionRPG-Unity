@@ -33,7 +33,7 @@ namespace Game.Presentation.Inventory
         public void Initialize()
             => _subscription = _model.OnConsumableUsed.Subscribe(ApplyEffects);
 
-        private void ApplyEffects(string itemId)
+        private void ApplyEffects(int itemId)
         {
             var asc = _localPlayer?.AbilitySystem;
             if (asc == null)

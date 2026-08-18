@@ -16,7 +16,7 @@ public sealed class InventoryService(IInventoryRepository repository, ICodexServ
     public Task<List<InventoryItem>> GetInventoryAsync(long userId, CancellationToken ct = default)
         => repository.GetAllAsync(userId, ct);
 
-    public async Task<ItemGrantResult> GrantItemAsync(long userId, string itemId, int amount, CancellationToken ct = default)
+    public async Task<ItemGrantResult> GrantItemAsync(long userId, int itemId, int amount, CancellationToken ct = default)
     {
         if (amount <= 0)
             return ItemGrantResult.Fail(itemId, "amount must be positive");
@@ -33,7 +33,7 @@ public sealed class InventoryService(IInventoryRepository repository, ICodexServ
         return ItemGrantResult.Ok(itemId, item.Quantity);
     }
 
-    public async Task<ItemConsumeResult> ConsumeItemAsync(long userId, string itemId, int amount, CancellationToken ct = default)
+    public async Task<ItemConsumeResult> ConsumeItemAsync(long userId, int itemId, int amount, CancellationToken ct = default)
     {
         if (amount <= 0)
             return ItemConsumeResult.Fail(itemId, "amount must be positive");

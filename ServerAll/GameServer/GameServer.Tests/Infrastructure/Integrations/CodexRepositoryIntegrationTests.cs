@@ -31,11 +31,11 @@ public class CodexRepositoryIntegrationTests
         var userId = await CreateUserAsync();
         var repository = CreateRepository();
 
-        var added = await repository.AddDiscoveredAsync(userId, "potion_hp_small");
+        var added = await repository.AddDiscoveredAsync(userId, 1001);
 
         Assert.True(added);
         var discovered = await repository.GetDiscoveredItemIdsAsync(userId);
-        Assert.Contains("potion_hp_small", discovered);
+        Assert.Contains(1001, discovered);
     }
 
     [Fact]
@@ -44,8 +44,8 @@ public class CodexRepositoryIntegrationTests
         var userId = await CreateUserAsync();
         var repository = CreateRepository();
 
-        await repository.AddDiscoveredAsync(userId, "potion_hp_small");
-        var second = await repository.AddDiscoveredAsync(userId, "potion_hp_small");
+        await repository.AddDiscoveredAsync(userId, 1001);
+        var second = await repository.AddDiscoveredAsync(userId, 1001);
 
         Assert.False(second); // ON CONFLICT DO NOTHING → 0행
         Assert.Single(await repository.GetDiscoveredItemIdsAsync(userId));
@@ -57,8 +57,8 @@ public class CodexRepositoryIntegrationTests
         var userId = await CreateUserAsync();
         var repository = CreateRepository();
 
-        await repository.AddDiscoveredAsync(userId, "potion_hp_small");
-        await repository.AddDiscoveredAsync(userId, "sword_basic");
+        await repository.AddDiscoveredAsync(userId, 1001);
+        await repository.AddDiscoveredAsync(userId, 2101);
 
         var discovered = await repository.GetDiscoveredItemIdsAsync(userId);
         Assert.Equal(2, discovered.Count);
@@ -71,7 +71,7 @@ public class CodexRepositoryIntegrationTests
         var userB = await CreateUserAsync();
         var repository = CreateRepository();
 
-        await repository.AddDiscoveredAsync(userA, "potion_hp_small");
+        await repository.AddDiscoveredAsync(userA, 1001);
 
         Assert.Empty(await repository.GetDiscoveredItemIdsAsync(userB));
     }

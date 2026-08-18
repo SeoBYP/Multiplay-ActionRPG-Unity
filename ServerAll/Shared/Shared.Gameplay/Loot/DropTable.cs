@@ -4,17 +4,18 @@ using System.Collections.Generic;
 namespace Shared.Gameplay
 {
     /// <summary>
-    /// 한 드랍 후보 — itemId 가 Chance 확률로 [MinQty, MaxQty] 수량 떨어진다.
-    /// itemId 는 GameServer ItemCatalog 와 문자열로 정렬(드리프트는 grant 시 GameServer 가 검증·실패처리).
+    /// 한 드랍 후보 — itemId(numericId)가 Chance 확률로 [MinQty, MaxQty] 수량 떨어진다.
+    /// itemId 는 GameServer ItemCatalog 의 numericId 와 정렬(드리프트는 grant 시 GameServer 가 검증·실패처리).
+    /// 재화 대역(3000~3999)은 인벤토리가 아니라 지갑으로 라우팅된다(Currencies.IsCurrency).
     /// </summary>
     public readonly struct DropEntry
     {
-        public string ItemId { get; }
+        public int ItemId { get; }
         public double Chance { get; }
         public int MinQty { get; }
         public int MaxQty { get; }
 
-        public DropEntry(string itemId, double chance, int minQty, int maxQty)
+        public DropEntry(int itemId, double chance, int minQty, int maxQty)
         {
             ItemId = itemId;
             Chance = chance;
@@ -26,10 +27,10 @@ namespace Shared.Gameplay
     /// <summary>roll 결과 한 항목(어떤 아이템 몇 개).</summary>
     public readonly struct DropResult
     {
-        public string ItemId { get; }
+        public int ItemId { get; }
         public int Qty { get; }
 
-        public DropResult(string itemId, int qty)
+        public DropResult(int itemId, int qty)
         {
             ItemId = itemId;
             Qty = qty;

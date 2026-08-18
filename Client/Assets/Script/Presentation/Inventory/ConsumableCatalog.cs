@@ -19,7 +19,7 @@ namespace Game.Presentation.Inventory
         public List<ConsumableDef> items = new();
 
         /// <summary>itemId 의 소모품 정의. 미등록(=소모품 아님)이면 null.</summary>
-        public ConsumableDef Get(string itemId)
+        public ConsumableDef Get(int itemId)
         {
             foreach (var d in items)
                 if (d.itemId == itemId)
@@ -32,7 +32,7 @@ namespace Game.Presentation.Inventory
     [Serializable]
     public sealed class ConsumableDef
     {
-        public string itemId;
+        public int itemId;
         public List<ConsumableEffectDef> effects = new();
     }
 

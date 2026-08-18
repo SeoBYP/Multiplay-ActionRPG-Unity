@@ -44,7 +44,7 @@ namespace Game.System.Inventory
             }
         }
 
-        public async UniTask<(InventoryResult Result, int Remaining)> ConsumeItemAsync(string itemId, int qty, CancellationToken ct = default)
+        public async UniTask<(InventoryResult Result, int Remaining)> ConsumeItemAsync(int itemId, int qty, CancellationToken ct = default)
         {
             try
             {

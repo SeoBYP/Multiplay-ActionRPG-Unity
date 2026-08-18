@@ -27,7 +27,7 @@ namespace GameServer.Grpc.Codex {
             "Cgtjb2RleC5wcm90bxITZ2FtZXNlcnZlci5jb2RleC52MRoMY29tbW9uLnBy",
             "b3RvIhEKD0dldENvZGV4UmVxdWVzdCJaChBHZXRDb2RleFJlc3BvbnNlEikK",
             "BnJlc3VsdBgBIAEoCzIZLmdhbWVzZXJ2ZXIuY29tbW9uLlJlc3VsdBIbChNk",
-            "aXNjb3ZlcmVkX2l0ZW1faWRzGAIgAygJMmcKDENvZGV4U2VydmljZRJXCghH",
+            "aXNjb3ZlcmVkX2l0ZW1faWRzGAIgAygFMmcKDENvZGV4U2VydmljZRJXCghH",
             "ZXRDb2RleBIkLmdhbWVzZXJ2ZXIuY29kZXgudjEuR2V0Q29kZXhSZXF1ZXN0",
             "GiUuZ2FtZXNlcnZlci5jb2RleC52MS5HZXRDb2RleFJlc3BvbnNlQhiqAhVH",
             "YW1lU2VydmVyLkdycGMuQ29kZXhiBnByb3RvMw=="));
@@ -263,15 +263,15 @@ namespace GameServer.Grpc.Codex {
 
     /// <summary>Field number for the "discovered_item_ids" field.</summary>
     public const int DiscoveredItemIdsFieldNumber = 2;
-    private static readonly pb::FieldCodec<string> _repeated_discoveredItemIds_codec
-        = pb::FieldCodec.ForString(18);
-    private readonly pbc::RepeatedField<string> discoveredItemIds_ = new pbc::RepeatedField<string>();
+    private static readonly pb::FieldCodec<int> _repeated_discoveredItemIds_codec
+        = pb::FieldCodec.ForInt32(18);
+    private readonly pbc::RepeatedField<int> discoveredItemIds_ = new pbc::RepeatedField<int>();
     /// <summary>
-    /// 발견(획득)한 itemId 목록(서버 권위). 클라가 자기 카탈로그와 대조해 완성도 산출.
+    /// 발견(획득)한 itemId(numericId) 목록(서버 권위). 클라가 자기 카탈로그와 대조해 완성도 산출.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public pbc::RepeatedField<string> DiscoveredItemIds {
+    public pbc::RepeatedField<int> DiscoveredItemIds {
       get { return discoveredItemIds_; }
     }
 
@@ -398,7 +398,8 @@ namespace GameServer.Grpc.Codex {
             input.ReadMessage(Result);
             break;
           }
-          case 18: {
+          case 18:
+          case 16: {
             discoveredItemIds_.AddEntriesFrom(input, _repeated_discoveredItemIds_codec);
             break;
           }
@@ -428,7 +429,8 @@ namespace GameServer.Grpc.Codex {
             input.ReadMessage(Result);
             break;
           }
-          case 18: {
+          case 18:
+          case 16: {
             discoveredItemIds_.AddEntriesFrom(ref input, _repeated_discoveredItemIds_codec);
             break;
           }

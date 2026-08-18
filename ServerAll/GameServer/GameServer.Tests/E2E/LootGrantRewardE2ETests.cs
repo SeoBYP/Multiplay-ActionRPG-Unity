@@ -68,7 +68,7 @@ public class LootGrantRewardE2ETests
         await _fixture.RedisConnection.GetDatabase().StreamAddAsync(StreamKey, "data", json);
     }
 
-    private async Task<int?> GetQuantityAsync(long userId, string itemId)
+    private async Task<int?> GetQuantityAsync(long userId, int itemId)
     {
         using var ctx = _fixture.CreateDbContext();
         var row = await ctx.InventoryItems.AsNoTracking()
@@ -98,14 +98,14 @@ public class LootGrantRewardE2ETests
         await PublishPickupAsync(new ItemPickedUpMessage
         {
             UserId = userId,
-            ItemId = "potion_hp_small",
+            ItemId = 1001,
             Qty = 2,
             PickupId = $"e2e-{userId}:1",
         });
 
-        await WaitUntilAsync(async () => await GetQuantityAsync(userId, "potion_hp_small") == 2, cts.Token);
+        await WaitUntilAsync(async () => await GetQuantityAsync(userId, 1001) == 2, cts.Token);
 
-        Assert.Equal(2, await GetQuantityAsync(userId, "potion_hp_small"));
+        Assert.Equal(2, await GetQuantityAsync(userId, 1001));
 
         await consumer.StopAsync(CancellationToken.None);
     }

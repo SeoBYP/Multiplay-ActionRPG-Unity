@@ -7,10 +7,10 @@ namespace Game.System.Inventory
     /// </summary>
     public readonly struct InventoryItemData
     {
-        public readonly string ItemId;
+        public readonly int ItemId;
         public readonly int Quantity;
 
-        public InventoryItemData(string itemId, int quantity)
+        public InventoryItemData(int itemId, int quantity)
         {
             ItemId = itemId;
             Quantity = quantity;

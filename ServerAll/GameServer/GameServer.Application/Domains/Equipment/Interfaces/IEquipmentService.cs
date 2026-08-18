@@ -16,7 +16,7 @@ public interface IEquipmentService
     /// <summary>
     /// 아이템을 장착한다. 슬롯은 EquipmentCatalog 가 결정(교체형). 장비가 아니거나 미보유면 실패.
     /// </summary>
-    Task<EquipResult> EquipAsync(long userId, string itemId, CancellationToken ct = default);
+    Task<EquipResult> EquipAsync(long userId, int itemId, CancellationToken ct = default);
 
     /// <summary>슬롯의 장비를 해제한다(멱등 — 비어 있어도 성공). 아이템은 인벤토리에 그대로 남는다.</summary>
     Task<EquipResult> UnequipAsync(long userId, EquipmentType slot, CancellationToken ct = default);

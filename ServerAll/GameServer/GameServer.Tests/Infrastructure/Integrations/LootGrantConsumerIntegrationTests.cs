@@ -78,7 +78,7 @@ public class LootGrantConsumerIntegrationTests
         return user.UserId;
     }
 
-    private async Task<int?> GetQuantityAsync(long userId, string itemId)
+    private async Task<int?> GetQuantityAsync(long userId, int itemId)
     {
         using var ctx = _fixture.CreateDbContext();
         var row = await ctx.InventoryItems.AsNoTracking()
@@ -116,14 +116,14 @@ public class LootGrantConsumerIntegrationTests
         await h.Queue.EnqueueAsync(new ItemPickedUpMessage
         {
             UserId = userId,
-            ItemId = "potion_hp_small",
+            ItemId = 1001,
             Qty = 3,
             PickupId = "9001:1",
         });
 
-        await WaitUntilAsync(async () => await GetQuantityAsync(userId, "potion_hp_small") == 3, cts.Token);
+        await WaitUntilAsync(async () => await GetQuantityAsync(userId, 1001) == 3, cts.Token);
 
-        Assert.Equal(3, await GetQuantityAsync(userId, "potion_hp_small"));
+        Assert.Equal(3, await GetQuantityAsync(userId, 1001));
 
         await h.Consumer.StopAsync(CancellationToken.None);
     }
@@ -140,7 +140,7 @@ public class LootGrantConsumerIntegrationTests
         var msg = new ItemPickedUpMessage
         {
             UserId = userId,
-            ItemId = "gold", // 통화 → WalletService 로 라우팅(3.4)
+            ItemId = 3001, // 통화 → WalletService 로 라우팅(3.4)
             Qty = 2,
             PickupId = "9101:1",
         };
@@ -152,7 +152,7 @@ public class LootGrantConsumerIntegrationTests
         await Task.Delay(300, cts.Token); // 처리 기회를 준 뒤
 
         Assert.Equal(2, await GetWalletBalanceAsync(userId));
-        Assert.Null(await GetQuantityAsync(userId, "gold")); // 인벤토리엔 안 들어간다
+        Assert.Null(await GetQuantityAsync(userId, 3001)); // 인벤토리엔 안 들어간다
 
         await h.Consumer.StopAsync(CancellationToken.None);
     }
@@ -168,17 +168,17 @@ public class LootGrantConsumerIntegrationTests
 
         await h.Queue.EnqueueAsync(new ItemPickedUpMessage
         {
-            UserId = userId, ItemId = "no_such_item", Qty = 1, PickupId = "9201:1",
+            UserId = userId, ItemId = 1931, Qty = 1, PickupId = "9201:1",
         });
         // 뒤따르는 정상 메시지가 처리되면 = 소비 루프가 살아있고 미존재 itemId 는 그냥 스킵됐다는 증거.
         await h.Queue.EnqueueAsync(new ItemPickedUpMessage
         {
-            UserId = userId, ItemId = "potion_hp_small", Qty = 1, PickupId = "9201:2",
+            UserId = userId, ItemId = 1001, Qty = 1, PickupId = "9201:2",
         });
 
-        await WaitUntilAsync(async () => await GetQuantityAsync(userId, "potion_hp_small") == 1, cts.Token);
+        await WaitUntilAsync(async () => await GetQuantityAsync(userId, 1001) == 1, cts.Token);
 
-        Assert.Null(await GetQuantityAsync(userId, "no_such_item"));
+        Assert.Null(await GetQuantityAsync(userId, 1931));
 
         await h.Consumer.StopAsync(CancellationToken.None);
     }

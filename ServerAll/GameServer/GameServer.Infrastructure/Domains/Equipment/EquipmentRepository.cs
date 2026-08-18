@@ -49,7 +49,7 @@ public class EquipmentRepository(
         }
     }
 
-    public async Task SetAsync(long userId, EquipmentType slot, string itemId, CancellationToken ct = default)
+    public async Task SetAsync(long userId, EquipmentType slot, int itemId, CancellationToken ct = default)
     {
         try
         {
@@ -127,8 +127,8 @@ public class EquipmentRepository(
             if (int.TryParse(entry.Name.ToString(), out var slotValue)
                 && Enum.IsDefined(typeof(EquipmentType), slotValue))
             {
-                var itemId = entry.Value.ToString();
-                if (!string.IsNullOrEmpty(itemId))
+                // 캐시 값은 numericId(int). 파싱 실패/0 은 빈 슬롯으로 보고 건너뛴다(문자열 시절 빈 문자열의 자리).
+                if (int.TryParse(entry.Value.ToString(), out var itemId) && itemId > 0)
                     equipped.Add(UserEquipment.FromRedis(userId, (EquipmentType)slotValue, itemId));
             }
         }

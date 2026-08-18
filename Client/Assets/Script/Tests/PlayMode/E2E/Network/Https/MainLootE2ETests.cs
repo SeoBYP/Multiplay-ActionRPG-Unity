@@ -33,11 +33,11 @@ namespace Game.Tests.PlayMode.E2E
                 new ClaimKillRequest { MapId = MainMap, SlotId = 1 }, Timeout());
 
             Assert.IsTrue(claim.Result.Success, claim.Result.Message);
-            Assert.IsTrue(claim.Granted.Any(g => g.ItemId == "potion_hp_small"), "서버 roll 보장 드랍 potion 누락");
+            Assert.IsTrue(claim.Granted.Any(g => g.ItemId == 1001), "서버 roll 보장 드랍 potion 누락");
 
             // 진실원 = 서버 DB.
             var inv = await InventoryService.GetInventoryAsync(new GetInventoryRequest(), Timeout());
-            var item = inv.Items.FirstOrDefault(i => i.ItemId == "potion_hp_small");
+            var item = inv.Items.FirstOrDefault(i => i.ItemId == 1001);
             Assert.IsNotNull(item, "potion_hp_small 가 인벤토리에 반영되지 않았다");
             Assert.GreaterOrEqual(item.Quantity, 1);
         });
@@ -52,14 +52,14 @@ namespace Game.Tests.PlayMode.E2E
             Assert.IsTrue(first.Result.Success, first.Result.Message);
             Assert.IsNotEmpty(first.Granted);
             var after1 = (await InventoryService.GetInventoryAsync(new GetInventoryRequest(), Timeout()))
-                .Items.First(i => i.ItemId == "potion_hp_small").Quantity;
+                .Items.First(i => i.ItemId == 1001).Quantity;
 
             // 2회차(쿨다운 내, 무한 스폰 후 재청구 시도): 성공이지만 보상 0 → 인벤토리 불변 = 파밍 차단.
             var second = await InventoryService.ClaimKillAsync(new ClaimKillRequest { MapId = MainMap, SlotId = 2 }, Timeout());
             Assert.IsTrue(second.Result.Success);
             Assert.IsEmpty(second.Granted);
             var after2 = (await InventoryService.GetInventoryAsync(new GetInventoryRequest(), Timeout()))
-                .Items.First(i => i.ItemId == "potion_hp_small").Quantity;
+                .Items.First(i => i.ItemId == 1001).Quantity;
             Assert.AreEqual(after1, after2, "쿨다운 내 재청구로 수량이 늘면 무한 파밍 가능");
         });
 

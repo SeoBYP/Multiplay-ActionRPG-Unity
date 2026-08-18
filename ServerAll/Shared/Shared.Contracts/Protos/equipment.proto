@@ -34,13 +34,13 @@ enum EquipmentType {
 }
 
 message EquipRequest {
-  string item_id = 1;  // 슬롯은 서버가 결정
+  int32 item_id = 1;  // 슬롯은 서버가 결정
 }
 
 message EquipResponse {
   gameserver.common.Result result = 1;
   EquipmentType slot = 2;    // 장착된 슬롯(서버 결정)
-  string item_id = 3;
+  int32 item_id = 3;
 }
 
 message UnequipRequest {
@@ -62,5 +62,5 @@ message GetEquipmentResponse {
 // 한 슬롯의 착용 아이템.
 message EquippedItem {
   EquipmentType slot = 1;
-  string item_id = 2;
+  int32 item_id = 2;
 }

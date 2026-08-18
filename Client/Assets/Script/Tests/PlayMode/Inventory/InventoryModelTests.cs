@@ -24,7 +24,7 @@ namespace Game.Tests.PlayMode.Inventory
             private readonly IReadOnlyList<InventoryItemData> _items;
             private readonly InventoryResult _consumeResult;
 
-            public string LastConsumedItemId { get; private set; }
+            public int LastConsumedItemId { get; private set; }
             public int ConsumeCallCount { get; private set; }
 
             public FakeInventoryService(
@@ -40,7 +40,7 @@ namespace Game.Tests.PlayMode.Inventory
             public UniTask<(InventoryResult Result, IReadOnlyList<InventoryItemData> Items)> GetInventoryAsync(CancellationToken ct = default)
                 => UniTask.FromResult((_result, _items));
 
-            public UniTask<(InventoryResult Result, int Remaining)> ConsumeItemAsync(string itemId, int qty, CancellationToken ct = default)
+            public UniTask<(InventoryResult Result, int Remaining)> ConsumeItemAsync(int itemId, int qty, CancellationToken ct = default)
             {
                 ConsumeCallCount++;
                 LastConsumedItemId = itemId;
@@ -55,7 +55,7 @@ namespace Game.Tests.PlayMode.Inventory
 #pragma warning disable CS0067
             public event Action OnChanged;
 #pragma warning restore CS0067
-            public FakeEquipmentService(params string[] equippedItemIds)
+            public FakeEquipmentService(params int[] equippedItemIds)
             {
                 foreach (var id in equippedItemIds)
                     _equipped.Add(new Game.System.Equipment.EquippedItemData(Shared.Gameplay.Equipment.EquipmentType.Weapon, id));
@@ -64,7 +64,7 @@ namespace Game.Tests.PlayMode.Inventory
             public UniTask<(Game.System.Equipment.EquipmentResult Result, IReadOnlyList<Game.System.Equipment.EquippedItemData> Items)> GetEquippedAsync(CancellationToken ct = default)
                 => UniTask.FromResult((Game.System.Equipment.EquipmentResult.Success, (IReadOnlyList<Game.System.Equipment.EquippedItemData>)_equipped));
 
-            public UniTask<(Game.System.Equipment.EquipmentResult Result, Shared.Gameplay.Equipment.EquipmentType Slot)> EquipAsync(string itemId, CancellationToken ct = default)
+            public UniTask<(Game.System.Equipment.EquipmentResult Result, Shared.Gameplay.Equipment.EquipmentType Slot)> EquipAsync(int itemId, CancellationToken ct = default)
                 => UniTask.FromResult((Game.System.Equipment.EquipmentResult.Success, Shared.Gameplay.Equipment.EquipmentType.Weapon));
 
             public UniTask<Game.System.Equipment.EquipmentResult> UnequipAsync(Shared.Gameplay.Equipment.EquipmentType slot, CancellationToken ct = default)
@@ -74,11 +74,11 @@ namespace Game.Tests.PlayMode.Inventory
         /// <summary>판매가 룩업 + 판매 위임 검증용 Fake 상점.</summary>
         private sealed class FakeShopService : Game.System.Shop.IShopService
         {
-            private readonly Dictionary<string, long> _sell = new();
+            private readonly Dictionary<int, long> _sell = new();
             public int SellCallCount { get; private set; }
-            public string LastSoldItemId { get; private set; }
+            public int LastSoldItemId { get; private set; }
 
-            public FakeShopService(params (string id, long sell)[] prices)
+            public FakeShopService(params (int id, long sell)[] prices)
             {
                 foreach (var p in prices) _sell[p.id] = p.sell;
             }
@@ -91,10 +91,10 @@ namespace Game.Tests.PlayMode.Inventory
                 return UniTask.FromResult((Game.System.Shop.ShopResult.Success, (IReadOnlyList<Game.System.Shop.ShopItemData>)items));
             }
 
-            public UniTask<(Game.System.Shop.ShopResult Result, long Gold, int NewQuantity)> BuyAsync(string itemId, int qty, CancellationToken ct = default)
+            public UniTask<(Game.System.Shop.ShopResult Result, long Gold, int NewQuantity)> BuyAsync(int itemId, int qty, CancellationToken ct = default)
                 => UniTask.FromResult((Game.System.Shop.ShopResult.Success, 0L, 0));
 
-            public UniTask<(Game.System.Shop.ShopResult Result, long Gold, int RemainingQuantity)> SellAsync(string itemId, int qty, CancellationToken ct = default)
+            public UniTask<(Game.System.Shop.ShopResult Result, long Gold, int RemainingQuantity)> SellAsync(int itemId, int qty, CancellationToken ct = default)
             {
                 SellCallCount++;
                 LastSoldItemId = itemId;
@@ -107,8 +107,8 @@ namespace Game.Tests.PlayMode.Inventory
         {
             var items = new List<InventoryItemData>
             {
-                new InventoryItemData("potion_hp_small", 3),
-                new InventoryItemData("sword_iron", 1),
+                new InventoryItemData(1001, 3),
+                new InventoryItemData(2191, 1),
             };
             var model = new InventoryModel(new FakeInventoryService(InventoryResult.Success, items), catalog: null);
 
@@ -120,10 +120,10 @@ namespace Game.Tests.PlayMode.Inventory
             await UniTask.Yield();
 
             Assert.AreEqual(2, latest.Items.Count);
-            Assert.AreEqual("potion_hp_small", latest.Items[0].ItemId);
+            Assert.AreEqual(1001, latest.Items[0].ItemId);
             Assert.AreEqual(3, latest.Items[0].Quantity);
             // 카탈로그 없음 → 폴백: 이름=itemId, 분류=Etc.
-            Assert.AreEqual("potion_hp_small", latest.Items[0].DisplayName);
+            Assert.AreEqual(1001, latest.Items[0].DisplayName);
             Assert.AreEqual(ItemCategory.Etc, latest.Items[0].Category);
 
             model.Dispose();
@@ -132,12 +132,12 @@ namespace Game.Tests.PlayMode.Inventory
         [UnityTest]
         public IEnumerator 판매가는_서버_sell_price를_반환한다() => UniTask.ToCoroutine(async () =>
         {
-            var shop = new FakeShopService(("sword_iron", 75));
+            var shop = new FakeShopService((2191, 75));
             var model = new InventoryModel(
                 new FakeInventoryService(InventoryResult.Success, new List<InventoryItemData>()),
                 catalog: null, shop: shop);
 
-            long price = await model.GetSellPriceAsync("sword_iron");
+            long price = await model.GetSellPriceAsync(2191);
 
             Assert.AreEqual(75, price, "확인 팝업에 표시할 판매가는 서버 sell_price");
             model.Dispose();
@@ -146,7 +146,7 @@ namespace Game.Tests.PlayMode.Inventory
         [UnityTest]
         public IEnumerator SellItem_인텐트는_상점서비스에_판매를_위임하고_토스트를_낸다() => UniTask.ToCoroutine(async () =>
         {
-            var shop = new FakeShopService(("sword_iron", 75));
+            var shop = new FakeShopService((2191, 75));
             var model = new InventoryModel(
                 new FakeInventoryService(InventoryResult.Success, new List<InventoryItemData>()),
                 catalog: null, shop: shop);
@@ -154,12 +154,12 @@ namespace Game.Tests.PlayMode.Inventory
             string toast = null;
             using var t = model.OnToast.Subscribe(m => toast = m.Message);
 
-            model.Accept(new InventoryIntent.SellItem("sword_iron"));
+            model.Accept(new InventoryIntent.SellItem(2191));
             await UniTask.Yield();
             await UniTask.Yield();
 
             Assert.AreEqual(1, shop.SellCallCount, "판매는 IShopService.Sell 로 위임");
-            Assert.AreEqual("sword_iron", shop.LastSoldItemId);
+            Assert.AreEqual(2191, shop.LastSoldItemId);
             Assert.IsNotNull(toast, "판매 성공 토스트");
             model.Dispose();
         });
@@ -170,12 +170,12 @@ namespace Game.Tests.PlayMode.Inventory
             // sword_basic 은 장착 중 → 인벤토리 표시에서 제외(장비창에 나타남). potion 만 남는다.
             var items = new List<InventoryItemData>
             {
-                new InventoryItemData("potion_hp_small", 3),
-                new InventoryItemData("sword_basic", 1),
+                new InventoryItemData(1001, 3),
+                new InventoryItemData(2101, 1),
             };
             var model = new InventoryModel(
                 new FakeInventoryService(InventoryResult.Success, items),
-                new FakeEquipmentService("sword_basic"),
+                new FakeEquipmentService(2101),
                 inputContext: null, catalog: null);
 
             InventoryState latest = null;
@@ -187,7 +187,7 @@ namespace Game.Tests.PlayMode.Inventory
             await UniTask.Yield();
 
             Assert.AreEqual(1, latest.Items.Count);
-            Assert.AreEqual("potion_hp_small", latest.Items[0].ItemId);
+            Assert.AreEqual(1001, latest.Items[0].ItemId);
 
             model.Dispose();
         });
@@ -237,17 +237,17 @@ namespace Game.Tests.PlayMode.Inventory
                 InventoryResult.Success, Array.Empty<InventoryItemData>(), consumeResult: InventoryResult.Success);
             var model = new InventoryModel(fake, catalog: null);
 
-            string used = null;
+            int used = 0;
             string toast = null;
             using var u = model.OnConsumableUsed.Subscribe(id => used = id);
             using var t = model.OnToast.Subscribe(msg => toast = msg.Message);
 
-            model.Accept(new InventoryIntent.UseItem("potion_hp_small"));
+            model.Accept(new InventoryIntent.UseItem(1001));
             await UniTask.Yield();
             await UniTask.Yield();
 
-            Assert.AreEqual("potion_hp_small", fake.LastConsumedItemId); // consume 먼저
-            Assert.AreEqual("potion_hp_small", used);                    // Side Effect A
+            Assert.AreEqual(1001, fake.LastConsumedItemId); // consume 먼저
+            Assert.AreEqual(1001, used);                    // Side Effect A
             Assert.IsNotNull(toast);                                     // Side Effect B
 
             model.Dispose();
@@ -265,7 +265,7 @@ namespace Game.Tests.PlayMode.Inventory
             using var u = model.OnConsumableUsed.Subscribe(_ => usedFired = true);
             using var t = model.OnToast.Subscribe(msg => toast = msg.Message);
 
-            model.Accept(new InventoryIntent.UseItem("potion_hp_small"));
+            model.Accept(new InventoryIntent.UseItem(1001));
             await UniTask.Yield();
             await UniTask.Yield();
 

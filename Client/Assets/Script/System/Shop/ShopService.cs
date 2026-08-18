@@ -51,7 +51,7 @@ namespace Game.System.Shop
             }
         }
 
-        public async UniTask<(ShopResult Result, long Gold, int NewQuantity)> BuyAsync(string itemId, int qty, CancellationToken ct = default)
+        public async UniTask<(ShopResult Result, long Gold, int NewQuantity)> BuyAsync(int itemId, int qty, CancellationToken ct = default)
         {
             try
             {
@@ -71,7 +71,7 @@ namespace Game.System.Shop
             }
         }
 
-        public async UniTask<(ShopResult Result, long Gold, int RemainingQuantity)> SellAsync(string itemId, int qty, CancellationToken ct = default)
+        public async UniTask<(ShopResult Result, long Gold, int RemainingQuantity)> SellAsync(int itemId, int qty, CancellationToken ct = default)
         {
             try
             {

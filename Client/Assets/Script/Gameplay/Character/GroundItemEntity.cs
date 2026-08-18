@@ -21,7 +21,7 @@ namespace Game.Gameplay.Character
         private const float SpawnYOffset = 0.7f;
 
         public int GroundId { get; private set; }
-        public string ItemId { get; private set; } = string.Empty;
+        public int ItemId { get; private set; }
         public int Qty { get; private set; }
 
         private ISocketSession _session;

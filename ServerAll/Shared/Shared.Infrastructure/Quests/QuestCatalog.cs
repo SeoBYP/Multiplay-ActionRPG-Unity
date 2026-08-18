@@ -54,11 +54,11 @@ public static class QuestCatalog
                 Enum.Parse<QuestObjectiveType>(dto.ObjectiveType, ignoreCase: true),
                 dto.TargetId,
                 dto.RequiredCount,
-                // 빈 문자열 itemId = 아이템 보상 없음(구 카탈로그의 null 과 동치로 정규화).
+                // itemId 0 = 아이템 보상 없음(문자열 시절 빈 문자열/null 의 자리).
                 new QuestReward(
                     dto.Reward.Exp,
                     dto.Reward.Gold,
-                    string.IsNullOrEmpty(dto.Reward.ItemId) ? null : dto.Reward.ItemId,
+                    dto.Reward.ItemId,
                     dto.Reward.ItemQty)));
         }
 
@@ -99,7 +99,7 @@ public static class QuestCatalog
     {
         public long Exp { get; set; }
         public long Gold { get; set; }
-        public string ItemId { get; set; } = "";
+        public int ItemId { get; set; }
         public int ItemQty { get; set; }
     }
 }

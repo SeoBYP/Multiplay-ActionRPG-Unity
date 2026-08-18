@@ -16,7 +16,7 @@ namespace GameServer.Tests.Application.Services;
 public class ShopServiceTests
 {
     private const long UserId = 1L;
-    private const string Potion = "potion_hp_small";
+    private const int Potion = 1001;
 
     private readonly FakeWalletRepository _walletRepo = new();
     private readonly FakeInventoryRepository _invRepo = new();
@@ -61,7 +61,7 @@ public class ShopServiceTests
     {
         await _wallet.AddAsync(UserId, 1000);
 
-        var result = await _shop.BuyAsync(UserId, "no_such_item", 1);
+        var result = await _shop.BuyAsync(UserId, 1931, 1);
 
         Assert.False(result.Success);
         Assert.Equal(1000, await _wallet.GetBalanceAsync(UserId)); // 차감 안 함
@@ -105,7 +105,7 @@ public class ShopServiceTests
     [Fact]
     public async Task 안파는_아이템은_판매거부된다()
     {
-        var result = await _shop.SellAsync(UserId, "no_such_item", 1);
+        var result = await _shop.SellAsync(UserId, 1931, 1);
 
         Assert.False(result.Success);
     }
@@ -123,10 +123,10 @@ public class ShopServiceTests
         public Task<List<InventoryItem>> GetInventoryAsync(long userId, CancellationToken ct = default)
             => Task.FromResult(new List<InventoryItem>());
 
-        public Task<ItemGrantResult> GrantItemAsync(long userId, string itemId, int amount, CancellationToken ct = default)
+        public Task<ItemGrantResult> GrantItemAsync(long userId, int itemId, int amount, CancellationToken ct = default)
             => Task.FromResult(ItemGrantResult.Fail(itemId, "forced"));
 
-        public Task<ItemConsumeResult> ConsumeItemAsync(long userId, string itemId, int amount, CancellationToken ct = default)
+        public Task<ItemConsumeResult> ConsumeItemAsync(long userId, int itemId, int amount, CancellationToken ct = default)
             => Task.FromResult(ItemConsumeResult.Fail(itemId, "forced"));
     }
 }

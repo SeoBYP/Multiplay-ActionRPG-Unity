@@ -13,18 +13,18 @@ public class UserEquipment
 
     public EquipmentType Slot { get; private set; }
 
-    public string ItemId { get; private set; } = string.Empty;
+    public int ItemId { get; private set; }
 
     public DateTime UpdatedAt { get; private set; }
 
     private UserEquipment() { }
 
-    public static UserEquipment Create(long userId, EquipmentType slot, string itemId)
+    public static UserEquipment Create(long userId, EquipmentType slot, int itemId)
     {
         if (userId <= 0)
             throw new ArgumentException("UserId must be positive", nameof(userId));
-        if (string.IsNullOrWhiteSpace(itemId))
-            throw new ArgumentException("ItemId is required", nameof(itemId));
+        if (itemId <= 0)
+            throw new ArgumentException("ItemId must be positive", nameof(itemId));
 
         return new UserEquipment
         {
@@ -36,17 +36,17 @@ public class UserEquipment
     }
 
     /// <summary>같은 슬롯의 착용 아이템을 교체한다(upsert 의 update 경로).</summary>
-    public void ChangeItem(string itemId)
+    public void ChangeItem(int itemId)
     {
-        if (string.IsNullOrWhiteSpace(itemId))
-            throw new ArgumentException("ItemId is required", nameof(itemId));
+        if (itemId <= 0)
+            throw new ArgumentException("ItemId must be positive", nameof(itemId));
 
         ItemId = itemId;
         UpdatedAt = DateTime.UtcNow;
     }
 
     /// <summary>캐시(Redis Hash: slot→itemId)에서 복원. UpdatedAt 은 캐시에 없으므로 의미 없음.</summary>
-    public static UserEquipment FromRedis(long userId, EquipmentType slot, string itemId)
+    public static UserEquipment FromRedis(long userId, EquipmentType slot, int itemId)
         => new()
         {
             UserId = userId,

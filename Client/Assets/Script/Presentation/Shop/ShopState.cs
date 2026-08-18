@@ -12,13 +12,13 @@ namespace Game.Presentation.Shop
 
         public IReadOnlyList<ShopItemModel> Items { get; }
         public ShopCategory? SelectedCategory { get; }
-        public string SelectedItemId { get; }
+        public int? SelectedItemId { get; }
         public int Quantity { get; }
         public long Gold { get; }
         public bool IsLoading { get; }
         public string Error { get; }
 
-        public ShopState(IReadOnlyList<ShopItemModel> items, ShopCategory? selectedCategory, string selectedItemId,
+        public ShopState(IReadOnlyList<ShopItemModel> items, ShopCategory? selectedCategory, int? selectedItemId,
             int quantity, long gold, bool isLoading, string error)
         {
             Items = items;
@@ -33,7 +33,7 @@ namespace Game.Presentation.Shop
         public ShopState With(
             IReadOnlyList<ShopItemModel> items = null,
             ShopCategory? selectedCategory = null, bool clearCategory = false,
-            string selectedItemId = null, bool clearItem = false,
+            int? selectedItemId = null, bool clearItem = false,
             int? quantity = null, long? gold = null, bool? isLoading = null, string error = null, bool clearError = false)
             => new(
                 items ?? Items,

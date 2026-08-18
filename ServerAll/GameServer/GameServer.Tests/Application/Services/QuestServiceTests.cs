@@ -159,6 +159,6 @@ public class QuestServiceTests
 
         Assert.True(claim.Success);
         var inv = await _invRepo.GetAllAsync(UserId);
-        Assert.Contains(inv, i => i.ItemId == "potion_hp_small" && i.Quantity == 2);
+        Assert.Contains(inv, i => i.ItemId == 1001 && i.Quantity == 2);
     }
 }

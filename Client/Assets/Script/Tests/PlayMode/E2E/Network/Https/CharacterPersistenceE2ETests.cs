@@ -22,7 +22,7 @@ namespace Game.Tests.PlayMode.E2E
     public class CharacterPersistenceE2ETests : E2ETestBase
     {
         private const string MainMap = "main_field_01";
-        private const string Potion = "potion_hp_small";
+        private const int Potion = 1001;
 
         [UnityTest]
         public IEnumerator 재접속_후_레벨_경험치_인벤토리_골드가_보존된다() => UniTask.ToCoroutine(async () =>

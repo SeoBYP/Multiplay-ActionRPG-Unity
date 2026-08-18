@@ -5,13 +5,13 @@ namespace Game.System.Shop
     /// <summary>상점 진열 한 항목(proto 비노출 도메인 DTO). 이름·아이콘은 클라가 itemId 로 자기 카탈로그 룩업.</summary>
     public readonly struct ShopItemData
     {
-        public readonly string ItemId;
+        public readonly int ItemId;
         public readonly long BuyPrice;
         public readonly long SellPrice;
         public readonly ShopCategory Category;
         public readonly IReadOnlyList<ShopStatData> Stats;
 
-        public ShopItemData(string itemId, long buyPrice, long sellPrice, ShopCategory category, IReadOnlyList<ShopStatData> stats)
+        public ShopItemData(int itemId, long buyPrice, long sellPrice, ShopCategory category, IReadOnlyList<ShopStatData> stats)
         {
             ItemId = itemId;
             BuyPrice = buyPrice;

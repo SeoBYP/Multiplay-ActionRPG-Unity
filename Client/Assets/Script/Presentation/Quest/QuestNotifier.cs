@@ -75,7 +75,7 @@ namespace Game.Presentation.Quest
             var parts = new List<string>(3);
             if (r.Exp > 0) parts.Add($"경험치 {r.Exp}");
             if (r.Gold > 0) parts.Add($"골드 {r.Gold}");
-            if (!string.IsNullOrEmpty(r.ItemId) && r.ItemQty > 0) parts.Add($"{r.ItemId} x{r.ItemQty}");
+            if (r.ItemId != 0 && r.ItemQty > 0) parts.Add($"{r.ItemId} x{r.ItemQty}");
             return string.Join(", ", parts);
         }
 

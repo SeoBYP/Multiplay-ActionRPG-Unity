@@ -15,11 +15,11 @@ public interface IInventoryRepository
     /// (userId, itemId) 수량을 누적 적립한다. 행이 없으면 생성(lazy), 있으면 += amount.
     /// maxStack 으로 상한 clamp. DB 저장 후 유저 인벤토리 캐시 DEL. 갱신된 소유를 반환.
     /// </summary>
-    Task<InventoryItem> AddQuantityAsync(long userId, string itemId, int amount, int maxStack, CancellationToken ct = default);
+    Task<InventoryItem> AddQuantityAsync(long userId, int itemId, int amount, int maxStack, CancellationToken ct = default);
 
     /// <summary>
     /// (userId, itemId) 수량을 차감한다. 미보유이거나 보유보다 많이 차감하면 null(변화 없음).
     /// 차감 후 0 이 되면 행을 삭제한다. DB 저장 후 캐시 DEL. 성공 시 남은 수량(0 가능)을 반환.
     /// </summary>
-    Task<int?> RemoveQuantityAsync(long userId, string itemId, int amount, CancellationToken ct = default);
+    Task<int?> RemoveQuantityAsync(long userId, int itemId, int amount, CancellationToken ct = default);
 }

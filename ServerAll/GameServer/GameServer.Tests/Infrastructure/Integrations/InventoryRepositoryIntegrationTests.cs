@@ -35,12 +35,12 @@ public class InventoryRepositoryIntegrationTests
         var userId = await CreateUserAsync();
         var repository = CreateRepository();
 
-        var result = await repository.AddQuantityAsync(userId, "potion_hp_small", 3, maxStack: 99);
+        var result = await repository.AddQuantityAsync(userId, 1001, 3, maxStack: 99);
 
         Assert.Equal(3, result.Quantity);
 
         using var assertContext = _fixture.CreateDbContext();
-        var dbRow = await assertContext.InventoryItems.FindAsync(userId, "potion_hp_small");
+        var dbRow = await assertContext.InventoryItems.FindAsync(userId, 1001);
         Assert.NotNull(dbRow);
         Assert.Equal(3, dbRow!.Quantity);
     }
@@ -51,8 +51,8 @@ public class InventoryRepositoryIntegrationTests
         var userId = await CreateUserAsync();
         var repository = CreateRepository();
 
-        await repository.AddQuantityAsync(userId, "potion_hp_small", 2, maxStack: 99);
-        var result = await repository.AddQuantityAsync(userId, "potion_hp_small", 5, maxStack: 99);
+        await repository.AddQuantityAsync(userId, 1001, 2, maxStack: 99);
+        var result = await repository.AddQuantityAsync(userId, 1001, 5, maxStack: 99);
 
         Assert.Equal(7, result.Quantity);
     }
@@ -63,7 +63,7 @@ public class InventoryRepositoryIntegrationTests
         var userId = await CreateUserAsync();
         var repository = CreateRepository();
 
-        var result = await repository.AddQuantityAsync(userId, "potion_hp_small", 150, maxStack: 99);
+        var result = await repository.AddQuantityAsync(userId, 1001, 150, maxStack: 99);
 
         Assert.Equal(99, result.Quantity);
     }
@@ -75,11 +75,11 @@ public class InventoryRepositoryIntegrationTests
         var repository = CreateRepository();
         var db = _fixture.RedisConnection.GetDatabase();
 
-        await repository.AddQuantityAsync(userId, "potion_hp_small", 1, maxStack: 99);
+        await repository.AddQuantityAsync(userId, 1001, 1, maxStack: 99);
         await repository.GetAllAsync(userId); // 캐시 적재
         Assert.True(await db.KeyExistsAsync(RedisKeys.UserInventory(userId)));
 
-        await repository.AddQuantityAsync(userId, "potion_hp_small", 2, maxStack: 99);
+        await repository.AddQuantityAsync(userId, 1001, 2, maxStack: 99);
 
         Assert.False(await db.KeyExistsAsync(RedisKeys.UserInventory(userId)));
     }
@@ -90,13 +90,13 @@ public class InventoryRepositoryIntegrationTests
         var userId = await CreateUserAsync();
         var repository = CreateRepository();
 
-        await repository.AddQuantityAsync(userId, "potion_mp_small", 5, maxStack: 99);
+        await repository.AddQuantityAsync(userId, 1002, 5, maxStack: 99);
         await repository.GetAllAsync(userId); // 캐시 적재
 
         // DB row 삭제 — 캐시에서 와야 함
         using (var ctx = _fixture.CreateDbContext())
         {
-            var row = await ctx.InventoryItems.FindAsync(userId, "potion_mp_small");
+            var row = await ctx.InventoryItems.FindAsync(userId, 1002);
             ctx.InventoryItems.Remove(row!);
             await ctx.SaveChangesAsync();
         }
@@ -114,7 +114,7 @@ public class InventoryRepositoryIntegrationTests
         var repository = CreateRepository();
         var db = _fixture.RedisConnection.GetDatabase();
 
-        await repository.AddQuantityAsync(userId, "potion_hp_small", 4, maxStack: 99); // AddQty 가 캐시 DEL
+        await repository.AddQuantityAsync(userId, 1001, 4, maxStack: 99); // AddQty 가 캐시 DEL
         Assert.False(await db.KeyExistsAsync(RedisKeys.UserInventory(userId)));
 
         var items = await repository.GetAllAsync(userId);
@@ -134,17 +134,17 @@ public class InventoryRepositoryIntegrationTests
         var repository = CreateRepository();
         var db = _fixture.RedisConnection.GetDatabase();
 
-        await repository.AddQuantityAsync(userId, "potion_hp_small", 5, maxStack: 99);
+        await repository.AddQuantityAsync(userId, 1001, 5, maxStack: 99);
         await repository.GetAllAsync(userId); // 캐시 적재
         Assert.True(await db.KeyExistsAsync(RedisKeys.UserInventory(userId)));
 
-        var remaining = await repository.RemoveQuantityAsync(userId, "potion_hp_small", 2);
+        var remaining = await repository.RemoveQuantityAsync(userId, 1001, 2);
 
         Assert.Equal(3, remaining);
         Assert.False(await db.KeyExistsAsync(RedisKeys.UserInventory(userId)));
 
         using var ctx = _fixture.CreateDbContext();
-        var dbRow = await ctx.InventoryItems.FindAsync(userId, "potion_hp_small");
+        var dbRow = await ctx.InventoryItems.FindAsync(userId, 1001);
         Assert.Equal(3, dbRow!.Quantity);
     }
 
@@ -154,14 +154,14 @@ public class InventoryRepositoryIntegrationTests
         var userId = await CreateUserAsync();
         var repository = CreateRepository();
 
-        await repository.AddQuantityAsync(userId, "potion_hp_small", 2, maxStack: 99);
+        await repository.AddQuantityAsync(userId, 1001, 2, maxStack: 99);
 
-        var remaining = await repository.RemoveQuantityAsync(userId, "potion_hp_small", 2);
+        var remaining = await repository.RemoveQuantityAsync(userId, 1001, 2);
 
         Assert.Equal(0, remaining);
 
         using var ctx = _fixture.CreateDbContext();
-        var dbRow = await ctx.InventoryItems.FindAsync(userId, "potion_hp_small");
+        var dbRow = await ctx.InventoryItems.FindAsync(userId, 1001);
         Assert.Null(dbRow); // 0 스택 → 행 삭제
     }
 
@@ -171,14 +171,14 @@ public class InventoryRepositoryIntegrationTests
         var userId = await CreateUserAsync();
         var repository = CreateRepository();
 
-        await repository.AddQuantityAsync(userId, "potion_hp_small", 2, maxStack: 99);
+        await repository.AddQuantityAsync(userId, 1001, 2, maxStack: 99);
 
-        var remaining = await repository.RemoveQuantityAsync(userId, "potion_hp_small", 5);
+        var remaining = await repository.RemoveQuantityAsync(userId, 1001, 5);
 
         Assert.Null(remaining);
 
         using var ctx = _fixture.CreateDbContext();
-        var dbRow = await ctx.InventoryItems.FindAsync(userId, "potion_hp_small");
+        var dbRow = await ctx.InventoryItems.FindAsync(userId, 1001);
         Assert.Equal(2, dbRow!.Quantity); // 변화 없음
     }
 
@@ -188,7 +188,7 @@ public class InventoryRepositoryIntegrationTests
         var userId = await CreateUserAsync();
         var repository = CreateRepository();
 
-        var remaining = await repository.RemoveQuantityAsync(userId, "potion_hp_small", 1);
+        var remaining = await repository.RemoveQuantityAsync(userId, 1001, 1);
 
         Assert.Null(remaining);
     }

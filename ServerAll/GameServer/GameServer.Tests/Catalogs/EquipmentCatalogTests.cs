@@ -10,12 +10,12 @@ public class EquipmentCatalogTests
     [Fact]
     public void 시드_장비는_슬롯과_스탯_모디파이어를_가진다()
     {
-        var sword = EquipmentCatalog.Get("sword_basic");
+        var sword = EquipmentCatalog.Get(2101);
         Assert.NotNull(sword);
         Assert.Equal(EquipmentType.Weapon, sword!.Slot);
         Assert.Equal(5, sword.Stats.AttackPower);
 
-        var armor = EquipmentCatalog.Get("armor_leather");
+        var armor = EquipmentCatalog.Get(2201);
         Assert.NotNull(armor);
         Assert.Equal(EquipmentType.Armor, armor!.Slot);
         Assert.Equal(3, armor.Stats.Defense);
@@ -24,8 +24,8 @@ public class EquipmentCatalogTests
     [Fact]
     public void 장비가_아닌_아이템은_IsEquippable이_false다()
     {
-        Assert.False(EquipmentCatalog.IsEquippable("potion_hp_small"));
-        Assert.Null(EquipmentCatalog.Get("potion_hp_small"));
+        Assert.False(EquipmentCatalog.IsEquippable(1001));   // 1001 = potion_hp_small
+        Assert.Null(EquipmentCatalog.Get(1001));
     }
 
     [Fact]
