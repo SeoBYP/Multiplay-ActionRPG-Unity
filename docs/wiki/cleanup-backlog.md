@@ -38,11 +38,13 @@ mtime 전부 갱신 확인(= 실행 확증) · 내용 diff 0
 - **교훈**: "diff 가 없다"를 곧바로 "드리프트 없음"으로 읽지 말 것. 첫 시도에서 5개 Exporter 가 **모달에 막혀 실행조차 안 됐는데** diff 가 없어 정상으로 오독할 뻔했다. **mtime 으로 실행 자체를 확증**한 뒤 diff 를 판정한다.
 - **잔여 제안**: 이 대조를 EditMode 테스트로 상시화(사람 기억에 의존하지 않게).
 
-### A3. `RemotePlayerCharacter` 머티리얼 누락 — ⬜ 중간
+### A3. `RemotePlayerCharacter` 머티리얼 누락 — 🔽 **재평가: 런타임 무해 (낮음) 2026-08-18**
 
-- 프리팹의 SkinnedMeshRenderer `m_Materials` 가 guid `31321ba15b8f8eb4c954353edc038b1d` 를 참조하는데 **프로젝트 어디에도 없다**(Assets 전체·Packages·임포트 아트 팩 3종을 `.meta` 기준 전수 검색). 나머지 14개 참조는 정상.
-- **왜 문제인가**: 원격 플레이어가 머티리얼 누락 상태로 렌더된다.
-- **조치**: 올바른 머티리얼 재지정 또는 해당 렌더러 정리.
+- YAML 텍스트엔 `Capsule` GameObject + MeshRenderer 가 guid `31321ba15b8f8eb4c954353edc038b1d` 를 참조하는 채로 남아 있다.
+- **그러나 Unity 로 프리팹을 실제 로드하면 계층에 없다** — `LoadPrefabContents` 후 `GetComponentsInChildren<MeshRenderer>(true)` 결과는 `WeaponProp`(부모 `hand_r`) 하나뿐이고 머티리얼 `M_BludgeonProp` 이 정상 연결돼 있다. SkinnedMeshRenderer 14개도 정상.
+- 즉 **도달 불가능한 고아 YAML 블록**이다(루트 `m_Children` 에서 빠진 것으로 추정 — `m_Children` 직접 확인은 **미실측**). 렌더에 영향 없음.
+- ⚠ **정정**: 최초 보고의 "SkinnedMeshRenderer 가 참조" / "원격 플레이어가 머티리얼 누락으로 렌더된다" 는 **텍스트 grep 만으로 내린 오판**이었다. 프리팹 구조 판정은 YAML grep 이 아니라 Unity 로드로 확인한다.
+- **조치**: 방치해도 무방(과설계 금지). 정리하려면 Unity 에서 프리팹을 열고 저장해 재직렬화.
 
 ---
 
@@ -77,7 +79,11 @@ mtime 전부 갱신 확인(= 실행 확증) · 내용 diff 0
 
 ## C. 환경·저장소
 
-### C1. 디스크 포화 — ⬜ **높음(차단 요인)**
+### C1. 디스크 포화 — ✅ **해소 2026-08-18** (아트 34/34 청크 커밋·푸시 완료, 여유 26G 회복)
+
+> 아래는 당시 기록. `.git` 이 **20GB** 로 커진 것은 남아 있어 Git LFS 이관 검토 대상(별도 작업, 히스토리 재작성 필요).
+
+#### (당시) 디스크 포화 — 높음(차단 요인)
 
 - C: **931G 중 여유 108MB**. `.git` 이 **14GB**(과거 대용량 에셋 이력).
 - **현재 차단하고 있는 것**: 아트 팩 커밋이 **7/34 청크(~620MB / 3.0GB)** 에서 중단. git 자동 `gc`/`repack` 도 실패(`fatal: failed to run repack`) → 느슨한 오브젝트가 계속 쌓인다.
@@ -88,6 +94,32 @@ mtime 전부 갱신 확인(= 실행 확증) · 내용 diff 0
 
 - `.gitignore:80` 의 `*.meta` 때문에 **신규 에셋마다 `git add -f` 를 기억해야** 한다. 잊으면 클론 시 GUID 가 새로 생성돼 프리팹·머티리얼 참조가 전부 끊긴다.
 - Unity 프로젝트에서 `.meta` 는 **소스와 동급**이다. 이 규칙이 왜 들어왔는지 확인하고, 가능하면 `!*.meta` 예외로 되돌리는 게 맞다.
+
+**실측(2026-08-18)** — 이미 벌어진 손상이다. 앞으로의 함정이 아니라 현재 상태다.
+
+```
+추적 자산 17,075 · 그중 .meta 디스크 존재 17,070
+★ .meta 미추적(고아) 8,593  = 추적 자산의 50.3%   총 127KB(용량은 무의미)
+   png 5,005 · fbx 2,810 · cs 286 · prefab 150 · FBX 147 · psd 53 · mat 41 · asset 29
+```
+
+- 오늘 커밋한 아트 3팩(Book of the Dead·Melee Weapons·Magic Pig)은 `-f` 로 메타를 함께 넣어 **정상**. 고아는 그 이전 누적분(Artsystack 4,667 · PROTOFACTOR 3,226 · HONETi 546 · `Script/` 하위 293 등).
+
+**⛔ 착수 블로커 — 지금 메타를 커밋하면 손상이 고정된다**
+
+현재 로컬에 **이미 끊긴 GUID 참조가 대량 존재**한다(Unity 콘솔 error 실측). 이 상태의 GUID 를 커밋하면 정본으로 굳는다.
+
+```
+Assets/Art/Magic Pig Games (Infinity PBR)/.../v2_DemoEnvironment.prefab
+  Missing Nested Prefab: Wind(606c378e…) · DayNightCycle(9a803e9a…) · Volume(f0239c7d…)
+.../LP Files/Synty Dungeon.prefab
+  Missing Prefab 04fb0ada… 'SM_Env_Flowers_26' ×25 · 0e2d311a… 'SM_Env_Tiles_102' ×52 … (수십 종)
+```
+
+- 원인은 메타 누락이 아니라 **에셋 팩의 데모 씬이 미보유 팩(Synty 등)을 전제**로 하는 것. A3 의 `31321ba…` 도 같은 계열로 보인다.
+- **권장 분리**:
+  1. **지금 가능(안전)**: `.gitignore` 의 `*.meta` 만 제거 → 앞으로 추가되는 메타는 자동 포함. 함정이 더 커지는 것을 멈춘다. 기존 8,593 은 손대지 않음.
+  2. **선행 정리 후**: 데모 폴더(`_DEMO SOURCE FILES`·`LP Files` 등) 정리 → 콘솔 error 0 확인 → 기존 고아 메타 커밋.
 
 ### C3. CA-5 스모크 SFX 가 미커밋 팩에 의존 — ⬜ 중간
 
