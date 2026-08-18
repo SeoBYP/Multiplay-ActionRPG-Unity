@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: d18a9ddf6af47466687beb9cfe3ebc40
+labels:
+- Infinity
+- Shield
+- Wardrobe
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 44714
+  packageName: Weapons & Armor PBR Pack #1 - Fantasy RPG
+  packageVersion: 4.3.3
+  assetPath: Assets/Magic Pig Games (Infinity PBR)/Weapons & Armor/Armor Objects/Shields/Shield001/Prefab/Shield001.prefab
+  uploadId: 934212

@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: f64c3857bddb1474ca13bfaf8cb07cbc
+labels:
+- Helmet
+- Infinity
+- Wardrobe
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 44714
+  packageName: Weapons & Armor PBR Pack #1 - Fantasy RPG
+  packageVersion: 4.3.3
+  assetPath: Assets/Magic Pig Games (Infinity PBR)/Weapons & Armor/Armor Objects/Helmets/Helmet003/Prefab/Helmet003.prefab
+  uploadId: 934212
