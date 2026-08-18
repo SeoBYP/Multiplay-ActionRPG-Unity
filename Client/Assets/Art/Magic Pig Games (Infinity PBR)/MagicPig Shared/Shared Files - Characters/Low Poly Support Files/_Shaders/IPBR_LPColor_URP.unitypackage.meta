@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: d0f707087d7e4455bbf94cada1fb2894
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176417
+  packageName: Battle Sound Library - Magic & Melee - Human Made Audio - Fantasy
+    RPG
+  packageVersion: 4.3.2
+  assetPath: Assets/Art/Magic Pig Games (Infinity PBR)/MagicPig Shared/Shared Files
+    - Characters/Low Poly Support Files/_Shaders/IPBR_LPColor_URP.unitypackage
+  uploadId: 934130
