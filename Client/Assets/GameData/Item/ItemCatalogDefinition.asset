@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Items.ItemCatalogDefinition
   items:
   - itemId: potion_hp_small
+    numericId: 1001
     stackable: 1
     maxStack: 99
     isEquipment: 0
@@ -36,6 +37,7 @@ MonoBehaviour:
       policy: 0
       durationMs: 0
   - itemId: potion_mp_small
+    numericId: 1002
     stackable: 1
     maxStack: 99
     isEquipment: 0
@@ -58,6 +60,7 @@ MonoBehaviour:
       policy: 0
       durationMs: 0
   - itemId: sword_basic
+    numericId: 2101
     stackable: 0
     maxStack: 1
     isEquipment: 1
@@ -76,6 +79,7 @@ MonoBehaviour:
     shopCategory: 1
     consumeEffects: []
   - itemId: armor_leather
+    numericId: 2201
     stackable: 0
     maxStack: 1
     isEquipment: 1
@@ -94,6 +98,7 @@ MonoBehaviour:
     shopCategory: 2
     consumeEffects: []
   - itemId: helmet_iron
+    numericId: 2202
     stackable: 0
     maxStack: 1
     isEquipment: 1
@@ -112,6 +117,7 @@ MonoBehaviour:
     shopCategory: 2
     consumeEffects: []
   - itemId: boots_leather
+    numericId: 2203
     stackable: 0
     maxStack: 1
     isEquipment: 1
@@ -130,6 +136,7 @@ MonoBehaviour:
     shopCategory: 2
     consumeEffects: []
   - itemId: gloves_leather
+    numericId: 2204
     stackable: 0
     maxStack: 1
     isEquipment: 1
@@ -148,6 +155,7 @@ MonoBehaviour:
     shopCategory: 2
     consumeEffects: []
   - itemId: shield_wooden
+    numericId: 2205
     stackable: 0
     maxStack: 1
     isEquipment: 1
@@ -166,6 +174,7 @@ MonoBehaviour:
     shopCategory: 2
     consumeEffects: []
   - itemId: ring_power
+    numericId: 2301
     stackable: 0
     maxStack: 1
     isEquipment: 1
@@ -184,6 +193,7 @@ MonoBehaviour:
     shopCategory: 3
     consumeEffects: []
   - itemId: necklace_vitality
+    numericId: 2302
     stackable: 0
     maxStack: 1
     isEquipment: 1

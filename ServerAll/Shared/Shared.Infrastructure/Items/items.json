@@ -2,6 +2,7 @@
     "items": [
         {
             "itemId": "potion_hp_small",
+            "numericId": 1001,
             "stackable": true,
             "maxStack": 99,
             "isEquipment": false,
@@ -30,6 +31,7 @@
         },
         {
             "itemId": "potion_mp_small",
+            "numericId": 1002,
             "stackable": true,
             "maxStack": 99,
             "isEquipment": false,
@@ -58,6 +60,7 @@
         },
         {
             "itemId": "sword_basic",
+            "numericId": 2101,
             "stackable": false,
             "maxStack": 1,
             "isEquipment": true,
@@ -79,6 +82,7 @@
         },
         {
             "itemId": "armor_leather",
+            "numericId": 2201,
             "stackable": false,
             "maxStack": 1,
             "isEquipment": true,
@@ -100,6 +104,7 @@
         },
         {
             "itemId": "helmet_iron",
+            "numericId": 2202,
             "stackable": false,
             "maxStack": 1,
             "isEquipment": true,
@@ -121,6 +126,7 @@
         },
         {
             "itemId": "boots_leather",
+            "numericId": 2203,
             "stackable": false,
             "maxStack": 1,
             "isEquipment": true,
@@ -142,6 +148,7 @@
         },
         {
             "itemId": "gloves_leather",
+            "numericId": 2204,
             "stackable": false,
             "maxStack": 1,
             "isEquipment": true,
@@ -163,6 +170,7 @@
         },
         {
             "itemId": "shield_wooden",
+            "numericId": 2205,
             "stackable": false,
             "maxStack": 1,
             "isEquipment": true,
@@ -184,6 +192,7 @@
         },
         {
             "itemId": "ring_power",
+            "numericId": 2301,
             "stackable": false,
             "maxStack": 1,
             "isEquipment": true,
@@ -205,6 +214,7 @@
         },
         {
             "itemId": "necklace_vitality",
+            "numericId": 2302,
             "stackable": false,
             "maxStack": 1,
             "isEquipment": true,

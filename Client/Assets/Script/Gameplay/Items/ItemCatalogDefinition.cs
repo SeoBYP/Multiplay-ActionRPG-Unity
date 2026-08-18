@@ -36,6 +36,15 @@ namespace Game.Gameplay.Items
                     return i;
             return null;
         }
+
+        /// <summary>numericId 의 정의. 미등록이면 null.</summary>
+        public ItemDefinition Get(int numericId)
+        {
+            foreach (var i in items)
+                if (i.numericId == numericId)
+                    return i;
+            return null;
+        }
     }
 
     /// <summary>아이템 1종 — 스택 규칙 + (장비면) 스탯 + (상점 취급이면) 가격 + (소비형이면) 효과.</summary>
@@ -44,6 +53,13 @@ namespace Game.Gameplay.Items
     {
         [Tooltip("아이템 키(서버·클라 공용). ItemDisplayCatalog·proto·DB 가 모두 이 값을 참조한다.")]
         public string itemId;
+
+        [Tooltip("숫자 ID — 대역으로 분류를 표현한다. Exporter 가 중복·대역 불일치를 막는다.\n" +
+                 "  1000~1999 소모품(Potion)\n" +
+                 "  2100~2199 무기(Weapon)   2200~2299 방어구(Armor)   2300~2399 장신구(Accessory)\n" +
+                 "  3000~3999 재화·기타(Unspecified)\n" +
+                 "계열 안에서는 100 단위로 여유를 두고 순번을 매긴다(1001, 1002 …).")]
+        public int numericId;
 
         [Header("스택")]
         public bool stackable;

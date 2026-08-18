@@ -62,6 +62,7 @@ namespace Game.Gameplay.Editor
 
             var items = defs[0].items ?? new List<ItemDefinition>();
             var seen = new HashSet<string>(StringComparer.Ordinal);
+            var seenNumeric = new HashSet<int>();
             foreach (var i in items)
             {
                 if (string.IsNullOrWhiteSpace(i.itemId))
@@ -73,6 +74,17 @@ namespace Game.Gameplay.Editor
                 if (!seen.Add(i.itemId))
                 {
                     Debug.LogError($"[ItemCatalogExporter] itemId 중복: '{i.itemId}'");
+                    return -1;
+                }
+                if (!seenNumeric.Add(i.numericId))
+                {
+                    Debug.LogError($"[ItemCatalogExporter] numericId 중복: {i.numericId} ('{i.itemId}') — DB·패킷 키가 겹치면 안 된다.");
+                    return -1;
+                }
+                var band = ExpectedBand(i.shopCategory);
+                if (i.numericId < band.lo || i.numericId > band.hi)
+                {
+                    Debug.LogError($"[ItemCatalogExporter] '{i.itemId}' numericId {i.numericId} 가 {i.shopCategory} 대역({band.lo}~{band.hi}) 밖이다.");
                     return -1;
                 }
                 if (i.isEquipment && i.equipSlot == EquipmentType.None)
@@ -146,9 +158,23 @@ namespace Game.Gameplay.Editor
             return so.items.Count;
         }
 
+        /// <summary>
+        /// 분류별 numericId 대역. <b>대역이 곧 분류</b>라 로그·DB 만 보고도 무엇인지 안다.
+        /// 문자열 id 를 걷어낸 뒤(2단계) 사람이 읽는 단서는 이 대역뿐이므로 규칙을 코드로 강제한다.
+        /// </summary>
+        private static (int lo, int hi) ExpectedBand(ShopCategory c) => c switch
+        {
+            ShopCategory.Potion => (1000, 1999),
+            ShopCategory.Weapon => (2100, 2199),
+            ShopCategory.Armor => (2200, 2299),
+            ShopCategory.Accessory => (2300, 2399),
+            _ => (3000, 3999), // Unspecified = 재화·기타
+        };
+
         private static ItemDto ToDto(ItemDefinition i) => new()
         {
             itemId = i.itemId,
+            numericId = i.numericId,
             stackable = i.stackable,
             maxStack = i.stackable ? i.maxStack : 1,
             isEquipment = i.isEquipment,
@@ -181,6 +207,7 @@ namespace Game.Gameplay.Editor
         private static ItemDefinition FromDto(ItemDto d) => new()
         {
             itemId = d.itemId,
+            numericId = d.numericId,
             stackable = d.stackable,
             maxStack = d.maxStack,
             isEquipment = d.isEquipment,
@@ -241,6 +268,7 @@ namespace Game.Gameplay.Editor
         private sealed class ItemDto
         {
             public string itemId;
+            public int numericId;
             public bool stackable;
             public int maxStack = 1;
             public bool isEquipment;

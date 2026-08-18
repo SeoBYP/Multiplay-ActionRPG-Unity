@@ -51,7 +51,7 @@ public static class ItemCatalogData
             if (string.IsNullOrWhiteSpace(dto.ItemId))
                 throw new InvalidOperationException("items.json contains an entry with an empty itemId");
 
-            items.Add(new ItemDef(dto.ItemId, dto.Stackable, dto.MaxStack));
+            items.Add(new ItemDef(dto.ItemId, dto.NumericId, dto.Stackable, dto.MaxStack));
 
             if (dto.IsEquipment)
             {
@@ -110,6 +110,15 @@ public static class ItemCatalogData
             Shop = shop;
             Consumables = consumables;
             ItemsById = items.ToDictionary(i => i.ItemId, StringComparer.Ordinal);
+            // numericId 는 전환 중인 키다. 미배정(0)·중복이 있어도 **서버를 죽이지 않는다** —
+            // 로드 실패는 데이터 한 줄 때문에 서버 전체를 내리는 결과가 되고, 이 값은 아직
+            // 아무 런타임 경로도 쓰지 않는다(1단계). 불변식은 저작(ItemCatalogExporter 가 bake 거부)과
+            // 테스트(ItemNumericIdTests)가 지킨다.
+            var byNumeric = new Dictionary<int, ItemDef>();
+            foreach (var i in items)
+                if (i.NumericId > 0)
+                    byNumeric.TryAdd(i.NumericId, i);
+            ItemsByNumericId = byNumeric;
             EquipmentById = equipment.ToDictionary(e => e.ItemId, StringComparer.Ordinal);
             ShopById = shop.ToDictionary(s => s.ItemId, StringComparer.Ordinal);
         }
@@ -120,6 +129,9 @@ public static class ItemCatalogData
         public IReadOnlyList<GameplayEffectDefinition> Consumables { get; }
 
         public IReadOnlyDictionary<string, ItemDef> ItemsById { get; }
+
+        /// <summary>숫자 ID 조회. ItemId 를 int 로 옮기는 전환(2단계)의 진입점.</summary>
+        public IReadOnlyDictionary<int, ItemDef> ItemsByNumericId { get; }
         public IReadOnlyDictionary<string, EquipmentDef> EquipmentById { get; }
         public IReadOnlyDictionary<string, ShopItemDef> ShopById { get; }
     }
@@ -133,6 +145,7 @@ public static class ItemCatalogData
     private sealed class ItemDto
     {
         public string ItemId { get; set; } = "";
+        public int NumericId { get; set; }
         public bool Stackable { get; set; }
         public int MaxStack { get; set; } = 1;
 

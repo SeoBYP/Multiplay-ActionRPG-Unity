@@ -8,10 +8,13 @@ namespace Shared.Infrastructure.Items;
 /// 표시 필드(이름·설명·아이콘·등급·분류)는 **서버가 쓰지 않으므로 bake 하지 않는다** — 클라 SO 전용.
 /// </summary>
 /// <param name="ItemId">카탈로그 키(예 "potion_hp_small"). InventoryItem·proto 가 참조하는 식별자.</param>
+/// <param name="NumericId">숫자 ID. 대역이 곧 분류다 — 1000 소모품 / 2100 무기 / 2200 방어구 / 2300 장신구 / 3000 재화·기타.
+/// 저작 검증은 클라 <c>ItemCatalogExporter</c> 가 한다(중복·대역 위반 시 bake 거부).</param>
 /// <param name="Stackable">스택 가능 여부. false 면 MaxStack=1 취급.</param>
 /// <param name="MaxStack">한 칸 최대 수량.</param>
 public sealed record ItemDef(
     string ItemId,
+    int NumericId,
     bool Stackable,
     int MaxStack);
 

@@ -509,6 +509,11 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
   - bake 산출물 **6종 전부 대조 완료** — abilities 외 5종(drop-tables·consumable-effects·spawn-layouts·level-table·monsters)은 재Export 후에도 수치 변경 **0건**(개행 차이만, 되돌림).
   - **모달 우회법(재사용)**: `unity command --project-path . eval_file --file <cs>` 로 `Exporter.BakeAll()` 직접 호출. 메뉴 경로는 `DisplayDialog` 가 에디터 메인스레드를 잡아 **이후 모든 CLI 명령까지 타임아웃**시킨다.
   - **감지 가드**: `AbilityCatalogTests.게임플레이_수치가_현재_저작값으로_bake_돼_있다`(167/125 고정). ⚠ 밸런스 조정 시 Export 후 이 기대값도 갱신한다. 상시 대조의 테스트화는 [cleanup-backlog.md](cleanup-backlog.md) A2 잔여 제안.
+- [x] **ItemId int 전환 1단계 — numericId 부여** — ✅ **2026-08-18**. `items.json`·SO 에 `numericId` 추가, **런타임 동작 변화 0**(DB·proto·패킷 무변경). 대역이 곧 분류다: **1000~1999 소모품 / 2100~2199 무기 / 2200~2299 방어구 / 2300~2399 장신구 / 3000~3999 재화·기타**. 10종 배정(1001·1002 / 2101 / 2201~2205 / 2301·2302).
+  - 이중 가드: 저작 시점 = `ItemCatalogExporter` 가 **중복·대역 위반 시 bake 거부**, 커밋 시점 = `ItemNumericIdTests` 4종(전원 배정·중복 없음·대역 일치·양방향 조회 동일).
+  - 서버 `ItemDef.NumericId` + `CatalogTables.ItemsByNumericId` 추가(2단계 진입점). **미배정(0)·중복이 있어도 서버가 죽지 않게** 방어적으로 구성 — 데이터 한 줄로 서버 전체가 내려가면 안 되고, 이 값은 아직 어떤 런타임 경로도 쓰지 않는다.
+  - 검증: Unity 컴파일 0 · 서버 빌드 0오류 · 테스트 **666/666**(Shared 50 · SocketServer 217 · GameServer 399).
+  - **2단계 남음**: DB 3테이블 마이그레이션 · Redis Hash field · proto 5파일 `string item_id`→`int32` · `LootPackets` · 클라 61파일. 문자열 id 는 그때 식별자에서 제거하고 로그용 이름만 남긴다.
 - [x] **items.json 만 Exporter 부재 → 클라·서버 아이템 카탈로그 드리프트 (높음)** — ✅ **해소 2026-08-18**. `ItemCatalogDefinition`(SO)+`ItemCatalogExporter` 신설로 다른 6종과 동일 교리 일원화(**정렬 금지** — 저작 순서 = 상점 진열 순서). 왕복 검증(json→Import→SO→Export→json) **10종 순서 동일·필드 불일치 0**, 재대조 서버 10/클라 10 **구성·순서 일치**. `gold_pouch` 제거(참조 0건 실측) · `potion_mp_small` Mana +100 Instant 부여(주석이 "과거 사고"로 적은 효과 누락이 실제로 남아 있었다) · 죽은 `ConsumableEffectExporter` 제거. 검증 = Unity 컴파일 0 · 서버 빌드 0오류 · 테스트 **659/659**. 상세 = [cleanup-backlog.md](cleanup-backlog.md) A4.
   - **부수 발견(저장소 복구)**: `items.json`·`quests.json`(EmbeddedResource)과 `Shared.Infrastructure/{Items,Quests}/*.cs`·`Shared.Gameplay/Items/*.cs` 가 전부 **미커밋**이라 클론 시 빌드 실패 상태였다(Domain→Shared.Infrastructure 이동 리팩터가 삭제만 커밋됨). `8438d721`·`402eb438`·`99bed9b4` 로 복구.
   - **검증 방법 교훈**: 로컬 `dotnet build` 는 미커밋 파일 때문에 **항상 통과**해 이 부류를 못 잡는다. `git archive HEAD ServerAll | tar -x` 로 **커밋본만 빌드**하는 것이 진짜 검증(전체 clone 은 .git 20GB vs 여유 20GB 로 디스크 부족 실패).
