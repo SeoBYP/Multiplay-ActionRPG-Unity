@@ -77,7 +77,10 @@ StyleCopReport.xml
 *_p.c
 *_h.h
 *.ilk
-*.meta
+# NOTE: '*.meta' 는 Visual Studio 템플릿 산출물 규칙으로 들어왔으나 Unity 에셋 .meta 까지
+# 삼켜, 자산은 커밋되고 .meta 는 빠지는 상태를 만들었다(2026-08-18 실측: 추적 자산의 50.3%).
+# Unity 에서 .meta 는 소스와 동급(GUID 진실원)이라 제외하지 않는다. VS 산출물은 아래 *.obj 등이 담당.
+# 기존 고아 .meta 일괄 커밋은 끊긴 GUID 참조 정리 후 — docs/wiki/cleanup-backlog.md C2
 *.obj
 *.iobj
 *.pch

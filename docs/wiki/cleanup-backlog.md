@@ -38,13 +38,15 @@ mtime 전부 갱신 확인(= 실행 확증) · 내용 diff 0
 - **교훈**: "diff 가 없다"를 곧바로 "드리프트 없음"으로 읽지 말 것. 첫 시도에서 5개 Exporter 가 **모달에 막혀 실행조차 안 됐는데** diff 가 없어 정상으로 오독할 뻔했다. **mtime 으로 실행 자체를 확증**한 뒤 diff 를 판정한다.
 - **잔여 제안**: 이 대조를 EditMode 테스트로 상시화(사람 기억에 의존하지 않게).
 
-### A3. `RemotePlayerCharacter` 머티리얼 누락 — 🔽 **재평가: 런타임 무해 (낮음) 2026-08-18**
+### A3. `RemotePlayerCharacter` 머티리얼 누락 — ✅ **해소 2026-08-18** (재직렬화로 고아 블록 제거)
 
 - YAML 텍스트엔 `Capsule` GameObject + MeshRenderer 가 guid `31321ba15b8f8eb4c954353edc038b1d` 를 참조하는 채로 남아 있다.
 - **그러나 Unity 로 프리팹을 실제 로드하면 계층에 없다** — `LoadPrefabContents` 후 `GetComponentsInChildren<MeshRenderer>(true)` 결과는 `WeaponProp`(부모 `hand_r`) 하나뿐이고 머티리얼 `M_BludgeonProp` 이 정상 연결돼 있다. SkinnedMeshRenderer 14개도 정상.
 - 즉 **도달 불가능한 고아 YAML 블록**이다(루트 `m_Children` 에서 빠진 것으로 추정 — `m_Children` 직접 확인은 **미실측**). 렌더에 영향 없음.
 - ⚠ **정정**: 최초 보고의 "SkinnedMeshRenderer 가 참조" / "원격 플레이어가 머티리얼 누락으로 렌더된다" 는 **텍스트 grep 만으로 내린 오판**이었다. 프리팹 구조 판정은 YAML grep 이 아니라 Unity 로드로 확인한다.
-- **조치**: 방치해도 무방(과설계 금지). 정리하려면 Unity 에서 프리팹을 열고 저장해 재직렬화.
+- **결과**: A3 조사 중 호출한 `LoadPrefabContents`→`SaveAsPrefabAsset` 이 (5s 타임아웃으로 실패한 줄 알았으나 실제로는 적용돼) 프리팹을 재직렬화하며 고아 블록 **91줄을 제거**했다. `Capsule`·누락 guid 모두 0.
+- 검증(Unity 로드): `RemotePlayerCharacter` GameObject 115 · Skinned 14 · Mesh 1 · **머티리얼NULL 0 · 깨진컴포넌트 0** (`PlayerCharacter` 도 동일하게 clean).
+- ⚠ **재발 교훈(2회째)**: Unity CLI 의 타임아웃은 "미실행"을 뜻하지 않는다. `abilities.json`(DisplayDialog)·이 프리팹(main-thread 5s) 둘 다 **타임아웃 응답 뒤에 실제로는 적용**됐다. 타임아웃이 나면 결과를 **파일 상태로 재확인**한다.
 
 ---
 
@@ -118,7 +120,8 @@ Assets/Art/Magic Pig Games (Infinity PBR)/.../v2_DemoEnvironment.prefab
 
 - 원인은 메타 누락이 아니라 **에셋 팩의 데모 씬이 미보유 팩(Synty 등)을 전제**로 하는 것. A3 의 `31321ba…` 도 같은 계열로 보인다.
 - **권장 분리**:
-  1. **지금 가능(안전)**: `.gitignore` 의 `*.meta` 만 제거 → 앞으로 추가되는 메타는 자동 포함. 함정이 더 커지는 것을 멈춘다. 기존 8,593 은 손대지 않음.
+  1. ✅ **완료 2026-08-18**: `.gitignore` 의 `*.meta` 제거. **원인 규명 — 이 규칙은 `# Files built by Visual Studio` 블록(`*.ilk`·`*.obj`·`*.pch` 사이)에 있었다. VS 템플릿의 빌드 산출물 규칙이 Unity 에셋 `.meta` 까지 삼킨 것**이지 의도된 Unity 설정이 아니었다. 제거 사유를 파일에 주석으로 남김.
+     - 실측: 제거 후 새로 노출된 `.meta` 는 **1,019개**(예상 8,593 아님). 나머지는 `Client/Assets/Packages/` 등 **다른 ignore 규칙**에 여전히 걸려 있다 → 2단계에서 함께 다뤄야 한다.
   2. **선행 정리 후**: 데모 폴더(`_DEMO SOURCE FILES`·`LP Files` 등) 정리 → 콘솔 error 0 확인 → 기존 고아 메타 커밋.
 
 ### C3. CA-5 스모크 SFX 가 미커밋 팩에 의존 — ⬜ 중간

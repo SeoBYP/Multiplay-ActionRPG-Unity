@@ -501,12 +501,13 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
   - bake 산출물 **6종 전부 대조 완료** — abilities 외 5종(drop-tables·consumable-effects·spawn-layouts·level-table·monsters)은 재Export 후에도 수치 변경 **0건**(개행 차이만, 되돌림).
   - **모달 우회법(재사용)**: `unity command --project-path . eval_file --file <cs>` 로 `Exporter.BakeAll()` 직접 호출. 메뉴 경로는 `DisplayDialog` 가 에디터 메인스레드를 잡아 **이후 모든 CLI 명령까지 타임아웃**시킨다.
   - **감지 가드**: `AbilityCatalogTests.게임플레이_수치가_현재_저작값으로_bake_돼_있다`(167/125 고정). ⚠ 밸런스 조정 시 Export 후 이 기대값도 갱신한다. 상시 대조의 테스트화는 [cleanup-backlog.md](cleanup-backlog.md) A2 잔여 제안.
-- [x] **RemotePlayerCharacter 머티리얼 누락** — 🔽 **재평가: 런타임 무해 2026-08-18**. Unity 로 프리팹을 로드하면 MeshRenderer 는 `WeaponProp`(머티리얼 `M_BludgeonProp`) 하나뿐이고 정상. guid `31321ba…` 는 계층에서 도달 불가능한 **고아 YAML 블록**이라 렌더 영향 없음. ⚠ 최초의 "SkinnedMeshRenderer 가 참조·누락 렌더" 는 grep 만으로 내린 오판 — 프리팹 판정은 Unity 로드로 한다. 상세 = [cleanup-backlog.md](cleanup-backlog.md) A3.
+- [x] **RemotePlayerCharacter 머티리얼 누락** — ✅ **해소 2026-08-18**(재직렬화로 고아 블록 91줄 제거, 머티리얼NULL 0·깨진컴포넌트 0 검증). Unity 로 프리팹을 로드하면 MeshRenderer 는 `WeaponProp`(머티리얼 `M_BludgeonProp`) 하나뿐이고 정상. guid `31321ba…` 는 계층에서 도달 불가능한 **고아 YAML 블록**이라 렌더 영향 없음. ⚠ 최초의 "SkinnedMeshRenderer 가 참조·누락 렌더" 는 grep 만으로 내린 오판 — 프리팹 판정은 Unity 로드로 한다. 상세 = [cleanup-backlog.md](cleanup-backlog.md) A3.
 - [x] **디스크 포화 (환경)** — ✅ **해소 2026-08-18**. 아트 34/34 청크 커밋·푸시 완료, 여유 26G 회복. 잔여 = `.git` 20GB(GitHub 권장 5GB 초과) → Git LFS 이관은 히스토리 재작성이 필요해 별도 작업.
 
 - [ ] **`.gitignore` 가 `*.meta` 를 제외 (높음·구조적)** — 실측 결과 **추적 자산 17,075 중 8,593개(50.3%)가 `.meta` 없이 커밋**돼 있다(총 127KB). 클론 시 Unity 가 GUID 를 새로 만들어 프리팹·머티리얼 참조가 끊긴다.
   - ⛔ **지금 메타를 커밋하면 안 된다** — 로컬에 이미 끊긴 GUID 참조가 대량 존재(Magic Pig 데모 프리팹이 미보유 Synty 팩을 전제). 그 상태를 정본으로 고정하게 된다.
-  - **분리 착수**: ① `.gitignore` 의 `*.meta` 제거만 먼저(안전, 신규 유입 차단) ② 데모 폴더 정리 → 콘솔 error 0 확인 → 기존 고아 메타 커밋. 상세 = [cleanup-backlog.md](cleanup-backlog.md) C2.
+  - **① ✅ 완료 2026-08-18**: `.gitignore` 의 `*.meta` 제거(신규 유입 차단). 원인 = **VS 템플릿의 빌드 산출물 규칙**이 Unity 에셋 메타까지 삼킨 것. 노출된 메타는 1,019개로, 나머지는 다른 ignore 규칙이 잡고 있어 ②에서 함께 처리.
+  - **② 남음**: 데모 폴더 정리 → 콘솔 error 0 확인 → 기존 고아 메타 커밋. 상세 = [cleanup-backlog.md](cleanup-backlog.md) C2.
 
 **AC-D — 연출/밸런스 잔여 (AC-B에서 확장점으로 남긴 것들)**
 - [x] **AC-D1 어빌리티별 전용 애니** — ✅ 코드·데이터 완료(2026-07-20, 커밋 `f43da207`) + **배선 구멍 발견·수정(2026-08-17)**. enum `AttackSpecial`(=9, 끝에 추가라 기존 직렬화 인덱스 불변) + `CharacterAgentAnimations.m_animationAttackSpecialTrigger` + `Monster_leviathan_AC`(AttackSpecial 상태=`AttackHard` 클립, AnyState→AttackSpecial `hasExitTime=false`) + `Ability_leviathan_slam.cueTrigger=9`.
