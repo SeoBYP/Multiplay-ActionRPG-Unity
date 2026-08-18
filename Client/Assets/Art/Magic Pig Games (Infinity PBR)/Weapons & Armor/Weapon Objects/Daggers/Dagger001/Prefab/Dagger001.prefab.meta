@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: fdad25bf2a6324b7a9755436689c8b57
+labels:
+- Dagger
+- Infinity
+- Weapon
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 44714
+  packageName: Weapons & Armor PBR Pack #1 - Fantasy RPG
+  packageVersion: 4.3.3
+  assetPath: Assets/Magic Pig Games (Infinity PBR)/Weapons & Armor/Weapon Objects/Daggers/Dagger001/Prefab/Dagger001.prefab
+  uploadId: 934212

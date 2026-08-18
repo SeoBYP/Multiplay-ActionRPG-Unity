@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 83b2ee08dc71049d283c3ce95ff09ab5
+labels:
+- Bow
+- Infinity
+- Weapon
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 44714
+  packageName: Weapons & Armor PBR Pack #1 - Fantasy RPG
+  packageVersion: 4.3.3
+  assetPath: Assets/Magic Pig Games (Infinity PBR)/Weapons & Armor/Weapon Objects/Bows,
+    Arrows & Crossbows/Bow001 & Bow002/Prefab/Bow001_002.prefab
+  uploadId: 934212
