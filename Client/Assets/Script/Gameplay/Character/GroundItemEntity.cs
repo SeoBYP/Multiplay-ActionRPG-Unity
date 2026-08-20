@@ -35,6 +35,8 @@ namespace Game.Gameplay.Character
             transform.position = new Vector3(snapshot.PosX, snapshot.PosY + SpawnYOffset, snapshot.PosZ);
         }
 
+        public string InteractionPrompt => "줍기";
+
         public void Interact(GameObject interactor)
         {
             if (_session == null || _session.State != SocketSessionState.Joined)

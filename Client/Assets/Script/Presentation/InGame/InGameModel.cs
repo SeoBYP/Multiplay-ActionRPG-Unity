@@ -37,6 +37,7 @@ namespace Game.Presentation.InGame
         private readonly IInputContext _inputContext;          // 끊김 시 입력/이동 정지(없으면 정지만 생략)
         private readonly ItemDisplayCatalog _itemDisplay;      // 아이템 이름 표시(없으면 itemId 폴백)
         private readonly ItemPickupNotifier _pickupNotifier;   // Main 로컬 줍기 통지(던전은 소켓 경로)
+        private readonly InteractionPromptNotifier _promptNotifier; // 상호작용 안내(가까운 대상의 행동 이름)
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
         private readonly ReactiveProperty<InGameState> _state
@@ -67,6 +68,10 @@ namespace Game.Presentation.InGame
         private readonly Subject<ItemToastMessage> _itemPickup = new Subject<ItemToastMessage>();
         public Observable<ItemToastMessage> OnItemPickup => _itemPickup;
 
+        /// <summary>상호작용 안내 문구. null = 대상 없음(숨김). HUD 가 키 라벨과 합쳐 표시한다.</summary>
+        private readonly Subject<string> _interactionPrompt = new Subject<string>();
+        public Observable<string> OnInteractionPrompt => _interactionPrompt;
+
         // 비정상 연결 끊김 1회 신호(OnToast 동형 side-channel). GameHud가 구독해 끊김 팝업 표시.
         private readonly Subject<Unit> _connectionLost = new Subject<Unit>();
         public Observable<Unit> OnConnectionLost => _connectionLost;
@@ -88,8 +93,10 @@ namespace Game.Presentation.InGame
             PlayerProgressionHolder progression = null,
             IInputContext inputContext = null,
             ItemDisplayCatalog itemDisplay = null,
-            ItemPickupNotifier pickupNotifier = null)
+            ItemPickupNotifier pickupNotifier = null,
+            InteractionPromptNotifier promptNotifier = null)
         {
+            _promptNotifier = promptNotifier;
             _socketSession  = socketSession;
             _localPlayer    = localPlayer;
             _effectCatalog  = effectCatalog;
@@ -120,6 +127,10 @@ namespace Game.Presentation.InGame
             // Main 로컬 줍기(LocalGroundItem→ClaimKill) → 던전과 동일 획득 토스트로 병합.
             if (_pickupNotifier != null)
                 _pickupNotifier.OnPickup += OnItemPickedUp;
+
+            // 상호작용 안내 — Gameplay 탐지 결과를 그대로 View 로 흘린다(변할 때만 발행됨).
+            if (_promptNotifier != null)
+                _promptNotifier.OnChanged += OnInteractionPromptChanged;
 
             // 비정상 소켓 끊김 → 입력 정지 + 끊김 알림(메인 스레드).
             _socketSession.OnDisconnected += OnSocketDisconnected;
@@ -173,6 +184,9 @@ namespace Game.Presentation.InGame
         }
 
         /// <summary>서버 권위 획득 확정(S_ItemPickedUp) → 획득 토스트 메시지 발행. 이름은 표시 카탈로그, 없으면 itemId.</summary>
+        /// <summary>상호작용 대상 변경 통지를 그대로 View 로 재발행(문구 가공은 HUD 담당).</summary>
+        private void OnInteractionPromptChanged(string prompt) => _interactionPrompt.OnNext(prompt);
+
         private void OnItemPickedUp(int itemId, int qty)
         {
             string name = _itemDisplay?.Get(itemId)?.displayName;
@@ -374,6 +388,8 @@ namespace Game.Presentation.InGame
             }
             if (_pickupNotifier != null)
                 _pickupNotifier.OnPickup -= OnItemPickedUp;
+            if (_promptNotifier != null)
+                _promptNotifier.OnChanged -= OnInteractionPromptChanged;
 
             _socketSession.OnDisconnected -= OnSocketDisconnected;
             if (_uiCaptured) _inputContext?.ExitUi(); // 끊김 때 잡은 입력 점유 해제(전역 Singleton 누수 방지)

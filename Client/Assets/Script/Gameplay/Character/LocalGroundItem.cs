@@ -36,6 +36,8 @@ namespace Game.Gameplay.Character
             transform.position = new Vector3(pos.x, pos.y + SpawnYOffset, pos.z);
         }
 
+        public string InteractionPrompt => "줍기";
+
         public void Interact(GameObject interactor)
         {
             if (_picked || _inventory == null || _slotId <= 0 || string.IsNullOrEmpty(_mapId))

@@ -130,6 +130,22 @@
 - **검증**: EditMode 204/204 · PlayMode **193/193**(신규 `ClimbTests` 3건: 전이신호 one-shot·상하단 이탈·스냅 후 수직 전용 이동).
 - **범위 밖**: 원격 동기 없음(사용자 결정) · 좌우 이동(`Climb_L/R`) · 점프 이탈 · 상단/하단 전용 전환 클립(`Climb_Up_Start`, `*_To_Idle`).
 
+**P11 — 상호작용 안내 UI (2026-08-21)**
+- **문제**: 사다리를 만들어 놓고 "어떤 키를 눌러야 하는지" 알 방법이 없었다(하이라이트만 켜졌다).
+- **경로**(획득 토스트 `ItemPickupNotifier` 와 동일 패턴 재사용):
+  `InteractionDetector`(탐지) → `PlayerCharacterAgent` 가 대상의 `InteractionPrompt` 를 push →
+  `System/Player/InteractionPromptNotifier`(POCO, 바뀔 때만 발행) → `InGameModel.OnInteractionPrompt`(Observable<string>) →
+  `GameHud.RenderInteractionPrompt` 가 `"[E] 오르기"` 로 조립해 하단 중앙 표시(대상 없으면 숨김).
+- **왜 채널을 거치나**: `Game.GUI` 는 `Game.Gameplay` 를 참조할 수 없다(레이어 규칙). Gameplay 는 밀어 넣기만 하고 표시 방식을 모른다.
+- **왜 키 라벨이 HUD 소유인가**: Gameplay 가 키 배치를 알면 안 된다. 키를 바꾸면 HUD 인스펙터의 `interactKeyLabel` 만 고친다.
+- **`IInteractable.InteractionPrompt` 는 기본 구현(C# DIM)** — 구현체 7종을 건드리지 않고 추가하기 위해. 필요한 것만 오버라이드
+  (Ladder "오르기" · 아이템 "줍기" · NPC "대화" · 스위치 "작동", 기본값 "상호작용").
+- **HUD 프리팹 무변경**: `interactionPromptText` 미할당이면 코드로 TMP 를 생성한다(획득 토스트와 같은 방식) — 사용자가 나중에 예쁘게 배선 가능.
+- **파일**: `Gameplay/Character/Interactions/IInteractable.cs`·`Ladder.cs`(+아이템/NPC/스위치 문구) · `Gameplay/Character/Agent/PlayerCharacterAgent.cs`(push·사망 시 Clear) ·
+  `System/Player/InteractionPromptNotifier.cs`(신규) · `Presentation/InGame/InGameModel.cs` · `GUI/Hud/GameHud.cs` · Main/Dungeon LifetimeScope 등록.
+- **검증(실측)**: EditMode **213/213**(신규 중계·중복차단 회귀 1건) · PlayMode **195/195**(252.5s) · 플레이 프로브에서 `Set("오르기")` → HUD 에 **"[E] 오르기" 표시(True)**, `Set(null)` → **숨김(False)**, 에이전트 DI 주입 OK.
+- **주의**: `InGameModel` 생성자에 의존성을 추가하면 **테스트 컨테이너에도 등록**해야 한다(VContainer 는 C# 기본값을 대신 채워주지 않는다) — 실제로 GameHud 통합 테스트 2건이 `No such registration of type: InteractionPromptNotifier` 로 깨졌다.
+
 **P10 — 방향 전환 블렌드 감쇠 (2026-08-21, 플레이 피드백)**
 - **증상**: 좌로 걷다 우로 꺾으면 클립이 툭 바뀐다. **원인**: `MoveX/MoveY` 는 입력 방향 × 현재 속도라 한 프레임에 꺾인다 —
   좌(−2.3,0)→우(+2.3,0) 는 좌표가 **4.6** 점프하고, 블렌드 트리는 그 값을 그대로 따라간다. 속도(크기)만 램프가 있었고 **방향에는 완충이 없었다**.

@@ -27,6 +27,8 @@ namespace Game.Gameplay.Character
             _camera = camera;
         }
 
+        public string InteractionPrompt => "대화";
+
         public void Interact(GameObject interactor)
         {
             if (string.IsNullOrEmpty(npcId))

@@ -149,6 +149,28 @@ namespace Game.Tests.EditMode.InGame
         }
 
         [Test]
+        public void 상호작용_대상이_바뀌면_안내문구가_발행되고_대상이_없으면_숨김이_내려간다()
+        {
+            // 탐지(Gameplay) → InteractionPromptNotifier → InGameModel → HUD. 여기선 모델 중계만 검증한다.
+            var fake = new FakeSocketSession();
+            var notifier = new InteractionPromptNotifier();
+            var model = new InGameModel(fake, new LocalPlayerContext(), promptNotifier: notifier);
+            model.Initialize();
+
+            var received = new List<string>();
+            using var sub = model.OnInteractionPrompt.Subscribe(p => received.Add(p));
+
+            notifier.Set("오르기");
+            notifier.Set("오르기");   // 같은 대상 재통지 — 중복 발행하지 않아야 한다
+            notifier.Set(null);       // 대상에서 벗어남 → 숨김
+
+            CollectionAssert.AreEqual(new[] { "오르기", null }, received,
+                "대상이 바뀔 때만 발행돼야 한다(매 프레임 폴링이라 중복이 그대로 새면 UI 가 떤다).");
+
+            model.Dispose();
+        }
+
+        [Test]
         public void ReturnToLobby_인텐트시_IsReturning_상태가_true가_된다()
         {
             var fake = new FakeSocketSession();

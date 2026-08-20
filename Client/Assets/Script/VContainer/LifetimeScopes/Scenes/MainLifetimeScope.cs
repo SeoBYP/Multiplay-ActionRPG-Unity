@@ -56,6 +56,7 @@ namespace Game.Installers.Scenes
             builder.Register<Game.Gameplay.Character.ActorRegistry>(Lifetime.Scoped).AsSelf();
             // Main 로컬 줍기(LocalGroundItem) → InGameModel 획득 토스트 통지 허브.
             builder.Register<ItemPickupNotifier>(Lifetime.Scoped).AsSelf();
+            builder.Register<InteractionPromptNotifier>(Lifetime.Scoped).AsSelf(); // 상호작용 안내(HUD)
             builder.Register<SpawnLayoutProvider>(Lifetime.Scoped).AsSelf();
 
             // GameHud(HP/MP/버프)를 Main 씬에서도 표시. 던전 구성과 동일하되,

@@ -15,6 +15,8 @@ namespace Game.Gameplay.Character
             m_animator = GetComponent<Animator>();
         }
 
+        public string InteractionPrompt => "작동";
+
         public void Interact(GameObject interactor)
         {
             if (m_isSwitched == true)

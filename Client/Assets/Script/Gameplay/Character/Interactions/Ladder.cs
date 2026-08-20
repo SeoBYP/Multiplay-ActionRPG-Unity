@@ -41,6 +41,9 @@ namespace Game.Gameplay.Character
             }
         }
 
+        /// <summary>HUD 안내 문구 — "[E] 오르기".</summary>
+        public string InteractionPrompt => "오르기";
+
         /// <summary>상호작용 = 붙잡기 요청. 실제 전이는 Locomotion FSM(ClimbState)이 한다.</summary>
         public void Interact(GameObject interactor)
         {

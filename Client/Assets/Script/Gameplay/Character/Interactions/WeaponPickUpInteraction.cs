@@ -4,6 +4,8 @@ namespace Game.Gameplay.Character
 {
     public class WeaponPickUpInteraction : MonoBehaviour, IInteractable
     {
+        public string InteractionPrompt => "줍기";
+
         public void Interact(GameObject interactor)
         {
             WeaponHelper weaponHelper;

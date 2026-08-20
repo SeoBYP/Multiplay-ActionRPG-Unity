@@ -100,6 +100,7 @@ namespace Game.Tests.PlayMode.InGame
             // 아이템 획득 토스트 의존(2026-07-12 추가). 역시 C# 기본값이지만 VContainer 가 무시하므로 등록 필요.
             builder.RegisterInstance(ScriptableObject.CreateInstance<Game.Presentation.Inventory.ItemDisplayCatalog>());
             builder.RegisterInstance(new Game.System.Player.ItemPickupNotifier());
+            builder.RegisterInstance(new Game.System.Player.InteractionPromptNotifier()); // 상호작용 안내 채널
             builder.Register<InGameModel>(Lifetime.Singleton).AsSelf();
             _resolver = builder.Build();
             return localPlayer;

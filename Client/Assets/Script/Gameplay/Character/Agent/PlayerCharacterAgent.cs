@@ -45,6 +45,13 @@ namespace Game.Gameplay.Character
         [Inject]
         public void ConstructAbilities(AbilityCatalogProvider skills) => _skills = skills;
 
+        // 상호작용 안내(HUD) 채널 — 탐지 결과를 밀어 넣기만 한다. 표시 방식은 GUI 가 소유(레이어 규칙).
+        private Game.System.Player.InteractionPromptNotifier _interactionPrompt;
+
+        [Inject]
+        public void ConstructInteractionPrompt(Game.System.Player.InteractionPromptNotifier prompt)
+            => _interactionPrompt = prompt;
+
         /// <summary>공격 입력으로 스윙이 발동될 때 발행(인자=skillId: 0=기본/좌클릭, 1=강공격/우클릭).
         /// 던전 `CombatSyncSender`가 C_Attack{SkillId} 송신, Main `LocalCombat`가 그 스킬 hitbox 로 판정.</summary>
         public event Action<int> OnAttackPerformed;
@@ -121,6 +128,7 @@ namespace Game.Gameplay.Character
             if (IsDead)
             {
                 _lockOn?.ForceUnlock(); // 다운되면 락 해제(facing/카메라 원복)
+                _interactionPrompt?.Clear(); // 다운 중엔 상호작용 안내를 남기지 않는다
                 return;
             }
 
@@ -153,6 +161,8 @@ namespace Game.Gameplay.Character
             }
 
             _interactionDetector?.DetectInteractable();
+            // 탐지된 대상의 행동 이름을 안내 채널로(대상 없으면 null → HUD 숨김). 변할 때만 발행된다.
+            _interactionPrompt?.Set(_interactionDetector?.CurrentInteractable?.InteractionPrompt);
             if (HandleDodgeInput()) // 회피 시작 프레임엔 다른 Action/Locomotion 을 스킵(대시가 전담).
                 return;
             HandleLockOnInput();

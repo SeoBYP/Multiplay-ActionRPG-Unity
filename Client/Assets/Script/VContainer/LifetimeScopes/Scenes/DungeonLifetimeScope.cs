@@ -39,6 +39,7 @@ public class DungeonLifetimeScope : LifetimeScope
 
         // 아이템 획득 알림 허브 — 던전은 소켓 경로라 미사용이나 InGameModel 주입 충족용(Main 과 동일 구성).
         builder.Register<ItemPickupNotifier>(Lifetime.Scoped).AsSelf();
+        builder.Register<InteractionPromptNotifier>(Lifetime.Scoped).AsSelf(); // 상호작용 안내(HUD)
 
         // Effect/버프 — 정의 카탈로그(GAS) + 표시 카탈로그.
         // 표시 카탈로그: 인스펙터 할당 우선 → Resources 기본본 → 빈 인스턴스 순으로 폴백.

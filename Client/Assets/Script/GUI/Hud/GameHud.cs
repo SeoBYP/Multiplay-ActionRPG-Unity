@@ -75,8 +75,15 @@ namespace Game.GUI.OutGame
         [SerializeField] private TextMeshProUGUI itemToastText;
         [Tooltip("아이템 획득 토스트 표시 시간(초). 줍기 애니 대신 이 토스트로 획득 피드백.")]
         [SerializeField] private float itemToastSeconds = 2f;
+
+        [Header("상호작용 안내")]
+        [Tooltip("가까운 대상이 있을 때 뜨는 안내(예: \"[E] 오르기\"). 미할당이면 코드로 생성한다(프리팹 무변경).")]
+        [SerializeField] private TextMeshProUGUI interactionPromptText;
+        [Tooltip("안내에 표시할 상호작용 키 라벨. 키 바인딩을 바꾸면 여기도 바꾼다.")]
+        [SerializeField] private string interactKeyLabel = "E";
         private static readonly Color ItemToastColor = new Color(1f, 0.92f, 0.55f); // 옅은 금색(획득감)
-        private TextMeshProUGUI _pickupToast;          // 실제 사용 TMP(serialized 또는 코드 생성) 캐시
+        private TextMeshProUGUI _pickupToast;
+        private TextMeshProUGUI _interactionPrompt;          // 실제 사용 TMP(serialized 또는 코드 생성) 캐시
         private CancellationTokenSource _pickupToastCts;
         
         [InspectorButton("Quick Setting")]
@@ -134,6 +141,11 @@ namespace Game.GUI.OutGame
             _model.OnItemPickup
                 .Subscribe(ShowPickupToast)
                 .AddTo(destroyCancellationToken);
+
+            // 상호작용 안내 — 가까운 대상이 생기면 "[E] 오르기", 없으면 숨김.
+            _model.OnInteractionPrompt
+                .Subscribe(RenderInteractionPrompt)
+                .AddTo(destroyCancellationToken);
         }
 
         /// <summary>
@@ -153,6 +165,45 @@ namespace Game.GUI.OutGame
             _pickupToastCts?.Dispose();
             _pickupToastCts = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
             HidePickupToastAfterDelay(_pickupToastCts.Token).Forget();
+        }
+
+        /// <summary>
+        /// 상호작용 안내 표시. 대상이 없으면(null) 숨긴다.
+        /// 문구 조립(키 라벨 + 행동 이름)은 <b>여기서</b> 한다 — Gameplay 는 키 배치를 몰라야 한다(레이어 규칙).
+        /// </summary>
+        private void RenderInteractionPrompt(string prompt)
+        {
+            if (_interactionPrompt == null)
+                _interactionPrompt = interactionPromptText != null ? interactionPromptText : CreateInteractionPrompt();
+
+            if (string.IsNullOrEmpty(prompt))
+            {
+                _interactionPrompt.gameObject.SetActive(false);
+                return;
+            }
+
+            _interactionPrompt.text = $"[{interactKeyLabel}] {prompt}";
+            _interactionPrompt.gameObject.SetActive(true);
+        }
+
+        private TextMeshProUGUI CreateInteractionPrompt()
+        {
+            var go = new GameObject("InteractionPrompt", typeof(RectTransform));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(transform, false);
+            rt.anchorMin = new Vector2(0.5f, 0f);
+            rt.anchorMax = new Vector2(0.5f, 0f);
+            rt.pivot = new Vector2(0.5f, 0f);
+            rt.anchoredPosition = new Vector2(0f, 240f); // 획득 토스트(180)보다 위 — 겹치지 않게
+            rt.sizeDelta = new Vector2(700f, 44f);
+
+            var tmp = go.AddComponent<TextMeshProUGUI>();
+            tmp.font = TMP_Settings.defaultFontAsset;
+            tmp.fontSize = 28f;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.raycastTarget = false;
+            go.SetActive(false);
+            return tmp;
         }
 
         private TextMeshProUGUI CreatePickupToast()
