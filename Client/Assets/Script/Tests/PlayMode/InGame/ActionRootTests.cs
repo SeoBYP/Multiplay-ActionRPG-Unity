@@ -274,6 +274,51 @@ namespace Game.Tests.PlayMode.InGame
                 "정면 성분은 거의 0 이어야 한다(순수 옆걸음).");
         }
 
+        [UnityTest]
+        public IEnumerator 방향을_꺾어도_8방향_파라미터가_한번에_튀지_않는다()
+        {
+            // 회귀: 방향 파라미터를 감쇠 없이 꽂으면 좌→우 전환 때 좌표가 한 프레임에 4.6(=2.3×2) 점프해
+            // 블렌드가 좌측 클립 → 우측 클립으로 툭 바뀐다(사용자 피드백: "좌로 걷다 우로 바꿀 때 블렌딩이 안 된다").
+            var rig = BuildAnimRig(
+                ("m_animationSpeedFloat", "Speed"),
+                ("m_animationMoveXFloat", "MoveX"),
+                ("m_animationMoveYFloat", "MoveY"),
+                ("m_animationStrafeBool", "Strafe"));
+
+            var motor = rig.go.GetComponent<CharacterMotor>();
+            var ground = rig.go.GetComponent<GroundedDetector>();
+            var settings = new LocomotionSettings();
+            motor.Construct(settings);
+
+            var input = new MutableMoveSource(new Vector2(-1f, 0f)); // 좌측 게걸음
+            var state = new GroundState(motor, ground, rig.caa, input, settings, rig.asc);
+            state.Enter();
+            yield return DriveFor(state, 0.5f); // 전진 정착
+
+            float beforeX = rig.animator.GetFloat("MoveX");
+            Assert.Less(beforeX, -1f, $"좌측 이동 중이면 MoveX 가 음수여야 한다(실측 {beforeX:F2}).");
+
+            // 좌 → 우 급전환(가장 급격한 케이스) — 프레임별 좌표 변화량을 잰다.
+            input.Move = new Vector2(1f, 0f);
+            var prev = new Vector2(rig.animator.GetFloat("MoveX"), rig.animator.GetFloat("MoveY"));
+            float maxStep = 0f, elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                state.Update(Time.deltaTime);
+                yield return null;
+                elapsed += Time.deltaTime;
+                var now = new Vector2(rig.animator.GetFloat("MoveX"), rig.animator.GetFloat("MoveY"));
+                maxStep = Mathf.Max(maxStep, (now - prev).magnitude);
+                prev = now;
+            }
+
+            Debug.Log($"[감쇠측정] 좌→우 전환 최대 프레임 변화량 = {maxStep:F3} (감쇠 {settings.MoveBlendDamp}s)");
+            Assert.Less(maxStep, 1.5f,
+                $"방향 전환 시 블렌드 좌표가 한 프레임에 튀면 안 된다(실측 최대 {maxStep:F2}, 감쇠 없으면 4.6).");
+            Assert.Greater(rig.animator.GetFloat("MoveX"), 1f,
+                "감쇠는 지연일 뿐 — 0.5s 안에는 새 방향으로 수렴해야 한다.");
+        }
+
         /// <summary>실제 컨트롤러가 붙은 Animator + ASC + Motor 리그. 파라미터명은 프리팹 값이 없으므로 주입한다.</summary>
         private (GameObject go, Animator animator, AbilitySystemComponent asc, CharacterAgentAnimations caa)
             BuildAnimRig(params (string field, string value)[] names)
@@ -354,6 +399,20 @@ namespace Game.Tests.PlayMode.InGame
         {
             public bool Interacted;
             public void Interact(GameObject interactor) => Interacted = true;
+        }
+
+        /// <summary>테스트 중 방향을 바꿀 수 있는 입력 소스(급전환 재현용).</summary>
+        private sealed class MutableMoveSource : ICharacterInputSource
+        {
+            public Vector2 Move;
+            public MutableMoveSource(Vector2 move) => Move = move;
+            public CharacterInputFrame Current => default(CharacterInputFrame).WithMove(Move);
+            public bool ConsumeJumpPressed() => false;
+            public bool ConsumeDodgePressed() => false;
+            public bool ConsumeInteractPressed() => false;
+            public bool ConsumeAttackPressed() => false;
+            public bool ConsumeHeavyAttackPressed() => false;
+            public bool ConsumeLockOnPressed() => false;
         }
 
         /// <summary>GroundState 직접 구동용 — 매 프레임 동일한 이동 입력을 낸다.</summary>

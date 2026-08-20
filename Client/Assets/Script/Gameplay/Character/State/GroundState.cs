@@ -97,7 +97,7 @@ namespace Game.Gameplay.Character
 
             _animations.SetFloat(AnimationFloatType.Speed, _animationMovementSpeed);
 
-            DriveStrafeAnimation();
+            DriveStrafeAnimation(deltaTime);
         }
 
         /// <summary>
@@ -108,7 +108,7 @@ namespace Game.Gameplay.Character
         /// <b>단위는 m/s</b>(0~1 정규화 아님) — 컨트롤러의 2D 블렌드가 각 클립의 <b>실측 이동 속도</b> 좌표에 놓여 있어
         /// (Walk ≈2.3 · Run ≈3.4 · Sprint 5.335), 같은 단위로 넣어야 블렌드 결과의 발 속도 = 실제 이동 속도가 된다(발 슬라이딩 제거).
         /// </summary>
-        private void DriveStrafeAnimation()
+        private void DriveStrafeAnimation(float deltaTime)
         {
             _animations.SetBool(AnimationBoolType.Strafe, true);
 
@@ -124,8 +124,12 @@ namespace Game.Gameplay.Character
             // 실제 이동 속도(m/s)를 facing 프레임으로 분해 → 클립 속도 좌표계와 같은 단위.
             Vector3 velocity = worldMove * _currentMoveSpeed;
 
-            _animations.SetFloat(AnimationFloatType.MoveX, Vector3.Dot(velocity, right));
-            _animations.SetFloat(AnimationFloatType.MoveY, Vector3.Dot(velocity, fwd));
+            // 감쇠 적용 — 입력 방향은 한 프레임에 꺾이므로(W→A 는 좌표가 3.25 만큼 점프) 그대로 넣으면 클립이 툭 바뀐다.
+            // 이동 자체는 즉시 꺾이고 애니만 짧게 따라붙는다(그 사이 발/지면 오차는 감쇠 시간만큼만).
+            _animations.SetFloat(AnimationFloatType.MoveX, Vector3.Dot(velocity, right),
+                _settings.MoveBlendDamp, deltaTime);
+            _animations.SetFloat(AnimationFloatType.MoveY, Vector3.Dot(velocity, fwd),
+                _settings.MoveBlendDamp, deltaTime);
         }
 
         public override void Exit() { }

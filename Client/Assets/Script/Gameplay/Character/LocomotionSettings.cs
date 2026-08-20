@@ -15,6 +15,10 @@ namespace Game.Gameplay.Character
         public float JumpToFallDelay = 0.2f;
         public float SpeedChangeRate = 10f;
 
+        /// <summary>8방향 블렌드(MoveX/MoveY) 감쇠 시간(초). 방향을 꺾을 때 클립이 툭 바뀌지 않게 한다.
+        /// 너무 크면 발과 지면이 어긋나는 구간이 길어진다(0.1~0.15 권장).</summary>
+        public float MoveBlendDamp = 0.12f;
+
         // 이동 가감속 (m/s²). 즉시 최고속이 아니라 짧은 램프로 출발/정지를 부드럽게.
         // 가속 5 = 0→2m/s 0.4s, 감속 8 = 2→0m/s 0.25s.
         public float MoveAcceleration = 5f;

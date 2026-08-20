@@ -129,6 +129,19 @@ namespace Game.Gameplay.Character
             };
         }
 
+        /// <summary>
+        /// 감쇠(damping) 버전 — 값을 즉시 꽂지 않고 <paramref name="dampTime"/> 초에 걸쳐 수렴시킨다.
+        /// 방향 전환처럼 <b>파라미터가 한 프레임에 튀는</b> 경우, 블렌드 트리는 그 값을 그대로 따라가 클립이 툭 바뀐다.
+        /// Unity 내장 감쇠를 쓰는 이유: 프레임률에 무관하고 Animator 평가 시점과 어긋나지 않는다.
+        /// </summary>
+        public void SetFloat(AnimationFloatType floatType, float value, float dampTime, float deltaTime)
+        {
+            if (!m_animator) return;
+            if (dampTime <= 0f) { SetFloat(floatType, value); return; }
+            if (floatParameters.TryGetValue(floatType, out string paramName) && !string.IsNullOrEmpty(paramName))
+                m_animator.SetFloat(paramName, value, dampTime, deltaTime);
+        }
+
         public void SetFloat(AnimationFloatType floatType, float value)
         {
             if(!m_animator) return;
