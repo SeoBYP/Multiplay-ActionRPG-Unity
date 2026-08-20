@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 3db90c4abff05de4594a1b3f2ba5e188
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Walk_Forward_Rootmotion.anim
+  uploadId: 619937

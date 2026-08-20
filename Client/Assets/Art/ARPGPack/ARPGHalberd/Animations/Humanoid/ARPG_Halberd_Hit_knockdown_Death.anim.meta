@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 22f9b722ae613ff4ab243c1502b1ca61
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Hit_knockdown_Death.anim
+  uploadId: 619937

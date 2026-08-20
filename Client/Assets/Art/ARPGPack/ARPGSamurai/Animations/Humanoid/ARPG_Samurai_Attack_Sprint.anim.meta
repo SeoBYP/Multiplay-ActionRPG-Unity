@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 32b524f5ce3d1c0418f38494e84e1d3f
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Attack_Sprint.anim
+  uploadId: 619937

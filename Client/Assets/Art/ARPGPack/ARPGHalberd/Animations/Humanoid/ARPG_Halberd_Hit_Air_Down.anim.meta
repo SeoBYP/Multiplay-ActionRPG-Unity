@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 6acaeaa00872581468db209c43e8a100
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Hit_Air_Down.anim
+  uploadId: 619937

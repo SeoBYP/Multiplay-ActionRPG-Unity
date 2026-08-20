@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 7a7fbcab003d16d4687d7a9c3e60861f
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Executed_Death2.anim
+  uploadId: 619937

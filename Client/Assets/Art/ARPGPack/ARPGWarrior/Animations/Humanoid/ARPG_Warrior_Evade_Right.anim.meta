@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 6640e85fcb356784aa421e7e73389d19
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Animations/Humanoid/ARPG_Warrior_Evade_Right.anim
+  uploadId: 619937

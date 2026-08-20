@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 545b951d4441c9646b5e06e7770eafe9
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Airborne_no_weapon.anim
+  uploadId: 619937

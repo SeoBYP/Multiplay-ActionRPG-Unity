@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 469f66992fe4f3b4a84334da003fbd23
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Additional_Animations/Humanoid/Samurai_Hit6.anim
+  uploadId: 619937

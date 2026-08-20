@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: b5a5fefa1a245a14d91a5423bd75e96c
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Unequip_Idle1.anim
+  uploadId: 619937

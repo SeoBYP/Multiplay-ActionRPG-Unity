@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 3c1a866427a1eb54fbac2c923baf1d39
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Attack_Dodge_to_Combo1.anim
+  uploadId: 619937

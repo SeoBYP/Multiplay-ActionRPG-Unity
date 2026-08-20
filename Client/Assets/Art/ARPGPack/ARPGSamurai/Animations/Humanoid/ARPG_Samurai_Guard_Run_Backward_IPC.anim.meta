@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4b69d08cece550c40a5a2e7e89e2cfa6
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Guard_Run_Backward_IPC.anim
+  uploadId: 619937

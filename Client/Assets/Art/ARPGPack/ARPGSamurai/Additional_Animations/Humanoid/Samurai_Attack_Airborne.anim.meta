@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 060d348c7bc05414ebb04bb7c7a2d952
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Additional_Animations/Humanoid/Samurai_Attack_Airborne.anim
+  uploadId: 619937

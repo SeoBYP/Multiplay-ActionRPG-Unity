@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 09b05db16e6a123429042e3f1f3f9ea9
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Walk_Forward_Right_IPC.anim
+  uploadId: 619937

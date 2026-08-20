@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 648c838ddc45f994eaf4cf4ee4d15a5f
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Sprint_Start_L_Rootmotion.anim
+  uploadId: 619937

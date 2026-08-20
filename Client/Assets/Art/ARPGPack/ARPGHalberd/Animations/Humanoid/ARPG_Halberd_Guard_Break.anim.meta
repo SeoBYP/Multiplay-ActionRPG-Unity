@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 8e3dc774aece81a4cb4ba0e18a838ed5
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Guard_Break.anim
+  uploadId: 619937

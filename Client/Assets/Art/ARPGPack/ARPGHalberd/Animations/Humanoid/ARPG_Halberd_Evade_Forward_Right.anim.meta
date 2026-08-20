@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4cfcbd9b89a58f742b977d81f5de3308
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Evade_Forward_Right.anim
+  uploadId: 619937

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 54a6798ce207dab43af96b256c8294df
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Landing3.anim
+  uploadId: 619937

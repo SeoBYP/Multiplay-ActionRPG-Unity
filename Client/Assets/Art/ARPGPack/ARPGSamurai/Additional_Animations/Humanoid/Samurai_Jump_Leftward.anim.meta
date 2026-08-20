@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 7f8bc885674cffb4a842de38246a8969
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Additional_Animations/Humanoid/Samurai_Jump_Leftward.anim
+  uploadId: 619937

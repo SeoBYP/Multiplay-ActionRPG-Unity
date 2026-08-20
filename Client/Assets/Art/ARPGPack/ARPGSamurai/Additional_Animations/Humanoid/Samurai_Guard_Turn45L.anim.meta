@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ecf1b531335871b428f6a3e9f9168954
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Additional_Animations/Humanoid/Samurai_Guard_Turn45L.anim
+  uploadId: 619937

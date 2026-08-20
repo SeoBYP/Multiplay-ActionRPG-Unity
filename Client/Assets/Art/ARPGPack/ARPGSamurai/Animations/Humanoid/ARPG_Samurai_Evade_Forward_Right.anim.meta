@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 3fd9ea6a32951c447bc88cd6be5af0e5
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Evade_Forward_Right.anim
+  uploadId: 619937

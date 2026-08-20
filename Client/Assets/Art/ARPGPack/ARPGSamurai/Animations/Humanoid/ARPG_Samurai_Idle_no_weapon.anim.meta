@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: fd34477d06f9feb4f8fd68a234c00968
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Idle_no_weapon.anim
+  uploadId: 619937

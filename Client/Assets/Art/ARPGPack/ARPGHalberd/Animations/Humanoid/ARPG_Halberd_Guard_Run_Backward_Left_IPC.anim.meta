@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: abba9bf0dbbc43e46a36623f1fb4831e
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Guard_Run_Backward_Left_IPC.anim
+  uploadId: 619937

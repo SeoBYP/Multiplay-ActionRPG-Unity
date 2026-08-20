@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 7506dd41740df8241936532daf5ca01f
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Animations/Humanoid/ARPG_Warrior_Sprint_Turn180_no_weapon_Rootmotion.anim
+  uploadId: 619937

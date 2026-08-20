@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 1023ef13e83abb9498748aea84caf696
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Additional_Animations/Humanoid/Samurai_Collide_To_Stun.anim
+  uploadId: 619937

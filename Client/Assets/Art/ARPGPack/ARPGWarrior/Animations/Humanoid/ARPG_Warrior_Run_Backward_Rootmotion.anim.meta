@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 5904491dc400d3442a0310890241e235
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Animations/Humanoid/ARPG_Warrior_Run_Backward_Rootmotion.anim
+  uploadId: 619937

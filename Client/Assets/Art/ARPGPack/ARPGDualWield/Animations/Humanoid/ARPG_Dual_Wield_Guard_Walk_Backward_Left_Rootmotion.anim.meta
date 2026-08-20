@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: b9ec3bb3d1ac8ae4b9ff90d9b921d73b
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Guard_Walk_Backward_Left_Rootmotion.anim
+  uploadId: 619937

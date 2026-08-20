@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 670e8dbf7477be345a77fa92b66eb9b7
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Animations/Humanoid/ARPG_Warrior_Sprint_Start_L_Rootmotion.anim
+  uploadId: 619937

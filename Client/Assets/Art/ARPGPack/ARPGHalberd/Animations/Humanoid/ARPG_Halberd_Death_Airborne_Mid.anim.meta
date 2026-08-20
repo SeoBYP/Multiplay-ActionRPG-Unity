@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 40c22832e5a20804586ebfdc4a700a41
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Death_Airborne_Mid.anim
+  uploadId: 619937

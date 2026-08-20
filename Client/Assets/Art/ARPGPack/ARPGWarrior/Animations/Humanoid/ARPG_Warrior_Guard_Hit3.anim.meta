@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 9d7c09a86df10074a8e150839df3de30
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Animations/Humanoid/ARPG_Warrior_Guard_Hit3.anim
+  uploadId: 619937

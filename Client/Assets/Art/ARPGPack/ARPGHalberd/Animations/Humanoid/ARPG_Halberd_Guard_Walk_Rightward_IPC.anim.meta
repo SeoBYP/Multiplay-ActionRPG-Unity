@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 753d2aa523aeab9418c1d20d76523d26
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Guard_Walk_Rightward_IPC.anim
+  uploadId: 619937

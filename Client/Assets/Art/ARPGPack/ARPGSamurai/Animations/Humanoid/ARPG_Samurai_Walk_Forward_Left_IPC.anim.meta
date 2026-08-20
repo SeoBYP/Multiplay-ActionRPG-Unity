@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: dac121caeb2f4e540a4d0ff9809c430f
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Walk_Forward_Left_IPC.anim
+  uploadId: 619937

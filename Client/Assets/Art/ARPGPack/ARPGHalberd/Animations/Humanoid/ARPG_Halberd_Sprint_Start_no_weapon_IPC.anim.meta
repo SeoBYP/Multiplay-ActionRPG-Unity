@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 54275a0cee686c7438b88c5def304d56
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Sprint_Start_no_weapon_IPC.anim
+  uploadId: 619937

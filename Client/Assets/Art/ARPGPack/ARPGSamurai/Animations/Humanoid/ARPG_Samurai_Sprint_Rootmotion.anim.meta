@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: e7dd2b85a3443e54e9a3526494e20bf4
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Sprint_Rootmotion.anim
+  uploadId: 619937

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 2cecace89775cbb4f9c1e89a716c0c26
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Attack_Heavy2.anim
+  uploadId: 619937

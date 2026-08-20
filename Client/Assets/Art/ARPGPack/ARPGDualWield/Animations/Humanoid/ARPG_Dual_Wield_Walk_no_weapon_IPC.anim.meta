@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ab3e455a3e5a31341ac178a3da04bdcb
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Walk_no_weapon_IPC.anim
+  uploadId: 619937

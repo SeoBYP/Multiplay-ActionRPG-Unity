@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: eb1f5f57cc5806748845c0b33555907e
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Materials/Plane.mat
+  uploadId: 619937

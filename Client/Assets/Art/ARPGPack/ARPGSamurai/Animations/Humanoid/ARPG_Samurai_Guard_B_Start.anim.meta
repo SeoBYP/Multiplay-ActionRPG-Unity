@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 11f3fdcdd9ea7e341acbeb124e366fcb
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Guard_B_Start.anim
+  uploadId: 619937

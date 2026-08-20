@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 9f7cd69117a818942be365e568edc6eb
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Additional_Animations/Humanoid/ARPG_Warrior_Climb_R.anim
+  uploadId: 619937

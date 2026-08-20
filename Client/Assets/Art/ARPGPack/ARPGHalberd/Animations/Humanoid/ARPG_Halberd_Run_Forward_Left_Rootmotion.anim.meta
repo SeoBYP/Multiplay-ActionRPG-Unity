@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 6e1eba8a919f73b4f93f193e482f9605
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Run_Forward_Left_Rootmotion.anim
+  uploadId: 619937

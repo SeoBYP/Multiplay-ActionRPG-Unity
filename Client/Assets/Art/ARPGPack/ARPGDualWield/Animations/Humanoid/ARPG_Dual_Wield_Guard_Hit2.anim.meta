@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 3c0dbf465924c9342942c1dfe50fd706
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Guard_Hit2.anim
+  uploadId: 619937

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4fd53702c854e2a4ca6147bd4b6700cc
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Guard_Turn90R.anim
+  uploadId: 619937

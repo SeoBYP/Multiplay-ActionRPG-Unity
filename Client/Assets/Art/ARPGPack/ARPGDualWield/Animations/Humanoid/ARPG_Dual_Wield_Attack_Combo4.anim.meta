@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 2b5a0f5b011030b4e920a4795ed0cf94
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Attack_Combo4.anim
+  uploadId: 619937

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 538b65389d3977140896fc403c5b7074
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Guard_Walk_Backward_Left_IPC.anim
+  uploadId: 619937

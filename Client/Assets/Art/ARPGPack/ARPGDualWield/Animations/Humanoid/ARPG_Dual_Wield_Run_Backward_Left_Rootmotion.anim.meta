@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4ed5f624d7a99fb43bc68d5dd02f7876
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Run_Backward_Left_Rootmotion.anim
+  uploadId: 619937

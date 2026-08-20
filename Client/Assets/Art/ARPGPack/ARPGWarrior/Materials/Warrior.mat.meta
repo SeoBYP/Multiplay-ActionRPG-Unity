@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c06290bb8a54d5549bd26a91b625a648
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Materials/Warrior.mat
+  uploadId: 619937

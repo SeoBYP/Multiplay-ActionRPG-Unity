@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: de576b9f9346d424d97b8c023c24715a
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Additional_Animations/Humanoid/ARPG_Warrior_Attack_Heavy_Mid_Turn90R.anim
+  uploadId: 619937

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: f0a00e708d34e794998c54436c2f9120
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Animations/Humanoid/ARPG_Warrior_Walk_Backward_Left_Rootmotion.anim
+  uploadId: 619937

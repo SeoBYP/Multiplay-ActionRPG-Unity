@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 08a0762afebcb334aa0a3e3edc1e0c17
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Sprint_Unequip_Rootmotion.anim
+  uploadId: 619937

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: de5c9f599388b7b4c917a171b018b935
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Attack_Airborne_Mid.anim
+  uploadId: 619937

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 44ff27e8f5244b340b12e5fbc46e0bf6
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Walk_Forward_Rootmotion.anim
+  uploadId: 619937

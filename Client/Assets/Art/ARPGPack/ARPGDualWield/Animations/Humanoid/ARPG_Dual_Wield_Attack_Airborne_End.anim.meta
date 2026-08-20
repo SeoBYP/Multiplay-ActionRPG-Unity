@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c1eeaf793dee9d24da3757d6f7608886
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Attack_Airborne_End.anim
+  uploadId: 619937

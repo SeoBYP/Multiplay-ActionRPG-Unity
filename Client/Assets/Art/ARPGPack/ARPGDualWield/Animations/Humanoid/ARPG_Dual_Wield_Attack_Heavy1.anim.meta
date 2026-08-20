@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 1e21cf29c94844f4e840e9f19f9620c6
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Attack_Heavy1.anim
+  uploadId: 619937

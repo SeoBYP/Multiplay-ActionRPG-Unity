@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c0a33207041216b4aab109376077fc2e
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Guard_Walk_Forward_Right_Start_IPC.anim
+  uploadId: 619937

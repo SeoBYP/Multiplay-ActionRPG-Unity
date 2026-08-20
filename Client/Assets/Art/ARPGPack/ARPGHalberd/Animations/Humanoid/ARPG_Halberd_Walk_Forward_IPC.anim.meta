@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 55ee624f1d8c6f2449f181196e8896fe
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Walk_Forward_IPC.anim
+  uploadId: 619937

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c33c1fa246e50c94abb2e2eef80028ea
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Sprint_Turn180_no_weapon_IPC.anim
+  uploadId: 619937

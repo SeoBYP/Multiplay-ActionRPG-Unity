@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: f85bfb2551ce49e45b5241c6e1e23ccd
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Additional_Animations/Humanoid/ARPG_Warrior_Climb_Up_Start.anim
+  uploadId: 619937

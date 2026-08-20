@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 64293be621134b444b424a8dcef1371c
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Walk_Leftward_IPC.anim
+  uploadId: 619937

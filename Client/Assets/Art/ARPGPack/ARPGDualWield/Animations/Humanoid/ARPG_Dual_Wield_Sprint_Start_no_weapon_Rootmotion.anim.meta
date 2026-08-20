@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: bd25b81d60275d74da6eec4f0a565f25
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Sprint_Start_no_weapon_Rootmotion.anim
+  uploadId: 619937

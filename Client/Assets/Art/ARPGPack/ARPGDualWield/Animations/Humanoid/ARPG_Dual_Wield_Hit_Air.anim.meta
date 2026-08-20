@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 94c10b9a6fa35ce4a80a1be4d92fe338
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Hit_Air.anim
+  uploadId: 619937

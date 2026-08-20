@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 6e812883181865e40be55d1c0b007c77
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Animations/Humanoid/ARPG_Warrior_Run_Leftward_Rootmotion.anim
+  uploadId: 619937

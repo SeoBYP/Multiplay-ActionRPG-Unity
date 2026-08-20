@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4cfd2e76e7d198940a96f9c1fc593ba8
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Additional_Animations/Humanoid/Samurai_Attack_Sprint_Unequip.anim
+  uploadId: 619937

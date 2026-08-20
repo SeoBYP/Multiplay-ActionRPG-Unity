@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4ff52a09f4b819149a0a731da14ca6c0
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Additional_Animations/Humanoid/Samurai_Crouch_Walk_Backward_IPC.anim
+  uploadId: 619937

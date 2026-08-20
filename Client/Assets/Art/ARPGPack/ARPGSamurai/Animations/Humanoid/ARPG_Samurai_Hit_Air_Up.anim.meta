@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 250b09598b8e31548a9baa5a55627a01
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Hit_Air_Up.anim
+  uploadId: 619937

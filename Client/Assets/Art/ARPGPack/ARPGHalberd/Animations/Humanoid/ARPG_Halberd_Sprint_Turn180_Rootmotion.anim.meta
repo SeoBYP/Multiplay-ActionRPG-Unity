@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 5ed9182cad37aaa47870a1e144c9c865
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Sprint_Turn180_Rootmotion.anim
+  uploadId: 619937

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a4f1a8afac4ff1a44bdae2122729b640
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Additional_Animations/Humanoid/ARPG_Warrior_Crouch_Turn45R.anim
+  uploadId: 619937

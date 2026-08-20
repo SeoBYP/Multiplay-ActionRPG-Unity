@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 36c7f23bab3aed348b7b06c2e5c617a9
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Run_Backward_Right_IPC.anim
+  uploadId: 619937

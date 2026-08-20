@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 6f82440a18a2f4242b6775ef5a3de451
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Walk_Leftward_Start_Rootmotion.anim
+  uploadId: 619937

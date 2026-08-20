@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 09d9cd4953dd41a4ca9d82e57bbf1b12
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Executed2.anim
+  uploadId: 619937

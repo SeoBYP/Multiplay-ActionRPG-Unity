@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 240ca9f75d0626d43b07268220efe9a1
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Additional_Animations/Humanoid/Samurai_Landing2_no_weapon.anim
+  uploadId: 619937

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 1236638c214f08b46b5596a8713af78b
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Run_Forward_Left_IPC.anim
+  uploadId: 619937

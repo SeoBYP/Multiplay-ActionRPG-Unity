@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c64a0df38338a6c42a79d92e5289301d
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Idle1_to_Idle2.anim
+  uploadId: 619937

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 5a6aefaa1db8266428b6596c64863dd4
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Run_Forward_Left_Rootmotion.anim
+  uploadId: 619937

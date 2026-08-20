@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 5006accdf7574a1449b2cca3d5f50c5b
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Attack_Combo4.anim
+  uploadId: 619937

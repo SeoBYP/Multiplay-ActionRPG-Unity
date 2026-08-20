@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: dcc7958b0fa52ef46934aa9ee4c353b1
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Brake_no_weapon.anim
+  uploadId: 619937

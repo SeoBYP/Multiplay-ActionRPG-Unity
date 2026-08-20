@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 11ede0c38d56a3140a2fcbf7dcd258ec
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Animations/Humanoid/ARPG_Warrior_Hit_Air_Up.anim
+  uploadId: 619937

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 6c33c7b8411a26348804f518447012fa
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Prefabs/ARPG_Dual_Wield.prefab
+  uploadId: 619937

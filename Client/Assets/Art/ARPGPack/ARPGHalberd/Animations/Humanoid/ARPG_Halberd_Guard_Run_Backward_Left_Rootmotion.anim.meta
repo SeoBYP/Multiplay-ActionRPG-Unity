@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 072aa79ce40e2284aa3f4bb64da5331d
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Guard_Run_Backward_Left_Rootmotion.anim
+  uploadId: 619937

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: e7a5bedfd1aa2fb44a08da7ab70d62a5
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Prefabs/Halberd_Humanoid.prefab
+  uploadId: 619937

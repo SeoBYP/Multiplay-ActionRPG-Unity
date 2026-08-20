@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 3d4a3af8d9635394f8f362d607aae507
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Sprint_Start_R_IPC.anim
+  uploadId: 619937

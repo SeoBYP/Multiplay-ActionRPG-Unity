@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: d4556bcdcae876c4484c2d7be8da9557
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Sprint_Turn180_no_weapon_Rootmotion.anim
+  uploadId: 619937

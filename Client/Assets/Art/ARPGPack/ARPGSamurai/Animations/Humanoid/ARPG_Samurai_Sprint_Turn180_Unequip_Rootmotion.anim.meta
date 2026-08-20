@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 8eeb915ed9e6256459a0be6df1ed867f
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Sprint_Turn180_Unequip_Rootmotion.anim
+  uploadId: 619937

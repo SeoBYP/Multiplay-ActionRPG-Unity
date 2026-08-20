@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: cbafa4fd64ce8e440bbe7709612d802a
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Additional_Animations/Humanoid/ARPG_Warrior_Landing2_no_weapon.anim
+  uploadId: 619937

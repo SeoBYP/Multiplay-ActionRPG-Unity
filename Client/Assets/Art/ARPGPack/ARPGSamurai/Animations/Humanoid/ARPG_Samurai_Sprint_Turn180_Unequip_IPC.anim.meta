@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 054089ab6bbd8384e88276a78a2c0d1c
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Sprint_Turn180_Unequip_IPC.anim
+  uploadId: 619937

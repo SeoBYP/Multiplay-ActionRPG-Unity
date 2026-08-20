@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 72efe2f58e3c3b14c9090a0d814f3cc7
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Animations/Humanoid/ARPG_Dual_Wield_Run_no_weapon_Rootmotion.anim
+  uploadId: 619937

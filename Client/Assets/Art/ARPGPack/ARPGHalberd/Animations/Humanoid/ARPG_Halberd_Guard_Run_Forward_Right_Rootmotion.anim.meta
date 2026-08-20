@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a7bf1914d9fd7264682c157212ee45c0
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Guard_Run_Forward_Right_Rootmotion.anim
+  uploadId: 619937

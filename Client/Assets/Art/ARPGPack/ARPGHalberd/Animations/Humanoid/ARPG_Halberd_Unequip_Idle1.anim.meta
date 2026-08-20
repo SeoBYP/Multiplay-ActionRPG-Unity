@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 2e1c723e41b57a840a183a7badff7771
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Unequip_Idle1.anim
+  uploadId: 619937

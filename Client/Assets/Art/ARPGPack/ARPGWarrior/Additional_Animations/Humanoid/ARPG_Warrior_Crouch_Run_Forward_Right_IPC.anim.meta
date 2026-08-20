@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 1c511ec1ad0b3204b9d9a9691d24d51a
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Additional_Animations/Humanoid/ARPG_Warrior_Crouch_Run_Forward_Right_IPC.anim
+  uploadId: 619937

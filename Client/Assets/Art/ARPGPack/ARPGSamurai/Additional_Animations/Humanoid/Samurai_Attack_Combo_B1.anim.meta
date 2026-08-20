@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ae17a20cec7443041b847e71aa1c25d0
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Additional_Animations/Humanoid/Samurai_Attack_Combo_B1.anim
+  uploadId: 619937

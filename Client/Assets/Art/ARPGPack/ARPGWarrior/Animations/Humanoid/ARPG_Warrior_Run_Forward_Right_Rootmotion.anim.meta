@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: de08ee5a68b393c419cc50ad6d63fbad
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Animations/Humanoid/ARPG_Warrior_Run_Forward_Right_Rootmotion.anim
+  uploadId: 619937

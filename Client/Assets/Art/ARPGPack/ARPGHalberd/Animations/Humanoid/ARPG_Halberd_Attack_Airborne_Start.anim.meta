@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 5cc4a090369a9064b817b2f8ebbc5580
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Attack_Airborne_Start.anim
+  uploadId: 619937

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 993995542bdb07e4796287cf43d28a05
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGDualWield/Materials/DualWield.mat
+  uploadId: 619937

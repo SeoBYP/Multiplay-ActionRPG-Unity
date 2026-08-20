@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4a9825822e43ba648b6df4926f41c395
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Additional_Animations/Humanoid/ARPG_Warrior_Jump_Backward_Left.anim
+  uploadId: 619937

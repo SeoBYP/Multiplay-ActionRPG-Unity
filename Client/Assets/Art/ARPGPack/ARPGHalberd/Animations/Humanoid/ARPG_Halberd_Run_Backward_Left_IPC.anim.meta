@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 74d4ffa2d063b1a49bf0abdca26b1f0d
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGHalberd/Animations/Humanoid/ARPG_Halberd_Run_Backward_Left_IPC.anim
+  uploadId: 619937

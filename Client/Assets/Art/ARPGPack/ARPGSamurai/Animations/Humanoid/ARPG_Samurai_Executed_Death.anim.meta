@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 566b14d2186e8aa4c8b0b158626c7f92
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGSamurai/Animations/Humanoid/ARPG_Samurai_Executed_Death.anim
+  uploadId: 619937

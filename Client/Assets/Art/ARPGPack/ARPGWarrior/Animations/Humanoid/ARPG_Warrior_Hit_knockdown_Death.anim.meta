@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 0e5896902c2a7cd44a5d26fc943f3476
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 243178
+  packageName: ARPG Pack
+  packageVersion: 1.0
+  assetPath: Assets/ARPGPack/ARPGWarrior/Animations/Humanoid/ARPG_Warrior_Hit_knockdown_Death.anim
+  uploadId: 619937
