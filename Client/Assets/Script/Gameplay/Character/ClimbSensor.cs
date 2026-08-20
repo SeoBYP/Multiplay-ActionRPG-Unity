@@ -15,6 +15,8 @@ namespace Game.Gameplay.Character
         public Ladder Current { get; private set; }
 
         private bool _requested;
+        private bool _releaseRequested;  // 바닥 근처에서 아래 입력 → 내려서기
+        private bool _jumpOffRequested;  // Space → 반대쪽으로 뛰어내리기
 
         /// <summary>사다리가 "나에게 붙어라"라고 요청(상호작용 시). 한 번만 소비된다.</summary>
         public void RequestAttach(Ladder ladder)
@@ -32,11 +34,22 @@ namespace Game.Gameplay.Character
             return true;
         }
 
+        /// <summary>바닥 근처에서 "그냥 내려서기" 요청(아래 입력). 다음 전이 판정에서 소비된다.</summary>
+        public void RequestRelease() => _releaseRequested = true;
+
+        /// <summary>점프 이탈 요청(Space). 사다리를 밀어내며 낙하 상태로 빠진다.</summary>
+        public void RequestJumpOff() => _jumpOffRequested = true;
+
+        /// <summary>점프 이탈이 요청됐는가(전이 규칙이 폴링, ClimbState.Exit 가 밀어내기에 사용).</summary>
+        public bool JumpOffRequested => _jumpOffRequested;
+
         /// <summary>사다리에서 손을 뗄 때(이탈 완료) 호출 — 참조와 잔여 요청을 정리한다.</summary>
         public void Release()
         {
             Current = null;
             _requested = false;
+            _releaseRequested = false;
+            _jumpOffRequested = false;
         }
 
         /// <summary>
@@ -47,6 +60,7 @@ namespace Game.Gameplay.Character
         {
             atTop = false;
             if (Current == null) return true; // 사다리가 사라졌으면(파괴 등) 즉시 이탈
+            if (_releaseRequested) return true; // 바닥 근처 아래 입력 → 내려서기(위로 올라선 게 아니므로 atTop=false)
 
             if (playerPosition.y >= Current.TopY)
             {

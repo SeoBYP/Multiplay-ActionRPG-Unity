@@ -27,7 +27,16 @@ namespace Game.Gameplay.Character
         public float InteractReturnDelay = 0.3f;
 
         // 회피(Dodge) — 대시 연출·이동 감각(클라 전용). 무적창/쿨다운은 Shared DodgeConfig(서버 권위).
-        public float ClimbSpeed = 1.8f; // P6 사다리 오르내리기 속도(m/s). 클립 체감에 맞춘 값.
+        public float ClimbSpeed = 1.2f; // 사다리 오르내리기 속도(m/s). 배속 보정이 있으니 원하는 값으로 바꿔도 손발은 안 미끄러진다.
+
+        /// <summary>Climb_Up 클립이 상정한 상승 속도(m/s, 실측 1.00). 클립 배속 = ClimbSpeed / 이 값 → 손발이 발판을 정확히 따라간다.</summary>
+        public float ClimbClipSpeed = 1.0f;
+
+        /// <summary>사다리에서 점프(Space)로 이탈할 때 반대쪽으로 밀려나는 거리(m).</summary>
+        public float ClimbJumpOffDistance = 0.7f;
+
+        /// <summary>바닥에서 이 높이 안이면 아래 입력만으로 사다리에서 내려선다(m). 발판 간격(0.6)과 맞췄다.</summary>
+        public float ClimbBottomReleaseHeight = 0.6f;
         public float DodgeSpeed = 8f;
         public float DodgeDuration = 0.5f; // 대시(=입력 잠금) 지속(초). DodgeConfig.IframeMs(0.5s)와 맞춤.
     }

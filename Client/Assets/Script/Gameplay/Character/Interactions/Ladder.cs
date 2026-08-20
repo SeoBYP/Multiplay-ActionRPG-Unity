@@ -24,6 +24,15 @@ namespace Game.Gameplay.Character
         [Tooltip("감지용 트리거를 메시보다 수평으로 얼마나 넓힐지(m). 사다리는 얇아서 그대로 두면 잡기 어렵다.")]
         [SerializeField] private float m_triggerPadding = 0.5f;
 
+        [Tooltip("발판(가로대) 간격(m). 손·발 IK 가 이 간격으로 발판을 잡는다. 이 사다리 실측 = 0.6")]
+        [SerializeField] private float m_rungSpacing = 0.6f;
+
+        [Tooltip("가장 아래 발판의 높이(월드 기준 오프셋). 사다리 최하단에서 이만큼 위가 첫 발판.")]
+        [SerializeField] private float m_firstRungOffset = 0.35f;
+
+        [Tooltip("손이 잡는 세로 기둥의 좌우 간격 절반(m). 0 이면 중앙.")]
+        [SerializeField] private float m_railHalfWidth = 0.33f;
+
         private Collider _collider;
 
         private Collider Body => _collider != null ? _collider : (_collider = GetComponent<Collider>());
@@ -73,7 +82,11 @@ namespace Game.Gameplay.Character
             rotation = Quaternion.LookRotation(-fromLadder); // 사다리를 마주본다
         }
 
-        /// <summary>상단 이탈 지점 — 사다리 반대편(등지고 있던 쪽) 바닥으로 올라선다.</summary>
+        /// <summary>
+        /// 상단 이탈 지점 — 사다리 반대편(등지고 있던 쪽)으로 올라선다.
+        /// <b>바닥을 레이캐스트로 찾아 그 위에 세운다</b> — 고정 높이(TopY)로 두면 발판 두께나 난간 높이에 따라
+        /// 공중에 뜨거나 파묻힌다. 위쪽에 바닥이 없으면(예: 허공에 선 사다리) 그대로 두고 낙하에 맡긴다.
+        /// </summary>
         public Vector3 GetTopExitPosition(Vector3 playerPosition)
         {
             Vector3 center = CenterXZ;
@@ -82,7 +95,41 @@ namespace Game.Gameplay.Character
                 fromLadder = Vector3.forward;
             fromLadder.Normalize();
 
-            return new Vector3(center.x, TopY, center.z) - fromLadder * m_topExitDistance;
+            Vector3 exit = new Vector3(center.x, TopY, center.z) - fromLadder * m_topExitDistance;
+
+            // 이탈 지점 위에서 아래로 쏴 실제 바닥을 찾는다(트리거는 무시 — 사다리 자기 트리거에 맞지 않게).
+            Vector3 origin = exit + Vector3.up * 1.5f;
+            if (Physics.Raycast(origin, Vector3.down, out var hit, 4f, ~0, QueryTriggerInteraction.Ignore))
+                exit.y = hit.point.y;
+
+            return exit;
+        }
+
+        /// <summary>발판 수(감지 트리거가 아니라 사다리 길이 기준).</summary>
+        public int RungCount => Mathf.Max(1, Mathf.FloorToInt((TopY - BottomY - m_firstRungOffset) / Mathf.Max(0.05f, m_rungSpacing)) + 1);
+
+        /// <summary>
+        /// <paramref name="worldY"/> 에 가장 가까운 발판의 월드 높이. 손·발 IK 가 "지금 잡아야 할 가로대"를 찾는 데 쓴다.
+        /// <paramref name="bias"/> 로 위/아래 쪽 발판을 고를 수 있다(손은 +, 발은 −).
+        /// </summary>
+        public float GetNearestRungY(float worldY, float bias = 0f)
+        {
+            float first = BottomY + m_firstRungOffset;
+            float spacing = Mathf.Max(0.05f, m_rungSpacing);
+            int index = Mathf.RoundToInt((worldY + bias - first) / spacing);
+            index = Mathf.Clamp(index, 0, RungCount - 1);
+            return first + index * spacing;
+        }
+
+        /// <summary>손이 잡는 지점(월드) — 사다리 좌/우 기둥. <paramref name="right"/>=true 면 오른손 쪽.</summary>
+        public Vector3 GetGripPoint(float worldY, bool right)
+        {
+            Vector3 center = CenterXZ;
+            // 좌우는 사다리의 가로축(로컬 x 를 월드로) 기준.
+            Vector3 side = transform.right; side.y = 0f;
+            if (side.sqrMagnitude < 0.0001f) side = Vector3.right;
+            side.Normalize();
+            return new Vector3(center.x, worldY, center.z) + side * (right ? m_railHalfWidth : -m_railHalfWidth);
         }
 
         /// <summary>

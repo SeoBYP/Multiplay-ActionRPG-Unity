@@ -1378,6 +1378,7 @@ MonoBehaviour:
   m_animationDodgeXFloat: DodgeX
   m_animationDodgeYFloat: DodgeY
   m_animationClimbSpeedFloat: ClimbSpeed
+  m_animationMoveSpeedMulFloat: 
   m_animationComboStepInt: ComboStep
   m_animationGroundedBool: Grounded
   m_animationStrafeBool: 

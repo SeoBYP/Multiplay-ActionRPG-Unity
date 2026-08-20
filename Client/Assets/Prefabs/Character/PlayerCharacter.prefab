@@ -4126,6 +4126,7 @@ GameObject:
   - component: {fileID: 863327300742242786}
   - component: {fileID: 6245676671825027390}
   - component: {fileID: 2964355342523441289}
+  - component: {fileID: 9165841498124630847}
   m_Layer: 0
   m_Name: SK_HornedKnight_M_02
   m_TagString: Untagged
@@ -4199,6 +4200,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 299bbeb7ffde84441a6b2eedf6ef9092, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.RootMotionRelay
+--- !u!114 &9165841498124630847
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6764635558406156559}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4c21532a8ceb5f47a7e4fa02519319e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.LadderIK
+  m_enabled: 1
+  m_handWeight: 0.7
+  m_footWeight: 0.7
+  m_handHeightBias: 0.55
+  m_footHeightBias: -0.85
 --- !u!1 &7106473387064049378
 GameObject:
   m_ObjectHideFlags: 0
@@ -5236,6 +5254,7 @@ MonoBehaviour:
   m_animationDodgeXFloat: DodgeX
   m_animationDodgeYFloat: DodgeY
   m_animationClimbSpeedFloat: ClimbSpeed
+  m_animationMoveSpeedMulFloat: 
   m_animationComboStepInt: ComboStep
   m_animationGroundedBool: Grounded
   m_animationStrafeBool: Strafe
@@ -5327,11 +5346,15 @@ MonoBehaviour:
     RotationSmoothTime: 0.12
     JumpToFallDelay: 0.2
     SpeedChangeRate: 10
+    MoveBlendDamp: 0.12
     MoveAcceleration: 5
     MoveDeceleration: 8
     InteractInvokeDelay: 0.3
     InteractReturnDelay: 0.3
     ClimbSpeed: 1.8
+    ClimbClipSpeed: 1
+    ClimbJumpOffDistance: 0.7
+    ClimbBottomReleaseHeight: 0.6
     DodgeSpeed: 8
     DodgeDuration: 0.5
   <CurrentStateKind>k__BackingField: 0

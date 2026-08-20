@@ -86,6 +86,11 @@ namespace Game.Gameplay.Editor
             foreach (string t in new[] { "Jump", "Fall", "Land", "Attack", "Interact", "Dead", "Dodge", "Revive", "Hit" })
                 ctrl.AddParameter(t, AnimatorControllerParameterType.Trigger);
 
+            // IK Pass 를 켜야 OnAnimatorIK 가 호출된다(사다리 손·발 IK). 레이어는 값 타입이라 배열 재대입이 필요하다.
+            var layers = ctrl.layers;
+            layers[0].iKPass = true;
+            ctrl.layers = layers;
+
             var sm = ctrl.layers[0].stateMachine;
 
             // ── 1) 로코모션(비락온) — Speed 1D 4점 블렌드

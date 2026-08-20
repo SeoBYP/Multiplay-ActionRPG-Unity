@@ -95,6 +95,11 @@ namespace Game.Gameplay.Character
                     break;
 
                 case StateKind.Climb:
+                    // 점프 이탈이 상/하단 이탈보다 우선 — 사다리 중간에서도 Space 로 빠져나올 수 있어야 한다.
+                    if (context.ClimbSensor != null && availableStates.ContainsKey(StateKind.Fall))
+                    {
+                        state.AddTransition(new ClimbToFallTransition(context.ClimbSensor));
+                    }
                     if (availableStates.ContainsKey(StateKind.Ground))
                     {
                         state.AddTransition(new ClimbToGroundTransition(

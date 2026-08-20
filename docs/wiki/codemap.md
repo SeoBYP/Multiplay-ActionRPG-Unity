@@ -130,6 +130,20 @@
 - **검증**: EditMode 204/204 · PlayMode **193/193**(신규 `ClimbTests` 3건: 전이신호 one-shot·상하단 이탈·스냅 후 수직 전용 이동).
 - **범위 밖**: 원격 동기 없음(사용자 결정) · 좌우 이동(`Climb_L/R`) · 점프 이탈 · 상단/하단 전용 전환 클립(`Climb_Up_Start`, `*_To_Idle`).
 
+**P13 — 사다리 조작·정합 폴리시 (2026-08-21)**
+- **실측 근거**: `Climb_Up` 클립이 상정한 상승 속도 = **1.00 m/s**(손·발이 몸 기준 아래로 흐르는 속도 중앙값)인데 코드는 1.80 이었다 → 1.8배 미끄러짐.
+  사다리 발판 간격 = **0.60m**(메시 정점 y 히스토그램: 0.00·0.60·1.20·1.80·2.40·3.00·3.60).
+- **속도 정합**: `ClimbSpeed` 1.8 → **1.2**, `ClimbClipSpeed`(1.0) 신설. 애니 파라미터 = `축 × (ClimbSpeed / ClimbClipSpeed)`
+  → **속도를 바꿔도 손발이 발판을 정확히 따라간다**(로코모션의 배속 보정과 같은 원리).
+- **IK**: `LadderIK`(Animator GO) — 손은 기둥(`Ladder.GetGripPoint`), 발은 가장 가까운 발판(`GetNearestRungY`)에 스냅.
+  배속은 <b>흐르는 속도</b>를, IK 는 <b>닿는 높이</b>를 맞춘다 — 클립 제작 기준 간격과 실제 발판 간격이 다르면 배속만으로는 허공을 짚는다.
+  가중치 기본 0.7(1.0 이면 몸통 리듬과 따로 놀아 뻣뻣하다). **컨트롤러 Base Layer 의 IK Pass 를 켜야 `OnAnimatorIK` 가 호출된다**(빌더에서 활성화).
+- **상단 이탈**: `GetTopExitPosition` 이 이탈 지점 위에서 아래로 레이캐스트해 **실제 바닥 위**에 세운다(고정 높이면 발판 두께·난간에 따라 뜨거나 파묻힌다). 위에 바닥이 없으면 그대로 낙하.
+- **Space 이탈**: `ClimbToFallTransition`(신규) — 사다리 중간에서도 빠져나올 수 있어야 하므로 **상/하단 이탈보다 먼저 등록**한다. 밀어내기(반대쪽 0.7m)는 `ClimbState.Exit` 담당.
+- **바닥 근처 아래키**: 바닥에서 `ClimbBottomReleaseHeight`(0.6m = 발판 한 칸) 안에서 아래 입력이면 최하단까지 가지 않고 내려선다(`ClimbSensor.RequestRelease`).
+- **파일**: `LadderIK.cs`(신규) · `Transitions/ClimbToFallTransition.cs`(신규) · `Interactions/Ladder.cs`(레이캐스트 이탈·발판/그립 API) · `State/ClimbState.cs` · `ClimbSensor.cs` · `LocomotionSettings.cs` · `State/Builder/StateMachineBuilder.cs` · `Editor/PlayerAnimatorControllerBuilder.cs`(IK Pass).
+- **검증**: 컴파일 0오류 · IK Pass=True · **ClimbTests 6/6**(점프 이탈·바닥 근처 해제·레이캐스트 상단 이탈 신규 3건) · **EditMode 213/213 · PlayMode 198/198**(253.1s). IK 품질(손발이 실제로 발판에 붙는 그림)은 **미실측** — 눈으로 보고 가중치·높이 오프셋을 조정할 값.
+
 **P12 — 사다리 트리거 콜라이더 수정 (2026-08-21)**
 - **증상**: 사다리에 붙어도 안내가 안 뜨고 E 도 안 먹었다. **원인은 UI 도 감지 로직도 아니고 콜라이더였다.**
 - **실측**: 트리거 bounds 가 `size (0.82, 0.06, 4.82)` — 높이 4.8m 사다리가 **두께 0.06m 짜리 납작한 판**이 돼 공중(y≈2.04)에 떠 있었다.

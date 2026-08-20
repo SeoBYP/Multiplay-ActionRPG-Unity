@@ -101,6 +101,76 @@ namespace Game.Tests.PlayMode.InGame
             Assert.Less(horiz, 0.01f, $"사다리에서는 수평 이동이 없어야 한다(실측 {horiz:F4}m).");
         }
 
+        [UnityTest]
+        public IEnumerator 점프하면_사다리_반대쪽으로_밀려나며_낙하로_빠진다()
+        {
+            var ladder = BuildLadder(Vector3.zero, height: 4f);
+            var (go, motor, anims, sensor, settings) = BuildClimber(new Vector3(0f, 2f, 1.0f));
+            sensor.RequestAttach(ladder);
+
+            var input = new MutableClimbInput { Axis = 1f };
+            var state = new ClimbState(motor, anims, input, sensor, settings);
+            state.Enter();
+            yield return null;
+
+            var beforePlanar = new Vector2(go.transform.position.x, go.transform.position.z);
+            input.JumpPressed = true;                 // Space
+            state.Update(0.02f);
+
+            var fall = new ClimbToFallTransition(sensor);
+            Assert.IsTrue(fall.ShouldTransition(0f), "점프하면 낙하로 빠져야 한다(사다리 중간에서도 이탈 가능).");
+            Assert.AreEqual(StateKind.Fall, fall.NextState);
+
+            state.Exit();
+            var afterPlanar = new Vector2(go.transform.position.x, go.transform.position.z);
+            float pushed = (afterPlanar - beforePlanar).magnitude;
+            Assert.Greater(pushed, 0.3f,
+                $"사다리 반대쪽으로 밀려나야 한다(실측 {pushed:F2}m, 설정 {settings.ClimbJumpOffDistance}m).");
+        }
+
+        [UnityTest]
+        public IEnumerator 바닥_근처에서_아래_입력이면_최하단까지_안_가도_내려선다()
+        {
+            var ladder = BuildLadder(Vector3.zero, height: 4f);
+            // 바닥에서 0.3m 위 — 해제 높이(0.6) 안.
+            var (go, motor, anims, sensor, settings) = BuildClimber(new Vector3(0f, ladder.BottomY + 0.3f, 0.4f));
+            sensor.RequestAttach(ladder);
+
+            var input = new MutableClimbInput { Axis = -1f }; // 아래 입력
+            var state = new ClimbState(motor, anims, input, sensor, settings);
+            state.Enter();
+            go.transform.position = new Vector3(0f, ladder.BottomY + 0.3f, 0.4f); // Enter 의 스냅 이후 높이 고정
+            yield return null;
+
+            var toGround = new ClimbToGroundTransition(sensor, go.transform);
+            Assert.IsFalse(toGround.ShouldTransition(0f), "아직 아래 입력을 처리하기 전");
+
+            state.Update(0.02f);
+            Assert.IsTrue(toGround.ShouldTransition(0f),
+                "바닥 근처(0.3m)에서 아래를 누르면 최하단(0m)까지 가지 않아도 내려서야 한다.");
+            Assert.AreEqual(StateKind.Ground, toGround.NextState, "Idle 로 복귀 = Ground 상태");
+        }
+
+        [UnityTest]
+        public IEnumerator 상단_이탈은_레이캐스트로_찾은_바닥_위에_선다()
+        {
+            var ladder = BuildLadder(Vector3.zero, height: 4f);
+
+            // 사다리 위쪽에 바닥(플랫폼)을 놓는다 — 실제로는 옥상/난간.
+            var floor = new GameObject("TopFloor");
+            _objects.Add(floor);
+            floor.transform.position = new Vector3(0f, 3.7f, -0.8f);
+            var fc = floor.AddComponent<BoxCollider>();
+            fc.size = new Vector3(4f, 0.2f, 4f);
+            Physics.SyncTransforms();
+            yield return new WaitForFixedUpdate();
+
+            // 사다리 앞쪽(+z)에서 올라왔다고 보면 이탈은 반대편(-z)
+            var exit = ladder.GetTopExitPosition(new Vector3(0f, 4f, 1f));
+            Assert.AreEqual(3.8f, exit.y, 0.15f,
+                $"이탈 지점은 플랫폼 윗면(3.8) 높이여야 한다(실측 {exit.y:F2}). 고정 높이면 공중에 뜬다.");
+        }
+
         // ── 리그 ────────────────────────────────────────────────────────────
         private Ladder BuildLadder(Vector3 basePos, float height)
         {
@@ -120,6 +190,40 @@ namespace Game.Tests.PlayMode.InGame
             _objects.Add(go);
             go.transform.position = pos;
             return (go, go.AddComponent<ClimbSensor>());
+        }
+
+        /// <summary>축과 점프를 테스트가 바꿀 수 있는 입력 소스.</summary>
+        private sealed class MutableClimbInput : ICharacterInputSource
+        {
+            public float Axis;
+            public bool JumpPressed;
+            public CharacterInputFrame Current => default(CharacterInputFrame).WithMove(new Vector2(0f, Axis));
+            public bool ConsumeJumpPressed() { bool j = JumpPressed; JumpPressed = false; return j; }
+            public bool ConsumeDodgePressed() => false;
+            public bool ConsumeInteractPressed() => false;
+            public bool ConsumeAttackPressed() => false;
+            public bool ConsumeHeavyAttackPressed() => false;
+            public bool ConsumeLockOnPressed() => false;
+        }
+
+        /// <summary>Motor·Animations·ClimbSensor 가 붙은 등반용 리그.</summary>
+        private (GameObject go, CharacterMotor motor, CharacterAgentAnimations anims, ClimbSensor sensor, LocomotionSettings settings)
+            BuildClimber(Vector3 pos)
+        {
+            var go = new GameObject("ClimbRig");
+            go.SetActive(false);
+            _objects.Add(go);
+            var cc = go.AddComponent<CharacterController>();
+            cc.height = 2f; cc.radius = 0.5f; cc.center = new Vector3(0f, 1f, 0f);
+            var motor = go.AddComponent<CharacterMotor>();
+            var anims = go.AddComponent<CharacterAgentAnimations>();
+            var sensor = go.AddComponent<ClimbSensor>();
+            go.SetActive(true);
+            go.transform.position = pos;
+
+            var settings = new LocomotionSettings();
+            motor.Construct(settings);
+            return (go, motor, anims, sensor, settings);
         }
 
         /// <summary>사다리 입력용 — 전/후 축만 고정으로 낸다.</summary>
