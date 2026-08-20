@@ -41870,6 +41870,7 @@ MonoBehaviour:
   m_animationDodgeXFloat: 
   m_animationDodgeYFloat: 
   m_animationClimbSpeedFloat: 
+  m_animationMoveSpeedMulFloat: 
   m_animationComboStepInt: 
   m_animationGroundedBool: Grounded
   m_animationStrafeBool: 
@@ -41933,6 +41934,7 @@ MonoBehaviour:
     RotationSmoothTime: 0.12
     JumpToFallDelay: 0.2
     SpeedChangeRate: 10
+    MoveBlendDamp: 0.12
     MoveAcceleration: 5
     MoveDeceleration: 8
     InteractInvokeDelay: 0.3
