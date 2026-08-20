@@ -66988,15 +66988,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 38cf8a5211d7b774a99d598c88e782f2, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -2.39
+      value: -2
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 38cf8a5211d7b774a99d598c88e782f2, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 38cf8a5211d7b774a99d598c88e782f2, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 6.91
+      value: -6.49
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 38cf8a5211d7b774a99d598c88e782f2, type: 3}
       propertyPath: m_LocalRotation.w
@@ -96098,6 +96098,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.Ladder
   m_topExitDistance: 0.6
   m_attachOffset: 0.35
+  m_triggerPadding: 1.5
 --- !u!65 &1899434203
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -96117,8 +96118,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.008229375, y: 0.04817163, z: 0.00061875355}
-  m_Center: {x: 0, y: -0.0000000023841857, z: 0.020439558}
+  m_Size: {x: 0.023229375, y: 0.015618752, z: 0.048171617}
+  m_Center: {x: 4.656613e-10, y: -0.000000002240995, z: 0.020439558}
 --- !u!1 &1904210866
 GameObject:
   m_ObjectHideFlags: 0

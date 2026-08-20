@@ -21,6 +21,9 @@ namespace Game.Gameplay.Character
         [Tooltip("사다리 면에서 몸이 떨어져 붙는 거리(m). 메시에 파묻히지 않게.")]
         [SerializeField] private float m_attachOffset = 0.35f;
 
+        [Tooltip("감지용 트리거를 메시보다 수평으로 얼마나 넓힐지(m). 사다리는 얇아서 그대로 두면 잡기 어렵다.")]
+        [SerializeField] private float m_triggerPadding = 0.5f;
+
         private Collider _collider;
 
         private Collider Body => _collider != null ? _collider : (_collider = GetComponent<Collider>());
@@ -80,6 +83,62 @@ namespace Game.Gameplay.Character
             fromLadder.Normalize();
 
             return new Vector3(center.x, TopY, center.z) - fromLadder * m_topExitDistance;
+        }
+
+        /// <summary>
+        /// 트리거 콜라이더를 메시에 맞춘다(에디터 전용). <b>로컬 공간</b>에서 계산하는 게 핵심 —
+        /// 사다리 FBX 는 -90° 회전으로 들어와서, 월드 바운즈 크기를 그대로 로컬 size 에 넣으면 축이 뒤바뀐다
+        /// (실제로 높이 4.8m 사다리가 <b>두께 0.06m 짜리 납작한 판</b>이 돼 감지가 아예 안 됐다).
+        /// </summary>
+        [ContextMenu("콜라이더를 메시에 맞추기")]
+        public void FitColliderToMesh()
+        {
+            var box = GetComponent<BoxCollider>();
+            if (box == null) box = gameObject.AddComponent<BoxCollider>();
+            box.isTrigger = true; // 몸이 통과해야 사다리 안에서 오르내릴 수 있다
+
+            bool any = false;
+            var local = new Bounds();
+            foreach (var mf in GetComponentsInChildren<MeshFilter>(true))
+            {
+                var mesh = mf.sharedMesh;
+                if (mesh == null) continue;
+                var b = mesh.bounds;
+                // 메시 로컬 8개 꼭짓점 → 월드 → 사다리 로컬. 회전/스케일이 뭐든 정확히 맞는다.
+                for (int i = 0; i < 8; i++)
+                {
+                    var corner = new Vector3(
+                        (i & 1) == 0 ? b.min.x : b.max.x,
+                        (i & 2) == 0 ? b.min.y : b.max.y,
+                        (i & 4) == 0 ? b.min.z : b.max.z);
+                    var p = transform.InverseTransformPoint(mf.transform.TransformPoint(corner));
+                    if (!any) { local = new Bounds(p, Vector3.zero); any = true; }
+                    else local.Encapsulate(p);
+                }
+            }
+            if (!any) return;
+
+            box.center = local.center;
+
+            // 패딩은 <b>월드 m 단위</b>로 준다 → 로컬 크기로 환산해야 한다(사다리 FBX 는 스케일이 100 이라
+            // 그냥 더하면 0.5m 가 50m 가 된다 — 실제로 밟은 실수).
+            // 또 어느 로컬 축이 "사다리 길이"인지는 회전에 달렸으므로, 월드 up 에 가장 가까운 축을 찾아 그 축만 제외한다.
+            Vector3[] axes = { transform.right, transform.up, transform.forward };
+            int lengthAxis = 0;
+            float best = -1f;
+            for (int i = 0; i < 3; i++)
+            {
+                float d = Mathf.Abs(Vector3.Dot(axes[i].normalized, Vector3.up));
+                if (d > best) { best = d; lengthAxis = i; }
+            }
+
+            Vector3 scale = transform.lossyScale;
+            Vector3 pad = Vector3.zero;
+            for (int i = 0; i < 3; i++)
+                if (i != lengthAxis)
+                    pad[i] = m_triggerPadding / Mathf.Max(0.0001f, Mathf.Abs(scale[i]));
+
+            box.size = local.size + pad;
         }
 
         private void OnDrawGizmosSelected()
