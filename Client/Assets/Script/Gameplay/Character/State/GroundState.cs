@@ -101,27 +101,31 @@ namespace Game.Gameplay.Character
         }
 
         /// <summary>
-        /// 락온(<see cref="CharacterMotor.FacingOverride"/> 설정) 중에는 몸이 타겟을 향한 채 카메라기준 스트레이프로
-        /// 이동한다 — 1D Speed(전진 블렌드)로는 옆/뒤 이동이 어색하므로, 이동방향을 facing 프레임으로 분해해
-        /// MoveX(좌−/우+)·MoveY(후−/전+)로 2D 방향 블렌드를 구동한다. 비락온이면 Strafe=false(기존 1D).
+        /// 8방향 이동 애니 구동 — <b>항상</b>(락온 여부 무관). 플레이어의 몸은 <see cref="Rotation.PlayerRotationStrategy"/>
+        /// 때문에 늘 <b>카메라 정면</b>을 향하므로(락온이면 타겟), 왼쪽 입력은 실제로 "왼쪽으로 게걸음"이다.
+        /// 예전엔 락온일 때만 2D 블렌드를 구동해서 옆/뒤로 가도 전진 클립이 나왔다.
+        ///
+        /// <b>단위는 m/s</b>(0~1 정규화 아님) — 컨트롤러의 2D 블렌드가 각 클립의 <b>실측 이동 속도</b> 좌표에 놓여 있어
+        /// (Walk ≈2.3 · Run ≈3.4 · Sprint 5.335), 같은 단위로 넣어야 블렌드 결과의 발 속도 = 실제 이동 속도가 된다(발 슬라이딩 제거).
         /// </summary>
         private void DriveStrafeAnimation()
         {
-            bool strafing = _motor.FacingOverride.HasValue;
-            _animations.SetBool(AnimationBoolType.Strafe, strafing);
-            if (!strafing) return;
+            _animations.SetBool(AnimationBoolType.Strafe, true);
 
-            Vector3 fwd = _motor.FacingOverride.Value; fwd.y = 0f;
+            Vector3 fwd = _motor.FacingOverride ?? _motor.transform.forward;
+            fwd.y = 0f;
             if (fwd.sqrMagnitude < 0.0001f) return;
             fwd.Normalize();
             Vector3 right = Vector3.Cross(Vector3.up, fwd);
 
-            // 크기(0~1) = 현재 이동속도/스프린트속도. 정지=중앙(idle), 최고속=가장자리(run).
-            float mag = Mathf.Clamp01(_currentMoveSpeed / Mathf.Max(0.01f, _settings.SprintSpeed));
             Vector3 worldMove = _motor.ResolveWorldMoveDirection(_inputSource.Current.Move);
+            if (worldMove.sqrMagnitude > 0.0001f) worldMove.Normalize();
 
-            _animations.SetFloat(AnimationFloatType.MoveX, Vector3.Dot(worldMove, right) * mag);
-            _animations.SetFloat(AnimationFloatType.MoveY, Vector3.Dot(worldMove, fwd) * mag);
+            // 실제 이동 속도(m/s)를 facing 프레임으로 분해 → 클립 속도 좌표계와 같은 단위.
+            Vector3 velocity = worldMove * _currentMoveSpeed;
+
+            _animations.SetFloat(AnimationFloatType.MoveX, Vector3.Dot(velocity, right));
+            _animations.SetFloat(AnimationFloatType.MoveY, Vector3.Dot(velocity, fwd));
         }
 
         public override void Exit() { }

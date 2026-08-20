@@ -47,7 +47,11 @@ namespace Game.Gameplay.Character
         /// <summary>쿨다운이 지나 다시 회피할 수 있는가. now = Time.time.</summary>
         public bool CanBegin(float now) => now - _lastDodgeTime >= CooldownSec;
 
-        /// <summary>회피 시작 — 방향 락 + 무적 태그 + 애니 트리거. 방향은 호출부가 결정(입력 방향/정면).</summary>
+        /// <summary>
+        /// 회피 시작 — 방향 락 + 무적 태그 + 애니 트리거. 방향은 호출부가 결정(입력 방향/정면).
+        /// 방향은 <b>캐릭터 로컬</b>로 변환해 DodgeX/DodgeY 로 넘긴다 — 컨트롤러의 8방향 Evade 블렌드가 이 값으로 클립을 고른다.
+        /// 트리거보다 <b>먼저</b> 세팅해야 전이 시점에 올바른 클립이 선택된다(ComboStep 과 동일 규약).
+        /// </summary>
         public void Begin(Vector3 worldDir, float now)
         {
             _active = true;
@@ -57,6 +61,18 @@ namespace Game.Gameplay.Character
             _lastDodgeTime = now;
 
             _asc?.AddTag(InvulnerableTag);
+
+            // 월드 방향 → 캐릭터 로컬(전/후/좌/우). 정규화해 블렌드 가장자리(각 방향 클립)에 정확히 걸리게 한다.
+            if (_motor != null)
+            {
+                Vector3 local = _motor.transform.InverseTransformDirection(worldDir);
+                local.y = 0f;
+                if (local.sqrMagnitude > 0.0001f) local.Normalize();
+                else local = Vector3.forward; // 방향 소실 시 정면 구르기
+                _animations?.SetFloat(AnimationFloatType.DodgeX, local.x);
+                _animations?.SetFloat(AnimationFloatType.DodgeY, local.z);
+            }
+
             _animations?.SetTrigger(AnimationTriggerType.Dodge);
         }
 

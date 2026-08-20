@@ -80,6 +80,74 @@
 > ⚠️ **재번호(2026-07-17)** — 원래 2.60~2.76 으로 매겨져 기존 항목(2.60 회피·2.61 콤보·2.62 로스터·2.63 캡슐)과 **번호가 충돌**했다. 과거 커밋 메시지·PR 본문의 참조는 아래 대조표로 읽는다:
 > 구2.60(애니)→**2.64** · 2.61(B1)→**2.65** · 2.62(B2)→**2.66** · 2.63(B3)→**2.67** · 2.64(B4)→**2.68** · 2.65(B5)→**2.69** · 2.66(B6)→**2.70** · 2.67(C3-hotfix)→**2.71** · 2.68(C3)→**2.72** · 2.69(infra)→**2.73** · 2.70(C1a)→**2.74** · 2.71(C1b)→**2.75** · 2.72(C1c준비)→**2.76** · 2.73(사망체력바)→**2.77** · 2.74(C2)→**2.78** · 2.75(링포화)→**2.79** · 2.76(E~H)→**2.80**
 
+### 2.104 플레이어 애니 ARPGWarrior 전환 P1·P2 — Generic↔Humanoid 불일치 해소 (2026-08-20)
+
+**문제(실측)**: 플레이어 메시가 `SK_Protof-Actor` → `SK_HornedKnight_M_02`(Humanoid 아바타)로 교체되며 애니가 **구조적으로** 죽어 있었다. ① `PlayerCharacter.prefab` 의 Animator 는 커밋 `7f5d9754` 에서 `m_Controller` 참조를 잃었고(플레이 로그 `Animator is not playing an AnimatorController` 반복), ② 참조를 되살려도 구 `PlayerController.controller` 의 클립 **22개가 전부 Generic**(`isHumanMotion=False`)이라 Humanoid 아바타에 하나도 안 붙는다(클립 샘플링 실측: 뼈 회전 **0.0도**). ③ 더 나쁘게, 빈 휴머노이드 포즈가 `root` 본을 **-1.06m** 로 밀어 캐릭터가 지면에 파묻혔다(프리팹에 `m_WarningMessage` 로 박제돼 있던 Unity 바인딩 경고가 같은 말). **원격 프리팹도 같은 상태였다.**
+
+**결정**: 구 컨트롤러 수리(repair-in-place)가 아니라 **ARPGWarrior(Humanoid) 클립으로 새 컨트롤러를 코드 생성**. 이유 = PROTOFACTOR 애님셋 전체를 Humanoid 로 재임포트하는 것보다 싸고, ARPG 클립은 같은 아바타에 정상 리타깃됨을 먼저 실측(**15.5도**)했다.
+
+**코드/자산 위치**
+- `Client/Assets/Script/Gameplay/Editor/ARPGWarriorClipSetup.cs` — 루프 플래그 일괄(P1). 팩 추출 `.anim` 은 전부 `m_LoopTime=0` 이라 Idle/Walk/Run 이 한 번 재생 후 멈춘다. 순환 25개만 ON, 원샷(Jump·Landing·Attack·Dodge·Death·Getup)은 OFF 유지. 모달 없는 `SetupAll()` 진입점(A1 교훈).
+- `Client/Assets/Script/Gameplay/Editor/PlayerAnimatorControllerBuilder.cs` — 컨트롤러 코드 생성 + 프리팹 배선(P2). 항상 지우고 처음부터 만든다(부분 갱신은 잔여 상태로 재현이 깨짐).
+- `Client/Assets/GameResources/Animations/Player/PlayerController_ARPG.controller` — 산출물. 파라미터 14 · 상태 13 · 전이 22.
+
+**왜 코드 생성인가**: 구 컨트롤러가 모델 교체 때 조용히 깨진 게 이번 사고의 본질이다. 스크립트면 diff 가 남고 언제든 동일 결과를 재생성한다. 파라미터 이름 14개는 `CharacterAgentAnimations` 계약 그대로라 **드라이버 코드·프리팹 파라미터명 필드 변경 0**.
+
+**구조**: `Locomotion`(Speed 1D 4점 = Idle/Walk 2.0/Run 3.6/Sprint 5.335) ↔ `StrafeLocomotion`(MoveX·MoveY 2D 8방향, 락온) ← `Strafe` bool 로 전환. 공중 `Jump→Airborne→Landing`, 공격 `ComboA~D`(AnyState + `ComboStep` Equals 0~3), `Dodge`·`Interact`(전용 클립 없어 `Buff` 플레이스홀더)·`Dead`(홀드)→`GetUp`(`Revive` 트리거).
+
+**⚠️ Speed 축 주의**: 코드의 이동 속도는 여전히 **2단**(`LocomotionSettings.MoveSpeed 2` / `SprintSpeed 5.335`)이다. Run(3.6)은 가감속 램프가 지나가는 구간으로만 보인다. 진짜 3단 이동이 필요하면 `RunSpeed` 신설 + 걷기 토글 입력이 따라와야 한다(입력 계약 변경이라 별건).
+
+**검증(실측)**: 컴파일 0오류 · **EditMode 204/204** · **PlayMode 187/187**(Docker E2E 포함 — SocketE2E 31·DungeonLobby 14·Auth 12·Chat 3·Progression 2, 애니 회귀 RemoteDriverAnim 3·ActionRoot 5·MonsterEntityAnim 4·LocalMonsterAnim 1, 257.1s) · 루프 적용 25/25(디스크 `m_LoopTime:1` 확인, 원샷은 0 유지) · 프리팹 배선 2/2 · 플레이 모드에서 `ARPG_Warrior_Idle1` 루프 재생(normalizedTime 15.65) · `root` 본 localPos **-1.06 → -0.11**, `foot_l` world.y **-0.652 → 0.079**(침몰 해소) · 프리팹의 바인딩 경고 문자열 **삭제됨** · 게임뷰 스크린샷으로 기립 확인.
+
+**후속(2026-08-20, P3 + 정리)**: Land Duration 0.533 → **0.483**(ARPG `Landing` 클립 길이 정합) · 구 `PlayerController.controller` **삭제**(참조 0 실측 후: 에셋·씬·ProjectSettings·코드 전부 0).
+  - ⚠️ **여기서 발견한 함정**: 상태 설정 SO 가 **3개**인데 살아 있는 건 `Assets/Data/CharacterStateConfig.asset` 하나뿐이다(`PlayerCharacter.prefab` 의 `stateConfig` 가 이걸 가리킨다). `GameResources/StateConfigs/{Player,Npc}StateConfig.asset` 는 **참조 0 + `m_Script` guid `c142f05d…` 가 프로젝트에 없어** Unity 가 로드조차 못 하는 고아다(`LoadAssetAtPath` → null 실측). 이름만 보고 고치면 **아무 효과가 없다** — 실제로 처음에 고아를 고쳤다가 되돌렸다. 고아 2개 삭제는 사용자 판단 대기.
+  - 검증: EditMode 204/204 · PlayMode 187/187(실패 0, 252.8s) · 에디터 `Kind3(Land) Duration = 0.483` · 삭제 후 두 프리팹 controller 유지.
+
+**P4 — 콤보 4단 + 히트 프레임 실측 (2026-08-20)**
+- **왜 재저작이 필요했나**: 콤보 타이밍(startup/active)은 PROTOFACTOR 클립 기준으로 튜닝돼 있었다. ARPG 클립은 타격 접점이 100~250ms 더 늦어 그대로 두면 **검이 닿기 전에 판정이 끝난다**.
+- **측정 방법(추정 아님)**: 프리팹을 인스턴스화해 클립을 60스텝 샘플링하고 `hand_r` 본의 모델 로컬 속도 피크를 잡았다 → Combo1 299ms · Combo2 340ms · Combo3 467ms · Combo4 458ms. 45% 임계 구간은 17~68ms로 너무 좁아 게임플레이용으로는 **피크 중심 120ms**를 판정창으로 저작.
+- **데이터**(SO→bake, 서버·클라 단일소스): A 240/120/60 chain380 win650 · B 280/120/60 chain420 win650 · C 405/120/90 chain540 win800 · D 400/120/90 chain540 win800. recovery 를 짧게 둔 이유 = `Rooted`(이동잠금) 길이가 startup+active+recovery 라, 클립 전체로 잡으면 이동잠금이 2배가 된다(기존 체감 유지).
+- **애니 이벤트**: 판정창과 **같은 시각**에 `AttackHitStart/End` 삽입(클립 4개) → Main 로컬 히트박스와 서버 타임라인이 어긋나지 않는다.
+- **코드/데이터 위치**: `GameData/Ability/Ability_ComboD.asset`(networkId **5**, dmg 35) + `AbilityCatalogDefinition` 등록 / `PlayerCharacterAgent.ComboSkillIds = {2,3,4,5}` / 서버 `CombatHandler.IsComboSkill` → `2 or 3 or 4 or 5` / `abilities.json` 16종 재bake / 테스트 `AbilityCatalogTests`·`ComboCadenceTests` 4단 반영.
+- **검증**: 서버 666/666 · EditMode 204/204 · PlayMode 187/187(Docker 리빌드 후) · 플레이 프로브에서 ComboD 전이 + 히트박스 450→550ms 개폐 실측(전이 블렌드 0.05s 만큼 클립 기준보다 늦음).
+- ⚠️ **가정값**: ComboD 밸런스(데미지 35·리치 2.25)는 A10→B15→C25 추세를 이은 값 — 튜닝 미확정.
+
+**P5 — 회피 8방향 + 피격 리액션 (2026-08-20)**
+- **계약 확장**: `AnimationFloatType.DodgeX/DodgeY`, `AnimationTriggerType.Hit` + `CharacterAgentAnimations` 필드 3개(프리팹 2개에 파라미터명 배선).
+- **회피 방향**: `DodgeDriver.Begin(worldDir)` 이 `motor.transform.InverseTransformDirection` 으로 **캐릭터 로컬**로 바꿔 DodgeX/DodgeY 를 세팅한 뒤 트리거를 쏜다(ComboStep 과 동일 규약 — 트리거보다 먼저여야 전이 시점에 올바른 클립이 잡힌다). 컨트롤러 `Dodge` = FreeformDirectional2D 8방향 Evade.
+- **피격**: `PlayerCharacterAgent.OnAttributeChanged` 가 HP **감소**를 관측해 `Hit` 1회. 회복·첫 통지·사망 순간은 제외하고, 사망 시 `ResetTrigger(Hit)` 로 다운 포즈를 지킨다. **연출 전용**(이동잠금 없음 — 경직은 CC 태그 담당).
+- **원격**: `C_Dodge` 에 방향이 없어 `RemoteDriver` 는 정면 회피로 근사. 방향 동기는 패킷 계약 확장이라 별건.
+- ⚠️ **enum 중간 삽입 금지(실제로 밟음)**: `AnimationTriggerType` 은 `AbilityDefinition.cueTrigger` 로 SO 에 **정수**로 직렬화된다. `Hit` 을 `AttackSpecial` 앞에 넣자 저작된 9(AttackSpecial)가 Hit 으로 밀려 보스 슬램 테스트가 실패했다(`Expected: AttackSpecial But was: Hit`). **새 값은 끝에 추가**.
+- **검증**: EditMode 204/204 · PlayMode **190/190**(신규 회귀 3건: 피격 재생·치명타는 Dead·회피 방향 파라미터) · 블렌드 트리 덤프로 8방향 매핑 확인.
+
+**P6 — 사다리(Climb) 신규 시스템, 로컬 전용 (2026-08-20)**
+- **왜 Locomotion FSM 상태인가**: 사다리는 중력·수평이동을 끄는 **배타적 이동 모드**라 Action(임펄스)이 아니라 상태다(CA-1 두 축 분리 그대로).
+- **컴포넌트 배치**: `Ladder`(월드 오브젝트, `IInteractable`) → `ClimbSensor`(플레이어) → `ClimbState`. 탐지는 **기존 `InteractionDetector` 를 그대로 재사용**(트리거 볼륨·입력 처리를 새로 만들지 않았다 — 교리상 `if(E) Climb()` 직결 금지).
+- **왜 센서를 따로 두나**: 전이 규칙(`ITransitionRule`)은 MonoBehaviour 를 직접 알면 안 된다. `GroundedDetector` 와 동일하게 **센서가 상태를 들고 규칙이 폴링**한다(`ConsumeAttach` 는 입력과 같은 one-shot 규약).
+- **Motor 확장**: `MoveRaw`(중력 없는 월드 변위 — `Dash` 는 y 를 중력으로 덮어써 수직 이동 불가) · `Teleport`(CharacterController 를 껐다 켜야 위치 이동이 먹는다).
+- **애니 트릭**: `Climb` 상태의 **speedParameter = ClimbSpeed**. 음수면 역재생이라 오르기 클립 하나로 하강까지 표현하고, 0이면 사다리에 매달린 정지 포즈가 된다. 상태·클립 수를 늘리지 않는 선택.
+- **파일**: `Gameplay/Character/Interactions/Ladder.cs` · `Gameplay/Character/ClimbSensor.cs` · `Gameplay/Character/State/ClimbState.cs` · `Transitions/{GroundToClimb,ClimbToGround}Transition.cs` · `StateKind.Climb`(⚠️ SO 직렬화 정수라 **끝에** 추가) · `CharacterStateContext.ClimbSensor` · `Data/CharacterStateConfig.asset`(Kind 4 추가).
+- **검증**: EditMode 204/204 · PlayMode **193/193**(신규 `ClimbTests` 3건: 전이신호 one-shot·상하단 이탈·스냅 후 수직 전용 이동).
+- **범위 밖**: 원격 동기 없음(사용자 결정) · 좌우 이동(`Climb_L/R`) · 점프 이탈 · 상단/하단 전용 전환 클립(`Climb_Up_Start`, `*_To_Idle`).
+
+**P8 — 이동감 폴리시: 8방향·발 슬라이딩·공격 루트모션 (2026-08-20)**
+- **블렌드 좌표는 정규화가 아니라 m/s** — 이게 이번의 핵심 교훈. 0~1 정규화 좌표는 "발이 얼마나 빨리 구르는가"와 "몸이 얼마나 빨리 가는가"의 연결을 끊는다. 좌표를 클립 실측 속도로 두면 블렌드 결과의 발 속도 = 이동 속도가 되어 **슬라이딩이 구조적으로 0** 이 된다(실측 비율 1.00).
+- **실측(AnimationClip.averageSpeed)**: Walk 2.26~2.32 · Run 3.31~3.43 · Sprint 3.44 · 공격 전진 0.63~1.42m · Evade 3.6m · Death 0.84m · Getup 0.79m.
+- **코드 속도도 클립에 맞춤**: `LocomotionSettings.MoveSpeed` 2.0 → **2.3**. Sprint 는 게임 속도(5.335)를 유지하되 blend child `timeScale` **1.55** 로 클립을 가속(속도를 낮추면 게임 감이 바뀌므로).
+- **8방향은 락온 전용이 아니었다**: `PlayerRotationStrategy.FacingDirectionStrategy` 가 **카메라 정면**을 반환하므로 몸은 늘 카메라를 본다 → 옆 입력은 실제로 게걸음이다. `DriveStrafeAnimation` 의 락온 조건을 없애 항상 2D 블렌드를 구동한다.
+- **루트모션은 태그 게이트**: `RootMotionRelay`(Animator GO, `OnAnimatorMove`)가 상태 태그 `RootMotion` 일 때만 `deltaPosition` 을 `CharacterMotor.MoveRaw` 로 흘린다. 전역으로 켜면 회피(대시 + 클립 3.6m)가 **이중 이동**한다 — EditMode `PlayerAnimatorContractTests` 가 태그 번짐을 회귀 고정.
+- **파일**: `Gameplay/Character/RootMotionRelay.cs`(신규) · `State/GroundState.cs`(항상 8방향, m/s) · `LocomotionSettings.cs` · `Editor/PlayerAnimatorControllerBuilder.cs`(속도공간 18자식 + timeScale + 태그) · 테스트 `PlayerAnimatorContractTests`(EditMode) · `ActionRootTests`(8방향).
+- **검증**: EditMode 206/206 · PlayMode 194/194 · 슬라이딩비 1.00(6개 속도·방향 조합).
+- **선입력 규칙의 예외 = 마무리 타**: 콤보 선입력(버퍼)은 "이어지는 다음 타"를 당겨오는 장치다. 마지막 단계 뒤엔 이어질 타가 없어 **새 콤보**가 시작되므로, 마무리 재생 중 입력을 버퍼하면 애니가 끝나는 순간 손을 뗐는데도 한 대가 더 나간다. → `ComboDriver.OnAttackPressed` 가 `_hasSwung && _index == 0 && since < chain` 이면 입력을 버린다(회귀 `ComboDriverTests.마무리_타_재생중_누른_입력은_버려진다`).
+- ⚠️ **함정(실측으로 잡음): 컨트롤러를 DeleteAsset→재생성하면 프리팹의 임포트 사본이 옛 인스턴스를 문다.**
+  증상 = 디스크 YAML 에는 `m_Controller` 가 멀쩡히 적혀 있는데 `LoadAssetAtPath(...)`/런타임에서는 **null** → 플레이하면
+  `Animator is not playing an AnimatorController` 경고가 매 프레임 쏟아진다(실측 193건/1세션). 원격 프리팹은 나중에 한 번 더
+  저장돼 우연히 갱신돼 있어 **로컬만 깨져 보였다**. → `Wire()` 가 `SaveAsPrefabAsset` 직후
+  `AssetDatabase.ImportAsset(path, ForceUpdate | ForceSynchronousImport)` 로 캐시를 강제 갱신한다.
+- **후속(플레이 피드백)**: 콤보 <b>마지막 타는 끝까지 재생</b>하도록 `combo_d.comboChainMs` = 클립 길이(1017ms), `ComboD→Locomotion` exitTime 0.97. 체인 지점이 클립의 절반(540ms)이라 D 재생 중에 A 가 튀어나왔고, 85% 이탈로 마무리 모션 15% 가 잘려 있었다. 앞 단계는 0.85 유지 — <b>이어지는 타는 빨리, 마무리는 온전히</b>가 규칙.
+
+**잔여**: ~~P4~~ ~~P5~~ ~~P6~~ — ARPGWarrior 전환 페이즈 전부 닫힘(후속은 폴리시·튜닝).(콤보 4단 = `ComboSkillIds` 확장 + 서버 `IsComboSkill` 2..5 + 클립별 `AttackHitStart/End` 이벤트 + 타이밍 재저작·bake) · P5(Evade 8방향·Hit 리액션) · P6(Climb 신규 시스템). **공격 히트 프레임은 미실측** — 이벤트 삽입은 P4 에서 타임라인 재저작과 함께.
+
 ### 2.64 몬스터 애니 파라미터 구동 전환 (Walk 버그 근본 수정, 2026-07-16)
 
 - **버그**: 던전/Main 몬스터의 **Walk 애니가 안 나옴**. 근본 원인 = **컨트롤러와 코드의 구동 방식 불일치**.

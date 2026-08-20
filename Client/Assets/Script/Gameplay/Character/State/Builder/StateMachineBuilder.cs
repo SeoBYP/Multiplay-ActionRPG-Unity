@@ -71,6 +71,11 @@ namespace Game.Gameplay.Character
                             context.InputSource,
                             context.LocomotionSettings.JumpToFallDelay));
                     }
+                    // P6: 사다리 상호작용 요청이 있으면 Climb 으로. 센서가 없는 캐릭터(NPC 등)는 전이 자체를 안 만든다.
+                    if (context.ClimbSensor != null && availableStates.ContainsKey(StateKind.Climb))
+                    {
+                        state.AddTransition(new GroundToClimbTransition(context.ClimbSensor));
+                    }
                     break;
 
                 case StateKind.Jump:
@@ -86,6 +91,15 @@ namespace Game.Gameplay.Character
                     if (availableStates.ContainsKey(StateKind.Land))
                     {
                         state.AddTransition(new FallToLandTransition(context.GroundDetector));
+                    }
+                    break;
+
+                case StateKind.Climb:
+                    if (availableStates.ContainsKey(StateKind.Ground))
+                    {
+                        state.AddTransition(new ClimbToGroundTransition(
+                            context.ClimbSensor,
+                            context.Motor != null ? context.Motor.transform : null));
                     }
                     break;
 

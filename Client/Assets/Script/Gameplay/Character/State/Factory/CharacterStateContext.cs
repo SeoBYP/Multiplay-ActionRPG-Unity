@@ -12,5 +12,6 @@ namespace Game.Gameplay.Character
         public ICharacterInputSource InputSource;
         public AbilitySystemComponent AbilitySystem;
         public LocomotionSettings LocomotionSettings;
+        public ClimbSensor ClimbSensor; // P6: 사다리 부착 신호(없으면 Climb 전이 자체가 안 생긴다)
     }
 }

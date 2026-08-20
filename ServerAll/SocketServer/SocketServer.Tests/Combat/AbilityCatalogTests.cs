@@ -14,7 +14,7 @@ public class AbilityCatalogTests
     public void 플레이어_스킬과_몬스터_공격이_한_카탈로그에_로드된다()
     {
         // AC-B: 플레이어 스킬(B1 이관)과 몬스터 공격(B4 어빌리티화)이 **같은 카탈로그** 단일 저작.
-        foreach (var id in new[] { "basic_swing", "heavy_swing", "combo_a", "combo_b", "combo_c" })
+        foreach (var id in new[] { "basic_swing", "heavy_swing", "combo_a", "combo_b", "combo_c", "combo_d" })
             Assert.NotNull(AbilityCatalog.Get(id));
         foreach (var id in new[] { "creepy_demon_attack", "arachnya_attack", "leviathan_attack" })
             Assert.NotNull(AbilityCatalog.Get(id));
@@ -39,6 +39,7 @@ public class AbilityCatalogTests
         Assert.Equal("combo_a",     AbilityCatalog.Get(2)!.Id);
         Assert.Equal("combo_b",     AbilityCatalog.Get(3)!.Id);
         Assert.Equal("combo_c",     AbilityCatalog.Get(4)!.Id);
+        Assert.Equal("combo_d",     AbilityCatalog.Get(5)!.Id);
     }
 
     [Fact]
@@ -69,9 +70,11 @@ public class AbilityCatalogTests
         var a = AbilityCatalog.Get("combo_a")!;
         var b = AbilityCatalog.Get("combo_b")!;
         var c = AbilityCatalog.Get("combo_c")!;
+        var d = AbilityCatalog.Get("combo_d")!;
 
         Assert.True(a.Timeline.Hitbox.HalfExtents.Z < b.Timeline.Hitbox.HalfExtents.Z, "combo_a 리치 < combo_b");
         Assert.True(b.Timeline.Hitbox.HalfExtents.Z < c.Timeline.Hitbox.HalfExtents.Z, "combo_b 리치 < combo_c");
+        Assert.True(c.Timeline.Hitbox.HalfExtents.Z < d.Timeline.Hitbox.HalfExtents.Z, "combo_c 리치 < combo_d");
     }
 
     [Fact]
@@ -83,6 +86,7 @@ public class AbilityCatalogTests
         Assert.Equal(10, AbilityCatalog.Get("combo_a")!.BaseDamage);
         Assert.Equal(15, AbilityCatalog.Get("combo_b")!.BaseDamage);
         Assert.Equal(25, AbilityCatalog.Get("combo_c")!.BaseDamage);
+        Assert.Equal(35, AbilityCatalog.Get("combo_d")!.BaseDamage); // 4단 마무리 타
     }
 
     [Fact]
@@ -101,7 +105,7 @@ public class AbilityCatalogTests
     [Fact]
     public void 콤보_타이밍_불변식이_보존된다()
     {
-        foreach (var id in new[] { "combo_a", "combo_b", "combo_c" })
+        foreach (var id in new[] { "combo_a", "combo_b", "combo_c", "combo_d" })
         {
             var t = AbilityCatalog.Get(id)!.Timeline;
             Assert.True(t.ComboChainMs > 0, $"{id}: 콤보는 ComboChainMs > 0");

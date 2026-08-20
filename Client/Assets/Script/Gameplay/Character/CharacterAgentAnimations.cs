@@ -15,6 +15,10 @@ namespace Game.Gameplay.Character
         Dodge, // 회피/구르기. 입력 시 DodgeDriver 가 트리거(클립 미배선이면 조용히 스킵).
         Revive, // 부활 — Dead 포즈에서 로코모션으로 복귀. 부활 시 트리거(Dead 는 나가는 전이가 없어 양성 신호 필요).
         AttackSpecial, // AC-D1: 강스킬 전용 공격(보스 슬램 등) — 평타 Attack 과 구분되는 별도 클립. 미배선 몬스터/캐릭터는 조용히 스킵(파라미터명 빈 값).
+
+        // ⚠️ 이 enum 은 AbilityDefinition.cueTrigger 로 **SO 에 정수로 직렬화**된다 → 중간 삽입 금지(기존 저작값이 밀린다).
+        //    실제로 P5 에서 Hit 을 중간에 넣었다가 보스 슬램의 AttackSpecial(9) 이 Hit 으로 읽혀 테스트가 잡았다. 새 값은 항상 끝에 추가한다.
+        Hit, // 피격 리액션(P5) — HP 가 줄었을 때 1회. 사망(HP≤0)에는 쓰지 않는다(Dead 가 담당).
     }
 
     public enum AnimationFloatType
@@ -22,7 +26,10 @@ namespace Game.Gameplay.Character
         None,
         Speed,
         MoveX, // 락온 strafe — facing 기준 좌(-)/우(+) 이동 성분
-        MoveY  // 락온 strafe — facing 기준 후(-)/전(+) 이동 성분
+        MoveY, // 락온 strafe — facing 기준 후(-)/전(+) 이동 성분
+        DodgeX, // 회피 방향(P5) — 캐릭터 로컬 좌(-)/우(+). 8방향 Evade 블렌드 선택용
+        DodgeY, // 회피 방향(P5) — 캐릭터 로컬 후(-)/전(+)
+        ClimbSpeed // 사다리(P6) — -1~1. 컨트롤러가 이 값을 **클립 배속**으로 쓴다(음수=역재생=내려가기)
     }
 
     public enum AnimationIntType
@@ -35,7 +42,8 @@ namespace Game.Gameplay.Character
     {
         None,
         Grounded,
-        Strafe // 락온 중 = true → 2D 방향 블렌드로 전환
+        Strafe, // 락온 중 = true → 2D 방향 블렌드로 전환
+        Climbing // 사다리(P6) 부착 중 = true → Climb 상태로 전환
     }
 
     public class CharacterAgentAnimations : MonoBehaviour
@@ -47,11 +55,15 @@ namespace Game.Gameplay.Character
 
         [SerializeField] private string m_animationMoveXFloat;
         [SerializeField] private string m_animationMoveYFloat;
+        [SerializeField] private string m_animationDodgeXFloat;
+        [SerializeField] private string m_animationDodgeYFloat;
+        [SerializeField] private string m_animationClimbSpeedFloat;
 
         [SerializeField] private string m_animationComboStepInt;
 
         [SerializeField] private string m_animationGroundedBool;
         [SerializeField] private string m_animationStrafeBool;
+        [SerializeField] private string m_animationClimbingBool;
         [SerializeField] private string m_animationFallTrigger;
         [SerializeField] private string m_animationJumpTrigger;
         [SerializeField] private string m_animationLandTrigger;
@@ -59,6 +71,7 @@ namespace Game.Gameplay.Character
         [SerializeField] private string m_animationAttackTrigger;
         [SerializeField] private string m_animationDeathTrigger;
         [SerializeField] private string m_animationDodgeTrigger;
+        [SerializeField] private string m_animationHitTrigger;
         [SerializeField] private string m_animationReviveTrigger;
         [SerializeField] private string m_animationAttackSpecialTrigger; // AC-D1: 강스킬 전용 공격(보스 슬램 등). 컨트롤러마다 파라미터명 다를 수 있어 여기서 흡수.
 
@@ -81,12 +94,16 @@ namespace Game.Gameplay.Character
                 { AnimationFloatType.Speed, m_animationSpeedFloat },
                 { AnimationFloatType.MoveX, m_animationMoveXFloat },
                 { AnimationFloatType.MoveY, m_animationMoveYFloat },
+                { AnimationFloatType.DodgeX, m_animationDodgeXFloat },
+                { AnimationFloatType.DodgeY, m_animationDodgeYFloat },
+                { AnimationFloatType.ClimbSpeed, m_animationClimbSpeedFloat },
                 // Add more mappings here
             };
             boolParameters = new Dictionary<AnimationBoolType, string>
             {
                 { AnimationBoolType.Grounded, m_animationGroundedBool },
                 { AnimationBoolType.Strafe, m_animationStrafeBool },
+                { AnimationBoolType.Climbing, m_animationClimbingBool },
                 // Add more mappings here
             };
             intParameters = new Dictionary<AnimationIntType, string>
@@ -102,6 +119,7 @@ namespace Game.Gameplay.Character
                 { AnimationTriggerType.Attack , m_animationAttackTrigger},
                 { AnimationTriggerType.Dead , m_animationDeathTrigger},
                 { AnimationTriggerType.Dodge , m_animationDodgeTrigger},
+                { AnimationTriggerType.Hit , m_animationHitTrigger},
                 { AnimationTriggerType.Revive , m_animationReviveTrigger},
                 { AnimationTriggerType.AttackSpecial, m_animationAttackSpecialTrigger } // AC-D1
                 // Add more mappings here

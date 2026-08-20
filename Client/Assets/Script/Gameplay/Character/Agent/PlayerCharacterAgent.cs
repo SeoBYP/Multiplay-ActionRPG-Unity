@@ -21,8 +21,8 @@ namespace Game.Gameplay.Character
         [Tooltip("락온 가능 최대 평면 사거리(m). 화면 안 + 이 거리 내 대상만 잡힌다.")]
         [SerializeField] private float lockOnRange = 15f;
 
-        // 콤보 단계별 skillId — 서버 CombatHandler.ResolveSkill 과 동일 규약(2=combo_a/3=combo_b/4=combo_c).
-        private static readonly int[] ComboSkillIds = { 2, 3, 4 };
+        // 콤보 단계별 skillId — 서버 CombatHandler.ResolveSkill 과 동일 규약(2=combo_a/3=combo_b/4=combo_c/5=combo_d).
+        private static readonly int[] ComboSkillIds = { 2, 3, 4, 5 };
 
         // 콤보 타이밍 폴백(스킬 데이터 미로드 시에만). 진실원은 SkillTimeline.ComboChainMs/ComboWindowMs(skills.json).
         private const float FallbackComboChainSec = 0.8f;
@@ -76,6 +76,7 @@ namespace Game.Gameplay.Character
                 InputSource          = InputSource,
                 AbilitySystem        = AbilitySystem,
                 LocomotionSettings   = settings,
+                ClimbSensor          = this.GetAroundComponent<ClimbSensor>(), // P6: 없으면 Climb 전이 미생성
             };
 
             _dodge = new DodgeDriver(Motor, AbilitySystem, AgentAnimations, settings);
@@ -163,14 +164,32 @@ namespace Game.Gameplay.Character
             base.Update();
         }
 
-        /// <summary>HP(서버 권위/클라 결정론)가 0 이하가 되면 State.Dead 를 1회 세우고 다운 포즈를 재생한다.</summary>
+        // 직전 프레임의 HP — "줄었는가"(피격) 판정용. -1 = 아직 관측 전(첫 통지는 피격으로 보지 않는다).
+        private int _lastObservedHealth = -1;
+
+        /// <summary>
+        /// HP 변화 반응. 두 가지를 한다:
+        ///   ① HP 가 <b>줄었고 아직 살아 있으면</b> 피격 리액션(P5) 1회 — 연출 전용(이동잠금 없음. 경직은 CC 태그가 담당).
+        ///   ② HP 가 0 이하가 되면 State.Dead 를 1회 세우고 다운 포즈를 재생한다.
+        /// 회복(증가)·첫 통지·사망 순간은 피격으로 보지 않는다.
+        /// </summary>
         private void OnAttributeChanged(EGameplayAttribute type, int current, int max)
         {
+            if (type == EGameplayAttribute.Health)
+            {
+                bool decreased = _lastObservedHealth >= 0 && current < _lastObservedHealth;
+                _lastObservedHealth = current;
+
+                if (decreased && current > 0 && !IsDead)
+                    AgentAnimations?.SetTrigger(AnimationTriggerType.Hit);
+            }
+
             if (type == EGameplayAttribute.Health && current <= 0 && AbilitySystem != null && !IsDead)
             {
                 AbilitySystem.AddTag(DeadTag);
                 _combo?.Reset(); // 콤보 진행 초기화(부활 후 stale 단계 방지)
                 AgentAnimations?.ResetTrigger(AnimationTriggerType.Revive); // 이전 부활 트리거 잔재 제거(즉시 Dead 탈출 방지)
+                AgentAnimations?.ResetTrigger(AnimationTriggerType.Hit);     // 치명타로 죽는 순간 남은 피격 트리거가 Dead 를 빠져나가지 못하게
                 AgentAnimations?.SetTrigger(AnimationTriggerType.Dead); // 다운 포즈(Animator "Dead" 클립 배선은 클라 발전 시).
                 Debug.Log("[PlayerCharacterAgent] 로컬 다운 — HP≤0 → State.Dead (입력 게이트). ※다운 애니는 미배선(로그 대체)");
             }

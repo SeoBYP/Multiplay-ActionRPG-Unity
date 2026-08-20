@@ -39,8 +39,8 @@ public static class CombatHandler
     /// </summary>
     public const int ComboCadenceToleranceMs = 100;
 
-    /// <summary>콤보 단계 skillId 인가(클라 ComboDriver 와 동일 규약: 2=combo_a·3=combo_b·4=combo_c).</summary>
-    public static bool IsComboSkill(int skillId) => skillId is 2 or 3 or 4;
+    /// <summary>콤보 단계 skillId 인가(클라 ComboDriver 와 동일 규약: 2=combo_a·3=combo_b·4=combo_c·5=combo_d).</summary>
+    public static bool IsComboSkill(int skillId) => skillId is 2 or 3 or 4 or 5;
 
     /// <summary>
     /// SkillId(패킷 int) → 어빌리티 정의. 데이터=임베디드 abilities.json(클라 `AbilityDefinition` SO 저작→bake, AC-B).

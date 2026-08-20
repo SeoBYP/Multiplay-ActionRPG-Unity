@@ -81,15 +81,34 @@ namespace Game.Tests.EditMode.Gameplay
         public void 단계별로_다른_체인_지점을_쓴다()
         {
             // C 는 chain 0.9 — A/B(0.8) 보다 길다. 데이터가 단계별로 다르게 먹히는지 고정.
+            // (C 는 마무리 타라 선입력이 통하지 않으므로 "그 시점의 입력" 으로 확인한다.)
             var combo = New();
             Press(combo, 0f, out _, out _);    // A  (chain 0.8)
             Press(combo, 0.8f, out _, out _);  // B  (chain 0.8)
-            Press(combo, 1.6f, out _, out _);  // C  (chain 0.9)
+            Press(combo, 1.6f, out _, out _);  // C  (chain 0.9 → 2.5s 까지 게이트)
 
-            combo.OnAttackPressed(1.7f); // C 스윙 도중 선입력
-            Assert.IsFalse(combo.TryFire(2.45f, out _, out _), "C 의 체인 지점(1.6+0.9=2.5s) 전에는 안 나간다");
-            Assert.IsTrue(combo.TryFire(2.5f, out int s, out int st), "C 의 체인 지점에 발동");
+            Assert.IsFalse(Press(combo, 2.4f, out _, out _), "C 의 체인 지점(2.5s) 전 입력은 발동하지 않는다");
+            Assert.IsTrue(Press(combo, 2.5f, out int s, out int st), "체인 지점이 지나면 새 콤보가 발동");
             Assert.AreEqual((2, 0), (s, st), "C 다음은 A");
+        }
+
+        [Test]
+        public void 마무리_타_재생중_누른_입력은_버려진다()
+        {
+            // 회귀: 마무리(C) 재생 도중 클릭이 버퍼돼 있다가, 애니가 끝나 Idle 이 된 순간
+            // 손을 뗐는데도 한 대가 더 나가던 문제(사용자 피드백).
+            var combo = New();
+            Press(combo, 0f, out _, out _);    // A
+            Press(combo, 0.8f, out _, out _);  // B
+            Press(combo, 1.6f, out _, out _);  // C = 마무리
+
+            combo.OnAttackPressed(1.7f);       // 마무리 재생 도중 클릭 → 버려져야 한다
+            Assert.IsFalse(combo.TryFire(2.5f, out _, out _), "마무리 체인 지점이 지나도 자동 발동하면 안 된다");
+            Assert.IsFalse(combo.TryFire(3.0f, out _, out _), "이후에도 저절로 나가면 안 된다");
+
+            // 마무리가 끝난 뒤 새로 누르면 A 부터 정상 발동.
+            Assert.IsTrue(Press(combo, 3.1f, out int s, out int st));
+            Assert.AreEqual((2, 0), (s, st), "새로 누르면 A 부터");
         }
 
         [Test]

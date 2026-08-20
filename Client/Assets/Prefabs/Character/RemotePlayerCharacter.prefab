@@ -1375,9 +1375,13 @@ MonoBehaviour:
   m_animationSpeedFloat: Speed
   m_animationMoveXFloat: 
   m_animationMoveYFloat: 
+  m_animationDodgeXFloat: DodgeX
+  m_animationDodgeYFloat: DodgeY
+  m_animationClimbSpeedFloat: ClimbSpeed
   m_animationComboStepInt: ComboStep
   m_animationGroundedBool: Grounded
   m_animationStrafeBool: 
+  m_animationClimbingBool: Climbing
   m_animationFallTrigger: 
   m_animationJumpTrigger: 
   m_animationLandTrigger: 
@@ -1385,6 +1389,7 @@ MonoBehaviour:
   m_animationAttackTrigger: Attack
   m_animationDeathTrigger: Dead
   m_animationDodgeTrigger: Dodge
+  m_animationHitTrigger: Hit
   m_animationReviveTrigger: Revive
   m_animationAttackSpecialTrigger: 
 --- !u!114 &611105127618183077
@@ -2005,6 +2010,7 @@ GameObject:
   - component: {fileID: 1457872688232312200}
   - component: {fileID: 5137569464469067921}
   - component: {fileID: 8492971103463752678}
+  - component: {fileID: 3674669654403249385}
   m_Layer: 0
   m_Name: SK_HornedKnight_M_02
   m_TagString: Untagged
@@ -2042,22 +2048,14 @@ Animator:
   m_GameObject: {fileID: 3559370871661265854}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: 11e2ad1ef157b0947bee7768f5d0ba4a, type: 3}
-  m_Controller: {fileID: 9100000, guid: 6627bedd2f8672b43bd0a5a9c1a25189, type: 2}
+  m_Controller: {fileID: 9100000, guid: 77d8bf92bb3afc94abe561bfe1f7e570, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
-  m_ApplyRootMotion: 0
+  m_ApplyRootMotion: 1
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_AnimatePhysics: 0
-  m_WarningMessage: "\nBinding warning: Some generic clip(s) animate transforms that
-    are already bound by a Humanoid avatar. These transforms can only be changed
-    by Humanoid clips.\n\tTransform 'root'\n\tTransform 'root'\n\tTransform 'root'\n\tFrom
-    animation clip 'DrawWeapon1hMelee'\n\tFrom animation clip 'DeathFront1hMelee'\n\tFrom
-    animation clip 'DodgeForwardCombat'\n\tFrom animation clip 'GetBackUpFront'\n\tFrom
-    animation clip 'Idle1hMelee'\n\tFrom animation clip 'WalkForwardCombat1hMelee'\n\tFrom
-    animation clip 'RunForward1hMelee'\n\tFrom animation clip 'LandingMedium1hMelee'\n\tFrom
-    animation clip 'JumpToApex1hMelee'\n\tFrom animation clip 'Falling1hMelee'\n\tand
-    more ..."
+  m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
@@ -2074,6 +2072,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: df616193cee48004cadf8caf2dbee1aa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.WeaponAnimationEventRelay
+--- !u!114 &3674669654403249385
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3559370871661265854}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 299bbeb7ffde84441a6b2eedf6ef9092, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.RootMotionRelay
 --- !u!1 &3582011374460231644
 GameObject:
   m_ObjectHideFlags: 0

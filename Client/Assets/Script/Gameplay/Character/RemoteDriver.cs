@@ -97,6 +97,10 @@ namespace Game.Gameplay.Character
         private void HandlePlayerDodged(long userId)
         {
             if (userId != UserId) return;
+            // 원격 회피는 방향이 패킷에 없다(C_Dodge 는 방향 미포함) → 정면 회피로 근사한다.
+            // 방향까지 맞추려면 패킷 계약 확장이 필요하므로 별건.
+            _animations?.SetFloat(AnimationFloatType.DodgeX, 0f);
+            _animations?.SetFloat(AnimationFloatType.DodgeY, 1f);
             _animations?.SetTrigger(AnimationTriggerType.Dodge);
         }
 

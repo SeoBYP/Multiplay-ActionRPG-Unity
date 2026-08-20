@@ -1,4 +1,13 @@
-# 플레이어 애니메이션 배선 (PROTOFACTOR) — 설계·작업 계획
+# 플레이어 애니메이션 배선 — 설계·작업 계획
+
+> ## ⛔ 2026-08-20: 아래 PROTOFACTOR 내용은 **낡았다**(모델 교체로 무효)
+> 이 문서가 전제한 "플레이어 메시 = `SK_Protof-Actor`(Generic), 프로젝트에 Humanoid Avatar 0개"는 **더 이상 사실이 아니다.**
+> 현재 메시는 `SK_HornedKnight_M_02`(**Humanoid** 아바타)이고, PROTOFACTOR 클립 22개는 전부 **Generic** 이라 이 조합에서는
+> 하나도 바인딩되지 않는다(실측 뼈 회전 0.0도). 게다가 빈 휴머노이드 포즈가 `root` 본을 -1.06m 로 밀어 캐릭터가 파묻힌다.
+> **현행 진실원 = ARPGWarrior(Humanoid) 전환** → `docs/wiki/codemap.md` §2.104,
+> 생성 스크립트 `Client/Assets/Script/Gameplay/Editor/PlayerAnimatorControllerBuilder.cs`.
+> 아래 본문은 **당시 기록으로만** 남긴다(왜 그렇게 했는지의 이력).
+
 
 > 상태: **✅ 구현 완료 (2026-07-09)** — 로컬 플레이어 MVP. 검증: SampleAnimation 재생확인 + 프리팹 배선 + 스크린샷 + EditMode 152/152.
 > 범위: 로컬 플레이어 MVP (`PlayerCharacter.prefab` + `PlayerController.controller`)

@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Abilities.AbilityDefinition
   id: combo_b
   networkId: 3
-  startupMs: 130
-  activeMs: 100
-  recoveryMs: 140
+  startupMs: 280
+  activeMs: 120
+  recoveryMs: 60
   cooldownMs: 400
   manaCost: 0
   hitboxShape: 0
@@ -25,7 +25,10 @@ MonoBehaviour:
   baseDamage: 15
   activationRange: 1.75
   onHitEffectIds: []
-  comboChainMs: 800
-  comboWindowMs: 900
+  comboChainMs: 420
+  comboWindowMs: 650
   cueTrigger: 5
   cueComboStep: 1
+  cueEvents: []
+  previewClip: {fileID: 0}
+  sections: []

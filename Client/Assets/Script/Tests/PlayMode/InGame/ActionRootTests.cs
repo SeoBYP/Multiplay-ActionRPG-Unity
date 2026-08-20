@@ -154,7 +154,7 @@ namespace Game.Tests.PlayMode.InGame
             var animator = model.AddComponent<Animator>();
 #if UNITY_EDITOR
             animator.runtimeAnimatorController = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.RuntimeAnimatorController>(
-                "Assets/GameResources/Animations/Player/PlayerController.controller");
+                "Assets/GameResources/Animations/Player/PlayerController_ARPG.controller");
 #endif
             animator.avatar = null;
 
@@ -190,6 +190,123 @@ namespace Game.Tests.PlayMode.InGame
             for (int i = 0; i < 40; i++) { animator.Update(0.1f); yield return null; }
             Assert.IsFalse(animator.GetCurrentAnimatorStateInfo(0).IsName("GetUp"), "기상 후 GetUp 을 벗어나 로코모션으로 복귀해야 한다.");
             Assert.IsFalse(animator.GetCurrentAnimatorStateInfo(0).IsName("Dead"), "부활 후 Animator 가 Dead 를 벗어나야 한다.");
+        }
+
+        [UnityTest]
+        public IEnumerator 피해를_입고_살아있으면_Hit_애니가_재생된다()
+        {
+            var rig = BuildAnimRig(("m_animationDeathTrigger", "Dead"), ("m_animationHitTrigger", "Hit"));
+
+            // 첫 통지는 기준값만 세운다(피격 아님) — 그 다음 감소부터가 피격.
+            rig.asc.GetAttribute(EGameplayAttribute.Health).SetCurrent(90);
+            yield return null;
+            Assert.IsFalse(rig.animator.GetCurrentAnimatorStateInfo(0).IsName("Hit"),
+                "첫 HP 통지만으로는 피격 애니가 나오면 안 된다.");
+
+            rig.asc.GetAttribute(EGameplayAttribute.Health).SetCurrent(70);
+            for (int i = 0; i < 6; i++) { rig.animator.Update(0.05f); yield return null; }
+            Assert.IsTrue(rig.animator.GetCurrentAnimatorStateInfo(0).IsName("Hit"),
+                "HP 가 줄면 피격(Hit) 애니로 전이해야 한다.");
+        }
+
+        [UnityTest]
+        public IEnumerator 사망하는_피해는_Hit이_아니라_Dead로_간다()
+        {
+            var rig = BuildAnimRig(("m_animationDeathTrigger", "Dead"), ("m_animationHitTrigger", "Hit"));
+
+            rig.asc.GetAttribute(EGameplayAttribute.Health).SetCurrent(90);
+            yield return null;
+            rig.asc.GetAttribute(EGameplayAttribute.Health).SetCurrent(0); // 치명타
+            for (int i = 0; i < 12; i++) { rig.animator.Update(0.1f); yield return null; }
+
+            Assert.IsTrue(rig.animator.GetCurrentAnimatorStateInfo(0).IsName("Dead"),
+                "죽는 피해는 Hit 이 아니라 Dead 로 가야 한다(다운 포즈가 피격에 밀리면 안 된다).");
+        }
+
+        [UnityTest]
+        public IEnumerator 회피_방향이_애니_파라미터로_전달된다()
+        {
+            var rig = BuildAnimRig(
+                ("m_animationDodgeTrigger", "Dodge"),
+                ("m_animationDodgeXFloat", "DodgeX"),
+                ("m_animationDodgeYFloat", "DodgeY"));
+
+            rig.go.transform.rotation = Quaternion.identity; // 정면 = +Z
+            var motor = rig.go.GetComponent<CharacterMotor>();
+            var dodge = new DodgeDriver(motor, rig.asc, rig.caa, new LocomotionSettings());
+
+            dodge.Begin(Vector3.right, Time.time); // 월드 오른쪽 = 캐릭터 로컬 오른쪽
+            yield return null;
+            Assert.AreEqual(1f, rig.animator.GetFloat("DodgeX"), 0.01f, "오른쪽 회피면 DodgeX = +1");
+            Assert.AreEqual(0f, rig.animator.GetFloat("DodgeY"), 0.01f, "오른쪽 회피면 DodgeY = 0");
+
+            dodge.Cancel();
+            dodge.Begin(Vector3.back, Time.time); // 뒤로 구르기
+            yield return null;
+            Assert.AreEqual(-1f, rig.animator.GetFloat("DodgeY"), 0.01f, "뒤 회피면 DodgeY = -1");
+            Assert.AreEqual(0f, rig.animator.GetFloat("DodgeX"), 0.01f, "뒤 회피면 DodgeX = 0");
+        }
+
+        [UnityTest]
+        public IEnumerator 락온이_아니어도_이동방향이_8방향_파라미터로_나온다()
+        {
+            var rig = BuildAnimRig(
+                ("m_animationSpeedFloat", "Speed"),
+                ("m_animationMoveXFloat", "MoveX"),
+                ("m_animationMoveYFloat", "MoveY"),
+                ("m_animationStrafeBool", "Strafe"));
+
+            var motor = rig.go.GetComponent<CharacterMotor>();
+            var ground = rig.go.GetComponent<GroundedDetector>();
+            var settings = new LocomotionSettings();
+            motor.Construct(settings);
+
+            // 오른쪽 입력 — 몸은 카메라(=여기선 자기 forward)를 향한 채 게걸음이어야 한다.
+            var state = new GroundState(motor, ground, rig.caa, new FakeMoveSource(new Vector2(1f, 0f)), settings, rig.asc);
+            state.Enter();
+            yield return DriveFor(state, 0.4f);
+
+            Assert.IsTrue(rig.animator.GetBool("Strafe"),
+                "락온이 아니어도 8방향 블렌드(Strafe)를 써야 한다 — 예전엔 락온 때만 켜져 옆으로 가도 전진 클립이 나왔다.");
+            Assert.Greater(rig.animator.GetFloat("MoveX"), 1f,
+                $"오른쪽 입력이면 MoveX 가 m/s 단위 양수여야 한다(실측 {rig.animator.GetFloat("MoveX"):F2}).");
+            Assert.Less(Mathf.Abs(rig.animator.GetFloat("MoveY")), 0.5f,
+                "정면 성분은 거의 0 이어야 한다(순수 옆걸음).");
+        }
+
+        /// <summary>실제 컨트롤러가 붙은 Animator + ASC + Motor 리그. 파라미터명은 프리팹 값이 없으므로 주입한다.</summary>
+        private (GameObject go, Animator animator, AbilitySystemComponent asc, CharacterAgentAnimations caa)
+            BuildAnimRig(params (string field, string value)[] names)
+        {
+            var go = new GameObject("AnimRigAgent");
+            go.SetActive(false);
+            _objects.Add(go);
+            go.AddComponent<FakeInput>();
+
+            var model = new GameObject("Model");
+            model.transform.SetParent(go.transform, false);
+            var animator = model.AddComponent<Animator>();
+#if UNITY_EDITOR
+            animator.runtimeAnimatorController = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.RuntimeAnimatorController>(
+                "Assets/GameResources/Animations/Player/PlayerController_ARPG.controller");
+#endif
+            animator.avatar = null;
+
+            go.AddComponent<TestableAgent>(); // RequireComponent 로 ASC·Motor·Animations 자동 추가
+            var asc = go.GetComponent<AbilitySystemComponent>();
+            asc.Attributes = new List<GameplayAttribute> { new(EGameplayAttribute.Health, 100, 100) };
+
+            var caa = go.GetComponent<CharacterAgentAnimations>();
+            foreach (var n in names)
+                typeof(CharacterAgentAnimations)
+                    .GetField(n.field, BindingFlags.NonPublic | BindingFlags.Instance)!
+                    .SetValue(caa, n.value);
+
+            go.SetActive(true); // Awake: 애니 캐시 + agent 의 HP 구독
+            animator.Rebind();
+            animator.Update(0f);
+            Assume.That(animator.runtimeAnimatorController, Is.Not.Null, "PlayerController_ARPG 로드 실패(에디터 외 실행)");
+            return (go, animator, asc, caa);
         }
 
         // ── 리그 (CcGateTests 와 동일 구조) ──────────────

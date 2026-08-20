@@ -32,6 +32,13 @@ namespace Game.Gameplay.Character
 
                 StateKind.Land => new LandState(context.Animations),
 
+                StateKind.Climb => new ClimbState(
+                    context.Motor,
+                    context.Animations,
+                    context.InputSource,
+                    context.ClimbSensor,
+                    context.LocomotionSettings),
+
                 _ => throw new ArgumentOutOfRangeException()
             };
         }

@@ -10,25 +10,25 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bcf2b8705e8051b419e788074ed33a79, type: 3}
-  m_Name: Ability_ComboC
+  m_Name: Ability_ComboD
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Abilities.AbilityDefinition
-  id: combo_c
-  networkId: 4
-  startupMs: 405
+  id: combo_d
+  networkId: 5
+  startupMs: 400
   activeMs: 120
   recoveryMs: 90
   cooldownMs: 800
   manaCost: 0
   hitboxShape: 0
-  hitboxOffset: {x: 0, y: 0.5, z: 1.2}
-  hitboxHalfExtents: {x: 0.9, y: 1.1, z: 0.95}
-  baseDamage: 25
-  activationRange: 2.15
+  hitboxOffset: {x: 0, y: 0.5, z: 1.25}
+  hitboxHalfExtents: {x: 0.95, y: 1.15, z: 1}
+  baseDamage: 35
+  activationRange: 2.25
   onHitEffectIds: []
-  comboChainMs: 540
-  comboWindowMs: 800
+  comboChainMs: 1017
+  comboWindowMs: 1167
   cueTrigger: 5
-  cueComboStep: 2
+  cueComboStep: 3
   cueEvents: []
   previewClip: {fileID: 0}
   sections: []

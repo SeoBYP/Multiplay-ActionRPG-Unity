@@ -14,21 +14,23 @@ namespace Server.Tests.Combat;
 public class ComboCadenceTests
 {
     [Fact]
-    public void IsComboSkill_은_2_3_4만_콤보로_본다()
+    public void IsComboSkill_은_2_3_4_5만_콤보로_본다()
     {
         Assert.True(CombatHandler.IsComboSkill(2));
         Assert.True(CombatHandler.IsComboSkill(3));
         Assert.True(CombatHandler.IsComboSkill(4));
+        Assert.True(CombatHandler.IsComboSkill(5));
 
         Assert.False(CombatHandler.IsComboSkill(0)); // basic_swing
         Assert.False(CombatHandler.IsComboSkill(1)); // heavy_swing
+        Assert.False(CombatHandler.IsComboSkill(6)); // 미할당 — 콤보 대역 상한 고정
     }
 
     [Fact]
     public void 콤보_스킬_데이터에_체인_타이밍이_저작돼_있다()
     {
         // 진실원 확인 — 서버가 이 값으로 cadence 를 강제한다. 불변식: chain ≤ window.
-        foreach (var id in new[] { "combo_a", "combo_b", "combo_c" })
+        foreach (var id in new[] { "combo_a", "combo_b", "combo_c", "combo_d" })
         {
             var skill = Shared.Infrastructure.Abilities.AbilityCatalog.Get(id)?.Timeline;
             Assert.NotNull(skill);

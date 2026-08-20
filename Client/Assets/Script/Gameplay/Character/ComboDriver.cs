@@ -46,11 +46,23 @@ namespace Game.Gameplay.Character
             _timings = timings;
         }
 
-        /// <summary>공격 입력 접수 — 즉시 발동이든 선입력이든 일단 버퍼에 담는다. 실제 발동은 <see cref="TryFire"/>.</summary>
+        /// <summary>
+        /// 공격 입력 접수 — 즉시 발동이든 선입력이든 일단 버퍼에 담는다. 실제 발동은 <see cref="TryFire"/>.
+        ///
+        /// <b>예외: 마무리 타 재생 중의 입력은 버린다.</b> 선입력은 "이어지는 다음 타"를 위한 장치인데,
+        /// 마지막 단계 뒤엔 이어질 타가 없어 <b>새 콤보</b>가 시작된다. 그대로 버퍼하면 마무리 애니가 끝나는 순간
+        /// 플레이어가 손을 뗐는데도 한 대가 더 나간다(사용자 피드백: "Idle 됐는데 한 번 더 공격한다").
+        /// </summary>
         public void OnAttackPressed(float now)
         {
+            float since = now - _lastSwingTime;
+
+            // 직전에 낸 것이 마지막 단계(= 순환해서 _index 가 0으로 돌아옴)이고 아직 그 체인 게이트 안이면 무시.
+            if (_hasSwung && _index == 0 && since < _lastChainSec)
+                return;
+
             // 이미 창이 끊겼으면 새 콤보(A)로 시작한다.
-            if (_hasSwung && now - _lastSwingTime > _lastWindowSec)
+            if (_hasSwung && since > _lastWindowSec)
                 _index = 0;
 
             _buffered = true;

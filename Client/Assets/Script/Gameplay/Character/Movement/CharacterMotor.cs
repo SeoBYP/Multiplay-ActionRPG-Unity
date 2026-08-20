@@ -90,6 +90,28 @@ namespace Game.Gameplay.Character
         }
 
         /// <summary>
+        /// 중력·회전 없이 주어진 월드 변위를 그대로 적용한다(사다리 등 <b>특수 이동 모드</b> 전용).
+        /// <see cref="Dash"/> 는 수평 전용(y 를 중력으로 덮어씀)이라 수직 이동에 쓸 수 없어 분리했다.
+        /// </summary>
+        public void MoveRaw(Vector3 worldDisplacement)
+        {
+            CurrentVelocity = worldDisplacement;
+            m_controller.Move(worldDisplacement);
+        }
+
+        /// <summary>
+        /// 위치 즉시 이동. <see cref="CharacterController"/> 는 켜진 상태에서 transform 을 옮기면 무시되므로
+        /// 잠깐 껐다 켠다(사다리 부착/상단 이탈·리스폰 같은 순간이동에 필요).
+        /// </summary>
+        public void Teleport(Vector3 worldPosition)
+        {
+            bool wasEnabled = m_controller != null && m_controller.enabled;
+            if (wasEnabled) m_controller.enabled = false;
+            transform.position = worldPosition;
+            if (wasEnabled) m_controller.enabled = true;
+        }
+
+        /// <summary>
         /// 입력 벡터를 현재 회전 전략(플레이어=카메라 기준)으로 변환한 <b>월드 이동 방향</b>. 입력 0이면 Vector3.zero.
         /// 회피 방향 결정에 쓴다(입력 있으면 그 방향, 없으면 호출부가 정면으로 폴백).
         /// </summary>
