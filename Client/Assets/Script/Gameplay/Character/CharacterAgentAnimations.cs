@@ -29,7 +29,8 @@ namespace Game.Gameplay.Character
         MoveY, // 락온 strafe — facing 기준 후(-)/전(+) 이동 성분
         DodgeX, // 회피 방향(P5) — 캐릭터 로컬 좌(-)/우(+). 8방향 Evade 블렌드 선택용
         DodgeY, // 회피 방향(P5) — 캐릭터 로컬 후(-)/전(+)
-        ClimbSpeed // 사다리(P6) — -1~1. 컨트롤러가 이 값을 **클립 배속**으로 쓴다(음수=역재생=내려가기)
+        ClimbSpeed, // 사다리(P6) — -1~1. 컨트롤러가 이 값을 **클립 배속**으로 쓴다(음수=역재생=내려가기)
+        MoveSpeedMul // 보행 클립 배속 — 실제 이동 속도 / 클립이 상정한 속도. 발 슬라이딩 보정(몬스터)
     }
 
     public enum AnimationIntType
@@ -58,6 +59,7 @@ namespace Game.Gameplay.Character
         [SerializeField] private string m_animationDodgeXFloat;
         [SerializeField] private string m_animationDodgeYFloat;
         [SerializeField] private string m_animationClimbSpeedFloat;
+        [SerializeField] private string m_animationMoveSpeedMulFloat;
 
         [SerializeField] private string m_animationComboStepInt;
 
@@ -97,6 +99,7 @@ namespace Game.Gameplay.Character
                 { AnimationFloatType.DodgeX, m_animationDodgeXFloat },
                 { AnimationFloatType.DodgeY, m_animationDodgeYFloat },
                 { AnimationFloatType.ClimbSpeed, m_animationClimbSpeedFloat },
+                { AnimationFloatType.MoveSpeedMul, m_animationMoveSpeedMulFloat },
                 // Add more mappings here
             };
             boolParameters = new Dictionary<AnimationBoolType, string>

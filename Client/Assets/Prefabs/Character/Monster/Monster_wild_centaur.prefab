@@ -5017,6 +5017,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.MonsterEntity
   lerpSpeed: 15
+  walkClipSpeed: 1.76
   speedSmoothing: 10
   deathDespawnDelay: 2
 --- !u!114 &3918190946655172177
@@ -5070,9 +5071,14 @@ MonoBehaviour:
   m_animationSpeedFloat: Speed
   m_animationMoveXFloat: 
   m_animationMoveYFloat: 
+  m_animationDodgeXFloat: 
+  m_animationDodgeYFloat: 
+  m_animationClimbSpeedFloat: 
+  m_animationMoveSpeedMulFloat: MoveSpeedMul
   m_animationComboStepInt: 
   m_animationGroundedBool: 
   m_animationStrafeBool: 
+  m_animationClimbingBool: 
   m_animationFallTrigger: 
   m_animationJumpTrigger: 
   m_animationLandTrigger: 
@@ -5080,7 +5086,9 @@ MonoBehaviour:
   m_animationAttackTrigger: Attack
   m_animationDeathTrigger: Die
   m_animationDodgeTrigger: 
+  m_animationHitTrigger: 
   m_animationReviveTrigger: 
+  m_animationAttackSpecialTrigger: 
 --- !u!1 &8062666042265146610
 GameObject:
   m_ObjectHideFlags: 0

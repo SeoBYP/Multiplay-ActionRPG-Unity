@@ -51,6 +51,9 @@ namespace Game.Gameplay.Character
         [SerializeField] private float knockbackDuration = 0.2f;
 
         [Header("애니(Animator 파라미터 구동 — 이름 배선은 CharacterAgentAnimations)")]
+        [Tooltip("이 몬스터의 보행 클립이 상정한 이동 속도(m/s). 0 = 미저작(배속 보정 안 함). 제자리 클립이라 자동 계산이 불가해 발 본 후방 이동으로 측정한 값을 저작한다.")]
+        [SerializeField] private float walkClipSpeed;
+
         [Tooltip("Speed 파라미터 평활화 계수. 지터가 Idle/Walk 전이를 떨게 하는 것을 막는다.")]
         [SerializeField] private float speedSmoothing = 10f;
         [Tooltip("die 애니 재생 후 파괴까지 지연(초).")]
@@ -129,6 +132,8 @@ namespace Game.Gameplay.Character
                 _animSpeed = Mathf.Lerp(_animSpeed, instant, Time.deltaTime * speedSmoothing);
                 if (_animSpeed < 0.01f) _animSpeed = 0f;
                 _animations.SetFloat(AnimationFloatType.Speed, _animSpeed);
+                _animations.SetFloat(AnimationFloatType.MoveSpeedMul,
+                    LocomotionSpeedMatch.Multiplier(_animSpeed, walkClipSpeed)); // 발 슬라이딩 보정
             }
 
             var asc = _localPlayer?.AbilitySystem;

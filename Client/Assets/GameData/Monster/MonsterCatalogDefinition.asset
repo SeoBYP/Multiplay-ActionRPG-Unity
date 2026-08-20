@@ -31,7 +31,7 @@ MonoBehaviour:
     tier: 0
   - monsterId: creepy_demon
     maxHp: 40
-    moveSpeed: 2.2
+    moveSpeed: 1.3
     aggroRange: 7
     abilityIds:
     - creepy_demon_attack
@@ -71,7 +71,7 @@ MonoBehaviour:
     tier: 0
   - monsterId: undead_axemaster
     maxHp: 170
-    moveSpeed: 2.2
+    moveSpeed: 1.54
     aggroRange: 9
     abilityIds:
     - undead_axemaster_attack
@@ -88,7 +88,7 @@ MonoBehaviour:
     tier: 0
   - monsterId: undead_axemaster_elite
     maxHp: 340
-    moveSpeed: 2.2
+    moveSpeed: 1.54
     aggroRange: 9
     abilityIds:
     - undead_axemaster_attack

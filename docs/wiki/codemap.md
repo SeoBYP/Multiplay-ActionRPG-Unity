@@ -130,6 +130,20 @@
 - **검증**: EditMode 204/204 · PlayMode **193/193**(신규 `ClimbTests` 3건: 전이신호 one-shot·상하단 이탈·스냅 후 수직 전용 이동).
 - **범위 밖**: 원격 동기 없음(사용자 결정) · 좌우 이동(`Climb_L/R`) · 점프 이탈 · 상단/하단 전용 전환 클립(`Climb_Up_Start`, `*_To_Idle`).
 
+**P9 — 몬스터 발 슬라이딩 보정 (2026-08-21, 절충안 C)**
+- **문제(실측)**: 몬스터 보행 클립은 전부 제자리라 `averageSpeed`=0 → 발 본의 후방 이동 속도(접지 구간 중앙값)로 역산했다.
+  클립이 상정한 속도 vs 실제 이동: creepy_demon 0.65↔2.20(**3.39배**) · undead_axemaster 0.77↔2.20(2.86) ·
+  demon_girl 1.25↔2.40(1.93) · wild_centaur 1.76↔3.20(1.82) · arachnya 3.19↔2.60(**0.82 = 발이 헛돎**).
+- **왜 배속만으로 안 되나**: 3.4배속은 다리가 우스꽝스럽다. → **배속 상한 2.0**(`LocomotionSpeedMatch.MaxMultiplier`)으로 자르고,
+  초과분은 **이동 속도를 낮춰** 해소한다(절충안 C). 낮춘 것은 2종뿐: creepy_demon 2.20→**1.30**, undead_axemaster(+elite) 2.20→**1.54**.
+- **클립 속도를 코드 표에 저작하는 이유**: 제자리 클립은 자동 계산이 불가하고, 리그마다 본 이름이 달라 자동 측정을 도구에 넣으면
+  오측정이 데이터가 된다(리바이어던이 10.34m/s 로 잘못 측정됐다). 값을 모르면 **0(무보정)** 이 안전 기본값.
+- **파일**: `Gameplay/Character/LocomotionSpeedMatch.cs`(순수 계산) · `LocalMonster`/`MonsterEntity`(`walkClipSpeed` 저작 + `MoveSpeedMul` 구동) ·
+  `Editor/MonsterWalkSpeedSetup.cs`(컨트롤러 9종에 파라미터·speedParameter 주입 + 프리팹 저작값) · `GameData/Monster/MonsterCatalogDefinition`→`monsters.json`.
+- **검증**: 자산 전수 덤프에서 측정된 6종 **슬라이딩비 1.00**, 미측정 3종(gargoyle·leviathan·vampire_bat)은 무보정 유지 ·
+  서버 666/666 + Docker 리빌드 · EditMode **212/212**(신규 `LocomotionSpeedMatchTests` 5건) · PlayMode **194/194**(254.5s).
+- **잔여**: gargoyle(발 본 이름 매칭 실패)·leviathan(촉수형 다리) 은 사람이 클립을 보고 `walkClipSpeed` 를 저작해야 한다. vampire_bat 은 비행이라 대상 아님.
+
 **P8 — 이동감 폴리시: 8방향·발 슬라이딩·공격 루트모션 (2026-08-20)**
 - **블렌드 좌표는 정규화가 아니라 m/s** — 이게 이번의 핵심 교훈. 0~1 정규화 좌표는 "발이 얼마나 빨리 구르는가"와 "몸이 얼마나 빨리 가는가"의 연결을 끊는다. 좌표를 클립 실측 속도로 두면 블렌드 결과의 발 속도 = 이동 속도가 되어 **슬라이딩이 구조적으로 0** 이 된다(실측 비율 1.00).
 - **실측(AnimationClip.averageSpeed)**: Walk 2.26~2.32 · Run 3.31~3.43 · Sprint 3.44 · 공격 전진 0.63~1.42m · Evade 3.6m · Death 0.84m · Getup 0.79m.

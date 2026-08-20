@@ -14,7 +14,7 @@
         {
             "monsterId": "creepy_demon",
             "maxHp": 40,
-            "moveSpeed": 2.200000047683716,
+            "moveSpeed": 1.2999999523162842,
             "aggroRange": 7.0,
             "abilityIds": [
                 "creepy_demon_attack"
@@ -93,7 +93,7 @@
         {
             "monsterId": "undead_axemaster",
             "maxHp": 170,
-            "moveSpeed": 2.200000047683716,
+            "moveSpeed": 1.5399999618530274,
             "aggroRange": 9.0,
             "abilityIds": [
                 "undead_axemaster_attack"
@@ -104,7 +104,7 @@
         {
             "monsterId": "undead_axemaster_elite",
             "maxHp": 340,
-            "moveSpeed": 2.200000047683716,
+            "moveSpeed": 1.5399999618530274,
             "aggroRange": 9.0,
             "abilityIds": [
                 "undead_axemaster_attack"

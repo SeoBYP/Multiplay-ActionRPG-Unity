@@ -18,6 +18,9 @@ namespace Game.Gameplay.Character
     public class MonsterEntity : MonoBehaviour, IActorView, IMonsterHealth, IDisposable
     {
         [SerializeField] private float lerpSpeed = 15f;
+        [Tooltip("이 몬스터의 보행 클립이 상정한 이동 속도(m/s). 0 = 미저작(배속 보정 안 함). 제자리 클립이라 자동 계산이 불가해 발 본 후방 이동으로 측정한 값을 저작한다.")]
+        [SerializeField] private float walkClipSpeed;
+
         [Tooltip("Speed 파라미터 평활화 계수. 보간 지터가 Idle/Walk 전이를 떨게 하는 것을 막는다.")]
         [SerializeField] private float speedSmoothing = 10f;
         [Tooltip("die 애니 재생 후 오브젝트를 파괴하기까지 지연(초).")]
@@ -133,6 +136,9 @@ namespace Game.Gameplay.Character
             if (_animSpeed < 0.01f) _animSpeed = 0f;
 
             _animations.SetFloat(AnimationFloatType.Speed, _animSpeed);
+            // 발 슬라이딩 보정 — 클립을 실제 이동 속도에 맞춰 배속(미저작이면 1 = 무보정).
+            _animations.SetFloat(AnimationFloatType.MoveSpeedMul,
+                LocomotionSpeedMatch.Multiplier(_animSpeed, walkClipSpeed));
         }
 
         /// <summary>
