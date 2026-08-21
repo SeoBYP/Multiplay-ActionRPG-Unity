@@ -181,12 +181,18 @@ namespace Game.Gameplay.Editor
             sm.defaultState = loco;
 
             // ── 전이 ──────────────────────────────────────────────────────────
-            // 스트레이프 진입/해제(상태값 기반 — 트리거 아님)
-            // ⚠ 이 블렌드는 **인터럽트 허용**이어야 한다. Unity 는 전이 진행 중 AnyState 전이를 평가하지 않아,
-            //    0.15s 블렌드 안에 들어온 Dodge/Attack/Jump 트리거가 조용히 삼켜진다(실측: 원격 스폰 직후 회피가 안 나감).
-            //    로컬도 같은 함정 — 걷다 뛰는 순간 공격하면 그 입력이 사라진다.
-            Interruptible(Transition(loco, strafe, 0.15f, Cond("Strafe", AnimatorConditionMode.If)));
-            Interruptible(Transition(strafe, loco, 0.15f, Cond("Strafe", AnimatorConditionMode.IfNot)));
+            // 스트레이프 진입/해제(상태값 기반 — 트리거 아님) — <b>즉시 전환(duration 0)</b>.
+            //
+            // 왜 블렌드를 없앴나: Unity 는 전이 진행 중 AnyState 전이를 평가하지 않는다. 0.15s 블렌드 안에 들어온
+            // Dodge/Attack/Jump 트리거가 조용히 삼켜졌다(실측: 원격 스폰 직후 회피 미발동, 로컬도 동일).
+            // interruptionSource 로 풀려 했더니 **전이가 매 프레임 자기 자신으로 재시작**해(조건이 계속 참)
+            // StrafeLocomotion 에 영원히 도달하지 못했다 — 실측: 40프레임 뒤에도 normalizedTime 0.03 고정,
+            // 그 결과 Walk/Run 이 아예 안 나왔다. 그래서 인터럽트 대신 **창 자체를 없앤다**.
+            //
+            // 시각적으로 안전한 이유: Strafe 는 스폰 직후 한 번 켜지고 그대로 유지된다(로컬 GroundState·원격 RemoteDriver).
+            // 두 트리 모두 중심이 같은 Idle 이라 그 순간의 팝이 보이지 않는다.
+            Transition(loco, strafe, 0f, Cond("Strafe", AnimatorConditionMode.If));
+            Transition(strafe, loco, 0f, Cond("Strafe", AnimatorConditionMode.IfNot));
 
             // 공중 — 트리거는 어느 상태에서든 즉시 받아야 하므로 AnyState
             AnyTransition(sm, jump, 0.05f, Cond("Jump", AnimatorConditionMode.If));
@@ -276,14 +282,6 @@ namespace Game.Gameplay.Editor
             if (index < 0 || index >= children.Length) return;
             children[index].timeScale = timeScale;
             tree.children = children;
-        }
-
-        /// <summary>전이 도중에도 다른 전이(특히 AnyState 액션 트리거)가 끼어들 수 있게 한다.</summary>
-        private static AnimatorStateTransition Interruptible(AnimatorStateTransition t)
-        {
-            t.interruptionSource = TransitionInterruptionSource.SourceThenDestination;
-            t.orderedInterruption = false;
-            return t;
         }
 
         private static AnimatorState AddState(AnimatorStateMachine sm, string name, Motion motion, Vector3 pos)

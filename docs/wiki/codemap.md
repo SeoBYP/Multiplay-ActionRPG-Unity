@@ -130,6 +130,24 @@
 - **검증**: EditMode 204/204 · PlayMode **193/193**(신규 `ClimbTests` 3건: 전이신호 one-shot·상하단 이탈·스냅 후 수직 전용 이동).
 - **범위 밖**: 원격 동기 없음(사용자 결정) · 좌우 이동(`Climb_L/R`) · 점프 이탈 · 상단/하단 전용 전환 클립(`Climb_Up_Start`, `*_To_Idle`).
 
+**P20 — Walk/Run 이 아예 안 나오던 회귀: 전이가 자기 자신으로 재시작했다 (2026-08-22)**
+- **증상**: 걸어도 뛰어도 로코모션 애니가 안 나옴(제자리 포즈). **원인은 P18 에서 내가 넣은 `interruptionSource`**.
+- **기전**: `Locomotion→StrafeLocomotion` 전이에 `SourceThenDestination` 인터럽트를 주면, Unity 가 전이 도중
+  <b>소스 상태의 전이를 다시 평가</b>한다 → 조건(`Strafe=true`)이 계속 참이라 **같은 전이가 매 프레임 재시작**한다.
+  실측: 40프레임(0.67s) 뒤에도 `inTransition=True · normalizedTime 0.03` 고정 → 8방향 트리에 영영 도달 못 함.
+- **해결**: 인터럽트를 쓰지 않고 **전이 창 자체를 없앤다**(`duration 0`). P18 이 풀려던 문제(블렌드 중 AnyState 트리거 유실)도
+  창이 없으면 발생하지 않는다. 시각적으로도 안전 — `Strafe` 는 스폰 직후 한 번 켜지고 유지되며 두 트리의 중심이 같은 Idle 이다.
+- **왜 213개 테스트가 못 잡았나**: 전부 <b>파라미터 값</b>만 봤다("MoveX 가 섰다"). 상태 머신이 그 값을 **소비해 재생까지 갔는지**는
+  아무도 안 봤다. → `PlayerLocomotionAnimTests`(PlayMode) 신설: "StrafeLocomotion 에 도달했고 normalizedTime 이 흐른다" +
+  "걷기와 달리기의 주 클립이 다르다". `PlayerAnimatorContractTests` 에 전이 즉시성(duration 0 · interruption None) 계약 추가.
+- **회귀 포착 실측**: 컨트롤러에 고장을 주입(0.15s + 인터럽트)해 **2/2 실패**, 복구 후 **2/2 통과** 확인
+  (챕터27 교훈 — "테스트를 추가했다 ≠ 그 테스트가 이 버그를 잡는다").
+- **하네스 함정 재확인**: 처음엔 PlayerCharacter 프리팹을 통째로 Instantiate 했더니 DI 없는 컴포넌트가 NRE 를 던져
+  **무관한 실패가 진짜 신호를 덮었다**. 컨트롤러만 단독으로 굴리도록 좁혀서 해결.
+- **파일**: `Gameplay/Editor/PlayerAnimatorControllerBuilder.cs`(Interruptible 제거·duration 0) · 컨트롤러 재생성 ·
+  `Tests/PlayMode/InGame/PlayerLocomotionAnimTests.cs`(신규) · `Tests/EditMode/Gameplay/PlayerAnimatorContractTests.cs`.
+- **검증**: EditMode **224/224** · PlayMode **215/215**(252.8s).
+
 **P19 — 던전 재입장이 30번 실패하던 원인: 죽은 줄 모르는 세션이 자리를 물고 있었다 (2026-08-22)**
 - **증상**: 던전 플레이 중 에디터 Play 를 끄고 다시 켜면 `방 입장 실패 (시도 N/30, state=Failed)` 가 30줄 쌓이고 입장 불가.
 - **추적(실측 로그)**:

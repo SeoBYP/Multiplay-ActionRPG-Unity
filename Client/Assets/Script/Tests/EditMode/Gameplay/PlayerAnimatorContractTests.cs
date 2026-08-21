@@ -37,6 +37,30 @@ namespace Game.Tests.EditMode.Gameplay
         }
 
         [Test]
+        public void 스트레이프_전이는_즉시여야_한다()
+        {
+            // 회귀(2026-08-22): 이 전이에 블렌드 시간이 있으면 두 가지가 동시에 깨진다.
+            //  ① 블렌드 창 동안 AnyState 트리거(Dodge/Attack/Jump)가 삼켜진다.
+            //  ② 그걸 interruptionSource 로 풀면 조건이 계속 참이라 전이가 매 프레임 자기 자신으로 재시작해
+            //     StrafeLocomotion 에 영영 도달하지 못한다(실측: Walk/Run 이 아예 안 나왔다).
+            // Strafe 는 스폰 직후 한 번 켜지고 유지되므로 즉시 전환이 안전하다.
+            var sm = Load().layers[0].stateMachine;
+            var loco = Array.Find(sm.states, s => s.state.name == "Locomotion").state;
+            var strafe = Array.Find(sm.states, s => s.state.name == "StrafeLocomotion").state;
+
+            var toStrafe = Array.Find(loco.transitions, t => t.destinationState == strafe);
+            var toLoco = Array.Find(strafe.transitions, t => t.destinationState == loco);
+
+            Assert.IsNotNull(toStrafe, "Locomotion → StrafeLocomotion 전이가 있어야 한다");
+            Assert.IsNotNull(toLoco, "StrafeLocomotion → Locomotion 전이가 있어야 한다");
+
+            Assert.AreEqual(0f, toStrafe.duration, 0.0001f, "스트레이프 진입은 즉시여야 한다(블렌드 창 = 트리거 유실).");
+            Assert.AreEqual(0f, toLoco.duration, 0.0001f);
+            Assert.AreEqual(TransitionInterruptionSource.None, toStrafe.interruptionSource,
+                "인터럽트를 켜면 조건이 참인 동안 전이가 자기 자신으로 재시작한다(실측).");
+        }
+
+        [Test]
         public void 스트레이프_블렌드는_클립_실측속도_좌표를_쓴다()
         {
             var strafe = Array.Find(Load().layers[0].stateMachine.states,
