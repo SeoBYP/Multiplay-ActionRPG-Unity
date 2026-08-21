@@ -41940,6 +41940,9 @@ MonoBehaviour:
     InteractInvokeDelay: 0.3
     InteractReturnDelay: 0.3
     ClimbSpeed: 1.8
+    ClimbClipSpeed: 1
+    ClimbJumpOffDistance: 0.7
+    ClimbBottomReleaseHeight: 0.6
     DodgeSpeed: 8
     DodgeDuration: 0.5
   <CurrentStateKind>k__BackingField: 0
@@ -96099,6 +96102,9 @@ MonoBehaviour:
   m_topExitDistance: 0.6
   m_attachOffset: 0.35
   m_triggerPadding: 1.5
+  m_rungSpacing: 0.6
+  m_firstRungOffset: 0.35
+  m_railHalfWidth: 0.33
 --- !u!65 &1899434203
 BoxCollider:
   m_ObjectHideFlags: 0

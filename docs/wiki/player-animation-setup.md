@@ -4,7 +4,7 @@
 > 이 문서가 전제한 "플레이어 메시 = `SK_Protof-Actor`(Generic), 프로젝트에 Humanoid Avatar 0개"는 **더 이상 사실이 아니다.**
 > 현재 메시는 `SK_HornedKnight_M_02`(**Humanoid** 아바타)이고, PROTOFACTOR 클립 22개는 전부 **Generic** 이라 이 조합에서는
 > 하나도 바인딩되지 않는다(실측 뼈 회전 0.0도). 게다가 빈 휴머노이드 포즈가 `root` 본을 -1.06m 로 밀어 캐릭터가 파묻힌다.
-> **현행 진실원 = ARPGWarrior(Humanoid) 전환** → `docs/wiki/codemap.md` §2.104,
+> **현행 진실원 = [player-animation-arpg.md](player-animation-arpg.md)** (ARPGWarrior 배선 전체) · 결정 로그 `docs/wiki/codemap.md` §2.104,
 > 생성 스크립트 `Client/Assets/Script/Gameplay/Editor/PlayerAnimatorControllerBuilder.cs`.
 > 아래 본문은 **당시 기록으로만** 남긴다(왜 그렇게 했는지의 이력).
 

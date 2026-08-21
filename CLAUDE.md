@@ -126,6 +126,7 @@ Application이 Infrastructure를 직접 참조하면 위반.
 | 도메인/서비스 추가 | [docs/wiki/architecture.md](docs/wiki/architecture.md) |
 | **클라 vs 서버 권위 (전투·수치·연출 설계)** | [docs/wiki/authority-model.md](docs/wiki/authority-model.md) |
 | **GAS 구조 (Tag·Effect·Ability·Cue + 2층 연출 분리 + 발동 권위)** | [docs/wiki/gas-architecture.md](docs/wiki/gas-architecture.md) |
+| **플레이어 애니메이션 (ARPGWarrior 배선·발 슬라이딩·콤보·사다리 IK)** | [docs/wiki/player-animation-arpg.md](docs/wiki/player-animation-arpg.md) |
 | 패킷 추가/수정 | [docs/wiki/packets.md](docs/wiki/packets.md) |
 | SocketServer 작업 | [docs/wiki/socketserver.md](docs/wiki/socketserver.md) |
 | Redis 관련 | [docs/wiki/redis.md](docs/wiki/redis.md) |
