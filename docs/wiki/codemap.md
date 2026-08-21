@@ -146,7 +146,7 @@
   **무관한 실패가 진짜 신호를 덮었다**. 컨트롤러만 단독으로 굴리도록 좁혀서 해결.
 - **파일**: `Gameplay/Editor/PlayerAnimatorControllerBuilder.cs`(Interruptible 제거·duration 0) · 컨트롤러 재생성 ·
   `Tests/PlayMode/InGame/PlayerLocomotionAnimTests.cs`(신규) · `Tests/EditMode/Gameplay/PlayerAnimatorContractTests.cs`.
-- **검증**: EditMode **224/224** · PlayMode **215/215**(252.8s).
+- **검증**: EditMode **224/224** · PlayMode **215/215**(252.8s) · **사용자 플레이 육안 확인 완료**(2026-08-22).
 
 **P19 — 던전 재입장이 30번 실패하던 원인: 죽은 줄 모르는 세션이 자리를 물고 있었다 (2026-08-22)**
 - **증상**: 던전 플레이 중 에디터 Play 를 끄고 다시 켜면 `방 입장 실패 (시도 N/30, state=Failed)` 가 30줄 쌓이고 입장 불가.

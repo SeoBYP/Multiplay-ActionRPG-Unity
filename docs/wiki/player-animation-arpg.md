@@ -4,6 +4,7 @@
 > 이전 문서 [player-animation-setup.md](player-animation-setup.md) 는 **PROTOFACTOR 시절 기록**이다(모델 교체로 무효).
 > 관련: [character-architecture.md](character-architecture.md) · [gas-architecture.md](gas-architecture.md) · [codemap.md](codemap.md) §2.104·P8~P16
 > 이 작업의 **설계 판단·시행착오 회고** = 포트폴리오 [챕터 28](../portfolio/chapter-28-animation-retarget-units-ik.md)
+> 원격(멀티플레이) 동기화 회고 = [챕터 29](../portfolio/chapter-29-multiplayer-sync-invisible-failures.md)
 
 ## 0. 한 줄 요약
 
@@ -58,6 +59,18 @@ MonsterWalkSpeedSetup ─▶ 몬스터 배속 파라미터 배선   │         
 `ComboA~D` · `Dodge`(8방향) · `Climb` · `Hit` · `Interact` · `Dead` · `GetUp`.
 
 Base Layer 는 **`iKPass = true`** — 이게 꺼져 있으면 `OnAnimatorIK` 가 아예 호출되지 않는다(사다리 IK 전제).
+
+### 2-1. `Locomotion ↔ StrafeLocomotion` 은 **즉시 전환**(duration 0) — 건드리지 말 것
+
+블렌드 시간을 주면 두 가지가 동시에 깨진다(둘 다 실측으로 겪었다):
+
+| 넣은 것 | 무슨 일이 났나 |
+|---|---|
+| `duration 0.15` | 블렌드 창 동안 Unity 가 **AnyState 전이를 평가하지 않는다** → 그 사이 들어온 Dodge/Attack/Jump 트리거가 조용히 사라진다 |
+| `+ interruptionSource` (위를 풀려고) | 조건(`Strafe=true`)이 계속 참이라 **전이가 매 프레임 자기 자신으로 재시작** → StrafeLocomotion 에 영영 도달 못 함 = **Walk/Run 이 아예 안 나옴**(실측: 40프레임 뒤 `normalizedTime 0.03` 고정) |
+
+`Strafe` 는 스폰 직후 한 번 켜지고 그대로 유지되며(로컬 `GroundState`·원격 `RemoteDriver`) 두 트리의 중심이 같은 Idle 이라,
+즉시 전환이 시각적으로 안전하다. 이 계약은 `PlayerAnimatorContractTests.스트레이프_전이는_즉시여야_한다` 가 지킨다.
 
 ---
 
@@ -165,6 +178,36 @@ LocomotionSpeedMatch.Multiplier(실제속도, 클립속도, min 0.6, max 2.0)
 
 ---
 
+## 5-3. 원격 플레이어 동기화 (던전, P17)
+
+**무엇을 보내고 무엇을 역산하는가** — 방향은 이미 흐르는 정보라 보내지 않는다.
+
+```
+[보내지 않는다]  8방향 MoveX/MoveY
+      위치(→속도) + RotY(→facing) 로 로컬 GroundState 와 같은 공식으로 복원
+      RemoteLocomotion.ToFacingFrame(worldVelocity, rotY) — 단위 m/s 유지
+
+[보낸다]         C_Move/S_Move + byte AnimState  (= StateKind)
+      0=Ground 1=Jump 2=Fall 3=Land 4=Climb
+      점프·낙하·사다리는 전부 "y 가 변한다"라 위치만으로는 구분 불가
+
+[보낸다]         C_Dodge/S_Dodge + DirX/DirY (캐릭터 기준)
+      1회성 신호라 상시 스트림이 아니라 이벤트에 싣는다
+
+[서버]           해석하지 않고 불투명 byte 릴레이 (연출은 클라 권위)
+      MovementHandler.BuildBroadcast — 서버에 enum 을 두면 진실원이 둘이 된다
+```
+
+원격 재생 규칙:
+- **트리거는 상태가 바뀌는 순간에만** 쏜다 — 이동 패킷마다 쏘면 Jump/Land 가 매 프레임 리셋돼 제자리에서 떤다.
+- **사다리 배속은 목표 y 의 변화**로 만든다 — 보간된 실제 y 로 재면 lerp 지연만큼 늘 작게 나온다. 상승 +, 하강 −(역재생).
+- 사망/부활은 `S_PlayerDead`/`S_PlayerRevived` 이벤트로만 — 그 이벤트가 안 오면 원격은 계속 서 있다(§8 함정 6).
+
+> ⚠ `RemotePlayerCharacter.prefab` 의 파라미터명이 비면 `CharacterAgentAnimations` 가 **조용히 스킵**한다.
+> 실제로 `MoveX/MoveY/Strafe/Jump/Fall/Land` 6개가 비어 있어 원격이 늘 전진 클립만 재생했다(에러 0건).
+
+---
+
 ## 6. 상호작용 프롬프트 UI
 
 ```
@@ -198,6 +241,11 @@ Tools/Monster/발 슬라이딩 보정 배선                      # MonsterWalkS
 3. **`Game.*` 네임스페이스 안에서 `System.Array` 는 `Game.System` 으로 해석된다**(CS0234). `using System;` 후 비수식 이름을 쓴다.
 4. **VContainer 는 C# 기본 인자를 채워주지 않는다.** 생성자에 파라미터를 추가하면 테스트 컨테이너에도 등록해야 한다.
 5. **클라 컴파일 판정은 Unity 콘솔로만** 한다(`dotnet build Client/*.csproj` 금지 — CLAUDE.md 참조).
+6. **파라미터를 넣었다 ≠ 재생됐다.** 애니 테스트가 파라미터 값만 검사하면, 상태 머신이 그 값을 소비하지 못해
+   화면에 아무것도 안 나와도 전부 통과한다(실측: 213개가 Walk/Run 미재생을 통과시켰다).
+   → 상태 도달(`IsName`)과 `normalizedTime` 진행까지 단언한다(`PlayerLocomotionAnimTests`).
+7. **테스트에서 캐릭터 프리팹을 통째로 Instantiate 하지 않는다.** DI 없는 컴포넌트가 NRE 를 던지고 그 로그가
+   테스트를 실패시켜 **무관한 실패가 진짜 신호를 덮는다**. 보려는 것만 좁혀서 만든다(컨트롤러 단독 등).
 
 ---
 
@@ -210,6 +258,8 @@ Tools/Monster/발 슬라이딩 보정 배선                      # MonsterWalkS
 | PlayMode | **202/202** (249.1s) |
 | 발 슬라이딩 비율 | 플레이어 6케이스 **1.00** · 몬스터 6종 **1.00** |
 | 사다리 | `ClimbTests` **10/10** |
+| 원격 동기화 | `RemoteLocomotionSyncTests` **9/9** · `RemoteDriverAnimTests` **3/3** |
+| 로코모션 재생 | `PlayerLocomotionAnimTests` **2/2** (고장 주입 시 2/2 실패 확인) |
 
 **미실측(눈으로 맞출 값)**: `m_handGripDepth` 0.06 · `m_footGripDepth` 0.12 · `m_contactRadius` 0.28 ·
 IK 가중치 0.8 · 몬스터 2종(gargoyle · leviathan) 클립 속도.
