@@ -148,6 +148,7 @@ namespace Game.Tests.PlayMode.InGame
         private sealed class FakeSocketSession : ISocketSession
         {
             public SocketSessionState State => default;
+            public string LastJoinFailureReason => null;
             public event global::System.Action OnDisconnected { add { } remove { } }
             public UniTask ConnectAsync(SocketConnectionInfo connectionInfo, CancellationToken ct) => UniTask.CompletedTask;
             public UniTask JoinRoomAsync(CancellationToken ct) => UniTask.CompletedTask;

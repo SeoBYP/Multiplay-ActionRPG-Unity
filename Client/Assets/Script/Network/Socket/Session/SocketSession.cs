@@ -24,6 +24,9 @@ namespace Game.Network.Socket
 
         public SocketSessionState State { get; private set; } = SocketSessionState.Idle;
 
+        /// <summary>직전 입장 거절 사유(서버가 보낸 문구). 성공하면 null.</summary>
+        public string LastJoinFailureReason { get; private set; }
+
         /// <inheritdoc/>
         public event Action OnDisconnected;
 
@@ -180,6 +183,8 @@ namespace Game.Network.Socket
         {
             if (packet is S_PlayerJoined joined)
             {
+                // 거절 사유를 남긴다 — 버리면 재시도 로그만 쌓이고 원인을 알 수 없다(실측: "Room is full" 을 못 봤다).
+                LastJoinFailureReason = joined.Success ? null : joined.Message;
                 State = joined.Success
                     ? SocketSessionState.Joined
                     : SocketSessionState.Failed;

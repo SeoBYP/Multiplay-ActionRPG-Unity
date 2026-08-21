@@ -35,6 +35,7 @@ namespace Game.Tests.EditMode.InGame
             private readonly UniTaskCompletionSource _disconnectGate = new();
 
             public SocketSessionState State => default;
+            public string LastJoinFailureReason => null;
             public event global::System.Action OnDisconnected;
             public void RaiseDisconnected() => OnDisconnected?.Invoke();
 

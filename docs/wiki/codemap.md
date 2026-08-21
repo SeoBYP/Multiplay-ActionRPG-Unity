@@ -130,6 +130,33 @@
 - **검증**: EditMode 204/204 · PlayMode **193/193**(신규 `ClimbTests` 3건: 전이신호 one-shot·상하단 이탈·스냅 후 수직 전용 이동).
 - **범위 밖**: 원격 동기 없음(사용자 결정) · 좌우 이동(`Climb_L/R`) · 점프 이탈 · 상단/하단 전용 전환 클립(`Climb_Up_Start`, `*_To_Idle`).
 
+**P19 — 던전 재입장이 30번 실패하던 원인: 죽은 줄 모르는 세션이 자리를 물고 있었다 (2026-08-22)**
+- **증상**: 던전 플레이 중 에디터 Play 를 끄고 다시 켜면 `방 입장 실패 (시도 N/30, state=Failed)` 가 30줄 쌓이고 입장 불가.
+- **추적(실측 로그)**:
+  ```
+  15:39:34  마지막 패킷 수신(LastRecvAt)
+  15:39:35  Play 정지 — 소켓이 FIN 없이 사라짐
+  15:39:40  재입장 시도 → "Room 3427 is full. Session 1042 cannot join" × 30
+  15:40:37  서버가 유휴 타임아웃으로 죽음 감지   ← 63초 걸림
+  15:41:37  재접속 유예(60s) 만료
+  ```
+  → 슬롯을 막은 것은 유예 장부가 아니라 **아직 죽은 줄 모르는 세션**이었다. 2/2 방은 **본인조차** full 로 거절된다.
+- **해결 셋(사용자 승인)**:
+  ① **재접속 인수(takeover)** — `RoomManager.EvictStaleSession`: 같은 UserId 의 옛 세션이 방에 있으면
+     `room.Leave(old, graceful:true)` 로 **세션만** 비우고(PlayerState=위치·HP 보존) 새 세션이 들어온다.
+     감지 전·유예 중 두 경우를 모두 덮는다. 남의 자리는 못 뺏는다(같은 UserId 한정).
+  ② **거절 사유 보관·분기** — 서버는 사유를 `S_PlayerJoined.Message` 로 보내는데 클라가 **버리고 있었다**
+     (그래서 "Room is full" 인 걸 로그로 알 수 없었다). `SocketSession.LastJoinFailureReason` 에 보관하고,
+     `JoinFailurePolicy.IsTerminal` 로 회복 불가(배정 불일치·미배정)는 **즉시 중단**. 모르는 사유는 재시도가 기본값.
+     로그는 첫 실패 + 5회마다만(40줄 도배 방지).
+  ③ **재시도 예산** — 30회×0.5s(≈30s) → **40회×2s(≈80s)**. 서버 유예(60s)보다 길어야 기다린 보람이 있다.
+- **파일**: `SocketServer/Room/{RoomManager(EvictStaleSession),Room(FindSessionByUserId)}.cs` ·
+  `Client/Network/Socket/Session/{SocketSession,ISocketSession,JoinFailurePolicy(신규)}.cs` · `System/InGame/GameSessionConnector.cs`.
+- **테스트(구현 전 작성·RED 확인)**: 서버 `ReconnectTakeoverTests` 4건(인수·상태보존·타인거절·뒤늦은 타임아웃이 재접속을 안 걷어참) ·
+  클라 EditMode `JoinFailurePolicyTests` 4건 · PlayMode `SocketSessionJoinFailureTests` 2건(Fake 커넥터, Docker 불필요).
+- **검증**: SocketServer.Tests **224/224** · 서버 솔루션 빌드 0오류 · EditMode **223/223** · PlayMode **213/213**(261.1s, Docker 리빌드 후 E2E 포함).
+- **미실측**: 실제로 던전 플레이 중 Play 를 껐다 켜는 육안 재현.
+
 **P18 — 사망 동기화가 안 되던 진짜 원인: 아군 오사가 클라 HP만 깎고 있었다 (2026-08-22)**
 - **증상**: 던전에서 죽으면 <b>내 화면에서만</b> 쓰러지고 다른 사람 화면에서는 계속 서 있었다.
 - **추적(추측 아님, 로그 실측)**:

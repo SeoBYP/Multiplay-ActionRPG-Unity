@@ -9,6 +9,9 @@ namespace Game.Network.Socket
     {
         SocketSessionState State { get; }
 
+        /// <summary>직전 입장 거절 사유(서버 <c>S_PlayerJoined.Message</c>). 성공하면 null. 진단·재시도 분기용.</summary>
+        string LastJoinFailureReason { get; }
+
         /// <summary>의도치 않은 연결 끊김(서버 다운/네트워크 절단 등) 발생 시 1회 발화. 정상 DisconnectAsync(퇴장)에서는 발화하지 않는다. 메인 스레드에서 호출됨.</summary>
         event Action OnDisconnected;
         UniTask ConnectAsync(SocketConnectionInfo connectionInfo, CancellationToken ct);

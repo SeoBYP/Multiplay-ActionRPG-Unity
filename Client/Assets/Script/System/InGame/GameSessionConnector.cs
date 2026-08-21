@@ -68,8 +68,14 @@ namespace Game.System.InGame
         // SocketServer가 방을 생성하는 시점과 클라 접속 사이에 레이스가 있다.
         // 퇴장 후 재입장 시 auto-retrigger → Outbox → SocketServer 방 재생성까지 최대 10초 소요.
         // 방이 아직 없거나 연결이 끊겨도 재시도 루프가 커버한다.
-        private const int MaxJoinAttempts = 30;
-        private static readonly TimeSpan JoinRetryDelay = TimeSpan.FromMilliseconds(500);
+        // 재시도 예산은 <b>서버 재접속 유예(Room.ReconnectGraceMs = 60s)보다 길어야</b> 한다.
+        // 예전엔 30회×0.5s(≈30s)라 유예가 풀리기 전에 항상 먼저 포기했다(실측: 유예 만료 15:41:37 vs 포기 15:40:31).
+        // 40회×2s ≈ 80s — 서버가 옛 세션을 정리할 시간을 주고도 남는다.
+        private const int MaxJoinAttempts = 40;
+        private static readonly TimeSpan JoinRetryDelay = TimeSpan.FromSeconds(2);
+
+        /// <summary>재시도 경고를 매번 찍으면 콘솔이 40줄로 덮인다 — 첫 실패와 이후 N회마다만 남긴다.</summary>
+        private const int JoinFailureLogInterval = 5;
 
         private async UniTaskVoid ConnectAndLoadDungeonAsync(string ip, int port, long roomId)
         {
@@ -114,14 +120,25 @@ namespace Game.System.InGame
                     }
 
                     var failState = _socketSession.State;
-                    Debug.LogWarning($"[GameSessionConnector] 방 입장 실패 (시도 {attempt}/{MaxJoinAttempts}, state={failState}) — 재시도");
+                    var reason = _socketSession.LastJoinFailureReason;
                     await _socketSession.DisconnectAsync(CancellationToken.None);
+
+                    // 재시도로 바뀌지 않는 사유(배정 불일치 등)면 즉시 끝낸다 — 40번 헛돌 이유가 없다.
+                    if (JoinFailurePolicy.IsTerminal(reason))
+                    {
+                        Debug.LogError($"[GameSessionConnector] 방 입장 불가 — 사유='{reason}' (재시도해도 바뀌지 않음, 중단)");
+                        return;
+                    }
+
+                    if (attempt == 1 || attempt % JoinFailureLogInterval == 0)
+                        Debug.LogWarning(
+                            $"[GameSessionConnector] 방 입장 실패 (시도 {attempt}/{MaxJoinAttempts}, state={failState}, 사유='{reason ?? "미상"}') — 재시도");
 
                     if (attempt < MaxJoinAttempts)
                         await UniTask.Delay(JoinRetryDelay);
                 }
 
-                Debug.LogError("[GameSessionConnector] 방 입장 실패 — 재시도 횟수 초과");
+                Debug.LogError($"[GameSessionConnector] 방 입장 실패 — 재시도 횟수 초과(마지막 사유='{_socketSession.LastJoinFailureReason ?? "미상"}')");
             }
             catch (OperationCanceledException)
             {

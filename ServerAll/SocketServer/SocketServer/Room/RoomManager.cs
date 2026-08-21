@@ -88,6 +88,9 @@ public class RoomManager
             room = FindAvailableRoom();
         }
 
+        if (room != null)
+            EvictStaleSession(room, session);
+
         if (room != null && room.Join(session))
         {
             _playerRooms[session.SessionId] = room.RoomId;
@@ -96,6 +99,31 @@ public class RoomManager
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// 같은 UserId 의 옛 세션이 방에 남아 있으면 자리를 비운다(<b>재접속 인수</b>).
+    ///
+    /// <b>왜</b>: 에디터 Play 정지·강제 종료처럼 FIN 없이 끊기면 서버는 그 세션을 바로 죽었다고 못 본다.
+    /// 유휴 타임아웃까지(실측 63초) 세션이 방에 남아 2/2 방은 <b>본인조차</b> "Room is full" 로 거절됐다
+    /// — 재접속 유예(60s)는 그 뒤에야 시작되므로 유예가 있어도 돌아올 방법이 없었다.
+    ///
+    /// <b>graceful: true</b> 로 비운다 — 세션만 교체하고 PlayerState(위치·HP)는 보존해야 원래 자리로 복귀한다.
+    /// 자리를 넘겨받는 것은 <b>같은 UserId</b> 뿐이다(남의 자리를 뺏지 않는다).
+    /// </summary>
+    private void EvictStaleSession(Room room, Session incoming)
+    {
+        var stale = room.FindSessionByUserId(incoming.UserId, incoming.SessionId);
+        if (stale is null)
+            return;
+
+        _logger.LogInformation(
+            "Room {RoomId} takeover — UserId={UserId} old session {OldSessionId} evicted for {NewSessionId}",
+            room.RoomId, incoming.UserId, stale.SessionId, incoming.SessionId);
+
+        room.Leave(stale.SessionId, graceful: true);
+        _playerRooms.TryRemove(stale.SessionId, out _);
+        stale.Room = null;
     }
 
     /// <param name="graceful">
