@@ -56,6 +56,40 @@ namespace Game.Gameplay.Character
         /// <summary>HUD 안내 문구 — "[E] 오르기".</summary>
         public string InteractionPrompt => "오르기";
 
+        /// <summary>
+        /// 사다리의 <b>면 법선</b>(앞뒤 = 매달리는 쪽)과 <b>폭 축</b>(좌우 = 기둥이 늘어선 쪽)을 구한다.
+        /// FBX 회전(-90°)·스케일(100)이 제각각이라 <c>transform.forward/right</c> 를 그대로 믿을 수 없다 —
+        /// 콜라이더의 <b>월드 실측 두께</b>로 판별한다: 수평 축 중 <b>얇은 쪽</b>이 면 법선, <b>넓은 쪽</b>이 폭 축.
+        /// </summary>
+        private void GetFaceAxes(out Vector3 faceNormal, out Vector3 sideAxis)
+        {
+            faceNormal = Vector3.forward;
+            sideAxis = Vector3.right;
+
+            var box = Body as BoxCollider;
+            if (box == null) return;
+
+            Vector3 scale = transform.lossyScale;
+            var axes = new[] { transform.right, transform.up, transform.forward };
+            var extents = new[]
+            {
+                Mathf.Abs(box.size.x * scale.x),
+                Mathf.Abs(box.size.y * scale.y),
+                Mathf.Abs(box.size.z * scale.z),
+            };
+
+            float thin = float.MaxValue, wide = -1f;
+            for (int i = 0; i < 3; i++)
+            {
+                Vector3 a = axes[i]; a.y = 0f;
+                if (a.sqrMagnitude < 0.01f) continue;      // 세로(사다리 길이) 축은 건너뛴다
+                if (Mathf.Abs(Vector3.Dot(axes[i].normalized, Vector3.up)) > 0.5f) continue;
+                a.Normalize();
+                if (extents[i] < thin) { thin = extents[i]; faceNormal = a; }
+                if (extents[i] > wide) { wide = extents[i]; sideAxis = a; }
+            }
+        }
+
         /// <summary>상호작용 = 붙잡기 요청. 실제 전이는 Locomotion FSM(ClimbState)이 한다.</summary>
         public void Interact(GameObject interactor)
         {
@@ -71,15 +105,25 @@ namespace Game.Gameplay.Character
         /// </summary>
         public void GetAttachPose(Vector3 playerPosition, out Vector3 position, out Quaternion rotation)
         {
-            Vector3 center = CenterXZ;
-            Vector3 fromLadder = new Vector3(playerPosition.x - center.x, 0f, playerPosition.z - center.z);
-            if (fromLadder.sqrMagnitude < 0.0001f)
-                fromLadder = Vector3.forward; // 정확히 중심에 겹쳐 있으면 임의 방향
-            fromLadder.Normalize();
+            Vector3 attachDir = GetApproachSide(playerPosition);
 
             float clampedY = Mathf.Clamp(playerPosition.y, BottomY, TopY);
-            position = new Vector3(center.x, clampedY, center.z) + fromLadder * m_attachOffset;
-            rotation = Quaternion.LookRotation(-fromLadder); // 사다리를 마주본다
+            Vector3 center = CenterXZ;
+            position = new Vector3(center.x, clampedY, center.z) + attachDir * m_attachOffset;
+            rotation = Quaternion.LookRotation(-attachDir); // 사다리 면을 정면으로 마주본다
+        }
+
+        /// <summary>
+        /// 플레이어가 있는 <b>면 쪽</b>(앞/뒤) 방향. 접근 방향을 그대로 쓰지 않고 면 법선에 <b>스냅</b>한다 —
+        /// 옆에서 다가오면 측면 기둥에 옆으로 매달리는 자세가 나오기 때문(실제로 그렇게 보였다).
+        /// </summary>
+        private Vector3 GetApproachSide(Vector3 playerPosition)
+        {
+            GetFaceAxes(out Vector3 faceNormal, out _);
+            Vector3 center = CenterXZ;
+            Vector3 fromLadder = new Vector3(playerPosition.x - center.x, 0f, playerPosition.z - center.z);
+            float side = Vector3.Dot(fromLadder, faceNormal);
+            return side >= 0f ? faceNormal : -faceNormal;
         }
 
         /// <summary>
@@ -90,12 +134,8 @@ namespace Game.Gameplay.Character
         public Vector3 GetTopExitPosition(Vector3 playerPosition)
         {
             Vector3 center = CenterXZ;
-            Vector3 fromLadder = new Vector3(playerPosition.x - center.x, 0f, playerPosition.z - center.z);
-            if (fromLadder.sqrMagnitude < 0.0001f)
-                fromLadder = Vector3.forward;
-            fromLadder.Normalize();
-
-            Vector3 exit = new Vector3(center.x, TopY, center.z) - fromLadder * m_topExitDistance;
+            Vector3 attachDir = GetApproachSide(playerPosition); // 매달려 있던 쪽
+            Vector3 exit = new Vector3(center.x, TopY, center.z) - attachDir * m_topExitDistance; // 반대편으로 올라선다
 
             // 이탈 지점 위에서 아래로 쏴 실제 바닥을 찾는다(트리거는 무시 — 사다리 자기 트리거에 맞지 않게).
             Vector3 origin = exit + Vector3.up * 1.5f;
@@ -124,12 +164,9 @@ namespace Game.Gameplay.Character
         /// <summary>손이 잡는 지점(월드) — 사다리 좌/우 기둥. <paramref name="right"/>=true 면 오른손 쪽.</summary>
         public Vector3 GetGripPoint(float worldY, bool right)
         {
+            GetFaceAxes(out _, out Vector3 sideAxis);
             Vector3 center = CenterXZ;
-            // 좌우는 사다리의 가로축(로컬 x 를 월드로) 기준.
-            Vector3 side = transform.right; side.y = 0f;
-            if (side.sqrMagnitude < 0.0001f) side = Vector3.right;
-            side.Normalize();
-            return new Vector3(center.x, worldY, center.z) + side * (right ? m_railHalfWidth : -m_railHalfWidth);
+            return new Vector3(center.x, worldY, center.z) + sideAxis * (right ? m_railHalfWidth : -m_railHalfWidth);
         }
 
         /// <summary>

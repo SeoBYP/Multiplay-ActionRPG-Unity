@@ -566,3 +566,6 @@ ServerAll/Temp/obj
 /Client/Assets/Art/MedievalKingdomUI/Artworks/PSD_source/Skill_scroll.psd
 /Client/Assets/Art/Artsystack - Fantasy RPG GUI/PSD File/tap_to_start.psd
 /Client/Assets/Art/Artsystack - Fantasy RPG GUI/PSD File/title.psd
+
+# Claude 훅 중복 경고 방지 상태(로컬 전용)
+.claude/hooks/.state/

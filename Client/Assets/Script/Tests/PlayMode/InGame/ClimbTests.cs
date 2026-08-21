@@ -171,6 +171,33 @@ namespace Game.Tests.PlayMode.InGame
                 $"이탈 지점은 플랫폼 윗면(3.8) 높이여야 한다(실측 {exit.y:F2}). 고정 높이면 공중에 뜬다.");
         }
 
+        [UnityTest]
+        public IEnumerator 옆에서_다가와도_사다리_정면에_붙는다()
+        {
+            // 회귀: 부착 방향을 '접근한 방향' 그대로 쓰면 옆(폭 방향)에서 오면 측면 기둥에 옆으로 매달린다
+            // (실제로 그런 자세가 나왔다). 면 법선에 스냅해 어느 쪽에서 와도 정면으로 마주보게 한다.
+            var ladder = BuildLadder(Vector3.zero, height: 4f);
+            yield return null;
+
+            // BuildLadder 의 박스는 x 1.0 · z 0.3 → 얇은 축(면 법선) = z
+            foreach (var approach in new[] { new Vector3(1f, 0f, 0f), new Vector3(-1f, 0f, 0f) })
+            {
+                var stand = new Vector3(0f, 1.5f, 0f) + approach * 1.2f;
+                ladder.GetAttachPose(stand, out var pos, out var rot);
+
+                float sideOffset = Mathf.Abs(pos.x);   // 폭 방향으로 밀려나면 안 된다
+                float faceOffset = Mathf.Abs(pos.z);   // 면 방향으로만 떨어져 있어야 한다
+                Assert.Less(sideOffset, 0.05f,
+                    $"옆에서 와도 폭 방향으로 매달리면 안 된다(실측 x={pos.x:F2}).");
+                Assert.Greater(faceOffset, 0.1f,
+                    $"사다리 면 앞쪽에 붙어야 한다(실측 z={pos.z:F2}).");
+
+                var fwd = rot * Vector3.forward;
+                Assert.Less(Mathf.Abs(fwd.x), 0.2f, $"몸이 옆을 보면 안 된다(실측 forward={fwd}).");
+                Assert.Greater(Mathf.Abs(fwd.z), 0.9f, "사다리 면을 정면으로 봐야 한다.");
+            }
+        }
+
         // ── 리그 ────────────────────────────────────────────────────────────
         private Ladder BuildLadder(Vector3 basePos, float height)
         {

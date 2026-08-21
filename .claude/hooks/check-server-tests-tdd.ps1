@@ -45,5 +45,15 @@ $out = @{
     hookSpecificOutput = @{ hookEventName = 'Stop'; additionalContext = $msg }
 } | ConvertTo-Json -Compress -Depth 6
 
+# HOOK_DEDUP — 같은 경고를 매 Stop 마다 주입하면 에이전트가 계속 다시 깨어나 빈 응답이 반복된다.
+#              내용이 바뀌지 않았으면 침묵한다(문제가 바뀌거나 새로 생기면 다시 알린다).
+$stateDir = Join-Path $PSScriptRoot ".state"
+if (-not (Test-Path $stateDir)) { New-Item -ItemType Directory -Force -Path $stateDir | Out-Null }
+$stateFile = Join-Path $stateDir "server-tests-guard.hash"
+$md5  = [System.Security.Cryptography.MD5]::Create()
+$hash = [System.BitConverter]::ToString($md5.ComputeHash([Text.Encoding]::UTF8.GetBytes($msg))).Replace("-","")
+if ((Test-Path $stateFile) -and ((Get-Content $stateFile -Raw).Trim() -eq $hash)) { exit 0 }
+Set-Content -Path $stateFile -Value $hash -NoNewline
+
 Write-Output $out
 exit 0

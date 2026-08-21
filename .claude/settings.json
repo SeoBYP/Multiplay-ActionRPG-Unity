@@ -31,15 +31,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "Write-Output '{\"hookSpecificOutput\": {\"hookEventName\": \"Stop\", \"additionalContext\": \"[필수 체크] 이번 턴에서 코드 작업을 했다면: (1) plan.md 체크박스 갱신했는가? (2) 무엇을 했는지/왜 이렇게 설계했는지/파일 위치/연결 지점을 설명했는가? 완료됐다고만 하고 설명 없이 끝내지 않는다.\"}}'",
-            "shell": "powershell"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
             "command": "& '.claude/hooks/check-server-tests-tdd.ps1'",
             "shell": "powershell",
             "timeout": 15,
