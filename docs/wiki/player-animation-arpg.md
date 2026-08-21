@@ -3,6 +3,7 @@
 > 상태: **✅ 구현 완료 (2026-08-20 ~ 08-21, P0~P16)** · 범위: **로컬 전용**(사다리·콤보 연출은 네트워크 동기 없음)
 > 이전 문서 [player-animation-setup.md](player-animation-setup.md) 는 **PROTOFACTOR 시절 기록**이다(모델 교체로 무효).
 > 관련: [character-architecture.md](character-architecture.md) · [gas-architecture.md](gas-architecture.md) · [codemap.md](codemap.md) §2.104·P8~P16
+> 이 작업의 **설계 판단·시행착오 회고** = 포트폴리오 [챕터 28](../portfolio/chapter-28-animation-retarget-units-ik.md)
 
 ## 0. 한 줄 요약
 
