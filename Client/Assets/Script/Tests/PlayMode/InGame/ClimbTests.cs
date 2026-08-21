@@ -222,6 +222,44 @@ namespace Game.Tests.PlayMode.InGame
             }
         }
 
+        [UnityTest]
+        public IEnumerator IK는_팔_간격을_유지하고_깊이와_발판_높이만_보정한다()
+        {
+            // 사용자 피드백: 손 사이 간격을 고정 기둥 위치로 덮어쓰면 애니의 팔 간격이 무너진다.
+            // → 좌우는 클립 값을 그대로 두고, 어긋나는 축(깊이·발판 높이)만 고친다.
+            var ladder = BuildLadder(Vector3.zero, height: 4f);
+            yield return null;
+
+            ladder.GetFaceAxes(out var faceNormal, out var sideAxis);
+            faceNormal = ladder.GetApproachSide(new Vector3(0f, 1f, 1f)); // +z 쪽에 매달림
+
+            // 클립이 만든 손: 좌우 +0.42, 깊이 0.30, 높이는 발판 사이(1.05)
+            Vector3 clipPos = new Vector3(0f, 1.05f, 0f) + sideAxis * 0.42f + faceNormal * 0.30f;
+            var target = LadderIK.ResolveGrip(ladder, clipPos, faceNormal, sideAxis, depth: 0.06f);
+
+            float sideBefore = Vector3.Dot(clipPos - new Vector3(0f, clipPos.y, 0f), sideAxis);
+            float sideAfter = Vector3.Dot(target - new Vector3(0f, target.y, 0f), sideAxis);
+            Assert.AreEqual(sideBefore, sideAfter, 0.001f,
+                $"좌우(팔 간격)는 클립 값이 유지돼야 한다(전 {sideBefore:F2} → 후 {sideAfter:F2}).");
+
+            Assert.AreEqual(0.06f, Vector3.Dot(target - new Vector3(0f, target.y, 0f), faceNormal), 0.001f,
+                "깊이는 사다리 면 기준으로 보정돼야 한다.");
+            Assert.AreEqual(ladder.GetNearestRungY(clipPos.y), target.y, 0.001f,
+                "높이는 가장 가까운 발판으로 스냅돼야 한다.");
+        }
+
+        [UnityTest]
+        public IEnumerator IK_가중치는_사다리에_닿을_때만_올라간다()
+        {
+            // "위치만 팔 뻗어서 사다리에 닿을 때만" — 멀리 뻗는 중에는 클립 그대로 두고,
+            // 목표 근처로 들어왔을 때만 스냅한다.
+            yield return null;
+
+            Assert.AreEqual(0f, LadderIK.ContactWeight(0.60f, 0.28f), 0.001f, "멀면 IK 를 걸지 않는다(뻗는 중).");
+            Assert.Greater(LadderIK.ContactWeight(0.05f, 0.28f), 0.7f, "닿기 직전이면 거의 완전히 스냅한다.");
+            Assert.AreEqual(1f, LadderIK.ContactWeight(0f, 0.28f), 0.001f, "정확히 닿으면 최대.");
+        }
+
         // ── 리그 ────────────────────────────────────────────────────────────
         private Ladder BuildLadder(Vector3 basePos, float height)
         {

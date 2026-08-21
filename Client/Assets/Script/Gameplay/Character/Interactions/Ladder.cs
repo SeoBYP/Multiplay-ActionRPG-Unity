@@ -61,7 +61,7 @@ namespace Game.Gameplay.Character
         /// FBX 회전(-90°)·스케일(100)이 제각각이라 <c>transform.forward/right</c> 를 그대로 믿을 수 없다 —
         /// 콜라이더의 <b>월드 실측 두께</b>로 판별한다: 수평 축 중 <b>얇은 쪽</b>이 면 법선, <b>넓은 쪽</b>이 폭 축.
         /// </summary>
-        private void GetFaceAxes(out Vector3 faceNormal, out Vector3 sideAxis)
+        public void GetFaceAxes(out Vector3 faceNormal, out Vector3 sideAxis)
         {
             faceNormal = Vector3.forward;
             sideAxis = Vector3.right;
@@ -117,7 +117,7 @@ namespace Game.Gameplay.Character
         /// 플레이어가 있는 <b>면 쪽</b>(앞/뒤) 방향. 접근 방향을 그대로 쓰지 않고 면 법선에 <b>스냅</b>한다 —
         /// 옆에서 다가오면 측면 기둥에 옆으로 매달리는 자세가 나오기 때문(실제로 그렇게 보였다).
         /// </summary>
-        private Vector3 GetApproachSide(Vector3 playerPosition)
+        public Vector3 GetApproachSide(Vector3 playerPosition)
         {
             GetFaceAxes(out Vector3 faceNormal, out _);
             Vector3 center = CenterXZ;

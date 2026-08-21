@@ -63,14 +63,26 @@ namespace Game.Tests.PlayMode.E2E
         protected static string UniqueEmail()
             => $"e2e_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}@test.com";
 
+        private static int _nicknameSeq;
+
+        /// <summary>
+        /// 테스트용 유일 닉네임. <b>시간만으로는 부족하다</b> — 다중 클라 E2E 는 두 계정을 같은 밀리초에 등록해서
+        /// 시간 접미사만 쓰면 <c>NICKNAME_ALREADY_TAKEN</c> 로 산발적으로 깨진다(실제로 여러 번 발생).
+        /// 그래서 시간(5) + 프로세스 내 일련번호(1) + 난수(4) 를 붙인다.
+        /// 일련번호는 같은 ms 안의 충돌을, 난수는 실행 간(DB 가 남아 있는) 충돌을 막는다.
+        /// </summary>
         protected static string UniqueNickname(string prefix = "Hero")
         {
             const int maxNicknameLength = 20;
-            const int suffixLength = 6;
+            const int suffixLength = 10;
 
             var normalizedPrefix = string.IsNullOrWhiteSpace(prefix) ? "Hero" : prefix;
-            var suffix = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
-            suffix = suffix.Substring(Math.Max(0, suffix.Length - suffixLength));
+
+            long ms = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            int seq = Interlocked.Increment(ref _nicknameSeq);
+            string suffix = (ms % 100000).ToString("D5")
+                            + "0123456789abcdefghijklmnopqrstuvwxyz"[seq % 36]
+                            + Guid.NewGuid().ToString("N").Substring(0, 4);
 
             var maxPrefixLength = maxNicknameLength - suffixLength;
             if (normalizedPrefix.Length > maxPrefixLength)

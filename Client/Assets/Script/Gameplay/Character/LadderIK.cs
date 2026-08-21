@@ -3,18 +3,17 @@ using UnityEngine;
 namespace Game.Gameplay.Character
 {
     /// <summary>
-    /// 사다리 손·발 IK — 오르는 동안 <b>지금 붙잡고 있는 손·발만</b> 실제 발판/기둥에 스냅한다.
+    /// 사다리 손·발 IK — <b>애니메이션을 최대한 살리고 어긋난 축만 고친다</b>.
     /// Animator 가 붙은 GameObject 에 부착한다(<c>OnAnimatorIK</c> 는 거기서만 호출된다).
     ///
-    /// <b>왜 필요한가</b>: 사다리 클립은 제작 기준 간격을 가정하는데 실제 발판 간격은 에셋마다 다르다(이 프로젝트 0.6m).
-    /// 배속 보정으로 <i>속도</i>는 맞아도 <i>높이</i>는 어긋나 손발이 가로대 사이 허공을 짚는다.
+    /// <b>무엇을 고치고 무엇을 두는가</b>(사용자 피드백 반영):
+    ///   · <b>좌우 간격은 클립 그대로 둔다</b> — 손 사이 폭을 고정 기둥 위치로 덮어쓰면 애니의 팔 간격이 무너진다.
+    ///   · <b>깊이(사다리 면까지)와 높이(가장 가까운 발판)만</b> 보정한다 — 실제로 어긋나는 축은 이 둘뿐이다.
+    ///     (클립은 제작 기준 간격을 가정하는데 이 사다리 발판 간격은 0.6m 라 높이가 어긋난다.)
     ///
-    /// <b>왜 "항상"이 아니라 접지 구간만인가</b>: 오르는 동작은 한쪽 손발이 <b>붙잡고 있는 동안</b> 다른 쪽이 다음 칸으로 <b>뻗는다</b>.
-    /// 네 팔다리를 늘 고정하면 뻗는 동작이 죽어 사다리를 기어오르는 게 아니라 매달려 미끄러지는 그림이 된다.
-    /// → 클립을 그대로 관찰해서 판단한다: <b>붙잡은 팔다리는 월드에서 거의 멈춰 있고</b>(몸만 올라간다),
-    ///   뻗는 팔다리는 몸보다 빠르게 위로 이동한다. 그 속도차로 팔다리별 가중치를 만든다(별도 커브 저작 불필요).
-    ///
-    /// <b>좌우</b>는 캐릭터 기준으로 정한다 — 사다리 고정 축을 쓰면 반대편 면에 붙었을 때 좌우가 뒤집힌다.
+    /// <b>언제 거는가</b>: "팔을 뻗어 사다리에 닿는 순간"만. 클립이 만든 손 위치가 보정 목표에서
+    /// <see cref="m_contactRadius"/> 안으로 들어오면 가중치가 올라가고, 멀면(뻗는 중·당기는 중) 0 이다.
+    /// 즉 <b>붙잡는 순간에만 살짝 스냅</b>하고 나머지 동작은 클립이 그대로 보인다.
     /// </summary>
     [RequireComponent(typeof(Animator))]
     public sealed class LadderIK : MonoBehaviour
@@ -22,23 +21,23 @@ namespace Game.Gameplay.Character
         [Tooltip("사다리 IK 사용 여부. 끄면 클립 그대로 재생한다.")]
         [SerializeField] private bool m_enabled = true;
 
-        [Tooltip("붙잡고 있을 때의 손 IK 최대 가중치(0=클립 그대로, 1=완전 고정).")]
+        [Tooltip("손이 사다리에 닿았다고 볼 거리(m). 클립 손 위치가 보정 목표에서 이 안이면 스냅한다.")]
+        [SerializeField] private float m_contactRadius = 0.28f;
+
+        [Tooltip("닿았을 때의 손 IK 최대 가중치.")]
         [Range(0f, 1f)][SerializeField] private float m_handWeight = 0.8f;
 
-        [Tooltip("딛고 있을 때의 발 IK 최대 가중치.")]
+        [Tooltip("닿았을 때의 발 IK 최대 가중치.")]
         [Range(0f, 1f)][SerializeField] private float m_footWeight = 0.8f;
 
-        [Tooltip("손이 잡는 지점이 골반보다 얼마나 위인지(m).")]
-        [SerializeField] private float m_handHeightBias = 0.55f;
+        [Tooltip("손이 기둥을 감싸는 깊이(m). 사다리 면(중심)에서 캐릭터 쪽으로 이만큼 앞에 손이 온다.")]
+        [SerializeField] private float m_handGripDepth = 0.06f;
 
-        [Tooltip("발이 딛는 지점이 골반보다 얼마나 아래인지(m).")]
-        [SerializeField] private float m_footHeightBias = -0.85f;
+        [Tooltip("발이 발판을 딛는 깊이(m). 손보다 조금 더 앞(캐릭터 쪽)이 자연스럽다.")]
+        [SerializeField] private float m_footGripDepth = 0.12f;
 
-        [Tooltip("가중치 변화 속도(1/초). 접지↔뻗기 전환이 툭 끊기지 않게 한다.")]
-        [SerializeField] private float m_weightBlendRate = 12f;
-
-        [Tooltip("몸 속도 대비 이 배 이상 빠르게 움직이면 '뻗는 중'으로 보고 IK 를 푼다.")]
-        [SerializeField] private float m_reachSpeedRatio = 1.4f;
+        [Tooltip("가중치 변화 속도(1/초). 스냅이 툭 걸리지 않게 한다.")]
+        [SerializeField] private float m_weightBlendRate = 10f;
 
         private static readonly AvatarIKGoal[] Goals =
         {
@@ -48,11 +47,7 @@ namespace Game.Gameplay.Character
         private Animator _animator;
         private ClimbSensor _sensor;
         private Transform _root;
-
-        private readonly float[] _weights = new float[4];   // 현재 가중치(부드럽게 수렴)
-        private readonly Vector3[] _lastLimbPos = new Vector3[4];
-        private bool _tracking;
-        private float _lastRootY;
+        private readonly float[] _weights = new float[4];
 
         private void Awake()
         {
@@ -68,46 +63,56 @@ namespace Game.Gameplay.Character
             var ladder = _sensor.Current;
             if (ladder == null)
             {
-                for (int i = 0; i < Goals.Length; i++) { _weights[i] = 0f; _animator.SetIKPositionWeight(Goals[i], 0f); }
-                _tracking = false;
+                for (int i = 0; i < Goals.Length; i++)
+                {
+                    _weights[i] = 0f;
+                    _animator.SetIKPositionWeight(Goals[i], 0f);
+                }
                 return;
             }
 
-            float dt = Mathf.Max(Time.deltaTime, 0.0001f);
-            float bodySpeed = Mathf.Abs((_root.position.y - _lastRootY) / dt);
-            _lastRootY = _root.position.y;
+            ladder.GetFaceAxes(out Vector3 faceNormal, out Vector3 sideAxis);
+            // 캐릭터가 매달린 쪽이 +가 되도록 면 법선을 맞춘다(반대편 면에서도 부호가 뒤집히지 않게).
+            faceNormal = ladder.GetApproachSide(_root.position);
 
-            Vector3 characterRight = _root.right;
-            float pelvisY = _animator.bodyPosition.y;
-            float handY = ladder.GetNearestRungY(pelvisY + m_handHeightBias);
-            float footY = ladder.GetNearestRungY(pelvisY + m_footHeightBias);
+            Vector3 center = ladder.CenterXZ;
+            float dt = Mathf.Max(Time.deltaTime, 0.0001f);
 
             for (int i = 0; i < Goals.Length; i++)
             {
                 bool isHand = i < 2;
-                bool isRight = (i % 2) == 1;
+                Vector3 clipPos = _animator.GetIKPosition(Goals[i]); // 클립이 만든 현재 손/발 위치
 
-                Vector3 limbPos = _animator.GetIKPosition(Goals[i]); // 클립이 만든 현재 손/발 위치
-                float limbSpeed = _tracking ? Mathf.Abs((limbPos.y - _lastLimbPos[i].y) / dt) : 0f;
-                _lastLimbPos[i] = limbPos;
+                float depth = isHand ? m_handGripDepth : m_footGripDepth;
+                Vector3 target = ResolveGrip(ladder, clipPos, faceNormal, sideAxis, depth);
 
-                // 붙잡음 = 몸보다 느리게 움직임(월드에서 거의 정지). 뻗음 = 몸보다 빠르게 위/아래로 이동.
-                float target = 1f;
-                if (bodySpeed > 0.05f)
-                {
-                    float ratio = limbSpeed / Mathf.Max(0.01f, bodySpeed);
-                    target = 1f - Mathf.Clamp01((ratio - 1f) / Mathf.Max(0.01f, m_reachSpeedRatio - 1f));
-                }
-                _weights[i] = Mathf.MoveTowards(_weights[i], target, m_weightBlendRate * dt);
+                // ── 접촉 판정: 클립 손이 목표 근처일 때만(=뻗어서 닿는 순간) 스냅한다.
+                float contact = ContactWeight(Vector3.Distance(clipPos, target), m_contactRadius);
+                _weights[i] = Mathf.MoveTowards(_weights[i], contact, m_weightBlendRate * dt);
 
-                float max = isHand ? m_handWeight : m_footWeight;
-                float weight = _weights[i] * max;
+                float weight = _weights[i] * (isHand ? m_handWeight : m_footWeight);
                 _animator.SetIKPositionWeight(Goals[i], weight);
                 if (weight > 0.001f)
-                    _animator.SetIKPosition(Goals[i], ladder.GetGripPoint(isHand ? handY : footY, characterRight, isRight));
+                    _animator.SetIKPosition(Goals[i], target);
             }
-
-            _tracking = true;
         }
+
+        /// <summary>
+        /// 보정 목표 — <b>좌우(팔 간격)는 클립 값을 그대로 두고</b> 깊이(사다리 면)와 높이(가장 가까운 발판)만 바꾼다.
+        /// 순수 계산이라 테스트로 고정한다.
+        /// </summary>
+        public static Vector3 ResolveGrip(Ladder ladder, Vector3 clipPos, Vector3 faceNormal, Vector3 sideAxis, float depth)
+        {
+            Vector3 center = ladder.CenterXZ;
+            Vector3 fromCenter = clipPos - new Vector3(center.x, clipPos.y, center.z);
+            float side = Vector3.Dot(fromCenter, sideAxis); // 애니의 팔 간격 → 유지
+            float rungY = ladder.GetNearestRungY(clipPos.y);
+
+            return new Vector3(center.x, rungY, center.z) + sideAxis * side + faceNormal * depth;
+        }
+
+        /// <summary>접촉 가중치 — 목표에서 <paramref name="radius"/> 밖이면 0(뻗는 중), 가까울수록 1.</summary>
+        public static float ContactWeight(float distance, float radius)
+            => 1f - Mathf.Clamp01(distance / Mathf.Max(0.01f, radius));
     }
 }
