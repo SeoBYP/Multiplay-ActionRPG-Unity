@@ -130,6 +130,28 @@
 - **검증**: EditMode 204/204 · PlayMode **193/193**(신규 `ClimbTests` 3건: 전이신호 one-shot·상하단 이탈·스냅 후 수직 전용 이동).
 - **범위 밖**: 원격 동기 없음(사용자 결정) · 좌우 이동(`Climb_L/R`) · 점프 이탈 · 상단/하단 전용 전환 클립(`Climb_Up_Start`, `*_To_Idle`).
 
+**P18 — 사망 동기화가 안 되던 진짜 원인: 아군 오사가 클라 HP만 깎고 있었다 (2026-08-22)**
+- **증상**: 던전에서 죽으면 <b>내 화면에서만</b> 쓰러지고 다른 사람 화면에서는 계속 서 있었다.
+- **추적(추측 아님, 로그 실측)**:
+  · 양쪽 클라 로그 전 세션 `S_PlayerDead` 수신 **0건** (MPPM 가상 플레이어 로그 포함).
+  · 서버 로그: 몬스터 → user 1 공격 **7회**. 클라 로그: 로컬 HP 피해 적용 **14회**. → 2배 차이.
+  · 차액의 정체 = `CombatHandler` 의 **아군 오사**. `-10/-15` = 어빌리티 BaseDamage 플랫값(몬스터는 `-16/-18` 스탯 산식).
+- **원인**: HP 서버 권위 승격 때 **몬스터→플레이어만** 서버 차감으로 옮겨졌고, **플레이어→플레이어는 옛 클라 권위 그대로**였다
+  (`room.Broadcast(S_ApplyEffect)` 만 하고 `room.ApplyPlayerEffect` 호출 없음 — 주석도 "플레이어 HP 권위는 클라"라고 남아 있었다).
+  → 파티가 붙어 싸우면 **클라가 서버보다 먼저 0** 에 도달 → 클라는 사망 애니를 재생하는데 서버는 살아 있다고 봐
+  `newlyDowned` 가 서지 않고 `S_PlayerDead` 가 영영 안 나갔다. 사망뿐 아니라 다운/부활/던전실패 판정이 전부 이 게이트 뒤에 있다.
+- **해결(사용자 결정)**: **아군 오사 제거** — Co-op PvE 이므로 플레이어 공격은 플레이어를 대상으로 삼지 않는다.
+  "클라만 깎는 HP" 경로 자체가 사라져 클라·서버 HP 가 항상 일치한다. `SelectHitTargets`(플레이어 hitbox 판정)는 사용처가 없어져 제거.
+  ※ PvP 도입 시 되살리되 반드시 `ApplyPlayerEffect` 로 서버 HP 도 함께 차감할 것(주석으로 남김).
+- **부수 발견(회귀 테스트가 잡음)**: `Locomotion↔StrafeLocomotion` 블렌드(0.15s) **진행 중에는 AnyState 트리거가 삼켜진다**
+  (Unity 는 전이 중 AnyState 전이를 평가하지 않는다). 원격 스폰 직후 회피가 안 나가던 실측 원인이고, **로컬도 동일**(걷다 뛰는 순간의 공격 입력 유실).
+  → 두 전이에 `interruptionSource = SourceThenDestination` 부여.
+- **파일**: `SocketServer/PacketHandler/Handler/CombatHandler.cs`(아군 피해 블록·SelectHitTargets 제거) ·
+  `Gameplay/Editor/PlayerAnimatorControllerBuilder.cs`(Interruptible) · 컨트롤러 재생성 ·
+  E2E `SocketE2ETests`(적중 테스트 2건을 새 규칙으로 반전) · `SocketPacketCollector` 에 `Packets`/`Clear` 추가.
+- **검증**: SocketServer.Tests **220/220** · EditMode **219/219** · PlayMode **211/211**(258.0s, Docker 리빌드 후 E2E 포함).
+- **미실측**: MPPM 2인 실플레이 육안 확인.
+
 **P17 — 던전 원격 애니메이션 동기화 (2026-08-21, 공개계약 변경 — 승인받음)**
 - **증상**: 던전에서 다른 플레이어가 옆걸음·뒷걸음을 쳐도 **전부 전진 클립**으로 보였고, 점프·사다리는 자세 없이 미끄러져 이동했다.
   **원인**: `RemoteDriver` 가 `Strafe` 를 켜지 않아 1D 트리만 썼고, 로코모션 **모드**가 스냅샷에 없었다.

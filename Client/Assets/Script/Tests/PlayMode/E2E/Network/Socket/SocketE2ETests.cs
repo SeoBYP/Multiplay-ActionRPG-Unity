@@ -128,32 +128,42 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public IEnumerator RawSocket_호스트가_정면의_게스트를_공격하면_서버권위_적중_S_ApplyEffect() => UniTask.ToCoroutine(async () =>
+        public IEnumerator RawSocket_정면의_아군을_공격해도_피해가_들어가지_않는다() => UniTask.ToCoroutine(async () =>
         {
-            // CA-3: 서버가 hitbox로 적중을 재계산(권위). 호스트를 원점·+Z 정면, 게스트를 정면 1유닛 앞으로
-            // 이동시켜 basic_swing hitbox 안에 들어가게 한 뒤 C_Attack → 서버가 적중 판정 → S_ApplyEffect 브로드캐스트.
+            // Co-op PvE — 아군 오사 없음(2026-08-22 결정).
+            //
+            // 예전엔 아군을 hitbox 로 맞혀 S_ApplyEffect(피해)를 브로드캐스트했다. 그런데 그 경로는
+            // **클라 HP 만 깎고 서버 PlayerState.Hp 는 건드리지 않아서**, 파티가 붙어 싸우면 클라가 서버보다
+            // 먼저 0 에 도달했다 → 클라는 죽었는데 서버는 살아 있다고 봐 S_PlayerDead 가 영영 안 나갔다
+            // (실측: 몬스터 공격 7회 vs 클라 피해 적용 14회, 사망 애니가 남에게 안 보임).
+            // 아군 오사를 없애면 클라만 깎는 HP 경로 자체가 사라져 두 값이 항상 일치한다.
             var room = await CreateStartedTwoPlayerRoomAsync();
             var hostCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
             var guestCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
 
             try
             {
-                // 위치 세팅: 서버 Room이 두 이동을 반영하도록 전송 후 잠시 대기.
+                // 위치 세팅: 게스트를 호스트 정면 1유닛 — 예전 규칙이었다면 확실히 맞는 자리.
                 await hostCollector.SendAsync(new C_Move { PosX = 0, PosY = 0, PosZ = 0, RotY = 0 }, Timeout());
                 await guestCollector.SendAsync(new C_Move { PosX = 0, PosY = 0, PosZ = 1, RotY = 0 }, Timeout());
                 await UniTask.Delay(TimeSpan.FromMilliseconds(400));
 
+                guestCollector.Clear();
                 await hostCollector.SendAsync(new C_Attack { SkillId = 0 }, Timeout());
 
-                var apply = await guestCollector.WaitForPacketAsync<S_ApplyEffect>(
-                    packet => packet.TargetId == room.GuestUserId && packet.SourceId == room.HostUserId,
-                    Timeout());
+                // 스윙 연출(S_AbilityActivated)은 와야 한다 — 공격 자체는 정상 발동이다.
+                await guestCollector.WaitForPacketAsync<S_AbilityActivated>(
+                    p => p.ActorId == room.HostUserId, Timeout());
 
-                Assert.AreEqual(room.GuestUserId, apply.TargetId);
-                Assert.AreEqual(room.HostUserId, apply.SourceId);
-                Assert.AreEqual("ability_damage", apply.EffectId, "AC-B: 데미지는 단일 라벨 ability_damage 로 온다(수치=ability.baseDamage)");
-                Assert.Less(apply.Amount, 0, "서버 권위 데미지 델타가 Amount 에 실려야 한다");
-                Assert.Greater(apply.InstanceId, 0, "서버가 InstanceId를 권위 발급해야 한다");
+                // 그 뒤로도 아군 대상 피해 effect 는 오지 않아야 한다.
+                await UniTask.Delay(TimeSpan.FromMilliseconds(600));
+                var friendlyFire = guestCollector.Packets
+                    .OfType<S_ApplyEffect>()
+                    .Where(p => p.TargetId == room.GuestUserId && p.SourceId == room.HostUserId && p.Amount < 0)
+                    .ToList();
+
+                Assert.IsEmpty(friendlyFire,
+                    $"아군 공격은 피해를 주면 안 된다(수신 {friendlyFire.Count}건). 클라만 깎는 HP 경로가 되살아나면 사망 동기화가 다시 깨진다.");
             }
             finally
             {
@@ -163,10 +173,12 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
-        public IEnumerator RawSocket_콤보A_공격하면_S_AbilityActivated_skillId2_와_ability_damage를_수신한다() => UniTask.ToCoroutine(async () =>
+        public IEnumerator RawSocket_콤보A_공격하면_S_AbilityActivated_skillId2를_수신한다() => UniTask.ToCoroutine(async () =>
         {
             // #7 콤보 + AC: 클라 ComboDriver 가 단계별 skillId(2/3/4)를 송신 → 서버 ResolveSkill(combo_a) →
-            //   S_AbilityActivated{ActorId=시전자, SkillId=2} 브로드캐스트(플레이어=양수 ActorId) + 정면 적중 시 데미지(ability_damage, Amount=-combo_a.baseDamage).
+            //   S_AbilityActivated{ActorId=시전자, SkillId=2} 브로드캐스트(플레이어=양수 ActorId).
+            // ※ 아군 피해 단언은 제거됐다 — Co-op PvE 라 플레이어는 아군을 때리지 않는다(2026-08-22).
+            //   데미지 라벨/수치 계약은 몬스터 경로(RawSocket_몬스터_사거리_안이면_..., MonsterDamageTests)가 지킨다.
             var room = await CreateStartedTwoPlayerRoomAsync();
             var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
             var guest = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
@@ -182,10 +194,11 @@ namespace Game.Tests.PlayMode.E2E
                 var act = await host.WaitForPacketAsync<S_AbilityActivated>(p => p.ActorId == room.HostUserId, Timeout());
                 Assert.AreEqual(2, act.SkillId, "콤보A 는 skillId 2 로 브로드캐스트돼야 한다");
 
-                var apply = await guest.WaitForPacketAsync<S_ApplyEffect>(
-                    p => p.TargetId == room.GuestUserId && p.SourceId == room.HostUserId, Timeout());
-                Assert.AreEqual("ability_damage", apply.EffectId, "AC-B: 데미지는 단일 라벨 ability_damage");
-                Assert.AreEqual(-10, apply.Amount, "콤보A baseDamage=10 → 서버 권위 델타 -10");
+                // 아군에게는 피해가 가지 않는다(연출만 공유).
+                await UniTask.Delay(TimeSpan.FromMilliseconds(500));
+                Assert.IsEmpty(guest.Packets.OfType<S_ApplyEffect>()
+                        .Where(p => p.TargetId == room.GuestUserId && p.SourceId == room.HostUserId && p.Amount < 0),
+                    "콤보 공격도 아군에게 피해를 주면 안 된다.");
             }
             finally
             {
@@ -1378,6 +1391,18 @@ namespace Game.Tests.PlayMode.E2E
 
             private CancellationTokenSource _receiveCts;
             private UniTask _receiveLoop;
+
+            /// <summary>지금까지 모은 패킷 스냅샷. "이 뒤로 X 가 오지 않는다"를 단언할 때 쓴다.</summary>
+            public IReadOnlyList<Packet> Packets
+            {
+                get { lock (_sync) { return _receivedPackets.ToArray(); } }
+            }
+
+            /// <summary>수집 버퍼를 비운다(기준선 리셋).</summary>
+            public void Clear()
+            {
+                lock (_sync) { _receivedPackets.Clear(); }
+            }
 
             public async UniTask ConnectAsync(string host, int port, CancellationToken ct)
             {

@@ -54,29 +54,6 @@ public static class CombatHandler
     /// <summary>발동 판정 데이터(타임라인·hitbox·on-hit)만 필요한 호출자용 축약.</summary>
     public static SkillTimeline? ResolveSkill(int skillId) => ResolveAbility(skillId)?.Timeline;
 
-    /// <summary>
-    /// 순수 적중 판정 — 시전자 위치/yaw 기준 hitbox와 겹치는 대상 userId 목록.
-    /// (자기 자신 제외) 단위 테스트 대상.
-    /// </summary>
-    public static List<long> SelectHitTargets(
-        SkillTimeline skill, PlayerState attacker, IReadOnlyList<PlayerState> candidates, float targetRadius)
-    {
-        var hits = new List<long>();
-        var attackerPos = new Vector3(attacker.PosX, attacker.PosY, attacker.PosZ);
-
-        foreach (var c in candidates)
-        {
-            if (c.UserId == attacker.UserId)
-                continue;
-
-            var targetPos = new Vector3(c.PosX, c.PosY, c.PosZ);
-            if (HitboxMath.Overlaps(attackerPos, attacker.RotY, skill.Hitbox, targetPos, targetRadius))
-                hits.Add(c.UserId);
-        }
-
-        return hits;
-    }
-
     [PacketHandler(typeof(C_Attack))]
     public static async ValueTask HandleAttack(Session session, C_Attack packet, CancellationToken ct)
     {
@@ -150,50 +127,14 @@ public static class CombatHandler
             SkillId = packet.SkillId,
         });
 
-        // 1) 플레이어 피격 → S_ApplyEffect. AC-B 안B: 데미지 수치는 **어빌리티**(ability.BaseDamage)가 소유하고
-        //    서버가 권위 델타를 Amount 로 실어 보낸다(effect 는 "즉발 피해" 형태만 주는 라벨).
-        //    ※ 대상 Defense·시전자 AttackPower 는 여기서 반영하지 않는다 — 기존 동작(플랫 피해) 보존.
-        //      플레이어→플레이어를 스탯 스케일로 바꾸는 것은 별도 밸런스 결정(B5 는 출처 일원화만).
-        var hits = SelectHitTargets(skill, attacker, states, TargetRadius);
-        foreach (var targetId in hits)
-        {
-            // 트레이스(AC-C1a): 이 경로만 **산식을 경유하지 않는다**(flat). AP/DEF 가 0 으로 찍히는 게 아니라
-            // 애초에 입력이 아니라는 뜻 → FormulaFlat 표기 자체가 AC-D2 비대칭의 증거다.
-            CombatTrace.Damage(
-                CombatPath.PlayerToPlayer, CombatTrace.FormulaFlat,
-                actorId, ActorIds.FromPlayer(targetId),
-                ability.Id, ability.NetworkId,
-                baseDamage: ability.BaseDamage, attackPower: 0, defense: 0, finalDamage: ability.BaseDamage,
-                targetHpBefore: 0, targetHpAfter: 0, // 플레이어 HP 권위는 클라(결정론 lite) — 서버가 모른다
-                recvMs, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), seq: 0);
-
-            room.Broadcast(new S_ApplyEffect
-            {
-                InstanceId = room.NextEffectInstanceId(),
-                EffectId = AbilityDamageEffectId,
-                TargetId = targetId,
-                SourceId = session.UserId,
-                StartTick = startTick,
-                Stacks = 1,
-                Amount = -ability.BaseDamage, // 서버 권위 Health 델타
-            });
-
-            // CC/상태이상 — 어빌리티의 on-hit(태그 전용). HP 변경 없음(Amount=0).
-            foreach (var ccId in skill.OnHitEffectIds)
-            {
-                if (string.IsNullOrEmpty(ccId)) continue;
-                room.Broadcast(new S_ApplyEffect
-                {
-                    InstanceId = room.NextEffectInstanceId(),
-                    EffectId = ccId,
-                    TargetId = targetId,
-                    SourceId = session.UserId,
-                    StartTick = startTick,
-                    Stacks = 1,
-                    Amount = 0,
-                });
-            }
-        }
+        // 1) 아군 오사 없음 — Co-op PvE 라 플레이어 공격은 <b>플레이어를 대상으로 삼지 않는다</b>(2026-08-22 결정).
+        //
+        //    예전엔 hitbox 안의 아군에게 S_ApplyEffect(피해)를 브로드캐스트했는데, 그 경로는
+        //    **클라 HP 만 깎고 서버 PlayerState.Hp 는 건드리지 않았다**(HP 서버 권위 승격 때 몬스터→플레이어만 옮겨짐).
+        //    그래서 파티가 붙어 싸우면 클라가 서버보다 먼저 0 에 도달 → 클라는 사망 애니를 재생하는데
+        //    서버는 살아 있다고 봐 S_PlayerDead 를 영영 발행하지 않았다(실측: 몬스터 공격 7회 vs 클라 피해 14회).
+        //    아군 오사를 없애면 "클라만 깎는 HP" 경로 자체가 사라져 두 값이 항상 일치한다.
+        //    ※ PvP 를 도입한다면 여기서 되살리되 반드시 room.ApplyPlayerEffect 로 서버 HP 도 함께 차감해야 한다.
 
         // 2) 몬스터 피격 → 서버 권위 HP 차감(GAS) → S_MonsterState / S_MonsterDead — 신규(⑤)
         ApplyAttackToMonsters(session, room, ability, attacker, recvMs);

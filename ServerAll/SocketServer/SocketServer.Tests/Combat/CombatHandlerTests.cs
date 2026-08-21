@@ -13,47 +13,11 @@ public class CombatHandlerTests
     private static PlayerState Player(long id, float x, float z, float rotY = 0f)
         => new() { UserId = id, PosX = x, PosY = 0f, PosZ = z, RotY = rotY };
 
-    [Fact]
-    public void 정면_hitbox_안의_대상은_적중이다()
-    {
-        var skill = CombatHandler.ResolveSkill(0)!;       // basic_swing: 정면(+Z) 박스
-        var attacker = Player(100, 0, 0, rotY: 0f);
-        var candidates = new List<PlayerState> { attacker, Player(200, 0, 1f) };
-
-        var hits = CombatHandler.SelectHitTargets(skill, attacker, candidates, CombatHandler.TargetRadius);
-
-        Assert.Contains(200L, hits);
-        Assert.DoesNotContain(100L, hits); // 자기 자신 제외
-    }
-
-    [Fact]
-    public void 뒤_또는_먼_대상은_적중하지_않는다()
-    {
-        var skill = CombatHandler.ResolveSkill(0)!;
-        var attacker = Player(100, 0, 0, rotY: 0f);
-        var candidates = new List<PlayerState>
-        {
-            attacker,
-            Player(201, 0, -1f),  // 뒤
-            Player(202, 0, 3f),   // 정면이지만 너무 멀다
-        };
-
-        var hits = CombatHandler.SelectHitTargets(skill, attacker, candidates, CombatHandler.TargetRadius);
-
-        Assert.Empty(hits);
-    }
-
-    [Fact]
-    public void yaw_180도면_뒤의_대상이_정면이_되어_적중한다()
-    {
-        var skill = CombatHandler.ResolveSkill(0)!;
-        var attacker = Player(100, 0, 0, rotY: 180f);
-        var candidates = new List<PlayerState> { attacker, Player(200, 0, -1f) };
-
-        var hits = CombatHandler.SelectHitTargets(skill, attacker, candidates, CombatHandler.TargetRadius);
-
-        Assert.Contains(200L, hits);
-    }
+    // 아군 오사 폐지(2026-08-22)로 플레이어 hitbox 적중 판정(SelectHitTargets)은 제거됐다.
+    // 근거: 그 경로는 클라 HP 만 깎고 서버 PlayerState.Hp 를 안 건드려, 파티가 붙어 싸우면
+    // 클라가 먼저 0 에 도달해 서버가 사망을 감지하지 못했다(S_PlayerDead 미발행 → 원격 사망 애니 없음).
+    // 회귀 감시는 E2E `RawSocket_정면의_아군을_공격해도_피해가_들어가지_않는다` 가 맡는다.
+    // 몬스터 적중 판정은 ApplyAttackToMonsters 경로에 그대로 남아 있다(MonsterDamageTests).
 
     [Fact]
     public void Room_NextEffectInstanceId는_1부터_단조증가한다()

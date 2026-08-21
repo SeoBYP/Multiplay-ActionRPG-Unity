@@ -132,6 +132,68 @@ namespace Game.Tests.PlayMode.InGame
             Assert.Less(Mathf.Abs(_animator.GetFloat("DodgeY")), 0.5f);
         }
 
+        [UnityTest]
+        public IEnumerator 원격_사망을_받으면_Dead_애니로_전이한다()
+        {
+            yield return Spawn();
+
+            _state.NotifyPlayerDead(RemoteId);
+
+            bool dead = false;
+            for (int i = 0; i < 40 && !dead; i++) { yield return null; dead = InState("Dead"); }
+
+            Assert.IsTrue(dead, "S_PlayerDead 를 받으면 원격도 사망 포즈로 가야 한다.");
+        }
+
+        [UnityTest]
+        public IEnumerator 원격_사망_후_이동상태를_받아도_Dead_포즈를_유지한다()
+        {
+            // 회귀: 사망 뒤에도 죽은 클라의 MoveSyncSender 는 계속 C_Move 를 보낸다(시신이 정착하며 Fall/Land 전이).
+            // 그 AnimState 로 AnyState 트리거(Fall/Land)를 쏘면 Dead 홀드가 밀려나 원격이 벌떡 일어선다.
+            // Dead 는 Revive 로만 빠져나가야 한다.
+            yield return Spawn();
+
+            _state.NotifyPlayerDead(RemoteId);
+            yield return WaitForState("Dead");
+            Assume.That(InState("Dead"), Is.True, "사망 전이 선행 조건");
+
+            // 죽은 뒤 도착한 이동 패킷들 — 지상/낙하/착지가 섞여 온다.
+            foreach (var st in new[] { StateKind.Fall, StateKind.Land, StateKind.Ground })
+            {
+                _state.UpdatePlayerTransform(RemoteId, 0f, 0f, 0f, 0f, 10L, (byte)st);
+                for (int i = 0; i < 5; i++) yield return null;
+            }
+
+            Assert.IsTrue(InState("Dead"),
+                "사망 중에는 이동 상태를 받아도 Dead 를 유지해야 한다(지금은 Land 트리거에 밀려 일어선다).");
+        }
+
+        [UnityTest]
+        public IEnumerator 원격_부활하면_로코모션으로_복귀한다()
+        {
+            yield return Spawn();
+
+            _state.NotifyPlayerDead(RemoteId);
+            yield return WaitForState("Dead");
+
+            _state.NotifyPlayerRevived(RemoteId, 100);
+            bool recovered = false;
+            for (int i = 0; i < 60 && !recovered; i++)
+            {
+                yield return null;
+                recovered = !InState("Dead");
+            }
+
+            Assert.IsTrue(recovered, "부활하면 Dead 홀드에서 빠져나와야 한다.");
+
+            // 부활 후에는 이동 상태 반영이 다시 살아나야 한다(사망 중 억제가 영구화되면 안 된다).
+            _state.UpdatePlayerTransform(RemoteId, 0f, 1.2f, 0f, 0f, 20L, (byte)StateKind.Jump);
+            bool jumped = false;
+            for (int i = 0; i < 40 && !jumped; i++) { yield return null; jumped = InState("Jump"); }
+
+            Assert.IsTrue(jumped, "부활 후에는 다시 점프 등 로코모션 상태가 반영돼야 한다.");
+        }
+
         // ── 리그 ────────────────────────────────────────────────────────────
 
         private IEnumerator Spawn()
@@ -165,6 +227,12 @@ namespace Game.Tests.PlayMode.InGame
             _state.UpdatePlayerTransform(RemoteId, to.x, to.y, to.z, rotY, 1L, (byte)StateKind.Ground);
 
             for (int i = 0; i < 20; i++) yield return null;
+        }
+
+        /// <summary>전이는 블렌드 구간이 있어 즉시 반영되지 않는다 — 최대 60프레임 폴링한다.</summary>
+        private IEnumerator WaitForState(string name)
+        {
+            for (int i = 0; i < 60 && !InState(name); i++) yield return null;
         }
 
         private bool InState(string name)

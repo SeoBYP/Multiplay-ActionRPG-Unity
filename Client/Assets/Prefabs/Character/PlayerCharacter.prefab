@@ -4213,10 +4213,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.LadderIK
   m_enabled: 1
+  m_contactRadius: 0.28
   m_handWeight: 0.7
   m_footWeight: 0.7
-  m_handHeightBias: 0.55
-  m_footHeightBias: -0.85
+  m_handGripDepth: 0.06
+  m_footGripDepth: 0.12
+  m_weightBlendRate: 10
 --- !u!1 &7106473387064049378
 GameObject:
   m_ObjectHideFlags: 0
