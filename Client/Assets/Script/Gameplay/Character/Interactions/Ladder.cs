@@ -162,11 +162,21 @@ namespace Game.Gameplay.Character
         }
 
         /// <summary>손이 잡는 지점(월드) — 사다리 좌/우 기둥. <paramref name="right"/>=true 면 오른손 쪽.</summary>
-        public Vector3 GetGripPoint(float worldY, bool right)
+        public Vector3 GetGripPoint(float worldY, Vector3 characterRight, bool rightLimb)
         {
             GetFaceAxes(out _, out Vector3 sideAxis);
+
+            // ⚠️ 좌우는 <b>캐릭터 기준</b>이어야 한다. 사다리 고정 축을 그대로 쓰면 반대편 면에 붙었을 때
+            //    좌우가 통째로 뒤집혀 "한쪽 손은 맞고 한쪽은 반대"가 된다(실제 증상).
+            characterRight.y = 0f;
+            if (characterRight.sqrMagnitude > 0.0001f)
+            {
+                characterRight.Normalize();
+                if (Vector3.Dot(characterRight, sideAxis) < 0f) sideAxis = -sideAxis;
+            }
+
             Vector3 center = CenterXZ;
-            return new Vector3(center.x, worldY, center.z) + sideAxis * (right ? m_railHalfWidth : -m_railHalfWidth);
+            return new Vector3(center.x, worldY, center.z) + sideAxis * (rightLimb ? m_railHalfWidth : -m_railHalfWidth);
         }
 
         /// <summary>

@@ -198,6 +198,30 @@ namespace Game.Tests.PlayMode.InGame
             }
         }
 
+        [UnityTest]
+        public IEnumerator 그립_좌우는_캐릭터_기준이라_반대편_면에서도_안_뒤집힌다()
+        {
+            // 회귀: 그립을 사다리 고정 축으로 계산하면 반대편 면에 붙었을 때 좌우가 통째로 뒤집혀
+            // "한쪽 손은 맞고 한쪽은 반대"가 된다(사용자 피드백).
+            var ladder = BuildLadder(Vector3.zero, height: 4f);
+            yield return null;
+
+            foreach (var approach in new[] { new Vector3(0f, 0f, 1f), new Vector3(0f, 0f, -1f) })
+            {
+                var stand = new Vector3(0f, 1.5f, 0f) + approach * 1.2f;
+                ladder.GetAttachPose(stand, out _, out var rot);
+                var right = rot * Vector3.right;
+
+                var gripRight = ladder.GetGripPoint(2f, right, rightLimb: true) - new Vector3(0f, 2f, 0f);
+                var gripLeft = ladder.GetGripPoint(2f, right, rightLimb: false) - new Vector3(0f, 2f, 0f);
+
+                Assert.Greater(Vector3.Dot(gripRight, right), 0.1f,
+                    $"오른손 그립은 캐릭터의 오른쪽에 있어야 한다(접근 {approach}, 실측 {Vector3.Dot(gripRight, right):F2}).");
+                Assert.Less(Vector3.Dot(gripLeft, right), -0.1f,
+                    $"왼손 그립은 캐릭터의 왼쪽에 있어야 한다(접근 {approach}, 실측 {Vector3.Dot(gripLeft, right):F2}).");
+            }
+        }
+
         // ── 리그 ────────────────────────────────────────────────────────────
         private Ladder BuildLadder(Vector3 basePos, float height)
         {
