@@ -130,6 +130,21 @@
 - **검증**: EditMode 204/204 · PlayMode **193/193**(신규 `ClimbTests` 3건: 전이신호 one-shot·상하단 이탈·스냅 후 수직 전용 이동).
 - **범위 밖**: 원격 동기 없음(사용자 결정) · 좌우 이동(`Climb_L/R`) · 점프 이탈 · 상단/하단 전용 전환 클립(`Climb_Up_Start`, `*_To_Idle`).
 
+**P17 — 던전 원격 애니메이션 동기화 (2026-08-21, 공개계약 변경 — 승인받음)**
+- **증상**: 던전에서 다른 플레이어가 옆걸음·뒷걸음을 쳐도 **전부 전진 클립**으로 보였고, 점프·사다리는 자세 없이 미끄러져 이동했다.
+  **원인**: `RemoteDriver` 가 `Strafe` 를 켜지 않아 1D 트리만 썼고, 로코모션 **모드**가 스냅샷에 없었다.
+- **설계(무엇을 싣고 무엇을 역산하나)**:
+  · **방향은 안 싣는다** — 위치(→속도)와 `RotY`(→facing)로 로컬 `GroundState` 와 **같은 공식**으로 MoveX/MoveY 복원(`RemoteLocomotion.ToFacingFrame`, 단위 m/s 유지).
+  · **모드만 싣는다** — 점프·낙하·사다리는 전부 "y 가 변한다"로 같아 역산 불가 → `C_Move/S_Move` 에 **`byte AnimState`**(=`StateKind`, 0=Ground/1=Jump/2=Fall/3=Land/4=Climb) 추가. 기본값 0 이라 하위호환.
+  · **회피 방향**은 이동 스트림이 아니라 **이벤트**에 — `C_Dodge/S_Dodge` 에 `DirX/DirY`(캐릭터 기준). 예전엔 늘 정면으로 근사했다.
+  · **서버는 해석하지 않는다** — 연출은 클라 권위라 불투명 byte 릴레이(`MovementHandler.BuildBroadcast`, 테스트로 고정). 서버에 enum 을 두지 않아 두 진실원이 생기지 않는다.
+- **사다리 배속**: 원격은 **목표 y** 의 변화로 `ClimbSpeed` 를 만든다(보간된 실제 y 로 재면 lerp 지연만큼 늘 작게 나온다). 상승 +, 하강 −(역재생).
+- **트리거는 상태 전이 순간에만** — 이동 패킷마다 쏘면 Jump/Land 가 매 프레임 리셋돼 제자리에서 떤다.
+- **테스트가 잡은 실제 결함**: `RemotePlayerCharacter.prefab` 의 파라미터명 6개(`MoveX/MoveY/Strafe/Jump/Fall/Land`)가 **비어 있었다** → `CharacterAgentAnimations` 가 조용히 스킵(에러 0). 챕터27 "조용한 실패"와 같은 계열. 배선 후 통과.
+- **파일**: `Shared.Packet/Packets/Domains/{MovementPackets,DodgePacket}.cs`(Union 1500/1501/1602? 변경 없음 — 필드 추가만) · `SocketServer/PacketHandler/Handler/{MovementHandler,DodgeHandler}.cs` · 클라 미러는 **ClientCodegen 재생성**(손편집 금지) · `Network/Socket/{SocketApiClient,Handler/Contents/MovePacketHandler,Handler/Contents/DodgePacketHandler}.cs` · `Gameplay/Character/{RemoteLocomotion(신규),RemoteDriver,MoveSyncSender,DodgeSyncSender,DodgeDriver,Agent/PlayerCharacterAgent}.cs` · 프리팹 `RemotePlayerCharacter.prefab`.
+- **검증**: SocketServer.Tests **223/223**(신규 `MovementPacketSerializationTests` 6) · 서버 솔루션 빌드 0오류 · EditMode **219/219**(신규 `RemoteLocomotionTests` 6) · PlayMode **208/208**(신규 `RemoteLocomotionSyncTests` 6, Docker 리빌드 후 E2E 포함) · 254.4s.
+- **미실측**: 실제 2인 플레이(MPPM) 육안 확인은 아직 — 자동 검증만.
+
 **P16 — 사다리 IK 최소개입: 팔 간격은 클립 유지 · 닿을 때만 스냅 (2026-08-21)**
 - **정식 문서**: 이 세션(P0~P16)의 플레이어 애니메이션 작업 전체는 [player-animation-arpg.md](player-animation-arpg.md) 로 정리했다(계약·흐름도·함정 모음).
 - **증상**: 매달린 팔 간격이 애니메이션과 다르게 벌어졌다. **원인**: IK 가 손 위치를 <b>기둥 좌표로 통째로 덮어썼다</b>

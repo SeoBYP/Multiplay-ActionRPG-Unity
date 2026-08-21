@@ -68,11 +68,15 @@ namespace Game.Tests.EditMode.Socket
             var state = _container.Resolve<ISocketPacketState>();
 
             long gotUser = 0;
-            state.OnPlayerDodged += userId => gotUser = userId;
+            float gotX = 0f, gotY = 0f;
+            state.OnPlayerDodged += (userId, dirX, dirY) => { gotUser = userId; gotX = dirX; gotY = dirY; };
 
-            await dispatcher.DispatchAsync(new S_Dodge { UserId = 888 });
+            await dispatcher.DispatchAsync(new S_Dodge { UserId = 888, DirX = -1f, DirY = 0f });
 
             Assert.AreEqual(888, gotUser, "S_Dodge.UserId 가 OnPlayerDodged 로 그대로 전달돼야 한다.");
+            // 방향까지 전달돼야 원격이 8방향 구르기를 재생한다(예전엔 늘 정면으로 근사했다).
+            Assert.AreEqual(-1f, gotX, 0.001f, "회피 방향 X 가 전달돼야 한다.");
+            Assert.AreEqual(0f, gotY, 0.001f, "회피 방향 Y 가 전달돼야 한다.");
         }
 
         [Test]

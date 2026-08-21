@@ -69,7 +69,8 @@ namespace Game.Network.Socket
         string MapId { get; }
 
         void UpsertPlayer(long userId, string nickname, int spawnIndex, string mapId, float posX, float posY, float posZ, float rotY, long timeStamp = 0, int hp = 0, int maxHp = 0);
-        void UpdatePlayerTransform(long userId, float posX, float posY, float posZ, float rotY, long timeStamp);
+        /// <param name="animState">보낸 클라의 로코모션 상태(S_Move.AnimState). 연출 전용 — 0=Ground.</param>
+        void UpdatePlayerTransform(long userId, float posX, float posY, float posZ, float rotY, long timeStamp, byte animState = 0);
         bool TryGetPlayer(long userId, out SocketPlayerSnapshot snapshot);
         /// <summary>방에서 나간 플레이어를 상태에서 제거한다.</summary>
         void RemovePlayer(long userId);
@@ -128,8 +129,9 @@ namespace Game.Network.Socket
 
         // ── 원격 회피 연출(S_Dodge 브로드캐스트) ──
         /// <summary>S_Dodge 수신 시 발행(userId). RemoteDriver 가 회피(구르기) 애니만 재생한다(무적=서버 권위).</summary>
-        event Action<long> OnPlayerDodged;
-        void NotifyPlayerDodged(long userId);
+        /// <summary>S_Dodge 수신 시 발행(userId, 캐릭터 기준 방향 X=우+/Y=전+). 방향은 연출 전용.</summary>
+        event Action<long, float, float> OnPlayerDodged;
+        void NotifyPlayerDodged(long userId, float dirX = 0f, float dirY = 1f);
 
         // ── Co-op 부활(서버 권위 S_PlayerRevived) ──
         /// <summary>S_PlayerRevived 수신 시 발행(userId, hp). CharacterSpawner가 로컬=제자리부활/원격=다운보존 해제.</summary>
@@ -189,7 +191,7 @@ namespace Game.Network.Socket
         public event Action<long>                 OnPlayerDead;
         public event Action<long, int>            OnPlayerAttacked;
         public event Action<long, int>            OnAbilityActivated;
-        public event Action<long>                 OnPlayerDodged;
+        public event Action<long, float, float>   OnPlayerDodged;
         public event Action<long, int>            OnPlayerRevived;
         public event Action<SocketMonsterSnapshot> OnMonsterSpawned;
         public event Action<SocketMonsterSnapshot> OnMonsterMoved;
@@ -204,7 +206,8 @@ namespace Game.Network.Socket
         public void NotifyPlayerDead(long userId) => OnPlayerDead?.Invoke(userId);
         public void NotifyPlayerAttacked(long attackerId, int skillId) => OnPlayerAttacked?.Invoke(attackerId, skillId);
         public void NotifyAbilityActivated(long actorId, int skillId) => OnAbilityActivated?.Invoke(actorId, skillId);
-        public void NotifyPlayerDodged(long userId) => OnPlayerDodged?.Invoke(userId);
+        public void NotifyPlayerDodged(long userId, float dirX = 0f, float dirY = 1f)
+            => OnPlayerDodged?.Invoke(userId, dirX, dirY);
         public void NotifyPlayerRevived(long userId, int hp) => OnPlayerRevived?.Invoke(userId, hp);
 
         public void ApplyEffect(SocketEffectApply data)
@@ -232,14 +235,14 @@ namespace Game.Network.Socket
             OnPlayerJoined?.Invoke(snapshot);
         }
 
-        public void UpdatePlayerTransform(long userId, float posX, float posY, float posZ, float rotY, long timeStamp)
+        public void UpdatePlayerTransform(long userId, float posX, float posY, float posZ, float rotY, long timeStamp, byte animState = 0)
         {
             SocketPlayerSnapshot updated = null;
             lock (_sync)
             {
                 if (_players.TryGetValue(userId, out var existing))
                 {
-                    updated = existing.WithTransform(posX, posY, posZ, rotY, timeStamp);
+                    updated = existing.WithTransform(posX, posY, posZ, rotY, timeStamp, animState);
                     _players[userId] = updated;
                 }
                 else
@@ -247,7 +250,7 @@ namespace Game.Network.Socket
                     // S_Move가 S_PlayerJoined보다 먼저 도달한 경우 — 최소 스냅샷으로 보관만 한다.
                     // SpawnIndex는 아직 모름(-1), HP 기준선도 미상(0). S_PlayerJoined 수신 시 Upsert로 교정된다.
                     // OnPlayerMoved는 발행하지 않는다 (아직 RemoteDriver가 없음).
-                    _players[userId] = new SocketPlayerSnapshot(userId, string.Empty, -1, posX, posY, posZ, rotY, timeStamp, 0, 0);
+                    _players[userId] = new SocketPlayerSnapshot(userId, string.Empty, -1, posX, posY, posZ, rotY, timeStamp, 0, 0, animState);
                 }
             }
             if (updated != null) OnPlayerMoved?.Invoke(updated);
@@ -476,8 +479,13 @@ namespace Game.Network.Socket
         /// <summary>서버 권위 HP 기준선(S_PlayerJoined). 원격 파티원 ASC 초기화에 사용. 미상이면 0.</summary>
         public int Hp { get; }
         public int MaxHp { get; }
+        /// <summary>
+        /// 보낸 클라의 로코모션 상태(S_Move.AnimState — 0=Ground/1=Jump/2=Fall/3=Land/4=Climb).
+        /// 원격 연출 전용. 위치만으로는 점프·낙하·사다리가 전부 "y 가 변한다"로 같아 구분할 수 없다.
+        /// </summary>
+        public byte AnimState { get; }
 
-        public SocketPlayerSnapshot(long userId, string nickname, int spawnIndex, float posX, float posY, float posZ, float rotY, long timeStamp, int hp = 0, int maxHp = 0)
+        public SocketPlayerSnapshot(long userId, string nickname, int spawnIndex, float posX, float posY, float posZ, float rotY, long timeStamp, int hp = 0, int maxHp = 0, byte animState = 0)
         {
             UserId = userId;
             Nickname = nickname ?? string.Empty;
@@ -489,14 +497,15 @@ namespace Game.Network.Socket
             TimeStamp = timeStamp;
             Hp = hp;
             MaxHp = maxHp;
+            AnimState = animState;
         }
 
         /// <summary>
         /// 플레이어 식별 정보(SpawnIndex·HP 기준선 포함)는 유지하고 transform 정보만 갱신한 새 스냅샷을 만든다.
         /// </summary>
-        public SocketPlayerSnapshot WithTransform(float posX, float posY, float posZ, float rotY, long timeStamp)
+        public SocketPlayerSnapshot WithTransform(float posX, float posY, float posZ, float rotY, long timeStamp, byte animState = 0)
         {
-            return new SocketPlayerSnapshot(UserId, Nickname, SpawnIndex, posX, posY, posZ, rotY, timeStamp, Hp, MaxHp);
+            return new SocketPlayerSnapshot(UserId, Nickname, SpawnIndex, posX, posY, posZ, rotY, timeStamp, Hp, MaxHp, animState);
         }
 
         /// <summary>
@@ -504,7 +513,7 @@ namespace Game.Network.Socket
         /// </summary>
         public SocketPlayerSnapshot Clone()
         {
-            return new SocketPlayerSnapshot(UserId, Nickname, SpawnIndex, PosX, PosY, PosZ, RotY, TimeStamp, Hp, MaxHp);
+            return new SocketPlayerSnapshot(UserId, Nickname, SpawnIndex, PosX, PosY, PosZ, RotY, TimeStamp, Hp, MaxHp, AnimState);
         }
     }
 

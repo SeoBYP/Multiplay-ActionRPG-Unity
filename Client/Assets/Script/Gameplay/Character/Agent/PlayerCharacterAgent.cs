@@ -57,7 +57,8 @@ namespace Game.Gameplay.Character
         public event Action<int> OnAttackPerformed;
 
         /// <summary>회피가 발동될 때 발행. 던전 전용 `DodgeSyncSender`가 구독해 C_Dodge(서버 무적창)를 송신한다.</summary>
-        public event Action OnDodgePerformed;
+        /// <summary>회피 발동(캐릭터 기준 방향 우+/전+). 던전 DodgeSyncSender 가 C_Dodge 로 실어 원격 연출을 맞춘다.</summary>
+        public event Action<Vector2> OnDodgePerformed;
 
         /// <summary>로컬 플레이어가 사망(State.Dead)했는지. 입력·이동 게이트의 단일 판정.</summary>
         private bool IsDead => AbilitySystem != null && AbilitySystem.HasTag(DeadTag);
@@ -425,7 +426,7 @@ namespace Game.Gameplay.Character
 
             SpendMana(DodgeConfig.ManaCost); // 예측 차감 — 서버가 S_PlayerMana 로 정정
             _dodge.Begin(dir, Time.time);
-            OnDodgePerformed?.Invoke();
+            OnDodgePerformed?.Invoke(_dodge.LastLocalDirection); // Begin 이 계산한 로컬 방향 재사용(중복 계산 금지)
             return true;
         }
 

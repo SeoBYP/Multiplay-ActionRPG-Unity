@@ -20,16 +20,23 @@ public static class MovementHandler
         }
         
         room.UpdatePlayerState(session.UserId, packet.PosX, packet.PosY, packet.PosZ, packet.RotY, packet.TimeStamp);
-        room.Broadcast(new S_Move
-        {
-            UserId = session.UserId,
-            PosX = packet.PosX,
-            PosY = packet.PosY,
-            PosZ = packet.PosZ,
-            RotY = packet.RotY,
-            TimeStamp = packet.TimeStamp
-        }, session.SessionId);
+        room.Broadcast(BuildBroadcast(session.UserId, packet), session.SessionId);
         
         return ValueTask.CompletedTask;
     }
+
+    /// <summary>
+    /// 브로드캐스트 패킷 조립 — 순수 변환이라 테스트로 고정한다(Broadcast 는 소켓 I/O 라 단위 테스트가 어렵다).
+    /// <c>AnimState</c> 는 <b>해석 없이 그대로</b> 옮긴다: 연출은 클라 권위이고 서버는 중계만 한다.
+    /// </summary>
+    internal static S_Move BuildBroadcast(long userId, C_Move packet) => new()
+    {
+        UserId = userId,
+        PosX = packet.PosX,
+        PosY = packet.PosY,
+        PosZ = packet.PosZ,
+        RotY = packet.RotY,
+        TimeStamp = packet.TimeStamp,
+        AnimState = packet.AnimState,
+    };
 }

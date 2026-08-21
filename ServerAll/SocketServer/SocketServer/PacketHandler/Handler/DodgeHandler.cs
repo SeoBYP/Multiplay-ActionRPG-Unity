@@ -42,6 +42,11 @@ public static class DodgeHandler
 
         // 검증 통과분만 방에 브로드캐스트 → 다른 클라 RemoteDriver 가 회피 애니 재생(연출 전용, S_Attack 패턴).
         if (began)
-            room.Broadcast(new S_Dodge { UserId = session.UserId });
+            room.Broadcast(new S_Dodge
+            {
+                UserId = session.UserId,
+                DirX = packet.DirX, // 방향은 연출 전용 — 검증 없이 릴레이(무적 창만 서버 권위)
+                DirY = packet.DirY,
+            });
     }
 }

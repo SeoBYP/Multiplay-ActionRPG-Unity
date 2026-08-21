@@ -29,7 +29,8 @@ namespace Game.Network.Socket
                 packet.PosY,
                 packet.PosZ,
                 packet.RotY,
-                packet.TimeStamp);
+                packet.TimeStamp,
+                packet.AnimState); // 연출 상태(점프/낙하/사다리) — 위치로는 복원 불가
             return UniTask.CompletedTask;
         }
     }

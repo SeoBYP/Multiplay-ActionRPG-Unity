@@ -10,10 +10,12 @@ namespace Game.Gameplay.Character
     /// FSM / Motor / CharacterInputBuffer 없음 — 네트워크 재생 전용.
     ///
     /// 애니 구동(로컬과 달리 입력이 아니라 <b>수신 스냅샷</b>이 소스):
-    ///   이동 = 보간된 실제 수평 변위 속도 → Speed(블렌드 임계 0/2/6 은 월드 m/s 라 그대로 대응)
+    ///   이동 = 보간 속도를 facing 프레임으로 분해 → <b>MoveX/MoveY(8방향, m/s)</b> — 로컬과 같은 공식·같은 단위.
+    ///          방향은 위치·회전에서 역산되므로 패킷에 싣지 않는다(<see cref="RemoteLocomotion"/>).
+    ///   모드 = S_Move.AnimState(Ground/Jump/Fall/Land/Climb) — 이건 역산이 불가능해 1바이트로 받는다.
+    ///          점프·낙하·사다리는 전부 "y 가 변한다"로 같아 위치만으로는 구분할 수 없다.
     ///   사망 = OnPlayerDead / 부활 = OnPlayerRevived (CharacterSpawner 의 DownedAllyMarker 와 별개, 연출 전용)
-    ///   공격 = OnPlayerAttacked (서버가 S_Attack 브로드캐스트)
-    /// Grounded 는 항상 true — 점프/낙하는 동기화되지 않으므로 지상 가정(Jump/Fall 트리거를 쓰지 않는다).
+    ///   공격 = S_AbilityActivated → AbilityCueRouter (아래 Initialize 참조)
     ///
     /// ⚠ 원격 프리팹에는 WeaponHitbox/Rigidbody 를 붙이지 않는다 — 무기는 <b>메시(연출)뿐</b>.
     ///    원격이 로컬에서 적중 판정을 하면 서버 권위가 깨진다.
@@ -21,7 +23,7 @@ namespace Game.Gameplay.Character
     public class RemoteDriver : MonoBehaviour, IActorView, IDisposable
     {
         [SerializeField] private float lerpSpeed = 15f;
-        [Tooltip("Speed 파라미터 평활화 계수. 보간 지터가 Idle/Walk/Run 블렌드를 떨게 하는 것을 막는다.")]
+        [Tooltip("이동 블렌드 평활화 계수. 보간 지터가 Idle/Walk/Run 블렌드를 떨게 하는 것을 막는다.")]
         [SerializeField] private float speedSmoothing = 10f;
 
         public long UserId { get; private set; }
@@ -33,6 +35,10 @@ namespace Game.Gameplay.Character
         private CharacterAgentAnimations _animations;
         private AbilityCuePlayer _cuePlayer;
         private float _animSpeed;
+        private Vector2 _animMove;          // 평활화된 MoveX/MoveY(m/s)
+        private StateKind _animState = StateKind.Ground;
+        private float _lastTargetY;         // 사다리 배속 산출용 — 목표 y 로 재야 보간 지연이 안 섞인다
+        private float _climbSpeed;
 
         private void Awake()
         {
@@ -46,6 +52,7 @@ namespace Game.Gameplay.Character
             _state      = state;
             _targetPos  = transform.position;
             _targetRotY = transform.eulerAngles.y;
+            _lastTargetY = _targetPos.y;
 
             _state.OnPlayerMoved    += HandlePlayerMoved;
             _state.OnPlayerDead     += HandlePlayerDead;
@@ -54,15 +61,54 @@ namespace Game.Gameplay.Character
             // 공격 연출은 Actor 통합 파이프로 흡수 — S_AbilityActivated → AbilityCueRouter → ActorRegistry → PlayAbilityCue.
             // (CharacterSpawner 가 이 RemoteDriver 를 ActorId(=UserId)로 레지스트리에 등록한다.)
 
-            // 점프/낙하 미동기화 → 지상 가정. Locomotion 이 블렌드에 머물게 한다.
             _animations?.SetBool(AnimationBoolType.Grounded, true);
+            // 로컬과 동일하게 8방향 블렌드를 쓴다. 끄면 1D 트리라 옆걸음·뒷걸음이 전부 전진 클립으로 보인다.
+            _animations?.SetBool(AnimationBoolType.Strafe, true);
         }
 
         private void HandlePlayerMoved(SocketPlayerSnapshot snapshot)
         {
             if (snapshot.UserId != UserId) return;
+
+            // 사다리 배속은 <b>목표 y</b> 의 변화로 잰다 — 보간된 실제 y 로 재면 lerp 지연만큼 늘 작게 나온다.
+            float dy = snapshot.PosY - _lastTargetY;
+            _lastTargetY = snapshot.PosY;
+
             _targetPos  = new Vector3(snapshot.PosX, snapshot.PosY, snapshot.PosZ);
             _targetRotY = snapshot.RotY;
+
+            ApplyAnimState((StateKind)snapshot.AnimState, dy);
+        }
+
+        /// <summary>
+        /// 로코모션 <b>모드</b> 반영. 트리거는 상태가 바뀌는 순간에만 쏜다 —
+        /// 이동 패킷마다 쏘면 Jump/Land 애니가 매 프레임 리셋돼 제자리에서 떤다.
+        /// </summary>
+        private void ApplyAnimState(StateKind next, float dy)
+        {
+            if (next == StateKind.Climb)
+            {
+                // 오르내림 배속: 위로 갈수록 +, 아래로 갈수록 −(클립 역재생 = 내려가기). 로컬 ClimbState 와 같은 규약.
+                _climbSpeed = Mathf.Clamp(dy * 10f, -1.5f, 1.5f);
+                _animations?.SetFloat(AnimationFloatType.ClimbSpeed, _climbSpeed);
+            }
+
+            if (next == _animState) return;
+            _animState = next;
+
+            _animations?.SetBool(AnimationBoolType.Climbing, next == StateKind.Climb);
+            _animations?.SetBool(AnimationBoolType.Grounded, next == StateKind.Ground || next == StateKind.Land);
+
+            switch (next)
+            {
+                case StateKind.Jump: _animations?.SetTrigger(AnimationTriggerType.Jump); break;
+                case StateKind.Fall: _animations?.SetTrigger(AnimationTriggerType.Fall); break;
+                case StateKind.Land: _animations?.SetTrigger(AnimationTriggerType.Land); break;
+                case StateKind.Climb: break; // bool 기반 전이 — 트리거 없음
+                default:
+                    _animations?.SetFloat(AnimationFloatType.ClimbSpeed, 0f);
+                    break;
+            }
         }
 
         /// <summary>다운 포즈(연출). 캐릭터는 남는다 — 부활 대상이라 CharacterSpawner 가 DownedAllyMarker 를 붙인다.</summary>
@@ -94,13 +140,13 @@ namespace Game.Gameplay.Character
         public void PlayAbilityCues(Game.Gameplay.Abilities.AbilityDefinition ability) => _cuePlayer?.Play(ability);
 
         /// <summary>원격 회피 구르기(연출 전용). 무적 창/피해 무시는 서버 권위 — 여기선 애니만 재생한다.</summary>
-        private void HandlePlayerDodged(long userId)
+        private void HandlePlayerDodged(long userId, float dirX, float dirY)
         {
             if (userId != UserId) return;
-            // 원격 회피는 방향이 패킷에 없다(C_Dodge 는 방향 미포함) → 정면 회피로 근사한다.
-            // 방향까지 맞추려면 패킷 계약 확장이 필요하므로 별건.
-            _animations?.SetFloat(AnimationFloatType.DodgeX, 0f);
-            _animations?.SetFloat(AnimationFloatType.DodgeY, 1f);
+            // 방향은 S_Dodge 가 실어 온다(캐릭터 기준 우+/전+). 트리거보다 <b>먼저</b> 세팅해야
+            // 전이 시점에 8방향 Evade 블렌드가 올바른 클립을 고른다(로컬 DodgeDriver 와 같은 규약).
+            _animations?.SetFloat(AnimationFloatType.DodgeX, dirX);
+            _animations?.SetFloat(AnimationFloatType.DodgeY, dirY);
             _animations?.SetTrigger(AnimationTriggerType.Dodge);
         }
 
@@ -117,18 +163,29 @@ namespace Game.Gameplay.Character
             DriveLocomotionAnimation(previous);
         }
 
-        /// <summary>보간으로 실제 이동한 수평 거리 → m/s 로 환산해 Speed 에 싣는다(입력이 없으므로 결과에서 역산).</summary>
+        /// <summary>
+        /// 보간으로 <b>실제 이동한</b> 변위 → m/s 속도 → facing 프레임 분해(MoveX/MoveY).
+        /// 입력이 없으니 결과에서 역산한다. 단위를 m/s 로 유지해야 블렌드 결과의 발 속도 = 이동 속도가 된다.
+        /// Speed(1D) 도 함께 채운다 — 사망/피격 등 1D 로 떨어지는 경로의 하위호환.
+        /// </summary>
         private void DriveLocomotionAnimation(Vector3 previous)
         {
             if (_animations == null || Time.deltaTime <= 0f) return;
 
-            var delta = transform.position - previous;
-            delta.y = 0f;
-            float instant = delta.magnitude / Time.deltaTime;
+            Vector3 velocity = (transform.position - previous) / Time.deltaTime;
+            velocity.y = 0f;
 
-            _animSpeed = Mathf.Lerp(_animSpeed, instant, Time.deltaTime * speedSmoothing);
+            Vector2 target = RemoteLocomotion.ToFacingFrame(velocity, transform.eulerAngles.y);
+
+            float t = Time.deltaTime * speedSmoothing;
+            _animMove = Vector2.Lerp(_animMove, target, t);
+            if (_animMove.sqrMagnitude < 0.0001f) _animMove = Vector2.zero;
+
+            _animSpeed = Mathf.Lerp(_animSpeed, velocity.magnitude, t);
             if (_animSpeed < 0.01f) _animSpeed = 0f;
 
+            _animations.SetFloat(AnimationFloatType.MoveX, _animMove.x);
+            _animations.SetFloat(AnimationFloatType.MoveY, _animMove.y);
             _animations.SetFloat(AnimationFloatType.Speed, _animSpeed);
         }
 

@@ -35,13 +35,15 @@ namespace Game.Gameplay.Character
                 _agent.OnDodgePerformed -= SendDodge;
         }
 
-        private void SendDodge()
+        private void SendDodge(Vector2 localDirection)
         {
             // 주입 전(AddComponent 직후 OnEnable)·미접속 시 무시.
             if (_session == null || _session.State != SocketSessionState.Joined)
                 return;
 
-            _session.SendAsync(new C_Dodge(), destroyCancellationToken).Forget();
+            // 방향은 연출 전용(서버는 릴레이만) — 없으면 원격이 8방향 구르기를 늘 정면으로 근사한다.
+            _session.SendAsync(new C_Dodge { DirX = localDirection.x, DirY = localDirection.y },
+                destroyCancellationToken).Forget();
         }
     }
 }

@@ -20,7 +20,7 @@ namespace Game.Network.Socket
 
         public override UniTask HandleAsync(S_Dodge packet)
         {
-            _state.NotifyPlayerDodged(packet.UserId);
+            _state.NotifyPlayerDodged(packet.UserId, packet.DirX, packet.DirY);
             return UniTask.CompletedTask;
         }
     }

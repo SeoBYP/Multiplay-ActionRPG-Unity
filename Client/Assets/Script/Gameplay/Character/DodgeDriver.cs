@@ -52,6 +52,9 @@ namespace Game.Gameplay.Character
         /// 방향은 <b>캐릭터 로컬</b>로 변환해 DodgeX/DodgeY 로 넘긴다 — 컨트롤러의 8방향 Evade 블렌드가 이 값으로 클립을 고른다.
         /// 트리거보다 <b>먼저</b> 세팅해야 전이 시점에 올바른 클립이 선택된다(ComboStep 과 동일 규약).
         /// </summary>
+        /// <summary>직전 <see cref="Begin"/> 의 캐릭터 기준 방향(우+/전+). 던전에서 C_Dodge 로 실어 원격도 같은 방향으로 구른다.</summary>
+        public Vector2 LastLocalDirection { get; private set; } = Vector2.up;
+
         public void Begin(Vector3 worldDir, float now)
         {
             _active = true;
@@ -69,6 +72,7 @@ namespace Game.Gameplay.Character
                 local.y = 0f;
                 if (local.sqrMagnitude > 0.0001f) local.Normalize();
                 else local = Vector3.forward; // 방향 소실 시 정면 구르기
+                LastLocalDirection = new Vector2(local.x, local.z);
                 _animations?.SetFloat(AnimationFloatType.DodgeX, local.x);
                 _animations?.SetFloat(AnimationFloatType.DodgeY, local.z);
             }

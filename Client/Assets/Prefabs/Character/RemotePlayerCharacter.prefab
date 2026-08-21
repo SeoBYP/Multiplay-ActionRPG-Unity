@@ -1373,19 +1373,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Gameplay::Game.Gameplay.Character.CharacterAgentAnimations
   m_animationSpeedFloat: Speed
-  m_animationMoveXFloat: 
-  m_animationMoveYFloat: 
+  m_animationMoveXFloat: MoveX
+  m_animationMoveYFloat: MoveY
   m_animationDodgeXFloat: DodgeX
   m_animationDodgeYFloat: DodgeY
   m_animationClimbSpeedFloat: ClimbSpeed
   m_animationMoveSpeedMulFloat: 
   m_animationComboStepInt: ComboStep
   m_animationGroundedBool: Grounded
-  m_animationStrafeBool: 
+  m_animationStrafeBool: Strafe
   m_animationClimbingBool: Climbing
-  m_animationFallTrigger: 
-  m_animationJumpTrigger: 
-  m_animationLandTrigger: 
+  m_animationFallTrigger: Fall
+  m_animationJumpTrigger: Jump
+  m_animationLandTrigger: Land
   m_animationInteractTrigger: 
   m_animationAttackTrigger: Attack
   m_animationDeathTrigger: Dead
