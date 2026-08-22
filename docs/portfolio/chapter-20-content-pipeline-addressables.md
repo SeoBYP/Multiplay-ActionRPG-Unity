@@ -1,163 +1,177 @@
-# 챕터 20 학습 로그 — 던전 메타 + Addressables 데이터 파이프라인
+# 20. 콘텐츠 파이프라인 — 데이터를 늘리는 도구가 데이터를 지우고 있었다
 
-> 두 개의 데이터 결정과 두 개의 운영 폴리시. **① 던전을 식별하는 키**를 "게임 시작 순간 휘발하는 파라미터"에서 "방에 영속되는 속성"으로 승격하고, **② 게임 데이터 SO를 Resources에서 Addressables로** 옮긴다.
-> 핵심: 식별자는 *하나*로 통일하고(MapId), 데이터 로딩 도구는 *자산의 성격*에 맞춰 다르게 고른다(동적=async Addressables / 씬 카탈로그=WaitForCompletion / 저작 전용=로드 안 함). 그리고 비동기 초기화 순서와 실패 피드백이라는, 코어가 끝난 뒤에야 보이는 두 결함을 닫는다.
+> **한 줄** — 던전을 데이터로 늘릴 수 있게 만드는 작업이었는데, 착수 직전에 **Export 도구가 기존 보상 값을 조용히 0으로 만들고 있다**는 걸 발견했다. 콘텐츠를 늘리는 행위가 곧 기존 콘텐츠를 지우는 행위가 될 뻔했다.
+>
+> **범위** 식별자 통일 · 검증 위치 · bake 왕복 · Resources → Addressables · 비동기 초기화
+> **핵심 통찰** 자산은 성격이 다르면 **로딩 도구도 달라야** 한다 — "전부 Addressables"는 정답이 아니다
 
 ---
 
-## 설계 결정과 근거
+## 1. 부채 티켓의 이름을 그대로 구현하지 않았다
 
-### 던전을 식별하는 키 — `DungeonId`가 아니라 `MapId`
-
-방을 만들 때 어떤 던전을 플레이할지가 **방의 속성**이어야 하는데, 기존 구조에서는 그게 없었다. `StartRoom(map_id)`로 게임 시작 순간에만 실리고 방에는 안 남았다.
+방을 만들 때 어떤 던전을 플레이할지가 **방의 속성**이어야 하는데, 그게 없었다.
 
 ```
-[Before]  StartRoom(map_id) ──▶ GameStartRequestedMessage.MapId ──▶ 스폰 레이아웃
-          DungeonRoom 엔티티 : 맵 필드 없음  ✗  (시작 때만 실리고 휘발)
+[Before]  StartRoom(map_id) ──▶ 메시지에만 실림 ──▶ 스폰 레이아웃
+          DungeonRoom 엔티티 : 맵 필드 없음      ← 시작 순간에만 존재하고 휘발
 
 [After]   CreateRoom(map_id) ──▶ DungeonRoom.MapId 영속(DB + Redis)
-                                      │  진실의 원천
-          StartRoom ───────────▶ room.MapId ──▶ GameStartRequestedMessage.MapId
+                                     │ 진실의 원천
+          StartRoom ──────────▶ room.MapId 를 읽어 메시지에 싣는다
 ```
 
-처음엔 부채 이름 그대로 `DungeonId`(별도 식별자)를 만들려 했다. 그런데 스폰/콘텐츠 시스템은 이미 전부 **`MapId`(string, `spawn-layouts.json`의 키 = `"dungeon_01"`)**로 통일돼 있었다. 여기에 숫자 `DungeonId`를 더하면 `DungeonId → MapId` 매핑이라는 *두 번째 식별자*가 생긴다 — 던전이 1종뿐인 지금은 순수 오버헤드(YAGNI). **식별자는 하나로 통일**하고 이름은 기존 어휘(`MapId`)를 따랐다.
+부채 티켓에 적힌 이름은 `DungeonId`였다. 그런데 스폰·콘텐츠 시스템은 이미 전부 **`MapId`**(`"dungeon_01"`, `spawn-layouts.json`의 키)로 통일돼 있었다. 여기에 숫자 `DungeonId`를 더하면 **`DungeonId → MapId` 매핑이라는 두 번째 식별자**가 생긴다.
 
-> 부채 티켓의 이름(`DungeonId`)을 그대로 구현하지 않은 것. 이름은 "무엇을 가리키나"가 아니라 "이미 코드가 쓰는 어휘"에 맞춘다.
+> **이름은 "무엇을 가리키나"가 아니라 "이미 코드가 쓰는 어휘"에 맞춘다.** 티켓 제목을 그대로 구현하면 매핑 한 겹이 영구히 남는다.
 
-### 검증·기본값은 Domain이 아니라 Application 권위에
+## 2. 검증은 소비자 레이어에 둔다
 
-`MapId`의 유효성(빈값→기본 맵, 알 수 없는 맵→거부)은 누가 책임지나? `DungeonRoom`(Domain) 안에 넣으면 깔끔해 보이지만, 검증에는 `SpawnLayoutTable`(어떤 맵이 존재하나)이 필요하고 그건 `Shared.Infrastructure`다. **Domain이 Infrastructure를 알게 하는 레이어 역전**이 된다.
+`MapId`의 유효성(빈값 → 기본 맵, 모르는 맵 → 거부)은 누가 책임지나? `DungeonRoom`(Domain) 안에 넣으면 깔끔해 보이지만, 검증하려면 **"어떤 맵이 존재하는가"를 아는 `SpawnLayoutTable`이 필요**하고 그건 Infrastructure다.
 
 ```
 CreateRoom(gRPC) ─▶ CreateDungeonRoomAsync (Application)
-                       ├─ 빈값?            → MapIds.Default
-                       ├─ IsKnown(mapId)?  → 아니면 거부(InvalidRequest)
-                       └─▶ DungeonRoom.Create(roomName, host, max, mapId)   ← Domain은 값 보관만
+                      ├─ 빈값?           → MapIds.Default
+                      ├─ IsKnown(mapId)? → 아니면 거부
+                      └─▶ DungeonRoom.Create(..., mapId)   ← Domain 은 값 보관만
 ```
 
-`DungeonRoom`은 받은 `mapId`를 *보관만* 한다(roomName/host처럼 직접 입력값은 검증하되, 서버가 정규화해 넘기는 mapId는 안 건드림). 검증은 소비자(Application)에 둔다 — DIP. 엔티티 필드 추가는 규칙대로 4곳(`Create`/`Clone`/`FromRedis` + Redis `ToHashEntry`/`ParseFromRedis`) 동시 수정 + EF 마이그레이션(`AddDungeonRoomMapId`, `varchar(64) NOT NULL`, 기존 행은 `dungeon_01`로 백필) + Redis Hash 필드. 구버전 캐시에 `MapId`가 없을 수 있어 **파싱 시 없으면 Default로 폴백**(거부하지 않음 — 하위호환).
+Domain이 Infrastructure를 알게 되면 **의존 방향이 역전**된다. 그래서 검증을 **소비자(Application)** 에 뒀다.
 
-### 던전 선택 UI — proto 계약을 열고 MVI를 관통시킨다
+엔티티에 필드를 하나 더하는 일도 규칙대로 4곳을 함께 고쳐야 했다(`Create`/`Clone`/`FromRedis`/`ToHashEntry`+`ParseFromRedis`, [05](./chapter-05-game-start-e2e.md) 9절). 여기에 EF 마이그레이션(기존 행은 `dungeon_01`로 백필)과 **구버전 캐시 하위호환**(Redis Hash에 `MapId`가 없으면 거부하지 않고 Default로 폴백)까지가 한 세트다.
 
-방 생성 시 던전을 고르려면 클라의 선택이 서버까지 흘러야 한다. proto에 `CreateRoomRequest.map_id`(생성)와 `RoomInfo.map_id`(표시)를 추가하고, 클라는 MVI 레이어를 그대로 관통시킨다.
-
-```
-[생성] 팝업 드롭다운(DungeonCatalog SO: mapId→표시이름)
-   → LobbyIntent.CreateRoom(name, max, mapId)
-   → LobbyModel → LobbyRepository → System.DungeonLobbyService
-   → CreateRoomRequest.map_id ──▶ 서버 영속(DungeonRoom.MapId)
-[표시] RoomInfo.map_id ──▶ DungeonRoomModel.MapId  (방 목록에 "어느 던전")
-```
-
-"어떤 던전을 고를 수 있고 화면에 뭐라 보이나"는 **표현 계층의 관심사**다. 서버는 이미 `IsKnown`으로 mapId를 권위 검증하므로, 선택지 메타(표시이름)는 클라 `DungeonCatalog`(SO)에 둔다 — 서버 RPC를 새로 만들지 않는다(YAGNI). 새 던전을 늘리는 건 데이터 작업뿐: `MapDefinition` SO를 만들고 Export → 서버 재빌드. 코드 변경 0.
-
-### export가 데이터를 조용히 지우고 있었다 — `expReward`
-
-던전을 데이터로 늘릴 수 있다는 걸 실증하려고 샘플 던전 `dungeon_02`를 SO로 만들고 Export 툴(`MapDataExporter`)을 돌렸다. 그런데 코드를 읽다 보니 **Export가 `dungeon_01`의 클리어 보상을 0으로 날리는 결함**이 있었다.
+## 3. 선택지 메타는 클라가 갖는다
 
 ```
-MapDataExporter.MapDto = { mapId, bounds, points, monsters }   ← expReward 없음!
-   → SO들을 모아 JSON으로 bake → expReward 필드가 출력에서 누락
-   → 누구든 Map Editor에서 Export하면 dungeon_01의 expReward:100 이 소실
+[생성] 드롭다운(DungeonCatalog SO: mapId → 표시이름)
+     → LobbyIntent.CreateRoom(name, max, mapId) → … → CreateRoomRequest.map_id → 서버 영속
+[표시] RoomInfo.map_id → DungeonRoomModel.MapId  (방 목록에 "어느 던전")
 ```
 
-`spawn-layouts.json`의 `expReward:100`은 **손편집으로만 유지**되던 상태였다(서버가 보상 산정에 읽는 값인데). `MapDefinition.expReward` 필드 + 익스포터 왕복(Export/Import) + `dungeon_01.asset`을 100으로 맞춰 SO↔JSON을 정합화했다. 새 던전을 본격적으로 만들기 *전에* 이걸 먼저 막지 않았으면, 콘텐츠를 늘리는 행위가 곧 기존 보상을 지우는 행위가 될 뻔했다.
+**"어떤 던전을 고를 수 있고 화면에 뭐라 보이나"는 표현 계층의 관심사다.** 서버는 이미 `IsKnown`으로 권위 검증을 하므로, 표시 이름을 위해 RPC를 새로 만들 이유가 없다.
 
-> 교훈: "데이터를 추가하는 도구"가 "기존 데이터를 보존하는지"는 별개 검증이다. bake류 도구는 *왕복(round-trip)*이 보장돼야 안전하다.
+결과적으로 **새 던전을 늘리는 건 데이터 작업뿐**이다 — `MapDefinition` SO를 만들고 Export → 서버 재빌드. 코드 변경 0.
 
-### Resources를 버리고 Addressables로 — 왜, 그리고 자산별로 다른 도구
+## 4. 이 챕터의 핵심 — Export가 보상을 지우고 있었다
 
-`Resources/` 폴더는 **빌드에 무조건 전부 포함**된다(온디맨드 아님). 던전·맵이 늘어날수록 안 쓰는 데이터까지 항상 번들에 들어간다. 그래서 게임 데이터 SO를 전부 `Resources` 밖(`Assets/GameData/<컨텐츠>/`)으로 옮기고 로딩을 Addressables로 바꿨다.
+던전을 데이터로 늘릴 수 있다는 걸 실증하려고 샘플 `dungeon_02`를 만들고 Export 도구를 돌리려다, 코드를 읽던 중 발견했다.
 
-다만 **"전부 Addressables"가 항상 정답은 아니다.** 자산을 성격으로 나눠 도구를 달리 골랐다:
+```
+MapDataExporter.MapDto = { mapId, bounds, points, monsters }
+                                    ▲ expReward 가 없다
 
-| 자산 | 로딩 시점·주체 | 선택한 도구 | 이유 |
-|------|---------------|-------------|------|
-| `MapDefinition` | mapId로 **동적**, `MapLoader`(async `StartAsync`) | **Addressables async** (`LoadAssetAsync` + await + `Release`) | 맵이 늘어도 빌드에 다 안 들어감. async 컨텍스트라 자연스러움 |
-| 표시 카탈로그 5종 | `LifetimeScope.Configure`(**동기** DI 등록) | **Addressables + `WaitForCompletion()`** | 씬 수명 = 카탈로그 수명. async-DI 재설계 회피 |
-| 저작 전용 SO (DropTable·LevelTable·Monster) | **런타임 미로드** (클라·서버 모두 bake JSON을 읽음) | **이동만** (Addressables 불필요) | 로드되지 않는 자산에 Addressables는 무의미 |
+→ SO 를 모아 JSON 으로 bake 하면 expReward 필드가 출력에서 누락
+→ 누구든 Map Editor 에서 Export 하는 순간 dungeon_01 의 expReward:100 이 0 이 된다
+```
 
-마지막 행이 핵심 통찰이었다. `DropTableDefinition` 같은 SO는 "클라가 Resources.Load로 읽는다"고 주석에 적혀 있었지만, 실제 런타임 코드를 grep하니 **아무도 안 읽고 있었다** — 클라는 `Shared.Infrastructure`의 JSON 카탈로그를 쓰고, 이 SO는 *Export 소스일 뿐*이었다. 로드되지 않는 자산을 Addressable로 만드는 건 순수 오버헤드다. 그래서 이 3종은 GameData로 옮기기만 했다(코드 0).
+`spawn-layouts.json`의 `expReward:100`은 서버가 던전 보상 산정에 읽는 값인데([14](./chapter-14-dungeon-clear-loop.md) 5절), **손편집으로만 유지**되던 상태였다. 아무도 Export를 안 돌렸기 때문에 여태 살아 있었던 것이다.
 
-### sync DI에 async Addressables를 끼우는 법 — `WaitForCompletion()`
+`MapDefinition.expReward` 필드를 추가하고 익스포터의 **Export/Import 양방향**을 맞춰 SO↔JSON을 정합화했다(`MapDataExporter.cs:81, 153, 247`).
 
-가장 까다로운 지점은 카탈로그였다. `LifetimeScope.Configure(builder)`는 **동기**로 의존성을 등록하는데 Addressables는 **비동기**다. async 부트스트랩으로 DI를 재설계하면 등록 순서·수명에 광범위한 회귀 위험이 있다.
+> **교훈 — "데이터를 추가하는 도구"가 "기존 데이터를 보존하는가"는 별개 검증이다.** bake류 도구는 **왕복(round-trip)이 보장돼야** 안전하다. Export만 있고 Import가 없으면, 그 도구는 자기가 모르는 필드를 전부 지운다.
+>
+> 그리고 이 결함은 **콘텐츠를 늘리기 직전에** 발견했다. 던전을 몇 개 더 만든 뒤였다면 보상이 0이 된 것도, 언제부터 그랬는지도 몰랐을 것이다. (같은 종류의 드리프트가 나중에 실제로 터진다 → [27](./chapter-27-silent-failure.md) 6절)
+
+## 5. Resources를 버린 이유, 그리고 "전부 Addressables"가 아닌 이유
+
+`Resources/` 폴더는 **빌드에 무조건 전부 포함**된다. 온디맨드가 아니다. 던전·맵이 늘어날수록 안 쓰는 데이터까지 항상 번들에 들어간다.
+
+그래서 게임 데이터 SO를 `Assets/GameData/<컨텐츠>/`로 옮겼다. 다만 **로딩 도구는 자산의 성격에 따라 셋으로 갈랐다.**
+
+| 자산 | 로딩 시점·주체 | 도구 | 이유 |
+|---|---|---|---|
+| `MapDefinition` | mapId로 **동적**, async 컨텍스트 | Addressables **async** | 맵이 늘어도 빌드에 다 안 들어감 |
+| 표시 카탈로그 5종 | `LifetimeScope.Configure`(**동기** DI 등록) | Addressables + **`WaitForCompletion()`** | 씬 수명 = 카탈로그 수명. async-DI 재설계 회피 |
+| 저작 전용 SO (DropTable·LevelTable·Monster) | **런타임에 로드되지 않음** | **이동만** (Addressable 아님) | 로드 안 되는 자산에 Addressables는 무의미 |
+
+**마지막 행이 이 절의 핵심이다.** `DropTableDefinition` 같은 SO는 주석에 "클라가 `Resources.Load`로 읽는다"고 적혀 있었는데, 실제 런타임 코드를 grep해 보니 **아무도 읽지 않고 있었다.** 클라는 `Shared.Infrastructure`의 bake된 JSON을 쓰고, 이 SO는 **Export 소스일 뿐**이었다.
+
+> 주석을 믿고 전부 Addressable로 만들었다면, 로드되지도 않는 자산에 주소·그룹·번들 관리 비용만 붙었을 것이다. **"어떻게 로드되나"를 문서가 아니라 코드에서 확인**한 게 이 결정을 갈랐다.
+
+## 6. 동기 DI에 비동기 로딩을 끼우는 다리
+
+가장 까다로운 건 카탈로그였다. `LifetimeScope.Configure(builder)`는 **동기**로 등록하는데 Addressables는 **비동기**다. async 부트스트랩으로 DI를 재설계하면 등록 순서·수명에 광범위한 회귀 위험이 있다.
 
 ```csharp
-// 씬 수명 카탈로그를 로컬 Addressable 번들에서 "동기로" 로드.
-// 핸들은 의도적으로 보존(앱 내내 필요). 미등록 주소면 null → 호출부가 빈 SO 폴백.
+// 씬 수명 카탈로그를 로컬 Addressable 번들에서 동기 로드.
+// 미등록 주소면 null → 호출부가 빈 SO 로 폴백.
 private static T LoadData<T>(string address) where T : Object
     => Addressables.LoadAssetAsync<T>(address).WaitForCompletion();
-
-builder.RegisterInstance(LoadData<EffectIconCatalog>(AddressKeys.Data.EffectIconCatalog)
-                         ?? ScriptableObject.CreateInstance<EffectIconCatalog>());
 ```
 
-`WaitForCompletion()`은 "WHERE(번들에 들어가나)"가 아니라 "WHEN(언제 로드되나)"만 동기로 만든다. 자산은 여전히 Addressable 번들(온디맨드 가능)에 있고 — 빌드 항상포함 회피라는 목적은 달성 — 로컬 번들이라 동기 로드가 안전하다. async-DI 재설계라는 큰 변경을 **`WaitForCompletion` 한 줄로 우회**했다. 반대로 동적 로딩인 `MapLoader`는 이미 async라 정석대로 `await`했다.
-
-> 트레이드오프: `WaitForCompletion`은 원격/미다운로드 콘텐츠에선 주의가 필요하다. 이 프로젝트는 Default Local Group(로컬)이라 안전. 만약 원격 콘텐츠로 가면 그땐 정말로 async-DI가 필요해진다.
-
-### 폴더만 옮겨도 키가 그대로 — root-relative 주소
-
-이 전환이 의외로 저위험이었던 이유: **`Resources.Load`의 키는 가장 가까운 `Resources` 루트 기준 상대경로**다. 그래서 `GameData/Resources/Maps/x` → `Assets/Resources/Maps/x`로 폴더를 옮겨도 키(`"Maps/x"`)는 그대로라 런타임 코드가 안 바뀐다(중간 정리 단계에서 활용). 최종적으로 Addressables로 가면서는 address = 에셋 경로(`Assets/GameData/...asset`)로 통일하고 `AddressKeys.Data.*` 상수로 모았다. asmdef 3곳(`Game.Gameplay`/`Game.VContainer`/`Game.Tests.EditMode`)에 `Unity.Addressables` 참조를 추가하니 컴파일러가 누락을 정확히 짚어줬다 — standalone `dotnet build`는 stale csproj 때문에 못 잡았고, **Unity 컴파일이 진실의 원천**이었다.
-
----
-
-## 그 외 다듬기 — 코어가 끝난 뒤에야 보이는 결함들
-
-### 인증 레이스 — async 로그인보다 먼저 발사된 RPC
-
-퀘스트 저널을 여니 `"Authorization header is missing"` 401이 떴다. 원인은 **비동기 초기화 순서**였다.
+핵심은 **`WaitForCompletion`이 바꾸는 건 WHEN이지 WHERE가 아니라는 것**이다.
 
 ```
-EditorAutoLoginInitializer.StartAsync  ── async 서버 왕복(로그인) ──▶ 토큰 채워짐
-   (이 사이 빈 구간)
-QuestModel.GetQuests  ──▶ 인터셉터: 토큰 비었음 → Authorization 헤더 생략 ──▶ 401
+WHERE (어느 번들에 들어가나)  →  여전히 Addressable 번들   ← 목적(빌드 항상포함 회피) 달성
+WHEN  (언제 로드되나)         →  동기로 완료 대기          ← DI 재설계 회피
 ```
 
-`AccessTokenProvider`는 `() => _authSession.AccessToken`이라 *생성자에서* 설정되지만, 토큰 값은 로그인이 끝나야 채워진다. 그 전에 발사된 인증 RPC는 빈 토큰 → 헤더 누락 → 서버 거부. 이미 프로젝트에는 `await AuthenticatedAsync()`(인증 완료까지 대기)라는 메커니즘과 그걸 쓰는 선례(`PlayerProgressionHolder`·`LobbyModel`)가 있었다. 같은 패턴을 `QuestService`(System)에 적용했다 — `QuestModel`·`DialogueModel` 두 호출자가 모두 이 서비스를 거치므로 **한 곳만 막으면 둘 다 보호**된다.
+로컬 번들이라 동기 로드가 안전하다. **큰 재설계를 한 줄로 우회한 것**이고, 반대로 진짜 동적 로딩인 `MapLoader`는 이미 async라 정석대로 `await`했다.
+
+> **대가** — 원격/미다운로드 콘텐츠로 가면 `WaitForCompletion`은 위험하다(다운로드를 동기 대기하게 된다). 그때는 정말로 async-DI가 필요해진다. **지금의 전제(로컬 번들)를 명시해 두는 것까지가 이 결정의 일부다.**
+
+이관 자체가 저위험이었던 이유도 하나 있다 — `Resources.Load`의 키는 **가장 가까운 `Resources` 루트 기준 상대경로**라, 폴더를 통째로 옮겨도 키가 그대로다. 중간 정리 단계에서 이 성질을 이용했다.
+
+> asmdef 3곳에 `Unity.Addressables` 참조를 추가하니 **컴파일러가 누락을 정확히 짚어줬다.** standalone `dotnet build`는 stale csproj 때문에 못 잡는다 — **클라 컴파일의 진실원은 Unity다.**
+
+## 7. 코어가 끝난 뒤에야 보이는 결함 둘
+
+### 인증 레이스 — 로그인보다 먼저 발사된 RPC
+
+퀘스트 창을 열자 `"Authorization header is missing"` 401이 떴다.
+
+```
+EditorAutoLoginInitializer.StartAsync ── async 로그인 왕복 ──▶ 토큰 채워짐
+        ▲ 이 사이의 빈 구간
+QuestModel.GetQuests ──▶ 인터셉터: 토큰 비었음 → 헤더 생략 ──▶ 401
+```
+
+토큰 공급자는 `() => _authSession.AccessToken`이라 **생성자에서 설정되지만 값은 로그인이 끝나야 채워진다.** 채널도 gRPC도 정상이었다 — **코드 버그가 아니라 타이밍**이었다.
+
+이미 프로젝트에는 `await AuthenticatedAsync()`(인증 완료 대기) 메커니즘과 선례가 있었다. 같은 패턴을 **`QuestService`(System) 한 곳**에 적용했다 — `QuestModel`·`DialogueModel` 두 호출자가 모두 이 서비스를 거치므로 **한 곳만 막으면 둘 다 보호**된다(`QuestService.cs:31`).
+
+> 훅을 funnel에 다는 판단이 또 나온다([19](./chapter-19-quest-system.md) 6절). 이번엔 보안이 아니라 **초기화 순서**를 위해서다.
+
+### 실패를 사용자에게 — 서버는 거부하고, 클라는 설명한다
+
+구매가 `code=1005`로 실패하는데 **콘솔 로그로만** 보였다. 인-윈도우 토스트가 프리팹 필드 미할당 시 `Debug.Log`로 폴백하는 구조였기 때문이다(설계된 폴백이 실패를 삼킨 사례 — 이 주제는 [27](./chapter-27-silent-failure.md)에서 크게 다뤄진다).
+
+**① 사유는 클라가 계산한다.** 서버는 권위로 거부할 뿐 사유 문자열을 주지 않는다. 하지만 클라는 **자기 골드와 총가격을 안다.**
 
 ```csharp
-private async UniTask WaitAuthAsync(CancellationToken ct)
-{
-    if (_authSession != null)
-        await _authSession.AuthenticatedAsync().AttachExternalCancellation(ct);
-}
-// GetQuests/Accept/Claim/ReportTalk 각 try 시작에 await WaitAuthAsync(ct);
-```
-
-> 호출이 서버까지 도달해 401을 받았다는 것 자체가 진단의 핵심이었다 — 채널·gRPC는 정상, 단지 *그 순간 토큰이 없었던* 것. 즉 코드 버그가 아니라 **타이밍** 문제.
-
-### 실패를 사용자에게 — 클라가 사유를 추론하고, 피드백을 일관화한다
-
-상점에서 구매가 `code=1005`로 실패하는데 **콘솔 로그로만** 보였다. 인-윈도우 토스트는 `toastText`가 프리팹에 미할당이면 `Debug.Log`로 폴백하는 구조였기 때문. 두 가지를 고쳤다.
-
-**(1) 실패 사유를 클라가 계산한다.** 서버는 권위로 거부할 뿐 사유 문자열을 안 준다. 하지만 클라는 *보유 골드와 총가격*을 안다 — 비교해서 사유를 추론한다.
-
-```csharp
-long total = selected.BuyPrice * state.Quantity;
 string reason = state.Gold < total
     ? $"골드가 부족합니다.\n보유 {state.Gold:N0} / 필요 {total:N0}"
-    : "구매할 수 없는 아이템이거나 구매 조건을 만족하지 않습니다.";
+    : "구매할 수 없는 아이템이거나 조건을 만족하지 않습니다.";
 ```
 
-서버는 권위 게이트, 클라는 *설명*. 서버 검증 로직을 클라가 중복하지 않으면서 사용자에겐 구체적인 이유를 보여준다.
+**서버는 게이트, 클라는 설명.** 서버 검증 로직을 클라가 중복하지 않으면서도 구체적인 이유를 보여준다.
 
-**(2) 실패는 토스트가 아니라 팝업으로, 그리고 상점·인벤토리를 일관되게.** 실패 피드백을 `AlertPopup`(프리팹을 자체 Addressable 로드라 필드 배선과 무관하게 항상 보임)으로 띄운다. 인벤토리는 토스트 채널이 `string`이라 성공/실패 구분이 없었다 — `InventoryToast{Message, Success}`(상점의 `ShopToastMessage` 동형)로 바꿔 **실패만 팝업, 성공은 로그**로 라우팅. MVI는 유지: 메시지(사유 포함)는 Model이 만들고, 팝업 표시는 View가 한다.
+**② 피드백 채널을 구조화했다.** 인벤토리 토스트는 채널이 `string`이라 성공/실패 구분이 없었다. `{Message, Success}` 구조체로 승격해 **실패는 팝업(자체 Addressable 로드라 필드 배선과 무관하게 항상 보임), 성공은 로그**로 라우팅했다. 상점과 인벤토리 양쪽에 같은 형태를 적용했다.
+
+## 8. 남은 것
+
+### ⚠️ Resources 경로가 하나 살아 있다
+
+이 챕터는 게임 데이터를 Resources 밖으로 옮기는 것이 목표였는데, **`spawn-layouts.json`은 아직 `Resources.Load`로 읽힌다.**
+
+```
+Script/Gameplay/Resources/spawn-layouts.json          ← 클라 사본
+SpawnLayoutProvider.cs:33  Resources.Load<TextAsset>  ← 살아 있는 프로덕션 경로
+   소비자: CharacterSpawner · LocalRespawnController · MainMonsterSpawner
+```
+
+하필 **이 챕터 4절의 주인공인 그 파일**이고, 맵이 늘어날수록 커지는 데이터라 "빌드 항상 포함"의 대가가 가장 큰 축에 속한다. SO들은 옮겼는데 **bake 산출물(TextAsset)은 남은 것**이다.
+
+(`Assets/Resources/VContainerSettings.asset`은 프레임워크가 그 위치를 요구하므로 정상이다.)
 
 ---
 
-## 핵심 키워드 정리
+### 이 챕터가 이후에 미친 영향
 
-- **식별자 통일**: 부채 티켓 이름(`DungeonId`)이 아니라 *이미 코드가 쓰는 어휘*(`MapId`)를 따른다 — 매핑 한 겹을 만들지 않는다.
-- **검증 위치 = 소비자**: mapId 정규화/검증은 `SpawnLayoutTable`이 필요하므로 Application에. Domain은 값 보관만(DIP, 레이어 역전 회피).
-- **진실의 원천**: 던전 식별값은 방(`DungeonRoom.MapId`)에 영속, `StartGame`이 그걸 읽는다 — 이벤트는 트리거, 상태는 진실원에서.
-- **bake 도구는 왕복 보장**: `MapDataExporter`가 `expReward`를 누락해 Export가 보상을 지우던 결함 — 데이터 추가 도구는 기존 데이터 보존이 별도 검증 대상.
-- **Resources = 빌드 항상포함**: 온디맨드가 아니므로 게임 데이터는 Addressables/GameData로.
-- **자산 성격별 도구**: 동적=async Addressables · 씬 카탈로그=`WaitForCompletion`(sync DI 회피) · 저작 전용(런타임 미로드)=이동만.
-- **`WaitForCompletion`**: Addressables를 동기 컨텍스트에 끼우는 다리 — WHERE(번들)는 그대로, WHEN(로드 시점)만 동기. 로컬 번들 전제.
-- **root-relative key**: `Resources` 루트만 바꿔도 로드 키 불변 → 중간 이동이 저위험.
-- **Unity 컴파일 = 진실**: stale csproj 때문에 `dotnet build`가 놓치는 asmdef 참조 누락을 Unity가 잡는다.
-- **비동기 초기화 레이스**: async 로그인 전에 발사된 인증 RPC = 빈 토큰 401. `await AuthenticatedAsync()` 게이트를 **공통 호출 funnel(System 서비스)**에 둔다.
-- **클라가 사유 추론**: 서버는 권위 거부, 클라는 자기가 아는 값(골드/가격)으로 *설명*을 만든다(검증 중복 없이).
-- **피드백 일관화**: `string` 토스트 → `{Message, Success}` 구조체로 승격해 실패=팝업·성공=로그를 두 화면(상점·인벤토리)에 동일 적용.
+| 여기서 정한 것 | 나중에 지탱한 것 |
+|---|---|
+| bake 도구는 왕복 보장 | 저작↔bake 드리프트 감시([27](./chapter-27-silent-failure.md)) |
+| 자산 성격별 로딩 도구 | 어빌리티·몬스터·레벨 데이터 전면 SO화([26](./chapter-26-measured-combat-cleanup.md)) |
+| 식별자는 하나 | 콘텐츠 확장이 코드 변경 0 |
+| 인증 게이트를 funnel에 | 초기화 순서 문제의 표준 대응 |
+
+> 이 챕터의 원본 학습 로그 = [learning-log/chapter-20-content-pipeline-addressables.md](../learning-log/chapter-20-content-pipeline-addressables.md)

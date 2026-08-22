@@ -1,4 +1,7 @@
-# 챕터 10 학습 로그 — Lifetime 관리와 인증 초기화 순서
+# VContainer Lifetime 관리와 인증 초기화 순서
+
+> **레퍼런스 문서** — Global → Scene 스코프 순서 보장과 인증 준비 시점을 정의한다.
+> 최종 코드 대조: 2026-08-22 (`System/AuthSystem/` → **`System/Auth/`**, `VContainer/Installers/` → **`VContainer/LifetimeScopes/`**)
 
 ## 왜 이 문제가 생겼는가
 
@@ -270,10 +273,10 @@ R3 의존성 없음, 불필요한 구독 로직 없음, 의도가 코드에서 �
 
 | 역할 | 경로 |
 |------|------|
-| AuthSession | `Client/Assets/Script/System/AuthSystem/AuthSession.cs` |
-| IAuthService | `Client/Assets/Script/System/AuthSystem/IAuthService.cs` |
-| AuthService | `Client/Assets/Script/System/AuthSystem/AuthService.cs` |
-| EditorAutoLoginInitializer | `Client/Assets/Script/System/AuthSystem/EditorAutoLoginInitializer.cs` |
-| ProjectLifetimeScope | `Client/Assets/Script/VContainer/Installers/ProjectLifetimeScope.cs` |
-| OutGameSceneStartup | `Client/Assets/Script/VContainer/Installers/Scenes/Startup/OutGameSceneStartup.cs` |
-| MainSceneStartup | `Client/Assets/Script/VContainer/Installers/Scenes/Startup/MainSceneStartup.cs` |
+| AuthSession | `Client/Assets/Script/System/Auth/AuthSession.cs` |
+| IAuthService | `Client/Assets/Script/System/Auth/IAuthService.cs` |
+| AuthService | `Client/Assets/Script/System/Auth/AuthService.cs` |
+| EditorAutoLoginInitializer | `Client/Assets/Script/System/Auth/EditorAutoLoginInitializer.cs` |
+| ProjectLifetimeScope | `Client/Assets/Script/VContainer/LifetimeScopes/ProjectLifetimeScope.cs` |
+| OutGameSceneStartup | `Client/Assets/Script/VContainer/LifetimeScopes/Scenes/Startup/OutGameSceneStartup.cs` |
+| MainSceneStartup | `Client/Assets/Script/VContainer/LifetimeScopes/Scenes/Startup/MainSceneStartup.cs` |

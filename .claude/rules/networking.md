@@ -134,6 +134,17 @@ Session
 - `_playerSessions`, `_playerStates` 접근 시 반드시 `lock`.
 - 이동 패킷의 `TimeStamp`는 클라이언트 원본 그대로 릴레이. 서버에서 덮어쓰지 않는다.
 
-## TCP 연결 순서
+## TCP 연결 순서 — 소켓 전용 인증 패킷은 없다
 
-`C_Auth` → `C_PlayerJoin` 순서 필수. Auth 전 Join 요청은 서버가 거부.
+**`C_Auth`/`S_Auth`는 제거됐다.** 소켓 인증은 `C_PlayerJoin`의 **Redis 검증**이 대신한다.
+
+```
+TCP 연결 → C_PlayerJoin { RoomId, UserId }
+             → SocketServer: HGETALL gamesession:player:{userId}
+             → roomId 일치 확인 (불일치·키 없음 = 거부)
+             → S_PlayerJoined { Success }
+```
+
+- 검증 데이터는 **GameServer 가 이벤트 발행 *전에* 선기입**한다(`GameSessionReadyConsumer`).
+- 인메모리 `_userRoomIndex` 를 인증 근거로 삼지 않는다(프로세스 재시작에 소실).
+- 상세 = [docs/portfolio/chapter-11-socket-session-entry.md](../../docs/portfolio/chapter-11-socket-session-entry.md)

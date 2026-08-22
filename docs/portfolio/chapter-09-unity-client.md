@@ -1,440 +1,175 @@
-# Chapter 09 — Unity Client (gRPC + VContainer + Docker E2E)
+# 09. Unity 클라이언트 — 목(mock)을 쓰지 않는 E2E
 
-## 현재 상태
-
-챕터 8까지에서 서버 쪽 `GameServer(gRPC)` / `SocketServer(TCP)` 경계는 정리되었다.  
-이 챕터에서는 Unity 클라이언트를 실제 서버와 붙이는 작업에 집중했다.
-
-핵심 목표는 세 가지였다.
-
-1. Unity가 `GameServer`와 gRPC로 직접 통신할 수 있어야 한다.
-2. 클라이언트 네트워크 계층을 VContainer 기반으로 정리해야 한다.
-3. Docker로 띄운 실제 서버를 대상으로 PlayMode E2E 테스트를 지속적으로 돌릴 수 있어야 한다.
+> **한 줄** — Unity에서 gRPC는 "라이브러리 추가하면 끝"이 아니었다(런타임이 HTTP/2를 다운그레이드한다). 그리고 이 챕터의 진짜 산출물은 기능이 아니라 **Docker로 띄운 실제 서버를 대상으로 도는 PlayMode E2E**다 — 목으로는 잡히지 않는 종류의 버그가 실제로 잡혔다.
+>
+> **범위** Unity+gRPC 제약 · 채널 공유 · VContainer · Docker 개발 루프 · E2E 전략
+> **현재 규모** E2E 테스트 클래스 5개 → **13개**로 확장 (`Tests/PlayMode/E2E/Network/{Https,Socket}/`)
 
 ---
 
-## 왜 gRPC 기준으로 갔는가
+## 1. Unity + gRPC는 라이브러리 선택 문제였다
 
-이 프로젝트의 서버 경계는 이미 명확했다.
+붙이자마자 이 에러가 났다.
 
-- `GameServer`: 인증, 유저, 던전 로비, 채팅
-- `SocketServer`: 인게임 실시간 이동/동기화
-
-즉 Unity 클라이언트는 로비 단계에서 `HTTP + JSON`이 아니라 서버와 동일한 계약을 공유하는 통신 계층이 필요했다.
-
-여기서 gRPC를 선택한 이유는 다음과 같다.
-
-- `proto` 기반 계약으로 클라이언트/서버 타입 불일치를 줄일 수 있다.
-- 인증, 유저, 로비, 채팅 API를 하나의 방식으로 통일할 수 있다.
-- 로비 구독과 채팅 스트리밍을 같은 스택에서 처리할 수 있다.
-- 서버가 이미 gRPC를 중심으로 설계되어 있어서 중복 API 계층을 만들 필요가 없다.
-
-결론적으로:
-
-- **로비 이전과 로비 중 상태 관리**는 gRPC
-- **인게임 이동 동기화**는 TCP Socket
-
-으로 경계를 유지하는 것이 가장 단순했다.
-
----
-
-## Unity에서 gRPC를 붙일 때 부딪힌 문제
-
-Unity에서 `Grpc.Net.Client`를 바로 쓰면 끝날 것 같았지만 실제로는 그렇지 않았다.
-
-가장 먼저 부딪힌 문제는 이것이었다.
-
-```text
+```
 Bad gRPC response. Response protocol downgraded to HTTP/1.1.
 ```
 
-원인은 Unity 런타임의 HTTP/2/h2c 지원 제약이었다.
+서버는 `5132`를 **HTTP/2 전용**으로 열어 두고 있는데, Unity 런타임의 기본 HTTP 핸들러는 TLS 없는 평문 HTTP/2(**h2c**)를 안정적으로 처리하지 못한다. 그래서 요청이 HTTP/1.1로 내려가고 서버와 프로토콜이 어긋난다.
 
-- 서버는 `5132` 포트를 `HTTP/2` 전용으로 열고 있었다.
-- Unity 쪽 기본 핸들러는 `http://localhost:5132`에 대해 `h2c`를 안정적으로 처리하지 못했다.
-- 그 결과 gRPC 요청이 HTTP/1.1로 다운그레이드되면서 서버와 프로토콜이 맞지 않았다.
+```csharp
+// GrpcChannelProvider.cs:23 — "가능하면 HTTP/2"가 아니라 "반드시 HTTP/2"
+var handler = new YetAnotherHttpHandler { Http2Only = true };
+```
 
-해결은 `YetAnotherHttpHandler` 도입이었다.
+`YetAnotherHttpHandler`(Cysharp)는 Unity에서 h2c를 제대로 처리하는 핸들러다. **표준 라이브러리가 표준대로 동작하지 않는 런타임이 있다**는 것, 그리고 그 대응이 설계 결정(의존성 추가)이 된다는 것이 이 절의 요점이다.
 
-### 적용 포인트
+## 2. 채널은 하나, 인증은 인터셉터로
 
-- Unity Package에 `YetAnotherHttpHandler` 추가
-- `GrpcChannelProvider`에서 전용 핸들러 사용
-- `http://` 환경에서는 `Http2Only = true`로 강제
+서비스마다 채널을 만들면 연결이 서비스 수만큼 생기고, 토큰이 갱신될 때 손댈 곳이 여러 군데가 된다. `GrpcChannelProvider` 하나로 모았다.
 
-즉 클라이언트 쪽에서 “가능하면 HTTP/2”가 아니라 “반드시 HTTP/2(h2c)”로 붙게 만든 것이 핵심이었다.
+```
+GrpcChannelProvider
+ ├ 서버 주소 관리
+ ├ CallInvoker 생성 (채널 공유)
+ ├ AuthorizationInterceptor 로 토큰 자동 주입   ← 서비스 코드는 인증을 모른다
+ └ Unity/HTTP2 제약 캡슐화                      ← 핸들러 선택이 여기서만 보인다
+```
 
----
+**인증을 인터셉터로 뺀 것이 핵심**이다. 각 서비스가 헤더를 붙이는 구조였다면 새 서비스를 만들 때마다 빠뜨릴 수 있고, 실제로 초기에 `Unauthenticated`가 났던 원인이 그것이었다. 인터셉터는 **모든 호출이 반드시 통과하는 지점**이라 빠뜨릴 수가 없다.
 
-## GrpcChannelProvider 정리
+그리고 테스트를 위한 문이 하나 열려 있다.
 
-클라이언트는 서비스마다 직접 채널을 만들지 않고 `GrpcChannelProvider`를 통해 공유하도록 정리했다.
+```csharp
+// GrpcChannelProvider.cs:31 — 실제 채널 없이 CallInvoker를 주입할 수 있다
+protected GrpcChannelProvider(CallInvoker overrideInvoker) { Address = "fake://test"; ... }
+```
 
-역할은 네 가지다.
+E2E는 실제 서버를 쓰지만, **네트워크가 필요 없는 단위 테스트**는 이 생성자로 가짜 invoker를 넣는다. 같은 계층에 두 가지 검증 방식을 공존시킨 장치다.
 
-1. 서버 주소 관리
-2. gRPC `CallInvoker` 생성
-3. 인증 토큰 자동 주입
-4. Unity/HTTP2 환경 제약 캡슐화
+## 3. VContainer — DI는 고급 패턴이 아니라 테스트의 전제
 
-이 구조로 바꾼 이유는 테스트성과 유지보수성 때문이다.
+MonoBehaviour 싱글톤으로 네트워크 계층을 이어 붙이면 빨리 갈 수는 있다. 대신 **네트워크가 씬 오브젝트의 생명주기에 묶인다** — 씬을 바꾸면 연결이 끊기고, 테스트에서 교체할 수도 없다.
 
-- 서비스별 생성 로직을 중복하지 않는다.
-- AccessToken이 바뀌어도 채널 제공자에서 일괄 반영할 수 있다.
-- 테스트 코드에서 같은 방식으로 Auth/User/Lobby/Chat 서비스를 만들 수 있다.
+VContainer로 옮기면서 얻은 것은 세 가지다.
 
-실제로 이후 PlayMode E2E 테스트는 전부 이 채널 제공자를 공통 진입점으로 사용했다.
+- 서비스 **생성 시점을 명시적으로** 관리 (Unity 생명주기와 분리)
+- 테스트에서 네트워크 계층만 독립적으로 교체
+- UI / Presenter / Service의 생성 책임 분리
 
----
+> 이 프로젝트에서 DI의 값어치는 "DI를 썼다"가 아니라 **테스트 가능한 단위로 쪼갤 수 있게 됐다**는 데 있다. 실제로 이후 E2E 테스트가 서비스들을 조립하는 방식이 프로덕션 조립과 같아졌다.
 
-## VContainer 도입
+## 4. 개발 루프를 Docker로 옮긴 이유
 
-클라이언트 네트워크 계층을 MonoBehaviour 싱글톤으로 이어 붙이면 빠르게는 갈 수 있지만, 테스트와 확장성에서 금방 막힌다.
+```
+코드 수정 → 서버 빌드 · Docker 재기동 → Unity PlayMode 실행 → Docker/Graylog 로그 확인 → 수정
+```
 
-그래서 의존성 구성은 VContainer 기준으로 정리했다.
+로컬에서 서버를 직접 실행하면 **내 PC에만 우연히 맞는 상태**가 만들어진다. Docker로 묶으면서 실제로 드러난 것들:
 
-도입 목적은 명확했다.
-
-- 서비스 생성 시점을 명시적으로 관리
-- 테스트에서 네트워크 레이어를 독립적으로 교체 가능하게 유지
-- UI/Presenter/Service 간 생성 책임 분리
-
-### VContainer 도입으로 얻은 효과
-
-- `AuthGrpcService`, `UserGrpcService`, `DungeonLobbyGrpcService`, `ChatGrpcService`를 조합 가능한 서비스로 유지
-- 네트워크 계층이 특정 씬 오브젝트 생명주기에 묶이지 않음
-- 향후 Mock/Fake/실서버 교체가 쉬워짐
-
-이 프로젝트에서 VContainer는 “DI 프레임워크를 썼다”가 핵심이 아니라,
-
-**Unity 클라이언트 코드를 테스트 가능한 단위로 쪼개는 기반**이 되었다는 점이 중요했다.
-
----
-
-## Docker 기반 개발 루프
-
-이번 챕터에서 중요한 전환점은 “Unity가 로컬 임시 서버가 아니라 Docker로 띄운 실제 서버와 계속 통신한다”는 개발 루프를 만든 것이다.
-
-구성 방향은 이랬다.
-
-- `docker compose`로 `postgres`, `redis`, `graylog`, `gameserver`, `socketserver` 실행
-- Unity는 `localhost:5132`로 `GameServer` gRPC 연결
-- Socket은 `localhost:7777`로 연결
-- 서버 로그는 `docker compose logs -f gameserver`, `graylog`로 확인
-
-### 서버를 Docker로 묶으며 정리한 점
-
-- `ListenLocalhost` → `ListenAnyIP`
-- Graylog 주소 하드코딩 제거, 환경변수화
-- `GameServer.API.csproj`에서 Docker 빌드 시 ClientCodegen 스킵
-- `GameServer`, `SocketServer` 전용 Dockerfile 작성
-- `docker-compose.yml`에 서비스 추가
+- `ListenLocalhost` → `ListenAnyIP` (컨테이너 밖에서 접근 불가였음)
+- Graylog 주소 하드코딩 → 환경변수
+- Docker 빌드 시 ClientCodegen 스킵 (컨테이너 안에 Unity가 없다)
 - `.dockerignore`로 빌드 컨텍스트 정리
 
-이렇게 해두니 개발 루프가 바뀌었다.
+전부 **"로컬에서는 안 보이던 결합"** 이다. 배포 환경과 비슷한 조건에서 돌려야 이런 게 개발 중에 드러난다.
 
-```text
-코드 수정
-→ 서버 빌드 / Docker 재기동
-→ Unity PlayMode 실행
-→ Docker 로그 / Graylog 확인
-→ 문제 원인 파악 후 수정
+## 5. 왜 목(mock)을 쓰지 않았나
+
+서버 단위 테스트는 이미 있었다. 그런데도 다음 부류는 **아무도 잡지 못했다.**
+
+| E2E가 실제로 잡은 문제 | 목이었다면? |
+|---|---|
+| Unity gRPC가 HTTP/1.1로 다운그레이드 | 목은 프로토콜을 타지 않는다 → **영원히 못 잡음** |
+| 인증 헤더 주입 누락 → `Unauthenticated` | 목은 헤더를 검사하지 않는다 |
+| 서버 DI 등록 누락으로 기동 시 서비스가 깨짐 | 목은 실제 컨테이너를 구성하지 않는다 |
+| `ProfanityFilter`가 더미라 **항상 통과**시키던 문제 | 목이 곧 더미다 → **더미로 더미를 검증** |
+| 회원가입 후 `UserProfile`이 생성되지 않던 문제 | 목은 상태 전이를 흉내만 낸다 |
+| 서버가 닉네임 중복을 아예 검사하지 않던 문제 | 목이 중복을 막아줬을 것이다 |
+| 재로그인 시 `user_sessions` 유니크 충돌 · EF 추적 충돌 | 실제 DB가 없으면 발생 자체가 불가능 |
+| 스트림 취소를 `OperationCanceledException`만 처리해 `RpcException(Cancelled)`를 놓침 | 목은 gRPC 예외 체계를 재현하지 않는다 |
+
+특히 세 번째 줄이 상징적이다 — **더미 구현이 항상 성공을 반환하고 있었고, 목 기반 테스트는 그걸 검증할 수 없다.** "테스트가 통과한다"와 "기능이 동작한다"가 갈리는 지점이 정확히 여기다. (이 주제는 [27](./chapter-27-silent-failure.md)에서 다시 크게 터진다.)
+
+그래서 규칙을 세웠다 — **E2E는 Docker 서버를 대상으로 하고, 목으로 서버를 대체하지 않는다.**
+
+## 6. 스트리밍 테스트는 기본적으로 취약하다
+
+채팅 E2E를 만들면서 배운 것.
+
+```
+❌ "스트림에서 받은 첫 메시지" 를 검증
+   → 실제로는 이전에 쌓인 backlog 나 다른 테스트의 글로벌 메시지가 먼저 온다
+   → 서버 버그처럼 보이지만 테스트가 취약한 것
+
+✅ "기대한 내용의 메시지가 올 때까지 대기" 로 검증
 ```
 
-이 방식의 장점은 “내 로컬 환경에 우연히 맞는 실행”이 아니라,
-**실제 배포와 더 비슷한 조건에서 클라이언트-서버 상호작용을 검증**할 수 있다는 점이다.
+스트림은 **언제 시작하든 과거가 딸려 올 수 있다.** 순서와 시점을 가정하는 검증은 반드시 깨진다. 이건 채팅이 Streams라 이력을 보존하기 때문에 생기는 성질이고([04](./chapter-04-chat.md)), 기능의 장점이 테스트에서는 함정이 된 경우다.
 
----
+## 7. 정상 종료를 에러로 기록하지 않기
 
-## PlayMode E2E 테스트를 왜 썼는가
+Socket E2E를 붙이자 테스트가 끝날 때마다 양쪽 로그에 에러가 쌓였다.
 
-기존 서버 단위 테스트만으로는 다음 문제를 잡기 어려웠다.
+```
+클라: OperationCanceledException
+서버: ConnectionReset (10054)
+```
 
-- Unity gRPC 채널 설정 문제
-- 인증 헤더 주입 누락
-- 스트리밍 취소 처리 차이
-- 실제 멀티 유저 흐름
-- Docker 서버와 Unity 런타임 조합에서만 드러나는 문제
+둘 다 **의도한 종료**였다. 테스트가 소켓을 닫았을 뿐이다. 클라(`SocketConnector`·`SocketSession`)와 서버(`Session`) 양쪽에서 "의도된 disconnect"를 정상 경로로 처리하도록 예외 정책을 정리했다.
 
-그래서 `Client/Assets/Script/Tests/PlayMode/E2E/` 아래에 실제 서버를 대상으로 하는 PlayMode E2E 테스트를 추가했다.
+> 사소해 보이지만 중요하다 — **정상 종료가 에러로 찍히면 진짜 에러가 노이즈에 묻힌다.** 같은 판단을 채팅 방 전환에서도 했다([04](./chapter-04-chat.md) 5절). 로그의 가치는 양이 아니라 신호 대 잡음비다.
 
-공용 베이스는 `E2ETestBase`로 정리했다.
+## 8. Socket E2E는 "연결 확인"이 아니라 상태 전이 검증이다
 
-### 공용 베이스 역할
+```
+host/guest 계정 생성 → host 방 생성 → guest 입장 → host StartRoom
+   → 두 클라 소켓 접속·입장 → host C_Move → guest 가 S_Move 수신 ✓
+```
 
-- `GrpcChannelProvider` 생성
-- `Auth/User/Lobby/Chat` 서비스 생성
-- `RegisterAndLoginAsync(...)`
-- `LoginAsync(...)`
-- `RegisterLoginAndSetNicknameAsync(...)`
-- 테스트용 토큰 상태 관리
+TCP가 붙는지만 보면 절반도 검증하지 못한다. **로비가 방을 준비했는가 / 소켓 입장에 필요한 유저·방 정보가 일치하는가 / 입장 후 상대에게 실제로 브로드캐스트가 가는가** — 이 전이를 다 통과해야 인게임 네트워크가 살아 있다고 말할 수 있다.
 
-이렇게 해두니 각 테스트 파일은 “시나리오”에만 집중할 수 있었다.
+여기서 도메인 규칙도 하나 배웠다. 처음엔 `MaxPlayers = 1` 방으로 테스트를 짰는데 **서버 규칙상 방 생성·시작 최소 인원이 2명**이었다. 테스트가 통과하지 못한 게 아니라 **테스트가 도메인을 몰랐다.**
 
----
+## 9. 그 이후 — 이 챕터의 다음 단계는 어떻게 됐나
 
-## Auth E2E
+| 당시 다음 단계 | 결말 |
+|---|---|
+| UI 계층과 gRPC 연결 · Presenter 정리 | ✅ MVI 아키텍처로 완성 ([MVI 아키텍처](../wiki/unity-mvi-architecture.md)) |
+| `SocketSession`을 인게임 진입 흐름과 연결 | ✅ 세션 기반 입장으로 재설계([11](./chapter-11-socket-session-entry.md)) |
+| Docker seed / reset 전략 | ✅ `AdminController`(`api/admin`: ClearAll·ClearRooms·ClearSessions)([01](./chapter-01-architecture.md) 4절) |
+| **PlayMode E2E를 CI에서 자동 실행** | ❌ **미달성** — `.github/workflows` 없음 |
 
-`AuthE2ETests`에는 아래 흐름을 넣었다.
+CI 대신 다른 방향으로 갔다 — **Unity CLI로 컴파일·EditMode·PlayMode를 직접 구동**하고, 세션 종료 시 도는 훅(`check-network-e2e-coverage.ps1`·`check-stale-server-image.ps1` 등)이 "연결 소스를 고쳤는데 소켓 테스트가 안 바뀌었다", "서버 이미지가 소스보다 낡았다" 같은 것을 경고하게 했다.
 
-- 회원가입 성공
-- 중복 이메일 실패
-- 빈 이메일 실패
-- 로그인 성공
-- 잘못된 비밀번호 실패
-- 존재하지 않는 계정 실패
-- 빈 `DeviceId` 실패
-- Refresh 성공
-- 잘못된 `DeviceId`로 Refresh 실패
-- Logout 성공
-- Logout 이후 Refresh 실패
-- Register → Login → Refresh → Logout 전체 흐름
+CI를 대체하지는 못한다(자동 실행이 아니라 경고다). 다만 **혼자 개발하는 환경에서는 "잊어버림"이 가장 큰 실패 원인**이라, 실행 자동화보다 누락 감지가 먼저 필요했다. 실제로 이 훅들이 나중에 여러 번 작동했다.
 
-### 여기서 실제로 잡힌 문제
+## 10. 현재 구조
 
-- Unity gRPC 연결이 HTTP/1.1로 다운그레이드되던 문제
-- 인증 헤더 자동 주입이 빠져 `Unauthenticated`가 나던 문제
-- 서버 DI 누락으로 AuthService가 기동 시 깨지던 문제
-
-즉 Auth E2E는 단순한 기능 검증이 아니라,
-**Unity ↔ gRPC ↔ Docker 서버가 실제로 연결되는지 확인하는 가장 기초적인 건강검진** 역할을 했다.
-
----
-
-## User E2E
-
-`UserE2ETests`에는 아래 시나리오를 넣었다.
-
-- 닉네임 정상 설정
-- 중복 닉네임 실패
-- 너무 짧은 닉네임 실패
-- 허용되지 않은 문자 실패
-- 욕설 포함 닉네임 실패
-
-### 여기서 실제로 잡힌 문제
-
-- `ProfanityFilter`가 더미 구현으로 항상 `true`를 반환하던 문제
-- 회원가입 후 `UserProfile`이 생성되지 않아 닉네임 변경이 `INTERNAL_SERVER_ERROR`로 떨어지던 문제
-- 서버가 닉네임 중복을 아예 검사하지 않던 문제
-
-즉 User E2E를 통해 “유저 기능이 있다” 수준이 아니라,
-**실제 계정 생성 이후 상태 전이가 올바르게 이어지는지** 검증하게 됐다.
-
----
-
-## Dungeon Lobby E2E
-
-`DungeonLobbyE2ETests`는 로비 상태 전이를 확인하는 데 집중했다.
-
-### 포함한 시나리오
-
-- 방 생성 성공
-- 생성한 방 조회 성공
-- 존재하지 않는 방 조회 실패
-- 방 목록 조회
-- 다른 유저 입장 성공
-- 정원 초과 실패
-- 입장 후 퇴장 성공
-- 방장 설정 변경 성공
-- 비방장 설정 변경 실패
-- SubscribeRoom 이벤트 수신
-- 비방장 StartRoom 실패
-- 방 생성 → 입장 → 방장 재로그인 → 시작 전체 흐름
-
-### 여기서 실제로 잡힌 문제
-
-- 테스트가 방장이 아닌 다른 계정으로 `StartRoom`을 호출하던 문제
-- 동일 유저 재로그인 시 `user_sessions` 유니크 충돌이 나던 문제
-- 재로그인 과정에서 `UserCredential` EF tracking 충돌이 나던 문제
-- 스트림 취소를 `OperationCanceledException`만 처리해서 `RpcException(Cancelled)`를 놓치던 문제
-
-로비 쪽은 상태 전이가 많아서 “한 API만 성공하면 된다”가 아니었다.
-
-특히 이 챕터에서 중요한 학습은:
-
-**멀티 유저 흐름은 단일 요청 단위 테스트로는 충분히 커버되지 않는다**는 점이었다.
-
----
-
-## Chat E2E
-
-이번 챕터에서 새로 추가한 것이 `ChatE2ETests`였다.
-
-### 포함한 시나리오
-
-- 글로벌 채팅 수신
-- 방 채팅 수신
-- 귓속말 대상자 수신
-
-채팅은 unary RPC보다 어려웠다. 이유는 스트림이기 때문이다.
-
-### 여기서 실제로 조심한 점
-
-- 스트림 시작 시 과거 메시지가 먼저 들어올 수 있음
-- “첫 번째 수신 메시지” 기준 검증은 쉽게 깨짐
-- 따라서 “기대한 메시지 내용이 수신될 때까지 대기”하는 방식으로 테스트 작성
-
-이 부분은 단순하지만 중요했다.
-
-스트리밍 테스트는 자주 이렇게 망가진다.
-
-- 테스트는 새 메시지를 기대했는데
-- 실제로는 이전 글로벌 메시지나 backlog가 먼저 옴
-- 그래서 테스트가 서버 버그처럼 보이지만 사실은 테스트가 취약한 경우
-
-이번 보강에서는 이 함정을 피하도록 테스트 구조를 바꿨다.
-
----
-
-## Socket E2E
-
-이번 보강에서 Unity 클라이언트의 마지막 네트워크 구간이었던 `SocketServer` 대상 PlayMode E2E도 추가했다.
-
-이 테스트는 단순히 TCP 연결 성공 여부를 확인하는 수준이 아니라,
-**로비(gRPC)에서 인게임(Socket)으로 넘어가는 실제 상태 전이**를 검증하는 데 목적이 있다.
-
-### 포함한 시나리오
-
-- host / guest 두 계정 생성
-- host가 방 생성
-- guest가 방 입장
-- host가 `StartRoom`
-- 두 클라이언트가 socket으로 `C_Auth -> C_PlayerJoin`
-- host가 `C_Move` 전송
-- guest가 `S_Move` 수신
-
-### 여기서 실제로 잡힌 문제
-
-- 처음에는 `MaxPlayers = 1`인 단일 플레이어 방으로 테스트를 만들었지만, 서버 도메인 규칙상 방 생성 최소 인원은 2명이고 게임 시작도 최소 2명이 필요했다.
-- Unity gRPC 모델에는 guest의 숫자 `UserId`가 직접 노출되지 않아, access token의 `sub` claim에서 실제 `UserId`를 읽어 socket 인증에 사용하도록 정리했다.
-- 테스트 종료 시 클라이언트가 소켓을 닫으면서 `OperationCanceled`, `ConnectionReset(10054)`가 정상 종료인데도 클라이언트/서버 양쪽 로그에 에러처럼 찍히는 문제가 있었다.
-- 그래서 클라이언트 `SocketConnector`, `SocketSession`과 서버 `Session` 모두에서 의도된 disconnect를 정상 종료로 처리하도록 예외 정책을 보강했다.
-
-이 테스트가 의미 있는 이유는,
-이제 Unity 클라이언트 쪽에서도
-
-- `gRPC 로비 흐름`
-- `Socket 인증/입장`
-- `실시간 이동 브로드캐스트`
-
-까지를 하나의 PlayMode 시나리오로 검증할 수 있게 되었기 때문이다.
-
-즉 이 시점부터는 “Socket 계층이 붙었다” 수준이 아니라,
-**인게임 진입 직전까지의 실제 네트워크 경로가 검증되었다**고 볼 수 있다.
-
----
-
-## 이번 챕터에서 정리된 클라이언트 구조
-
-```text
+```
 Unity Client
- ├─ GrpcChannelProvider
- │   ├─ YetAnotherHttpHandler
- │   ├─ HTTP/2(h2c) 강제
- │   └─ Authorization 헤더 주입
- │
- ├─ AuthGrpcService
- ├─ UserGrpcService
- ├─ DungeonLobbyGrpcService
- └─ ChatGrpcService
+ ├ GrpcChannelProvider ── YetAnotherHttpHandler (h2c 강제)
+ │                     └ AuthorizationInterceptor (토큰 주입)
+ ├ Auth / User / DungeonLobby / Chat / Inventory / Equipment / Codex ... GrpcService
+ └ Socket (Connector + Session)
 
-VContainer
- └─ 서비스 생성 / 수명주기 관리
+VContainer — 생성/수명 관리, 씬 생명주기와 분리
 
-PlayMode E2E
- ├─ AuthE2ETests
- ├─ UserE2ETests
- ├─ DungeonLobbyE2ETests
- ├─ ChatE2ETests
- └─ SocketE2ETests
-
-Docker
- ├─ GameServer
- ├─ SocketServer
- ├─ Postgres
- ├─ Redis
- └─ Graylog
+PlayMode E2E (Docker 서버 대상)  ※ 5개 → 13개
+ ├ Network/Https/  Auth · AuthFlow · User · DungeonLobby · Chat · Inventory
+ │                 Equipment · Progression · Quest · MainLoot · CharacterPersistence
+ └ Network/Socket/ SocketE2ETests · GameSessionConnectorE2ETests
 ```
 
 ---
 
-## 이번 챕터에서 배운 점
+### 이 챕터가 이후에 미친 영향
 
-### 1. Unity에서 gRPC는 “그냥 붙이면 되는 기술”이 아니다
+| 여기서 정한 것 | 나중에 지탱한 것 |
+|---|---|
+| E2E는 목을 쓰지 않는다 | 이후 모든 도메인이 Docker 대상 E2E를 함께 추가 (현재 13종) |
+| 채널·인증을 한 지점으로 | 서비스가 7개 이상으로 늘어도 인증 배선 변경 0 |
+| DI로 씬 생명주기와 분리 | GameHud처럼 씬을 넘나드는 컴포넌트 설계의 전제 |
+| 정상 종료 ≠ 에러 | 연결 생존성·재접속 처리 전반([21](./chapter-21-connection-liveness-hp-authority.md)·[29](./chapter-29-multiplayer-sync-invisible-failures.md)) |
 
-서버가 gRPC라고 해서 Unity도 기본 `Grpc.Net.Client`만 넣으면 끝날 줄 알았는데, 실제로는 런타임 제약과 HTTP/2 지원 문제를 먼저 해결해야 했다.
-
-즉 Unity + gRPC는 라이브러리 선택까지 포함한 설계 문제였다.
-
-### 2. DI는 클라이언트 테스트성을 크게 바꾼다
-
-VContainer를 도입한 뒤 네트워크 서비스 생성이 정리되면서, 테스트 코드 구조도 훨씬 단순해졌다.
-
-클라이언트에서도 DI는 “고급 패턴”이 아니라,
-**실제 서버 붙는 테스트를 만들기 위한 기반 기술**이었다.
-
-### 3. Docker 로그를 보는 습관이 E2E 품질을 바꾼다
-
-Unity에서 보이는 `RpcException`만 보면 원인을 잘못 짚기 쉽다.
-
-실제 원인은 서버 로그에 있었다.
-
-- DI 등록 누락
-- EF tracking 충돌
-- 세션 유니크 충돌
-- 패키지 버전 꼬임
-
-즉 E2E는 클라이언트 코드만 보는 작업이 아니라,
-**클라이언트 예외 + 서버 로그를 한 세트로 해석하는 작업**이었다.
-
-### 4. Socket E2E는 “연결 확인”이 아니라 상태 전이 검증이어야 한다
-
-처음에는 “소켓이 붙는가”만 확인하면 될 것처럼 보였지만, 실제로는 그것만으로는 부족했다.
-
-- 로비에서 방이 제대로 준비되었는가
-- socket auth에 필요한 사용자/방 정보가 일치하는가
-- join 이후 상대 클라이언트에게 브로드캐스트가 실제로 가는가
-
-이런 상태 전이를 통과해야만 인게임 네트워크가 살아 있다고 말할 수 있었다.
-
-결국 Socket E2E의 핵심은 TCP 연결 자체가 아니라,
-**gRPC 준비 단계 + socket 인증 + room join + broadcast 수신을 하나의 흐름으로 묶는 것**이었다.
-
-### 5. 테스트 코드도 프로덕션 코드처럼 관리해야 한다
-
-특히 스트리밍 테스트는 취약하게 작성하면 쉽게 오탐이 난다.
-
-그래서 이번에는 테스트를 “한 번 통과하는 코드”가 아니라,
-실제 개발 루프에서 계속 돌릴 수 있는 코드로 보강했다.
-
----
-
-## 다음 단계
-
-- [ ] UI 계층과 gRPC 서비스 연결
-- [ ] 로그인/로비/채팅 화면 Presenter 정리
-- [x] SocketServer 대상 PlayMode E2E 추가
-- [ ] SocketSession을 실제 인게임 진입 흐름과 연결
-- [ ] PlayMode E2E를 CI에서 자동 실행할 수 있는 형태로 정리
-- [ ] 테스트용 Docker seed / reset 전략 정리
-
----
-
-## 참고 경로
-
-| 용도 | 경로 |
-|------|------|
-| gRPC 채널 제공자 | `Client/Assets/Script/Network/Https/Core/GrpcChannelProvider.cs` |
-| Auth 서비스 | `Client/Assets/Script/Network/Https/Services/AuthGrpcService.cs` |
-| User 서비스 | `Client/Assets/Script/Network/Https/Services/UserGrpcService.cs` |
-| Lobby 서비스 | `Client/Assets/Script/Network/Https/Services/DungeonLobbyGrpcService.cs` |
-| Chat 서비스 | `Client/Assets/Script/Network/Https/Services/ChatGrpcService.cs` |
-| PlayMode E2E 베이스 | `Client/Assets/Script/Tests/PlayMode/E2E/E2ETestBase.cs` |
-| Auth E2E | `Client/Assets/Script/Tests/PlayMode/E2E/AuthE2ETests.cs` |
-| User E2E | `Client/Assets/Script/Tests/PlayMode/E2E/UserE2ETests.cs` |
-| Lobby E2E | `Client/Assets/Script/Tests/PlayMode/E2E/DungeonLobbyE2ETests.cs` |
-| Chat E2E | `Client/Assets/Script/Tests/PlayMode/E2E/ChatE2ETests.cs` |
-| Socket E2E | `Client/Assets/Script/Tests/PlayMode/E2E/Network/Socket/SocketE2ETests.cs` |
-| Socket Connector | `Client/Assets/Script/Network/Socket/Connector/SocketConnector.cs` |
-| Socket Session | `Client/Assets/Script/Network/Socket/Session/SocketSession.cs` |
-| Docker Compose | `ServerAll/Infra/docker-compose.yml` |
+> 이 챕터의 원본 학습 로그 = [learning-log/chapter-09-unity-client.md](../learning-log/chapter-09-unity-client.md)

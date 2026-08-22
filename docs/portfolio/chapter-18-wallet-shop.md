@@ -1,154 +1,161 @@
-# 챕터 18 학습 로그 — 재화(Wallet) + 상점(Shop)
+# 18. 재화와 상점 — 분기를 어디서 할 것인가
 
-> 3.4 + 3.5 + 7.6. 골드를 **통화**로 승격(인벤토리 아이템 아님) → 지갑 잔액 도메인 + 상점(구매/판매)으로 소비. 서버 권위(가격·증감) + 클라 MVI/GUI.
-> 핵심: **골드는 통화다.** 인벤토리에 "골드 주머니"를 쌓지 않고, 드랍·킬 보상을 영속 경계 한 곳에서 지갑으로 **라우팅**한다. 상점은 자기 영속 없이 지갑·인벤토리를 **조합**한다.
-
----
-
-## 설계 결정과 근거
-
-### 골드를 인벤토리 아이템에서 통화로 — 라우팅 한 곳
-
-루트 시스템(3.3)을 먼저 만들 때 골드는 `gold_pouch`라는 **스택형 인벤토리 아이템**이었다. 통화 도메인이 없었으니 임시방편이었다. 3.4에서 지갑이 생기자 갈림길이 왔다: 골드를 통화로 전환할 것인가, 아이템으로 둘 것인가. ARPG에서 골드는 통화다 — 인벤토리 칸을 먹지 않고, 단일 잔액이며, 상점이 증감한다. 그래서 **통화로 전환**했다.
-
-문제는 "어디서 바꾸냐"였다. 골드는 이미 generic 루트 파이프라인을 탄다:
-
-```
-[던전]  SocketServer: drop roll → 바닥 아이템 → 줍기 → ItemPickedUpMessage(itemId)
-                                                              │
-[Main]  ClaimKill → DropTableRoll(itemId, qty) ───────────────┤
-                                                              ▼
-                                          GameServer 영속 경계 (지급 chokepoint)
-                                          ┌──────────────────────────────────┐
-                                          │ if itemId == Currencies.Gold      │
-                                          │   → IWalletService.AddAsync       │  ← 통화
-                                          │ else                              │
-                                          │   → IInventoryService.GrantItem   │  ← 아이템
-                                          └──────────────────────────────────┘
-```
-
-**SocketServer는 무수정.** 골드는 SocketServer에게 그냥 itemId 문자열("gold")이라 바닥 스폰·줍기·메시지가 전부 그대로 동작한다. 통화/아이템 분기는 **GameServer 영속 경계 2곳**(`LootGrantConsumer`·`MainSpawnClaimService.ClaimKill`)에서만 일어난다. 블래스트 반경을 한 레이어로 가뒀다.
-
-`gold_pouch`(아이템) → `gold`(통화) 키 정리 + `Currencies.Gold` 상수 + `ItemCatalog`에서 gold 제거(= 인벤토리로 가면 "unknown item"으로 안전하게 막힘). drop-tables.json은 양 서버 임베디드라 키를 바꾸면 둘 다 리빌드.
+> **한 줄** — 골드를 인벤토리 아이템에서 **통화**로 승격하는 작업의 90%는 기능이 아니라 **"어디서 분기하느냐"** 였다. 파이프라인 끝(영속 경계) 한 곳에서만 갈랐더니 SocketServer·드랍·줍기가 전부 무수정으로 남았다.
+>
+> **범위** 통화 승격 · 라우팅 chokepoint · 지갑 도메인 · 상점 조합 · 거래 원자성
+> **핵심 제약** 클라가 골드를 증감하는 RPC는 **존재하지 않는다**
 
 ---
 
-### 지갑 = 인벤토리의 단일값 미러 — 새 패턴을 만들지 않는다
+## 1. 골드는 통화지 아이템이 아니다
 
-지갑은 "유저당 정수 잔액 하나"다. 인벤토리(유저당 itemId→수량 Hash)의 **단일값 버전**이라, 검증된 패턴을 그대로 미러했다.
+루트 시스템을 먼저 만들 때 골드는 `gold_pouch`라는 **스택형 인벤토리 아이템**이었다. 통화 도메인이 없었으니 임시방편이었다.
 
-```
-InventoryItem (UserId,ItemId)→Qty   │   UserWallet (UserId)→Balance(long)
-Redis Hash (field=itemId)            │   Redis String (정수)
-AddQuantity / RemoveQuantity         │   AddBalance / TrySpendBalance
-Cache-Aside + Delete                 │   Cache-Aside + Delete  (동일)
-```
+ARPG에서 골드는 통화다 — **인벤토리 칸을 먹지 않고, 단일 잔액이며, 상점이 증감한다.** 아이템으로 두면 "골드 주머니가 30칸을 차지"하거나 "골드를 버릴 수 있다" 같은 이상한 상태가 생긴다.
 
-- **Redis String** — 단일 스칼라라 Hash가 필요 없다. 그리고 인벤 Hash와 달리 **잔액 0도 캐시**한다(String "0"은 MISS와 구분 가능 → 폴백 트래픽 절감).
-- 차감은 도메인 `UserWallet.TrySpend`가 "잔액 ≥ 금액"을 원자 가드(부족하면 false=미차감) — 인벤 `Remove`와 동형.
-- `user_wallets`(UserId PK). 마이그레이션은 EF로 생성 후 `Up`을 멱등 raw SQL(`CREATE TABLE IF NOT EXISTS`)로 교체 — 인벤/장비와 동일 컨벤션.
-- 별도 Installer를 안 만들고 `InventoryInstaller`(경제 클러스터)에 합류 — 인벤/장비/지갑/상점이 같은 경제 도메인이라 응집(YAGNI: Installer 난립 방지).
+## 2. 이 챕터의 핵심 — 분기 지점을 하나로
 
----
-
-### gRPC는 조회 전용 — 증감 RPC가 없는 게 핵심
-
-`wallet.proto`·`shop.proto`에서 **클라가 골드를 증감하는 RPC를 두지 않았다.**
+골드는 이미 범용 루트 파이프라인을 타고 있었다. 그걸 통화로 바꾸려면 어디를 고쳐야 하나?
 
 ```
-wallet.proto : GetWallet 만           (잔액 조회)
-shop.proto   : GetShop / Buy / Sell   (구매·판매는 itemId+qty 만 보냄)
+[던전]  SocketServer: roll → 바닥 → 줍기 → ItemPickedUpMessage(itemId)
+                                                    │
+[Main]  ClaimKill → DropTableRoll(itemId, qty) ─────┤
+                                                    ▼
+                              GameServer 영속 경계 ── 지급 chokepoint
+                              ┌────────────────────────────────┐
+                              │ 통화인가?                        │
+                              │   YES → IWalletService.Add      │
+                              │   NO  → IInventoryService.Grant │
+                              └────────────────────────────────┘
 ```
 
-가격·증감은 전부 서버가 결정한다. 구매 요청은 `(itemId, qty)`뿐 — 클라가 "이거 1골드에 살게"라고 가격을 위조할 수 없다. 골드 증감의 유일한 경로는 **서버 내부**(루트/킬 보상, 상점 거래)다. 이는 Main 무한파밍 핵을 막을 때 세운 교리(클라가 보상을 임의 지정 못 함, authority-model §4b)와 같은 원칙이다.
+**SocketServer는 한 줄도 바뀌지 않았다.** 골드는 SocketServer 입장에서 그냥 하나의 itemId라, 바닥 스폰·줍기 중재·메시지 발행이 전부 그대로 동작한다.
 
----
+분기는 **GameServer의 영속 경계 두 곳**에서만 일어난다 — `LootGrantConsumer.cs:61`(던전)과 `MainSpawnClaimService.cs:72`(Main). 이 둘이 **모든 지급이 반드시 통과하는 지점**이기 때문이다.
 
-### 상점 = 조합, 영속 없음 — 구매/판매 원자성
+> **일반화** — "새 종류를 추가한다"는 요구를 받으면 파이프라인 전체에 분기를 뿌리기 쉽다. 그러지 않으려면 **모든 흐름이 수렴하는 지점을 먼저 찾아야** 한다. [17](./chapter-17-equipment-system.md) 3절의 `GetStatsAsync`와 정확히 같은 구조다 — 그때는 합류점에 *더했고*, 여기서는 합류점에서 *갈랐다*.
 
-상점은 자기 테이블/Repository가 없다. 가격은 정적 카탈로그(`ShopCatalog`, 코드)고, 실제 상태는 지갑·인벤토리가 소유한다. 상점은 둘을 **조합**할 뿐이다.
+## 3. 판별 방식은 그 뒤 한 번 더 진화했다
 
-핵심은 **차감을 먼저** 한다는 것 — 복제(dupe)를 막는다.
-
-```
-구매 Buy(itemId, qty)                    판매 Sell(itemId, qty)
- ① 가격 = ShopCatalog.Get(itemId)         ① 판매가 = ShopCatalog.Get(itemId)
- ② Wallet.TrySpend(price·qty)             ② Inventory.Consume(itemId, qty)
-      부족 → 거부(변화 0)                      미보유 → 거부(변화 0)
- ③ Inventory.Grant(itemId, qty)           ③ Wallet.Add(sellPrice·qty)
-      실패 → Wallet.Add 환불(보상)
-```
-
-- **구매: 차감 먼저** → "골드 안 내고 아이템 받기" 불가. 지급이 (설정 오류 등으로) 실패하면 차감분을 **환불**(보상 트랜잭션). 서버 단일 프로세스라 분산 트랜잭션은 과함(YAGNI) — 환불 한 줄로 충분.
-- **판매: 차감 먼저** → "아이템 두고 골드 받기" 불가.
-- 두 도메인에 걸친 작업이라 진짜 트랜잭션은 아니지만, **차감 선행 + 실패 시 보상**이 단일 프로세스에서의 실용적 안전장치다.
-
-스탯 미리보기(진열의 "공격력 +5")는 `EquipmentCatalog`에서 파생 — 중복 저작 없이 gRPC 레이어가 비0 스탯만 뽑아 채운다. 공개 표시 정보라 proto에 실어도 권위 전투 스탯과 무관(치팅 아님).
-
----
-
-### 클라 MVI — 인벤토리 스택을 그대로 미러
-
-지갑·상점 모두 클라는 인벤토리 MVI 스택을 미러했다. 레이어 규칙(GUI→Presentation→System→Network, View는 자기 Model만)을 그대로 따른다.
+챕터 작성 시점의 판별은 이랬다.
 
 ```
-Shop View (GUI, ShopModel만 주입)
-   ▲ State 구독 / Intent(탭·선택·수량·구매) 발행
-ShopModel (Presentation) ── IShopService + IWalletService(골드) 주입
+itemId 는 문자열 → itemId == "gold" 로 비교
++ 안전장치: ItemCatalog 에서 gold 를 제거
+  → 혹시 인벤토리로 새면 "unknown item" 으로 막힘
+```
+
+**"카탈로그에 없음"을 안전장치로 쓴 것**인데, 이건 뒤집어 말하면 **카탈로그 밖의 의사 아이템**을 드랍 테이블에 자유롭게 끼워 넣을 수 있다는 뜻이기도 했다.
+
+지금은 itemId가 int로 바뀌면서 판별이 **ID 대역**으로 승격됐다.
+
+```csharp
+// Currencies.cs — 골드를 3001 로 카탈로그에 정식 등록하고, 통화 여부는 대역으로 판단
+public const int Gold = 3001;
+public const int CurrencyBandLow = 3000;      // 3000~3999 = 재화 → 지갑으로
+
+// 대역이 곧 분류다
+1000  소모품
+2100  무기        2200  방어구      2300  장신구
+3000  재화        ← 이 대역이 라우팅을 결정한다
+```
+
+**"없어서 안전"에서 "명시적으로 분류돼서 안전"으로** 바뀌었다. 부수 효과로 새 통화(예: 보석)를 추가할 때 **라우팅 코드를 건드릴 필요가 없다** — 대역 안에 넣기만 하면 된다. 대역 값은 `ItemNumericIdTests`·`CatalogIntegrityTests`가 고정한다.
+
+바뀌지 않은 것은 **chokepoint 두 곳**이다. 설계의 뼈대는 살아남고 판별 수단만 나아졌다.
+
+## 4. 지갑은 새 패턴이 아니다
+
+지갑은 "유저당 정수 잔액 하나"다. 인벤토리의 **단일값 버전**이므로 검증된 패턴을 그대로 미러했다.
+
+| | 인벤토리 | 지갑 |
+|---|---|---|
+| 키 | (UserId, ItemId) → Qty | (UserId) → Balance |
+| 캐시 | Redis Hash | **Redis String** |
+| 차감 | `RemoveQuantity` | `TrySpendBalance` |
+| 전략 | Cache-Aside + Delete | 동일 |
+
+- **Hash가 아니라 String** — 스칼라 하나라 필드가 필요 없다. 그리고 인벤토리와 달리 **잔액 0도 캐싱**한다(String `"0"`은 MISS와 구분되므로 "잔액 0인 유저"가 매번 DB로 폴백하지 않는다).
+- 차감은 도메인 `UserWallet.TrySpend`가 "잔액 ≥ 금액"을 가드한다 — 부족하면 `false`를 반환하고 **아무것도 바꾸지 않는다.**
+- Installer를 새로 만들지 않고 `InventoryInstaller`(경제 클러스터)에 합류시켰다. 인벤·장비·지갑·상점은 같은 도메인이라 등록도 같이 있는 편이 낫다.
+
+## 5. 증감 RPC가 없는 것이 설계다
+
+```
+wallet.proto : GetWallet 만                    (조회)
+shop.proto   : GetShop / Buy / Sell            (요청에 가격이 없다 — itemId + qty 뿐)
+```
+
+**클라가 골드를 늘리거나 줄이는 RPC는 존재하지 않는다.** 구매 요청은 "이걸 몇 개 사겠다"이지 "얼마에 사겠다"가 아니다. 가격은 서버의 `ShopCatalog`가 결정한다.
+
+골드 증감의 유일한 경로는 **서버 내부**다 — 루트/킬 보상, 상점 거래. 이건 Main 무한 파밍 핵을 막을 때 세운 교리와 같다([16](./chapter-16-main-loot-path.md)) — **클라는 사실만 보고하고 수치는 서버가 정한다.**
+
+> API 표면에 없는 기능은 **막을 필요도 없다.** 검증으로 막는 것보다 애초에 부르지 못하게 하는 쪽이 언제나 싸다.
+
+## 6. 상점은 자기 상태를 갖지 않는다
+
+상점에는 테이블도 Repository도 없다. 가격은 정적 카탈로그(코드)고, **실제 상태는 지갑과 인벤토리가 소유**한다. 상점은 둘을 조합할 뿐이다.
+
+핵심은 **항상 차감을 먼저** 한다는 것이다.
+
+```
+구매 Buy(itemId, qty)                     판매 Sell(itemId, qty)
+ ① 가격 = ShopCatalog.Get                  ① 판매가 = ShopCatalog.Get
+ ② Wallet.TrySpend(price × qty)            ② Inventory.Consume(itemId, qty)
+      부족 → 거부 (변화 0)                       미보유 → 거부 (변화 0)
+ ③ Inventory.Grant(itemId, qty)            ③ Wallet.Add(sellPrice × qty)
+      실패 → Wallet.Add 로 환불(보상)
+```
+
+- **구매에서 차감이 먼저** — "골드를 안 내고 아이템을 받는" 창이 생기지 않는다.
+- **판매에서도 차감이 먼저** — "아이템을 두고 골드만 받는" 창이 생기지 않는다.
+- 두 도메인에 걸친 작업이라 진짜 트랜잭션은 아니다. 대신 **차감 선행 + 실패 시 보상(환불)** 으로 막았다. 서버가 단일 프로세스라 분산 트랜잭션은 과하다.
+
+**실패 방향을 고르는 문제**다. 어느 쪽으로 깨져도 완벽하진 않지만, **"돈은 냈는데 물건이 없다"(복구 가능)** 가 **"돈을 안 냈는데 물건이 있다"(복제)** 보다 낫다. 같은 판단을 보상 지급에서도 했다([14](./chapter-14-dungeon-clear-loop.md) 3절).
+
+설계 의도가 코드에 박제돼 있다 — `ShopService.cs:11-13`.
+
+## 7. 클라는 인벤토리 스택을 미러한다
+
+```
+Shop View (GUI — ShopModel 만 주입)
+   ▲ State 구독 / Intent 발행
+ShopModel (Presentation) ── IShopService + IWalletService
    ▼
-Game.System  IShopService (proto 은닉, GetShop+Buy)
+Game.System   IShopService (proto 은닉)
    ▼
-Game.Network IShopGrpcService (ClientCodegen 자동 생성) → shop.proto
+Game.Network  IShopGrpcService → shop.proto
 ```
 
-- **지갑 표시**: 인벤토리 창에 골드 잔액 연동 — `InventoryModel`이 `IWalletService`를 선택주입(null-safe)해 `RefreshAsync`에서 함께 로드, `_goldText`에 바인딩. 정식 지갑 위젯(7.x) 전까지 인벤토리가 표시 책임.
-- **카테고리 enum 3겹**(proto / System / Presentation)은 레이어 격리상 불가피 — GUI는 Presentation만 보므로 System 타입을 노출하지 않으려면 각 레이어가 자기 enum을 갖고 경계에서 매핑한다.
+- **지갑 표시**는 인벤토리 창이 맡는다 — `InventoryModel`이 `IWalletService`를 선택 주입(null-safe)해 함께 로드한다. 정식 지갑 위젯이 생기기 전까지의 임시 배치이지만, **선택 주입이라 지갑이 없는 씬에서도 안전**하다.
+- **카테고리 enum이 3겹**(proto / System / Presentation)인 건 레이어 격리의 대가다. GUI는 Presentation만 봐야 하므로 System 타입을 노출할 수 없고, 각 레이어가 자기 enum을 갖고 경계에서 매핑한다. **중복이지만 의도된 중복**이다.
+
+## 8. 작지만 실제로 겪은 것들
+
+**S키가 후진과 충돌했다** — 상점을 S키로 열게 했다가, WASD의 S(후진)와 겹쳐 **뒤로 걸을 때마다 상점이 토글**됐다. 키를 없애고 HUD 버튼 단독으로 정리했다.
+> 단축키는 **입력 공간을 점유**한다. 게임플레이 키맵과 겹치는지 확인하지 않으면 기능이 서로를 방해한다.
+
+**토스트에 결과를 실었다** — "성공/실패에 따라 색을 다르게"를 하려면 View가 결과를 알아야 한다. 문자열만 넘기면 View가 메시지를 파싱해야 하므로, `Subject<string>` → `Subject<ShopToastMessage>`(메시지 + `Success` 플래그)로 바꿨다. **표현에 필요한 정보는 모델이 실어 보낸다.**
+
+**통화 밸런스는 아이템 밸런스와 다르다** — 골드 드랍을 확률 0.2/1~3에서 **항상 드랍(1.0)/10~30**으로 올렸다. 통화는 "가끔 나오는 레어"가 아니라 **매 처치의 기본 수급**이어야 상점(가격 50~300)이 굴러간다.
+
+## 9. 남은 것
+
+- 정식 **지갑 위젯** — 현재는 인벤토리 창이 잔액 표시를 겸한다.
+- 전역 **토스트 위젯** — 현재는 상점 창 안의 자체 토스트.
+
+> 원본에 기록된 검증 수치(GameServer 340/340 등)는 이번 정리에서 **재실행하지 않았다(미실측)** — 당시 기록으로만 남긴다.
 
 ---
 
-### 동적 슬롯 — 별도 Addressable prefab의 의도
+### 이 챕터가 이후에 미친 영향
 
-상점 리스트 행(`Shop_Item`)과 스탯 행(`Status_Slot`)을 **Addressable prefab으로 동적 생성**한다(고정 배치 X). 인벤토리의 `LoadSlotPrefabsAsync` 패턴 재사용: 프리팹 로드 → `GetComponent` → 사전배치 자식 제거 → `Instantiate` 풀링 → `OnDestroy` Release. 항목 수가 바뀌어도 슬롯을 수동 배치할 필요가 없다.
+| 여기서 정한 것 | 나중에 지탱한 것 |
+|---|---|
+| 새 종류는 chokepoint에서 가른다 | 퀘스트 진행 훅도 같은 자리(킬 funnel)에([19](./chapter-19-quest-system.md)) |
+| ID 대역이 곧 분류 | 아이템 확장 시 라우팅 코드 무수정 |
+| API에 없는 기능은 막을 필요도 없다 | 서버 권위 설계의 기본 태도 |
+| 차감 선행 + 보상 트랜잭션 | 두 도메인에 걸친 조작의 표준형 |
 
----
-
-### 구매 결과 토스트 — 결과를 모델이 싣는다
-
-"성공/실패에 따라 색을 다르게" 하려면 View가 결과를 알아야 한다. 문자열만으론 부족해, `OnToast`를 `Subject<string>`→`Subject<ShopToastMessage>`(메시지 + `Success` 플래그)로 바꿨다. View는 성공=초록/실패=빨강으로 창 내 토스트를 띄우고 자동으로 숨긴다(전역 토스트 위젯은 7.x — 상점 자체 피드백으로 선행).
-
----
-
-### 열기 트리거 — 충돌하는 키는 뺀다
-
-상점은 처음에 **S키 + HUD 버튼**으로 열게 했는데, S는 WASD 후진 이동키와 겹쳐 **후진할 때마다 상점이 토글**되는 버그였다. 키를 빼고 **HUD 상점버튼 단독**으로 정리. 열린 동안은 `UiInputCaptureBehaviour`(인벤/장비와 동일 refcount)로 이동 입력을 점유해 캐릭터가 안 움직인다. Main 전용 등록(던전엔 상점 없음).
-
----
-
-### 골드 밸런스 — 통화는 항상 나온다
-
-골드 드랍을 확률 0.2/1~3에서 **항상 드랍(1.0)/10~30**으로 올렸다. 통화는 "가끔 나오는 레어 아이템"이 아니라 매 처치의 기본 수급이어야 상점(가격 50~300)이 굴러간다. 매 슬라임 처치 = **골드(보장) + 포션(보장) + 장비(확률)** = "골드 + 추가 보상".
-
----
-
-## 코드 위치
-
-| 영역 | 파일 |
-|------|------|
-| 통화 상수 | `GameServer.Domain/Currencies.cs` |
-| 지갑 도메인 | `GameServer.Domain/Entities/Wallet/UserWallet.cs` · `Application/Domains/Wallet/` · `Infrastructure/Domains/Wallet/WalletRepository.cs` |
-| 골드 라우팅 | `Infrastructure/Common/Consumer/LootGrantConsumer.cs` · `Infrastructure/Domains/Inventory/MainSpawnClaimService.cs` |
-| 상점 도메인 | `GameServer.Domain/Entities/Shop/` · `Application/Domains/Shop/` |
-| gRPC | `Shared.Contracts/Protos/{wallet,shop}.proto` · `API/Services/{Wallet,Shop}GrpcService.cs` |
-| 클라 지갑 | `Client/.../System/Wallet/` · `Presentation/Inventory/InventoryModel.cs`(골드 합류) |
-| 클라 상점 | `Client/.../System/Shop/` · `Presentation/Shop/` · `GUI/Shop/` · `GUI/OutGame/ShopViewController.cs` |
-| 드랍 밸런스 | `Shared.Infrastructure/Loot/drop-tables.json` · 클라 `DropTableDefinition.asset` |
-
-## 검증
-
-- 서버: GameServer **340/340**(통합 포함 — Wallet 23 · Shop 11) · SocketServer 103 · Shared 34.
-- 클라: ShopModelTests 7/7 · InventoryModelTests 6/6 · InputRouter/InGameExpRelay 12/12.
-- E2E(Docker): 던전 줍기 1/1 · MainLoot 4/4. 양 서버 리빌드 후 컨테이너 healthy(Wallet·Shop gRPC 호스트 부팅).
-
-## 한 줄 회고
-
-골드를 통화로 바꾸는 일의 90%는 "어디서 분기하냐"였다. 파이프라인 끝(영속 경계)에서 한 번만 분기하니 SocketServer·드랍·줍기가 전부 무수정으로 남았다. 상점도 마찬가지 — 자기 상태를 안 가지니 "차감 먼저 + 실패 시 환불"만 지키면 두 도메인 조합이 안전했다.
+> 이 챕터의 원본 학습 로그 = [learning-log/chapter-18-wallet-shop.md](../learning-log/chapter-18-wallet-shop.md)

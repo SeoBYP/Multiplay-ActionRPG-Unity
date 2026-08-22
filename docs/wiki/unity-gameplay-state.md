@@ -1,6 +1,11 @@
 # Unity 게임플레이 상태머신 설계
 
-> Chapter 2 (Locomotion), Chapter 3 (Interaction), Chapter 4 (AttackState / Hit Detection) 통합 문서
+> **레퍼런스 문서** — 캐릭터 상태머신(Locomotion 축)과 Action 축의 경계를 정의한다.
+> 강제 규칙 요약 = [.claude/rules/unity-gameplay-state.md](../../.claude/rules/unity-gameplay-state.md)
+> 최종 코드 대조: 2026-08-22
+>
+> ⚠️ **이 문서는 원래 `AttackState`/`InteractState`가 FSM 상태였던 시절에 쓰였다.**
+> 그 둘은 이후 **제거**됐고(두 축 분리, CA-1), 아래 3·4절은 현재 구조로 다시 썼다.
 
 ---
 
@@ -39,7 +44,7 @@ StateFactory
 StateMachine
     ← 현재 State, Transition 체크, State 전환
         ↓
-State (Grounded / Jump / Fall / Land / Attack / Interact ...)
+State (Ground / Jump / Fall / Land / Climb)   ← Locomotion 축만
     ← 현재 행동 모드. Motor에 의도를 전달
         ↓
 Motor
@@ -56,7 +61,7 @@ Motor
 - `CharacterStateConfig`: Player/NPC/Boss가 각각 어떤 State를 사용하는지 ScriptableObject로 정의.
 - `StateMachineBuilder`: Config를 읽고 State·Transition을 StateMachine에 조립.
 
-이렇게 나누면 `NPCStateConfig`에서 Attack을 제외하면 NPC는 AttackState를 갖지 않는다. Factory 코드를 수정할 필요 없다.
+이렇게 나누면 `NPCStateConfig`에서 `Jump`를 제외하는 것만으로 NPC는 점프 상태를 갖지 않는다. Factory 코드를 수정할 필요 없다.
 
 ### Motor의 역할
 
@@ -112,102 +117,79 @@ class JumpState {
 
 ---
 
-## Interaction
+## 두 축 분리 (CA-1) — Action은 FSM 상태가 아니다
 
-### 왜 "버튼 → 즉시 실행"이 안 되는가
-
-```csharp
-// 이렇게 하면 안 된다
-void Update() {
-    if (ConsumeInteractPressed() && _nearestInteractable != null)
-        _nearestInteractable.Interact(gameObject);
-}
-```
-
-문제:
-- 상호작용 가능 대상을 어떻게 감지하는가?
-- 상호작용 중에는 이동을 막아야 하는가?
-- NPC 대화, 퀘스트, 무기 줍기가 모두 다른 방식으로 처리된다면?
-
-### 설계: 탐지 → 상태 전환 → 실제 실행
+이 문서의 초기 버전은 `AttackState`·`InteractState`를 FSM 상태로 두었다. **둘 다 제거됐다.**
 
 ```
-InteractionDetector.DetectNearest()  ← 범위 내 IInteractable 탐지
-    ↓
-Grounded 상태에서 ConsumeInteractPressed() 확인
-    ↓
-InteractionState로 전환 (이동 입력 무시, 상호작용 애니메이션)
-    ↓
-IInteractable.Interact(context)  ← 실제 동작
+Locomotion 축 = FSM        Ground → Jump → Fall → Land → Ground,  Climb
+                           배타적 "이동 모드". 한 번에 하나만 참이다.
+
+Action 축     = FSM 아님    공격 / 상호작용 / 스킬
+                           입력 → 발동. 이동과 동시에 성립한다(직교).
 ```
 
-`IInteractable`을 구현하는 각 오브젝트(스위치, NPC, 무기 픽업)가 실제 동작을 결정한다. Interaction 상태는 "무언가와 상호작용하는 중"이라는 모드만 표현한다.
-
-이 구조를 쓰면 나중에 "상호작용 가능 대상을 강조 표시", "상호작용 가능 여부를 HUD에 표시" 같은 기능도 `InteractionDetector.CurrentTarget`을 참조하면 되어 확장이 자연스럽다.
+**왜 뺐는가** — 공격을 상태로 두면 "이동하면서 공격"이 표현 불가능해진다. 두 축이 배타적이지
+않은데 하나의 FSM에 밀어 넣었던 것이 문제였다. 이동 제약(루트 모션·감속)이 필요하면
+**상태 전이가 아니라 GameplayEffect/태그**로 표현한다.
 
 ---
 
-## AttackState와 Hit Detection
-
-### AttackState의 책임 범위
-
-공격이 필요한 이유: 공격은 단순 함수 호출이 아니라 캐릭터의 행동 모드다.  
-공격 중에는 이동 제한, 콤보 입력 수용, 캔슬 조건, 피격 처리, 애니메이션 종료 시점 같은 규칙이 붙는다.
-
-그러나 AttackState가 데미지 처리까지 직접 알면 안 된다.
-
-**AttackState가 담당하는 것:**
-- 공격 상태 진입 / 종료
-- `Animator.SetTrigger("Attack")` 실행
-- 공격 지속 시간 관리
-- 중복 타격 방지용 HitTarget Set 초기화
-
-**AttackState가 하면 안 되는 것:**
-- Hit 판정
-- 데미지 계산 / 적용
-- `AbilitySystemComponent` 직접 호출
-- Health 직접 수정
-
-### Hit 판정 — Animation Event 기반
-
-공격 버튼을 누른 순간이 아니라 **실제 타격 프레임**에 Hit 판정이 발생해야 한다.
+## 공격 (Action 축)
 
 ```
-PlayerInputActions
-    → CharacterInputBuffer (AttackPressed)
-    → GroundToAttackTransition
-    → AttackState (Animator Trigger 실행)
-    → [공격 애니메이션 재생 중]
+로컬 드라이버(PlayerCharacterAgent.HandleAttackInput)
+    → CharacterInputBuffer.ConsumeAttackPressed()   ← 매 프레임 폴링
+    → 히트 타깃 Set 리셋 + 공격 애니메이션 트리거
+    → [애니메이션 재생 중]
     → Animation Event: PerformHit
     → CharacterHitEventReceiver.PerformHit()
     → HitDetector.Detect()  (OverlapBox)
-    → AbilitySystemComponent (대상)
-    → GameplayEffect 적용
-    → Health 감소
+    → 대상 AbilitySystemComponent → GameplayEffect → Health 감소
 ```
 
-이 구조가 가능하게 하는 확장:
-- 무기별 HitBox (주먹, 검, 창, 대검)
-- 공격마다 다른 타격 프레임
-- 다단 히트, 콤보
-- 마법 투사체, 원거리 공격
-- 서버 권위 판정
+**Hit 판정은 입력 순간이 아니라 Animation Event 기준**이다. 이래야 무기별 히트박스,
+공격마다 다른 타격 프레임, 다단 히트·콤보가 자연스럽게 붙는다.
 
-### GAS (Gameplay Ability System) 방향
+입력 핸들러가 **하면 안 되는 것**: Hit 판정(`HitDetector`)·데미지 적용·`Health` 직접 수정.
+발동과 판정은 분리돼 있어야 서버 권위로 옮길 때 클라 코드가 바뀌지 않는다.
 
-단순 `target.health -= damage` 방식은 쓰지 않는다.
+> 던전(코옵)에서는 **판정 자체가 서버 권위**다 — 클라는 `C_Attack`(트리거)만 보내고
+> 서버가 시전자 위치·yaw로 히트박스를 재계산한다. 클라의 로컬 판정은 연출·싱글(Main) 경로용이다.
+> 상세 = [authority-model.md](authority-model.md) · [gas-architecture.md](gas-architecture.md)
+
+---
+
+## 상호작용 (Action 축)
+
+```
+InteractionDetector        매 프레임 최근접 IInteractable 선택 (탐지 전담)
+    → 로컬 드라이버가 ConsumeInteractPressed() 폴링
+    → IInteractable.Interact(GameObject interactor)   ← 대상이 행동을 소유
+```
+
+- 탐지를 건너뛴 `if (E pressed) Interact()` 직결은 금지 — 대상 선택은 `InteractionDetector` 책임.
+- `Interact(interactor)`가 **instigator를 받는다**. 아이템 줍기·소비 아이템이 "누구에게" 적용할지
+  알아야 하기 때문. 소비 아이템은 그 `IInteractable` 구현체 안에서 `ASC.ApplyEffect`를 호출한다.
+- HUD 강조 표시 등은 `InteractionDetector`의 현재 타깃을 참조하면 된다.
+
+> 실작동 경로는 `Game.Gameplay.Character`(detector + `IInteractable`)다.
+> `Game.Gameplay.Input.InteractionSystem`(리치/라우터)은 아웃게임 등록·휴면 상태로 중복이며 정리 대상.
+
+---
+
+## GAS 연동
+
+단순 `target.health -= damage`는 쓰지 않는다. 데미지는 항상 GameplayEffect로 간다.
 
 ```csharp
-// 현재 MVP 흐름 (임시)
-GameplayEffect effect = new GameplayEffect { AttributeType = AttributeType.Health, Modifier = -10 };
 target.GetComponent<AbilitySystemComponent>().ApplyEffect(effect);
 ```
 
-나중에 확장:
-- `DamageSpec` — 데미지 유형, 관통, 크리티컬 정의
-- `DamageExecution` — 방어력, 저항, 팀 필터링 포함 계산
-- 팀/진영/소유자 필터링
-- Hit Reaction, Death, Knockback, Guard, 무적 처리
+Attribute·Effect·Ability·Cue의 전체 구조와 **2층 연출 분리 / 발동 권위**는
+[gas-architecture.md](gas-architecture.md)가 정식 문서다.
+
+---
 
 ### GameplayAttribute Inspector 직렬화
 
@@ -238,16 +220,15 @@ public class GameplayAttribute
 
 | 역할 | 경로 |
 |------|------|
-| StateKind | `Client/Assets/Script/Main/Character/State/Configs/StateKind.cs` |
-| StateDefinition | `Client/Assets/Script/Main/Character/State/Configs/StateDefinition.cs` |
-| CharacterStateConfig | `Client/Assets/Script/Main/Character/State/Configs/CharacterStateConfig.cs` |
-| StateFactory | `Client/Assets/Script/Main/Character/State/Factory/StateFactory.cs` |
-| StateMachineBuilder | `Client/Assets/Script/Main/Character/State/Builder/StateMachineBuilder.cs` |
-| AttackState | `Client/Assets/Script/Main/Character/State/AttackState.cs` |
-| GroundToAttackTransition | `Client/Assets/Script/Main/Character/State/Transitions/GroundToAttackTransition.cs` |
-| CharacterAgent | `Client/Assets/Script/Main/Character/Agent/CharacterAgent.cs` |
-| HitDetector | `Client/Assets/Script/Main/Character/Weapon/HitDetector.cs` |
-| CharacterHitEventReceiver | `Client/Assets/Script/Main/Character/CharacterHitEventReceiver.cs` |
+| StateKind | `Client/Assets/Script/Gameplay/Character/State/Configs/StateKind.cs` |
+| StateDefinition | `Client/Assets/Script/Gameplay/Character/State/Configs/StateDefinition.cs` |
+| CharacterStateConfig | `Client/Assets/Script/Gameplay/Character/State/Configs/CharacterStateConfig.cs` |
+| StateFactory | `Client/Assets/Script/Gameplay/Character/State/Factory/StateFactory.cs` |
+| StateMachineBuilder | `Client/Assets/Script/Gameplay/Character/State/Builder/StateMachineBuilder.cs` |
+| GroundToAttackTransition | `Client/Assets/Script/Gameplay/Character/State/Transitions/GroundToAttackTransition.cs` |
+| CharacterAgent | `Client/Assets/Script/Gameplay/Character/Agent/CharacterAgent.cs` |
+| HitDetector | `Client/Assets/Script/Gameplay/Character/Weapon/HitDetector.cs` |
+| CharacterHitEventReceiver | `Client/Assets/Script/Gameplay/Character/CharacterHitEventReceiver.cs` |
 | AbilitySystemComponent | `Client/Assets/Script/Main/System/GamePlayAbilitySystem/AbilitySystemComponent.cs` |
 | GameplayEffect | `Client/Assets/Script/Main/System/GamePlayAbilitySystem/Effects/GameplayEffect.cs` |
 | PlayerStateConfig | `Client/Assets/GameResources/StateConfigs/PlayerStateConfig.asset` |
@@ -262,7 +243,7 @@ public class GameplayAttribute
 - StateFactory (StateKind 기반 생성)
 - StateMachineBuilder (Config 읽고 조립)
 - CharacterAgent에 CurrentStateKind Inspector 노출
-- 공격 입력 → GroundToAttackTransition → AttackState → Animator Trigger
+- 공격 입력 → 로컬 드라이버 폴링 → Animator Trigger (FSM 전이 없음)
 - HitDetector (OverlapBox), CharacterHitEventReceiver (Animation Event)
 - GameplayAttribute SerializeField 직렬화
 - Health 감소 확인, 빌드 성공
@@ -282,6 +263,6 @@ public class GameplayAttribute
 | StateFactory는 생성만 | 조합 책임을 분리해 Factory가 계속 커지는 것을 방지 |
 | CharacterStateConfig ScriptableObject | 코드 수정 없이 캐릭터별 State 구성 변경 가능 |
 | Motor 분리 | State 간 결합 제거, 물리 테스트 가능 |
-| AttackState가 데미지 모름 | State 책임 제한, GAS 흐름과 분리 |
+| 발동과 판정 분리 | 입력 핸들러는 데미지를 모른다 — 서버 권위 이관이 쉬워진다 |
 | Animation Event 기반 Hit | 실제 타격 프레임과 판정 타이밍 일치 |
 | IInteractable 인터페이스 | 스위치, NPC, 픽업 등 다양한 상호작용 확장 가능 |

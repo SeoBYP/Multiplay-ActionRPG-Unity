@@ -1,4 +1,8 @@
-# Unity 입력 시스템 설계
+# Unity 입력 시스템 설계 (버퍼 + InputRouter)
+
+> **레퍼런스 문서** — 게임플레이 코드가 Unity Input System 타입을 직접 참조하지 않도록 하는 경계.
+> 강제 규칙 요약 = [.claude/rules/unity-input.md](../../.claude/rules/unity-input.md)
+> 최종 코드 대조: 2026-08-22 (`Script/Main/Character/` → **`Script/Gameplay/Character/`**, `Script/Input/` → **`Script/Gameplay/Input/`**)
 
 > Chapter 1 (입력 버퍼 추상화) + Chapter 10 (InputRouter) 통합 문서
 
@@ -183,7 +187,7 @@ public enum GameInputAction
 
 `InputAction` 오브젝트를 핸들러에 직접 전달하지 않고 자체 열거형으로 변환한다.
 
-이유: `IInputHandler`가 `UnityEngine.InputSystem.InputAction`에 의존하면 `Game.Network`, `Game.OutGame` 같은 하위 레이어가 InputSystem 어셈블리에 의존하게 된다. 열거형 하나로 추상화하면 핸들러를 순수 C# 클래스로 구현할 수 있어 EditMode 테스트에서 Unity 없이 검증 가능하다.
+이유: `IInputHandler`가 `UnityEngine.InputSystem.InputAction`에 의존하면 `Game.Network`, `Game.Presentation` 같은 하위 레이어가 InputSystem 어셈블리에 의존하게 된다. 열거형 하나로 추상화하면 핸들러를 순수 C# 클래스로 구현할 수 있어 EditMode 테스트에서 Unity 없이 검증 가능하다.
 
 ### IInputHandler — Chain of Responsibility
 
@@ -251,15 +255,15 @@ MonoBehaviour가 아닌 POCO. VContainer가 생성자 주입으로 의존성을 
 
 | 역할 | 경로 |
 |------|------|
-| PlayerInputComponent | `Client/Assets/Script/Main/Character/Input/PlayerInputComponent.cs` |
-| ICharacterInputWriter | `Client/Assets/Script/Main/Character/Input/ICharacterInputWriter.cs` |
-| ICharacterInputSource | `Client/Assets/Script/Main/Character/Input/ICharacterInputSource.cs` |
-| CharacterInputBuffer | `Client/Assets/Script/Main/Character/Input/CharacterInputBuffer.cs` |
-| CharacterInputFrame | `Client/Assets/Script/Main/Character/Input/CharacterInputFrame.cs` |
-| GameInputAction | `Client/Assets/Script/Input/GameInputAction.cs` |
-| IInputHandler | `Client/Assets/Script/Input/IInputHandler.cs` |
-| InputRouter | `Client/Assets/Script/Input/InputRouter.cs` |
-| InteractionSystem | `Client/Assets/Script/Input/InteractionSystem.cs` |
+| PlayerInputComponent | `Client/Assets/Script/Gameplay/Character/Input/PlayerInputComponent.cs` |
+| ICharacterInputWriter | `Client/Assets/Script/Gameplay/Character/Input/ICharacterInputWriter.cs` |
+| ICharacterInputSource | `Client/Assets/Script/Gameplay/Character/Input/ICharacterInputSource.cs` |
+| CharacterInputBuffer | `Client/Assets/Script/Gameplay/Character/Input/CharacterInputBuffer.cs` |
+| CharacterInputFrame | `Client/Assets/Script/Gameplay/Character/Input/CharacterInputFrame.cs` |
+| GameInputAction | `Client/Assets/Script/Gameplay/Input/GameInputAction.cs` |
+| IInputHandler | `Client/Assets/Script/Gameplay/Input/IInputHandler.cs` |
+| InputRouter | `Client/Assets/Script/Gameplay/Input/InputRouter.cs` |
+| InteractionSystem | `Client/Assets/Script/Gameplay/Input/InteractionSystem.cs` |
 | LobbyViewController | `Client/Assets/Script/GUI/OutGame/LobbyViewController.cs` |
 | InputRouterTests | `Client/Assets/Script/Tests/EditMode/Input/InputRouterTests.cs` |
 

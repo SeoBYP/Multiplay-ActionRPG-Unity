@@ -1,158 +1,180 @@
-# 챕터 16 학습 로그 — Main 싱글 루트 경로 (클라 시뮬·렌더 + 서버 검증 B-lite)
+# 16. 싱글 플레이의 보상 — 내가 틀린 설계를 스스로 깬 기록
 
-> 3.3 B / 4.6.3. 챕터 15(던전 = 서버 권위 루트)의 후속.
-> **이 챕터의 핵심 = 설계가 한 번 틀렸다가 교정된 과정이다.**
-> 처음엔 "Main은 싱글이니 클라 권위로 드랍을 판정하고 `GrantItem` gRPC로 지급, 진입점 가드면 충분"이라 봤다.
-> 그런데 그 가드는 **무한 파밍 핵**을 못 막았다 — 클라가 몬스터를 무한 스폰해 잡고 `GrantItem`을 연타하면 만렙.
-> 그래서 **B-lite 서버 검증**(클라는 "어느 슬롯을 죽였다"만 보고, 서버가 map 데이터로 검증·roll·지급)으로 교정했다.
-> 정본 = [main-spawn-claim.md](../wiki/main-spawn-claim.md) / [authority-model.md §4b](../wiki/authority-model.md).
-
-## 한눈에 — 두 경로의 차이 (교정 후)
-
-```
-던전 (Co-op·서버권위)                         Main (싱글·클라 시뮬 + 서버 검증)
-──────────────────────                        ──────────────────────
-몬스터 sim/사망  : SocketServer                몬스터 sim/렌더  : Client(LocalMonster)
-드랍 roll        : SocketServer                드랍 roll        : **GameServer**(ClaimKill 시 권위 roll)
-바닥/줍기 중재   : SocketServer(경쟁)          바닥 오브        : Client(연출만, 내용은 서버가 결정)
-지급(영속)       : GameServer ← Redis Stream   지급(영속)       : GameServer ← gRPC **ClaimKill**
-                   (SocketServer 발행)                            (슬롯 검증 + 쿨다운 + 권위 roll)
-```
-
-**공통점**: 영속 보상의 **내용·정원을 클라가 정하지 못한다**(둘 다 서버 권위 roll). 던전은 SocketServer가, Main은 GameServer가 그 권위를 가진다. 클라는 "무슨 일이 있었는지"(킬)만 보고하고, "무엇을 받을지"는 서버가 결정한다.
+> **한 줄** — "싱글 플레이니까 클라가 판정해도 된다"고 설계했다가 **무한 파밍 핵**을 막지 못한다는 걸 발견하고 뒤집었다. 교정의 핵심은 검증을 강화한 게 아니라 **클라가 보고하는 내용을 바꾼 것**이다 — "이 아이템을 달라"에서 "이 슬롯을 죽였다"로.
+>
+> **범위** 권위 경계 재설계 · 원자적 쿨다운 · 데이터 진실원 · 클라 시뮬 컴포넌트
+> **정본** [main-spawn-claim.md](../wiki/main-spawn-claim.md) · [authority-model §4b](../wiki/authority-model.md)
 
 ---
 
-## 설계 결정과 근거
+## 1. 1차 설계와 그 논리
 
-### 1. 폐기된 1차 설계 — "싱글이니 클라 권위 + GrantItem 가드" (왜 틀렸나)
-
-처음 논리: 던전은 경쟁·치팅 방지가 필수라 SocketServer가 다 판정하지만, Main은 싱글 PVE라 동기화할 상대가 없으니 클라가 로컬에서 끝내고 줍는 순간 `GrantItem(itemId, qty)` gRPC 1번만 치자. 위조 가능성은 "싱글 + 서버 가드 3겹"으로 수용:
+던전(Co-op)은 경쟁과 치팅 방지 때문에 SocketServer가 전부 판정한다([15](./chapter-15-loot-drop-inventory.md)). Main은 싱글이라 **동기화할 상대가 없다.** 그래서 이렇게 갔다.
 
 ```
-GrantItem(item_id, qty)  가드 3겹:
-  ① 인증     = AuthInterceptor(JWT)
-  ② 수량 상한 = MaxGrantPerCall=99 (gRPC 진입점)
-  ③ 정의 검증 = ItemCatalog.Get(itemId)==null 이면 실패
+클라가 로컬에서 몬스터를 잡고 → 줍는 순간 GrantItem(itemId, qty) gRPC 1번
+
+서버 가드 3겹:
+  ① 인증      AuthInterceptor(JWT)
+  ② 수량 상한  MaxGrantPerCall = 99
+  ③ 정의 검증  ItemCatalog.Get(itemId) == null 이면 거부
 ```
 
-**무엇이 구멍이었나** — 이 가드는 *한 호출의 위조 폭*만 제한하지 *호출 빈도*를 막지 못한다. 치터가:
-```
-LocalMonster 무한 스폰(클라가 결정) → 잡기 → GrantItem(qty≤99) 연타  →  무한 아이템 → 사실상 만렙
-```
-"싱글이라 안전"은 **진행이 서버 계정에 영속되는 순간** 거짓이 된다 — 솔로 플레이어도 자기 계정을 치팅할 수 있고, 그게 다른 사회적/경쟁 맥락과 닿으면 문제다. 이건 플레이어 HP를 서버 권위로 승격할 때와 **같은 교훈**(authority-model §0: *"클라가 할 수 있다 ≠ 소유해야 한다"*)이었는데, 루트에선 한 박자 늦게 깨달았다.
+세 겹이면 충분해 보였다. 아이템을 지어낼 수도 없고(③), 한 번에 많이 받을 수도 없다(②).
 
-**근본 정리**: 클라가 저작한 이벤트("내가 잡았다")는 **서버가 그 콘텐츠를 소유하지 않는 한 검증 불가능**하다. rate-limit은 파밍 *속도*만 늦추는 반창고일 뿐 근본 차단이 아니다.
+## 2. 무엇이 구멍이었나
 
-### 2. 교정 설계 — B-lite (서버가 map 데이터를 보유 → 슬롯 단위 검증)
-
-서버가 **map 스폰 데이터를 보유**(이미 던전이 쓰던 `spawn-layouts`에 Main map 추가)하면, 클라의 킬을 **슬롯 단위로 검증**할 수 있다. 클라는 "보상을 달라"가 아니라 **"어느 슬롯을 죽였다(mapId, slotId)"**만 보고한다.
+**이 가드들은 한 호출의 위조 폭만 제한하고, 호출 빈도는 전혀 막지 못한다.**
 
 ```
-LocalMonster(slot) 킬 → 오브 → E 줍기 → ClaimKill(mapId, slotId) ─▶ GameServer
-   ① 슬롯 ∈ map ?              (SpawnLayoutTable — 위조 슬롯/맵 거부)
-   ② per-user 쿨다운 경과 ?     (Redis SET NX PX — 재청구 차단 = 파밍률 상한)
-   ③ 서버 권위 DropTableRoll    (클라 roll 불신 — 보상 내용을 서버가 결정)
-   → GrantItemAsync → granted[] 반환
+LocalMonster 를 무한 스폰 (스폰 결정권이 클라에 있다)
+    → 잡는다 (판정도 클라)
+    → GrantItem(qty ≤ 99) 연타
+    → 가드 3겹을 전부 통과하면서 무한 파밍 → 사실상 만렙
 ```
 
-- **`SET key NX PX cooldownMs` 한 줄**이 "키 없으면 점유(클레임)+TTL / 있으면 쿨다운 중(거부)"을 원자 처리 — 레이스 없음.
-- 파밍률이 **맵 설계치(슬롯 수 ÷ 쿨다운)로 상한**된다. 무한 스폰해도 쿨다운 내 재청구는 보상 0.
-- `GrantItem(itemId,qty)` gRPC는 **제거**(치팅 진입점 봉쇄). 도메인 `GrantItemAsync`는 ClaimKill·던전 `LootGrantConsumer`가 계속 쓴다.
-- **클라 재스폰**: 슬롯 쿨다운(서버와 동일 값) 후 `MainMonsterSpawner`가 그 슬롯에 몬스터를 다시 스폰 → 재등장 시점에 보상도 다시 가능.
+각 호출은 **완벽하게 합법**이다. 인증됐고, 수량 제한 안이고, 존재하는 아이템이다. 그런데 전체는 부정이다.
 
-**안 한 것(YAGNI)**: B-full(Main을 서버 권위 풀 시뮬 = 솔로 소켓 세션)은 co-op 오픈월드가 필요해질 때. 지금은 서버가 map 데이터 + 클레임 쿨다운만 보유(실시간 AI 없음).
+### "싱글이니까 안전하다"가 거짓이 되는 지점
 
----
+**진행이 서버 계정에 영속되는 순간**이다. 솔로 플레이어도 자기 계정을 치팅할 수 있고, 그 계정은 언젠가 Co-op·랭킹·거래 같은 사회적 맥락과 닿는다. "혼자 노는데 무슨 상관이냐"는 **게임이 정말로 로컬에서 끝날 때만** 성립한다.
 
-### 3. DropTable·스폰 데이터화 — SO 저작 → bake → 서버 (데이터 진실원 교리)
+### 근본 정리
 
-처음 DropTable은 SocketServer 하드코딩이었다(챕터 15). 클라(디자이너)는 ScriptableObject로 편집하고 싶고, 서버는 `.asset`을 못 읽는다(`Shared.*`는 Unity 밖 DLL). 충돌의 해법 = 이 프로젝트의 **데이터 진실원 교리**([gas-architecture §2.5](../wiki/gas-architecture.md)):
+> **클라가 저작한 이벤트는, 서버가 그 콘텐츠를 소유하지 않는 한 검증할 수 없다.**
+
+"내가 몬스터를 잡았다"는 주장은 서버가 몬스터의 존재를 모르면 참·거짓을 판정할 방법이 없다. 이 상태에서 할 수 있는 건 rate-limit뿐인데, 그건 파밍 **속도만 늦추는 반창고**이지 차단이 아니다.
+
+이건 플레이어 HP를 서버 권위로 올릴 때 이미 배운 것과 같은 교훈이었다 — **"클라가 할 수 있다"와 "클라가 소유해야 한다"는 다르다**([authority-model §0](../wiki/authority-model.md)). 루트에서는 한 박자 늦게 깨달았다.
+
+## 3. 교정 — 질문을 바꾼다
+
+고민을 "어떻게 더 막을까"에서 **"클라가 무엇을 보고하게 할까"** 로 바꿨다.
+
+서버는 이미 던전용으로 **맵 스폰 데이터**를 갖고 있었다(`spawn-layouts`). Main 맵을 여기에 추가하면, 서버가 **어느 자리에 어떤 몬스터가 있는지**를 알게 된다. 그러면 클라의 킬을 **슬롯 단위로 검증**할 수 있다.
 
 ```
-[기획자] SO 저작(편집 쉬움)  ─Export bake→  *.json(서버 임베디드, 기획자 비노출)  →  서버가 읽어 검증
+[클라] LocalMonster(slot) 킬 → 바닥 오브 → E 줍기
+          → ClaimKill(mapId, slotId)          ← "보상을 달라"가 아니라 "이 슬롯을 죽였다"
+                     │
+[서버]  ① 슬롯이 그 맵에 존재하는가        (SpawnLayoutTable — 위조 슬롯/맵 거부)
+        ② per-user 쿨다운이 지났는가        (Redis SET NX PX — 재청구 차단)
+        ③ 서버 권위 roll                    (DropTableCatalog.Roll — 클라 roll 불신)
+          → GrantItemAsync → granted[] 반환
 ```
 
-이 교리를 세 종류 데이터가 동일하게 따른다:
+**클라는 더 이상 보상의 내용을 말하지 않는다.** 사실(어느 슬롯이 죽었다)만 보고하고, 무엇을 받을지는 서버가 정한다.
 
-| 데이터 | 저작 SO | bake | 서버 로드 |
-| --- | --- | --- | --- |
-| 드랍 | `DropTableDefinition` | `drop-tables.json` | `DropTableCatalog`(Shared.Infrastructure) |
-| 스폰/슬롯 | `MapDefinition.MonsterSpawn`(+`slotId`/`respawnCooldownMs`) + 맵 에디터 마커 | `spawn-layouts.json` | `SpawnLayoutTable` |
+`GrantItem(itemId, qty)` gRPC는 **제거**했다 — 치팅 진입점 자체를 없앴다. 도메인 메서드 `GrantItemAsync`는 살아서 `ClaimKill`과 던전 `LootGrantConsumer`가 계속 쓴다.
+
+> proto 파일에 그 이유가 박제돼 있다 — `inventory.proto:15` *"구 GrantItem(itemId,qty)을 대체(클라가 보상 임의지정 = 무한파밍 핵 차단)"*.
+
+## 4. 파밍률을 맵 설계로 상한 짓기
+
+```csharp
+// RedisClaimCooldownStore.cs:18 — 한 줄이 "점유 + TTL" 을 원자 처리
+=> _redis.StringSetAsync(key, "1", ttl, when: When.NotExists);
+```
+
+`SET key NX PX cooldownMs`는 **키가 없으면 점유하고 TTL을 걸고, 있으면 실패**한다. 검사와 점유 사이에 틈이 없으므로 동시 요청 경쟁이 없다.
+
+효과는 정책적으로도 깔끔하다.
+
+```
+파밍률 상한 = 맵의 슬롯 수 ÷ 슬롯당 쿨다운
+```
+
+무한 스폰을 해도 **쿨다운 안의 재청구는 보상이 0**이다. 치팅 방어가 별도 규칙이 아니라 **맵 설계 수치에서 자동으로 따라 나온다.**
+
+클라도 같은 쿨다운 값을 써서 그 슬롯에 몬스터를 다시 스폰한다 — 재등장 시점과 재보상 시점이 일치하므로 플레이어 체감이 자연스럽다.
+
+**하지 않은 것(YAGNI)** — B-full(Main을 서버 권위 풀 시뮬 = 솔로 소켓 세션)은 Co-op 오픈월드가 필요해질 때. 지금 서버는 **맵 데이터와 쿨다운만** 갖고 실시간 AI는 돌리지 않는다.
+
+## 5. 두 경로는 다르지만 불변식은 같다
+
+| | 던전 (Co-op) | Main (싱글) |
+|---|---|---|
+| 몬스터 시뮬 | SocketServer | **클라** (`LocalMonster`) |
+| 드랍 roll | SocketServer | **GameServer** (ClaimKill 시) |
+| 줍기 중재 | SocketServer (경쟁) | 불필요 (혼자) |
+| 지급 | GameServer ← Redis Stream | GameServer ← gRPC ClaimKill |
+
+**공통 불변식 — 영속되는 보상의 내용과 정원을 클라가 정하지 못한다.** 권위를 가진 주체만 다르고(던전=SocketServer, Main=GameServer), 규칙은 하나다.
+
+## 6. 데이터는 SO에서 저작하고 서버는 bake된 것을 읽는다
+
+드랍 테이블은 처음에 SocketServer 하드코딩이었다. 그런데 기획 데이터는 **디자이너가 ScriptableObject로 편집**하고 싶고, 서버는 `.asset`을 읽을 수 없다(`Shared.*`는 Unity 밖 DLL).
+
+```
+[기획] SO 저작  ──Export bake──▶  *.json (서버 임베디드)  ──▶  서버가 읽어 검증
+```
+
+세 종류가 같은 교리를 따른다.
+
+| 데이터 | 저작 SO | bake 산출물 | 서버 로드 |
+|---|---|---|---|
+| 드랍 | `DropTableDefinition` | `drop-tables.json` | `DropTableCatalog` |
+| 스폰/슬롯 | `MapDefinition` + 맵 에디터 마커 | `spawn-layouts.json` | `SpawnLayoutTable` |
 | 소모품 회복 | `ConsumableCatalog` | `consumable-effects.json` | `ConsumableEffectCatalog` |
 
-- roll *로직*은 결정성을 위해 공유 DLL `Shared.Gameplay.DropTableRoll`(순수)에 둔다 — 던전·Main이 같은 함수. B-lite에선 이 함수를 **서버(ClaimKill)가** 호출한다(클라 roll은 제거).
-- `slotId`/`respawnCooldownMs`는 처음 JSON·런타임 파서에만 넣었다가, "**기획자가 SO에서 못 보고 재-export 시 날아간다**"는 지적으로 `MapDefinition` SO + 맵 에디터 마커까지 round-trip하도록 보완했다. 교리는 "데이터가 저작 SO에 있어야 한다"까지가 완성.
+roll **로직**은 결정성을 위해 공유 DLL(`Shared.Gameplay.DropTableRoll`, 순수 함수)에 둔다 — 던전과 Main이 같은 함수를 쓴다. 다만 B-lite 이후 그 함수를 **호출하는 주체가 서버**로 바뀌었다.
 
----
+### 교리가 완성된 지점
 
-### 4. Main 로컬 전투는 던전 컴포넌트를 재사용하지 않는다
+`slotId`/`respawnCooldownMs`를 처음엔 **JSON과 런타임 파서에만** 넣었다. 지적을 받고 `MapDefinition` SO와 맵 에디터 마커까지 왕복(round-trip)하도록 보완했다.
 
-던전 `MonsterEntity`·`GroundItemEntity`는 "서버 명령을 받아 표시·중계"하는 전용(보간, `C_PickupItem`). Main은 클라가 *시뮬·렌더*하는 역할이라 근본이 다르다. 억지로 합치면 분기로 더 복잡해진다 — 그래서 별도 컴포넌트:
+> **이유** — 저작 SO에 없는 값은 **기획자가 볼 수 없고, 다시 Export하면 날아간다.** "데이터가 서버에 도달한다"까지가 아니라 **"데이터가 저작 지점에 존재한다"**까지가 교리의 완성이다. (이 드리프트는 나중에 다른 데이터에서 실제로 터진다 → [27](./chapter-27-silent-failure.md) 6절)
+
+## 7. 컴포넌트는 나누고, 로직은 공유한다
+
+던전의 `MonsterEntity`·`GroundItemEntity`는 **"서버 명령을 받아 표시·중계"** 전용이다(보간, `C_PickupItem`). Main은 클라가 **시뮬·렌더**한다. 근본이 달라서 억지로 합치면 분기만 늘어난다.
 
 ```
-LocalMonster   : HP·간단 AI(Chase + 근접 공격 → 플레이어 ASC 즉발 피해)·TakeDamage→OnDied + slotId/mapId
-LocalCombat    : PlayerCharacterAgent.OnAttackPerformed 구독 → Physics.OverlapSphere 수집
-                 → 서버와 동일 HitboxMath.Overlaps(basic_swing) 정밀 판정 → TakeDamage
-LocalGroundItem: IInteractable, E 줍기 → IInventoryGrpcService.**ClaimKillAsync(mapId, slotId)** → granted 반영
-MainMonsterSpawner: 비-Joined(Main)일 때만 슬롯 기반 스폰, OnDied → 오브 스폰 + 슬롯 쿨다운 후 재스폰
+LocalMonster        HP · 간단 AI(추격+근접 공격) · TakeDamage→OnDied + slotId/mapId
+LocalCombat         공격 이벤트 구독 → OverlapSphere 광역 수집 → HitboxMath 정밀 판정
+LocalGroundItem     IInteractable, E → ClaimKillAsync(mapId, slotId) → granted 반영
+MainMonsterSpawner  Main 일 때만 슬롯 기반 스폰, 사망 후 쿨다운 뒤 재스폰
+LocalRespawnController  Main 전용 타이머 부활 (던전은 등록하지 않음 = 다운 잠금 유지)
 ```
 
-**재사용한 것은 "로직"이지 "컴포넌트"가 아니다** — 적중 `HitboxMath`, roll `DropTableRoll`은 던전 서버와 같은 `Shared.Gameplay` DLL. 단, B-lite 후 **roll은 클라가 아닌 서버가** 호출한다(LocalGroundItem은 슬롯만 들고 ClaimKill).
+> **재사용한 것은 로직이지 컴포넌트가 아니다** — 적중 판정 `HitboxMath`, 드랍 `DropTableRoll`은 던전 서버와 **같은 `Shared.Gameplay` DLL**이다. 표현 계층은 각자, 결정론 코어는 공유.
 
-> 플레이어 사망/리스폰도 이 경로에 합류했다(2.5.1): `LocalMonster`의 근접 공격이 플레이어 HP를 깎아 HP0이면 `PlayerCharacterAgent`가 다운(State.Dead 게이트), Main 전용 `LocalRespawnController`가 일정 시간 후 부활. 던전은 이 컨트롤러를 등록하지 않아 다운잠금 유지(의도된 비대칭).
+대상 수집도 별도 레지스트리를 만들지 않고 `Physics.OverlapSphere` + `GetComponentInParent`로 끝냈다. 몬스터에는 이미 콜라이더가 있다 — **엔진이 이미 유지하는 인덱스를 다시 만들 이유가 없다.**
 
----
+## 8. 부딪힌 것들
 
-### 5. 몬스터 수집은 레지스트리 대신 Physics
+**슬롯이 처치 후 영구히 비었다** — 서버 쿨다운(재청구 차단)은 넣었는데 클라가 시작 시 1회만 스폰해서, 다 잡으면 필드가 비었다. 서버와 **같은 쿨다운 값**으로 재스폰을 넣어 클라·서버 시점을 맞췄다.
 
-`LocalCombat`이 때릴 대상을 별도 리스트로 관리할 수도 있지만, 몬스터엔 콜라이더가 있으니 `Physics.OverlapSphere` + `GetComponentInParent<LocalMonster>`로 광역 수집 후 `HitboxMath`로 정밀 판정하면 레지스트리 동기화 없이 끝난다. Unity 관용 — YAGNI.
+**`Game.System`이 `System`을 가렸다** — `Game.Gameplay.Character` 안에서 `System.Random`의 `System`이 `Game.System`으로 해석돼 컴파일이 깨졌다. `global::System.Random`으로 해결. 테스트 규칙이 경고하던 함정이 **런타임 코드에서도** 나타났다.
 
----
+**타입명 충돌** — 파싱 결과 타입을 `MonsterSpawn`으로 지었는데 저작 SO의 `MapDefinition.MonsterSpawn`과 부딪혔다(`CS0101`). 런타임 타입을 `MonsterSlot`으로 개명 — **저작 타입과 런타임 타입은 다른 레이어**라 이름도 달라야 한다.
 
-## 트러블슈팅 (실제 디버깅)
+**로컬은 그린인데 Docker만 실패** (`NETSDK1004`) — `Shared.Infrastructure → Shared.Gameplay` 참조를 추가했더니 Dockerfile의 **선택 restore 목록**에 그 csproj가 없어서 컨테이너 빌드만 깨졌다.
+> **교훈** — 공유 프로젝트의 참조 그래프를 바꾸면 Dockerfile도 같이 봐야 한다. **로컬 그린 ≠ Docker 그린.**
 
-### 슬롯이 처치 후 영구히 비었다 — 클라 재스폰 누락
-서버 ClaimKill 쿨다운(재청구 차단)은 넣었지만, 클라 `MainMonsterSpawner`가 슬롯을 시작 시 1번만 스폰해 다 잡으면 필드가 영구히 비었다. → `ScheduleRespawn`(`UniTask.Delay(RespawnCooldownMs)` 후 재스폰, `_cts`로 Dispose 취소)로 보완. 서버 쿨다운과 같은 값이라 재스폰 시점에 보상도 다시 가능 = 클라·서버 일관.
+## 9. 그 이후
 
-### 런타임 타입명이 저작 SO 타입과 충돌 — `MonsterSpawn` 중복
-spawn-layouts 파싱 결과용 런타임 타입을 `MonsterSpawn`으로 지었는데, 같은 네임스페이스에 저작 SO 타입 `MapDefinition.MonsterSpawn`이 이미 있어 `CS0101`. → 런타임 타입을 `MonsterSlot`으로 개명(저작 SO ≠ 런타임 파싱 결과, 두 레이어 구분).
+이 챕터의 슬롯 검증 구조 위에 **경험치 청구가 추가**됐다.
 
-### `Game.System` 네임스페이스가 `System`을 가렸다
-`Game.Gameplay.Character` 안에서 `System.Random`의 `System`이 `Game.System`으로 해석돼 컴파일 에러 → `global::System.Random`. (CLAUDE.md 테스트 규칙이 경고하던 함정이 런타임 코드에서도.)
+```
+ClaimMonsterExp(mapId, slotId)     ← 킬 즉시 (줍기 여부와 무관)
+   ① 같은 슬롯 검증 재사용
+   ② 아이템과 **독립된 쿨다운 키** — 줍지 않아도 exp 는 받고, 각자의 상한을 가진다
+   ③ exp 값도 서버 권위 (MonsterCatalog.Get(...).ExpReward, 클라 신뢰 0)
+   ④ 쿨다운 중이면 exp 0 — 에러가 아니라 정상 응답
+```
 
-### Docker 빌드만 실패 — 전이 의존 누락(`NETSDK1004`)
-`Shared.Infrastructure → Shared.Gameplay` 참조 추가 후 로컬 sln은 통과하나 GameServer Docker만 실패. Dockerfile의 선택 restore 목록에 `Shared.Gameplay.csproj`가 없어서. → COPY 한 줄 추가. 교훈: 공유 프로젝트 참조 그래프를 바꾸면 Dockerfile 선택 restore 목록도 갱신. 로컬 그린 ≠ Docker 그린.
-
----
-
-## 검증
-
-| 영역 | 방식 |
-| --- | --- |
-| ClaimKill 슬롯/쿨다운/서버roll/미인증 | 단위 `MainSpawnClaimServiceTests` + `InventoryGrpcServiceTests`(GameServer) |
-| 드랍 roll 확률/수량 | 단위 `DropTableRollTests`(Shared.Gameplay) |
-| 임베디드 데이터 파싱(SO→Export 반영) | 단위 `DropTableCatalogTests`(SocketServer) |
-| Main ClaimKill 체인(정상지급·쿨다운차단·위조슬롯) | E2E `MainLootE2ETests` 3종(Docker) |
-| 적중 판정 | 단위 `HitboxMathTests`(Shared.Gameplay) |
-| 슬롯 스폰→킬→ClaimKill 지급(potion+gold)→5s 재스폰→쿨다운 차단, 다운→3s 부활 | **플레이 검증(사람)** |
-
-전체 서버 솔루션 **374 그린**(Docker 리빌드 후) + Unity PlayMode E2E + 플레이. 자동 테스트(로직·서버 계약)와 플레이(MonoBehaviour 글루)가 상호 보완.
+쿨다운 저장소도 `IClaimCooldownStore`로 추상화돼 테스트에서 `FakeClaimCooldownStore`로 교체된다 — [인터페이스 도입 기준](../wiki/unity-layer-separation.md)("테스트에서 실제로 교체한다")을 충족하는 사례다.
 
 ---
 
-## 핵심 키워드 정리
+### 이 챕터가 이후에 미친 영향
 
-| 키워드 | 한 줄 설명 |
-| --- | --- |
-| 클라가 할 수 있다 ≠ 소유해야 | 싱글이라 클라가 판정 *가능*하지만, 영속 보상은 서버가 *소유*해야(파밍 핵 차단) |
-| GrantItem → ClaimKill | itemId/qty 클라 지정(파밍 핵) 폐기 → mapId/slotId만 보고, 서버가 검증·roll·지급 |
-| B-lite | 서버가 map 데이터 보유 → 슬롯/쿨다운 검증 + 권위 roll. 실시간 AI는 클라(B-full은 YAGNI) |
-| Redis SET NX PX | per-(user,slot) 쿨다운을 원자적으로 점유 = 재청구(파밍) 차단 |
-| 데이터 진실원 교리 | 드랍·스폰·소모품 = SO 저작 → bake → 서버 읽어 검증(gas-architecture §2.5) |
-| 슬롯 라운드트립 | slotId/respawnCooldownMs를 MapDefinition SO + 맵 에디터 마커까지(재-export 보존) |
-| 클라 재스폰 | 슬롯 쿨다운 후 MainMonsterSpawner 재스폰(서버 쿨다운과 동일 값) |
-| 컴포넌트 분리 | LocalMonster/LocalCombat/LocalGroundItem = 클라 신규(던전 보간 컴포넌트 재사용 X) |
-| Physics 수집 | 레지스트리 대신 OverlapSphere(Unity 관용, YAGNI) |
-| `global::System` / `MonsterSlot` 개명 | 네임스페이스·타입명 충돌 회피(저작 SO ≠ 런타임 타입) |
-| Docker 전이 의존 | 참조 그래프 변경 시 Dockerfile 선택 restore 목록도 갱신(로컬 그린 ≠ Docker 그린) |
+| 여기서 정한 것 | 나중에 지탱한 것 |
+|---|---|
+| 클라는 사실만 보고, 보상은 서버가 결정 | 퀘스트 진행도 같은 형태(클라 보고 없음, 킬 funnel 훅)([19](./chapter-19-quest-system.md)) |
+| 원자 쿨다운으로 파밍률 상한 | 발동 게이트(쿨다운·마나)의 원자 처리([23](./chapter-23-mana-resource-authority-ability.md)) |
+| SO 저작 → bake → 서버 | 어빌리티·몬스터·레벨·스폰 전부 이 파이프라인으로([20](./chapter-20-content-pipeline-addressables.md)·[26](./chapter-26-measured-combat-cleanup.md)) |
+| 저작 지점에 데이터가 있어야 완성 | 저작↔bake 드리프트 감시([27](./chapter-27-silent-failure.md)) |
+
+> 이 챕터의 원본 학습 로그 = [learning-log/chapter-16-main-loot-path.md](../learning-log/chapter-16-main-loot-path.md)

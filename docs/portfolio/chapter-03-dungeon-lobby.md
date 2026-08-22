@@ -1,260 +1,184 @@
-# 챕터 3 학습 로그 — 실시간 던전 로비 시스템
+# 03. 실시간 로비 — 밀어주는 서버, 그리고 같은 자리를 노리는 두 사람
 
-## 처음 알았던 것 vs 피드백으로 수정된 것
-
-### Polling vs Streaming — "둘 다 똑같은 거 아냐?"
-
-**처음 내가 생각한 것:**
-Polling이나 Streaming이나 결국 클라이언트가 서버한테 물어보고 받아오는 거라서 똑같다고 생각했음.
-
-**피드백:**
-연결 방식 자체가 다름.
-
-| | Polling | Streaming |
-|--|--|--|
-| 연결 방식 | 요청할 때마다 연결 맺고 끊음 | 한 번 연결 후 계속 유지 |
-| 서버 부하 | 요청마다 세션 생성 비용 발생 | 연결 유지 비용만 발생 |
-| 실시간성 | 주기 간격만큼 딜레이 | 이벤트 발생 즉시 전달 |
-| 불필요한 요청 | 변화 없어도 매번 요청 | 변화 있을 때만 전송 |
-
-Polling은 "5초마다 물어봐도 될까요?" → 방이 안 바뀌어도 계속 요청.
-Streaming은 "방에 변화가 생기면 알려줄게요" → 변화가 있을 때만 서버가 push.
-
-**추가로 배운 것:**
-- Polling 개선판이 Long Polling (응답 올 때까지 연결 유지)
-- Long Polling보다 효율적인 게 Server-Sent Events (단방향)
-- 양방향이 필요하면 WebSocket 또는 gRPC Stream
-- 이 프로젝트에서는 WebSocket을 쓰지 않은 이유: gRPC로 채팅/로비를 커버 가능해서 기술 부채 최소화
+> **한 줄** — 방 목록을 폴링으로 새로 고치는 대신 **gRPC 서버 스트리밍으로 밀어주고**, 스트림이 나르는 것은 방 상태가 아니라 **"다시 읽어라"는 RoomId 하나**로 고정했다. 그 대가로 만난 것이 동시 입장 경쟁이다.
+>
+> **범위** 스트리밍 선택 · Bounded Channel 백프레셔 · 동시성 · 방장 승계 · N+1
+> **검증** `DungeonLobbyE2ETests`(Docker 대상) · `DungeonLobbySubscriptionServiceTests`
 
 ---
 
-### gRPC Server-Side Streaming 선택 이유
+## 1. 폴링을 버린 기준
 
-**내가 이해한 것:**
-방 정보는 서버 → 클라이언트 방향으로만 보내면 되니까 Server-Side Streaming으로 충분.
+"결국 클라가 물어보고 받는 건 똑같지 않나"라고 생각했었다. 다른 건 **비용이 어디서 발생하느냐**다.
 
-**피드백으로 추가된 것:**
-맞음. Bi-directional Streaming은 양방향이 필요할 때 사용.
-로비에서는 클라이언트가 스트림으로 데이터를 보낼 필요 없음 → Server-Side가 적합.
+| | Polling | Server Streaming |
+|---|---|---|
+| 연결 | 요청마다 맺고 끊음 | 한 번 맺고 유지 |
+| 변화가 없을 때 | **그래도 요청** (전부 낭비) | 아무것도 흐르지 않음 |
+| 지연 | 주기만큼 (최대 N초) | 이벤트 발생 즉시 |
+| 서버 비용 | 요청 수 × 세션 생성 | 연결 수 × 유지 비용 |
 
----
+로비는 **대부분의 시간 동안 아무 일도 일어나지 않는다.** 방이 하나도 안 바뀌어도 폴링은 초당 N회 요청을 만든다. 이 지점에서 두 방식의 비용 곡선이 갈린다.
 
-### Redis Pub/Sub + Bounded Channel 구조
+선택지는 스펙트럼이었다 — `Polling → Long Polling → SSE → WebSocket / gRPC Stream`. 로비는 **서버 → 클라 단방향**이면 충분하므로(클라가 스트림으로 올려 보낼 게 없다) 양방향 스트리밍은 과했고, WebSocket은 gRPC로 이미 되는 일을 두 기술로 나눠 갖는 셈이라 기각했다([01](./chapter-01-architecture.md)의 프로토콜 중복 회피와 같은 판단).
 
-**내가 설계한 것:**
-Pub/Sub으로 알림 처리해서 같은 방에 있는 유저들끼리만 통신되게 했음.
+## 2. 스트림의 뼈대 — 채널이 나르는 것은 "RoomId 하나"
 
-**피드백 — 왜 Bounded Channel을 쓰는가:**
-
-처음엔 "멀티 스레드로 프레임 분산을 위해서"라고 이해했음.
-
-실제 이유는 두 가지:
-
-**1. 스레드 경계 분리**
 ```
-Redis Subscriber 스레드 (메시지 수신)
-       ↓  Channel.Writer.TryWrite()
-  Bounded Channel
-       ↓  Channel.Reader.ReadAllAsync()
-gRPC 스트림 스레드 (클라이언트에 전송)
-```
-Redis 수신과 gRPC 전송을 직접 연결하면 Redis 스레드가 gRPC 처리를 기다려야 함.
-채널로 분리하면 각자 독립적으로 동작 → 병렬 처리 가능.
-
-**2. 백프레셔 (Backpressure)**
-채널 크기를 제한해서 처리 못하는 메시지가 무한 쌓이는 것을 방지.
-`BoundedChannelFullMode.DropOldest`를 선택한 이유:
-
-| 옵션 | 동작 | 문제 |
-|------|------|------|
-| Wait | 꽉 차면 발행 대기 | Redis 스레드 블로킹 |
-| DropNewest | 새 메시지 버림 | 최신 정보 유실 |
-| **DropOldest** | 오래된 메시지 버림 | **로비에서 최신 상태가 중요 → 적합** |
-
-로비 상태는 "현재 방 상태"가 중요하지 "5초 전 방 상태"가 중요하지 않음.
-밀려 있는 오래된 업데이트를 버리고 최신 것만 전달하면 됨.
-
----
-
-### Race Condition — 방 입장 동시성 문제
-
-**내가 이해한 것:**
-방에 동시에 여러 명이 입장하면 MaxPlayers를 초과할 수 있다.
-
-**피드백:**
-Redis 기반 서버에서 Race Condition 해결책: **Lua Script**.
-
-일반 코드 흐름의 문제:
-```
-[유저A] 인원 조회 (3/4)
-[유저B] 인원 조회 (3/4)  ← 동시에
-[유저A] 입장 처리 (4/4)
-[유저B] 입장 처리 (5/4)  ← MaxPlayers 초과!
+ [방 변화 발생]                                   [gRPC 스트림]
+      │                                                ▲
+      ▼                                                │
+ Redis Stream  ─────▶  구독 스레드  ──TryWrite──▶  Bounded Channel  ──ReadAllAsync──▶ SendLoop
+ stream:room:{id}      (수신 전담)      (용량 제한)     Channel<long>              (전송 전담)
+                                                          │
+                                                    담는 것 = RoomId 뿐
+                                                          │
+                                                          ▼
+                                              SendLoop이 DB에서 최신 방 상태를
+                                              **다시 읽어서** 클라에 보낸다
 ```
 
-Lua Script는 Redis에서 **원자적으로 실행**됨.
-조회 → 검증 → 저장이 하나의 트랜잭션으로 처리되어 중간에 다른 명령 끼어들 수 없음.
+### 결정 ① 채널로 스레드 경계를 끊는다
 
-**구현 결과:**
-`JoinRoomLua` 스크립트에서 반환 코드로 결과를 구분:
-```
--1: RoomNotFound
--2: InvalidStatus
--3: AlreadyInOtherRoom
--4: AlreadyInThisRoom
--5: RoomFull
- 1: Success
-```
+Redis 수신과 gRPC 전송을 직접 연결하면 **수신 스레드가 전송이 끝날 때까지 묶인다**. 클라 하나가 느리면 그 방의 이벤트 수신 전체가 밀린다. 채널을 사이에 두면 양쪽이 각자의 속도로 돈다.
 
-이를 `JoinRoomAtomicResult` enum으로 표현하여 Application 레이어에서 switch로 처리.
-
----
-
-### Host Succession (방장 위임) — HashSet → List 변경
-
-**발견된 문제:**
-`CurrentPlayers`가 `HashSet<long>`이었을 때 방장이 나가면 다음 방장이 누가 되는지 순서가 보장되지 않았음.
-
-`HashSet`은 삽입 순서를 보장하지 않음 → `FirstOrDefault()`로 다음 방장을 뽑아도 매번 다른 사람이 될 수 있음.
-
-**수정:**
-`HashSet<long>` → `List<long>`으로 변경.
-
-`List`는 삽입 순서 보장 → 입장한 순서대로 정렬됨 → 방장 퇴장 시 두 번째로 입장한 사람이 방장이 됨.
-
-**트레이드오프:**
-- `HashSet`: 중복 방지 O(1), 순서 없음
-- `List`: 순서 보장, 중복 방지는 `Contains()` O(n) 또는 별도 로직 필요
-
-로비 규모(최대 수십 명)에서는 `List`의 O(n) 비용이 문제 없음.
-
----
-
-### N+1 쿼리 문제 — ToRoomInfo
-
-**발견된 문제:**
-`ToRoomInfo`에서 방의 플레이어 정보를 가져올 때:
+### 결정 ② 꽉 차면 **오래된 것부터 버린다**
 
 ```csharp
-// 수정 전 (N+1)
-foreach (var userId in room.CurrentPlayers)
-{
-    var user = await userRepository.GetByIdAsync(userId);  // N번 호출
-    info.CurrentPlayers.Add(user.ToUserInfo());
-}
+// UserRoomContext.cs:12
+Channel.CreateBounded<long>(new BoundedChannelOptions(capacity) {
+    FullMode = BoundedChannelFullMode.DropOldest
+})
 ```
 
-방에 4명이 있으면 Redis에 4번 왕복 → 방이 많아질수록 기하급수적으로 증가.
+| 옵션 | 동작 | 이 상황에서 |
+|---|---|---|
+| `Wait` | 꽉 차면 발행 측 대기 | ❌ Redis 수신 스레드가 블로킹된다 |
+| `DropNewest` | 새 메시지 버림 | ❌ 최신 상태를 버리는 건 정반대 |
+| **`DropOldest`** | 오래된 것부터 버림 | ✅ 로비에 필요한 건 **지금 상태**, 5초 전 상태가 아니다 |
 
-**수정:**
+### 결정 ③ 그리고 이게 핵심 — 이벤트는 **트리거일 뿐**이다
+
+채널 타입이 `Channel<long>`이다. 방 상태 스냅샷이 아니라 **RoomId만** 흐른다. 수신 측은 ID를 받고 나서 **진실원(DB)에서 다시 읽는다.**
+
+이유는 두 가지다.
+- **채널이 DropOldest로 메시지를 버려도 안전하다** — 버려진 게 상태였다면 그 변경은 영영 유실되지만, 버려진 게 "다시 읽어라" 신호라면 뒤따르는 신호 하나가 최신 상태를 통째로 실어 나른다.
+- **모든 구독자가 같은 진실을 본다** — 각자 스냅샷을 들고 있으면 순서가 엇갈리는 순간 화면이 갈라진다.
+
+> 이 원칙("이벤트는 ID + 다시 읽어라, 최신 상태는 항상 DB에서")은 나중에 프로젝트 전역 규칙이 됐다. 실제로 이걸 어겨서 생긴 버그가 [07](./chapter-07-db-cache.md)의 `AsNoTracking` 사건이다 — 다시 읽긴 했는데 EF 추적 캐시가 옛 엔티티를 돌려줘서, SendLoop이 방 상태를 영원히 `Starting`으로 읽었다.
+
+## 3. 동시성 — 같은 문제가 두 번 모습을 바꿨다
+
+### 문제
+
+```
+[A] 인원 조회 (3/4)
+[B] 인원 조회 (3/4)   ← 동시
+[A] 입장 처리 (4/4)
+[B] 입장 처리 (5/4)   ← 정원 초과
+```
+
+전형적인 **check-then-act** 경쟁이다. 조회와 갱신 사이에 다른 요청이 끼어들 수 있다.
+
+### v1 — Redis Lua 스크립트 (당시 해법)
+
+방 인원이 `DungeonRoom` 엔티티 안의 리스트였을 때는, 조회·검증·저장을 **Lua 스크립트 하나로 묶어** Redis에서 원자 실행했다. 반환 코드로 실패 사유를 구분했다.
+
+```
+-1 RoomNotFound  -2 InvalidStatus  -3 AlreadyInOtherRoom
+-4 AlreadyInThisRoom  -5 RoomFull   1 Success
+```
+
+→ `JoinRoomAtomicResult` enum으로 받아 Application에서 분기. **Redis에서 원자성을 사는 대신, 검증 로직 일부가 Lua 문자열 안으로 들어간다**는 대가가 있었다.
+
+### v2 — 멤버십을 별도 테이블로 (현재)
+
+이후 방 멤버십은 엔티티 내부 리스트에서 **`dungeon_room_players` 연관 테이블**(PK: `RoomId + UserId`, `JoinedAt` 보유)로 분리됐다. 이유는 이 챕터 밖에 있다 — 던전 퇴장·재접속·호스트 이양을 **플레이어 단위 이벤트**로 다루려면 멤버십이 방 엔티티에 묶여 있으면 안 됐다.
+
+얻은 것은 명확하다. 복합 PK가 **같은 방 중복 입장을 DB 제약으로** 막고, `JoinedAt`이 입장 순서를 영속적으로 보존한다.
+
+### ⚠️ 그런데 원자성은 같이 옮겨오지 못했다 (현재 결함)
+
+현재 `DungeonLobbyService.JoinRoomAsync`는 잠금 없는 check-then-act다.
+
 ```csharp
-// 수정 후 (배치 조회)
-var users = await userRepository.GetByIdsAsync(room.CurrentPlayers);
+// DungeonLobbyService.cs:170-174
+var currentPlayers = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(roomId, ct);
+if (currentPlayers.Count >= room.MaxPlayers)      // ← 조회
+    return ...RoomFull;
+await dungeonRoomPlayerRepository.CreateAsync(roomId, userSession.UserId, ct);  // ← 갱신 (사이에 방어 없음)
 ```
 
-`GetByIdsAsync`는 Redis Batch를 사용해 한 번에 조회.
+- **정원 초과**를 막는 것이 아무것도 없다 — 개수 제약은 DB로 표현할 수 없고, 락도 걸려 있지 않다.
+- **동시 다중 방 입장**도 막히지 않는다 — `AlreadyInRoom` 역시 check-then-act이고, `UserId` 인덱스가 **unique가 아니다**(`DungeonRoomPlayerConfiguration.cs:22`).
+- v1의 원자 API(`TryJoinRoomAsync`)는 **아직 인터페이스에 남아 있지만 아무도 호출하지 않고**, 구현도 상태 확인만 하는 껍데기로 축소됐다.
 
-**추가로 배운 것 — `IEnumerable` vs `List` 파라미터 타입:**
+고칠 재료는 이미 코드베이스에 있다 — `IUserLock`(Redis `SET NX EX` + 소유자 토큰 검증 Lua 해제)이 존재하고 `ChatService`가 쓰고 있다. 로비 입장에는 걸려 있지 않을 뿐이다.
 
-`GetByIdsAsync(IEnumerable<long> userIds)`로 만들면 내부에서 `Count()`와 `ElementAt(i)` 사용 시 **O(n²)** 문제 발생.
+> **교훈** — 저장 구조를 바꾸면 **그 구조가 떠받치던 불변식도 같이 이사해야 한다.** 기능 테스트는 전부 통과한다. 경쟁 조건은 혼자 테스트할 때 재현되지 않기 때문이다.
 
-`IEnumerable`은 매번 처음부터 순회하기 때문.
-`List<long>`으로 타입을 고정하면 `Count`는 O(1) 속성 접근, `[i]`는 O(1) 인덱서 접근.
+## 4. 방장 승계 — 같은 요구, 세 번 진화한 해법
 
----
+방장이 나가면 **다음으로 오래 있던 사람**이 방장이 돼야 한다. 요구는 처음부터 같았는데 해법이 바뀌었다.
 
-## 코드 리뷰에서 발견된 버그 수정 이력
-
-### TryJoinRoomAsync 파라미터 순서 버그
-
-**문제:**
-```csharp
-// 수정 전 (버그)
-var joinResult = await dungeonRoomRepository.TryJoinRoomAsync(roomId, userId, ct);
-
-// 인터페이스 시그니처
-Task<JoinRoomAtomicResult> TryJoinRoomAsync(long userId, long roomId, ...);
+```
+v0  HashSet<long>  →  순서 없음. FirstOrDefault()가 매번 다른 사람을 뽑는다 (버그)
+v1  List<long>     →  삽입 순서 보장. 대가 = 중복 방지가 O(n) Contains
+v2  JoinedAt 컬럼  →  OrderBy(p => p.JoinedAt)로 명시적 정렬 + 복합 PK가 중복 방지
 ```
 
-호출 순서와 인터페이스 순서가 반대였음 → userId 자리에 roomId가, roomId 자리에 userId가 들어가는 버그.
+v1은 **순서를 자료구조에 암묵적으로 의존**한 것이고, v2는 **순서를 데이터로 명시**한 것이다. 후자는 저장소가 Redis든 Postgres든 정렬 결과가 같다. "순서가 중요하면 순서를 저장하라"가 여기서 얻은 규칙이다.
 
-**수정:**
-```csharp
-var joinResult = await dungeonRoomRepository.TryJoinRoomAsync(userId, roomId, ct);
+> 같은 함정이 나중에 다시 나온다 — 무순서 Set 위에서 페이징을 하면 페이지 경계가 매번 달라진다([27](./chapter-27-silent-failure.md)).
+
+## 5. N+1 — 고쳤는데 다른 층에서 다시 나타났다
+
+**1차(플레이어 층)**: `ToRoomInfo`가 방 인원마다 유저를 한 명씩 조회했다. 4명이면 4왕복. → `GetByIdsAsync`로 배치 조회.
+
+**2차(방 목록 층)**: 멤버십이 별도 테이블로 나가자, 방 목록 조회에서 **방마다 2왕복**(플레이어 조회 + 유저 조회)이 됐다. 방이 20개면 40왕복. → 전체 방의 플레이어를 한 번에(`GetPlayersByRoomIdsAsync`), 거기서 나온 유저를 또 한 번에 조회한 뒤 메모리에서 조립.
+
+```
+[N+1]   방 20개  →  20 × (players + users) = 40 쿼리
+[배치]  방 20개  →  rooms 1 + players 1 + users 1 = 3 쿼리 (방 수와 무관)
 ```
 
-**배운 것:**
-같은 타입(`long`) 파라미터가 여러 개일 때 순서 버그는 컴파일 에러가 나지 않음.
-런타임에서만 발견됨 → 인터페이스 설계 시 파라미터 순서 컨벤션을 통일해야 함.
+**타입 하나가 성능을 바꾼 사례도 있었다** — `GetByIdsAsync(IEnumerable<long>)`로 두면 내부의 `Count()`·`ElementAt(i)`가 매번 처음부터 순회해 **O(n²)** 이 된다. `List<long>`으로 고정하면 `Count`는 속성 접근, `[i]`는 인덱서로 각각 O(1)이다. 시그니처는 지금도 `List<long>`이다.
 
----
+## 6. 컴파일러가 잡아주지 않는 버그 둘
 
-### SubscribeRoom — sessionId null 체크 누락
+**같은 타입 파라미터의 순서** — `TryJoinRoomAsync(long userId, long roomId)`를 `(roomId, userId)`로 호출하고 있었다. 둘 다 `long`이라 **컴파일도 되고 테스트도 통과하고 런타임에만 틀린다.** 이후 ID 파라미터는 순서 컨벤션을 통일했다.
 
-**문제:**
-다른 gRPC 메서드들은 sessionId null 체크 후 Unauthorized 반환하는데, `SubscribeRoom`만 null 체크 없이 `SubscribeAsync(null, ...)`을 호출했음.
+**스트리밍 메서드의 인증 누락** — 다른 RPC는 전부 `sessionId` null 검사 후 `Unauthorized`를 반환하는데 `SubscribeRoom`만 빠져 있었다. 스트리밍은 응답 객체를 반환하는 형태가 아니라서(반환형이 `Task`) **응답에 에러를 담는 습관이 통하지 않고**, `throw new RpcException(...)`으로 전달해야 한다. 형태가 다르면 규칙이 새어 나간다.
 
-**수정:**
-```csharp
-if (sessionId is null)
-    throw new RpcException(new Status(StatusCode.Unauthenticated, "..."));
+## 7. 책임 경계 — StartGame은 어디까지 하는가
+
+초기엔 `StartGameAsync` 하나가 시작 요청부터 게임 세션 생성까지 다 했다. 지금은 잘려 있다.
+
+```
+DungeonLobbyService   방 상태를 Starting으로 전이 + 이벤트 기록      ← 여기까지만
+        │  (Redis Stream)
+SocketServer          방 준비 → GameSessionReadyMessage 발행
+        │  (Redis Stream)
+GameSessionReadyConsumer  세션 생성 → 방 Playing 반영 → 구독자에게 publish
 ```
 
-스트리밍 메서드는 Response 객체를 반환하는 게 아니라 `throw new RpcException`으로 에러를 전달해야 함.
+요청-응답 안에서 **다른 서버의 준비 완료를 기다리면** 그 RPC의 응답 시간이 상대 서버의 상태에 묶이고, 실패 지점이 하나 늘어난다. 비동기 메시지로 끊으면 각 단계가 독립적으로 재시도·관측 가능해진다. (전체 흐름 = [05](./chapter-05-game-start-e2e.md))
+
+이 분리 덕에 나중에 **호스트 재접속** 같은 것도 스트림 진입 지점에서 처리할 수 있게 됐다 — `SubscribeRoom`은 호스트가 `Starting` 상태 방에 다시 붙으면 시작을 자동 재트리거한다(`DungeonLobbyGrpcService.cs:278`).
+
+## 8. 남은 것
+
+- **입장 원자성 미복구** (3절) — 현재 알려진 가장 실질적인 결함.
+- 스트림 중간 연결 해제 정리와 클라 재연결 전략은 이후 챕터에서 다뤘다([11](./chapter-11-socket-session-entry.md)·[21](./chapter-21-connection-liveness-hp-authority.md)).
 
 ---
 
-## 현재 코드에서 아직 미완성인 것 (TODO)
+### 이 챕터가 이후에 미친 영향
 
-| 항목 | 내용 | 우선순위 |
-|------|------|----------|
-| `Console.WriteLine` → `ILogger` | `DungeonRoomRepository`, `DungeonLobbyGrpcService` 전체 | 중간 |
-| Game session endpoint 설정 | `Host/Port` 관리 전략을 `appsettings.json` 또는 별도 parser로 정리 | 높음 |
-| 연결 해제 처리 | 스트림 중간에 클라이언트가 끊어졌을 때 정리 로직 완성도 | 높음 |
-| 에러 복구 전략 | gRPC 스트림 에러 발생 시 클라이언트 재연결 흐름 | 중간 |
-| GameServer ↔ SocketServer 운영 보강 | Redis Stream 기반 메시지 흐름은 연결됨. 재시도/관측성/consumer 운영 전략 보강 필요 | 높음 |
+| 여기서 정한 것 | 나중에 지탱한 것 |
+|---|---|
+| 이벤트 = ID + "다시 읽어라" | 전 도메인 공통 규칙. 위반 사례가 `AsNoTracking` 버그([07](./chapter-07-db-cache.md)) |
+| DropOldest 백프레셔 | 채팅 스트림도 동일 정책(`UserChatContext`) |
+| 순서가 중요하면 순서를 저장한다 | `JoinedAt` 기반 호스트 이양 · 페이징 정렬([27](./chapter-27-silent-failure.md)) |
 
----
-
-## 최근 구조 변경으로 추가로 배운 것
-
-### GameSession 책임 분리
-
-예전에는 `DungeonLobbyService.StartGameAsync()`가 게임 시작 요청부터 세션 생성까지 함께 처리하는 구조였음.
-
-최근 리팩터링으로 아래처럼 경계가 분리됨:
-
-- `DungeonLobbyService`
-  - 게임 시작 요청 수락
-  - room 상태를 `Starting`으로 전이
-- `SocketServer`
-  - `GameStartRequestedMessage` 소비
-  - 준비 완료 후 `GameSessionReadyMessage` 발행
-- `GameSessionReadyConsumer`
-  - 준비 완료 메시지 수신
-  - `GameSessionService.CreateGameSessionAsync(...)` 호출
-  - room 상태를 `Playing`으로 반영
-  - 구독 스트림 publish
-
-배운 점:
-
-- 로비 서비스와 게임 세션 생성 책임은 분리하는 편이 맞음
-- 요청-응답 안에서 외부 준비 완료까지 기다리면 경계가 섞이고 실패 지점이 늘어남
-- 비동기 메시지 흐름으로 바꾸면 확장성과 장애 대응 포인트가 더 명확해짐
-
----
-
-## 핵심 키워드 정리
-
-| 키워드 | 한 줄 설명 |
-|--------|-----------|
-| Server-Side Streaming | 서버 → 클라이언트 단방향 지속 스트림 |
-| Redis Pub/Sub | 채널에 메시지 발행 → 구독자 전체에게 즉시 전달 |
-| Bounded Channel | 크기 제한 있는 비동기 큐, 스레드 경계 분리 |
-| DropOldest | 채널이 꽉 찼을 때 오래된 메시지부터 버림 |
-| 백프레셔 (Backpressure) | 소비 속도보다 생산이 빠를 때 흐름 제어하는 메커니즘 |
-| Lua Script 원자성 | Redis에서 여러 명령을 하나의 트랜잭션으로 실행 |
-| Race Condition | 여러 요청이 동시에 같은 자원을 수정할 때 발생하는 데이터 불일치 |
-| Host Succession | 방장 퇴장 시 다음 멤버에게 방장 위임, List로 순서 보장 |
-| N+1 쿼리 | 목록 조회 후 각 항목마다 추가 쿼리 발생하는 성능 문제 |
-| 배치 조회 | 여러 ID를 한 번에 조회해 N+1 해결 |
+> 이 챕터의 원본 학습 로그 = [learning-log/chapter-03-dungeon-lobby.md](../learning-log/chapter-03-dungeon-lobby.md)

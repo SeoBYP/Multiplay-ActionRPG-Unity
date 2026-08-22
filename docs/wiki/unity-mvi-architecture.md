@@ -1,4 +1,8 @@
-# 챕터 10 학습 로그 — MVI 아키텍처 (던전 로비 OutGame UI)
+# Unity MVI 아키텍처 (Intent → Effect → Result → Reducer → State)
+
+> **레퍼런스 문서** — 클라 프레젠테이션 계층의 단방향 데이터 흐름을 정의한다.
+> 강제 규칙 요약 = [.claude/rules/unity-client.md](../../.claude/rules/unity-client.md)
+> 최종 코드 대조: 2026-08-22 (`Script/OutGame/` → **`Script/Presentation/`** 경로 반영)
 
 ## 왜 MVI를 선택했는가
 
@@ -355,13 +359,13 @@ View가 Result를 만든다는 뜻이다. 그러면 "Effect 없이 State를 직�
 
 | 역할 | 경로 |
 |------|------|
-| LobbyIntent | `Client/Assets/Script/OutGame/DungeonLobby/LobbyIntent.cs` |
-| LobbyResult | `Client/Assets/Script/OutGame/DungeonLobby/LobbyResult.cs` |
-| LobbyReducer | `Client/Assets/Script/OutGame/DungeonLobby/LobbyReducer.cs` |
-| LobbyState | `Client/Assets/Script/OutGame/DungeonLobby/LobbyState.cs` |
-| LobbyModel | `Client/Assets/Script/OutGame/DungeonLobby/LobbyModel.cs` |
-| DungeonRoomModel | `Client/Assets/Script/OutGame/DungeonLobby/DungeonRoomModel.cs` |
-| LobbyRepository | `Client/Assets/Script/OutGame/DungeonLobby/LobbyRepository.cs` |
+| LobbyIntent | `Client/Assets/Script/Presentation/DungeonLobby/LobbyIntent.cs` |
+| LobbyResult | `Client/Assets/Script/Presentation/DungeonLobby/LobbyResult.cs` |
+| LobbyReducer | `Client/Assets/Script/Presentation/DungeonLobby/LobbyReducer.cs` |
+| LobbyState | `Client/Assets/Script/Presentation/DungeonLobby/LobbyState.cs` |
+| LobbyModel | `Client/Assets/Script/Presentation/DungeonLobby/LobbyModel.cs` |
+| DungeonRoomModel | `Client/Assets/Script/Presentation/DungeonLobby/DungeonRoomModel.cs` |
+| LobbyRepository | `Client/Assets/Script/Presentation/DungeonLobby/LobbyRepository.cs` |
 | LobbyView | `Client/Assets/Script/GUI/OutGame/Lobby/LobbyView.cs` |
 | RoomItemView | `Client/Assets/Script/GUI/OutGame/Lobby/RoomItemView.cs` |
-| OutGameLifetimeScope | `Client/Assets/Script/VContainer/Installers/Scenes/OutGameLifetimeScope.cs` |
+| OutGameLifetimeScope | `Client/Assets/Script/VContainer/LifetimeScopes/Scenes/OutGameLifetimeScope.cs` |

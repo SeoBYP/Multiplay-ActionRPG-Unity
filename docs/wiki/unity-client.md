@@ -34,7 +34,7 @@ SocketConnector    → TCP 연결 관리
 SocketSession      → 패킷 송수신 (MemoryPack 직렬화)
 ```
 
-`C_Auth` → `C_PlayerJoin` 순서 필수. Auth 전에 Join 요청 시 거부됨.
+연결 후 바로 `C_PlayerJoin { RoomId, UserId }`. **`C_Auth` 는 제거됐다** — 서버가 Redis `gamesession:player:{userId}` 로 입장을 검증한다.
 
 ## PlayMode E2E 테스트 (Docker 서버 대상)
 

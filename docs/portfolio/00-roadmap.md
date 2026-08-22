@@ -28,7 +28,7 @@ Co-op 던전 **버티컬 슬라이스**가 코어. 폴리시(애니메이션·�
 
 - **이중 서버**: 비실시간(인증·로비·채팅·결과/영속)은 **GameServer**(gRPC), 실시간(입장·이동·전투·몬스터)은 **SocketServer**(TCP). 둘은 **직접 RPC 금지 — Redis Streams로만** 통신.
 - **의존성 방향**: `API → Application ← Infrastructure` (Application은 Infra를 모름).
-- **클라**: `Game.GUI → Game.OutGame → Game.System → Game.Network` 단방향(asmdef 강제), 프레젠테이션은 **MVI**.
+- **클라**: `Game.GUI → Game.Presentation/Game.Gameplay → Game.System → Game.Network` 단방향(asmdef 강제), 프레젠테이션은 **MVI**.
 
 ---
 
@@ -59,7 +59,7 @@ Co-op 던전 **버티컬 슬라이스**가 코어. 폴리시(애니메이션·�
 | 분산 로그 | Serilog + Graylog, **TraceId 전파** | 두 서버·클라 흐름을 한 TraceId로 추적 | [6](./chapter-06-logging.md) |
 | DB/캐시 | PostgreSQL + Redis **Cache-Aside + Delete**, Testcontainers 통합 테스트 | Update는 캐시 덮어쓰기 금지(DEL만) → stale 방지. DB 폴백은 항상 `AsNoTracking`(long-lived DbContext stale 버그 회피) | [7](./chapter-07-db-cache.md) |
 | 클라 OutGame | gRPC 로그인/로비 UI, VContainer DI, **MVI**, Addressable 팝업 | `GrpcChannelProvider` 채널 공유, h2c용 `YetAnotherHttpHandler` | [9](./chapter-09-unity-client.md), [12](./chapter-12-addressable-popup-system.md) |
-| 인게임 진입(M1) | 로컬/원격 캐릭터 스폰, **결정론 스폰**, 전원입장 게이트, HUD, 로비 복귀 | 좌표 전송 없이 `(layout, spawnIndex)`로 **서버·클라 동일 결과**(`SpawnResolver` 미러) | [10](./chapter-10-mvi-architecture.md) 외 |
+| 인게임 진입(M1) | 로컬/원격 캐릭터 스폰, **결정론 스폰**, 전원입장 게이트, HUD, 로비 복귀 | 좌표 전송 없이 `(layout, spawnIndex)`로 **서버·클라 동일 결과**(`SpawnResolver` 미러) | [MVI](../wiki/unity-mvi-architecture.md) 외 |
 | GAS 기반 | Attribute·GameplayEffect·ASC·버프/디버프 서버 동기화 | 전투 수치의 단일 모델(GAS)로 통일 | — |
 
 ---
@@ -85,7 +85,7 @@ Co-op 던전 **버티컬 슬라이스**가 코어. 폴리시(애니메이션·�
 - **결정론 코어를 단일 소스로**: `Shared.Gameplay`(netstandard2.1)를 서버는 프로젝트 참조, 클라는 **DLL을 Plugins/에 배치**(중복 순수코드 8개 삭제, 클라 코드 수정 0). golden 테스트로 서버↔클라 parity 보장.
 - **YAGNI 정리**: 서버 권위 이관 후 죽은 로컬 GAS *ability* 경로(HitDetector·BasicAttackAbility 등) 삭제. *effect*(버프/데미지)는 유지.
 
-**관련 챕터**: [10-gameplay-state](./chapter-10-unity-gameplay-state.md), [10-input-system](./chapter-10-unity-input-system.md)
+**관련 레퍼런스**: [상태머신·두 축 분리](../wiki/unity-gameplay-state.md) · [입력 시스템](../wiki/unity-input-system.md)
 **M5에서 완결**: 당시 "남은 것"이던 정밀화·스킬 확장은 M5 AC 트랙에서 닫혔다 — 서버 발동 게이트(쿨다운·콤보 cadence·마나), Ability SO 단일 저작(스킬 추가 = 코드 0), Attack 콤보(타이밍 진실원 = SkillTimeline 공유 데이터). → [챕터 26](./chapter-26-measured-combat-cleanup.md)
 
 ---
@@ -180,7 +180,7 @@ Co-op 던전 **버티컬 슬라이스**가 코어. 폴리시(애니메이션·�
 - **M5 진행 중(대부분 완료)**: 아이템 경제(인벤·장비·상점·퀘스트)·생존성/권위 승격(HP·마나·사망·Co-op 부활)·전투 보조(회피·CC·락온)·애니 실배선·**AC 트랙**(Actor 통합 전투·전투 계측·몬스터 레벨링·데이터 전면 SO화) = ✅. 위 M5 섹션 참조.
 - **검증 인프라 정비(2026-08-17~18)**: Unity CLI + Pipeline 패키지로 **컴파일·EditMode/PlayMode를 CLI에서 직접** 구동. 그 결과 **PlayMode 전체 스위트를 처음 완주**해 기존 실패 8건(+가려져 있던 1건)을 발견·전부 해소. 현재 **PlayMode 202/202 · EditMode 213/213 · GameServer 391/391 · SocketServer 209/209 · 컴파일 0오류**(2026-08-21 기준). 같은 라운드에서 "완성 기록된 기능이 실제로는 실행된 적 없던" 조용한 실패 2건을 잡았다 — [챕터 27](./chapter-27-silent-failure.md).
 - **다음(M5 잔여)**: VFX/SFX Cue 저작(CA-5 1b, 파이프는 관통 확인됨)·dungeon_03~05 실제 맵 배경(AC-D4)·PVE 오픈월드 확장. 노드별 진척 = [plan.md](../wiki/plan.md).
-- **미해결(추적 중)**: `abilities.json` 저작↔bake 드리프트(재Export 필요) · `RemotePlayerCharacter` 머티리얼 누락 · 디스크 포화로 아트 팩 커밋 7/34 중단.
+- **미해결(추적 중)**: `RemotePlayerCharacter` 머티리얼 누락 · 디스크 포화로 아트 팩 커밋 7/34 중단. (`abilities.json` 저작↔bake 드리프트는 **2026-08-22 해소 확인** — basic_swing 167/125·leviathan_attack 213/87 이 SO 저작값과 일치. 감지 가드 `AbilityCatalogTests.게임플레이_수치가_현재_저작값으로_bake_돼_있다` 도 세워짐. 단 기대값 하드코딩이라 밸런스 조정 시 수동 갱신 필요하고, 나머지 bake 산출물 5종은 상시 가드 없음 → [챕터 27](./chapter-27-silent-failure.md) 7절)
 - **마감(M6)**: 데모 영상·부하/E2E 검증·배포/문서.
 
 > 실시간 진척·이슈는 [GitHub Project #2](https://github.com/users/SeoBYP/projects/2)(plan.md 커밋 시 post-commit 훅 자동 동기화), 설계·이력 진실원은 [plan.md](../wiki/plan.md), 코드 위치·결정 로그는 [codemap.md](../wiki/codemap.md).

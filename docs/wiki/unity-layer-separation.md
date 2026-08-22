@@ -1,4 +1,8 @@
-# 챕터 10 학습 로그 — Unity 클라이언트 레이어 분리
+# Unity 클라이언트 레이어 분리 (asmdef)
+
+> **레퍼런스 문서** — 클라 어셈블리 경계와 의존 방향을 정의한다.
+> 강제 규칙 요약 = [.claude/rules/unity-client.md](../../.claude/rules/unity-client.md)
+> 최종 코드 대조: 2026-08-22 (`Game.OutGame` → **`Game.Presentation`** 개명 반영, `Game.Gameplay`·`Game.Core` 추가)
 
 ## 왜 레이어를 분리하는가
 
@@ -14,40 +18,43 @@ Unity 프로젝트에서 모든 코드를 하나의 어셈블리(`Assembly-CShar
 
 ---
 
-## 레이어 구조 전체
+## 레이어 구조 전체 (2026-08-22 asmdef 실측)
 
 ```
-┌──────────────────────────────────────────────────────┐
-│  Game.GUI                                            │
-│  (LobbyView, RoomItemView)                           │
-│  — UI 렌더링, Intent 발행만                           │
-└───────────────┬──────────────────────────────────────┘
-                │ 참조
-┌───────────────▼──────────────────────────────────────┐
-│  Game.OutGame                                        │
-│  (LobbyModel, LobbyState, LobbyIntent, LobbyResult, │
-│   LobbyReducer, LobbyRepository, DungeonRoomModel)   │
-│  — MVI 흐름 전체 관리                                 │
-└───────┬───────────────────┬──────────────────────────┘
-        │ 참조               │ 참조
-┌───────▼────────┐   ┌──────▼───────────────────────────┐
-│  Game.System   │   │  Game.Network                    │
-│  (DungeonLobby │   │  (DungeonLobbyGrpcService,        │
-│   Service,     │   │   proto 생성 타입,                 │
-│   Session,     │   │   GrpcChannelProvider)            │
-│   IDungeon     │   │  — 서버 통신 전용                  │
-│   LobbyService)│   └──────────────────────────────────┘
-│  — 도메인 오케  │
-│    스트레이션   │
-└────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  Game.GUI            View(MonoBehaviour) — 렌더링 · Intent 발행 │
+└───────┬───────────────────┬─────────────────┬───────────────┘
+        │                   │                 │
+┌───────▼────────┐  ┌───────▼────────┐  ┌─────▼──────┐
+│ Game.Presentation │ │ Game.Gameplay  │  │ Game.Core  │
+│ MVI(Model·State│  │ 캐릭터·전투·입력 │  │ 공용 유틸    │
+│  ·Intent·Result│  │ ·상태머신       │  │ (참조 없음) │
+│  ·Reducer)     │  └───┬────────┬───┘  └────────────┘
+└───┬────────┬───┘      │        │
+    │        │          │        │
+┌───▼────────▼──────────▼──┐  ┌──▼──────────────────────┐
+│  Game.System              │  │  Game.Network           │
+│  도메인 오케스트레이션       │──▶│  gRPC · Socket · proto  │
+│  (Auth, DungeonLobby …)   │  │  (외부 패키지만 참조)     │
+└───────────────────────────┘  └─────────────────────────┘
         ▲
-        │ 공통 등록
-┌───────┴──────────────────────────────────────────────┐
-│  Game.VContainer                                     │
-│  (ProjectLifetimeScope, OutGameLifetimeScope)        │
-│  — DI 구성만. 실제 로직 없음                           │
-└──────────────────────────────────────────────────────┘
+┌───────┴─────────────────────────────────────────────────────┐
+│  Game.VContainer     DI 구성만 (ProjectLifetimeScope 등)      │
+└─────────────────────────────────────────────────────────────┘
 ```
+
+실제 asmdef 참조(요약):
+
+| 어셈블리 | 참조하는 것 |
+|---|---|
+| `Game.GUI` | `Game.Gameplay`, `Game.Presentation`, `Game.Core` |
+| `Game.Presentation` | `Game.System`, `Game.Network` |
+| `Game.Gameplay` | `Game.System`, `Game.Core`, `Game.Network` |
+| `Game.System` | `Game.Network` |
+| `Game.Network` / `Game.Core` | (내부 어셈블리 참조 없음 — 말단) |
+
+> **이름 변경 주의** — 초기 문서의 `Game.OutGame`은 현재 **`Game.Presentation`**이다.
+> 아웃게임 전용이 아니라 인게임 HUD까지 포함하는 프레젠테이션 계층이 되면서 개명됐다.
 
 ---
 
@@ -103,16 +110,16 @@ proto dll과 gRPC dll을 `precompiledReferences`로 명시하는 어셈블리는
 
 **설계 포인트:**  
 `DungeonLobbyService`는 proto 타입(`RoomInfo`)을 그대로 반환한다.  
-도메인 모델로 변환하는 책임은 `Game.OutGame`의 `LobbyRepository`가 맡는다.
+도메인 모델로 변환하는 책임은 `Game.Presentation`의 `LobbyRepository`가 맡는다.
 
 ---
 
-### Game.OutGame — MVI 흐름 전체
+### Game.Presentation — MVI 흐름 전체
 
 ```json
 {
-    "name": "Game.OutGame",
-    "rootNamespace": "Game.OutGame",
+    "name": "Game.Presentation",
+    "rootNamespace": "Game.Presentation",
     "references": ["Game.System", "Game.Network", "UniTask", "VContainer", "R3"],
     "autoReferenced": true
 }
@@ -159,7 +166,7 @@ LobbyModel이 `DungeonLobbyResult` 열거형을 직접 해석하지 않아도 �
     "name": "Game.GUI",
     "references": [
         "...기존 3개 GUID...",
-        "Game.OutGame",
+        "Game.Presentation",
         "Game.Network"
     ]
 }
@@ -169,7 +176,7 @@ LobbyModel이 `DungeonLobbyResult` 열거형을 직접 해석하지 않아도 �
 - `LobbyView` — State를 받아 UI 렌더링, 버튼 이벤트를 Intent로 변환
 - `RoomItemView` — 방 1개 UI 아이템
 
-**허용하는 참조:** Game.OutGame (LobbyModel, LobbyState, LobbyIntent), Game.Network (RoomStatusType 직접 사용)  
+**허용하는 참조:** Game.Presentation (LobbyModel, LobbyState, LobbyIntent), Game.Network (RoomStatusType 직접 사용)  
 **금지하는 것:** Game.System 직접 참조, IDungeonLobbyService 직접 호출
 
 **Game.Network를 직접 참조하는 이유:**  
@@ -197,7 +204,7 @@ private static string ToStatusText(RoomStatusType status)
     "name": "Game.VContainer",
     "references": [
         "...기존 5개 GUID...",
-        "Game.OutGame"
+        "Game.Presentation"
     ]
 }
 ```
@@ -294,7 +301,7 @@ LobbyView.Render(state)
 ### 1. 잘못된 참조를 코드 리뷰 전에 잡는다
 
 `DungeonLobbyService`에서 실수로 `LobbyModel`을 참조하면  
-`Game.System`이 `Game.OutGame`을 참조하는 것 → 컴파일 에러.  
+`Game.System`이 `Game.Presentation`을 참조하는 것 → 컴파일 에러.  
 코드 리뷰까지 가지 않는다.
 
 ### 2. 테스트 범위가 명확해진다
@@ -307,7 +314,7 @@ LobbyView.Render(state)
 ### 3. 레이어별 변경 격리
 
 서버 proto 스키마가 바뀌면 `Game.Network`만 바뀐다.  
-`Game.OutGame`의 `DungeonRoomModel`에서 `RoomInfo`를 래핑하는 방식이 바뀔 수 있지만,  
+`Game.Presentation`의 `DungeonRoomModel`에서 `RoomInfo`를 래핑하는 방식이 바뀔 수 있지만,  
 `LobbyState`, `LobbyIntent`는 변경 없다.
 
 ---
@@ -323,7 +330,7 @@ LobbyView.Render(state)
         "GUID:b0214a6008ed146ff8f122a6a9c2f6cc",
         "GUID:b25f5ef11ad5ac74faa603bbafead339",
         "GUID:f51ebe6a0ceec4240a699833d6309b23",
-        "Game.OutGame",
+        "Game.Presentation",
         "Game.Network"
     ]
 }
@@ -341,6 +348,6 @@ GUID는 파일 이동에도 안전하고, 이름 기반은 가독성이 높다.
 |---------|------------|
 | Game.Network | `Client/Assets/Script/Network/Game.Network.asmdef` |
 | Game.System | `Client/Assets/Script/System/Game.System.asmdef` |
-| Game.OutGame | `Client/Assets/Script/OutGame/Game.OutGame.asmdef` |
+| Game.Presentation | `Client/Assets/Script/Presentation/Game.Presentation.asmdef` |
 | Game.GUI | `Client/Assets/Script/GUI/Game.GUI.asmdef` |
 | Game.VContainer | `Client/Assets/Script/VContainer/Game.VContainer.asmdef` |
