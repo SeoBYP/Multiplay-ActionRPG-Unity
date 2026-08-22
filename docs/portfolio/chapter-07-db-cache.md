@@ -1,395 +1,209 @@
-# Chapter 07 — DB + Redis 캐시 레이어 (Cache Aside + 통합 테스트)
+# 07. DB + Redis 캐시 — 무효화는 지우는 것이 아니라 "믿지 않는 것"이다
 
-## 설계 배경 (Why)
+> **한 줄** — Cache-Aside + **Delete**로 캐시 일관성을 잡았는데, 그러고도 낡은 값이 반환됐다. 원인은 **캐시가 한 층이 아니라 두 층**이었기 때문이다 — Redis를 지워도 EF Core의 추적 메모리가 옛 엔티티를 계속 돌려주고 있었다.
+>
+> **범위** 캐시 전략 선택 · 무효화 · Redis 자료구조 · 트랜잭션 · Testcontainers 통합 테스트
+> **검증** `RepositoryIntegrationTests`(Testcontainers: PostgreSQL + Redis 실제 컨테이너)
 
-서버에서 DB를 직접 쓰면 단순하다. 근데 문제가 생긴다.
+---
 
-```
-클라이언트 → GameServer → PostgreSQL
-```
+## 1. 왜 캐시인가 — 같은 데이터를 동시에 반복해서 묻는다
 
-- 인증마다 `UserCredential` 조회
-- 로비 입장마다 `DungeonRoom` 조회
-- 채팅 메시지마다 `ChatMessage` 삽입
+게임 서버의 읽기 패턴은 웹과 다르다. **같은 방의 4명이 같은 순간에 같은 방 정보를 요청**한다. 인증은 요청마다 크리덴셜을 보고, 로비는 갱신마다 방을 본다.
 
-요청이 늘어나면 DB가 병목이 된다. 게임 서버는 특히 동시 접속자가 많을 때 짧은 시간에 동일 데이터를 반복 조회한다 (같은 방에 있는 플레이어 4명이 방 정보를 동시에 요청).
+이 데이터들의 공통점은 **읽기는 폭발적이고 쓰기는 드물다**는 것이다. 캐시가 가장 잘 듣는 형태다.
 
-**해결**: DB 앞에 Redis 캐시 레이어를 둔다.
+## 2. 전략 선택 — 네 가지 중 왜 Delete인가
 
-그런데 캐시 전략에도 여러 가지가 있다:
-
-| 전략 | 설명 | 단점 |
+| 전략 | 쓰기 시 동작 | 문제 |
 |---|---|---|
-| Cache Aside + Update | 쓰기 시 DB + Redis 동시 업데이트 | 동시성 문제, Race Condition |
-| TTL 중심 | 일정 시간 후 자동 만료 | Stale 데이터 허용 |
-| 이벤트 기반 무효화 | MQ로 캐시 무효화 이벤트 발행 | 인프라 복잡도 증가 |
-| **Cache Aside + Delete** | 쓰기 시 DB 저장 후 캐시 삭제 | 다음 읽기에 캐시 미스 1회 |
+| Cache-Aside + **Update** | DB 저장 + 캐시도 갱신 | 두 저장소 갱신 사이에 경쟁 창이 생긴다 |
+| TTL 중심 | 시간 지나면 만료 | 만료 전까지 stale을 **의도적으로 허용** |
+| 이벤트 기반 무효화 | MQ로 무효화 이벤트 발행 | 인프라 한 겹 추가 |
+| **Cache-Aside + Delete** | DB 저장 후 캐시 **삭제** | 다음 읽기에 미스 1회 |
 
-**Cache Aside + Delete를 선택한 이유:**
-- User 같은 엔티티는 생성 후 거의 변경되지 않음 → 쓰기 빈도 낮음
-- 캐시와 DB 간 일관성이 최우선 (게임 세션, 인증 데이터)
-- 구현이 단순 → Repository 레이어에서 일관되게 적용 가능
+인증·세션·방 상태는 **stale이 곧 버그**다(만료된 세션으로 입장, 이미 시작된 방에 입장). TTL 중심은 그래서 탈락. 이벤트 기반은 이 규모에서 과했다.
 
----
-
-## 아키텍처
+### 왜 갱신이 아니라 삭제인가
 
 ```
-Repository 계층 (Cache Aside + Delete)
+[Update 방식의 경쟁 창]
+ Thread A: DB 저장 완료 ─────────────┐
+ Thread B:      Redis 조회 → 옛 값 반환 💥   ← 아직 A가 캐시를 갱신하기 전
+ Thread A: Redis 갱신 ───────────────┘
 
-읽기:
-  ┌──────────┐    HIT     ┌───────┐
-  │ GetAsync │──────────→│ Redis │ → 반환
-  │          │   MISS     └───────┘
-  │          │──────────→ PostgreSQL → Redis SET(TTL) → 반환
-  └──────────┘
-
-쓰기:
-  ┌────────────┐
-  │ UpdateAsync│──→ PostgreSQL SaveChanges
-  │            │──→ Redis DEL (캐시 무효화)
-  └────────────┘
-  ← 다음 읽기 시 MISS → DB 조회 → 재캐싱
+[Delete 방식]
+ Thread A: DB 저장 → Redis DEL
+ Thread B:      Redis 조회 → MISS → DB 조회 → 항상 최신 ✅
 ```
 
-Redis 키 구조:
+**캐시를 갱신하려 들면 "무엇이 최신인가"를 캐시가 판단해야 한다.** 삭제하면 그 판단이 필요 없어진다 — 모르면 진실원에 물어보게 만든다. 대가는 미스 한 번뿐이다.
+
+이 규칙은 세 줄로 정리돼 프로젝트 전역 규칙이 됐다.
+
 ```
-user:{userId}                    → Hash (UserId, PublicId, ...)
-user:publicid:{publicId}         → String (userId 역방향 매핑)
-credential:{userId}              → Hash (Email, PasswordHash, RefreshToken, ...)
-session:{sessionId}              → Hash (UserId, CreatedAt, ExpiresAt, ...)
-session:user:{userId}            → String (sessionId 역방향 매핑)
-session:active                   → Sorted Set (score = 만료 Unix timestamp)
-room:{roomId}                    → Hash (RoomName, HostId, Status, ...)
-room:active                      → Set (활성 방 목록)
-chat:message:{messageId}         → Hash (SenderName, Message, ChatType, ...)
-chat:all                         → Sorted Set (score = messageId)
+Get    : Redis → HIT 즉시 반환 / MISS → DB 읽기 → Redis SET(TTL) → 반환
+Update : DB SaveChanges → Redis DEL          (절대 덮어쓰지 않는다)
+Delete : DB 삭제 → Redis DEL
 ```
 
----
+## 3. 그런데도 낡은 값이 왔다 — 이 프로젝트에서 가장 비싼 버그
 
-## 핵심 구현
+증상은 캐시 문제로 보이지 않았다. **던전 입장이 안 됐다.**
 
-### 1. Cache Aside 읽기 패턴
+```
+방 상태: Waiting → Starting → (SocketServer 준비) → Playing
+                                                      │
+로비 구독 스트림의 SendLoop이 방을 다시 읽는다 ────────┘
+   기대: Playing 을 읽고 GameSessionEvent(접속 정보) 전송
+   실제: 몇 번을 읽어도 Starting → UpdateEvent 만 계속 전송 → 클라는 영원히 대기
+```
+
+Redis 캐시는 정상적으로 지워지고 있었다. DB에는 `Playing`이 들어 있었다. 그런데 **읽으면 `Starting`이 나왔다.**
+
+### 원인 — 캐시가 두 층이었다
+
+```
+        [내가 인지한 구조]              [실제 구조]
+
+         Repository                     Repository
+             │                              │
+        ┌────┴────┐                    ┌────┴────┐
+        │  Redis  │ ← DEL 함           │  Redis  │ ← DEL 함 (정상 동작)
+        └────┬────┘                    └────┬────┘
+             │                              │
+        ┌────┴────┐                  ┌──────┴───────┐
+        │PostgreSQL│                 │ EF ChangeTracker │ ← ★ 아무도 안 지움
+        └─────────┘                  │  (identity map)  │
+                                     └──────┬───────┘
+                                            │
+                                       PostgreSQL
+```
+
+EF Core의 **추적 쿼리는 identity map에 이미 있는 엔티티를 그대로 돌려준다.** DB에서 새 값을 읽어와도 **기존 인스턴스를 덮어쓰지 않는다.** 이게 정상 동작이다 — 추적 중인 엔티티를 마음대로 갈아치우면 사용자의 수정 사항이 날아가기 때문이다.
+
+문제는 **DbContext의 수명**이었다.
+
+```
+일반 RPC        요청 시작 → DbContext 생성 → 처리 → 폐기   (수십 ms, 문제 없음)
+스트리밍 RPC    구독 시작 → DbContext 생성 → ... 수십 초 유지 ... → 종료
+                             └ 처음 읽은 Starting 이 이 스코프가 끝날 때까지 살아 있다
+```
+
+`GameServerDbContext`는 Scoped다. `SubscribeRoom` 같은 **서버 스트리밍은 한 스코프가 수십 초 유지**된다. 그 안에서 처음 읽은 엔티티가 identity map에 자리를 잡으면, **다른 프로세스(Consumer)가 DB에 무엇을 쓰든 그 스트림은 끝날 때까지 옛 값만 본다.**
+
+### 수정
 
 ```csharp
-public async Task<User?> GetByIdAsync(long userId)
-{
-    // 1. Redis 먼저 확인 (HIT)
-    var cached = await GetUserCacheAsync(userId);
-    if (cached is not null)
-        return cached;
+// ❌ 추적 쿼리 — identity map의 옛 엔티티를 반환할 수 있다
+var room = await context.DungeonRooms.SingleOrDefaultAsync(r => r.RoomId == id, ct);
 
-    // 2. MISS → DB 조회
-    var user = await _context.Users.AsNoTracking()
-        .FirstOrDefaultAsync(u => u.UserId == userId);
-    if (user is null)
-        throw new KeyNotFoundException($"User {userId} not found");
-
-    // 3. Redis에 캐싱 (TTL 포함)
-    await SetUserCacheAsync(user);
-    return user;
-}
+// ✅ cache-aside 폴백은 읽기 전용이다. 추적할 이유가 없다.
+var room = await context.DungeonRooms.AsNoTracking().SingleOrDefaultAsync(r => r.RoomId == id, ct);
 ```
 
-### 2. Cache Aside Delete 쓰기 패턴
+현재 Infrastructure 전반에 `AsNoTracking`이 **53곳** 적용돼 있다. 남아 있는 추적 쿼리는 전부 **읽고 수정/삭제할 엔티티**를 가져오는 자리다(`DeleteAsync`가 지울 대상을 조회하는 등) — 그 경우엔 추적이 목적이므로 맞다.
+
+> **교훈 세 가지**
+> 1. **캐시는 내가 만든 것만이 아니다.** ORM·HTTP 클라이언트·CDN 모두 캐시를 갖는다. 무효화 설계는 그 전부를 세어야 한다.
+> 2. **수명이 길어지면 성질이 바뀐다.** 요청 단위에서 안전한 코드가 스트리밍에서 깨졌다. 스코프 수명은 성능 문제가 아니라 **정확성 문제**다.
+> 3. **읽기 전용이라고 선언하면 문제가 사라진다.** `AsNoTracking`은 성능 최적화로 알려져 있지만 여기서는 **정확성 장치**로 쓰였다. 의도를 코드에 적으면 엔진이 알아서 맞춰준다.
+
+이 사건 이후 규칙이 하나 추가됐다 — **"이벤트는 ID + 다시 읽어라는 트리거일 뿐, 최신 상태는 항상 DB에서 읽는다. 캐시도 EF 추적 메모리도 진실원이 아니다."**([03](./chapter-03-dungeon-lobby.md)의 채널이 `RoomId`만 나르는 이유가 이것이다.)
+
+## 4. 자료구조를 바꿔 백그라운드 작업을 없앤 사례
+
+활성 세션 목록을 Redis **Set**으로 관리했었다. 그런데 **Set의 멤버에는 개별 TTL을 걸 수 없다.** 만료된 세션을 걷어내려면 주기적으로 전체를 훑어 DB와 대조하는 백그라운드 서비스가 필요했다.
+
+**Sorted Set**으로 바꾸면서 `score = 만료 Unix timestamp`로 뒀다.
 
 ```csharp
-public async Task UpdateAsync(User user)
-{
-    // 1. DB 저장
-    _context.Users.Update(user);
-    await _context.SaveChangesAsync();
+SortedSetAdd("session:active", sessionId, 만료시각.ToUnixTimeSeconds());
 
-    // 2. 캐시 삭제 (다음 읽기에 DB에서 재캐싱)
-    await DeleteUserCacheAsync(user.UserId, user.PublicId);
-}
+// 활성 세션 수  = 지금 이후 만료되는 것만 센다
+SortedSetLength("session:active", now, double.PositiveInfinity);
+
+// 만료분 정리   = 한 줄
+SortedSetRemoveRangeByScore("session:active", 0, now);
 ```
 
-**왜 Update가 아니라 Delete인가?**
-Update 패턴은 DB 저장과 Redis 저장 사이에 타이밍 문제가 생긴다.
+**"시간"을 score로 표현하니 만료 판정이 범위 질의가 됐고, 청소 작업이 사라졌다.** 자료구조를 바꾸는 것이 로직을 추가하는 것보다 나은 전형적인 경우다.
 
-```
-Thread A: DB 저장
-Thread B: Redis 조회 (아직 UPDATE 전 → 구버전 반환)
-Thread A: Redis UPDATE
-```
+대가도 있었다 — 자료구조를 바꾸면 **읽기·쓰기 API를 전부 같이 바꿔야 한다.** `SetMembersAsync` 호출이 한 곳 남아 있어서 런타임에 `WRONGTYPE`이 났다. Redis는 키 하나에 타입 하나만 허용하므로, 마이그레이션 누락은 컴파일이 아니라 운영 중에 드러난다.
 
-Delete하면 Thread B가 MISS를 받고 DB에서 최신 값을 가져온다.
-
-### 3. Redis Transaction — fire-and-forget 패턴
+## 5. Redis 트랜잭션 안에서 `await` 금지
 
 ```csharp
-private async Task SetUserCacheAsync(User user)
-{
-    var transaction = _database.CreateTransaction();
-
-    // ⚠️ 트랜잭션 내부에서는 await 금지
-    // _ = 로 Task를 버려야 함 (실제 실행은 ExecuteAsync에서)
-    _ = transaction.HashSetAsync(userKey, hashEntries);
-    _ = transaction.KeyExpireAsync(userKey, RedisSettings.RedisCacheTtl);
-    _ = transaction.StringSetAsync(mappingKey, user.UserId.ToString(), RedisSettings.RedisCacheTtl);
-
-    await transaction.ExecuteAsync();  // 여기서 한 번에 실행
-}
+var tx = _database.CreateTransaction();
+_ = tx.HashSetAsync(key, entries);        // ★ _ = 로 Task를 버린다
+_ = tx.KeyExpireAsync(key, ttl);
+await tx.ExecuteAsync();                  // 여기서 MULTI/EXEC로 한 번에 실행
 ```
 
-트랜잭션 내부에서 `await`를 사용하면 데드락이 발생한다.
-Redis 트랜잭션은 MULTI/EXEC 블록으로 명령을 모아서 한 번에 보내야 한다.
+StackExchange.Redis의 트랜잭션은 **명령을 모았다가 `ExecuteAsync`에서 한꺼번에 보낸다.** 내부에서 `await`하면 아직 보내지도 않은 명령의 결과를 기다리게 되어 멈춘다. 이건 라이브러리의 함정이 아니라 **MULTI/EXEC 모델 그 자체**다 — Redis는 EXEC 전까지 명령을 큐에 쌓기만 한다.
 
-### 4. TTL 분리 — SessionTtl vs RedisCacheTtl
+## 6. TTL은 용도마다 다르다
 
-```csharp
-// ❌ 잘못된 이해: 모든 Redis 키에 같은 TTL
-_ = transaction.KeyExpireAsync(sessionKey, RedisSettings.RedisCacheTtl);  // 30분
-
-// ✅ 올바른 이해: 용도에 따라 TTL 분리
-_ = transaction.KeyExpireAsync(sessionKey, sessionTtl);         // JWT 만료 시간 (15분)
-_ = transaction.KeyExpireAsync(userCacheKey, RedisCacheTtl);    // 캐시 TTL (30분)
+```
+session:{id}         → JWT 만료와 동일    ← 토큰이 살아 있는 동안만 유효해야 한다
+session:user:{id}    → 세션과 동일        ← 생명주기를 공유
+user:{id} 등 순수 캐시 → 30분             ← 만료돼도 DB에서 다시 채우면 그만
 ```
 
-| 키 종류 | TTL | 이유 |
-|---|---|---|
-| `session:{id}` | `JwtOptions.AccessTokenMinutes` | JWT 만료와 같아야 함 |
-| `session:user:{id}` | `JwtOptions.AccessTokenMinutes` | 세션과 생명주기 동일 |
-| `user:{id}`, `credential:{id}` 등 | `RedisSettings.RedisCacheTtl` (30분) | 순수 캐시, 만료 후 DB에서 재캐싱 |
+**"세션 만료"와 "캐시 만료"는 이름만 만료지 의미가 다르다.** 전자는 **정책**(만료되면 권한이 없어짐)이고 후자는 **최적화**(만료돼도 동작은 같음)다. 이걸 하나의 상수로 묶으면 캐시 TTL을 조정하는 순간 보안 정책이 바뀐다.
 
-### 5. ActiveSessions — Set에서 Sorted Set으로
+## 7. 경계에서 값이 변형된다 — `null → "" → null`
 
-처음엔 Redis Set을 사용했다:
+Redis Hash는 null을 저장할 수 없다. 그래서 저장할 때 `?? string.Empty`로 바꿨는데, **읽을 때 되돌리지 않았다.**
 
-```csharp
-// ❌ Set 방식 — 멤버 개별 TTL 없음
-await _database.SetAddAsync("session:active", sessionId);
-
-// 만료된 세션을 어떻게 제거하나?
-// → Background Service에서 주기적으로 모든 세션 조회 후 DB 비교 필요
-// → 비효율적
+```
+도메인:  RefreshToken = null   ("로그아웃 상태")
+   ↓ 저장
+Redis:   RefreshToken = ""
+   ↓ 읽기
+도메인:  RefreshToken = ""     ← null 이 아니다!
 ```
 
-Sorted Set으로 변경:
+인증 코드는 `RefreshToken is null`로 로그아웃 여부를 판단한다. `""`는 null이 아니므로 **로그아웃한 사용자가 로그인 상태로 판정**된다. 직렬화 경계는 **양방향 변환이 짝을 이뤄야** 한다 — 한쪽만 있으면 값이 조용히 다른 의미가 된다.
 
-```csharp
-// ✅ Sorted Set — score = 만료 Unix timestamp
-_ = transaction.SortedSetAddAsync(
-    "session:active",
-    session.SessionId,
-    DateTimeOffset.UtcNow.Add(ttl).ToUnixTimeSeconds()  // score = 만료 시각
-);
+## 8. 통합 테스트 — 캐시 전략은 Fake로 검증할 수 없다
 
-// 활성 세션 수 조회 (만료 안 된 것만)
-var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-return await _database.SortedSetLengthAsync("session:active", now, double.PositiveInfinity);
+Repository 위 레이어는 Fake로 충분하지만, **캐시 전략 자체는 진짜 Redis와 진짜 DB가 있어야 검증된다.** Testcontainers로 두 컨테이너를 띄웠다.
 
-// 만료된 세션 정리 (한 줄)
-await _database.SortedSetRemoveRangeByScoreAsync("session:active", 0, now);
+```
+E2E           Docker 서버 대상 (PlayMode)
+Integration   RepositoryIntegrationTests  ← 실제 PostgreSQL + Redis
+Application   AuthServiceTests 등 (Fake 리포지토리)
+Domain        엔티티 단위 (순수)
 ```
 
-score를 만료 타임스탬프로 쓰면 범위 쿼리 하나로 활성/만료 세션을 구분할 수 있다.
-Background Service 없이 정리 가능.
-
-### 6. 복수 엔티티 병렬 캐싱
+**캐시 HIT을 어떻게 증명하나** — "빠른가"로는 증명이 안 된다. 그래서 **DB에서 행을 지우고 조회**했다.
 
 ```csharp
-// ❌ 순차 처리
-foreach (var user in dbUsers)
-    await SetUserCacheAsync(user);
-
-// ✅ 병렬 처리
-await Task.WhenAll(dbUsers.Select(SetUserCacheAsync));
-```
-
----
-
-## 발생한 버그들
-
-### Bug 1: RefreshToken null → empty → null 왕복
-
-```csharp
-// 저장: null을 빈 문자열로 저장 (Redis Hash는 null 저장 불가)
-dict["RefreshToken"] = credential.RefreshToken ?? string.Empty;
-
-// 읽기: 빈 문자열을 null로 복원 안 함
-dict.TryGetValue("RefreshToken", out var refreshToken);
-return new UserCredential { RefreshToken = refreshToken };  // ← "" 반환
-```
-
-인증 로직에서 `credential.RefreshToken == null`로 판단해야 하는데 `""`가 오면 다르게 동작한다.
-
-```csharp
-// 수정: 빈 문자열 → null 복원
-dict.TryGetValue("RefreshToken", out var refreshToken);
-var normalizedToken = string.IsNullOrEmpty(refreshToken) ? null : refreshToken;
-```
-
-### Bug 2: 트랜잭션 내 await 데드락
-
-```csharp
-// ❌ 데드락 발생
-var transaction = _database.CreateTransaction();
-await transaction.KeyDeleteAsync(profileKey);      // ← await 사용
-await transaction.ExecuteAsync();
-```
-
-```csharp
-// ✅ fire-and-forget
-var transaction = _database.CreateTransaction();
-_ = transaction.KeyDeleteAsync(profileKey);         // ← _ = 로 버림
-await transaction.ExecuteAsync();
-```
-
-`await`를 트랜잭션 내부에서 쓰면 `ExecuteAsync()` 전에 실행을 기다리려고 해서 데드락이 생긴다.
-
-### Bug 3: DungeonRoomPlayerRepository — 삭제 후 빈 목록으로 캐시 정리
-
-```csharp
-// ❌ DB 삭제 후 DB에서 조회 → 이미 없어서 빈 배열
-await context.DeleteRangeAsync(players);
+var user = await repository.CreateAsync();
+context.Users.Remove(user);              // DB에서 제거 (캐시는 그대로)
 await context.SaveChangesAsync();
 
-var remainingPlayers = await GetPlayersByRoomIdAsync(roomId);  // []
-foreach (var p in remainingPlayers)
-    await DeleteCacheAsync(roomId, p.UserId);  // 아무것도 삭제 안 됨
+var found = await repository.GetByIdAsync(user.UserId);
+Assert.NotNull(found);   // DB에 없는데 반환됐다 = 캐시에서 왔다는 증명
 ```
 
-```csharp
-// ✅ DB 삭제 전에 목록을 먼저 꺼냄
-var dbPlayers = await context.DungeonRoomPlayers
-    .Where(p => p.RoomId == roomId).ToListAsync();
+**검증에도 3절의 함정이 있다** — Update 이후 검증은 반드시 **새 DbContext**로 해야 한다. 같은 context로 조회하면 EF가 추적 중인 엔티티를 그대로 돌려주기 때문에 **DB에 실제로 저장됐는지 검증하지 못한다.** 프로덕션 버그와 테스트 위양성이 완전히 같은 원인에서 나왔다.
 
-await context.DeleteRangeAsync(dbPlayers);
-await context.SaveChangesAsync();
+## 9. 남은 것
 
-// 삭제 전 목록으로 캐시 정리
-var deleteTasks = dbPlayers.Select(p => DeleteCacheAsync(roomId, p.UserId));
-await Task.WhenAll(deleteTasks);
-```
-
-### Bug 4: Sorted Set 마이그레이션 후 이전 API 잔존
-
-```csharp
-// ActiveSessionsKey를 Sorted Set으로 변경했는데
-// 이전 Set API가 그대로 남아 있어서 WRONGTYPE Redis 에러
-
-// ❌ Set API (이전 코드)
-var sessionIds = await _database.SetMembersAsync(ActiveSessionsKey);
-
-// ✅ Sorted Set API
-var sessionIds = await _database.SortedSetRangeByScoreAsync(
-    ActiveSessionsKey, now, double.PositiveInfinity);
-```
-
-Redis 자료구조를 바꾸면 **읽기/쓰기 API를 전부** 함께 변경해야 한다.
-바꾼 곳이 하나라도 남아있으면 런타임에 `WRONGTYPE` 에러가 발생한다.
+- **Cache Stampede 미방어** — 인기 키가 동시에 만료되면 모든 요청이 DB로 직행한다. `SET NX` 뮤텍스로 한 명만 재적재하게 하는 것이 정석이고, 재료(`RedisUserLock`)는 이미 있지만 캐시 재적재에는 걸려 있지 않다. 현재 쓰기·트래픽 규모에서 실측된 문제는 아니다(**미실측**).
+- **write-heavy 엔티티에는 이 전략이 안 맞는다** — 채팅처럼 쓰기가 잦으면 지우고-다시-올리기가 반복된다. 실제로 채팅 이력은 Sorted Set 인덱스 + TTL이라는 다른 형태로 갈라졌다([04](./chapter-04-chat.md)).
+- 통합 테스트 스키마는 `EnsureCreatedAsync`(빠름), 프로덕션은 `MigrateAsync`. 테스트가 마이그레이션 파일 자체를 검증하지는 않는다.
 
 ---
 
-## 통합 테스트 — Testcontainers
+### 이 챕터가 이후에 미친 영향
 
-Repository 단위는 Fake로 충분하지만 캐시 전략 자체는 실제 DB + Redis로 검증해야 한다.
+| 여기서 정한 것 | 나중에 지탱한 것 |
+|---|---|
+| Get/Update/Delete 3원칙 | 전 도메인 Repository의 공통 규칙 |
+| `AsNoTracking` = 정확성 장치 | 스트리밍 스코프 전반의 stale 방지 · 진실원 교리([03](./chapter-03-dungeon-lobby.md)) |
+| 실제 컨테이너로 인프라 검증 | Docker 대상 E2E를 기본으로 삼는 테스트 전략([09](./chapter-09-unity-client.md)) |
 
-```
-테스트 피라미드
-
-  E2E           GameStartE2ETest (실제 gRPC 서버 + Fake)
-  Integration   RepositoryIntegrationTests ← 이번에 추가
-  Application   AuthServiceTests, ChatServiceTests (Fake 레포)
-  Domain        UserTests, DungeonRoomTests (순수 엔티티)
-```
-
-### Testcontainers Fixture
-
-```csharp
-public class RepositoryTestFixture : IAsyncLifetime
-{
-    public async Task InitializeAsync()
-    {
-        PostgreSqlContainer = new PostgreSqlBuilder()
-            .WithDatabase("gamedb").WithUsername("gameuser").WithPassword("gamepass123")
-            .Build();
-        RedisContainer = new RedisBuilder().Build();
-
-        // 병렬 시작
-        await Task.WhenAll(PostgreSqlContainer.StartAsync(), RedisContainer.StartAsync());
-
-        _redisConnection = await ConnectionMultiplexer.ConnectAsync(RedisConnectionString);
-
-        using var context = CreateDbContext();
-        await context.Database.EnsureCreatedAsync();  // 스키마 생성
-    }
-}
-```
-
-### Cache HIT 검증 패턴
-
-```csharp
-[Fact]
-public async Task Read_Hit_ShouldReturnFromCacheWithoutDbAccess()
-{
-    var user = await repository.CreateAsync();
-
-    // DB에서 직접 삭제 (캐시는 유지)
-    context.Users.Remove(user);
-    await context.SaveChangesAsync();
-
-    // 캐시에서 반환되어야 함 (DB에 없으므로 DB 조회 시 실패)
-    var found = await repository.GetByIdAsync(user.UserId);
-
-    Assert.NotNull(found);  // 캐시 HIT 증명
-}
-```
-
-### Update assertion — 새 context 사용
-
-```csharp
-// ❌ EF Change Tracker가 메모리 캐시 반환 (DB 실제 상태 미검증)
-var dbUser = await context.Users.FindAsync(user.UserId);
-Assert.Equal(newValue, dbUser?.Field);
-
-// ✅ 새 context → EF 캐시 우회 → 실제 DB 조회
-using var assertContext = _fixture.CreateDbContext();
-var dbUser = await assertContext.Users.FindAsync(user.UserId);
-Assert.Equal(newValue, dbUser?.Field);
-```
-
-EF Core는 `FindAsync`에서 동일 context의 Change Tracker에 이미 추적 중인 엔티티가 있으면 DB 조회 없이 반환한다. Update 이후 검증은 항상 새 context 인스턴스를 사용해야 한다.
-
----
-
-## 시니어 리뷰
-
-### Cache Aside의 한계
-
-**Write-Heavy 엔티티에는 비효율적:**
-쓸 때마다 캐시를 지우고, 읽을 때마다 다시 올린다.
-`ChatMessage`처럼 쓰기가 빈번한 엔티티는 캐시 미스가 계속 발생한다.
-채팅은 Read-Through + TTL 전략이 더 적합할 수 있다.
-
-**Cache Stampede 가능성:**
-동시에 많은 요청이 같은 캐시 키를 MISS하면 모두 DB로 직행한다.
-해결: Redis `SET NX` (Mutex) 또는 `Probabilistic Early Expiration` 기법.
-현재 구현에서는 쓰기 빈도가 낮아 실질적 문제는 없다.
-
-### Testcontainers 주의점
-
-**EF `EnsureCreatedAsync` vs `MigrateAsync`:**
-- `EnsureCreatedAsync`: 마이그레이션 히스토리 없이 스키마 생성. 빠르고 간단.
-- `MigrateAsync`: 실제 마이그레이션 파일 순서대로 적용. 프로덕션 스키마와 동일 보장.
-
-포트폴리오 단계에서는 `EnsureCreatedAsync`로 충분하지만, 실제 서비스에서는 `MigrateAsync` 권장.
-
-**공유 Fixture vs 테스트별 독립 DB:**
-현재 모든 통합 테스트가 `[Collection("RepositoryIntegrationTests")]`로 같은 컨테이너를 공유한다.
-- 장점: 컨테이너 시작 비용 1회
-- 단점: 테스트 간 데이터 잔존 가능
-
-각 테스트가 `UserRepository.CreateAsync()`로 새 User를 만들어 ID가 겹치지 않으므로 현재는 문제없다.
-
----
-
-## 다음 단계
-
-- [ ] `DungeonRoom.Update` 테스트에서 수동 DB 저장 + `repository.UpdateAsync()` 중복 제거
-- [ ] `UserRepository.Update` 테스트 — Reflection 대신 도메인 메서드 사용 검토
-- [ ] Cache Stampede 방어 — 고트래픽 시나리오 시 `SET NX` Mutex 패턴 적용
-- [ ] `EnsureCreatedAsync` → `MigrateAsync` 전환 (실제 마이그레이션 파일 작성 후)
+> 이 챕터의 원본 학습 로그 = [learning-log/chapter-07-db-cache.md](../learning-log/chapter-07-db-cache.md)

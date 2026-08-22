@@ -1,71 +1,49 @@
-# 챕터 12 — Addressable 리소스 관리 & 공통 팝업 시스템
+# 12. Addressable 소유권 — "null이면 해제됐다"를 불변으로 만들기
 
-## 이번 챕터에서 한 일
-
-챕터 11까지 소켓 세션 진입 흐름을 완성했다.  
-이번 챕터에서는 UI 리소스 관리 구조를 정리하고, 게임 전반에서 재사용 가능한 공통 팝업 시스템을 구축했다.
-
-구체적으로:
-
-1. `AddressableInstance` / `AddressableLoader` — Addressable 핸들 + 인스턴스 소유권 일원화
-2. 기존 3개 컨트롤러의 중복 Addressable 로드 패턴 교체
-3. `AlertPopup` / `ConfirmPopup` / `WarningPopup` 완성 (TMP, Glow 상태, BackGround 클릭 닫기)
-4. `LobbyViewController` — MVI 에러 상태 → `AlertPopup` 자동 표시
-5. `DungeonRoomDetailView` — 방 나가기 → `ConfirmPopup` 확인 흐름
+> **한 줄** — Addressable은 **참조 카운트**로 동작하는데, 핸들과 인스턴스를 따로 들고 있으면 한쪽만 정리해도 컴파일은 통과한다. 누수는 조용하고, 이중 해제는 크래시다. 두 개를 **한 객체가 함께 소유**하게 만들어 "필드가 null이면 완전히 해제된 것"이라는 **불변식 하나로 줄였다**.
+>
+> **범위** 리소스 소유권 · 소유권 이전 · 프리팹 무수정 이벤트 배선 · MVI와 팝업
+> **현재 규모** 도입 시 3개 컨트롤러 → **18개 파일**에서 사용 중
 
 ---
 
-## 문제 1 — Addressable 핸들 누수 위험
+## 1. 문제 — 손으로 맞춰야 하는 두 개의 필드
 
-### 기존 코드의 구조
-
-`LobbyViewController`, `GameHudController`, `DungeonRoomLobbyView`는 각자 같은 패턴을 반복하고 있었다.
+같은 패턴이 세 컨트롤러에 복사돼 있었다.
 
 ```csharp
-// 필드가 두 개 필요
-private AsyncOperationHandle<GameObject> _lobbyHandle;
-private GameObject _lobbyInstance;
+private AsyncOperationHandle<GameObject> _handle;   // 리소스
+private GameObject _instance;                       // 인스턴스   ← 두 개를 사람이 맞춰야 한다
 
-// 로드 시 — 10줄 이상
-_lobbyHandle = Addressables.LoadAssetAsync<GameObject>(key);
-await _lobbyHandle.Task.AsUniTask().AttachExternalCancellation(_cts.Token);
-if (_cts.IsCancellationRequested)
-{
-    if (_lobbyHandle.IsValid()) Addressables.Release(_lobbyHandle);
-    return;
-}
-_lobbyInstance = Instantiate(_lobbyHandle.Result, parent);
-
-// 해제 시
-if (_lobbyInstance != null) Destroy(_lobbyInstance);
-if (_lobbyHandle.IsValid()) Addressables.Release(_lobbyHandle);
+// 해제
+if (_instance != null) Destroy(_instance);
+if (_handle.IsValid()) Addressables.Release(_handle);
 ```
 
-세 곳 모두 이 패턴이 반복됐고, 두 필드가 분리돼 있다 보니 한쪽만 해제하면 누수가 생기는 구조였다.
-
-### 왜 위험한가
-
-Unity Addressables는 **Ref Count 기반**으로 동작한다.
+Addressables는 **ref count** 기반이다.
 
 ```
-LoadAssetAsync("A.prefab")  → ref count +1
-Release(handle)             → ref count -1 → 0이 되면 실제 언로드
+LoadAssetAsync("A.prefab")  → +1
+Release(handle)             → -1   (0이 되면 실제 언로드)
 ```
 
-`AsyncOperationHandle`과 `GameObject`를 따로 관리하면:
-- Destroy만 하고 Release를 빠뜨리면 ref count가 내려가지 않아 메모리에 남는다.
-- Double-release하면 ref count 음수 → 크래시.
+여기서 두 가지가 갈린다.
 
-두 필드를 **하나의 객체가 함께 소유**하도록 만들면 이 문제가 해결된다.
+| 실수 | 결과 | 발견 시점 |
+|---|---|---|
+| `Destroy`만 하고 `Release` 누락 | ref count가 안 내려감 → **에셋이 메모리에 영구 잔류** | 안 남 (조용한 누수) |
+| `Release` 두 번 | ref count 음수 → **크래시** | 런타임, 재현 어려움 |
 
-### 해결 — AddressableInstance
+**둘 다 컴파일러가 잡아주지 않는다.** 그리고 문제의 본질은 "실수했다"가 아니라 **실수할 수 있는 구조**였다는 것이다. 필드가 두 개면 정리 코드도 두 줄이고, 한 줄만 지우면 절반만 해제된다.
+
+## 2. 해법 — 소유권을 한 객체로
 
 ```csharp
 public sealed class AddressableInstance : IDisposable
 {
     public GameObject GameObject { get; }
     private readonly AsyncOperationHandle<GameObject> _handle;
-    private bool _disposed;
+    private bool _disposed;                      // ← 이중 해제 차단
 
     public void Dispose()
     {
@@ -77,258 +55,153 @@ public sealed class AddressableInstance : IDisposable
 }
 ```
 
-`_disposed` 가드로 double-release를 방지하고,  
-`Dispose()` 한 번으로 Destroy + Release가 원자적으로 처리된다.
+호출부에서 남는 것은 필드 하나다.
 
-### AddressableLoader — 로드 쪽 보일러플레이트 제거
+```csharp
+private AddressableInstance? _inst;
+
+_inst = await AddressableLoader.LoadAndInstantiateAsync(key, parent, ct);
+...
+_inst?.Dispose();
+_inst = null;
+```
+
+이걸로 **불변식이 하나로 줄었다**.
+
+```
+_inst != null  ⇔  열려 있고 리소스를 점유 중
+_inst == null  ⇔  Destroy + Release 둘 다 끝남
+```
+
+"둘 다 정리했나?"를 매번 확인할 필요가 없어진다. C++의 RAII, C#의 `IDisposable`이 원래 하는 일이지만, **Unity의 Addressables는 그 짝을 강제하지 않으므로 직접 만들어야 한다.**
+
+## 3. 로드 쪽 — 실패를 null로 정규화
 
 ```csharp
 public static async UniTask<AddressableInstance?> LoadAndInstantiateAsync(
     string key, Transform parent, CancellationToken ct)
 {
     var handle = Addressables.LoadAssetAsync<GameObject>(key);
-    try
-    {
-        await handle.Task.AsUniTask().AttachExternalCancellation(ct);
-    }
+    try { await handle.Task.AsUniTask().AttachExternalCancellation(ct); }
     catch (OperationCanceledException)
     {
-        if (handle.IsValid()) Addressables.Release(handle);
+        if (handle.IsValid()) Addressables.Release(handle);   // ← 취소도 누수 경로다
         return null;
     }
-    // ...
-    var go = Object.Instantiate(handle.Result, parent);
-    return new AddressableInstance(go, handle);
+    return new AddressableInstance(Object.Instantiate(handle.Result, parent), handle);
 }
 ```
 
-취소 / 실패 시 핸들을 내부에서 정리하고 `null` 반환.  
-호출자는 예외 처리 없이 null 체크 한 줄로 끝난다.
+**취소는 정상 흐름인데 리소스 관점에서는 누수 지점**이다. 로딩이 시작된 뒤 취소되면 핸들은 이미 발급돼 있다. 이걸 호출부마다 처리하게 두면 언젠가 빠진다.
 
-### 교체 후 코드
+유틸이 안에서 정리하고 `null`을 돌려주므로, 호출자는 **`try/catch` 없이 null 검사 한 줄**로 끝난다. 실패의 종류(취소/키 없음/로드 실패)를 호출자가 구분할 필요가 없다면 **하나의 값으로 정규화**하는 편이 낫다.
 
-```csharp
-// Before: 필드 2개 + 10줄 이상
-// After:
-private AddressableInstance? _lobbyInst;
+## 4. 소유권 이전 — 팝업은 자기가 어떻게 로드됐는지 모른다
 
-_lobbyInst = await AddressableLoader.LoadAndInstantiateAsync(key, parent, ct);
-if (_lobbyInst != null)
-    _resolver.InjectGameObject(_lobbyInst.GameObject);
-
-// 해제
-_lobbyInst?.Dispose();
-_lobbyInst = null;
-```
-
-**"null = 완전 해제"** 라는 단일 불변이 성립한다.  
-`_inst != null`이면 열려 있고, `null`이면 닫혀 있다.
-
----
-
-## 문제 2 — 공통 팝업 시스템 설계
-
-### 요구 사항
-
-- Alert(1버튼), Confirm(2버튼), Warning(2버튼 경고) 세 종류
-- 팝업 종류와 상황에 따라 **배경 Glow 색상**이 달라져야 한다
-- BackGround(딤 오버레이) 클릭 시 닫혀야 한다
-- 팝업 자체가 Addressable로 로드되므로, **닫힐 때 핸들도 함께 해제**되어야 한다
-
-### SetAddressableOwner 패턴
-
-팝업은 자신이 Addressable로 로드됐는지 모른다.  
-호출자가 로드 후 소유권을 넘겨주는 방식으로 해결했다.
+팝업 스크립트가 Addressables를 알면, **Addressable이 아닌 방식으로는 못 쓰는 컴포넌트**가 된다(테스트 씬에 직접 배치 등).
 
 ```csharp
-public class BasePopup : UIBehaviour
+// BasePopup — 소유권을 "받는다". 스스로 로드하지 않는다.
+public void SetAddressableOwner(AddressableInstance inst) => _owner = inst;
+
+public virtual void Close()
 {
-    private AddressableInstance _owner;
-
-    public void SetAddressableOwner(AddressableInstance inst) => _owner = inst;
-
-    public virtual void Close()
-    {
-        if (_owner != null)
-        {
-            _owner.Dispose(); // Destroy + Release 동시 처리
-            _owner = null;
-        }
-        else
-        {
-            Destroy(gameObject); // Addressable 아닌 경우 fallback
-        }
-    }
+    if (_owner != null) { _owner.Dispose(); _owner = null; }  // Destroy + Release 동시
+    else Destroy(gameObject);                                 // 직접 배치된 경우 폴백
 }
 ```
 
-호출 측:
 ```csharp
-var inst = await AddressableLoader.LoadAndInstantiateAsync(key, parent, ct);
+// 호출부: 로드한 쪽이 소유권을 넘긴다
+var inst  = await AddressableLoader.LoadAndInstantiateAsync(AddressKeys.UI.AlertPopup, root, ct);
 var popup = inst.GameObject.GetComponent<AlertPopup>();
-popup.SetAddressableOwner(inst); // 소유권 이전
-popup.Setup("오류", message);
-// 이제 popup.Close() 시 핸들까지 자동 해제
+popup.SetAddressableOwner(inst);        // 이후 popup.Close() 하나로 핸들까지 정리된다
+popup.Setup("오류", message, glow: PopupGlowType.Danger);
 ```
 
-### BackGround 클릭 닫기 — EventTrigger 동적 추가
+**닫는 주체(팝업 자신)와 해제 주체가 일치**하는 것이 요점이다. 팝업은 "닫을 때 내 소유물을 정리한다"만 알면 되고, 그게 Addressable인지 아닌지는 몰라도 된다.
 
-Button 컴포넌트를 프리팹에 추가하는 대신, `Awake`에서 `EventTrigger`를 코드로 붙였다.  
-프리팹 YAML을 건드리지 않아도 되고, BackGround는 이미 `m_RaycastTarget: 1`이라 클릭이 통한다.
+> 이건 [11](./chapter-11-socket-session-entry.md) 7절에서 겪은 문제의 예방책이기도 하다 — 거기서는 **로딩 중인 핸들을 제3자가 해제**해서 예외가 났다. 소유권이 명시되면 "누가 해제해도 되는가"에 답이 생긴다.
+
+## 5. 프리팹을 고치지 않고 동작을 붙인다
+
+딤 배경 클릭으로 닫기 위해 `Button`을 프리팹에 추가하는 대신, 코드로 붙였다.
 
 ```csharp
 protected override void Awake()
 {
-    base.Awake();
-    if (backgroundImage != null)
-    {
-        var trigger = backgroundImage.gameObject.AddComponent<EventTrigger>();
-        var entry   = new EventTrigger.Entry { eventID = EventTriggerType.PointerClick };
-        entry.callback.AddListener(_ => Close());
-        trigger.triggers.Add(entry);
-    }
+    var trigger = backgroundImage.gameObject.AddComponent<EventTrigger>();
+    var entry   = new EventTrigger.Entry { eventID = EventTriggerType.PointerClick };
+    entry.callback.AddListener(_ => Close());
+    trigger.triggers.Add(entry);
 }
 ```
 
-Window가 BackGround 위에 있으므로 Window 클릭은 BackGround에 전달되지 않는다.  
-딤 영역 클릭 시에만 닫힌다.
+프리팹은 **바이너리에 가까운 YAML**이라 변경이 diff로 잘 읽히지 않고 병합 충돌도 잦다. 배경 Image는 이미 `raycastTarget`이 켜져 있어 클릭을 받을 수 있었으므로, **동작만 코드로 얹는 쪽이 추적 가능**했다. 창(Window)이 배경 위에 있어서 창 클릭은 배경으로 내려가지 않는다.
 
-### PopupGlowType — 상태별 Glow 색상
-
-팝업 배경 Image의 Sprite를 런타임에 교체하는 방식으로 색상을 제어한다.
+## 6. 상태를 색으로 — 기본값을 팝업 종류마다 다르게
 
 ```csharp
-public enum PopupGlowType
-{
-    Info    = 0, // Blue  — 일반 알림
-    Success = 1, // Green — 성공
-    Warning = 2, // Yellow — 주의/확인
-    Danger  = 3, // Red   — 오류/위험
-}
+public enum PopupGlowType { Info, Success, Warning, Danger }   // Blue / Green / Yellow / Red
 ```
 
-`BasePopup`의 `glowSprites[4]` 배열은 프리팹에서 미리 연결.  
-`Setup()` 호출 시 `ApplyGlow(type)`로 sprite를 교체한다.
+`BasePopup`이 `Sprite[4]`를 들고 인덱스로 교체한다. 새 색을 넣으려면 enum 값 하나 + 인스펙터 연결이면 된다.
 
-```csharp
-// AlertPopup
-public void Setup(string titleText, string messageText,
-    Action onOk = null, PopupGlowType glow = PopupGlowType.Info)
-{
-    title.text   = titleText;
-    message.text = messageText;
-    okButton.onClick.AddListener(OnOkClicked);
-    ApplyGlow(glow);
-}
+기본값이 팝업 종류마다 다르다 — `Alert`=Info, `Confirm`=Warning, `Warning`=Danger. **호출자가 아무것도 지정하지 않아도 의미에 맞는 색이 나오고**, 필요할 때만 덮어쓴다. "기본값을 안전한 쪽으로" 두면 호출부가 조용해진다.
+
+## 7. MVI와 팝업 — Model은 '무엇', View는 '어떻게'
+
+```
+LobbyModel   →  State.ErrorMessage 에 문자열을 담기만 한다 (팝업을 모른다)
+LobbyViewController  →  State 를 구독하다가 에러가 바뀌면 AlertPopup 을 띄운다
 ```
 
-기본값이 팝업 종류별로 다르다:
-- `AlertPopup` → `Info(Blue)`
-- `ConfirmPopup` → `Warning(Yellow)`
-- `WarningPopup` → `Danger(Red)`
+Model이 팝업을 직접 띄우면 **표현 방식이 도메인 로직에 박힌다** — 나중에 토스트로 바꾸거나, 테스트에서 UI 없이 돌릴 수 없다.
 
-호출자가 기본값을 따르면 자연스럽고, 필요하면 오버라이드할 수 있다.
-
----
-
-## 문제 3 — MVI와 팝업 연동
-
-### 에러 팝업 — LobbyViewController
-
-`LobbyModel`은 실패 시 `LobbyState.ErrorMessage`에 문자열을 세팅한다.  
-View(컨트롤러)가 이 상태를 구독해서 팝업을 띄운다.
+여기에 상태 기반 구독의 함정이 하나 있다.
 
 ```csharp
-// LobbyViewController.Initialize()
 var prevError = (string)null;
-_model.State
-    .Subscribe(s =>
-    {
-        if (s.ErrorMessage != null && s.ErrorMessage != prevError)
-            ShowErrorPopupAsync(s.ErrorMessage).Forget();
-        prevError = s.ErrorMessage;
-    })
-    .AddTo(_cts.Token);
-
-private async UniTaskVoid ShowErrorPopupAsync(string error)
-{
-    var inst = await AddressableLoader.LoadAndInstantiateAsync(
-        AddressKeys.UI.AlertPopup, GUIRoot.Instance.transform, _cts.Token);
-    if (inst == null) return;
-
-    var popup = inst.GameObject.GetComponent<AlertPopup>();
-    popup.SetAddressableOwner(inst);
-    popup.Setup("오류", error, glow: PopupGlowType.Danger);
-}
+_model.State.Subscribe(s => {
+    if (s.ErrorMessage != null && s.ErrorMessage != prevError)   // ← 직전 값과 비교
+        ShowErrorPopupAsync(s.ErrorMessage).Forget();
+    prevError = s.ErrorMessage;
+});
 ```
 
-Model은 에러를 `ErrorMessage`에 담기만 하고, 팝업을 어떻게 표시할지는 모른다.  
-View(컨트롤러)가 상태 변화를 관찰해서 팝업을 띄우는 MVI 책임 분리가 유지된다.
+**상태는 이벤트가 아니다.** 다른 필드가 바뀌어도 State는 다시 흐르고, 그때마다 같은 `ErrorMessage`가 들어 있다. 비교 없이 구독하면 **팝업이 반복해서 뜬다.** 상태를 이벤트처럼 쓰려면 "무엇이 바뀌었는가"를 직접 판정해야 한다.
 
-### 방 나가기 확인 — DungeonRoomDetailView
+같은 원리로 확인 팝업도 Intent 전송 앞단에만 끼웠다 — 버튼 → 확인 팝업 → `onConfirm`에서 기존 Intent 발행. **Intent 코드 자체는 바뀌지 않는다.**
 
-기존 코드는 버튼 클릭 → 즉시 `LeaveRoom` Intent를 보냈다.  
-실수로 방을 나가는 경우를 막기 위해 `ConfirmPopup`을 사이에 끼웠다.
+## 8. 그 이후
 
-```csharp
-// Before
-m_backButton.onClick.AddListener(() =>
-    _model.Accept(LobbyIntent.LeaveRoom.Instance));
+| 당시 | 현재 |
+|---|---|
+| 컨트롤러 3곳에서 사용 | **18개 파일**에서 사용 |
+| `Dispose()`만 존재 | `SetOnDisposed(Action)` 콜백 추가 — 소유자가 해제 시점을 알 수 있게 |
+| UI 프리팹 로딩 하나 | **자산 성격별로 세 갈래**로 분화 |
 
-// After
-m_backButton.onClick.AddListener(() => ShowLeaveConfirmAsync().Forget());
-
-private async UniTaskVoid ShowLeaveConfirmAsync()
-{
-    var inst = await AddressableLoader.LoadAndInstantiateAsync(
-        AddressKeys.UI.ConfirmPopup, transform.root, destroyCancellationToken);
-    if (inst == null) return;
-
-    var popup = inst.GameObject.GetComponent<ConfirmPopup>();
-    popup.SetAddressableOwner(inst);
-    popup.Setup("방 나가기", "정말 방을 나가시겠습니까?",
-        onConfirm: () => _model.Accept(LobbyIntent.LeaveRoom.Instance));
-}
+```
+UI 프리팹        AddressableLoader.LoadAndInstantiateAsync   (비동기 + 소유권 객체)
+SO·카탈로그      LoadAssetAsync(...).WaitForCompletion()     (LifetimeScope 동기 등록, 로컬 번들)
+맵·씬            MapLoader / GameSceneManager                (씬 수명에 위임)
 ```
 
-View가 직접 LeaveRoom을 보내는 것은 그대로지만,  
-확인 단계를 추가해도 Intent 전송 코드 자체는 변하지 않는다.
+"전부 같은 방식으로 로드한다"가 아니라 **수명과 시점이 다르면 도구도 다르다**로 정리됐다. 자세한 경위는 [20](./chapter-20-content-pipeline-addressables.md).
+
+## 9. 남은 것
+
+- **팝업 호출 보일러플레이트가 8곳에 반복된다** — `로드 → GetComponent → SetAddressableOwner → Setup` 4단계가 매번 똑같다. 이 챕터가 Addressable 계층에서 없앤 중복이 **팝업 계층에서 다시 생겼다.** `ShowAlertAsync(title, msg, glow)` 같은 헬퍼 하나면 흡수된다. (기능 결함은 아니고 정리 대상)
 
 ---
 
-## 설계 결정 요약
+### 이 챕터가 이후에 미친 영향
 
-| 결정 | 이유 |
-|------|------|
-| 핸들 + 인스턴스를 `AddressableInstance` 하나로 소유 | "null = 완전 해제" 불변 성립. 분리 시 누수 위험 |
-| `SetAddressableOwner` — 팝업이 소유권을 받는 구조 | 팝업 스크립트가 Addressable를 알 필요 없음. 단독 사용도 가능 |
-| EventTrigger 동적 추가 (BackGround 클릭) | 프리팹에 Button 컴포넌트 추가 없이 동작. YAML 변경 최소화 |
-| `PopupGlowType` enum + `Sprite[]` 배열 | 새 색상 추가 시 enum 값 하나 + Inspector 연결만 하면 됨 |
-| 에러 팝업을 `LobbyViewController`에서 관찰 | Model은 상태만 발행. View가 팝업 방식을 결정하는 MVI 원칙 유지 |
+| 여기서 정한 것 | 나중에 지탱한 것 |
+|---|---|
+| 리소스는 소유 객체가 정리한다 | 로딩 중 제3자 해제 문제의 구조적 예방([11](./chapter-11-socket-session-entry.md) 7절) |
+| 실패/취소를 null로 정규화 | 호출부가 예외 처리를 갖지 않는 로딩 규약 |
+| Model은 상태만, View가 표현 | HUD 창 MVI 확장 전반([22](./chapter-22-hud-windows-mvi.md)) |
+| 프리팹 대신 코드로 배선 | 프리팹 미배선이 만든 조용한 실패를 겪은 뒤 더 강해짐([29](./chapter-29-multiplayer-sync-invisible-failures.md) 2절) |
 
----
-
-## 파일 위치
-
-| 파일 | 역할 |
-|------|------|
-| `GUI/Util/AddressableInstance.cs` | 핸들 + 인스턴스 소유권 |
-| `GUI/Util/AddressableLoader.cs` | 로드 + 인스턴스화 유틸 |
-| `GUI/Common/Popups/BasePopup.cs` | BackGround 클릭 닫기, Glow 교체, SetAddressableOwner |
-| `GUI/Common/Popups/PopupGlowType.cs` | 상태별 색상 enum |
-| `GUI/Common/Popups/AlertPopup.cs` | 1버튼 알림 팝업 |
-| `GUI/Common/Popups/ConfirmPopup.cs` | 2버튼 확인 팝업 |
-| `GUI/Common/Popups/WarningPopup.cs` | 2버튼 경고 팝업 |
-| `GUI/LobbyViewController.cs` | 에러 상태 → AlertPopup 자동 표시 |
-| `GUI/DungeonLobby/DungeonRoomDetail/DungeonRoomDetailView.cs` | 방 나가기 → ConfirmPopup |
-
----
-
-## 핵심 키워드
-
-- **Addressable Ref Count** — `LoadAssetAsync` N번 = `Release` N번 필요. 한 번이라도 빠지면 누수
-- **AddressableInstance** — 핸들 + 인스턴스를 하나로 소유. `_disposed` 가드로 double-release 방지
-- **SetAddressableOwner** — 팝업이 소유권을 받는 패턴. 닫힐 때 Destroy + Release 원자 처리
-- **EventTrigger 동적 추가** — `Awake`에서 `AddComponent<EventTrigger>()`. 프리팹 YAML 무수정
-- **PopupGlowType** — 팝업 상태를 enum으로 표현. `Sprite[]` 배열 인덱스로 Glow sprite 교체
-- **MVI 에러 관찰** — Model은 `ErrorMessage` 상태만 발행. Controller가 변화를 감지해 팝업 띄움
+> 이 챕터의 원본 학습 로그 = [learning-log/chapter-12-addressable-popup-system.md](../learning-log/chapter-12-addressable-popup-system.md)

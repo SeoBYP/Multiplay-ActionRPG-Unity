@@ -1,122 +1,169 @@
-# 챕터 19 학습 로그 — 퀘스트(Quest) 시스템
+# 19. 퀘스트 — 새 권위를 만들지 않고 기존 funnel에 얹기
 
-> 4.4. 수주 → 진행 → 완료 → 보상수령의 풀 루프. **진행은 서버 권위**(클라가 "킬했다"를 보고하지 않는다), 보상은 기존 도메인(Progression·Wallet·Inventory)의 **조합**, 중복 수령은 **Claimed 선마킹**으로 막는다.
-> 핵심: 퀘스트는 새로운 권위를 만들지 않는다 — 이미 서버가 검증하는 **킬 클레임 경로 한 곳**에 진행 훅을 얹고, 보상은 검증된 지급 서비스들을 **오케스트레이션**할 뿐이다.
+> **한 줄** — 퀘스트는 새로운 권위도, 새로운 저장소도, 새로운 지급 경로도 만들지 않았다. **서버가 이미 검증하고 있는 킬 경로 한 곳**에 진행 훅을 얹고, 보상은 검증된 서비스들을 조합했다. 그래서 추가된 것은 사실상 **한 줄**이다.
+>
+> **범위** 진행 권위 · 파생 상태 · 조합 보상 · 캐시 판단 · 훅 위치 선택
+> **하이라이트** 훅을 어디에 달지를 **깨질 테스트 호스트 수로 계산**한 것 (6절)
 
 ---
 
-## 설계 결정과 근거
+## 1. 진행을 클라가 보고하면 안 되는 이유
 
-### 진행은 클라 보고가 아니라 "서버가 이미 검증하는 킬"에 얹는다
+가장 쉬운 설계는 클라가 `ReportKill(monsterId)`을 부르는 것이다. 그러면 **클라가 킬을 위조해 퀘스트를 무한 진행**시킨다. 보상이 exp·gold·item이므로 곧바로 경제 핵이 된다.
 
-가장 쉬운(그리고 틀린) 설계는 클라가 `ReportKill(monsterId)`를 RPC로 보내는 것이다. 그러면 클라가 킬을 위조해 퀘스트를 무한 진행시킨다 — 보상이 exp/gold/item이므로 곧 경제 핵이다.
-
-이 프로젝트는 이미 Main 획득을 **B-lite 서버 검증**(챕터 16)으로 막아뒀다: 클라는 "어느 슬롯을 죽였다"(mapId, slotId)만 보고하고, 서버가 스폰 데이터로 슬롯을 검증하고 per-user 쿨다운으로 파밍률을 상한한다. 이 **`ClaimMonsterExp`(킬 클레임)가 곧 "서버가 인정한 진짜 킬 1회"**다. 퀘스트 진행은 거기에 한 줄 얹으면 된다 — 별도 진행 RPC를 만들지 않는다.
+그런데 이 프로젝트에는 **이미 서버가 인정한 "진짜 킬 1회"** 가 있었다 — Main 획득을 B-lite로 막을 때 만든 킬 클레임이다([16](./chapter-16-main-loot-path.md)).
 
 ```
-클라: ClaimMonsterExp(map, slot)              ← 클라가 보내는 건 "슬롯" 뿐
+클라: ClaimMonsterExp(mapId, slotId)          ← 클라가 보내는 건 "슬롯"뿐
         ▼
 서버: MainSpawnClaimService.ClaimExpAsync
-        ├─ ValidateSlot(map, slot)             (스폰 데이터에 존재?)
-        ├─ exp 쿨다운 통과?  ── 실패 → 0(파밍 차단)
-        ├─ AddExpAsync(...)                     (기존)
-        └─▶ IQuestService.ReportKillAsync(userId, slot.MonsterId)   ← 신규 한 줄
-                 └─ Accepted·미완료·KillMonster·TargetId==monsterId 퀘스트 progress++
+        ├─ ValidateSlot(map, slot)              스폰 데이터에 존재하는가
+        ├─ 쿨다운 통과?  ── 실패 → 0            파밍률 상한
+        ├─ AddExpAsync(...)                      (기존)
+        └─▶ IQuestService.ReportKillAsync(...)   ← 추가한 한 줄
+                 Accepted·미완료·KillMonster·TargetId 일치 퀘스트의 progress++
 ```
 
-`ReportKillAsync`는 **서버 내부 호출**이고 gRPC 표면에 없다. 클라가 진행을 건드릴 방법이 없다. monsterId조차 클라가 못 정한다 — 서버가 슬롯 → 스폰 데이터에서 읽는다. 진행 위조 = 불가능.
+**`ReportKillAsync`는 서버 내부 호출이고 gRPC 표면에 없다.** 클라가 부를 방법이 없다. 게다가 **monsterId조차 클라가 정하지 못한다** — 서버가 슬롯에서 스폰 데이터를 읽어 얻는다(`MainSpawnClaimService.cs:110`).
 
-> 트레이드오프: MVP는 Main 킬 경로(`ClaimExpAsync`)만 훅했다. 던전 맵클리어 킬은 per-monster 청구가 아니라 범위 밖. 새 진행원이 생기면 그 funnel에 같은 한 줄을 추가하는 구조다.
+> **일반화** — "새 기능의 권위를 어떻게 지킬까"의 답이 항상 새 검증은 아니다. **이미 검증을 통과한 지점**을 찾으면 그 위에 얹는 것으로 끝난다. 검증은 한 번만 하고, 그 결과를 여러 소비자가 나눠 쓴다.
 
-### "완료"는 상태가 아니라 파생이다
+## 2. "완료"는 저장하지 않는다
 
-`UserQuest`에 저장하는 건 **Status(Accepted/Claimed) + Progress** 둘뿐이다. "완료"를 별도 컬럼으로 두지 않았다 — `Progress ≥ RequiredCount`(카탈로그)로 매번 파생한다. 저장하는 상태가 적을수록 불일치가 없다(progress와 completed가 따로 놀 여지를 없앤다).
-
-UI가 보는 4-상태는 서비스가 합성한다:
+`UserQuest`가 저장하는 건 **`Status`(Accepted/Claimed) + `Progress`** 둘뿐이다. "완료" 컬럼은 없다.
 
 ```
-행 없음                         → NotAccepted
-Status==Claimed                 → Claimed
-Status==Accepted, Prog<Req      → Accepted   (진행 중)
-Status==Accepted, Prog≥Req      → Completed  (보상 수령 가능)
+행 없음                      → NotAccepted
+Status == Claimed            → Claimed
+Accepted, Progress <  Req    → Accepted   (진행 중)
+Accepted, Progress >= Req    → Completed  (수령 가능)
 ```
 
-`RequiredCount`는 정적 카탈로그(`QuestCatalog`)에 있으므로 완료 판정은 **서비스 책임**(엔티티는 카탈로그를 모른다). 엔티티의 `AddProgress(amount, required)`·`Claim(required)`는 호출자가 required를 주입한다 — 도메인이 정적 데이터에 의존하지 않게.
+완료는 `Progress ≥ RequiredCount`로 **매번 파생**한다. **저장하는 상태가 적을수록 불일치가 없다** — completed 컬럼을 두면 progress와 따로 놀 여지가 생기고, 그 순간 "진행은 3/3인데 미완료" 같은 상태가 가능해진다.
 
-### 보상 = 조합 도메인, 수령 = Claimed 선마킹 후 지급(at-most-once)
+`RequiredCount`는 정적 카탈로그에 있으므로 완료 판정은 **서비스 책임**이다. 엔티티의 `AddProgress(amount, required)`·`Claim(required)`는 호출자가 required를 주입받는다 — **도메인 엔티티가 정적 데이터를 참조하지 않게** 하려는 것이다.
 
-퀘스트는 자기만의 보상 저장소가 없다. 보상(exp/gold/item)은 이미 있는 서비스들을 **조합**한다 — 상점(챕터 18)이 지갑·인벤토리를 조합한 것과 같은 패턴.
+## 3. 보상은 조합, 수령은 선마킹
 
-```
-ClaimReward(questId):
-  검증: Accepted + Progress≥Required + !Claimed   (아니면 실패)
-  ① Status=Claimed 먼저 마킹·영속        ← 선마킹
-  ② 그 다음 지급:
-       exp  → IProgressionService.AddExp
-       gold → IWalletService.Add
-       item → IInventoryService.GrantItem
-```
-
-순서가 핵심이다. **Claimed를 먼저 영속한 뒤 지급**한다. 지급 도중/직후 재요청이 와도 이미 Claimed라 "이미 수령"으로 막힌다 → 중복 보상 불가(at-most-once). 지급이 실패하면 보상은 못 받지만 재수령도 막힌다 — "이중 지급보다 미지급이 낫다"는 경제 보수성(던전 보상 멱등과 동일 사상).
-
-### GetQuests = 전체 카탈로그 × 상태 병합 → 클라 카탈로그 미러가 없다
-
-아이템은 클라가 `ItemDisplayCatalog`로 정의를 미러한다(아이콘·이름이 시각 자산이라). 퀘스트는 그러지 않았다 — **수가 적고 텍스트뿐**이라, 서버가 `GetQuests`에서 전체 카탈로그 × 유저 상태를 병합해 def(이름/설명/보상)까지 통째로 내려준다.
+퀘스트는 자기 보상 저장소가 없다. 이미 있는 서비스를 **조합**한다 — 상점이 지갑·인벤토리를 조합한 것과 같다([18](./chapter-18-wallet-shop.md)).
 
 ```
-GetQuests → repeated QuestInfo { id,name,desc,objective,target,required,
-                                 progress, status(4-state), reward }
-            = QuestCatalog.All  ×  UserQuest(병합)   (미수주 포함 전체)
+ClaimReward(questId)
+  검증: Accepted + Progress ≥ Required + !Claimed
+  ① Status = Claimed 를 먼저 영속        ← 선마킹
+  ② 그 다음 지급
+       exp  → ProgressionService.AddExp
+       gold → WalletService.Add
+       item → InventoryService.GrantItem
 ```
 
-→ 클라는 퀘스트 카탈로그를 들고 있을 필요가 없다. 새 퀘스트는 서버 `QuestCatalog`에 한 줄 추가하면 클라가 자동으로 받는다. (아이템과 달리 미러 동기화 부담이 없다.)
+**순서가 전부다.** Claimed를 먼저 쓰면 지급 도중에 재요청이 와도 "이미 수령"으로 막힌다. 지급이 실패하면 보상은 못 받지만 **재수령도 막힌다.**
 
-### DB-only — 캐시를 안 붙이는 것도 결정이다
+같은 판단을 세 번째 하고 있다 — 던전 보상의 claim-first([14](./chapter-14-dungeon-clear-loop.md)), 상점의 차감 선행([18](./chapter-18-wallet-shop.md)), 그리고 여기. **"이중 지급보다 미지급이 낫다"** 는 경제 보수성이다.
 
-다른 도메인(인벤/지갑/방)은 Cache-Aside + Delete를 쓴다. 퀘스트 저장소는 **Redis 캐시를 안 붙였다.** 접근 패턴이 다르기 때문이다 — 퀘스트 창은 가끔 열고(read-rare), 진행은 킬마다 쓴다(write-heavy). 캐시는 read-heavy일 때 이득인데, write마다 DEL해야 하면 캐시 적중 전에 또 무효화된다. 그래서 DB 직읽기(`AsNoTracking`)가 더 단순하고 빠르다. 캐시는 "기본값"이 아니라 패턴에 맞을 때만 붙인다.
+## 4. 클라 카탈로그 미러를 만들지 않았다
 
-`user_quests`((UserId,QuestId) 복합키), upsert는 키로 tracked 조회 후 `SetValues`(없으면 Add) — detached 입력을 안전 반영.
+아이템은 클라가 `ItemDisplayCatalog`로 정의를 미러한다 — 아이콘이 **시각 자산**이라 서버가 들고 있을 이유가 없기 때문이다([15](./chapter-15-loot-drop-inventory.md) 5절).
 
-### 블래스트 반경을 1곳으로 — CollectItem 훅을 일부러 보류했다
-
-시드 3종 중 `quest_potion_collect`(CollectItem)는 **목표 타입 구조만** 두고 진행 훅을 달지 않았다. 이유는 비용/리스크다.
-
-KillMonster 훅은 `MainSpawnClaimService` **한 곳**의 생성자만 바꾼다 → 그 서비스를 수동 조립하는 테스트는 1개뿐(고치기 쉬움). 반면 CollectItem 진행은 `InventoryService.GrantItemAsync`(모든 획득 funnel)에 `IQuestService`를 주입해야 하는데, 직전 챕터(도감)에서 겪었듯 그 생성자를 바꾸면 **그 서비스를 수동 조립하는 DI 호스트 6+곳**(LootGrant/DungeonResult 통합·E2E 등)이 한꺼번에 깨진다. MVP 가치 대비 리스크가 커서 **의도적으로 보류**했다(YAGNI + 블래스트 반경 관리). enum·정의·UI는 다 있으니 훅 한 줄만 후속으로 붙이면 된다.
-
-> 교훈(직전 챕터에서 학습): **생성자에 의존성 1개 추가 = 그 타입을 수동 조립하는 모든 테스트 호스트가 깨진다.** 그래서 "어느 funnel에 얹느냐"가 곧 "몇 곳이 깨지느냐"다. 가장 좁은 funnel(MainSpawnClaim 1곳)을 골랐다.
-
-### 클라: 기존 View 스캐폴드 재사용 + MVI 레이어 규칙 준수
-
-UI는 새로 만들지 않고 이미 저작돼 있던 마스터-디테일 스캐폴드(`Quest` 창 + `QuestSlot`/`QuestConditionSlot`/`QuestRewardSlot`)에 `Bind`만 추가해 `QuestModel`(MVI)에 배선했다. HUD `btn_Quest`도 기존 버튼을 그대로 썼다(도감과 달리 버튼이 이미 있었다).
-
-MVI 레이어 규칙에서 막힌 지점: **`Game.GUI`는 `Game.System`을 참조하면 안 된다.** 그래서 `QuestEntryModel`(Presentation)이 System 타입(`QuestRewardData`)을 그대로 노출하면 View가 그걸 읽는 순간 위반이 된다. 해결: View가 쓰는 건 전부 **string/bool/int**로만 노출했다 — 보상은 `IReadOnlyList<string> RewardLines`(Model이 포맷한 문자열), 상태는 `CanAccept`/`CanClaim`/`IsClaimed` 불리언. 도메인 enum/DTO는 Presentation 안에 가둔다.
+퀘스트는 반대로 갔다.
 
 ```
-서버 ──gRPC QuestInfo(proto)──▶ System QuestService(proto 은닉, enum→도메인)
-   ──QuestData──▶ Presentation QuestModel(MVI) ──QuestEntryModel(string/bool만)──▶ GUI Quest View
+GetQuests → QuestCatalog.All × UserQuest 병합
+          → QuestInfo { id, name, desc, objective, target, required,
+                        progress, status(4-state), reward }   ← 정의까지 통째로
 ```
 
-진행(ReportKill)은 클라에 RPC가 없으므로 System 서비스는 GetQuests/Accept/Claim 3개뿐이다 — "클라가 못 하는 것은 계약에도 없다".
+**수가 적고 전부 텍스트**라 미러를 유지하는 비용이 이득보다 크다. 서버가 정의와 상태를 병합해 내려주면, 새 퀘스트는 **서버 카탈로그에 한 줄 추가**하는 것으로 클라에 자동 반영된다. 클라 배포가 필요 없다.
+
+> **같은 문제, 반대 답** — 판단 기준은 "미러 동기화 비용 vs 매번 전송 비용"이다. 아이콘은 전자가 싸고, 텍스트 몇 줄은 후자가 싸다. **원칙을 기계적으로 적용하지 않은 자리**다.
+
+## 5. 캐시를 붙이지 않는 것도 결정이다
+
+인벤토리·지갑·방은 전부 Cache-Aside + Delete를 쓴다. 퀘스트 저장소는 **캐시를 안 붙였다.**
+
+```
+퀘스트 창  가끔 연다        (read-rare)
+진행       킬마다 쓴다       (write-heavy)
+```
+
+Cache-Aside는 **read-heavy일 때 이득**이다. 쓰기마다 DEL해야 하면 **캐시가 적중하기 전에 또 무효화**된다 — 캐시 관리 비용만 내고 이득은 없다. 그래서 `AsNoTracking` DB 직읽기가 더 단순하고 빠르다.
+
+> **캐시는 기본값이 아니라 접근 패턴에 맞을 때만 붙인다.** 다른 도메인이 다 쓴다고 따라 붙이면 비용만 는다.
+
+## 6. 훅 위치를 "깨질 테스트 수"로 골랐다
+
+시드 퀘스트 3종 중 `CollectItem` 타입은 **목표 타입 구조만 두고 진행 훅을 달지 않았다.** 기능을 못 만들어서가 아니라 **비용을 계산했기 때문**이다.
+
+```
+KillMonster 훅
+   → MainSpawnClaimService 한 곳의 생성자만 변경
+   → 그 서비스를 수동 조립하는 테스트 = 1개
+
+CollectItem 훅
+   → InventoryService.GrantItemAsync (모든 획득 funnel) 에 IQuestService 주입 필요
+   → 그 서비스를 수동 조립하는 DI 호스트 = 6곳 이상
+     (LootGrant 통합 · DungeonResult 통합 · 각종 E2E …)
+```
+
+직전 챕터에서 **생성자에 의존성 하나를 추가했다가 DI 호스트 4곳이 조용히 깨진 일**을 겪었다([17](./chapter-17-equipment-system.md) 8절). 그때 배운 것을 여기서 **사전에 적용**했다.
+
+> **"어느 funnel에 얹느냐" = "몇 곳이 깨지느냐"** 다. MVP 가치 대비 리스크가 커서 가장 좁은 funnel 하나만 골랐다. enum·정의·UI는 이미 있으니 나중에 훅 한 줄만 붙이면 된다.
+>
+> 실제로 `CollectItem`은 지금도 훅이 없다 — 대신 카탈로그 무결성 테스트(`CatalogIntegrityTests`)가 "목표 아이템이 items.json에 실재하는지"를 고정해 **정의가 썩는 것만은 막고 있다.**
+
+## 7. 클라가 못 하는 것은 계약에도 없다
+
+```
+서버 ──gRPC QuestInfo──▶ System QuestService (proto 은닉, enum→도메인)
+   ──QuestData──▶ Presentation QuestModel (MVI)
+   ──QuestEntryModel (string/bool/int 만)──▶ GUI Quest View
+```
+
+MVI 레이어 규칙에서 막힌 지점이 있었다 — **`Game.GUI`는 `Game.System`을 참조할 수 없다.** 그래서 `QuestEntryModel`이 System 타입(`QuestRewardData`)을 그대로 노출하면 View가 읽는 순간 위반이다.
+
+해결은 **View가 쓰는 것을 전부 primitive로 낮추는 것**이었다.
+
+```
+보상  → IReadOnlyList<string> RewardLines   (Model 이 포맷한 문자열)
+상태  → CanAccept / CanClaim / IsClaimed    (불리언)
+```
+
+도메인 enum과 DTO는 Presentation 안에 가둔다. **View에 무엇을 노출할지가 곧 레이어 경계**다.
+
+그리고 클라 서비스에는 **진행 RPC가 없다** — `GetQuests`/`Accept`/`Claim` 셋뿐이다. 1절에서 진행을 서버 내부로 둔 결정이 계약 표면에 그대로 드러난다.
+
+## 8. 그 이후 — NPC 대화가 합류하면서 생긴 비대칭
+
+원본의 "다음"은 *"NPC를 퀘스트 수주/턴인 창구로, `TalkToNpc` 목표의 진행원으로 합류"* 였다. 실제로 구현됐다 — `NPCDialogueInteractable`·`DialogueCameraController`·`NPCCharacterAgent`가 있고, `quest.proto`에 **`ReportTalk`가 추가**됐다.
+
+그런데 여기서 **1절의 원칙이 한 곳 깨졌다.**
+
+```
+KillMonster   클라 → ClaimMonsterExp(slot)  → 서버가 슬롯 검증 → 서버 내부 ReportKill
+                                                                  ▲ gRPC 표면에 없음
+
+TalkToNpc     클라 → ReportTalk(npcId)  ──────────────────────────▶ 진행 +1
+                                          ▲ gRPC 표면에 있고,
+                                            "실제로 그 NPC와 대화했는가"를 검증하지 않는다
+```
+
+`ReportTalkAsync`가 확인하는 것은 인증·퀘스트 상태·`TargetId` 일치뿐이다. **근접 검증도 쿨다운도 없다** — 클라가 NPC 근처에 가지 않고도 호출할 수 있다.
+
+**피해 범위는 제한적이다.** `AddProgress`가 `RequiredCount`를 상한으로 두고, 보상은 Claimed 선마킹으로 1회만 나간다. 즉 얻는 건 "NPC까지 걸어가는 시간 절약"이지 무한 파밍이 아니다. 킬 위조(무제한 경제 이득)와는 급이 다르다.
+
+그래도 기록해 둘 가치가 있다 — **이 챕터가 세운 "클라는 진행을 건드릴 수 없다"가 더 이상 전면적으로 참이 아니다.** 막으려면 킬과 같은 방식이면 된다: 서버가 NPC의 위치를 알고 있으므로 **근접 검증**을 넣거나, 대화 자체를 서버가 여는 구조로 바꾸면 된다.
+(※ 코드 경로상 확인. 실제 악용 재현은 **미실측**)
 
 ---
 
-## 무엇을 만들었나 (요약)
+### 이 챕터가 이후에 미친 영향
 
-| 레이어 | 추가 |
-|--------|------|
-| Domain | `QuestObjectiveType`·`QuestStatus`·`QuestDef`/`QuestReward`·`QuestCatalog`(시드 3)·`UserQuest`(불변식) |
-| Application | `IQuestService`/`QuestService`(Accept/ReportKill/ClaimReward/GetQuests) · `IQuestRepository` · 결과/뷰 타입 |
-| Infrastructure | `QuestRepository`(DB-only upsert) · `UserQuestConfiguration` · 마이그레이션 `AddUserQuests`(멱등 raw SQL) |
-| 진행 훅 | `MainSpawnClaimService.ClaimExpAsync` → `ReportKillAsync` (생성자 +IQuestService) |
-| 계약 | `quest.proto`(GetQuests/AcceptQuest/ClaimQuestReward) + `QuestGrpcService` |
-| 클라 | System `Game.System.Quest` · Presentation `QuestModel` · GUI 스캐폴드 배선 · `QuestViewController`(HUD 토글) · DI |
+| 여기서 정한 것 | 나중에 지탱한 것 |
+|---|---|
+| 검증된 funnel에 얹는다 | 새 진행원(대화 등)이 같은 자리에 합류 |
+| 저장 상태는 최소로, 나머지는 파생 | 상태 불일치 가능성 자체를 없애는 패턴 |
+| 선마킹 후 지급 | 경제 도메인 전반의 at-most-once |
+| 캐시는 패턴에 맞을 때만 | 도메인별 저장 전략 판단 기준 |
+| 훅 위치 = 블래스트 반경 | 변경 범위를 미리 세는 습관 |
 
-## 검증
-
-- **서버 373/373**(단위 + Testcontainers 통합 + E2E): QuestService 9 · QuestGrpc 4 · QuestRepository 통합 4 · 킬훅 2.
-- **클라 E2E 풀루프**(`QuestE2ETests`, Docker): 수주 → `ClaimMonsterExp` 슬롯 1/2/3로 슬라임 3킬 → Completed → `ClaimQuestReward` → **골드 +100이 지갑에 반영** → Claimed. + 미완료 수령 거부 · 중복 수주 거부 · 미인증 RpcException. 전체 PlayMode 117/117.
-- **플레이 검증 통과**(인게임 수주→처치→보상 수령 정상).
-
-## 다음
-
-NPC/대화(4.5) — NPC를 퀘스트 **수주/턴인 창구**로, `TalkToNpc` 목표 타입의 진행원으로 합류시킨다. (지금은 퀘스트 창에서 직접 수주.)
+> 이 챕터의 원본 학습 로그 = [learning-log/chapter-19-quest-system.md](../learning-log/chapter-19-quest-system.md)

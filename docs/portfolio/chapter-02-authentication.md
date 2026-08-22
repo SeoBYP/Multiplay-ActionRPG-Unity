@@ -1,200 +1,168 @@
-# 챕터 2 학습 로그 — 인증 시스템
+# 02. 인증 — "로그인이 된다"가 아니라 "탈취된 뒤"를 설계한다
 
-## 처음 알았던 것 vs 피드백으로 수정된 것
-
-### 패스워드 해싱 — BCrypt vs SHA256
-
-**처음 내가 알고 있던 것:**
-SHA256으로 해싱하면 충분하다고 생각했음.
-
-**피드백:**
-패스워드에 SHA256은 위험함. BCrypt를 써야 한다.
-
-| | SHA256 | BCrypt |
-|--|--|--|
-| Salt | 직접 관리 필요 | 자동 내장 |
-| Rainbow Table 공격 | 취약 | 강력 |
-| 연산 속도 | 매우 빠름 (공격자에게 유리) | 의도적으로 느림 |
-
-**실제 코드 확인 결과:**
-코드를 열어보니 이미 BCrypt 사용 중이었음 → 내 처음 예상이 틀렸던 것.
-
-**추가로 배운 것:**
-Refresh Token 해싱에는 SHA256이 맞음. 이유:
-- Refresh Token은 이미 32바이트 랜덤값 → Rainbow Table 의미 없음
-- 갱신 요청마다 해시 비교 발생 → BCrypt처럼 느리면 성능 문제
-- 용도에 맞게 선택하는 것이 핵심
+> **한 줄** — 인증의 어려운 부분은 로그인이 아니라 **토큰이 이미 유출된 상황**이다. Rotation → Reuse Detection → DeviceId Binding 세 겹으로, "훔친 토큰을 계속 쓸 수 없게" 만드는 것을 목표로 설계했다.
+>
+> **범위** 패스워드/토큰 해싱 · Access+Refresh 구조 · 탈취 방어 3중 · 유저 도메인 3분리 · 실패 처리 정책
+> **검증** `AuthServiceTests` 12케이스 (재사용 탐지·타 기기 갱신·만료 액세스 토큰 허용 포함)
 
 ---
 
-### JWT Access Token + Refresh Token 구조
+## 1. 해싱은 하나가 아니다 — 용도별로 다른 알고리즘
 
-**내가 이해한 것:**
-Access Token만 쓰면 만료 시간을 길게 하거나 짧게 해야 하는데 둘 다 문제가 생긴다.
-→ Refresh Token으로 조용히 갱신하는 구조가 해결책.
+처음엔 "해시는 SHA256이면 되는 것 아닌가"라고 생각했다. 그런데 패스워드와 리프레시 토큰은 **정반대의 요구사항**을 갖는다.
 
-**피드백으로 추가된 것:**
-게임에서는 Refresh Token 만료 시간을 짧게 가져가는 것이 맞다.
-현재 코드는 7일인데 게임 특성상 1~24시간이 적절함.
-만료 시 재로그인으로 처리 (TODO).
+| | 패스워드 → **BCrypt** | 리프레시 토큰 → **SHA256** |
+|---|---|---|
+| 원본의 성질 | 사람이 만든 저엔트로피 문자열 | 32바이트 CSPRNG 난수 |
+| Rainbow Table | 치명적 (사전 공격 가능) | 무의미 (사전이 존재할 수 없음) |
+| 연산 속도 | **느려야 함** — 공격자의 대입 속도를 늦추는 게 방어 | **빨라야 함** — 갱신 요청마다 비교하므로 |
+| Salt | 자동 내장 필요 | DeviceId가 그 역할 (3절) |
 
----
+즉 **"강한 해시"라는 건 없고, 위협 모델에 맞는 해시가 있을 뿐**이다. 패스워드에 SHA256을 쓰면 공격자에게 초당 수십억 회의 대입 기회를 주고, 리프레시 토큰에 BCrypt를 쓰면 정상 사용자의 갱신 요청마다 수십 ms를 태운다.
 
-### Token Rotation
+## 2. Access + Refresh로 나눈 이유
 
-**내가 이해한 것:**
-갱신할 때마다 새 토큰으로 교체. 구 토큰은 즉시 폐기.
+Access Token 하나로는 만료 시간을 정할 수가 없다.
 
-**피드백으로 추가된 것:**
-Token Rotation만으로는 탈취 방어가 완전하지 않다.
-"이미 교체된 구 토큰으로 누군가 갱신 요청을 보내면?" → 감지 로직 없음.
-→ **Reuse Detection** 필요 (현재 미구현, TODO)
-
----
-
-### DeviceId Binding
-
-**내가 처음 설계한 것:**
-RefreshToken을 DB에 저장할 때 DeviceId + UserId 기준으로 만들겠다.
-
-**피드백 — 생성 방식은 틀렸다:**
-토큰 생성은 Random이어야 함. DeviceId로 만들면 동일 기기에서 매번 같은 토큰이 생성됨 → 탈취 후 재발급해도 동일 토큰 → 공격자 재사용 가능.
-
-**올바른 설계:**
-- 생성 → Random (예측 불가능성 보장)
-- 바인딩 → `SHA256(randomToken + deviceId)` 를 DB에 저장
-
-DeviceId를 별도 컬럼으로 저장하지 않아도 됨. 이유:
-- DB에 DeviceId 평문 노출 없음
-- 검증 시 동일 방식으로 해싱해서 비교
-- 단일 기기 정책에서 추가 컬럼 불필요
-
-**수정 완료:**
-`HashRefreshToken(string refreshToken, string deviceId)` 구현.
-
----
-
-### RefreshToken 별도 테이블 고민
-
-**내가 처음 생각한 것:**
-RefreshTokens 별도 테이블을 만들어야 한다.
-
-**피드백:**
-단일 기기 정책(마지막 로그인 기기만 유효)이라면 User 테이블의 단일 컬럼으로 충분함.
-새 로그인 시 덮어쓰기 → 구 토큰 자연 소멸 → 별도 테이블 불필요.
-
-별도 테이블이 필요한 경우: 다중 기기 동시 로그인 허용 정책일 때.
-
----
-
-### 유저 도메인 분리 — UserProfile / UserCredential / UserSession
-
-**예전에는 어떻게 봤나:**
-`User` 하나가 인증 정보, 프로필 정보, 세션 연관 책임까지 같이 들고 있어도 된다고 생각했음.
-
-**최근 리팩터링으로 정리된 것:**
-책임이 다른 데이터는 분리하는 편이 맞았음.
-
-- `UserProfile`
-  - 닉네임, 공개 프로필 성격의 정보
-- `UserCredential`
-  - 이메일, 비밀번호 해시 같은 인증 정보
-- `UserSession`
-  - 세션/토큰 흐름과 연결되는 로그인 상태 정보
-
-**배운 점:**
-- 인증 로직과 프로필 수정 로직은 변경 이유가 다름
-- 같은 `User`에 몰아넣으면 서비스와 저장소가 비대해짐
-- 책임 기준으로 분리해야 테스트도 단순해지고, API도 역할이 명확해짐
-
----
-
-### AccountService 분리
-
-**이전 구조의 문제:**
-회원가입, 자격 증명 검증, 로그인 토큰 발급이 `AuthService` 쪽에 한꺼번에 모이기 쉬웠음.
-
-**현재 구조에서 정리된 것:**
-
-- `AccountService`
-  - 회원가입
-  - 이메일/비밀번호 검증
-  - 비밀번호 변경
-- `AuthService`
-  - 로그인
-  - Refresh
-  - Logout
-  - 세션/토큰 발급과 검증
-
-**배운 점:**
-- 계정 관리와 인증 세션 관리는 비슷해 보여도 책임이 다름
-- `AuthGrpcService`가 회원가입 시 `AccountService`, 로그인/리프레시는 `AuthService`를 나눠 호출하는 구조가 더 자연스러움
-- 이렇게 분리하면 이후 소셜 로그인, 비밀번호 재설정, 계정 정책 추가도 확장하기 쉬움
-
----
-
-### Redis vs DB 저장 고민
-
-**내 고민:**
-1. 이미 사용된 구 토큰을 저장하는 게 현재 유효한 토큰을 저장하는 것과 결국 같지 않나?
-2. NoSQL(MongoDB)이 맞는 선택인가?
-3. Redis 유실 위험이 있는데?
-
-**피드백:**
-1. 맞음. Blacklist(구 토큰 저장) vs Whitelist(현재 토큰 저장)는 논리적으로 동등한 구조. 차이는 레코드 수 관리 방식. Whitelist가 관리 단순.
-
-2. 토큰 스키마는 고정적 + PostgreSQL 이미 사용 중 → MongoDB 추가는 오버엔지니어링. 인프라 복잡도만 높아짐.
-
-3. 정확함. **Cache-Aside 패턴**이 정답:
-   - 쓰기: PostgreSQL 먼저 저장 (영속성) → Redis 캐시 업데이트
-   - 읽기: Redis 먼저 조회 → Miss 시 PostgreSQL 조회 후 캐싱
-
----
-
-### Clean Architecture 수정 이력
-
-**발견된 문제:**
-- `IJwtTokenGenerator.cs`, `IPasswordHasher.cs` 파일이 `Application/Security/` 폴더에 있었지만 네임스페이스가 `GameServer.Infrastructure.Interfaces` 였음
-- `AuthService.cs`에서 `using GameServer.Infrastructure.*` 참조하고 있었음
-
-**수정 내용:**
-- 인터페이스 네임스페이스를 `GameServer.Application.Security.Interface`로 변경
-- `IUserRepository`를 Application 레이어로 이동
-- `AuthService.cs`의 모든 `using`에서 Infrastructure 참조 제거
-
-**확인 방법:**
-`AuthService.cs`의 using 목록에 `GameServer.Infrastructure.*`가 없어야 올바른 구조.
-
----
-
-## 현재 코드에서 아직 미완성인 것 (TODO)
-
-```csharp
-// Binding 실패 시 보안 위험으로 간주하고 세션 종료 고려 가능
-// 여기서는 일단 실패 반환  ← 이 주석
+```
+길게 (예: 7일)  →  탈취당하면 7일간 무방비
+짧게 (예: 15분) →  15분마다 재로그인 = 게임에서 치명적 UX
 ```
 
-**해야 할 것:**
-Binding 실패 = 다른 DeviceId로 갱신 시도 = 탈취 의심
-→ 단순 실패 반환이 아니라 해당 유저 세션 강제 만료 + RefreshToken 삭제
+그래서 **짧은 Access(권한) + 긴 Refresh(재발급권)** 로 쪼갠다. 유출 시 노출 시간은 Access 수명으로 제한되고, 사용자는 재로그인하지 않는다.
 
-**추가 개선 목록:**
-- `HashRefreshToken` → `private static`으로 변경 (인스턴스 상태 안 씀)
-- RefreshToken 검증 순서: null 체크 → **만료일 체크** → 해시 비교 (현재는 만료일이 마지막)
-- `CryptographicOperations.FixedTimeEquals()` 로 타이밍 공격 방어 (현재 `!=` 사용)
-- 에러 로깅 추가 (외부에는 동일 에러코드, 내부 로그는 원인 구분)
-- Refresh Token 만료 시간 7일 → 게임 특성에 맞게 단축
+## 3. 탈취 방어 3중 — 각 겹이 막는 것이 다르다
+
+핵심은 세 장치가 **서로 다른 공격을 막는다**는 것이다. 하나로 대체되지 않는다.
+
+```
+              [갱신 요청 도착: accessToken + refreshToken + deviceId]
+                                   │
+   ① Rotation ────────────────────▼──────────────────────────────
+      갱신 성공 시 새 토큰 발급 + 구 토큰 폐기 (버전 +1)
+      막는 것 = "한 번 훔친 토큰의 영구 사용"
+      한계   = 공격자가 먼저 갱신하면 진짜 사용자가 구 토큰을 갖게 됨 ↓
+                                   │
+   ② Reuse Detection ──────────────▼──────────────────────────────
+      토큰 = "base64(32바이트 난수).버전"  →  버전을 서버 값과 비교
+      submittedVersion < 저장된 버전  ⇒  이미 회전된 토큰 = 탈취 확정
+         → RefreshToken 삭제 + 세션 제거 (양쪽 다 로그아웃)
+      막는 것 = "누가 훔쳤는지 몰라도, 훔쳤다는 사실 자체의 탐지"
+                                   │
+   ③ DeviceId Binding ─────────────▼──────────────────────────────
+      저장값 = SHA256(랜덤토큰 + deviceId)   ← DeviceId는 컬럼으로 저장 안 함
+      다른 기기에서 같은 토큰을 제시 → 해시 불일치
+      막는 것 = "토큰 문자열만 유출된 경우" (기기까지 복제해야 통과)
+```
+
+### ②의 설계 포인트 — 버전을 토큰에 심었다
+
+Reuse Detection을 하려면 "이 토큰이 몇 번째 세대인가"를 알아야 한다. 폐기된 토큰 목록(Blacklist)을 쌓는 대신, **토큰 문자열 자체에 버전을 붙였다**(`GenerateRefreshToken(version)`). 서버는 정수 하나만 들고 있으면 되고, 폐기 목록은 존재하지 않는다.
+
+그리고 버전 증가를 서비스가 아니라 **엔티티 안에 넣었다**:
+
+```csharp
+// UserCredential.cs:95
+public void SetRefreshToken(string refreshToken, DateTime expiresAt)
+{
+    RefreshToken = refreshToken;
+    RefreshTokenExpiresAt = expiresAt;
+    RefreshTokenVersion++;      // ← 토큰 교체와 버전 증가가 분리 불가능
+}
+```
+
+호출자가 버전 올리는 걸 잊으면 Reuse Detection이 조용히 죽는다. 그래서 **잊을 수 있는 구조를 없앴다**.
+
+### ③의 설계 포인트 — DeviceId를 저장하지 않는다
+
+처음엔 "RefreshToken을 DeviceId + UserId로 생성"하려 했는데, 이건 틀렸다. 생성이 결정적이면 **같은 기기에서 항상 같은 토큰**이 나와, 탈취 후 재발급해도 공격자가 계속 쓸 수 있다.
+
+```
+생성  →  반드시 Random (예측 불가능성)
+바인딩 →  SHA256(랜덤토큰 + deviceId) 를 저장
+```
+
+DeviceId를 별도 컬럼으로 두지 않는 것이 부수 효과로 이득이다 — **DB가 털려도 기기 식별자가 평문으로 나오지 않는다**. 검증은 같은 방식으로 다시 해싱해 비교하면 되므로 원본이 필요 없다.
+
+## 4. 저장 설계 — 별도 테이블을 만들지 않은 이유
+
+`RefreshTokens` 테이블을 따로 만들려다 접었다. 판단 기준은 **정책**이었다.
+
+| 정책 | 필요한 저장 구조 |
+|---|---|
+| **단일 기기** (마지막 로그인만 유효) — 채택 | `UserCredential`의 컬럼 하나. 새 로그인이 덮어쓰면 구 토큰은 자연 소멸 |
+| 다중 기기 동시 로그인 | 별도 테이블 필수 (기기별 행) |
+
+또 하나 정리된 오해: **Blacklist(폐기 토큰 보관)와 Whitelist(유효 토큰 보관)는 논리적으로 동등**하다. 차이는 레코드가 계속 쌓이느냐(Blacklist)와 항상 1개냐(Whitelist)뿐이다. 후자를 골랐다. MongoDB 도입도 검토했다가 기각했다 — 토큰 스키마는 고정적이고 PostgreSQL을 이미 쓰고 있어서, 얻는 것 없이 인프라만 하나 늘어난다.
+
+## 5. 도메인 분리 — `User` 하나에 다 넣지 않았다
+
+```
+UserProfile     닉네임 등 공개 정보        (변경 이유: 게임 기획)
+UserCredential  이메일·패스워드해시·토큰    (변경 이유: 보안 정책)
+UserSession     로그인 세션 상태           (변경 이유: 접속 수명)
+```
+
+서비스도 같은 축으로 갈랐다 — `AccountService`(회원가입·자격증명 검증·비밀번호 변경)와 `AuthService`(로그인·Refresh·Logout). 비슷해 보이지만 **변경 이유가 다르다**. 소셜 로그인이 추가되면 AccountService만 커지고, 세션 정책이 바뀌면 AuthService만 바뀐다.
+
+## 6. 실패 처리 — 여기서 판단이 갈렸다
+
+### 실패라고 다 같은 실패가 아니다 (의도된 비대칭)
+
+```
+해시 불일치(다른 기기)  →  RefreshToken 삭제 + 세션 제거   ← 탈취 의심, 전부 끊는다
+재사용 탐지(구 버전)    →  RefreshToken 삭제 + 세션 제거   ← 탈취 확정
+리프레시 토큰 자연 만료 →  실패만 반환, 세션은 건드리지 않음 ← 정상 사용자
+```
+
+원본 학습 로그에는 *"검증 순서를 null → 만료일 → 해시 비교로 바꿀 것"* 이라는 TODO가 있었다. **지금은 이 조언을 따르지 않는 게 맞다고 본다.** 만료 검사를 해시 검증보다 먼저 두면, 아무 문자열이나 던진 공격자도 "이 계정의 토큰은 만료됐다"는 정보를 얻는다. 소유 증명(해시)을 통과한 뒤에 상태(만료)를 알려주는 현재 순서가 정보 노출이 적다.
+
+### 외부 응답은 뭉치고, 내부 로그는 쪼갠다
+
+갱신 실패는 대부분 `InvalidRequest` 하나로 응답한다 — 세션이 없어서인지, 크리덴셜이 없어서인지, 클레임이 빠져서인지 공격자가 구분할 수 없어야 하기 때문이다. 대신 서버 로그에는 원인이 전부 남는다.
+
+```
+외부:  "InvalidRequest"  ×  6가지 실패 분기 전부 동일
+내부:  "Refresh failed because session {SessionId} was not found"
+       "Refresh failed because refresh token format is invalid for user {UserId}"
+       "Refresh token reuse detected for user {UserId}. Submitted: {S}, Current: {C}"
+```
+
+### 만료된 Access Token으로도 갱신을 허용한다
+
+`ValidateToken(accessToken, validateLifetime: false)` — 의도적이다. Access가 살아 있는데 갱신하는 건 의미가 없다. **만료됐을 때 쓰라고 있는 기능**이므로 수명 검사를 끈다. 서명·발급자 검증은 그대로다. 이 의도는 테스트로 못 박았다 (`ExpiredAccessToken_만료된_액세스_토큰으로도_갱신_허용`).
+
+## 7. 검증
+
+`GameServer.Tests/Application/Services/AuthServiceTests.cs` — 12케이스. 해피패스보다 **실패 경로**가 많다.
+
+| 검증하는 것 | 테스트 |
+|---|---|
+| 재사용 탐지 → 세션 종료 | `ReuseRefreshToken_이미_사용한_토큰으로_갱신_시도_시_세션_종료` |
+| 기기 바인딩 실패 | `RefreshToken_다른_기기_접속_시_세션_만료` |
+| 단일 기기 정책 | `새_기기_로그인_시_이전_세션은_강제_만료된다` |
+| 만료 Access 허용(의도) | `ExpiredAccessToken_만료된_액세스_토큰으로도_갱신_허용` |
+| 로그아웃 후 무효화 | `LoggedOutToken_로그아웃된_토큰_검증_실패` |
+
+## 8. 남은 것 — 알고 있고, 아직 안 한 것
+
+- **리프레시 토큰 수명 7일**(`RefreshTokenExpirationHours` 기본 168h, 설정 오버라이드 없음). 게임 세션 특성상 1~24시간이 적절하다고 판단해 놓고 아직 줄이지 않았다.
+- **세션 파괴가 DoS 벡터가 될 수 있다** — 아래 참조. 현재 구조의 알려진 약점이다.
+
+### ⚠️ 발견한 결함 — 해시 불일치에 세션을 파괴하는 대가
+
+갱신에는 `accessToken`이 필요하지만 **만료된 것도 통과**한다(7절). 그래서 유출된 만료 Access Token 하나만 있으면, 공격자는 형식만 맞춘 아무 리프레시 문자열(`aaa.99`)을 보내 **피해자의 세션을 강제 종료**시킬 수 있다. 해시 불일치든 버전 역행이든 결과는 동일하게 파괴이기 때문이다. 반복하면 지속적 로그아웃이 된다.
+
+표준 관행(OAuth 2.0 Security BCP)은 전체 무효화를 **재사용 탐지에 한정**한다. 단순 해시 불일치는 실패 카운트·레이트 리밋으로 다루는 편이 맞다. 이 프로젝트에서 파괴를 택한 건 "DeviceId 불일치 = 탈취 의심"이라는 의도적 정책이지만, **가용성을 보안과 맞바꾼 선택**이라는 점은 분명히 기록해 둔다.
 
 ---
 
-## 핵심 키워드 정리
+### 이 챕터가 이후에 미친 영향
 
-| 키워드 | 한 줄 설명 |
-|--------|-----------|
-| Token Rotation | 갱신 시마다 새 토큰으로 교체, 구 토큰 즉시 폐기 |
-| Reuse Detection | 이미 교체된 구 토큰 재사용 감지 → 전체 세션 무효화 |
-| DeviceId Binding | SHA256(token + deviceId)로 기기 귀속 |
-| Cache-Aside 패턴 | DB 먼저 저장 → Redis 캐싱, 읽기 시 Redis 우선 |
-| Whitelist 방식 | 현재 유효한 토큰만 DB에 보관, 없으면 무효 |
-| Timing Attack | 비교 시간 차이로 값 유추 → FixedTimeEquals로 방어 |
-| BCrypt cost factor | 연산 비용 조절로 하드웨어 발전해도 해킹 난이도 유지 |
+| 여기서 정한 것 | 나중에 지탱한 것 |
+|---|---|
+| 세션은 서버가 소유(`UserSession` + Redis) | 소켓 입장 검증을 세션 조회로 대체 → `C_Auth` 패킷 제거([11](./chapter-11-socket-session-entry.md)) |
+| Access 토큰의 `sid` 클레임 | gRPC `AuthInterceptor`가 전 RPC에서 사용자 식별 |
+| Cache-Aside 저장 전략 | 전 도메인 Repository의 공통 규칙으로 승격([07](./chapter-07-db-cache.md)) |
+
+> 이 챕터의 원본 학습 로그 = [learning-log/chapter-02-authentication.md](../learning-log/chapter-02-authentication.md)

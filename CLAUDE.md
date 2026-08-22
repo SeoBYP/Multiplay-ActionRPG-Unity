@@ -132,11 +132,11 @@ Application이 Infrastructure를 직접 참조하면 위반.
 | Redis 관련 | [docs/wiki/redis.md](docs/wiki/redis.md) |
 | 서버 연동 흐름 | [docs/wiki/gameflow.md](docs/wiki/gameflow.md) |
 | Unity 클라이언트 + gRPC | [docs/wiki/unity-client.md](docs/wiki/unity-client.md) |
-| 입력 버퍼 + InputRouter 설계 | [docs/portfolio/chapter-10-unity-input-system.md](docs/portfolio/chapter-10-unity-input-system.md) |
-| 상태머신 + AttackState + Hit | [docs/portfolio/chapter-10-unity-gameplay-state.md](docs/portfolio/chapter-10-unity-gameplay-state.md) |
-| MVI 아키텍처 | [docs/portfolio/chapter-10-mvi-architecture.md](docs/portfolio/chapter-10-mvi-architecture.md) |
-| 레이어 분리 (asmdef) | [docs/portfolio/chapter-10-layer-separation.md](docs/portfolio/chapter-10-layer-separation.md) |
-| 인증 초기화 순서 | [docs/portfolio/chapter-10-lifetime-auth.md](docs/portfolio/chapter-10-lifetime-auth.md) |
+| 입력 버퍼 + InputRouter 설계 | [docs/wiki/unity-input-system.md](docs/wiki/unity-input-system.md) |
+| 상태머신 (Locomotion FSM) + Action 축 분리 | [docs/wiki/unity-gameplay-state.md](docs/wiki/unity-gameplay-state.md) |
+| MVI 아키텍처 | [docs/wiki/unity-mvi-architecture.md](docs/wiki/unity-mvi-architecture.md) |
+| 레이어 분리 (asmdef) | [docs/wiki/unity-layer-separation.md](docs/wiki/unity-layer-separation.md) |
+| 인증 초기화 순서 | [docs/wiki/unity-lifetime-auth.md](docs/wiki/unity-lifetime-auth.md) |
 | **멀티플레이 테스트 (MPPM 2-창 / E2E)** | [docs/wiki/mppm-testing.md](docs/wiki/mppm-testing.md) |
 | 현황 확인 | [docs/wiki/plan.md](docs/wiki/plan.md) |
 | **미해결 결함·정리 대상 (착수 전 확인)** | [docs/wiki/cleanup-backlog.md](docs/wiki/cleanup-backlog.md) |

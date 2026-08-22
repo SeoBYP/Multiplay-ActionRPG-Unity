@@ -626,7 +626,7 @@ GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서�
 | 서버 인프라 | Clean Architecture, JWT 인증, DeviceId Binding, Token Rotation |
 | 던전 로비 | gRPC 방 CRUD, SubscribeRoom Streaming |
 | 게임 시작 E2E | Outbox → Redis Stream → SocketServer 방 생성 → IP:Port 알림 |
-| SocketServer | C_Auth, C_PlayerJoin, C_Move/S_Move, Ping/Pong |
+| SocketServer | C_PlayerJoin(Redis 검증), C_Move/S_Move, Ping/Pong |
 | 채팅 | Redis Streams, Global/Room/Whisper |
 | 분산 로그 | Serilog + Graylog, TraceId 전파 |
 | DB/캐시 | PostgreSQL + Redis Cache-Aside, Testcontainers 통합 테스트 |

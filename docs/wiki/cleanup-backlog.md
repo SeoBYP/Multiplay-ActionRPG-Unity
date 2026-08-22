@@ -1,4 +1,4 @@
-# 코드 정리 백로그 (2026-08-18 기준)
+# 코드 정리 백로그 (2026-08-22 갱신)
 
 > "지금 코드에서 문제나 이상한 부분을 다 정리한다"는 트랙의 **입력 문서**.
 > 각 항목은 **근거(실측/코드 위치)** 와 **왜 문제인가**, **선행 결정이 필요한지**를 함께 적는다.
@@ -197,11 +197,159 @@ Assets/Art/Magic Pig Games (Infinity PBR)/.../v2_DemoEnvironment.prefab
 
 ---
 
-## 착수 순서 제안
+## F. 포트폴리오 문서 재편(2026-08-22) 중 코드 대조로 발견 — ⬜ 전부 미착수
 
-1. **C1(디스크)** — 다른 모든 작업의 차단 요인. 여기부터 아니면 커밋·빌드가 계속 실패한다.
-2. **A1(abilities 드리프트)** — 유일하게 **실제 플레이 동작에 영향**을 주는 항목.
-3. **A2 + 드리프트 감지 테스트** — A1 의 재발 방지. 두 개를 붙여서 해야 의미가 있다.
-4. **C2(.meta)** — 신규 에셋마다 반복되는 함정 제거.
-5. **A3, B3, D** — 개별 정리.
-6. **B1, B2** — 선행 결정 후 착수.
+> 챕터 28편을 코드와 1:1 대조하며 나온 항목. **전부 "문서가 낡았나" 확인 과정에서 부수적으로 드러난 것**이라
+> 기능 개발 중에는 보이지 않던 자리들이다. 근거는 전부 코드 위치로 남긴다.
+> ⚠️ **미실측**: 코드 경로상 확인이고 재현 테스트는 돌리지 않았다.
+
+### F1. 던전 방 입장 원자성 유실 — ⬜ **높음** (실제 동작 영향)
+
+```
+DungeonLobbyService.cs:170-174
+    GetPlayersByRoomIdAsync → Count >= MaxPlayers 검사 → CreateAsync
+                            └─ 사이를 막는 것이 없다(락 없음)
+```
+
+- **왜 문제인가**: ① **정원 초과** — 개수 제약은 DB로 표현 불가, 락도 없음. ② **동시 다중 방 입장** — `AlreadyInRoom` 도 check-then-act 이고 `DungeonRoomPlayerConfiguration.cs:22` 의 `HasIndex(UserId)` 가 **unique 가 아니라** DB도 안 막는다.
+- **경위**: 예전엔 Lua 스크립트로 원자 입장(`JoinRoomAtomicResult` −1~−5)을 했는데, 멤버십을 `dungeon_room_players` 연관 테이블로 옮기면서 **락이 함께 이사하지 않았다.** 원자 API `TryJoinRoomAsync` 는 인터페이스에 남았지만 **아무도 호출하지 않고**(테스트 Fake 제외) 구현도 상태 확인만 하는 껍데기다.
+- **재료는 이미 있다**: `IUserLock`(`RedisUserLock`, `SET NX EX` + 소유자 토큰 Lua 해제)이 `ChatService.cs:36` 에서 쓰이고 있다. 로비 입장에만 안 걸려 있다.
+- 상세 = [chapter-03](../portfolio/chapter-03-dungeon-lobby.md) 3절.
+
+### F2. Refresh 실패 시 세션 파괴가 DoS 벡터 — ⬜ **높음**(보안) / ❓ 선행 결정
+
+```
+AuthService.RefreshTokenAsync
+   ValidateToken(accessToken, validateLifetime: false)   ← 만료 토큰도 통과(의도·테스트로 고정)
+   해시 불일치        → ClearRefreshToken + RemoveSession
+   버전 역행(재사용)  → ClearRefreshToken + RemoveSession
+```
+
+- **왜 문제인가**: 유출된 **만료 accessToken 하나**만 있으면 형식만 맞춘 아무 리프레시 문자열(`aaa.99`)로 **피해자 세션을 강제 종료**시킬 수 있다. 반복하면 지속적 로그아웃.
+- **표준 관행**: OAuth 2.0 Security BCP 는 전체 무효화를 **재사용 탐지에 한정**한다. 단순 해시 불일치는 실패 카운트·레이트 리밋이 맞다.
+- **선행 결정**: 현재 파괴는 "DeviceId 불일치 = 탈취 의심"이라는 **의도적 정책**이다. 가용성과 보안 중 어느 쪽을 택할지가 먼저.
+- 상세 = [chapter-02](../portfolio/chapter-02-authentication.md) 8절.
+
+### F3. 멱등 처리 기록의 TTL 이 컬렉션 전체에 걸린다 (3곳 동일 패턴) — ⬜ 중간
+
+| 위치 | 키 | TTL |
+|---|---|---|
+| `DungeonResultConsumer.cs:42,48` | `DungeonResultProcessed()` Set | 24h (Set 전체, 추가마다 갱신) |
+| `LootGrantConsumer.cs:50,56` | `LootPickupProcessed()` Set | 24h (동일) |
+| `ChatMessageRepository.cs:23,411` | `ChatAllMessages()` Sorted Set | RedisCacheTtl (동일) |
+
+- **왜 문제인가**: 일정 시간 이벤트가 없으면 **처리 기록이 통째로 만료**된다. 그 뒤 오래된 메시지가 재배달되면 **이중 지급**이 가능하다. 재배달 경로도 실재한다(F4).
+- 채팅 쪽은 성격이 조금 다르다 — 인덱스가 만료됐다 새 메시지 하나로 되살아난 상태에서 오래된 `afterMessageId` 로 조회하면 **그 사이 이력이 조용히 빈 채로 반환**된다(컬렉션 조회만 전부-아니면-전무. 단건 `GetMessageByIdAsync` 는 DB 폴백함).
+- **조치 방향**: 항목별 키(`SET NX EX`)로 바꿔 각 기록이 자기 수명을 갖게. 채팅은 컬렉션 조회에도 DB 폴백 조건 추가.
+- 상세 = [chapter-14](../portfolio/chapter-14-dungeon-clear-loop.md) 3절 · [chapter-15](../portfolio/chapter-15-loot-drop-inventory.md) 3절 · [chapter-04](../portfolio/chapter-04-chat.md) 9절.
+
+### F4. Consumer Group PEL 자동 회수(`XAUTOCLAIM`) 부재 — ⬜ 중간
+
+- `StreamAcknowledgeAsync` 는 6개 큐 전부에 있지만 **`AutoClaim`/`StreamPending` 호출이 코드 전체에 0건**이다.
+- **왜 문제인가**: ACK 전에 컨슈머가 죽으면 그 메시지는 Pending 목록에 **영구 잔류**한다. 현재는 `StartGameAsync` 의 멱등 재시도가 덮고 있지만 **누군가 다시 시도해야만** 복구된다.
+- F3 과 묶인다 — 아주 늦게 재배달된 메시지가 만료된 멱등 기록을 만나면 이중 지급이 된다.
+- 상세 = [chapter-05](../portfolio/chapter-05-game-start-e2e.md) 10절.
+
+### F5. `ReportTalk` 에 근접 검증이 없다 — ⬜ 중간(설계 일관성)
+
+```
+KillMonster  클라 → ClaimMonsterExp(slot) → 서버 슬롯 검증 → 서버 내부 ReportKill  ← gRPC 표면에 없음
+TalkToNpc    클라 → ReportTalk(npcId) ────────────────────▶ 진행 +1                ← 검증 없음
+```
+
+- `QuestService.cs:51` → `AdvanceMatchingAsync` 가 확인하는 것은 인증·퀘스트 Accepted 상태·`TargetId` 문자열 일치뿐. **실제로 그 NPC 근처에 갔는지 검증하지 않는다.**
+- **피해는 제한적**: `AddProgress` 가 `RequiredCount` 상한을 두고 보상은 Claimed 선마킹으로 1회만. 얻는 건 "NPC 까지 걸어가는 시간 절약"이지 무한 파밍이 아니다.
+- **그래도 기록하는 이유**: 챕터 19 가 세운 "클라는 진행을 건드릴 수 없다"가 더 이상 전면적으로 참이 아니다. 서버가 NPC 위치를 알고 있으므로 근접 검증을 넣거나 대화 자체를 서버가 여는 구조로 바꾸면 된다.
+- 상세 = [chapter-19](../portfolio/chapter-19-quest-system.md) 8절.
+
+### F6. `spawn-layouts.json` 이 아직 `Resources.Load` 로 읽힌다 — ⬜ 중간
+
+```
+Script/Gameplay/Resources/spawn-layouts.json          ← 클라 사본이 Resources 안
+SpawnLayoutProvider.cs:33  Resources.Load<TextAsset>  ← 살아 있는 프로덕션 경로
+   소비자: CharacterSpawner · LocalRespawnController · MainMonsterSpawner
+```
+
+- **왜 문제인가**: Addressables 전환의 목적이 "Resources = 빌드 항상 포함" 회피였는데, **SO 는 옮겼지만 bake 산출물(TextAsset)은 남았다.** 맵이 늘수록 커지는 데이터라 대가가 가장 큰 축.
+- ※ `Assets/Resources/VContainerSettings.asset` 은 프레임워크가 그 경로를 요구하므로 **정상**. 잔존 문제는 이 1건.
+- 상세 = [chapter-20](../portfolio/chapter-20-content-pipeline-addressables.md) 8절.
+
+### F7. 존재하지 않는 어셈블리를 참조하는 asmdef 3개 — ⬜ 낮음
+
+- `Game.System.DungeonLobby` 를 `Game.Presentation.asmdef` · `Game.System.InGame.asmdef` · `Game.Tests.EditMode.asmdef` 가 참조하는데 **그 이름의 asmdef 를 정의하는 파일이 없다.**
+- Unity 가 missing reference 로 무시해 컴파일은 통과한다(Editor.log `error CS` 0건). 인스펙터 경고로만 남는 잔재.
+
+### F8. SocketServer 의 `SessionId` 가 앰비언트 컨텍스트가 아니다 — ⬜ 낮음
+
+- `SocketServer/Program.cs:30` 콘솔 출력 템플릿이 `SessionId={SessionId}` 를 찍는데 `LogContext.PushProperty("SessionId", ...)` 하는 곳이 **한 군데도 없다.** 대신 **21개 호출부가 메시지 템플릿에 직접** `{SessionId}` 를 써넣어 채운다.
+- 결과: 그 21곳은 헤더·본문에 **두 번** 찍히고, 나머지 세션 로그는 **빈칸**(예: `Session.cs:195` 경고).
+- TraceId 에는 앰비언트 기법을 제대로 적용해 놓고 SessionId 에만 안 했다. 세션 처리 진입점에서 한 번 `PushProperty` 하면 중복도 누락도 사라진다.
+- 상세 = [chapter-06](../portfolio/chapter-06-logging.md) 6절.
+
+### F9. `EquipmentType` 공개 계약에 오타가 3곳으로 전파 — ⬜ 낮음 / ❓ 선행 결정
+
+```
+Shared.Gameplay/Equipment/EquipmentType.cs:13  Header = 1     ← Helmet/Head 의 오타로 보임
+                                          :15  Shoose = 3     ← Shoes 의 오타
+equipment.proto:26,28                          EQUIPMENT_TYPE_HEADER / _SHOOSE
+클라(Plugins/Shared.Gameplay.dll)              동일 타입 사용
+```
+
+- 특히 `Header` 는 프로그래밍에서 전혀 다른 뜻이라 읽는 사람이 오해한다.
+- **선행 결정**: proto·직렬화 필드는 CLAUDE.md 가 "명시 요청 없이 변경 금지"로 지정한 공개 계약이다. 고치려면 proto 재생성 + 클라 Generated 갱신 + **이미 저장된 슬롯 값** 확인이 함께 필요.
+
+### F10. 팝업 호출 보일러플레이트 8곳 반복 — ⬜ 낮음
+
+- `SetAddressableOwner` 호출부 8곳이 전부 같은 4단계(`LoadAndInstantiateAsync` → `GetComponent<XxxPopup>()` → `SetAddressableOwner` → `Setup`)를 반복한다. 팝업 헬퍼/서비스는 없다(`ShowAlert`/`PopupService` 검색 0건).
+- `AddressableInstance` 가 Addressable 계층에서 없앤 중복이 **팝업 계층에서 다시 생겼다.** `ShowAlertAsync(title, msg, glow)` 하나면 8곳이 1줄로 준다.
+
+### F11. GameServer 헬스체크 엔드포인트 없음 — ⬜ 낮음(M6 배포 전 필요)
+
+- HTTP 5131 을 "운영 평면"(`AdminController`)으로 정의해 놓고 `MapHealthChecks` 가 등록돼 있지 않다. Docker Compose 로 띄우는 이상 컨테이너 준비 상태를 알 방법이 없다.
+
+### F12. `Shared.Infrastructure` 네이밍이 규칙과 충돌해 보인다 — ⬜ 낮음 / ❓ 선행 결정
+
+- `GameServer.Application.csproj:10` 이 `Shared.Infrastructure` 를 참조하는데, CLAUDE.md 는 "Application 이 Infrastructure 를 참조하면 위반"이라고 못 박고 있다.
+- 실제 내용은 DB 어댑터가 아니라 **임베디드 JSON 정적 카탈로그**(items/abilities/drop-tables/spawn) + 메시지 계약이라 **진짜 위반은 아니다.** 다만 이름만 보고는 위반으로 읽혀서, 이 규칙을 검사하는 사람·에이전트가 오판할 수 있다. `Shared.GameData` 계열이 맞다.
+- **선행 결정**: 어셈블리 개명은 참조 그래프 전체 + Dockerfile restore 목록 갱신을 동반한다.
+
+### F13. 입력 임시방편의 전제조건이 이미 해소됐다 — ⬜ 낮음 (D 섹션 "HUD 입력 임시 폴링" 보강)
+
+당시 막고 있던 것(생성 래퍼 미반영)은 **이미 해결됐는데** 마지막 배선만 안 됐다.
+
+```
+PlayerInputActions.cs:1290  m_Player_Inventory = FindAction("Inventory")   ← 래퍼 재생성됨 ✅
+GameInputAction.ToggleInventory (enum 값)                                   ← 존재 ✅
+InputRouter → ToggleInventory 라우팅                                         ← 없음 ❌
+GameHud.cs:255              Keyboard.current 직접 폴링                       ← 잔존 ❌
+DialogueView.cs:55          동일 패턴                                        ← 2곳째 ❌
+```
+
+- 주석 두 곳(`GameInputAction.cs:14`, `InventoryViewController.cs:19`)이 아직 "연결 예정"으로 남아 있다.
+- 대조군: **락온은 정식 경로로 갔다**(`.inputactions` → 생성 래퍼 → `<Keyboard>/tab` → `LockOn` 액션). 같은 프로젝트에서 한쪽은 제대로 됐다.
+
+### F14. 채팅 스트림에 트리밍이 없다 — ⬜ 낮음
+
+- `ChatBroadcastChannel.cs:18` `StreamAddAsync(channel, ...)` 에 `maxLength` 가 없고 스트림 키에 TTL 도 없다. 개별 메시지 Hash·인덱스 Sorted Set 에는 TTL 이 있어(`ChatMessageRepository.cs:408-411`) 캐시 층은 유계인데 **스트림만 무계**다. 장기 가동 시 Redis 메모리를 잠식한다. `XADD ... MAXLEN ~ N` 필요.
+
+### (참고) F 섹션에서 제외한 것 — 이미 다른 항목에 있음
+
+| 재편 중 발견 | 기존 항목 |
+|---|---|
+| `CharacterMotor.Move` 가 `Time.deltaTime` 직접 읽음 | **B1** |
+| `GetRooms` 페이징의 남는 한계(전량 조회) | **B4** |
+| HUD 입력 임시 폴링 | **D** (F13 이 보강) |
+
+---
+
+## 착수 순서 제안 (2026-08-22 갱신)
+
+A·C 계열은 대부분 해소됐다. 남은 것은 **F(문서 재편 중 발견) 중심**이다.
+
+1. **F1 (입장 원자성)** — 유일하게 **지금 플레이에서 잘못된 결과**를 만들 수 있다. 재료(`IUserLock`)도 이미 있어 작업량이 작다.
+2. **F3 + F4** — 묶어서. F4(재배달 경로)가 없으면 F3(기록 만료)의 위험이 현실화되지 않는다. 둘 중 하나만 고치면 반쪽짜리.
+3. **F2** — 고치기 전에 **정책 결정**이 먼저(가용성 vs 보안).
+4. **F6 · F13** — 이미 전제조건이 풀린 미완 작업. 각각 한 곳만 배선하면 끝난다.
+5. **F11** — M6 배포 전에는 반드시.
+6. **B1 · B2 · F9 · F12** — 전부 ❓ 선행 결정 필요(공개 계약·감각 영향).
+7. **F5 · F7 · F8 · F10 · F14 · C2 · D** — 개별 정리.

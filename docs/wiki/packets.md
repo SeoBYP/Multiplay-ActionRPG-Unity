@@ -49,7 +49,6 @@ public static class CombatHandler
 
 | 패킷 | Union ID | 파일 |
 |------|----------|------|
-| C_Auth / S_Auth | 1300 / 1301 | AuthPackets.cs |
 | C_PlayerJoin / S_PlayerJoined | 1310 / 1311 | RoomPackets.cs |
 | C_PlayerLeave / S_PlayerLeft | 1312 / 1313 | RoomPackets.cs |
 | C_Ping / S_Pong | 1400 / 1401 | PingPongPackets.cs |

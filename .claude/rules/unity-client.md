@@ -9,38 +9,54 @@ View(MonoBehaviour)가 주입받을 수 있는 타입은 **해당 View 전용 Mo
 ```
 ❌ LoginWindow   → IAuthService       (Game.System 직접 참조)
 ❌ DungeonRoomItemView → RoomStatusType  (Game.Network 직접 참조)
-✅ LoginWindow   → TitleModel         (Game.OutGame.Title)
-✅ DungeonRoomItemView → DungeonRoomModel (Game.OutGame.DungeonLobby)
+✅ LoginWindow   → TitleModel         (Game.Presentation.Title)
+✅ DungeonRoomItemView → DungeonRoomModel (Game.Presentation.DungeonLobby)
 ```
 
-### 레이어 의존 방향
+### 레이어 의존 방향 (2026-08-22 asmdef 실측)
 
 ```
-Game.GUI  →  Game.OutGame  →  Game.System  →  Game.Network
+Game.GUI ──▶ Game.Presentation ──┐
+         ├─▶ Game.Gameplay ──────┼─▶ Game.System ──▶ Game.Network
+         └─▶ Game.Core           │                   (말단, 외부 패키지만)
+                                 └─▶ Game.Network
 ```
+
+| 어셈블리 | 참조 가능 대상 |
+|---|---|
+| `Game.GUI` | `Game.Presentation`, `Game.Gameplay`, `Game.Core` |
+| `Game.Presentation` | `Game.System`, `Game.Network` |
+| `Game.Gameplay` | `Game.System`, `Game.Core`, `Game.Network` |
+| `Game.System` | `Game.Network` |
+| `Game.Network` / `Game.Core` | (내부 어셈블리 참조 없음) |
 
 - `Game.GUI`가 `Game.System`을 직접 참조하면 위반.
 - `Game.GUI`가 `Game.Network`를 직접 참조하면 위반.
 - `Game.GUI.asmdef`에 `Game.System` 또는 `Game.Network` GUID/이름을 추가하지 않는다.
 
+> ⚠️ **`Game.OutGame`은 존재하지 않는다** — 2026-05-30 무렵 asmdef 재편에서 **`Game.Presentation`**으로
+> 개명됐다(아웃게임 전용이 아니라 인게임 HUD까지 포함하는 프레젠테이션 계층이 됐기 때문).
+> `CLAUDE.md`·`codemap.md`에 남은 `Game.OutGame` 언급은 **asmdef 없는 화석 csproj** 설명이며 그쪽은 정확하다.
+> 상세 = [docs/wiki/unity-layer-separation.md](../../docs/wiki/unity-layer-separation.md)
+
 ### proto 타입은 View에 노출하지 않는다
 
 `GameServer.Grpc.*` 타입(RoomInfo, UserInfo, RoomStatusType 등)은
-`Game.OutGame` 레이어에서 도메인 타입으로 변환한 후 노출한다.
+`Game.Presentation` 레이어에서 도메인 타입으로 변환한 후 노출한다.
 
 ```
-DungeonRoomModel.Status  → RoomStatus     (도메인 enum, Game.OutGame)
-DungeonRoomModel.Players → RoomPlayerInfo (도메인 클래스, Game.OutGame)
+DungeonRoomModel.Status  → RoomStatus     (도메인 enum, Game.Presentation)
+DungeonRoomModel.Players → RoomPlayerInfo (도메인 클래스, Game.Presentation)
 ```
 
 ### System 타입이 필요한 경우
 
 View가 auth/startup 등 System 레벨 관심사를 알아야 한다면,
-해당 관심사를 담당하는 Model을 OutGame 레이어에 만든다.
+해당 관심사를 담당하는 Model을 Presentation 레이어에 만든다.
 
 ```
-인증 상태 → TitleModel      (Game.OutGame.Title)
-스타트업 인텐트 → LobbyModel.StartAsync (Game.OutGame.DungeonLobby)
+인증 상태 → TitleModel      (Game.Presentation.Title)
+스타트업 인텐트 → LobbyModel.StartAsync (Game.Presentation.DungeonLobby)
 ```
 
 ### ViewController(POCO)도 동일한 규칙 적용
@@ -89,7 +105,7 @@ SocketConnector  → TCP 연결 관리
 SocketSession    → 패킷 송수신 (MemoryPack 직렬화)
 ```
 
-연결 후 순서: `C_Auth` 완료 → `C_PlayerJoin`. Auth 전 Join 요청 금지.
+연결 후 바로 `C_PlayerJoin { RoomId, UserId }` 를 보낸다. **소켓 전용 인증 패킷(`C_Auth`)은 없다** — 서버가 Redis `gamesession:player:{userId}` 로 검증한다.
 
 ## gRPC 스트림 취소 처리
 
