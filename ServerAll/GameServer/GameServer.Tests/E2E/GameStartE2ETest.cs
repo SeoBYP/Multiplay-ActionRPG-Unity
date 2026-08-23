@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -75,6 +75,13 @@ public class GameStartE2ETest
             headers: 인증헤더(guestLogin.AccessToken)).ResponseAsync;
 
         Assert.True(joinRoomResponse.Result.Success);
+
+        // 호스트를 뺀 전원이 준비해야 StartRoom 이 통과한다(준비 게이트, 서버 권위).
+        var setReadyResponse = await lobbyClient.SetReadyAsync(
+            new SetReadyRequest { RoomId = roomId, IsReady = true },
+            headers: 인증헤더(guestLogin.AccessToken)).ResponseAsync;
+
+        Assert.True(setReadyResponse.Result.Success);
 
         using var hostSubscribeCall = lobbyClient.SubscribeRoom(
             new SubscribeRoomRequest { RoomId = roomId },
@@ -240,6 +247,8 @@ public class GameStartE2ETest
             builder.Services.AddSingleton<IProfanityFilter, AllowAllProfanityFilter>();
             builder.Services.AddSingleton<IDungeonRoomRepository, FakeDungeonRoomRepository>();
             builder.Services.AddSingleton<IDungeonRoomPlayerRepository, FakeDungeonRoomPlayerRepository>();
+            builder.Services.AddSingleton<IRoomReadyStore, FakeRoomReadyStore>();
+            builder.Services.AddSingleton<IDistributedLock, NoOpDistributedLock>();
             builder.Services.AddSingleton<IOutboxRepository, FakeOutboxRepository>();
             builder.Services.AddSingleton<IDungeonRoomEventStream>(eventStream);
             builder.Services.AddSingleton<IMessageQueue<GameStartRequestedMessage>>(gameStartRequestedQueue);

@@ -63,6 +63,15 @@ namespace Game.Tests.EditMode.OutGame
 
             public UniTask<DungeonLobbyResult> RestoreRoomAsync(long roomId, CancellationToken ct = default)
                 => UniTask.FromResult(DungeonLobbyResult.Success);
+
+            /// <summary>마지막으로 요청된 준비 상태. null = 호출된 적 없음.</summary>
+            public bool? LastSetReady { get; private set; }
+
+            public UniTask<DungeonLobbyResult> SetReadyAsync(bool isReady, CancellationToken ct = default)
+            {
+                LastSetReady = isReady;
+                return UniTask.FromResult(DungeonLobbyResult.Success);
+            }
         }
 
         private sealed class FakeAuthService : IAuthService
@@ -85,7 +94,37 @@ namespace Game.Tests.EditMode.OutGame
         private static LobbyModel BuildModel(FakeDungeonLobbyService service)
         {
             var repository = new LobbyRepository(service);
-            return new LobbyModel(repository, service, new FakeAuthService(), new StartupIntentQueue(), new FakeInputContext());
+            return new LobbyModel(repository, service, new FakeAuthService(), new UserProfile(), new StartupIntentQueue(), new FakeInputContext());
+        }
+
+        /// <summary>
+        /// 대기실 View 는 방 입장이 <b>끝난 뒤</b> Addressable 로 로드되므로, State 가 이미 확정된 상태에서
+        /// 늦게 구독한다. 이때 구독 즉시 현재 State 를 받아야 "열자마자" UI 가 그려진다.
+        /// 못 받으면 다음 State 변경(= 버튼을 눌러야 발생)까지 화면이 비어 있다.
+        /// </summary>
+        [Test]
+        public void 늦게_구독해도_현재_State를_즉시_받는다()
+        {
+            var service = new FakeDungeonLobbyService
+            {
+                CurrentRoom = new RoomInfo
+                {
+                    RoomId = 7, RoomName = "late-subscribe", MaxPlayers = 4,
+                    Status = RoomStatusType.Waiting, HostPublicId = "host"
+                }
+            };
+            var model = BuildModel(service);
+
+            // 방 입장 완료 — View 가 열리기 전에 State 가 이미 확정된다.
+            model.Accept(new LobbyIntent.JoinRoom(7));
+
+            // View 가 이제서야 로드돼 구독한다.
+            LobbyState received = null;
+            using var _ = model.State.Subscribe(s => received = s);
+
+            Assert.IsNotNull(received, "구독 즉시 현재 State 를 받아야 한다");
+            Assert.IsNotNull(received.SelectedRoom, "SelectedRoom 이 실려 있어야 대기실이 그려진다");
+            Assert.AreEqual(7, received.SelectedRoom.RoomId);
         }
 
         [Test]

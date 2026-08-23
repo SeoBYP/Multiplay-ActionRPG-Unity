@@ -3,6 +3,7 @@ using System;
 using GameServer.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GameServer.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(GameServerDbContext))]
-    partial class GameServerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260823061730_MakeDungeonRoomPlayerUserIdUnique")]
+    partial class MakeDungeonRoomPlayerUserIdUnique
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

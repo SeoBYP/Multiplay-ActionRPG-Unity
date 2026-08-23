@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using GameServer.Grpc.DungeonLobby;
 
 namespace Game.Presentation.DungeonLobby
@@ -32,6 +32,13 @@ namespace Game.Presentation.DungeonLobby
         {
             public readonly RoomInfo Room;
             public RoomJoined(RoomInfo room) => Room = room;
+        }
+
+        /// <summary>인증 완료 — 내 공개 식별자가 정해졌다. (Reducer 를 순수 함수로 두기 위한 입력)</summary>
+        public sealed class IdentityResolved : LobbyResult
+        {
+            public readonly string MyPublicId;
+            public IdentityResolved(string myPublicId) => MyPublicId = myPublicId;
         }
 
         public sealed class Failed : LobbyResult

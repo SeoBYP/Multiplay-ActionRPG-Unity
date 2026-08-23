@@ -35,6 +35,12 @@ namespace Game.System.DungeonLobby
         UniTask<DungeonLobbyResult> StartGameAsync(CancellationToken ct = default);
 
         /// <summary>
+        /// 대기실에서 자신의 준비 상태를 토글한다. 호스트는 준비 개념이 없어 서버가 거부한다.
+        /// 성공하면 방 전원에게 <see cref="OnRoomUpdated"/> 로 갱신된 RoomInfo 가 흘러온다.
+        /// </summary>
+        UniTask<DungeonLobbyResult> SetReadyAsync(bool isReady, CancellationToken ct = default);
+
+        /// <summary>
         /// 이미 서버에 입장된 방을 세션/구독만 복원한다 (JoinRoom API 호출 없음).
         /// 재로그인 시 AlreadyInRoom 오류 없이 방 상태를 되돌린다.
         /// </summary>

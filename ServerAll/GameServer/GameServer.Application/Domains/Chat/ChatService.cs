@@ -16,7 +16,7 @@ public class ChatService(
     IDungeonRoomRepository dungeonRoomRepository,
     IDungeonRoomPlayerRepository dungeonRoomPlayerRepository,
     IProfanityFilter profanityFilter,
-    IUserLock userLock,
+    IDistributedLock distributedLock,
     IChatEventStream chatEventStream) : IChatService
 {
     public async Task<Result<ChatMessage>> SendMessageAsync(
@@ -33,7 +33,7 @@ public class ChatService(
         if (userProfile is null)
             return Result<ChatMessage>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
         
-        await using var _ = await userLock.AcquireAsync($"chat:user:{userSession.UserId}", ct);
+        await using var _ = await distributedLock.AcquireAsync($"chat:user:{userSession.UserId}", ct);
         
         var roomPlayer = await dungeonRoomPlayerRepository.GetByUserIdAsync(userSession.UserId, ct);
         var currentRoom = roomPlayer is null

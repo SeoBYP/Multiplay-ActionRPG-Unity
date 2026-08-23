@@ -19,7 +19,7 @@ public class ChatServiceTests
     private readonly FakeDungeonRoomPlayerRepository _roomPlayerRepo;
     private readonly Mock<IChatEventStream> _mockEventStream;
     private readonly IProfanityFilter _profanityFilter;
-    private readonly IUserLock _userLock;
+    private readonly IDistributedLock _distributedLock;
     private readonly IChatService _service;
 
     public ChatServiceTests()
@@ -31,7 +31,7 @@ public class ChatServiceTests
         _roomPlayerRepo = new FakeDungeonRoomPlayerRepository();
         _mockEventStream = new Mock<IChatEventStream>();
         _profanityFilter = new PassThroughProfanityFilter();
-        _userLock = new NoOpUserLock();
+        _distributedLock = new NoOpDistributedLock();
 
         _service = new ChatService(
             _chatRepo,
@@ -40,7 +40,7 @@ public class ChatServiceTests
             _roomRepo,
             _roomPlayerRepo,
             _profanityFilter,
-            _userLock,
+            _distributedLock,
             _mockEventStream.Object);
     }
 
@@ -238,7 +238,7 @@ public class ChatServiceTests
         public bool IsProfane(string message) => false;
     }
 
-    private sealed class NoOpUserLock : IUserLock
+    private sealed class NoOpDistributedLock : IDistributedLock
     {
         public Task<IAsyncDisposable> AcquireAsync(string lockKey, CancellationToken ct = default)
             => Task.FromResult<IAsyncDisposable>(new Releaser());

@@ -74,6 +74,10 @@ namespace GameServer.Grpc.DungeonLobby {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::GameServer.Grpc.DungeonLobby.StartRoomResponse> __Marshaller_gameserver_lobby_v1_StartRoomResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.DungeonLobby.StartRoomResponse.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::GameServer.Grpc.DungeonLobby.SetReadyRequest> __Marshaller_gameserver_lobby_v1_SetReadyRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.DungeonLobby.SetReadyRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::GameServer.Grpc.DungeonLobby.SetReadyResponse> __Marshaller_gameserver_lobby_v1_SetReadyResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.DungeonLobby.SetReadyResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::GameServer.Grpc.DungeonLobby.SubscribeRoomRequest> __Marshaller_gameserver_lobby_v1_SubscribeRoomRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.DungeonLobby.SubscribeRoomRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::GameServer.Grpc.DungeonLobby.SubscribeRoomResponse> __Marshaller_gameserver_lobby_v1_SubscribeRoomResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.DungeonLobby.SubscribeRoomResponse.Parser));
@@ -133,6 +137,14 @@ namespace GameServer.Grpc.DungeonLobby {
         "StartRoom",
         __Marshaller_gameserver_lobby_v1_StartRoomRequest,
         __Marshaller_gameserver_lobby_v1_StartRoomResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::GameServer.Grpc.DungeonLobby.SetReadyRequest, global::GameServer.Grpc.DungeonLobby.SetReadyResponse> __Method_SetReady = new grpc::Method<global::GameServer.Grpc.DungeonLobby.SetReadyRequest, global::GameServer.Grpc.DungeonLobby.SetReadyResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "SetReady",
+        __Marshaller_gameserver_lobby_v1_SetReadyRequest,
+        __Marshaller_gameserver_lobby_v1_SetReadyResponse);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::GameServer.Grpc.DungeonLobby.SubscribeRoomRequest, global::GameServer.Grpc.DungeonLobby.SubscribeRoomResponse> __Method_SubscribeRoom = new grpc::Method<global::GameServer.Grpc.DungeonLobby.SubscribeRoomRequest, global::GameServer.Grpc.DungeonLobby.SubscribeRoomResponse>(
@@ -232,6 +244,18 @@ namespace GameServer.Grpc.DungeonLobby {
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::GameServer.Grpc.DungeonLobby.StartRoomResponse> StartRoom(global::GameServer.Grpc.DungeonLobby.StartRoomRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// 준비 상태 토글 (호스트 제외 — 호스트는 준비 개념이 없다)
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::GameServer.Grpc.DungeonLobby.SetReadyResponse> SetReady(global::GameServer.Grpc.DungeonLobby.SetReadyRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -615,6 +639,54 @@ namespace GameServer.Grpc.DungeonLobby {
         return CallInvoker.AsyncUnaryCall(__Method_StartRoom, null, options, request);
       }
       /// <summary>
+      /// 준비 상태 토글 (호스트 제외 — 호스트는 준비 개념이 없다)
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::GameServer.Grpc.DungeonLobby.SetReadyResponse SetReady(global::GameServer.Grpc.DungeonLobby.SetReadyRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return SetReady(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// 준비 상태 토글 (호스트 제외 — 호스트는 준비 개념이 없다)
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::GameServer.Grpc.DungeonLobby.SetReadyResponse SetReady(global::GameServer.Grpc.DungeonLobby.SetReadyRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_SetReady, null, options, request);
+      }
+      /// <summary>
+      /// 준비 상태 토글 (호스트 제외 — 호스트는 준비 개념이 없다)
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::GameServer.Grpc.DungeonLobby.SetReadyResponse> SetReadyAsync(global::GameServer.Grpc.DungeonLobby.SetReadyRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return SetReadyAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// 준비 상태 토글 (호스트 제외 — 호스트는 준비 개념이 없다)
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::GameServer.Grpc.DungeonLobby.SetReadyResponse> SetReadyAsync(global::GameServer.Grpc.DungeonLobby.SetReadyRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_SetReady, null, options, request);
+      }
+      /// <summary>
       /// 방 구독 시작
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
@@ -659,6 +731,7 @@ namespace GameServer.Grpc.DungeonLobby {
           .AddMethod(__Method_JoinRoom, serviceImpl.JoinRoom)
           .AddMethod(__Method_LeaveRoom, serviceImpl.LeaveRoom)
           .AddMethod(__Method_StartRoom, serviceImpl.StartRoom)
+          .AddMethod(__Method_SetReady, serviceImpl.SetReady)
           .AddMethod(__Method_SubscribeRoom, serviceImpl.SubscribeRoom).Build();
     }
 
@@ -676,6 +749,7 @@ namespace GameServer.Grpc.DungeonLobby {
       serviceBinder.AddMethod(__Method_JoinRoom, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::GameServer.Grpc.DungeonLobby.JoinRoomRequest, global::GameServer.Grpc.DungeonLobby.JoinRoomResponse>(serviceImpl.JoinRoom));
       serviceBinder.AddMethod(__Method_LeaveRoom, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::GameServer.Grpc.DungeonLobby.LeaveRoomRequest, global::GameServer.Grpc.DungeonLobby.LeaveRoomResponse>(serviceImpl.LeaveRoom));
       serviceBinder.AddMethod(__Method_StartRoom, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::GameServer.Grpc.DungeonLobby.StartRoomRequest, global::GameServer.Grpc.DungeonLobby.StartRoomResponse>(serviceImpl.StartRoom));
+      serviceBinder.AddMethod(__Method_SetReady, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::GameServer.Grpc.DungeonLobby.SetReadyRequest, global::GameServer.Grpc.DungeonLobby.SetReadyResponse>(serviceImpl.SetReady));
       serviceBinder.AddMethod(__Method_SubscribeRoom, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::GameServer.Grpc.DungeonLobby.SubscribeRoomRequest, global::GameServer.Grpc.DungeonLobby.SubscribeRoomResponse>(serviceImpl.SubscribeRoom));
     }
 

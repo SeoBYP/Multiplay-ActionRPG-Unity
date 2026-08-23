@@ -3,9 +3,9 @@ using StackExchange.Redis;
 
 namespace GameServer.Infrastructure.Common;
 
-public class RedisUserLock(IConnectionMultiplexer connectionMultiplexer) : IUserLock
+public class RedisDistributedLock(IConnectionMultiplexer connectionMultiplexer) : IDistributedLock
 {
-    private const string LockPrefix = "lock:user:";
+    private const string LockPrefix = "lock";
     
     // TODO : application.json으로 분류 예정
     private static readonly TimeSpan LockExpiry = TimeSpan.FromSeconds(10);

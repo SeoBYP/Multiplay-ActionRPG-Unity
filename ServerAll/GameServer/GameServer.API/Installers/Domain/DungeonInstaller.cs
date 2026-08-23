@@ -23,6 +23,7 @@ public class DungeonInstaller : IServiceInstaller
 
         services.AddScoped<IDungeonRoomRepository, DungeonRoomRepository>();
         services.AddScoped<IDungeonRoomPlayerRepository, DungeonRoomPlayerRepository>();
+        services.AddSingleton<IRoomReadyStore, RedisRoomReadyStore>();
         services.AddSingleton<IDungeonLobbySubscriptionService, DungeonLobbySubscriptionService>();
         services.AddSingleton<IDungeonRoomEventStream, DungeonRoomEventStream>();
         services.AddScoped<IGameSessionRepository, GameSessionRepository>();

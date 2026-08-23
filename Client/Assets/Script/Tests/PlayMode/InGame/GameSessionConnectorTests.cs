@@ -106,6 +106,9 @@ namespace Game.Tests.PlayMode.InGame
                 => UniTask.FromResult(DungeonLobbyResult.Success);
             public UniTask<DungeonLobbyResult> LeaveRoomAsync(CancellationToken ct = default)
                 => UniTask.FromResult(DungeonLobbyResult.Success);
+            public UniTask<DungeonLobbyResult> SetReadyAsync(bool isReady, CancellationToken ct = default)
+                => UniTask.FromResult(DungeonLobbyResult.Success);
+
             public UniTask<DungeonLobbyResult> StartGameAsync(CancellationToken ct = default)
                 => UniTask.FromResult(DungeonLobbyResult.Success);
             public UniTask<DungeonLobbyResult> RestoreRoomAsync(long roomId, CancellationToken ct = default)

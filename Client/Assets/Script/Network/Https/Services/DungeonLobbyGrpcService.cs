@@ -73,6 +73,13 @@ namespace Game.Network.Https.Services
             return await call.ResponseAsync;
         }
 
+        public async UniTask<SetReadyResponse> SetReadyAsync(SetReadyRequest request, CancellationToken ct = default)
+        {
+            var client = CreateClient();
+            var call = client.SetReadyAsync(request, cancellationToken: ct);
+            return await call.ResponseAsync;
+        }
+
         public async UniTask SubscribeRoomAsync(SubscribeRoomRequest request, Action<SubscribeRoomResponse> onMessage, CancellationToken ct = default)
         {
             var client = CreateClient();

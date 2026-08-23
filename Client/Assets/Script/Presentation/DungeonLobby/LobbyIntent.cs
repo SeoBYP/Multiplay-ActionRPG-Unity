@@ -1,4 +1,4 @@
-namespace Game.Presentation.DungeonLobby
+﻿namespace Game.Presentation.DungeonLobby
 {
     /// <summary>
     /// 로비 화면에서 발생할 수 있는 사용자 의도의 닫힌 집합.
@@ -54,6 +54,17 @@ namespace Game.Presentation.DungeonLobby
         {
             public static readonly StartGame Instance = new StartGame();
             private StartGame() { }
+        }
+
+        /// <summary>대기실에서 자신의 준비 상태를 토글한다 (방장은 서버가 거부).</summary>
+        public sealed class SetReady : LobbyIntent
+        {
+            public readonly bool IsReady;
+
+            public SetReady(bool isReady)
+            {
+                IsReady = isReady;
+            }
         }
 
         public sealed class LeaveRoom : LobbyIntent

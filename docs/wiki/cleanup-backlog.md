@@ -203,7 +203,7 @@ Assets/Art/Magic Pig Games (Infinity PBR)/.../v2_DemoEnvironment.prefab
 > 기능 개발 중에는 보이지 않던 자리들이다. 근거는 전부 코드 위치로 남긴다.
 > ⚠️ **미실측**: 코드 경로상 확인이고 재현 테스트는 돌리지 않았다.
 
-### F1. 던전 방 입장 원자성 유실 — ⬜ **높음** (실제 동작 영향)
+### F1. 던전 방 입장 원자성 유실 — ✅ **해소 2026-08-23**
 
 ```
 DungeonLobbyService.cs:170-174
@@ -216,19 +216,38 @@ DungeonLobbyService.cs:170-174
 - **재료는 이미 있다**: `IUserLock`(`RedisUserLock`, `SET NX EX` + 소유자 토큰 Lua 해제)이 `ChatService.cs:36` 에서 쓰이고 있다. 로비 입장에만 안 걸려 있다.
 - 상세 = [chapter-03](../portfolio/chapter-03-dungeon-lobby.md) 3절.
 
-### F2. Refresh 실패 시 세션 파괴가 DoS 벡터 — ⬜ **높음**(보안) / ❓ 선행 결정
+**조치(2026-08-23)** — 축이 둘이라 방어도 둘로 나눴다. 상세 = codemap §2.105.
+
+| 깨지던 축 | 방어 | 위치 |
+|---|---|---|
+| 정원 초과 (서로 다른 유저의 경합) | 방 단위 락으로 "인원 검사~입장 기록"을 한 임계구역에 | `DungeonLobbyService.JoinRoomAsync` (`RoomLockKey`) |
+| 한 유저의 동시 다중 방 입장 | `dungeon_room_players.UserId` **UNIQUE** — 락 만료·다중 인스턴스에도 안 깨지는 최종 방어선 | `DungeonRoomPlayerConfiguration` + 마이그레이션 `MakeDungeonRoomPlayerUserIdUnique` |
+
+- `IUserLock` → **`IDistributedLock`** 으로 개명(구현 `RedisDistributedLock`). 방 스코프에도 쓰이는데 이름·키 프리픽스가 유저 전용이었다. 겸사 키가 `lock:user::chat:user:{id}` 로 콜론이 겹치던 것도 `lock:{scope}` 로 정리.
+- UNIQUE 위반은 `PlayerAlreadyInRoomException`(Application)으로 번역해 EF/Npgsql 예외 타입이 Application 까지 새지 않게 했다.
+- 마이그레이션은 UNIQUE 를 걸기 전에 기존 중복을 정리한다(없으면 제약 생성이 실패해 서버가 못 뜬다). ⚠️ 처음 쓴 `MIN((JoinedAt, RoomId))` 은 PostgreSQL 에서 `function min(record) does not exist` 로 실패 — `ROW_NUMBER() OVER (PARTITION BY ...)` 로 교체했다(실제로 서버 기동 실패로 밟음).
+- **경합 재현 테스트**(`DungeonRoomJoinConcurrencyTests`, Testcontainers 실 Redis+PG) 5건 — 락 상호배제 / 키 스코프 / 정원 동시입장 / UNIQUE 제약 / 서비스 end-to-end.
+  - **고장 주입으로 실효성 확인**: 락을 `NoOpDistributedLock` 으로 바꾸자 정원 4인 방에 **8명 전원 입장**(Expected 3, Actual 8)으로 실패 → 복구 후 통과.
+  - ⚠️ **동시성 테스트만으로는 UNIQUE 를 검증 못 한다**(실측): `.IsUnique()` 를 떼도 두 요청이 충분히 겹치지 않아 서비스 사전 검사가 먼저 걸러 **통과해 버렸다**. → 저장소 계층(사전 검사 없음) 직접 테스트를 따로 두어 결정적으로 고정. 그 테스트는 `.IsUnique()` 제거 시 `Assert.Throws() Failure: No exception was thrown` 로 정확히 실패한다.
+- **남은 것**: 죽은 API `IDungeonRoomRepository.TryJoinRoomAsync`(호출자 0, 구현은 상태 확인만) 는 이번에 건드리지 않았다 — 별건으로 제거 대상.
+
+### F2. Refresh 실패 시 세션 파괴가 DoS 벡터 — ✅ **해소 (2026-08-23)**
 
 ```
-AuthService.RefreshTokenAsync
-   ValidateToken(accessToken, validateLifetime: false)   ← 만료 토큰도 통과(의도·테스트로 고정)
-   해시 불일치        → ClearRefreshToken + RemoveSession
-   버전 역행(재사용)  → ClearRefreshToken + RemoveSession
+before                                          after
+─────────────────────────────────────────────   ──────────────────────────────────────────────
+버전 역행(위조 가능) → Clear + RemoveSession     해시 = 현재 세대  → 정상 회전
+해시 불일치          → Clear + RemoveSession     해시 = 직전 세대  → 유예 이내 = 재시도
+                                                                  → 유예 경과 = 탈취 → 파괴
+                                                둘 다 아님        → 실패만. 세션 유지
 ```
 
-- **왜 문제인가**: 유출된 **만료 accessToken 하나**만 있으면 형식만 맞춘 아무 리프레시 문자열(`aaa.99`)로 **피해자 세션을 강제 종료**시킬 수 있다. 반복하면 지속적 로그아웃.
-- **표준 관행**: OAuth 2.0 Security BCP 는 전체 무효화를 **재사용 탐지에 한정**한다. 단순 해시 불일치는 실패 카운트·레이트 리밋이 맞다.
-- **선행 결정**: 현재 파괴는 "DeviceId 불일치 = 탈취 의심"이라는 **의도적 정책**이다. 가용성과 보안 중 어느 쪽을 택할지가 먼저.
-- 상세 = [chapter-02](../portfolio/chapter-02-authentication.md) 8절.
+- **조사 중 드러난 것**: 문제는 해시 불일치 분기만이 아니었다. **버전 역행 검사가 해시 비교보다 앞**에 있어 `aaa.0` 한 방으로 `TokenReuseDetected` + 세션 파괴가 났다. → BCP 의 "무효화를 재사용 탐지로 한정"을 그대로 적용해도 DoS 가 안 없어지는 구조였다.
+- **택한 해법**: 파괴를 **소유 증명 뒤로** 옮기고, 직전 세대 해시를 Redis 휘발성 키(`game:user:credential:refresh:prev:{userId}`, 값 `해시:회전시각`, TTL=리프레시 수명)에 한 세대만 보관해 "우리가 발급한 토큰"이라는 증명을 되찾았다. 가용성·재사용 탐지 중 하나를 버릴 필요가 없어져 **선행 결정 자체가 소멸**했다.
+- **유예창**(`JwtOptions.RefreshReuseGraceSeconds`, 기본 60s): 응답 유실·타임아웃 재시도로 같은 토큰이 두 번 오는 정상 경로를 탈취로 오판하면 대량 로그아웃이 된다. 유예 안 재시도는 **회전시각을 갱신하지 않는다**(갱신하면 탐지를 무한히 미룰 수 있음).
+- **버려진 것**: 버전 역행 비교. 파괴 근거로서는 위조 가능해 제거했다(`RefreshTokenVersion` 은 토큰 접미사로만 남음).
+- **검증**: `AuthServiceTests` 15/15 · `GameServer.Tests` 417/417 · `SocketServer.Tests` 224/224 · Unity EditMode 231/231 · PlayMode E2E(`AuthE2ETests` 신규 2건 포함).
+- 상세 = [chapter-02](../portfolio/chapter-02-authentication.md) 6·8절.
 
 ### F3. 멱등 처리 기록의 TTL 이 컬렉션 전체에 걸린다 (3곳 동일 패턴) — ⬜ 중간
 
@@ -348,7 +367,7 @@ A·C 계열은 대부분 해소됐다. 남은 것은 **F(문서 재편 중 발�
 
 1. **F1 (입장 원자성)** — 유일하게 **지금 플레이에서 잘못된 결과**를 만들 수 있다. 재료(`IUserLock`)도 이미 있어 작업량이 작다.
 2. **F3 + F4** — 묶어서. F4(재배달 경로)가 없으면 F3(기록 만료)의 위험이 현실화되지 않는다. 둘 중 하나만 고치면 반쪽짜리.
-3. **F2** — 고치기 전에 **정책 결정**이 먼저(가용성 vs 보안).
+3. ~~**F2**~~ — ✅ 2026-08-23 해소(소유 증명 우선 + 직전 세대 해시 + 재시도 유예).
 4. **F6 · F13** — 이미 전제조건이 풀린 미완 작업. 각각 한 곳만 배선하면 끝난다.
 5. **F11** — M6 배포 전에는 반드시.
 6. **B1 · B2 · F9 · F12** — 전부 ❓ 선행 결정 필요(공개 계약·감각 영향).

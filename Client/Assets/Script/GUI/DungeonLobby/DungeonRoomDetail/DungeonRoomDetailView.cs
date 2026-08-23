@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.GUI.Common;
 using Game.Presentation.DungeonLobby;
@@ -23,6 +23,10 @@ namespace Game.GUI.OutGame.Lobby
 
         [Inject] private LobbyModel _model;
 
+        // 버튼 하나가 방장/비방장에서 뜻이 달라지므로, 마지막 Render 의 판정을 클릭에서 재사용한다.
+        private bool _isHost;
+        private bool _isReady;
+
         [Header("Header")]
         [SerializeField] private Button m_backButton;
 
@@ -30,7 +34,17 @@ namespace Game.GUI.OutGame.Lobby
         [SerializeField] private TextMeshProUGUI m_roomName;
         [SerializeField] private TextMeshProUGUI m_roomPlayerCurrentCount;
         [SerializeField] private TextMeshProUGUI m_roomPlayerMaxCount;
+
+        /// <summary>
+        /// 역할에 따라 뜻이 바뀌는 단일 버튼.
+        ///   방장   → "시작"(비방장 전원 준비 시에만 활성)
+        ///   비방장 → "준비" / "준비 해제"
+        /// 버튼을 둘로 나누지 않은 이유: 한 사람에게 동시에 보일 일이 없어 프리팹만 복잡해진다.
+        /// </summary>
         [SerializeField] private Button          m_playButton;
+
+        /// <summary>버튼 라벨. 미배선이면 Start()에서 자식 텍스트를 찾아 쓴다.</summary>
+        [SerializeField] private TextMeshProUGUI m_playButtonLabel;
 
         [Header("Player Character Slot")]
         [SerializeField] private Transform                    m_playerCharacterSlotParent;
@@ -56,14 +70,34 @@ namespace Game.GUI.OutGame.Lobby
                     _freePool.Enqueue(existing);
                 }
             }
+            // ⚠️ 구독보다 먼저 배선을 끝낸다.
+            // State 는 ReactiveProperty 라 Subscribe 하는 순간 현재 값이 동기로 흘러 Render 가 즉시 실행된다.
+            // 라벨을 구독 뒤에 찾으면 그 첫 Render 가 라벨을 못 써서, 다음 State 변경(= 버튼 누름)까지
+            // 프리팹 기본 텍스트가 그대로 남는다.
+            ResolvePlayButtonLabel();
+
+            m_playButton.onClick.AddListener(OnPlayButtonClicked);
+
             _model.State
                 .Subscribe(Render)
                 .AddTo(destroyCancellationToken);
 
-            m_playButton.onClick.AddListener(() =>
-                _model.Accept(LobbyIntent.StartGame.Instance));
-
             m_backButton.onClick.AddListener(() => ShowLeaveConfirmAsync().Forget());
+        }
+
+        /// <summary>
+        /// 버튼이 두 가지 뜻을 가지므로 클릭 시점의 State 로 어떤 Intent 인지 정한다.
+        /// (State 는 Render 에서 캐시해 둔다 — Model 을 다시 읽지 않는다)
+        /// </summary>
+        private void OnPlayButtonClicked()
+        {
+            if (_isHost)
+            {
+                _model.Accept(LobbyIntent.StartGame.Instance);
+                return;
+            }
+
+            _model.Accept(new LobbyIntent.SetReady(!_isReady));
         }
 
         private void Render(LobbyState state)
@@ -77,10 +111,39 @@ namespace Game.GUI.OutGame.Lobby
 
             SyncSlots(room.Players);
 
-            // 방이 대기 중이고 최소 인원 이상일 때만 시작 버튼 활성화
-            m_playButton.interactable =
-                // room.Status == RoomStatus.Waiting &&
-                room.PlayerCount >= MinPlayersToStart;
+            _isHost  = room.IsHost(state.MyPublicId);
+            _isReady = room.IsReady(state.MyPublicId);
+
+            var isWaiting = room.Status == RoomStatus.Waiting;
+
+            if (_isHost)
+            {
+                // 방장: 비방장 전원이 준비해야 시작할 수 있다. (최종 판정은 서버 — 여기서는 UX 만)
+                SetPlayButtonLabel("시작");
+                m_playButton.interactable =
+                    isWaiting &&
+                    room.PlayerCount >= MinPlayersToStart &&
+                    room.AllOthersReady;
+            }
+            else
+            {
+                SetPlayButtonLabel(_isReady ? "준비 해제" : "준비");
+                m_playButton.interactable = isWaiting;
+            }
+        }
+
+        private void ResolvePlayButtonLabel()
+        {
+            if (m_playButtonLabel == null)
+                m_playButtonLabel = m_playButton.GetComponentInChildren<TextMeshProUGUI>(true);
+        }
+
+        private void SetPlayButtonLabel(string label)
+        {
+            // 배선 순서에 기대지 않는다 — 못 찾았으면 이 자리에서 다시 찾는다.
+            ResolvePlayButtonLabel();
+            if (m_playButtonLabel != null)
+                m_playButtonLabel.text = label;
         }
 
         private async UniTaskVoid ShowLeaveConfirmAsync()

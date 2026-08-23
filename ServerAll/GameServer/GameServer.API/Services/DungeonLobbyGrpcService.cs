@@ -18,6 +18,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
     IGameSessionRepository gameSessionRepository,
     IUserRepository userRepository,
     IDungeonRoomPlayerRepository dungeonRoomPlayerRepository,
+    IRoomReadyStore roomReadyStore,
     IUserProfileRepository userProfileRepository,
     IConnectionMultiplexer connectionMultiplexer,
     ILogger<DungeonLobbyGrpcService> logger) : DungeonLobbyService.DungeonLobbyServiceBase
@@ -50,7 +51,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         return new CreateRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = await result.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository),
+            RoomInfo = await result.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository, roomReadyStore),
             CreatedAt = new DateTimeOffset(result.Value.CreatedAt).ToUnixTimeSeconds(),
         };
     }
@@ -75,7 +76,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         return new GetRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository),
+            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository, roomReadyStore),
         };
     }
 
@@ -123,13 +124,20 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
             .GroupBy(p => p.RoomId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
+        // 준비 상태도 함께 싣는다. 목록에서 고른 방이 그대로 대기실 State 로 들어가므로,
+        // 여기서 비우면 대기실이 열린 직후 전원 미준비로 잘못 그려진다(방마다 왕복하지 않도록 배치 조회).
+        var readyByRoom = await roomReadyStore.GetReadyUserIdsAsync(roomIds, context.CancellationToken);
+
         foreach (var dungeonRoom in rooms)
         {
             var playerUsers = playersByRoom.TryGetValue(dungeonRoom.RoomId, out var players)
-                ? players.Where(p => userById.ContainsKey(p.UserId)).Select(p => userById[p.UserId]).ToList()
+                ? players.Where(p => userById.ContainsKey(p.UserId))
+                    .OrderBy(p => p.JoinedAt).ThenBy(p => p.UserId)
+                    .Select(p => userById[p.UserId]).ToList()
                 : [];
 
-            response.RoomInfos.Add(dungeonRoom.ToRoomInfo(playerUsers));
+            readyByRoom.TryGetValue(dungeonRoom.RoomId, out var readyUserIds);
+            response.RoomInfos.Add(dungeonRoom.ToRoomInfo(playerUsers, readyUserIds));
         }
 
         logger.LogInformation("GetRooms succeeded for session {SessionId} with {RoomCount} rooms", sessionId, response.RoomInfos.Count);
@@ -158,7 +166,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         return new JoinRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository)
+            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository, roomReadyStore)
         };
     }
 
@@ -208,7 +216,31 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         return new StartRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository),
+            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository, roomReadyStore),
+        };
+    }
+
+    public override async Task<SetReadyResponse> SetReady(SetReadyRequest request, ServerCallContext context)
+    {
+        var sessionId = context.GetSessionId();
+        if (sessionId is null)
+        {
+            logger.LogWarning("SetReady rejected because session id was missing");
+            return new SetReadyResponse { Result = ResultExtensions.CreateUnauthorizedGrpcResult() };
+        }
+
+        var result = await dungeonLobbyService.SetReadyAsync(
+            sessionId, request.RoomId, request.IsReady, context.CancellationToken);
+
+        if (!result.IsSuccess)
+            logger.LogWarning("SetReady failed for room {RoomId} with code {ErrorCode}", request.RoomId, result.InternalErrorCode);
+
+        return new SetReadyResponse
+        {
+            Result = result.ToGrpcResult(),
+            RoomInfo = result.Value is null
+                ? null
+                : await result.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository, roomReadyStore),
         };
     }
 
@@ -234,7 +266,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         return new UpdateRoomResponse
         {
             Result = result.ToGrpcResult(),
-            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository)
+            RoomInfo = result.Value is null ? null : await result.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository, roomReadyStore)
         };
     }
 
@@ -349,7 +381,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
                         ctx.UserId, roomId, room.Value.Status);
                     serverMsg.UpdateEvent = new RoomUpdatedEvent
                     {
-                        RoomInfo = await room.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository),
+                        RoomInfo = await room.Value.ToRoomInfo(userRepository, dungeonRoomPlayerRepository, roomReadyStore),
                     };
                     break;
             }

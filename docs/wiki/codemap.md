@@ -80,6 +80,45 @@
 > ⚠️ **재번호(2026-07-17)** — 원래 2.60~2.76 으로 매겨져 기존 항목(2.60 회피·2.61 콤보·2.62 로스터·2.63 캡슐)과 **번호가 충돌**했다. 과거 커밋 메시지·PR 본문의 참조는 아래 대조표로 읽는다:
 > 구2.60(애니)→**2.64** · 2.61(B1)→**2.65** · 2.62(B2)→**2.66** · 2.63(B3)→**2.67** · 2.64(B4)→**2.68** · 2.65(B5)→**2.69** · 2.66(B6)→**2.70** · 2.67(C3-hotfix)→**2.71** · 2.68(C3)→**2.72** · 2.69(infra)→**2.73** · 2.70(C1a)→**2.74** · 2.71(C1b)→**2.75** · 2.72(C1c준비)→**2.76** · 2.73(사망체력바)→**2.77** · 2.74(C2)→**2.78** · 2.75(링포화)→**2.79** · 2.76(E~H)→**2.80**
 
+### 2.105 대기실 준비(Ready) 상태 + 던전 입장 원자성(F1) (2026-08-23)
+
+**요구**: 호스트를 뺀 전원이 "준비"를 눌러야 호스트가 던전을 시작할 수 있다. 겸사 같은 경로에 있던 F1(입장 원자성)을 함께 닫았다.
+
+**결정 ①: 준비 상태는 Redis 전용 (DB 컬럼 아님)**
+방과 수명을 같이하는 휘발성 로비 상태다. 유실되면 전원 미준비로 되돌아갈 뿐 게임 데이터에 영구 손상이 없어서 마이그레이션 비용을 치를 이유가 없다. 저장소는 `IRoomReadyStore`(Application) ↔ `RedisRoomReadyStore`(Infrastructure) — 인터페이스는 asmdef/레이어 경계상 필수라 과추상화가 아니다.
+- 키 `game:room:ready:{roomId}` (Set of userId), TTL = 방 캐시와 동일.
+- 정리 지점: 입장 시 미준비로 초기화 · 퇴장(`LeaveRoom`/`RemovePlayerFromRoom`) 시 SREM · 방 삭제/게임 시작 시 DEL.
+
+**결정 ②: 호스트는 준비 개념이 없다**
+호스트에게는 시작 버튼이 곧 의사표시다. 그래서 호스트는 준비 목록에 담기지 않고(`SetReady` 자체를 서버가 거부), 시작 판정은 "호스트를 뺀 전원"만 본다. 부작용으로 **1인 방은 준비 대상이 0명이라 그대로 시작된다**(기존 동작 유지).
+
+**결정 ③: 판정 권위는 서버**
+클라의 버튼 비활성화는 UX 일 뿐이고, `StartGameAsync` 가 `Waiting` 일 때 다시 판정해 미준비가 있으면 `NOT_ALL_PLAYERS_READY`(2008)로 거부한다. `Starting`/`Playing` 재시도(멱등 재발행) 경로는 준비 목록이 이미 비워진 뒤라 판정 대상에서 뺀다 — 안 그러면 재시도가 영구히 막힌다.
+
+**결정 ④: 계약은 public_id 로 통일**
+`RoomInfo.current_players` 가 `public_id` 로만 식별되는데 `host_user_id` 는 내부 userId 라 클라가 둘을 이을 수 없었다. `ready_public_ids`(8) + `host_public_id`(9) 두 필드를 추가해 "이 슬롯이 방장인가 / 내가 방장인가 / 준비했는가"를 한 키로 판정한다. 기존 필드 번호·타입은 그대로라 호환이 깨지지 않는다.
+
+**F1(입장 원자성)** — 축이 둘이라 방어도 둘. 방 단위 락(`lock:room:{id}`)이 "인원 검사→입장 기록"을 임계구역으로 묶고, `dungeon_room_players.UserId` UNIQUE 가 "한 유저는 한 방"을 DB 에서 강제한다. 락 두 개(유저+방)를 겹치지 않은 이유 = 획득 순서 규칙이 CreateRoom/LeaveRoom 까지 전염되고, 락은 만료되지만 제약은 안 깨진다. `IUserLock` → `IDistributedLock` 개명(키 프리픽스 `lock:` 로 정리).
+
+**코드 위치**
+- 서버: `GameServer.Application/Domains/DungeonLobby/DungeonLobbyService.cs`(`SetReadyAsync`·준비 게이트·`RoomLockKey`) · `Interfaces/IRoomReadyStore.cs` · `PlayerAlreadyInRoomException.cs` · `GameServer.Infrastructure/Domains/DungeonRoom/RedisRoomReadyStore.cs` · `GameServer.API/Extensions/DungeonRoomExtensions.cs`(`BuildRoomInfo` — 준비/호스트 매핑 + **입장순 정렬**) · `Services/DungeonLobbyGrpcService.SetReady`
+- 계약: `Shared.Contracts/Protos/lobby.proto`(`rpc SetReady`, `RoomInfo` 8·9)
+- 클라: `System/DungeonLobby/{IDungeonLobbyService,DungeonLobbyService,DungeonLobbyResult}` · `Presentation/DungeonLobby/{RoomPlayerInfo,DungeonRoomModel,LobbyState,LobbyIntent,LobbyResult,LobbyReducer,LobbyRepository,LobbyModel}` · `GUI/DungeonLobby/DungeonRoomDetail/{DungeonRoomDetailView,DungeonRoomPlayerCharacterSlot}`
+
+**곁다리로 고친 결함 2건**
+- `DungeonRoomDetailView` 의 시작 버튼 활성 조건에서 `room.Status == Waiting` 이 **주석 처리돼 있었다** → Starting/Playing 중에도 눌렸다. 되살렸다.
+- `ToRoomInfo` 가 `GetByIdsAsync` 반환 순서를 그대로 써서 **슬롯 순서가 호출마다 흔들릴 수 있었다** → `JoinedAt` 입장순으로 고정. 준비 뱃지가 붙으면 눈에 띄는 자리다.
+
+**UI 배선 메모**: 대기실 버튼 하나가 방장/비방장에서 뜻이 달라진다("시작" ↔ "준비/준비 해제"). 프리팹 추가 저작 없이 동작하도록 라벨은 자식 `TextMeshProUGUI` 자동 탐색으로 폴백하고, 슬롯의 준비/방장 표시도 뱃지 오브젝트가 배선돼 있으면 그쪽을, 없으면 이름 뒤 접미사를 쓴다.
+
+**경합 재현 테스트**: `GameServer.Tests/Infrastructure/Integrations/DungeonRoomJoinConcurrencyTests`(Testcontainers 실 Redis+PG) 5건. 요청마다 **DbContext 를 새로 만든다** — 공유하면 경합이 아니라 그냥 깨진다. 고장 주입 실측 2회로 실효성을 확인했다: ① 락 제거 → 정원 4인 방에 8명 전원 입장(Expected 3, Actual 8) ② `.IsUnique()` 제거 → **동시성 테스트는 통과해 버렸다**(두 요청이 충분히 겹치지 않아 서비스 사전 검사가 먼저 이김) → 저장소 계층 직접 테스트를 추가해 결정적으로 고정. **동시성 테스트로 DB 제약을 검증하려 들지 말 것** — 타이밍이 사전 검사를 이겨 주기를 기대하는 셈이라 커버리지 착시가 된다.
+
+**첫 Render 함정 (2026-08-23 실플레이에서 드러남)**: `LobbyModel.State` 는 ReactiveProperty 라 `Subscribe` 하는 **그 자리에서 현재 값이 동기로 흘러 Render 가 즉시 1회 실행**된다. `DungeonRoomDetailView.Start()` 가 구독을 먼저 하고 `m_playButtonLabel` 을 그 뒤에 찾고 있어서, **첫 Render 가 라벨을 못 써 프리팹 기본 텍스트가 남고 다음 State 변경(= 버튼 누름)에서야 바뀌었다.** → 구독 전에 배선을 끝내고, `SetPlayButtonLabel` 도 순서에 기대지 않도록 지연 해석을 넣었다. **교훈: ReactiveProperty 구독은 "앞으로의 변화"가 아니라 "지금 값 + 변화"다. 구독보다 뒤에 오는 배선은 첫 렌더에서 없는 셈이 된다.** 회귀 = EditMode `늦게_구독해도_현재_State를_즉시_받는다`.
+
+**목록에도 준비를 싣는다**: 처음엔 배치 오버로드 `ToRoomInfo(playersInRoom)` 에 `readyUserIds: null` 을 넘겨 GetRooms 응답의 준비 정보를 비웠다("목록엔 필요 없다"는 판단). 그러나 목록에서 고른 방이 그대로 대기실 State(`SelectedRoom`)로 들어가므로, 비우면 대기실이 열린 직후 전원 미준비로 잘못 그려진다. → `IRoomReadyStore.GetReadyUserIdsAsync(roomIds)` 배치 조회를 추가해 목록도 채운다(방마다 왕복하지 않도록 멀티플렉서 파이프라인). 회귀 = E2E `GetRooms_목록에도_준비_상태와_방장이_실려온다`, `JoinRoom_이미_준비한_사람이_있으면_입장_응답에_그_준비가_실려온다`.
+
+**검증**: 서버 **691/691**(Shared 50 · SocketServer 224 · GameServer 417) · 클라 컴파일 **0오류** · **EditMode 231/231** · **PlayMode 222건 중 221 통과**(Docker E2E 포함). 남은 1건 `InventoryModelTests.UseItem_차감실패…` 은 **격리 실행 8/8 통과** — 다른 테스트가 흘린 `PlayerInputActions` 파이널라이저 로그가 이 테스트의 로그 단언 창에 걸리는 교차 오염(로비·준비와 무관). ⚠️ **미실측** = 대기실 화면에서 사람이 직접 눌러 본 조작 감각(버튼 라벨 위치·뱃지 표시)은 확인하지 않았다.
+
 ### 2.104 플레이어 애니 ARPGWarrior 전환 P1·P2 — Generic↔Humanoid 불일치 해소 (2026-08-20)
 
 **문제(실측)**: 플레이어 메시가 `SK_Protof-Actor` → `SK_HornedKnight_M_02`(Humanoid 아바타)로 교체되며 애니가 **구조적으로** 죽어 있었다. ① `PlayerCharacter.prefab` 의 Animator 는 커밋 `7f5d9754` 에서 `m_Controller` 참조를 잃었고(플레이 로그 `Animator is not playing an AnimatorController` 반복), ② 참조를 되살려도 구 `PlayerController.controller` 의 클립 **22개가 전부 Generic**(`isHumanMotion=False`)이라 Humanoid 아바타에 하나도 안 붙는다(클립 샘플링 실측: 뼈 회전 **0.0도**). ③ 더 나쁘게, 빈 휴머노이드 포즈가 `root` 본을 **-1.06m** 로 밀어 캐릭터가 지면에 파묻혔다(프리팹에 `m_WarningMessage` 로 박제돼 있던 Unity 바인딩 경고가 같은 말). **원격 프리팹도 같은 상태였다.**

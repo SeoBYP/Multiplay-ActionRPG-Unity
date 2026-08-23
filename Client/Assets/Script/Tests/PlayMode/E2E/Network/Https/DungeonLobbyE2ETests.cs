@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
@@ -329,6 +330,14 @@ namespace Game.Tests.PlayMode.E2E
             }, Timeout());
             Assert.IsTrue(joined.Result.Success);
 
+            // 호스트를 뺀 전원이 준비해야 StartRoom 이 통과한다(준비 게이트, 서버 권위).
+            var guestReady = await LobbyService.SetReadyAsync(new SetReadyRequest
+            {
+                RoomId  = roomId,
+                IsReady = true
+            }, Timeout());
+            Assert.IsTrue(guestReady.Result.Success, guestReady.Result.Message);
+
             await LoginAsync(hostEmail, "Test1234!");
             var started = await LobbyService.StartRoomAsync(new StartRoomRequest
             {
@@ -336,6 +345,173 @@ namespace Game.Tests.PlayMode.E2E
             }, Timeout());
 
             Assert.IsTrue(started.Result.Success, started.Result.Message);
+        });
+
+        /// <summary>
+        /// 준비 게이트(서버 권위): 비호스트가 준비하지 않으면 호스트가 시작을 눌러도 거부된다.
+        /// 클라 버튼 비활성화는 UX 일 뿐이라 RPC 를 직접 쏴도 막혀야 한다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator StartRoom_비호스트_미준비면_거부된다() => UniTask.ToCoroutine(async () =>
+        {
+            var hostEmail = UniqueEmail();
+
+            await RegisterAndLoginAsync(hostEmail, "Test1234!");
+            var created = await LobbyService.CreateRoomAsync(new CreateRoomRequest
+            {
+                RoomName   = "E2E Ready Gate",
+                MaxPlayers = 2
+            }, Timeout());
+            Assert.IsTrue(created.Result.Success, created.Result.Message);
+            var roomId = created.RoomInfo.RoomId;
+
+            await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
+            var joined = await LobbyService.JoinRoomAsync(new JoinRoomRequest { RoomId = roomId }, Timeout());
+            Assert.IsTrue(joined.Result.Success, joined.Result.Message);
+
+            // 준비하지 않은 채로 호스트가 시작 시도
+            await LoginAsync(hostEmail, "Test1234!");
+            var started = await LobbyService.StartRoomAsync(new StartRoomRequest { RoomId = roomId }, Timeout());
+
+            Assert.IsFalse(started.Result.Success, "미준비 인원이 있으면 시작이 거부돼야 한다");
+
+            // 준비 후에는 통과해야 한다 — 게이트가 영구 차단이 아님을 함께 확인한다.
+            var room = await LobbyService.GetRoomAsync(new GetRoomRequest { RoomId = roomId }, Timeout());
+            Assert.AreEqual(RoomStatusType.Waiting, room.RoomInfo.Status, "거부된 시작은 방 상태를 바꾸지 않아야 한다");
+        });
+
+        /// <summary>
+        /// SetReady 결과가 RoomInfo.ready_public_ids 로 노출되고, 호스트는 그 목록에 담기지 않는다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator SetReady_준비하면_RoomInfo에_반영되고_호스트는_제외된다() => UniTask.ToCoroutine(async () =>
+        {
+            var hostEmail = UniqueEmail();
+
+            await RegisterAndLoginAsync(hostEmail, "Test1234!");
+            var created = await LobbyService.CreateRoomAsync(new CreateRoomRequest
+            {
+                RoomName   = "E2E Ready Flag",
+                MaxPlayers = 2
+            }, Timeout());
+            var roomId       = created.RoomInfo.RoomId;
+            var hostPublicId = created.RoomInfo.HostPublicId;
+            Assert.IsFalse(string.IsNullOrEmpty(hostPublicId), "RoomInfo 는 방장의 public_id 를 실어야 한다");
+
+            await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
+            await LobbyService.JoinRoomAsync(new JoinRoomRequest { RoomId = roomId }, Timeout());
+
+            var ready = await LobbyService.SetReadyAsync(new SetReadyRequest
+            {
+                RoomId  = roomId,
+                IsReady = true
+            }, Timeout());
+            Assert.IsTrue(ready.Result.Success, ready.Result.Message);
+            Assert.AreEqual(1, ready.RoomInfo.ReadyPublicIds.Count);
+            Assert.IsFalse(ready.RoomInfo.ReadyPublicIds.Contains(hostPublicId), "호스트는 준비 목록에 담기지 않는다");
+
+            // 해제하면 목록에서 빠진다
+            var unready = await LobbyService.SetReadyAsync(new SetReadyRequest
+            {
+                RoomId  = roomId,
+                IsReady = false
+            }, Timeout());
+            Assert.IsTrue(unready.Result.Success, unready.Result.Message);
+            Assert.AreEqual(0, unready.RoomInfo.ReadyPublicIds.Count);
+        });
+
+        /// <summary>
+        /// 늦게 들어온 사람이 <b>입장 응답에서 바로</b> 기존 인원의 준비 상태를 볼 수 있어야 한다.
+        /// 여기가 비면 대기실을 열자마자는 전원 미준비로 보이고, 누군가 버튼을 눌러
+        /// UpdateEvent 가 올 때까지 화면이 틀린 상태로 남는다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator JoinRoom_이미_준비한_사람이_있으면_입장_응답에_그_준비가_실려온다() => UniTask.ToCoroutine(async () =>
+        {
+            var hostEmail = UniqueEmail();
+            await RegisterAndLoginAsync(hostEmail, "Test1234!");
+            var created = await LobbyService.CreateRoomAsync(new CreateRoomRequest
+            {
+                RoomName   = "E2E Late Joiner",
+                MaxPlayers = 4
+            }, Timeout());
+            var roomId = created.RoomInfo.RoomId;
+
+            // 먼저 들어온 게스트가 준비를 누른다.
+            await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
+            await LobbyService.JoinRoomAsync(new JoinRoomRequest { RoomId = roomId }, Timeout());
+            var ready = await LobbyService.SetReadyAsync(new SetReadyRequest
+            {
+                RoomId  = roomId,
+                IsReady = true
+            }, Timeout());
+            Assert.IsTrue(ready.Result.Success, ready.Result.Message);
+            Assert.AreEqual(1, ready.RoomInfo.ReadyPublicIds.Count);
+            var readyPublicId = ready.RoomInfo.ReadyPublicIds[0];
+
+            // 늦게 들어온 사람의 입장 응답
+            await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
+            var joined = await LobbyService.JoinRoomAsync(new JoinRoomRequest { RoomId = roomId }, Timeout());
+
+            Assert.IsTrue(joined.Result.Success, joined.Result.Message);
+            Assert.IsFalse(string.IsNullOrEmpty(joined.RoomInfo.HostPublicId), "입장 응답에 방장 식별자가 있어야 한다");
+            Assert.Contains(readyPublicId, joined.RoomInfo.ReadyPublicIds,
+                "입장 응답이 기존 인원의 준비 상태를 실어야 대기실이 열리자마자 올바르게 그려진다");
+        });
+
+        /// <summary>
+        /// 방 <b>목록</b>(GetRooms)도 준비 상태를 실어야 한다.
+        /// 목록에서 방을 고르면 그 스냅샷이 그대로 대기실 State(SelectedRoom)로 들어가기 때문이다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator GetRooms_목록에도_준비_상태와_방장이_실려온다() => UniTask.ToCoroutine(async () =>
+        {
+            await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
+            var created = await LobbyService.CreateRoomAsync(new CreateRoomRequest
+            {
+                RoomName   = "E2E List Ready",
+                MaxPlayers = 4
+            }, Timeout());
+            var roomId = created.RoomInfo.RoomId;
+
+            await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
+            await LobbyService.JoinRoomAsync(new JoinRoomRequest { RoomId = roomId }, Timeout());
+            var ready = await LobbyService.SetReadyAsync(new SetReadyRequest
+            {
+                RoomId  = roomId,
+                IsReady = true
+            }, Timeout());
+            var readyPublicId = ready.RoomInfo.ReadyPublicIds[0];
+
+            var rooms = await LobbyService.GetRoomsAsync(new GetRoomsRequest { RoomCount = 50, Offset = 0 }, Timeout());
+            var mine = rooms.RoomInfos.FirstOrDefault(r => r.RoomId == roomId);
+
+            Assert.IsNotNull(mine, "방금 만든 방이 목록에 있어야 한다");
+            Assert.IsFalse(string.IsNullOrEmpty(mine.HostPublicId), "목록에도 방장 식별자가 있어야 한다");
+            Assert.Contains(readyPublicId, mine.ReadyPublicIds,
+                "목록에도 준비 상태가 실려야 목록→대기실 전환 시 화면이 틀리지 않는다");
+        });
+
+        /// <summary>
+        /// 호스트는 준비 개념이 없어 SetReady 가 거부된다.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator SetReady_호스트는_거부된다() => UniTask.ToCoroutine(async () =>
+        {
+            await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
+            var created = await LobbyService.CreateRoomAsync(new CreateRoomRequest
+            {
+                RoomName   = "E2E Host Ready",
+                MaxPlayers = 2
+            }, Timeout());
+
+            var result = await LobbyService.SetReadyAsync(new SetReadyRequest
+            {
+                RoomId  = created.RoomInfo.RoomId,
+                IsReady = true
+            }, Timeout());
+
+            Assert.IsFalse(result.Result.Success, "호스트의 준비 토글은 거부돼야 한다");
         });
 
         /// <summary>

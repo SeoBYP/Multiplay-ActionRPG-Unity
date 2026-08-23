@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -130,6 +130,8 @@ namespace Game.Tests.PlayMode.E2E
                 await user.SetNickNameAsync(new SetNicknameRequest { Nickname = E2ETestBase.UniqueNickname("GCGuest") }, Timeout());
                 var guestUserId = ExtractUserId(guestLogin.AccessToken);
                 await lobby.JoinRoomAsync(new JoinRoomRequest { RoomId = created.RoomInfo.RoomId }, Timeout());
+                // 호스트를 뺀 전원이 준비해야 StartRoom 이 통과한다(준비 게이트, 서버 권위).
+                await lobby.SetReadyAsync(new SetReadyRequest { RoomId = created.RoomInfo.RoomId, IsReady = true }, Timeout());
 
                 // 게임 시작 (호스트)
                 provider.AccessTokenProvider = () => hostLogin.AccessToken;
@@ -213,6 +215,8 @@ namespace Game.Tests.PlayMode.E2E
                 await user.SetNickNameAsync(new SetNicknameRequest { Nickname = E2ETestBase.UniqueNickname("CrashGuest") }, Timeout());
                 var guestUserId = ExtractUserId(guestLogin.AccessToken);
                 await lobby.JoinRoomAsync(new JoinRoomRequest { RoomId = created.RoomInfo.RoomId }, Timeout());
+                // 호스트를 뺀 전원이 준비해야 StartRoom 이 통과한다(준비 게이트, 서버 권위).
+                await lobby.SetReadyAsync(new SetReadyRequest { RoomId = created.RoomInfo.RoomId, IsReady = true }, Timeout());
 
                 provider.AccessTokenProvider = () => hostLogin.AccessToken;
                 await lobby.StartRoomAsync(new StartRoomRequest { RoomId = created.RoomInfo.RoomId }, Timeout());

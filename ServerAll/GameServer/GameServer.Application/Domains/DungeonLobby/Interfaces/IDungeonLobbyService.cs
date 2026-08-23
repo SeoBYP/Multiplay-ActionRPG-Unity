@@ -58,6 +58,12 @@ public interface IDungeonLobbyService
     /// <returns>퇴장 결과</returns>
     Task<Result<DungeonRoom>> LeaveRoomAsync(string sessionId, long roomId, CancellationToken ct = default);
 
+    /// <summary>
+    /// 대기실에서 자신의 준비 상태를 켜고 끕니다 (호스트 제외 — 호스트는 준비 개념이 없다).
+    /// </summary>
+    /// <remarks>준비 상태는 Redis 전용 휘발성 로비 상태다(<see cref="IRoomReadyStore"/>).</remarks>
+    Task<Result<DungeonRoom>> SetReadyAsync(string sessionId, long roomId, bool isReady, CancellationToken ct = default);
+
     // ========== 게임 시작 ==========
 
     /// <summary>

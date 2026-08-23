@@ -47,48 +47,55 @@ namespace GameServer.Grpc.DungeonLobby {
             "bV9pZBgBIAEoAxIOCgZtYXBfaWQYAiABKAkicAoRU3RhcnRSb29tUmVzcG9u",
             "c2USKQoGcmVzdWx0GAEgASgLMhkuZ2FtZXNlcnZlci5jb21tb24uUmVzdWx0",
             "EjAKCXJvb21faW5mbxgCIAEoCzIdLmdhbWVzZXJ2ZXIubG9iYnkudjEuUm9v",
-            "bUluZm8iTAoRVXBkYXRlUm9vbVJlcXVlc3QSDwoHcm9vbV9pZBgBIAEoAxIR",
-            "Cglyb29tX25hbWUYAiABKAkSEwoLbWF4X3BsYXllcnMYAyABKAUicQoSVXBk",
-            "YXRlUm9vbVJlc3BvbnNlEikKBnJlc3VsdBgBIAEoCzIZLmdhbWVzZXJ2ZXIu",
-            "Y29tbW9uLlJlc3VsdBIwCglyb29tX2luZm8YAiABKAsyHS5nYW1lc2VydmVy",
-            "LmxvYmJ5LnYxLlJvb21JbmZvIicKFFN1YnNjcmliZVJvb21SZXF1ZXN0Eg8K",
-            "B3Jvb21faWQYASABKAMi6QEKFVN1YnNjcmliZVJvb21SZXNwb25zZRI9Cgx1",
-            "cGRhdGVfZXZlbnQYASABKAsyJS5nYW1lc2VydmVyLmxvYmJ5LnYxLlJvb21V",
-            "cGRhdGVkRXZlbnRIABI8CgtzdGFydF9ldmVudBgCIAEoCzIlLmdhbWVzZXJ2",
-            "ZXIubG9iYnkudjEuR2FtZVN0YXJ0ZWRFdmVudEgAEkgKEmdhbWVfc2Vzc2lv",
-            "bl9ldmVudBgDIAEoCzIqLmdhbWVzZXJ2ZXIubG9iYnkudjEuR2FtZVNlc3Np",
-            "b25SZWFkeUV2ZW50SABCCQoHcGF5bG9hZCJEChBSb29tVXBkYXRlZEV2ZW50",
-            "EjAKCXJvb21faW5mbxgBIAEoCzIdLmdhbWVzZXJ2ZXIubG9iYnkudjEuUm9v",
-            "bUluZm8iRAoQR2FtZVN0YXJ0ZWRFdmVudBIwCglyb29tX2luZm8YASABKAsy",
-            "HS5nYW1lc2VydmVyLmxvYmJ5LnYxLlJvb21JbmZvIjEKFUdhbWVTZXNzaW9u",
-            "UmVhZHlFdmVudBIKCgJpcBgBIAEoCRIMCgRwb3J0GAIgASgFItUBCghSb29t",
-            "SW5mbxIPCgdyb29tX2lkGAEgASgDEhEKCXJvb21fbmFtZRgCIAEoCRIUCgxo",
-            "b3N0X3VzZXJfaWQYAyABKAMSNQoPY3VycmVudF9wbGF5ZXJzGAQgAygLMhwu",
-            "Z2FtZXNlcnZlci51c2VyLnYxLlVzZXJJbmZvEhMKC21heF9wbGF5ZXJzGAUg",
-            "ASgFEjMKBnN0YXR1cxgGIAEoDjIjLmdhbWVzZXJ2ZXIubG9iYnkudjEuUm9v",
-            "bVN0YXR1c1R5cGUSDgoGbWFwX2lkGAcgASgJKqoBCg5Sb29tU3RhdHVzVHlw",
-            "ZRIgChxST09NX1NUQVRVU19UWVBFX1VOU1BFQ0lGSUVEEAASHAoYUk9PTV9T",
-            "VEFUVVNfVFlQRV9XQUlUSU5HEAESHQoZUk9PTV9TVEFUVVNfVFlQRV9TVEFS",
-            "VElORxACEhwKGFJPT01fU1RBVFVTX1RZUEVfUExBWUlORxADEhsKF1JPT01f",
-            "U1RBVFVTX1RZUEVfQ0xPU0VEEAQy/QUKE0R1bmdlb25Mb2JieVNlcnZpY2US",
-            "XQoKQ3JlYXRlUm9vbRImLmdhbWVzZXJ2ZXIubG9iYnkudjEuQ3JlYXRlUm9v",
-            "bVJlcXVlc3QaJy5nYW1lc2VydmVyLmxvYmJ5LnYxLkNyZWF0ZVJvb21SZXNw",
-            "b25zZRJUCgdHZXRSb29tEiMuZ2FtZXNlcnZlci5sb2JieS52MS5HZXRSb29t",
-            "UmVxdWVzdBokLmdhbWVzZXJ2ZXIubG9iYnkudjEuR2V0Um9vbVJlc3BvbnNl",
-            "ElcKCEdldFJvb21zEiQuZ2FtZXNlcnZlci5sb2JieS52MS5HZXRSb29tc1Jl",
-            "cXVlc3QaJS5nYW1lc2VydmVyLmxvYmJ5LnYxLkdldFJvb21zUmVzcG9uc2US",
-            "XQoKVXBkYXRlUm9vbRImLmdhbWVzZXJ2ZXIubG9iYnkudjEuVXBkYXRlUm9v",
-            "bVJlcXVlc3QaJy5nYW1lc2VydmVyLmxvYmJ5LnYxLlVwZGF0ZVJvb21SZXNw",
-            "b25zZRJXCghKb2luUm9vbRIkLmdhbWVzZXJ2ZXIubG9iYnkudjEuSm9pblJv",
-            "b21SZXF1ZXN0GiUuZ2FtZXNlcnZlci5sb2JieS52MS5Kb2luUm9vbVJlc3Bv",
-            "bnNlEloKCUxlYXZlUm9vbRIlLmdhbWVzZXJ2ZXIubG9iYnkudjEuTGVhdmVS",
-            "b29tUmVxdWVzdBomLmdhbWVzZXJ2ZXIubG9iYnkudjEuTGVhdmVSb29tUmVz",
-            "cG9uc2USWgoJU3RhcnRSb29tEiUuZ2FtZXNlcnZlci5sb2JieS52MS5TdGFy",
-            "dFJvb21SZXF1ZXN0GiYuZ2FtZXNlcnZlci5sb2JieS52MS5TdGFydFJvb21S",
-            "ZXNwb25zZRJoCg1TdWJzY3JpYmVSb29tEikuZ2FtZXNlcnZlci5sb2JieS52",
-            "MS5TdWJzY3JpYmVSb29tUmVxdWVzdBoqLmdhbWVzZXJ2ZXIubG9iYnkudjEu",
-            "U3Vic2NyaWJlUm9vbVJlc3BvbnNlMAFCH6oCHEdhbWVTZXJ2ZXIuR3JwYy5E",
-            "dW5nZW9uTG9iYnliBnByb3RvMw=="));
+            "bUluZm8iNAoPU2V0UmVhZHlSZXF1ZXN0Eg8KB3Jvb21faWQYASABKAMSEAoI",
+            "aXNfcmVhZHkYAiABKAgibwoQU2V0UmVhZHlSZXNwb25zZRIpCgZyZXN1bHQY",
+            "ASABKAsyGS5nYW1lc2VydmVyLmNvbW1vbi5SZXN1bHQSMAoJcm9vbV9pbmZv",
+            "GAIgASgLMh0uZ2FtZXNlcnZlci5sb2JieS52MS5Sb29tSW5mbyJMChFVcGRh",
+            "dGVSb29tUmVxdWVzdBIPCgdyb29tX2lkGAEgASgDEhEKCXJvb21fbmFtZRgC",
+            "IAEoCRITCgttYXhfcGxheWVycxgDIAEoBSJxChJVcGRhdGVSb29tUmVzcG9u",
+            "c2USKQoGcmVzdWx0GAEgASgLMhkuZ2FtZXNlcnZlci5jb21tb24uUmVzdWx0",
+            "EjAKCXJvb21faW5mbxgCIAEoCzIdLmdhbWVzZXJ2ZXIubG9iYnkudjEuUm9v",
+            "bUluZm8iJwoUU3Vic2NyaWJlUm9vbVJlcXVlc3QSDwoHcm9vbV9pZBgBIAEo",
+            "AyLpAQoVU3Vic2NyaWJlUm9vbVJlc3BvbnNlEj0KDHVwZGF0ZV9ldmVudBgB",
+            "IAEoCzIlLmdhbWVzZXJ2ZXIubG9iYnkudjEuUm9vbVVwZGF0ZWRFdmVudEgA",
+            "EjwKC3N0YXJ0X2V2ZW50GAIgASgLMiUuZ2FtZXNlcnZlci5sb2JieS52MS5H",
+            "YW1lU3RhcnRlZEV2ZW50SAASSAoSZ2FtZV9zZXNzaW9uX2V2ZW50GAMgASgL",
+            "MiouZ2FtZXNlcnZlci5sb2JieS52MS5HYW1lU2Vzc2lvblJlYWR5RXZlbnRI",
+            "AEIJCgdwYXlsb2FkIkQKEFJvb21VcGRhdGVkRXZlbnQSMAoJcm9vbV9pbmZv",
+            "GAEgASgLMh0uZ2FtZXNlcnZlci5sb2JieS52MS5Sb29tSW5mbyJEChBHYW1l",
+            "U3RhcnRlZEV2ZW50EjAKCXJvb21faW5mbxgBIAEoCzIdLmdhbWVzZXJ2ZXIu",
+            "bG9iYnkudjEuUm9vbUluZm8iMQoVR2FtZVNlc3Npb25SZWFkeUV2ZW50EgoK",
+            "AmlwGAEgASgJEgwKBHBvcnQYAiABKAUihwIKCFJvb21JbmZvEg8KB3Jvb21f",
+            "aWQYASABKAMSEQoJcm9vbV9uYW1lGAIgASgJEhQKDGhvc3RfdXNlcl9pZBgD",
+            "IAEoAxI1Cg9jdXJyZW50X3BsYXllcnMYBCADKAsyHC5nYW1lc2VydmVyLnVz",
+            "ZXIudjEuVXNlckluZm8SEwoLbWF4X3BsYXllcnMYBSABKAUSMwoGc3RhdHVz",
+            "GAYgASgOMiMuZ2FtZXNlcnZlci5sb2JieS52MS5Sb29tU3RhdHVzVHlwZRIO",
+            "CgZtYXBfaWQYByABKAkSGAoQcmVhZHlfcHVibGljX2lkcxgIIAMoCRIWCg5o",
+            "b3N0X3B1YmxpY19pZBgJIAEoCSqqAQoOUm9vbVN0YXR1c1R5cGUSIAocUk9P",
+            "TV9TVEFUVVNfVFlQRV9VTlNQRUNJRklFRBAAEhwKGFJPT01fU1RBVFVTX1RZ",
+            "UEVfV0FJVElORxABEh0KGVJPT01fU1RBVFVTX1RZUEVfU1RBUlRJTkcQAhIc",
+            "ChhST09NX1NUQVRVU19UWVBFX1BMQVlJTkcQAxIbChdST09NX1NUQVRVU19U",
+            "WVBFX0NMT1NFRBAEMtYGChNEdW5nZW9uTG9iYnlTZXJ2aWNlEl0KCkNyZWF0",
+            "ZVJvb20SJi5nYW1lc2VydmVyLmxvYmJ5LnYxLkNyZWF0ZVJvb21SZXF1ZXN0",
+            "GicuZ2FtZXNlcnZlci5sb2JieS52MS5DcmVhdGVSb29tUmVzcG9uc2USVAoH",
+            "R2V0Um9vbRIjLmdhbWVzZXJ2ZXIubG9iYnkudjEuR2V0Um9vbVJlcXVlc3Qa",
+            "JC5nYW1lc2VydmVyLmxvYmJ5LnYxLkdldFJvb21SZXNwb25zZRJXCghHZXRS",
+            "b29tcxIkLmdhbWVzZXJ2ZXIubG9iYnkudjEuR2V0Um9vbXNSZXF1ZXN0GiUu",
+            "Z2FtZXNlcnZlci5sb2JieS52MS5HZXRSb29tc1Jlc3BvbnNlEl0KClVwZGF0",
+            "ZVJvb20SJi5nYW1lc2VydmVyLmxvYmJ5LnYxLlVwZGF0ZVJvb21SZXF1ZXN0",
+            "GicuZ2FtZXNlcnZlci5sb2JieS52MS5VcGRhdGVSb29tUmVzcG9uc2USVwoI",
+            "Sm9pblJvb20SJC5nYW1lc2VydmVyLmxvYmJ5LnYxLkpvaW5Sb29tUmVxdWVz",
+            "dBolLmdhbWVzZXJ2ZXIubG9iYnkudjEuSm9pblJvb21SZXNwb25zZRJaCglM",
+            "ZWF2ZVJvb20SJS5nYW1lc2VydmVyLmxvYmJ5LnYxLkxlYXZlUm9vbVJlcXVl",
+            "c3QaJi5nYW1lc2VydmVyLmxvYmJ5LnYxLkxlYXZlUm9vbVJlc3BvbnNlEloK",
+            "CVN0YXJ0Um9vbRIlLmdhbWVzZXJ2ZXIubG9iYnkudjEuU3RhcnRSb29tUmVx",
+            "dWVzdBomLmdhbWVzZXJ2ZXIubG9iYnkudjEuU3RhcnRSb29tUmVzcG9uc2US",
+            "VwoIU2V0UmVhZHkSJC5nYW1lc2VydmVyLmxvYmJ5LnYxLlNldFJlYWR5UmVx",
+            "dWVzdBolLmdhbWVzZXJ2ZXIubG9iYnkudjEuU2V0UmVhZHlSZXNwb25zZRJo",
+            "Cg1TdWJzY3JpYmVSb29tEikuZ2FtZXNlcnZlci5sb2JieS52MS5TdWJzY3Jp",
+            "YmVSb29tUmVxdWVzdBoqLmdhbWVzZXJ2ZXIubG9iYnkudjEuU3Vic2NyaWJl",
+            "Um9vbVJlc3BvbnNlMAFCH6oCHEdhbWVTZXJ2ZXIuR3JwYy5EdW5nZW9uTG9i",
+            "YnliBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::GameServer.Grpc.Common.CommonReflection.Descriptor, global::GameServer.Grpc.Auth.AuthReflection.Descriptor, global::GameServer.Grpc.User.UserReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::GameServer.Grpc.DungeonLobby.RoomStatusType), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -104,6 +111,8 @@ namespace GameServer.Grpc.DungeonLobby {
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.GetRoomsResponse), global::GameServer.Grpc.DungeonLobby.GetRoomsResponse.Parser, new[]{ "Result", "RoomInfos", "TotalCount" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.StartRoomRequest), global::GameServer.Grpc.DungeonLobby.StartRoomRequest.Parser, new[]{ "RoomId", "MapId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.StartRoomResponse), global::GameServer.Grpc.DungeonLobby.StartRoomResponse.Parser, new[]{ "Result", "RoomInfo" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.SetReadyRequest), global::GameServer.Grpc.DungeonLobby.SetReadyRequest.Parser, new[]{ "RoomId", "IsReady" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.SetReadyResponse), global::GameServer.Grpc.DungeonLobby.SetReadyResponse.Parser, new[]{ "Result", "RoomInfo" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.UpdateRoomRequest), global::GameServer.Grpc.DungeonLobby.UpdateRoomRequest.Parser, new[]{ "RoomId", "RoomName", "MaxPlayers" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.UpdateRoomResponse), global::GameServer.Grpc.DungeonLobby.UpdateRoomResponse.Parser, new[]{ "Result", "RoomInfo" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.SubscribeRoomRequest), global::GameServer.Grpc.DungeonLobby.SubscribeRoomRequest.Parser, new[]{ "RoomId" }, null, null, null, null),
@@ -111,7 +120,7 @@ namespace GameServer.Grpc.DungeonLobby {
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.RoomUpdatedEvent), global::GameServer.Grpc.DungeonLobby.RoomUpdatedEvent.Parser, new[]{ "RoomInfo" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.GameStartedEvent), global::GameServer.Grpc.DungeonLobby.GameStartedEvent.Parser, new[]{ "RoomInfo" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.GameSessionReadyEvent), global::GameServer.Grpc.DungeonLobby.GameSessionReadyEvent.Parser, new[]{ "Ip", "Port" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.RoomInfo), global::GameServer.Grpc.DungeonLobby.RoomInfo.Parser, new[]{ "RoomId", "RoomName", "HostUserId", "CurrentPlayers", "MaxPlayers", "Status", "MapId" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::GameServer.Grpc.DungeonLobby.RoomInfo), global::GameServer.Grpc.DungeonLobby.RoomInfo.Parser, new[]{ "RoomId", "RoomName", "HostUserId", "CurrentPlayers", "MaxPlayers", "Status", "MapId", "ReadyPublicIds", "HostPublicId" }, null, null, null, null)
           }));
     }
     #endregion
@@ -3015,6 +3024,494 @@ namespace GameServer.Grpc.DungeonLobby {
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class SetReadyRequest : pb::IMessage<SetReadyRequest>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<SetReadyRequest> _parser = new pb::MessageParser<SetReadyRequest>(() => new SetReadyRequest());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<SetReadyRequest> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[12]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SetReadyRequest() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SetReadyRequest(SetReadyRequest other) : this() {
+      roomId_ = other.roomId_;
+      isReady_ = other.isReady_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SetReadyRequest Clone() {
+      return new SetReadyRequest(this);
+    }
+
+    /// <summary>Field number for the "room_id" field.</summary>
+    public const int RoomIdFieldNumber = 1;
+    private long roomId_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public long RoomId {
+      get { return roomId_; }
+      set {
+        roomId_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "is_ready" field.</summary>
+    public const int IsReadyFieldNumber = 2;
+    private bool isReady_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool IsReady {
+      get { return isReady_; }
+      set {
+        isReady_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as SetReadyRequest);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(SetReadyRequest other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (RoomId != other.RoomId) return false;
+      if (IsReady != other.IsReady) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (RoomId != 0L) hash ^= RoomId.GetHashCode();
+      if (IsReady != false) hash ^= IsReady.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (RoomId != 0L) {
+        output.WriteRawTag(8);
+        output.WriteInt64(RoomId);
+      }
+      if (IsReady != false) {
+        output.WriteRawTag(16);
+        output.WriteBool(IsReady);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (RoomId != 0L) {
+        output.WriteRawTag(8);
+        output.WriteInt64(RoomId);
+      }
+      if (IsReady != false) {
+        output.WriteRawTag(16);
+        output.WriteBool(IsReady);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (RoomId != 0L) {
+        size += 1 + pb::CodedOutputStream.ComputeInt64Size(RoomId);
+      }
+      if (IsReady != false) {
+        size += 1 + 1;
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(SetReadyRequest other) {
+      if (other == null) {
+        return;
+      }
+      if (other.RoomId != 0L) {
+        RoomId = other.RoomId;
+      }
+      if (other.IsReady != false) {
+        IsReady = other.IsReady;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            RoomId = input.ReadInt64();
+            break;
+          }
+          case 16: {
+            IsReady = input.ReadBool();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 8: {
+            RoomId = input.ReadInt64();
+            break;
+          }
+          case 16: {
+            IsReady = input.ReadBool();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class SetReadyResponse : pb::IMessage<SetReadyResponse>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<SetReadyResponse> _parser = new pb::MessageParser<SetReadyResponse>(() => new SetReadyResponse());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<SetReadyResponse> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[13]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SetReadyResponse() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SetReadyResponse(SetReadyResponse other) : this() {
+      result_ = other.result_ != null ? other.result_.Clone() : null;
+      roomInfo_ = other.roomInfo_ != null ? other.roomInfo_.Clone() : null;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SetReadyResponse Clone() {
+      return new SetReadyResponse(this);
+    }
+
+    /// <summary>Field number for the "result" field.</summary>
+    public const int ResultFieldNumber = 1;
+    private global::GameServer.Grpc.Common.Result result_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::GameServer.Grpc.Common.Result Result {
+      get { return result_; }
+      set {
+        result_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "room_info" field.</summary>
+    public const int RoomInfoFieldNumber = 2;
+    private global::GameServer.Grpc.DungeonLobby.RoomInfo roomInfo_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::GameServer.Grpc.DungeonLobby.RoomInfo RoomInfo {
+      get { return roomInfo_; }
+      set {
+        roomInfo_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as SetReadyResponse);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(SetReadyResponse other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (!object.Equals(Result, other.Result)) return false;
+      if (!object.Equals(RoomInfo, other.RoomInfo)) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (result_ != null) hash ^= Result.GetHashCode();
+      if (roomInfo_ != null) hash ^= RoomInfo.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (result_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Result);
+      }
+      if (roomInfo_ != null) {
+        output.WriteRawTag(18);
+        output.WriteMessage(RoomInfo);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (result_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Result);
+      }
+      if (roomInfo_ != null) {
+        output.WriteRawTag(18);
+        output.WriteMessage(RoomInfo);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (result_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Result);
+      }
+      if (roomInfo_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(RoomInfo);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(SetReadyResponse other) {
+      if (other == null) {
+        return;
+      }
+      if (other.result_ != null) {
+        if (result_ == null) {
+          Result = new global::GameServer.Grpc.Common.Result();
+        }
+        Result.MergeFrom(other.Result);
+      }
+      if (other.roomInfo_ != null) {
+        if (roomInfo_ == null) {
+          RoomInfo = new global::GameServer.Grpc.DungeonLobby.RoomInfo();
+        }
+        RoomInfo.MergeFrom(other.RoomInfo);
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            if (result_ == null) {
+              Result = new global::GameServer.Grpc.Common.Result();
+            }
+            input.ReadMessage(Result);
+            break;
+          }
+          case 18: {
+            if (roomInfo_ == null) {
+              RoomInfo = new global::GameServer.Grpc.DungeonLobby.RoomInfo();
+            }
+            input.ReadMessage(RoomInfo);
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            if (result_ == null) {
+              Result = new global::GameServer.Grpc.Common.Result();
+            }
+            input.ReadMessage(Result);
+            break;
+          }
+          case 18: {
+            if (roomInfo_ == null) {
+              RoomInfo = new global::GameServer.Grpc.DungeonLobby.RoomInfo();
+            }
+            input.ReadMessage(RoomInfo);
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class UpdateRoomRequest : pb::IMessage<UpdateRoomRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -3029,7 +3526,7 @@ namespace GameServer.Grpc.DungeonLobby {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[12]; }
+      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[14]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -3301,7 +3798,7 @@ namespace GameServer.Grpc.DungeonLobby {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[13]; }
+      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[15]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -3554,7 +4051,7 @@ namespace GameServer.Grpc.DungeonLobby {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[14]; }
+      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[16]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -3752,7 +4249,7 @@ namespace GameServer.Grpc.DungeonLobby {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[15]; }
+      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[17]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4099,7 +4596,7 @@ namespace GameServer.Grpc.DungeonLobby {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[16]; }
+      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[18]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4306,7 +4803,7 @@ namespace GameServer.Grpc.DungeonLobby {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[17]; }
+      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[19]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4513,7 +5010,7 @@ namespace GameServer.Grpc.DungeonLobby {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[18]; }
+      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[20]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4748,7 +5245,7 @@ namespace GameServer.Grpc.DungeonLobby {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[19]; }
+      get { return global::GameServer.Grpc.DungeonLobby.LobbyReflection.Descriptor.MessageTypes[21]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4775,6 +5272,8 @@ namespace GameServer.Grpc.DungeonLobby {
       maxPlayers_ = other.maxPlayers_;
       status_ = other.status_;
       mapId_ = other.mapId_;
+      readyPublicIds_ = other.readyPublicIds_.Clone();
+      hostPublicId_ = other.hostPublicId_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -4870,6 +5369,37 @@ namespace GameServer.Grpc.DungeonLobby {
       }
     }
 
+    /// <summary>Field number for the "ready_public_ids" field.</summary>
+    public const int ReadyPublicIdsFieldNumber = 8;
+    private static readonly pb::FieldCodec<string> _repeated_readyPublicIds_codec
+        = pb::FieldCodec.ForString(66);
+    private readonly pbc::RepeatedField<string> readyPublicIds_ = new pbc::RepeatedField<string>();
+    /// <summary>
+    /// 준비 완료한 플레이어의 public_id 집합. 호스트는 포함되지 않는다(준비 개념 없음 = 항상 준비).
+    /// 서버 Redis 전용 휘발성 상태라 방이 사라지면 함께 사라진다.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::RepeatedField<string> ReadyPublicIds {
+      get { return readyPublicIds_; }
+    }
+
+    /// <summary>Field number for the "host_public_id" field.</summary>
+    public const int HostPublicIdFieldNumber = 9;
+    private string hostPublicId_ = "";
+    /// <summary>
+    /// host_user_id 의 공개 식별자. current_players 가 public_id 로만 식별되므로,
+    /// 클라가 "이 슬롯이 방장인가 / 내가 방장인가"를 한 키로 판정할 수 있게 함께 싣는다.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string HostPublicId {
+      get { return hostPublicId_; }
+      set {
+        hostPublicId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -4892,6 +5422,8 @@ namespace GameServer.Grpc.DungeonLobby {
       if (MaxPlayers != other.MaxPlayers) return false;
       if (Status != other.Status) return false;
       if (MapId != other.MapId) return false;
+      if(!readyPublicIds_.Equals(other.readyPublicIds_)) return false;
+      if (HostPublicId != other.HostPublicId) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -4906,6 +5438,8 @@ namespace GameServer.Grpc.DungeonLobby {
       if (MaxPlayers != 0) hash ^= MaxPlayers.GetHashCode();
       if (Status != global::GameServer.Grpc.DungeonLobby.RoomStatusType.Unspecified) hash ^= Status.GetHashCode();
       if (MapId.Length != 0) hash ^= MapId.GetHashCode();
+      hash ^= readyPublicIds_.GetHashCode();
+      if (HostPublicId.Length != 0) hash ^= HostPublicId.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -4949,6 +5483,11 @@ namespace GameServer.Grpc.DungeonLobby {
         output.WriteRawTag(58);
         output.WriteString(MapId);
       }
+      readyPublicIds_.WriteTo(output, _repeated_readyPublicIds_codec);
+      if (HostPublicId.Length != 0) {
+        output.WriteRawTag(74);
+        output.WriteString(HostPublicId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -4984,6 +5523,11 @@ namespace GameServer.Grpc.DungeonLobby {
         output.WriteRawTag(58);
         output.WriteString(MapId);
       }
+      readyPublicIds_.WriteTo(ref output, _repeated_readyPublicIds_codec);
+      if (HostPublicId.Length != 0) {
+        output.WriteRawTag(74);
+        output.WriteString(HostPublicId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -5012,6 +5556,10 @@ namespace GameServer.Grpc.DungeonLobby {
       }
       if (MapId.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(MapId);
+      }
+      size += readyPublicIds_.CalculateSize(_repeated_readyPublicIds_codec);
+      if (HostPublicId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(HostPublicId);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -5043,6 +5591,10 @@ namespace GameServer.Grpc.DungeonLobby {
       }
       if (other.MapId.Length != 0) {
         MapId = other.MapId;
+      }
+      readyPublicIds_.Add(other.readyPublicIds_);
+      if (other.HostPublicId.Length != 0) {
+        HostPublicId = other.HostPublicId;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -5091,6 +5643,14 @@ namespace GameServer.Grpc.DungeonLobby {
             MapId = input.ReadString();
             break;
           }
+          case 66: {
+            readyPublicIds_.AddEntriesFrom(input, _repeated_readyPublicIds_codec);
+            break;
+          }
+          case 74: {
+            HostPublicId = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -5136,6 +5696,14 @@ namespace GameServer.Grpc.DungeonLobby {
           }
           case 58: {
             MapId = input.ReadString();
+            break;
+          }
+          case 66: {
+            readyPublicIds_.AddEntriesFrom(ref input, _repeated_readyPublicIds_codec);
+            break;
+          }
+          case 74: {
+            HostPublicId = input.ReadString();
             break;
           }
         }
