@@ -128,6 +128,8 @@ public class InventoryGrpcService(
         {
             await playerConsumedQueue.EnqueueAsync(new Shared.Infrastructure.Messages.PlayerConsumedMessage
             {
+                // 소비 1건 = 고유 id. SocketServer 가 재배달 시 이중 회복을 막는 데 쓴다(at-least-once).
+                ConsumeId = Guid.NewGuid().ToString("N"),
                 UserId = userId.Value,
                 // effectId == itemId 규칙(ItemCatalogData). 소비 통지는 문자열 effectId 계약이라
                 // numericId 를 문자열로 싣는다 — GAS 효과 id 체계는 별도(전환 대상 아님).

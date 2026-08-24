@@ -36,6 +36,14 @@ public class PlayerConsumedConsumer(
             if (room is null)
                 return Task.CompletedTask; // 던전 밖 — 회복은 클라 로컬(Main). no-op.
 
+            // at-least-once 라 같은 통지가 다시 올 수 있다. 회복(+heal)은 비멱등이므로 방 단위로 1회만 적용한다.
+            if (!room.TryMarkConsumeHandled(msg.ConsumeId))
+            {
+                logger.LogInformation("[PlayerConsumed] 중복 통지 ConsumeId={ConsumeId} (User {UserId}) — 스킵",
+                    msg.ConsumeId, msg.UserId);
+                return Task.CompletedTask;
+            }
+
             var mods = CombatEffectCatalog.Resolve(msg.EffectId);
             if (mods.Count == 0)
             {

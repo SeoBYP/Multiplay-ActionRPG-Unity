@@ -54,6 +54,9 @@ room:{roomId}                    → Hash
 room:active                      → Set
 room:ready:{roomId}              → Set (대기실 준비 완료 userId — DB 아닌 Redis 전용 휘발성)
 
+dungeon:result:done:{roomId}     → String (보상 지급 멱등 claim, SET NX EX 24h)
+loot:pickup:done:{pickupId}      → String (아이템 지급 멱등 claim, SET NX EX 24h)
+
 stream:room:{roomId}             → Stream (던전 로비 이벤트)
 stream:game:start                → Stream (GameServer → SocketServer)
 stream:chat:global               → Stream
@@ -62,6 +65,25 @@ stream:chat:user:{nickname}      → Stream
 ```
 
 `stream:` 접두사 필수. 데이터 키와 스트림 키에 같은 이름 사용 시 `WRONGTYPE` 에러 발생.
+
+## 멱등 처리 기록은 항목별 키로 (F3 재발 방지)
+
+비멱등 지급(AddExp·AddQuantity·지갑 적립)을 스트림에서 소비할 때 "처리했음" 기록을
+**집합 1키 + 컬렉션 EXPIRE** 로 두지 않는다. 추가마다 TTL 이 통째로 갱신되고, 무이벤트 구간이
+TTL 을 넘기면 **모든 기록이 동시에 소멸**해 늦은 재배달이 이중 지급이 된다.
+
+```csharp
+// ❌ 집합 1키 — 만료되면 기록 전멸
+await redis.SetAddAsync(Key(), id);
+await redis.KeyExpireAsync(Key(), ttl);
+
+// ✅ 항목별 키 — 각 기록이 자기 처리 시각 기준 수명. claim 도 1왕복 원자.
+bool claimed = await redis.StringSetAsync(Key(id), "1", ttl, When.NotExists);
+if (!claimed) return; // 이미 처리됨
+```
+
+SortedSet 인덱스처럼 항목별 TTL 이 불가능한 자료구조는, 대신 **캐시를 못 믿는 조건을 명시하고
+DB(진실원)로 폴백**한다. "1건이라도 나왔으니 캐시 히트" 는 부분 만료를 정상 응답으로 위장시킨다.
 
 ## Redis 캐시 패턴 (Repository 읽기/쓰기 규칙 — 필수)
 
@@ -119,6 +141,48 @@ await tx.ExecuteAsync();             // 여기서 한 번에 실행
 
 `StreamPosition.Beginning("0")` 사용 — 재시작 시 미처리 메시지 재처리 가능.  
 `StreamPosition.NewMessages("$")` 사용 금지 — 이미 발행된 메시지 누락.
+
+**소비 루프를 새로 쓰지 않는다.** `RedisMessageQueueBase<T>.ConsumeGroupAsync(group, consumer, logger, ct)` 를 쓴다 —
+EnsureGroup · 내 PEL 재읽기 · `XREADGROUP` · **`XAUTOCLAIM` 회수** · ACK 가 전부 그 안에 있다.
+파생 큐는 스트림 키 · 그룹 이름 · 발행 여부만 정한다.
+
+```csharp
+public override IAsyncEnumerable<T> DequeueAllAsync(CancellationToken ct = default)
+    => ConsumeGroupAsync(GroupName, ConsumerName, logger, ct);
+```
+
+- **컨슈머 이름은 안정적이어야 한다** — `StableConsumerName(prefix)` (= `{prefix}-{MachineName}`).
+  매 기동 `Guid.NewGuid()` 를 붙이면 재시작 때 **빈 새 PEL** 을 읽게 돼 이전 생의 미ACK 메시지를 영영 못 본다.
+- **역직렬화에 실패한 엔트리도 ACK 한다.** PEL 에 남기면 회수 로직이 매 스윕마다 같은 독을 다시 집는다.
+
+## 전달 의미는 at-least-once — 핸들러는 멱등해야 한다
+
+ACK 는 **핸들러가 성공한 뒤**에 한다(`StreamMessage<T>` 봉투). 던지면 ACK 하지 않아 재배달된다.
+
+```
+XREADGROUP → 봉투 → 핸들러 ─성공→ AcknowledgeAsync()
+                     └실패→ ACK 안 함 → PEL 잔류 → XAUTOCLAIM 재배달
+```
+
+**새 컨슈머를 만들면 핸들러 멱등성을 먼저 확인한다.** 재실행이 상태를 두 번 바꾸면 안 된다.
+- 상태 전이는 **가드로** 멱등화한다(`if (room.Status == Starting)`, `GetByRoomIdAsync` 재사용).
+- 비멱등 누적(`+=`, `+heal`)은 **멱등키**가 필요하다. 메시지에 고유 id 가 없으면 발행부에 추가한다.
+
+## 비멱등 지급은 DB 원장으로 (Redis 키로 잠그지 않는다)
+
+Exp 적립·인벤토리 증가·지갑 적립처럼 **되돌릴 수 없는 누적**은 `IRewardLedger.GrantOnceAsync` 를 쓴다.
+
+```csharp
+await ledger.GrantOnceAsync(
+    new RewardGrantRequest($"dungeon:{roomId}:{userId}", userId, "exp", "", amount),
+    token => progressionService.AddExpAsync(userId, amount, token),
+    ct);
+```
+
+- 원장 INSERT(`GrantKey` UNIQUE)와 지급이 **같은 트랜잭션**이라 exactly-once 가 성립한다.
+  Redis 키로 잠그면 키와 지급이 다른 저장소라 "지급됐는데 기록이 없다 / 그 반대" 창이 항상 남는다.
+- **멱등 단위를 최소 지급 단위로 내린다.** 참가자별로 키를 갈라야 부분 실패 후 나머지만 마저 줄 수 있다.
+- **지급 1건 = 스코프 1개.** 실패한 DbContext 의 변경 추적기를 재사용하면 롤백된 변경이 다음 저장에 새어 나간다.
 
 ## SocketServer 세션 패턴
 

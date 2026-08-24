@@ -58,6 +58,7 @@ public class LootGrantConsumerIntegrationTests
         services.AddScoped<GameServer.Application.Domains.Codex.Interfaces.ICodexService, GameServer.Application.Domains.Codex.CodexService>();
         services.AddScoped<IWalletRepository, WalletRepository>();
         services.AddScoped<IWalletService, WalletService>();
+        services.AddScoped<GameServer.Application.Domains.Reward.Interfaces.IRewardLedger, GameServer.Infrastructure.Domains.Reward.RewardLedger>();
         services.AddSingleton<IMessageQueue<ItemPickedUpMessage>>(queue);
         services.AddSingleton<LootGrantConsumer>();
 
@@ -179,6 +180,62 @@ public class LootGrantConsumerIntegrationTests
         await WaitUntilAsync(async () => await GetQuantityAsync(userId, 1001) == 1, cts.Token);
 
         Assert.Null(await GetQuantityAsync(userId, 1931));
+
+        await h.Consumer.StopAsync(CancellationToken.None);
+    }
+
+    private async Task<List<(string Key, string Kind, string RefId, long Amount)>> LedgerRowsAsync(string pickupIdPrefix)
+    {
+        await using var ctx = _fixture.CreateDbContext();
+        var prefix = $"pickup:{pickupIdPrefix}";
+        return await ctx.RewardGrants.AsNoTracking()
+            .Where(g => g.GrantKey.StartsWith(prefix))
+            .OrderBy(g => g.GrantKey)
+            .Select(g => new ValueTuple<string, string, string, long>(g.GrantKey, g.Kind, g.RefId, g.Amount))
+            .ToListAsync();
+    }
+
+    [Fact]
+    public async Task 지급_기록이_PickupId_별로_원장에_남는다()
+    {
+        await using var h = BuildHarness();
+        long userId = await CreateUserAsync();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        await h.Consumer.StartAsync(cts.Token);
+
+        await h.Queue.EnqueueAsync(new ItemPickedUpMessage { UserId = userId, ItemId = 1001, Qty = 1, PickupId = "9301:1" });
+        await h.Queue.EnqueueAsync(new ItemPickedUpMessage { UserId = userId, ItemId = 1001, Qty = 1, PickupId = "9301:2" });
+        await WaitUntilAsync(async () => await GetQuantityAsync(userId, 1001) == 2, cts.Token);
+        await WaitUntilAsync(async () => (await LedgerRowsAsync("9301:")).Count == 2, cts.Token);
+
+        var rows = await LedgerRowsAsync("9301:");
+        Assert.Equal(new[] { "pickup:9301:1", "pickup:9301:2" }, rows.Select(r => r.Key).ToArray());
+        Assert.All(rows, r => Assert.Equal("item", r.Kind));
+        Assert.All(rows, r => Assert.Equal("1001", r.RefId));
+
+        await h.Consumer.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task 원장은_만료되지_않아_아무리_늦게_재배달돼도_이중지급되지_않는다()
+    {
+        await using var h = BuildHarness();
+        long userId = await CreateUserAsync();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        await h.Consumer.StartAsync(cts.Token);
+
+        var msg = new ItemPickedUpMessage { UserId = userId, ItemId = 1001, Qty = 1, PickupId = "9401:keep" };
+        await h.Queue.EnqueueAsync(msg);
+        await WaitUntilAsync(async () => await GetQuantityAsync(userId, 1001) == 1, cts.Token);
+
+        // 예전 Redis 집합은 TTL 로 통째 만료될 수 있었다. 원장 행에는 TTL 이 없다.
+        await h.Queue.EnqueueAsync(msg);
+        await Task.Delay(400, cts.Token);
+
+        Assert.Equal(1, await GetQuantityAsync(userId, 1001));
+        Assert.Single(await LedgerRowsAsync("9401:keep"));
 
         await h.Consumer.StopAsync(CancellationToken.None);
     }

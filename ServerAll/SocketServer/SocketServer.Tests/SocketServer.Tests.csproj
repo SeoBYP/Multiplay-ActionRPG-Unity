@@ -11,6 +11,8 @@
     <ItemGroup>
         <PackageReference Include="coverlet.collector" Version="6.0.4" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+        <!-- 실 Redis 대상 스트림 테스트(PEL 회수) — GameServer.Tests 와 동일 버전 -->
+        <PackageReference Include="Testcontainers.Redis" Version="4.11.0" />
         <PackageReference Include="xunit" Version="2.9.3" />
         <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
     </ItemGroup>

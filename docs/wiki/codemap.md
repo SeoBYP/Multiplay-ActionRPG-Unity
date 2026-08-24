@@ -80,6 +80,201 @@
 > ⚠️ **재번호(2026-07-17)** — 원래 2.60~2.76 으로 매겨져 기존 항목(2.60 회피·2.61 콤보·2.62 로스터·2.63 캡슐)과 **번호가 충돌**했다. 과거 커밋 메시지·PR 본문의 참조는 아래 대조표로 읽는다:
 > 구2.60(애니)→**2.64** · 2.61(B1)→**2.65** · 2.62(B2)→**2.66** · 2.63(B3)→**2.67** · 2.64(B4)→**2.68** · 2.65(B5)→**2.69** · 2.66(B6)→**2.70** · 2.67(C3-hotfix)→**2.71** · 2.68(C3)→**2.72** · 2.69(infra)→**2.73** · 2.70(C1a)→**2.74** · 2.71(C1b)→**2.75** · 2.72(C1c준비)→**2.76** · 2.73(사망체력바)→**2.77** · 2.74(C2)→**2.78** · 2.75(링포화)→**2.79** · 2.76(E~H)→**2.80**
 
+### 2.112 at-most-once → at-least-once + 보상 지급 원장 (F4 잔여, 2026-08-24)
+
+핸들러가 던지면 메시지가 **재배달 없이 소실**되던 것을 고쳤다. DB 순단 한 번이 곧 보상 유실이었다.
+
+**① ACK 를 핸들러 성공 뒤로 — 봉투(`StreamMessage<T>`)**
+
+핸들러는 큐 바깥(`ResilientStreamConsumer`)에서 돌아 큐가 성공 여부를 알 수 없다. 그래서 ACK 를 봉투에 담아 넘기고,
+**성공한 소비자가 직접 ACK** 한다. `IMessageQueue<T>.DequeueAllAsync` 가 `IAsyncEnumerable<StreamMessage<T>>` 가 됐다.
+
+```
+전  XREADGROUP → XACK → 핸들러 ─실패→ 로그만. 영구 소실 ★
+후  XREADGROUP → 봉투 → 핸들러 ─성공→ 봉투.AcknowledgeAsync()
+                                └실패→ ACK 안 함 → PEL 잔류 → XAUTOCLAIM 이 회수해 재시도
+```
+
+- 역직렬화 실패만은 예외로 **즉시 ACK** — 다시 배달해도 같은 결과라 회수 루프의 독이 된다(2.111에서 정한 그대로).
+- **재시도 상한**(`MaxDeliveryAttempts`, 기본 5)을 함께 넣었다. 없으면 항상 실패하는 메시지가 30초마다 영원히 재시도된다.
+  재배달 경로에서만 `XPENDING` 으로 배달 횟수를 읽어 초과분을 Error 로그와 함께 드롭한다.
+- ACK 자체가 실패해도 컨슈머를 죽이지 않는다(재배달로 이어질 뿐 — 핸들러 멱등 전제).
+
+**② 보상은 Redis claim 이 아니라 DB 원장으로 — exactly-once**
+
+at-least-once 로 바꿔도 보상 경로는 **그것만으로는 실효가 없었다.** `claim-first` 가 재시도를 막기 때문이다.
+
+```
+claim(roomId)=true → 참가자1 커밋 ✔ → 참가자2 커밋 ✔ → 참가자3 예외 ✘
+   재배달 → claim(roomId)=false → 스킵 → 참가자3·4 영구 미지급 ★
+   (claim 을 실패 시 해제하면? 재시도가 참가자1·2 에게 ★이중지급★)
+```
+
+근본 원인은 **지급과 기록이 서로 다른 저장소**라는 것이다. Redis 키로는 어떤 순서로 배치해도
+"지급됐는데 기록이 없다 / 기록됐는데 지급이 없다" 창이 남는다. → `reward_grants` 테이블(GrantKey UNIQUE)을
+**지급과 같은 트랜잭션**에 넣었다.
+
+```
+BEGIN
+  INSERT reward_grants(GrantKey)   ← UNIQUE. 이미 있으면 위반 → 롤백 → "이미 지급됨"
+  <실제 지급>                        ← AddExp / GrantItem / Wallet.Add
+COMMIT
+```
+
+- 멱등 단위가 **메시지 → 참가자**로 내려갔다: `dungeon:{roomId}:{userId}` · `pickup:{pickupId}`.
+  그래서 부분 실패 후 재시도가 **이미 받은 사람은 건너뛰고 못 받은 사람만 마저** 준다.
+- 지급 1건 = **스코프 1개**. 실패한 DbContext 의 변경 추적기가 다음 참가자 지급에 새어들면 롤백된 변경까지 함께 커밋된다
+  (같은 부류의 사고 = §2.107 ② Register 롤백 자기파괴).
+- `RedisKeys.{DungeonResultProcessed,LootPickupProcessed}` 제거. **F3 의 항목별 키는 이 두 경로에서 원장으로 대체됐다** —
+  TTL 만료로 기록이 사라지는 문제 자체가 소멸한다(원장 행에는 TTL 이 없다). F3 의 채팅 수정은 그대로 유효하다.
+- 부수 이득: 지급 이력이 남아 CS 대응·정산 추적이 가능하다.
+
+**③ 소비 통지 멱등 — 감사에서 유일하게 걸린 곳**
+
+at-least-once 로 재실행될 6종 핸들러를 감사한 결과 5종은 이미 안전했다(게임시작=`CreateRoom` null 재발행,
+세션준비=`GetByRoomIdAsync` 재사용 + `Status==Starting` 가드, 퇴장=실패 Result no-op, 보상 2종=원장).
+**`PlayerConsumedConsumer` 만 비멱등**이었다 — `ApplyPlayerEffect(+heal)` 재적용 = 이중 회복인데
+`PlayerConsumedMessage` 에 멱등키가 아예 없었다(`TraceId` 는 발행부에서 채우지도 않았다).
+→ `ConsumeId`(Guid) 추가 + `Room.TryMarkConsumeHandled` 로 방 단위 차단. 수명을 방에 묶은 이유는
+회복 대상이 방의 인메모리 상태라 방이 사라지면 중복 걱정도 함께 사라지기 때문이다.
+
+**검증**: 서버 **724/724** · 클라 컴파일0 · **PlayMode 225/225** · **EditMode 231/231** · 마이그레이션 실환경 적용 확인.
+
+**실환경 실측(Docker)** — PlayMode E2E 를 돌린 것만으로 원장에 실제 지급 이력이 쌓였다:
+
+```
+ dungeon:5020:12157 | exp  |     |  100     ← 참가자별 1행(멱등 단위가 참가자다)
+ dungeon:5020:12155 | exp  |     |  100
+ pickup:5020:2      | item | 1001|    1
+
+같은 방을 재발행 → Exp 변화 0, 원장 2행 유지
+[16:11:10 INF] [DungeonResult] UserId=12155 이미 지급됨 — 스킵 (RoomId=5020)
+[16:11:10 INF] [DungeonResult] UserId=12157 이미 지급됨 — 스킵 (RoomId=5020)
+```
+
+⚠️ **미실측**: 프로덕션에서 핸들러를 실제로 실패시켜 재배달→재시도가 도는 것은 보지 못했다(고의로 서버를 고장내야 한다).
+그 경로는 실 Redis 통합 테스트로만 고정돼 있다.
+
+### 2.111 컨슈머그룹 루프 단일화 + PEL 자동 회수 (F4, 2026-08-24)
+
+**① 왜 통합부터 했나**
+
+7개 큐가 **같은 Consumer Group 루프를 각자 복사**해 갖고 있었다(~120줄 × 7). 회수 로직을 붙이려면 7군데를
+똑같이 고쳐야 했다. 루프를 `RedisMessageQueueBase<T>.ConsumeGroupAsync()` 한 벌로 내리고, 파생 큐는
+**스트림 키·그룹 이름·발행 여부만** 남겼다(각 ~25줄). `SerializeMessage`/`DeserializeMessage` 도 JSON 기본 구현이
+베이스에 생겨 13개 큐에서 동일하던 override 가 사라졌다.
+
+```
+RedisMessageQueueBase<T>
+  ├ PublishAsync(msg)                      XADD (발행 큐 공통)
+  └ ConsumeGroupAsync(group, consumer, log)
+       EnsureGroup
+       └▶ ReadOwnPending("0")              내 PEL — 같은 이름으로 재기동한 경우
+       └▶ loop
+            XREADGROUP ">"
+              ├ 있음 → ProcessEntry → yield
+              └ 없음(유휴) → 스윕 주기 도달 시 ReclaimStalePending()
+                                XAUTOCLAIM key group me MIN-IDLE=60s <cursor> COUNT=10
+```
+
+**② 회수(XAUTOCLAIM)**
+
+- **유휴 구간에서만** 스윕한다(기본 30s 주기) — 처리량이 있을 때 끼워 넣으면 Redis 부하만 늘린다.
+- `MinIdle` 기본 60s — 살아 있는 컨슈머가 처리 중인 메시지를 빼앗지 않는다(테스트로 고정).
+- 커서를 이어가되 한 스윕당 10라운드 상한. 대량 잔류는 다음 스윕이 이어받는다.
+- 세 파라미터(`PendingMinIdle`·`AutoClaimInterval`·`IdlePollDelay`)는 `protected virtual` — 테스트가 실제 큐를
+  상속해 **로직은 그대로 두고 시간만 압축**한다(가짜 큐를 만들지 않는다).
+
+**③ 조사에서 드러난 두 가지 — 백로그보다 나빴다**
+
+- **GameServer 6개 큐의 컨슈머 이름이 매 기동 새 GUID** 였다(`$"{MachineName}-{Guid.NewGuid():N}"`).
+  재시작하면 `ReadPendingAsync("0")` 가 **빈 새 PEL** 을 읽으므로 "재시작 시 내 PEL 복구"라는 주석이 그쪽에선 거짓이었고,
+  죽은 컨슈머의 PEL 은 회수 주체가 아예 없었다. → `StableConsumerName(prefix)` (= `{prefix}-{MachineName}`)로 통일.
+  SocketServer 가 이미 쓰던 방식이다. 컨테이너 hostname 은 재시작해도 안정적이라 자기 PEL 복구가 실제로 동작한다.
+- **역직렬화 실패 엔트리가 ACK 되지 않았다.** 회수를 붙이는 순간 이게 독이 된다 — 매 스윕마다 같은 엔트리를 다시 집어
+  영원히 실패한다. 그래서 `ProcessEntryAsync` 는 **성패와 무관하게 ACK** 한다(실패는 Error 로그).
+  이건 회수 도입이 만들어낸 새 요구사항이라 테스트로 고정했다(`역직렬화_실패_엔트리는_ACK_돼_회수_루프를_돌지_않는다`).
+
+**④ 바꾸지 않은 것**
+
+ACK 는 여전히 핸들러보다 **앞**이다(at-most-once). 핸들러가 던지면 메시지는 재배달 없이 소실된다.
+at-least-once 로 뒤집으려면 7개 핸들러 전부의 멱등성을 재검증해야 해서 별도 결정으로 남겼다(cleanup-backlog F4 꼬리).
+
+**검증**: 신규 테스트 4건(실 Redis) — GameServer.Tests 3건 RED(회수 0건·독 잔류)→GREEN + SocketServer.Tests 1건.
+서버 **713/713**(Shared 50 · SocketServer 225 · GameServer 438) · Docker 리빌드 후 클라 컴파일0 · **PlayMode 225/225** · **EditMode 231/231**.
+
+SocketServer 쪽은 회수 로직이 Shared 에 있어 "이미 커버됨"으로 넘길 뻔했으나, **던전 입장을 가로막는 큐가 그쪽**이므로
+`SocketServer.Tests` 에 실 Redis 테스트를 따로 뒀다(`Testcontainers.Redis` 를 그 프로젝트에 처음 도입).
+테스트가 무의미하지 않은지는 **고장 주입**으로 확인했다 — 스윕 호출을 제거하니 즉시 `Assert.NotNull() Failure: Value is null`.
+
+**⑤ 운영 기본값 실측 (2026-08-24, Docker 실환경)**
+
+테스트는 시간을 200ms/100ms 로 압축하므로, 기본값(MinIdle 60s / 스윕 30s)이 실제로 도는지는 따로 쟀다.
+살아 있는 컨슈머가 `XREADGROUP ">"` 로 먼저 채가는 경쟁을 배제하려고 **MULTI 로 XADD+XREADGROUP 을 원자 실행**해
+죽은 컨슈머(`probe-dead-f4`)를 만들었다.
+
+```
+t0 = 15:25:21   두 스트림에 각각 주입 후 probe-dead-f4 소유로 고정 (A pending=1, B pending=1)
+
+B  stream:game:start:requested / socket-server      (SocketServer, 깨진 페이로드)
+   t+64s  pending 1 → 0
+   [15:26:25 ERR] Failed to deserialize entry 1787585121337-0 …
+   [15:26:25 INF] Reclaimed 1 stale pending entries from stream:game:start:requested/socket-server
+
+A  stream:game:dungeon:result / dungeon-result-service  (GameServer, 알 수 없는 MapId)
+   t+89s  pending 1 → 0
+   [15:26:50 WRN] [DungeonResult] 알 수 없는 MapId=__probe_unknown_map__ — 보상 스킵 (RoomId=990001)
+   [15:26:50 INF] Reclaimed 1 stale pending entries from stream:game:dungeon:result/dungeon-result-service
+```
+
+- **64s 와 89s 의 차이는 스윕 위상 차이**이지 편차가 아니다. `nextSweepAt` 은 프로세스 기동 시각에 앵커되고
+  30s 마다 전진한다. 두 컨테이너 기동 시각이 7초 차(15:06:45 / 15:06:52)라 스윕 시점이 각각 …15:26:45 / 15:26:22 이고,
+  엔트리가 자격을 얻는 시각(idle 60s = 15:26:21) **직후의 첫 스윕**에 잡혔다. 예측과 관측이 5초 이내로 일치한다.
+  → 최악 지연은 `MinIdle + AutoClaimInterval` = 90s 이고, 관측 최대치 89s 가 그 상한 안이다.
+- A 는 **핸들러까지 도달**했음이 로그로 확인된다(회수가 ACK 만 하고 끝나는 게 아니다).
+- B 는 역직렬화 실패 후에도 ACK 돼 pending 이 0 이 됐다 — 독이 매 스윕마다 재시도되지 않는다는 것의 실환경 확증.
+- 부수 확인: 회수 직후 `game:dungeon:result:done:990001` 이 **TTL 86360s 인 단일 항목 키**로 존재했다 —
+  F3(항목별 `SET NX EX`)도 실환경에서 그대로 동작한다. 프로브 잔여물(멱등키·스트림 엔트리·probe 컨슈머)은 전부 정리했고
+  사후 pending=0, consumers=실 컨슈머 1개만 남은 것을 확인했다.
+
+### 2.110 멱등 처리 기록에 항목별 수명 부여 (F3, 2026-08-24)
+
+보상·지급 멱등 기록과 채팅 인덱스가 **컬렉션 단위로 만료**돼, 만료 뒤 재배달이 이중 지급·이력 유실로 이어지던 구멍을 닫았다.
+
+**① 보상 멱등 — 집합 1키 → 항목별 키**
+
+```
+전  SADD   game:dungeon:result:done  <roomId>
+    EXPIRE game:dungeon:result:done  24h     ← 추가마다 "전체" TTL 재설정
+    → 무이벤트 24h = 모든 방의 기록이 동시 소멸 → 늦은 재배달이 이중 지급
+
+후  SET game:dungeon:result:done:<roomId> 1 NX EX 86400   (원자 claim + 자기 수명)
+    SET game:loot:pickup:done:<pickupId>  1 NX EX 86400
+```
+
+- 위치: `DungeonResultConsumer.ProcessAsync` · `LootGrantConsumer.ProcessAsync` · 키 `RedisKeys.{DungeonResultProcessed(roomId),LootPickupProcessed(pickupId)}`(시그니처가 인자를 받도록 바뀜).
+- `SetAdd`+`KeyExpire` 2왕복이 `StringSet(NX,EX)` 1왕복이 됐다 — 원자성도 claim 한 번에 들어온다.
+- ⚠ 배포 시: 구 키(Set 타입, 이름이 달라 WRONGTYPE 충돌은 없음)는 자기 TTL 로 24h 내 소멸한다. 배포 순간 PEL 에 남아 있던 메시지 한정으로 재지급 가능 — 구 기록을 새 코드가 못 보기 때문. 범위가 좁아 마이그레이션은 두지 않았다.
+
+**② 채팅 — 컬렉션 TTL 은 남기되, 정확성이 TTL 에 의존하지 않게**
+
+SortedSet 인덱스는 Redis 특성상 항목별 TTL 이 불가능하다. 그래서 **인덱스를 못 믿는 조건을 명시**하는 방향으로 갔다.
+
+```
+GetMessagesAfterAsync(after)
+  ① ZCOUNT all -inf after == 0  → 인덱스가 경계를 못 덮음 → DB(진실원) 조회 + 재캐싱
+  ② 덮으면 ZRANGEBYSCORE (after, +inf]
+  ③ FetchMessagesByIds — 해시 없는 id 는 DB 로 보충 후 재캐싱
+```
+
+- 조사 중 확인한 실제 구멍은 백로그 기술보다 넓었다: **인덱스 TTL 은 add 마다 갱신되는데 메시지 해시 TTL 은 생성 시 1회뿐**(`SetChatMessageCacheAsync`) → 인덱스가 해시보다 오래 산다 → `FetchMessagesByIds` 가 `continue` 로 조용히 누락시키는 경로가 **트래픽만 있으면 상시 열려 있었다**. ③ 이 이걸 닫는다.
+- `FetchMessagesByIds` 는 이제 **호출자가 넘긴 id 순서를 그대로 유지**한다(최신순 조회 3곳이 내림차순을 기대하므로 정렬로 뒤집으면 회귀).
+- 위치: `ChatMessageRepository.{GetMessagesAfterAsync,FetchMessagesByIds}`.
+
+**검증**: 신규 통합테스트 6건(Testcontainers Redis+Postgres) RED→GREEN, 서버 전체 **709/709**(Shared 50 · SocketServer 224 · GameServer 435).
+
+**남은 것**: F4(XAUTOCLAIM 부재)는 후속. 조사 중 드러난 별건 = `ACK 가 핸들러보다 먼저`(at-most-once)와 `GameServer 컨슈머 이름이 매 기동 새 GUID` → cleanup-backlog F4 에 기록.
+
 ### 2.109 전역 토큰 저장소 제거(F18) · 입력 맵 해제(F19) · keep-alive 를 시간 압축으로 관측 (2026-08-24)
 
 2.108 이 남긴 세 꼬리를 닫았다. 셋 다 **프로덕션 결함이라기보다 "전역 상태가 테스트를 흔든다"** 는 같은 뿌리였다.

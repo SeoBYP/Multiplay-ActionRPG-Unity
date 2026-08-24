@@ -21,6 +21,6 @@ public sealed class FakeGameStartRequestedQueue(InMemoryMessageQueue<GameSession
         });
     }
 
-    public IAsyncEnumerable<GameStartRequestedMessage> DequeueAllAsync(CancellationToken cancellationToken = default)
-        => AsyncEnumerable.Empty<GameStartRequestedMessage>();
+    public IAsyncEnumerable<StreamMessage<GameStartRequestedMessage>> DequeueAllAsync(CancellationToken cancellationToken = default)
+        => AsyncEnumerable.Empty<StreamMessage<GameStartRequestedMessage>>();
 }

@@ -47,7 +47,26 @@ public class DungeonResultConsumerIntegrationTests
         public ValueTask DisposeAsync() => Provider.DisposeAsync();
     }
 
-    private Harness BuildHarness()
+    /// <summary>지정한 유저의 첫 AddExp 만 던지는 데코레이터 — 부분 실패 재현용.</summary>
+    private sealed class FailOnceProgression(
+        IProgressionService inner, long failUserId, System.Runtime.CompilerServices.StrongBox<int> fired) : IProgressionService
+    {
+        public Task<long> AddExpAsync(long userId, long amount, CancellationToken ct = default)
+        {
+            // 컨슈머가 참가자마다 새 스코프를 열므로 "한 번만 실패" 상태는 스코프 밖에서 공유해야 한다.
+            if (userId == failUserId && Interlocked.Exchange(ref fired.Value, 1) == 0)
+                throw new InvalidOperationException("transient db failure");
+            return inner.AddExpAsync(userId, amount, ct);
+        }
+
+        public Task<GameServer.Domain.Entities.User.UserProgression> GetProgressionAsync(long userId, CancellationToken ct = default)
+            => inner.GetProgressionAsync(userId, ct);
+
+        public Task<PlayerStats> GetStatsAsync(long userId, CancellationToken ct = default)
+            => inner.GetStatsAsync(userId, ct);
+    }
+
+    private Harness BuildHarness(long failExpForUserId = 0)
     {
         var queue = new InMemoryMessageQueue<DungeonClearMessage>();
 
@@ -65,6 +84,17 @@ public class DungeonResultConsumerIntegrationTests
         services.AddScoped<GameServer.Application.Domains.Codex.Interfaces.ICodexService, GameServer.Application.Domains.Codex.CodexService>();
         services.AddScoped<IEquipmentRepository, EquipmentRepository>();
         services.AddScoped<IEquipmentService, EquipmentService>();
+        services.AddScoped<GameServer.Application.Domains.Reward.Interfaces.IRewardLedger, GameServer.Infrastructure.Domains.Reward.RewardLedger>();
+        if (failExpForUserId != 0)
+        {
+            var firedOnce = new System.Runtime.CompilerServices.StrongBox<int>(0);
+            services.AddScoped<IProgressionService>(sp => new FailOnceProgression(
+                new ProgressionService(
+                    sp.GetRequiredService<IProgressionRepository>(),
+                    sp.GetRequiredService<IEquipmentService>()),
+                failExpForUserId,
+                firedOnce));
+        }
         services.AddSingleton<IMessageQueue<DungeonClearMessage>>(queue);
         services.AddSingleton<DungeonResultConsumer>();
 
@@ -138,6 +168,99 @@ public class DungeonResultConsumerIntegrationTests
         await Task.Delay(300, cts.Token); // 처리 기회를 준 뒤
 
         Assert.Equal((2, 0L), await GetProgAsync(u1));
+
+        await h.Consumer.StopAsync(CancellationToken.None);
+    }
+
+    private async Task<List<(string Key, string Kind, long Amount)>> LedgerRowsAsync(long roomId)
+    {
+        await using var ctx = _fixture.CreateDbContext();
+        var prefix = $"dungeon:{roomId}:";
+        return await ctx.RewardGrants.AsNoTracking()
+            .Where(g => g.GrantKey.StartsWith(prefix))
+            .OrderBy(g => g.GrantKey)
+            .Select(g => new ValueTuple<string, string, long>(g.GrantKey, g.Kind, g.Amount))
+            .ToListAsync();
+    }
+
+    [Fact]
+    public async Task 지급_기록이_방_참가자별로_원장에_남는다()
+    {
+        long u1 = 7201, u2 = 7202, roomId = 72001;
+        await using var h = BuildHarness();
+        long expReward = SpawnLayoutTable.Get(MapIds.Dungeon01).ExpReward;
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        await h.Consumer.StartAsync(cts.Token);
+
+        await h.Queue.EnqueueAsync(new DungeonClearMessage
+        {
+            RoomId = roomId, MapId = MapIds.Dungeon01, Participants = [u1, u2],
+        });
+        await WaitUntilAsync(async () => (await LedgerRowsAsync(roomId)).Count == 2, cts.Token);
+
+        // 멱등 단위가 "메시지" 가 아니라 "참가자" 다 — 그래야 부분 실패 후 나머지만 마저 줄 수 있다.
+        var rows = await LedgerRowsAsync(roomId);
+        Assert.Equal(
+            new[] { $"dungeon:{roomId}:{u1}", $"dungeon:{roomId}:{u2}" },
+            rows.Select(r => r.Key).ToArray());
+        Assert.All(rows, r => Assert.Equal("exp", r.Kind));
+        Assert.All(rows, r => Assert.Equal(expReward, r.Amount));
+
+        await h.Consumer.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task 원장은_만료되지_않아_아무리_늦게_재배달돼도_이중지급되지_않는다()
+    {
+        long u1 = 7301, roomId = 73001;
+        await using var h = BuildHarness();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        await h.Consumer.StartAsync(cts.Token);
+
+        var msg = new DungeonClearMessage { RoomId = roomId, MapId = MapIds.Dungeon01, Participants = [u1] };
+        await h.Queue.EnqueueAsync(msg);
+        await WaitUntilAsync(async () => (await GetProgAsync(u1))?.Level == 2, cts.Token);
+
+        // 예전 Redis 집합은 TTL 이 있어 "무이벤트 24h → 기록 전멸 → 재배달 시 이중지급" 이 가능했다.
+        // 원장 행에는 TTL 이 없다 — 시간이 얼마가 지나든 같은 GrantKey 는 다시 지급되지 않는다.
+        await h.Queue.EnqueueAsync(msg);
+        await Task.Delay(400, cts.Token);
+
+        Assert.Equal((2, 0L), await GetProgAsync(u1));
+        Assert.Single(await LedgerRowsAsync(roomId));
+
+        await h.Consumer.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task 참가자_일부_지급_후_실패해도_재시도하면_나머지만_지급된다()
+    {
+        long u1 = 9601, u2 = 9602, u3 = 9603;
+        await using var h = BuildHarness(failExpForUserId: u2);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        await h.Consumer.StartAsync(cts.Token);
+
+        var msg = new DungeonClearMessage { RoomId = 96100, MapId = MapIds.Dungeon01, Participants = [u1, u2, u3] };
+
+        // 1차: u1 지급 → u2 에서 예외 → u3 는 아예 시도되지 않는다.
+        await h.Queue.EnqueueAsync(msg);
+        await WaitUntilAsync(async () => (await GetProgAsync(u1))?.Level == 2, cts.Token);
+        await Task.Delay(300, cts.Token);
+        Assert.Null(await GetProgAsync(u3)); // 아직 못 받았다
+
+        // 2차: 재배달 재현. 이미 받은 u1 은 원장이 막고, u2·u3 만 마저 받아야 한다.
+        await h.Queue.EnqueueAsync(msg);
+        await WaitUntilAsync(async () =>
+            (await GetProgAsync(u2))?.Level == 2 && (await GetProgAsync(u3))?.Level == 2, cts.Token);
+        await Task.Delay(300, cts.Token);
+
+        // 셋 다 정확히 한 번씩(100 = Lv1 임계 정확 → Lv2/Exp0). u1 이 두 번 받았으면 Exp 가 남는다.
+        Assert.Equal((2, 0L), await GetProgAsync(u1));
+        Assert.Equal((2, 0L), await GetProgAsync(u2));
+        Assert.Equal((2, 0L), await GetProgAsync(u3));
 
         await h.Consumer.StopAsync(CancellationToken.None);
     }

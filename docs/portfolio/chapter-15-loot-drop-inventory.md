@@ -48,10 +48,18 @@ A·B 동시에 E 입력
 멱등 방식은 [14](./chapter-14-dungeon-clear-loop.md)의 Exp 보상과 **같은 패턴을 재사용**했다 — 키만 `RoomId`에서 `PickupId`로 바뀐다.
 
 ```csharp
-// LootGrantConsumer.cs:50 — GrantItemAsync 는 += 라 비멱등이므로 먼저 잠근다
-bool claimed = await _redis.SetAddAsync(RedisKeys.LootPickupProcessed(), message.PickupId);
-if (!claimed) return;
+// LootGrantConsumer.cs — GrantItemAsync 는 += 라 비멱등. 지급과 원장을 한 트랜잭션으로 묶는다.
+bool granted = await ledger.GrantOnceAsync(
+    new RewardGrantRequest($"pickup:{message.PickupId}", message.UserId, "item", message.ItemId.ToString(), message.Qty),
+    async token =>
+    {
+        var result = await inventoryService.GrantItemAsync(message.UserId, message.ItemId, message.Qty, token);
+        if (!result.Success) throw new InvalidOperationException(result.FailReason); // 원장도 함께 롤백
+    },
+    ct);
 ```
+
+> 2026-08-24 로 **Redis claim-first → DB 원장**(`reward_grants`, GrantKey UNIQUE)으로 바뀌었다. 이유와 경위는 [14](./chapter-14-dungeon-clear-loop.md) 3절 참조 — 요약하면 키와 지급이 다른 저장소인 한 "안 주거나 두 번 주거나" 중 하나를 골라야 했고, 같은 트랜잭션에 넣으면 고를 필요가 없어진다.
 
 ## 4. 클라 렌더는 새 패턴을 만들지 않았다
 

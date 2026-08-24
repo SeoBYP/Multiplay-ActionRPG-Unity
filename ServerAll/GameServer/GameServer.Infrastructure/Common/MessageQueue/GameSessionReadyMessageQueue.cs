@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Shared.Infrastructure.MessageQueue;
 using Shared.Infrastructure.Messages;
@@ -7,115 +5,26 @@ using StackExchange.Redis;
 
 namespace GameServer.Infrastructure.Common.MessageQueue;
 
+/// <summary>
+/// 게임 세션 준비 완료 이벤트 큐. GameServer 는 발행·소비 양쪽을 한다
+/// (SocketServer 가 세션을 띄운 뒤 발행하고, DungeonLobby 스트림으로 흘리기 위해 자기 그룹으로 되읽는다).
+/// </summary>
 public class GameSessionReadyMessageQueue(
     IConnectionMultiplexer redis,
     ILogger<GameSessionReadyMessageQueue> logger)
-    : RedisMessageQueueBase<GameSessionReadyMessage>(redis, "stream:game:session:ready"),
-        IMessageQueue<GameSessionReadyMessage>
+    : RedisMessageQueueBase<GameSessionReadyMessage>(redis, "stream:game:session:ready")
 {
-    private const string EntryKey = "data";
     private const string GroupName = "dungeon-lobby-service";
-    private readonly string _consumerName = $"{Environment.MachineName}-{Guid.NewGuid():N}";
+    private static readonly string ConsumerName = StableConsumerName("gameserver");
 
     public override async Task EnqueueAsync(GameSessionReadyMessage message)
     {
-        var json = await SerializeMessage(message);
-        await Database.StreamAddAsync(QueueKey, [new NameValueEntry(EntryKey, json)]);
+        await PublishAsync(message);
         logger.LogInformation(
             "Enqueued game session ready message for room {RoomId}, session {GameSessionId}",
-            message.RoomId,
-            message.GameSessionId);
+            message.RoomId, message.GameSessionId);
     }
 
-    public override async IAsyncEnumerable<GameSessionReadyMessage> DequeueAllAsync(
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        await EnsureConsumerGroupAsync();
-
-        await foreach (var pendingMessage in ReadPendingAsync(cancellationToken))
-            yield return pendingMessage;
-
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            StreamEntry[] entries;
-            try
-            {
-                entries = await Database.StreamReadGroupAsync(
-                    QueueKey,
-                    GroupName,
-                    _consumerName,
-                    ">",
-                    count: 10);
-            }
-            catch (RedisException ex) when (ex.Message.Contains("NOGROUP") || ex.Message.Contains("no such key"))
-            {
-                logger.LogWarning("Consumer group missing for queue {QueueKey}. Recreating.", QueueKey);
-                await EnsureConsumerGroupAsync();
-                continue;
-            }
-
-            if (entries.Length == 0)
-            {
-                await Task.Delay(100, cancellationToken);
-                continue;
-            }
-
-            foreach (var entry in entries)
-            {
-                var message = await ProcessEntryAsync(entry);
-                if (message is not null)
-                    yield return message;
-            }
-        }
-    }
-
-    private async IAsyncEnumerable<GameSessionReadyMessage> ReadPendingAsync(
-        [EnumeratorCancellation] CancellationToken cancellationToken)
-    {
-        var entries = await Database.StreamReadGroupAsync(QueueKey, GroupName, _consumerName, "0", count: 10);
-        foreach (var entry in entries)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var message = await ProcessEntryAsync(entry);
-            if (message is not null)
-                yield return message;
-        }
-    }
-
-    private async Task<GameSessionReadyMessage?> ProcessEntryAsync(StreamEntry entry)
-    {
-        try
-        {
-            var payload = entry[EntryKey].ToString();
-            var message = await DeserializeMessage(payload);
-            await Database.StreamAcknowledgeAsync(QueueKey, GroupName, entry.Id);
-            return message;
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Failed to process game session ready entry {EntryId}", entry.Id);
-            return null;
-        }
-    }
-
-    private async Task EnsureConsumerGroupAsync()
-    {
-        try
-        {
-            await Database.StreamCreateConsumerGroupAsync(
-                QueueKey,
-                GroupName,
-                StreamPosition.Beginning,
-                createStream: true);
-        }
-        catch (RedisException)
-        {
-        }
-    }
-
-    protected override ValueTask<string> SerializeMessage(GameSessionReadyMessage message)
-        => ValueTask.FromResult(JsonSerializer.Serialize(message));
-
-    protected override ValueTask<GameSessionReadyMessage> DeserializeMessage(string data)
-        => ValueTask.FromResult(JsonSerializer.Deserialize<GameSessionReadyMessage>(data)!);
+    public override IAsyncEnumerable<StreamMessage<GameSessionReadyMessage>> DequeueAllAsync(CancellationToken cancellationToken = default)
+        => ConsumeGroupAsync(GroupName, ConsumerName, logger, cancellationToken);
 }
