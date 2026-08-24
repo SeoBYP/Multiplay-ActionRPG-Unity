@@ -177,7 +177,11 @@ RoomInfo = await result.Value?.ToRoomInfo(...)   // Value가 null이면 메서�
 
 ## 10. 남은 것
 
-- **⚠️ PEL(Pending Entry List) 재처리 없음** — ACK 전에 컨슈머가 죽으면 그 메시지는 Pending 목록에 남는데, `XAUTOCLAIM`으로 회수하는 로직이 없다. 지금은 8절의 상위 레벨 재요청이 이걸 덮고 있지만, 그건 **누군가 다시 시도해야** 복구된다는 뜻이다. 자동 회수가 있어야 완결된다.
+- **✅ PEL(Pending Entry List) 자동 회수 — 2026-08-24 해소 (F4)** — ACK 전에 컨슈머가 죽으면 그 메시지는 Pending 목록에 남는데 `XAUTOCLAIM` 회수가 없어 **영구 잔류**했다. 8절의 상위 레벨 재요청이 덮고 있었지만 그건 **누군가 다시 시도해야** 복구된다는 뜻이었다.
+  - 조사에서 더 나쁜 사실이 나왔다: GameServer 6개 큐의 컨슈머 이름이 **매 기동 새 GUID** 라, 재시작하면 자기 PEL 재읽기(`"0"`)도 빈 목록을 읽었다 — 즉 회수 주체가 아예 없었다. 이름을 `{prefix}-{MachineName}` 로 안정화했다.
+  - 7개 큐의 복제된 소비 루프를 `RedisMessageQueueBase<T>.ConsumeGroupAsync()` 한 벌로 통합하고, 그 안에서 **유휴 구간에만**(30s 주기) `MinIdle` 60s 초과분을 `XAUTOCLAIM` 한다. 살아 있는 컨슈머가 처리 중인 메시지는 빼앗지 않는다.
+  - 회수를 붙이자 **역직렬화 실패 엔트리가 독**이 됐다(매 스윕마다 같은 것을 다시 집는다) → 성패와 무관하게 ACK 하도록 함께 고쳤다.
+  - **ACK 시점도 같은 날 해소** — ACK 를 봉투(`StreamMessage<T>`)에 담아 **핸들러가 성공한 뒤** 하도록 뒤집었다(at-least-once) + 재시도 상한 5회. 재실행될 핸들러 6종을 감사해 5종은 이미 멱등이었고, 비멱등이던 소비 통지에만 `ConsumeId` 를 추가했다. 보상 2경로는 ACK 시점만으로는 부족해 **DB 원장**으로 exactly-once 를 만들었다([14](./chapter-14-dungeon-clear-loop.md) 3절).
 - SocketServer 다중 인스턴스 시 어느 인스턴스가 방을 맡을지의 배정 전략은 미설계(단일 인스턴스 전제).
 
 ---

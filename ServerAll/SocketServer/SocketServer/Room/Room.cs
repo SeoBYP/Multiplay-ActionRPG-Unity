@@ -69,6 +69,23 @@ public class Room
 
     /// <summary>활성 Effect 인스턴스에 부여할 서버 권위 InstanceId를 1씩 증가시켜 반환한다.</summary>
     public int NextEffectInstanceId() => System.Threading.Interlocked.Increment(ref _nextEffectInstanceId);
+
+    // 이미 적용한 소비 통지 id — 재배달 시 이중 회복 차단(lock 안에서만 접근).
+    // 수명을 방에 묶는 이유: 회복 대상이 방의 인메모리 상태라, 방이 사라지면 중복 걱정도 함께 사라진다.
+    private readonly HashSet<string> _handledConsumeIds = new();
+
+    /// <summary>
+    /// 소비 통지를 이 방에서 처음 보는 것이면 표시하고 true. 이미 적용했으면 false.
+    /// consumeId 가 비어 있으면(구 메시지) 차단하지 않는다.
+    /// </summary>
+    public bool TryMarkConsumeHandled(string consumeId)
+    {
+        if (string.IsNullOrEmpty(consumeId))
+            return true;
+
+        lock (_handledConsumeIds)
+            return _handledConsumeIds.Add(consumeId);
+    }
     
 
     public int MemberCount

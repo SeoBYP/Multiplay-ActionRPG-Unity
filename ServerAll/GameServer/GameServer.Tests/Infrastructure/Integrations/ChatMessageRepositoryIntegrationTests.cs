@@ -163,6 +163,48 @@ public class ChatMessageRepositoryIntegrationTests(RepositoryTestFixture fixture
         Assert.True(indexExists);
     }
 
+    [Fact]
+    public async Task 인덱스가_옛_구간을_잃어도_이력이_누락되지_않는다()
+    {
+        var repository = CreateRepository();
+        var redis = _fixture.RedisConnection.GetDatabase();
+
+        var m1 = await repository.CreateAsync("IdxUser", ChatType.Global, "1st", null, null);
+        var m2 = await repository.CreateAsync("IdxUser", ChatType.Global, "2nd", null, null);
+        var m3 = await repository.CreateAsync("IdxUser", ChatType.Global, "3rd", null, null);
+
+        // 인덱스(전체 컬렉션 TTL)가 만료된 뒤 새 메시지 하나로 "부활" 한 상태를 재현.
+        await redis.KeyDeleteAsync(RedisKeys.ChatAllMessages());
+        var m4 = await repository.CreateAsync("IdxUser", ChatType.Global, "4th", null, null);
+
+        var results = (await repository.GetMessagesAfterAsync(m1.MessageId)).ToList();
+
+        // 인덱스에는 m4 밖에 없지만, 진실원(DB)에는 m2·m3 가 있다.
+        // 인덱스가 경계(m1)를 덮지 못하면 DB 로 폴백해야 한다 — 아니면 이력이 조용히 빈다.
+        Assert.Equal(
+            new[] { m2.MessageId, m3.MessageId, m4.MessageId },
+            results.Select(r => r.MessageId).OrderBy(x => x).ToArray());
+    }
+
+    [Fact]
+    public async Task 메시지_해시가_먼저_만료돼도_인덱스에_있는_메시지는_DB로_보충된다()
+    {
+        var repository = CreateRepository();
+        var redis = _fixture.RedisConnection.GetDatabase();
+
+        var m1 = await repository.CreateAsync("HashUser", ChatType.Global, "base", null, null);
+        var m2 = await repository.CreateAsync("HashUser", ChatType.Global, "target", null, null);
+
+        // 인덱스 TTL 은 메시지 추가마다 갱신되지만 메시지 해시 TTL 은 생성 시 1회뿐 →
+        // 해시가 먼저 만료돼 인덱스에만 id 가 남는 상태가 상시 발생한다.
+        await redis.KeyDeleteAsync(RedisKeys.ChatMessage(m2.MessageId));
+
+        var results = (await repository.GetMessagesAfterAsync(m1.MessageId)).ToList();
+
+        Assert.Contains(results, r => r.MessageId == m2.MessageId);
+        Assert.Equal("target", results.Single(r => r.MessageId == m2.MessageId).Message);
+    }
+
     private ChatMessageRepository CreateRepository()
     {
         return new ChatMessageRepository(

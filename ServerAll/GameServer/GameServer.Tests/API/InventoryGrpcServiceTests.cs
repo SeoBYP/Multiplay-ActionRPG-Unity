@@ -195,9 +195,9 @@ public class InventoryGrpcServiceTests
             Sent.Add(message);
             return Task.CompletedTask;
         }
-        public IAsyncEnumerable<Shared.Infrastructure.Messages.PlayerConsumedMessage> DequeueAllAsync(
+        public IAsyncEnumerable<Shared.Infrastructure.MessageQueue.StreamMessage<Shared.Infrastructure.Messages.PlayerConsumedMessage>> DequeueAllAsync(
             CancellationToken cancellationToken = default)
-            => AsyncEnumerable.Empty<Shared.Infrastructure.Messages.PlayerConsumedMessage>();
+            => AsyncEnumerable.Empty<Shared.Infrastructure.MessageQueue.StreamMessage<Shared.Infrastructure.Messages.PlayerConsumedMessage>>();
     }
 
     private static ServerCallContext Context(ClaimsPrincipal user)

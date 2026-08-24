@@ -47,11 +47,11 @@ public class LootGrantRewardE2ETests
         // 도감(3.7): InventoryService.GrantItemAsync 가 ICodexService 의존 → DI 해석 위해 등록.
         services.AddScoped<GameServer.Application.Domains.Codex.Interfaces.ICodexRepository, GameServer.Infrastructure.Domains.Codex.CodexRepository>();
         services.AddScoped<GameServer.Application.Domains.Codex.Interfaces.ICodexService, GameServer.Application.Domains.Codex.CodexService>();
+        services.AddScoped<GameServer.Application.Domains.Reward.Interfaces.IRewardLedger, GameServer.Infrastructure.Domains.Reward.RewardLedger>();
 
         var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
         var queue = new LootPickupMessageQueue(_fixture.RedisConnection, NullLogger<LootPickupMessageQueue>.Instance);
-        return new LootGrantConsumer(queue, _fixture.RedisConnection, scopeFactory,
-            NullLogger<LootGrantConsumer>.Instance);
+        return new LootGrantConsumer(queue, scopeFactory, NullLogger<LootGrantConsumer>.Instance);
     }
 
     private async Task<long> CreateUserAsync()

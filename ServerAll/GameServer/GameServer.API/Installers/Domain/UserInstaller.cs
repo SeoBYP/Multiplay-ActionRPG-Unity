@@ -1,8 +1,10 @@
 ﻿using GameServer.Application.Domains.Progression;
 using GameServer.Application.Domains.Progression.Interfaces;
+using GameServer.Application.Domains.Reward.Interfaces;
 using GameServer.Application.Domains.User;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Infrastructure.Domains.Progression;
+using GameServer.Infrastructure.Domains.Reward;
 using GameServer.Infrastructure.Domains.User;
 
 namespace GameServer.API.Installers.Domain;
@@ -20,5 +22,8 @@ public class UserInstaller : IServiceInstaller
         // Progression (레벨·경험치) — user 와 1:1 이라 여기서 등록.
         services.AddScoped<IProgressionRepository, ProgressionRepository>();
         services.AddScoped<IProgressionService, ProgressionService>();
+
+        // 보상 지급 원장 — 지급과 "지급했음" 기록을 한 트랜잭션으로 묶어 exactly-once 를 만든다.
+        services.AddScoped<IRewardLedger, RewardLedger>();
     }
 }

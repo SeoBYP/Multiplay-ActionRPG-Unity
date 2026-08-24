@@ -158,7 +158,10 @@ stream:chat:global / room:{id} / user:{nickname}
 ## 9. 남은 것
 
 - **⚠️ 스트림에 트리밍이 없다** — `StreamAddAsync(channel, ...)`에 `maxLength`가 없고(`ChatBroadcastChannel.cs:18`) 스트림 키에 TTL도 없다. 개별 메시지 Hash와 인덱스 Sorted Set에는 TTL이 걸려 있지만(`ChatMessageRepository.cs:408-411`) **스트림 자체는 무한히 자란다.** 장기 가동 시 Redis 메모리를 잠식한다. `XADD ... MAXLEN ~ N`이 필요하다.
-- **⚠️ 컬렉션 캐시의 부분 적중** — 이력 조회는 "Sorted Set에 ID가 하나라도 있으면 캐시를 신뢰하고 DB를 보지 않는다"(`ChatMessageRepository.cs:29-37`). 인덱스가 TTL로 만료됐다가 새 메시지 하나로 되살아난 상태에서 오래된 `afterMessageId`로 조회하면, **그 사이 이력이 조용히 비어서 반환될 수 있다.** 단건 캐시(`GetMessageByIdAsync`)는 미스 시 DB로 폴백하지만 컬렉션 조회는 전부-아니면-전무다. (※ 코드 경로상 확인. 실제 재현은 **미실측**)
+- **✅ 컬렉션 캐시의 부분 적중 — 2026-08-24 해소 (F3)** — 이력 조회는 원래 "Sorted Set에 ID가 하나라도 있으면 캐시를 신뢰하고 DB를 보지 않는다"였다. 인덱스가 TTL로 만료됐다가 새 메시지 하나로 되살아난 상태에서 오래된 `afterMessageId`로 조회하면 **그 사이 이력이 조용히 비어서 반환**됐다.
+  - 실제 구멍은 더 넓었다: **인덱스 TTL 은 메시지 추가마다 갱신되는데 메시지 Hash TTL 은 생성 시 1회뿐**이라, 인덱스가 Hash보다 오래 산다 → `FetchMessagesByIds`가 Hash 없는 id를 `continue`로 건너뛰어 **트래픽만 꾸준하면 상시** 누락이 났다.
+  - 조치 ① 인덱스가 경계를 덮는지 검사(`ZCOUNT -inf..afterMessageId > 0`) — 못 덮으면 DB(진실원) 폴백. ② `FetchMessagesByIds`가 Hash 없는 id를 DB로 보충 후 재캐싱. SortedSet은 Redis 특성상 항목별 TTL이 불가능하므로, **정확성이 TTL에 의존하지 않게** 만드는 방향으로 갔다.
+  - 통합테스트 2건으로 재현(RED) 후 해소(GREEN) — 더 이상 **미실측**이 아니다.
 
 ---
 

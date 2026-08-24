@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Shared.Infrastructure.MessageQueue;
 using Shared.Infrastructure.Messages;
@@ -15,23 +14,14 @@ public class RoomLifecycleMessageQueue(
     ILogger<RoomLifecycleMessageQueue> logger)
     : RedisMessageQueueBase<PlayerLeftRoomMessage>(redis, "stream:game:room:lifecycle"), IRoomLifecyclePublisher
 {
-    private const string EntryKey = "data";
-
     public override async Task EnqueueAsync(PlayerLeftRoomMessage message)
     {
-        var json = await SerializeMessage(message);
-        await Database.StreamAddAsync(QueueKey, [new NameValueEntry(EntryKey, json)]);
+        await PublishAsync(message);
         logger.LogInformation(
             "[RoomLifecycle] Published PlayerLeft: RoomId={RoomId} UserId={UserId} RoomEmptied={RoomEmptied}",
             message.RoomId, message.UserId, message.RoomEmptied);
     }
 
-    public override IAsyncEnumerable<PlayerLeftRoomMessage> DequeueAllAsync(CancellationToken ct = default)
+    public override IAsyncEnumerable<StreamMessage<PlayerLeftRoomMessage>> DequeueAllAsync(CancellationToken ct = default)
         => throw new NotSupportedException("SocketServer는 발행만 한다.");
-
-    protected override ValueTask<string> SerializeMessage(PlayerLeftRoomMessage message)
-        => ValueTask.FromResult(JsonSerializer.Serialize(message));
-
-    protected override ValueTask<PlayerLeftRoomMessage> DeserializeMessage(string data)
-        => ValueTask.FromResult(JsonSerializer.Deserialize<PlayerLeftRoomMessage>(data)!);
 }

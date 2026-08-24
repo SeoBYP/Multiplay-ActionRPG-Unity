@@ -35,6 +35,7 @@ GameServer.Infrastructure/Domains/{Name}/
 | GameSession | SocketServer IP:Port 관리, 게임 세션/플레이어 생성 |
 | Chat | Global/Room/Whisper, Redis Streams + BroadcastChannel |
 | User | 프로필, 세션, 닉네임 관리 |
+| Reward | 보상 지급 원장(`reward_grants`) — 지급과 "지급했음" 기록을 한 트랜잭션으로 묶는 exactly-once |
 
 `DungeonLobbyService.StartGameAsync`는 Outbox 기록까지만.  
 세션 생성은 `GameSessionService` 책임. 두 책임을 DungeonLobbyService에 합치지 않는다.

@@ -240,8 +240,8 @@ GUID 손상은 아니지만 리포에 들어갈 물건이 아니다. `Packages/.
 | 항목 | 위치 | 내용 |
 |---|---|---|
 | gRPC 주소 하드코딩 | `Network/Https/GameApiClient.cs:19` | `TODO: 설정 파일/환경별 주입` — 배포(M6) 전 필요 |
-| Redis 락 설정 하드코딩 | `Infrastructure/Common/RedisUserLock.cs:10` | `TODO: application.json 으로 분류 예정` |
-| HUD 입력 임시 폴링 | `GUI/Hud/GameHud.cs:203` | Keyboard 직접 폴링 — `InputRouter` 경로로 이관 예정 |
+| Redis 락 설정 하드코딩 | `Infrastructure/Common/RedisDistributedLock.cs:10` (F1 때 개명) | `TODO: application.json 으로 분류 예정` |
+| HUD 입력 임시 폴링 | `GUI/Hud/GameHud.cs:255` · `GUI/Dialogue/DialogueView.cs:55` | Keyboard 직접 폴링 — `InputRouter` 경로로 이관 예정 |
 | 툴팁 미연동 | `GUI/Hud/Sub/BattleEffectSlot.cs:17` | Event Trigger 연동 |
 | 상시 `Debug.Log` | `CharacterSpawner`(21) · `LobbyModel`(14) · `GameSessionConnector`(13) 등 | 릴리스 빌드 로그 노이즈·성능. 조건부 컴파일/로그 레벨 검토 |
 
@@ -357,7 +357,7 @@ GlobalInputInitializer.Initialize()   Enable() · Player.Enable() · UI.Enable()
 - `SessionKeepAliveTests` 의 `LogAssert.ignoreFailingMessages` 마스크 **제거** — 마스크 없이 3/3 통과.
 - 상세 = [codemap.md](codemap.md) §2.109 ②.
 
-### F3. 멱등 처리 기록의 TTL 이 컬렉션 전체에 걸린다 (3곳 동일 패턴) — ⬜ 중간
+### F3. 멱등 처리 기록의 TTL 이 컬렉션 전체에 걸린다 (3곳 동일 패턴) — ✅ **해소 (2026-08-24)**
 
 | 위치 | 키 | TTL |
 |---|---|---|
@@ -368,14 +368,51 @@ GlobalInputInitializer.Initialize()   Enable() · Player.Enable() · UI.Enable()
 
 - **왜 문제인가**: 일정 시간 이벤트가 없으면 **처리 기록이 통째로 만료**된다. 그 뒤 오래된 메시지가 재배달되면 **이중 지급**이 가능하다. 재배달 경로도 실재한다(F4).
 - 채팅 쪽은 성격이 조금 다르다 — 인덱스가 만료됐다 새 메시지 하나로 되살아난 상태에서 오래된 `afterMessageId` 로 조회하면 **그 사이 이력이 조용히 빈 채로 반환**된다(컬렉션 조회만 전부-아니면-전무. 단건 `GetMessageByIdAsync` 는 DB 폴백함).
-- **조치 방향**: 항목별 키(`SET NX EX`)로 바꿔 각 기록이 자기 수명을 갖게. 채팅은 컬렉션 조회에도 DB 폴백 조건 추가.
-- 상세 = [chapter-14](../portfolio/chapter-14-dungeon-clear-loop.md) 3절 · [chapter-15](../portfolio/chapter-15-loot-drop-inventory.md) 3절 · [chapter-04](../portfolio/chapter-04-chat.md) 9절.
+**해소 내역 (2026-08-24)**
 
-### F4. Consumer Group PEL 자동 회수(`XAUTOCLAIM`) 부재 — ⬜ 중간
+- 보상·지급 2곳: **DB 원장으로 대체**(`reward_grants`, `GrantKey` UNIQUE) — Redis 멱등 키는 **제거됐다**.
+  - 중간 단계로 `SADD`+`EXPIRE(컬렉션)` → `SET {키}:{항목id} 1 NX EX 86400`(항목별 키)까지 갔었다. 하지만 Redis 키인 한
+    키와 지급이 **다른 저장소**라 "지급됐는데 기록이 없다 / 그 반대" 창이 남고, claim-first 는 재시도까지 막았다.
+    같은 날 ACK 시점 작업(F4 잔여)에서 지급과 기록을 **한 트랜잭션**으로 묶으면서 그 키들은 삭제됐다.
+  - 지금 코드에 보상 멱등용 Redis 키는 **0건**이다. 이 항목을 읽고 `SET NX EX` 를 찾지 말 것 — 진실원은 `reward_grants` 다.
+- 채팅: SortedSet 은 항목별 TTL 이 불가능 → **정확성이 TTL 에 의존하지 않게** 바꿨다. ① 인덱스가 경계를 덮는지 검사(`ZCOUNT -inf..afterMessageId > 0`), 못 덮으면 DB 폴백 ② `FetchMessagesByIds` 가 해시 없는 id 를 DB 로 보충.
+- ⚠ **조사 중 드러난 사실 — 채팅 구멍은 여기 적힌 것보다 넓었다**: 인덱스 TTL 은 메시지 추가마다 갱신되는데 **메시지 해시 TTL 은 생성 시 1회뿐**이라, "인덱스가 만료됐다 부활한 드문 상황" 이 아니라 **트래픽만 꾸준하면 해시가 먼저 죽어 상시** 조용한 누락이 났다.
+- 검증: 신규 통합테스트 6건 RED→GREEN + 서버 전체 **709/709**(이 단계 시점). 원장 대체 뒤 최종 **724/724** — §2.112.
+- 상세 = [codemap.md](codemap.md) §2.110 · [chapter-14](../portfolio/chapter-14-dungeon-clear-loop.md) 3절 · [chapter-15](../portfolio/chapter-15-loot-drop-inventory.md) 3절 · [chapter-04](../portfolio/chapter-04-chat.md) 9절.
 
-- `StreamAcknowledgeAsync` 는 6개 큐 전부에 있지만 **`AutoClaim`/`StreamPending` 호출이 코드 전체에 0건**이다.
+### F4. Consumer Group PEL 자동 회수(`XAUTOCLAIM`) 부재 — ✅ **해소 (2026-08-24)**
+
+- `StreamAcknowledgeAsync` 는 7개 컨슈머그룹 큐 전부에 있지만 **`AutoClaim`/`StreamPending` 호출이 코드 전체에 0건**이다.
 - **왜 문제인가**: ACK 전에 컨슈머가 죽으면 그 메시지는 Pending 목록에 **영구 잔류**한다. 현재는 `StartGameAsync` 의 멱등 재시도가 덮고 있지만 **누군가 다시 시도해야만** 복구된다.
-- F3 과 묶인다 — 아주 늦게 재배달된 메시지가 만료된 멱등 기록을 만나면 이중 지급이 된다.
+- ~~F3 과 묶인다~~ → F3 은 2026-08-24 선행 해소. 최종적으로 보상 멱등은 **TTL 이 없는 DB 원장**이 됐으므로, 회수가 아무리 늦어도 이중 지급은 없다.
+
+**F3 작업 중 확인한 추가 사실 (2026-08-24, 실측)**
+
+- **GameServer 6개 큐의 컨슈머 이름이 매 기동마다 새 GUID** (`$"{Environment.MachineName}-{Guid.NewGuid():N}"`) 다.
+  → 재시작하면 `ReadPendingAsync("0")` 는 **빈 새 PEL** 을 읽는다. "재시작 시 내 PEL 복구" 라는 주석은 **GameServer 쪽에선 사실이 아니다**.
+  → 죽은 컨슈머의 PEL 은 회수 주체가 아예 없다. (SocketServer 만 `socket-{MachineName}` 로 안정 — 그쪽은 실제로 복구된다.)
+- **ACK 가 핸들러보다 먼저다**(`ProcessEntryAsync`: 역직렬화 → `XACK` → yield → 핸들러). 즉 전달 의미는 at-most-once 이고, 핸들러가 던지면 메시지는 **재배달 없이 소실**된다. PEL 잔류 창은 XREADGROUP~XACK 사이로 좁다.
+- 7개 큐가 **같은 컨슈머그룹 루프를 각자 복사**해 갖고 있다(~120줄 × 7). 사용자 승인(2026-08-24): 루프를 `RedisMessageQueueBase<T>` 로 내려 한 벌로 만들고 스윕을 그 1곳에 붙인다.
+- ACK 시점(at-most-once → at-least-once) 전환 여부는 보류 — 아래 잔여 참조.
+
+**해소 내역 (2026-08-24)**
+
+- 7개 큐의 복제 루프를 `RedisMessageQueueBase<T>.ConsumeGroupAsync()` **한 벌로 통합**(각 큐 ~120줄 → ~25줄). 회수 로직이 1곳에만 있으면 된다.
+- **XAUTOCLAIM 스윕** — 유휴 구간에서만(기본 30s 주기), `MinIdle` 60s 초과분만 회수. 살아 있는 컨슈머의 처리 중 메시지는 빼앗지 않는다(테스트로 고정).
+- **컨슈머 이름을 안정화**(`{prefix}-{MachineName}`) — GameServer 6개 큐가 쓰던 매 기동 GUID 는 자기 PEL 복구를 무력화하고 있었다.
+- **역직렬화 실패 엔트리도 ACK** — 회수를 붙이면 독이 무한 재시도되므로 함께 처리했다(회수가 만들어낸 새 요구사항).
+- 검증: 신규 테스트 4건(GameServer 3 RED→GREEN + SocketServer 1, 실 Redis) · 서버 **713/713** · Docker 리빌드 후 **PlayMode 225/225 · EditMode 231/231 · 클라 컴파일 0**. SocketServer 쪽 테스트는 **고장 주입**(스윕 제거 시 즉시 실패)으로 실효성 확인.
+- **운영 기본값 실측(Docker 실환경)**: MULTI 로 죽은 컨슈머를 원자 생성 → SocketServer 그룹 **t+64s**, GameServer 그룹 **t+89s** 에 pending 1→0. 컨테이너 로그에 `Reclaimed 1 stale pending entries …` 확인, A 는 핸들러(`알 수 없는 MapId … 보상 스킵`)까지 도달. 두 값의 차이는 편차가 아니라 **스윕 위상 차**(기동 시각 7초 차)이며 이론 상한 `MinIdle+Interval`=90s 안이다.
+- 상세 = [codemap.md](codemap.md) §2.111.
+
+**잔여였던 ACK 시점 — ✅ 해소 (2026-08-24)**
+
+- ACK 를 **핸들러 성공 뒤로** 옮겨 at-least-once 가 됐다(`StreamMessage<T>` 봉투 + 재시도 상한 5회).
+- 보상 2경로는 ACK 시점만 바꿔서는 실효가 없었다(claim-first 가 재시도를 막는다) → **`reward_grants` 원장**(GrantKey UNIQUE)을
+  지급과 같은 트랜잭션에 넣어 exactly-once 로. 멱등 단위가 메시지 → **참가자**로 내려가 부분 실패 후 나머지만 마저 준다.
+- 핸들러 6종 멱등성 감사 결과 5종은 이미 안전, `PlayerConsumedConsumer` 만 비멱등이라 `ConsumeId` 추가로 차단.
+- 검증 = 서버 724/724 · PlayMode 225/225 · EditMode 231/231 · 실환경 exactly-once 실측(재발행 시 Exp 변화 0).
+- 상세 = [codemap.md](codemap.md) §2.112.
 - 상세 = [chapter-05](../portfolio/chapter-05-game-start-e2e.md) 10절.
 
 ### F5. `ReportTalk` 에 근접 검증이 없다 — ⬜ 중간(설계 일관성)
@@ -431,9 +468,11 @@ equipment.proto:26,28                          EQUIPMENT_TYPE_HEADER / _SHOOSE
 - `SetAddressableOwner` 호출부 8곳이 전부 같은 4단계(`LoadAndInstantiateAsync` → `GetComponent<XxxPopup>()` → `SetAddressableOwner` → `Setup`)를 반복한다. 팝업 헬퍼/서비스는 없다(`ShowAlert`/`PopupService` 검색 0건).
 - `AddressableInstance` 가 Addressable 계층에서 없앤 중복이 **팝업 계층에서 다시 생겼다.** `ShowAlertAsync(title, msg, glow)` 하나면 8곳이 1줄로 준다.
 
-### F11. GameServer 헬스체크 엔드포인트 없음 — ⬜ 낮음(M6 배포 전 필요)
+### F11. GameServer 헬스체크 엔드포인트 없음 — ✅ **해소** (2026-08-24 코드 확인)
 
-- HTTP 5131 을 "운영 평면"(`AdminController`)으로 정의해 놓고 `MapHealthChecks` 가 등록돼 있지 않다. Docker Compose 로 띄우는 이상 컨테이너 준비 상태를 알 방법이 없다.
+- 기재 당시엔 `MapHealthChecks` 가 없었으나 현재는 배선돼 있다:
+  `ServiceInstaller.cs:95` `services.AddHealthChecks()` · `MiddlewareInstaller.cs:31` `app.MapHealthChecks("/healthz")`.
+- ⚠️ 미실측: 엔드포인트가 실제로 200 을 반환하는지, Docker Compose `healthcheck` 에 연결됐는지는 확인하지 않았다.
 
 ### F12. `Shared.Infrastructure` 네이밍이 규칙과 충돌해 보인다 — ⬜ 낮음 / ❓ 선행 결정
 
@@ -475,10 +514,10 @@ DialogueView.cs:55          동일 패턴                                       
 ~~**F1**~~ ✅ 2026-08-23(방 단위 분산락) · ~~**F2**~~ ✅ 2026-08-23(소유 증명 우선) · ~~**C2**~~ ✅ 2026-08-24(NuGet 템플릿 규칙 예외).
 → **🔴 높음 항목이 남아 있지 않다.** 남은 것은 F 계열 중간·낮음.
 
-1. **F3 + F4** — 묶어서. F4(재배달 경로)가 없으면 F3(기록 만료)의 위험이 현실화되지 않는다. 둘 중 하나만 고치면 반쪽짜리.
-   **남은 것 중 유일하게 데이터 손상(이중 지급)으로 이어진다** → 다음 착수 후보.
+1. ~~**F3 + F4**~~ ✅ 2026-08-24 (F3 = 보상 멱등을 **DB 원장**으로 + 채팅 DB 폴백 / F4 = 루프 단일화 + `XAUTOCLAIM` 스윕 + at-least-once).
+   ~~잔여 = ACK 시점~~ ✅ 2026-08-24 (at-least-once + 보상 원장 + 소비 통지 멱등).
 2. **F6 · F13** — 이미 전제조건이 풀린 미완 작업. 각각 한 곳만 배선하면 끝난다.
-3. **F11** — M6 배포 전에는 반드시.
-4. **F5 · B3 · C3** — 중간. 설계 일관성·환경.
-5. **B1 · B2 · F9 · F12** — 전부 ❓ 선행 결정 필요(공개 계약·감각 영향).
-6. **F7 · F8 · F10 · F14 · D** — 개별 정리.
+   (~~F11~~ ✅ 헬스체크는 이미 배선돼 있었다 — 2026-08-24 확인)
+3. **F5 · B3 · C3** — 중간. 설계 일관성·환경.
+4. **B1 · B2 · F9 · F12** — 전부 ❓ 선행 결정 필요(공개 계약·감각 영향).
+5. **F7 · F8 · F10 · F14 · D** — 개별 정리.

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Shared.Infrastructure.MessageQueue;
 using Shared.Infrastructure.Messages;
@@ -16,23 +15,14 @@ public class LootPickupMessageQueue(
     ILogger<LootPickupMessageQueue> logger)
     : RedisMessageQueueBase<ItemPickedUpMessage>(redis, "stream:game:loot:pickup"), ILootPickupPublisher
 {
-    private const string EntryKey = "data";
-
     public override async Task EnqueueAsync(ItemPickedUpMessage message)
     {
-        var json = await SerializeMessage(message);
-        await Database.StreamAddAsync(QueueKey, [new NameValueEntry(EntryKey, json)]);
+        await PublishAsync(message);
         logger.LogInformation(
             "[LootPickup] Published Pickup: UserId={UserId} ItemId={ItemId} Qty={Qty} PickupId={PickupId}",
             message.UserId, message.ItemId, message.Qty, message.PickupId);
     }
 
-    public override IAsyncEnumerable<ItemPickedUpMessage> DequeueAllAsync(CancellationToken ct = default)
+    public override IAsyncEnumerable<StreamMessage<ItemPickedUpMessage>> DequeueAllAsync(CancellationToken ct = default)
         => throw new NotSupportedException("SocketServer는 발행만 한다.");
-
-    protected override ValueTask<string> SerializeMessage(ItemPickedUpMessage message)
-        => ValueTask.FromResult(JsonSerializer.Serialize(message));
-
-    protected override ValueTask<ItemPickedUpMessage> DeserializeMessage(string data)
-        => ValueTask.FromResult(JsonSerializer.Deserialize<ItemPickedUpMessage>(data)!);
 }

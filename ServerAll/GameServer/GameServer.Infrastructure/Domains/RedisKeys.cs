@@ -56,11 +56,9 @@ public static class RedisKeys
     public static string GameSessionPlayerBySession(long gameSessionId) => $"{Prefix}:session:player:by-session:{gameSessionId}";
     public static string GameSessionPlayerByUser(long userId) => $"{Prefix}:session:player:by-user:{userId}";
     
-    // DungeonResult (보상 멱등 — 처리완료 RoomId 집합)
-    public static string DungeonResultProcessed() => $"{Prefix}:dungeon:result:done";
-
-    // LootPickup (지급 멱등 — 처리완료 PickupId 집합)
-    public static string LootPickupProcessed() => $"{Prefix}:loot:pickup:done";
+    // 보상 지급 멱등은 Redis 가 아니라 DB 원장(reward_grants, GrantKey UNIQUE)이 담당한다.
+    // Redis 키로 잠그면 키와 지급이 서로 다른 저장소라 "지급됐는데 기록이 없다 / 그 반대" 창이 남고,
+    // claim-first 는 지급 도중 실패 시 재시도까지 막아 영구 미지급이 됐다.
 
     // Chat
     public static string ChatMessage(long messageId) => $"{Prefix}:chat:message:{messageId}";

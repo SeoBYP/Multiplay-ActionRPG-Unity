@@ -59,11 +59,11 @@ public class DungeonResultRewardE2ETests
         services.AddScoped<GameServer.Application.Domains.Codex.Interfaces.ICodexService, GameServer.Application.Domains.Codex.CodexService>();
         services.AddScoped<IEquipmentRepository, EquipmentRepository>();
         services.AddScoped<IEquipmentService, EquipmentService>();
+        services.AddScoped<GameServer.Application.Domains.Reward.Interfaces.IRewardLedger, GameServer.Infrastructure.Domains.Reward.RewardLedger>();
 
         var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
         var queue = new DungeonClearMessageQueue(_fixture.RedisConnection, NullLogger<DungeonClearMessageQueue>.Instance);
-        return new DungeonResultConsumer(queue, _fixture.RedisConnection, scopeFactory,
-            NullLogger<DungeonResultConsumer>.Instance);
+        return new DungeonResultConsumer(queue, scopeFactory, NullLogger<DungeonResultConsumer>.Instance);
     }
 
     private async Task PublishClearAsync(DungeonClearMessage message)

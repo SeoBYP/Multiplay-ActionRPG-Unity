@@ -6,6 +6,7 @@ using GameServer.Domain.Entities.GameSession;
 using GameServer.Domain.Entities.Inventory;
 using GameServer.Domain.Entities.Outbox;
 using GameServer.Domain.Entities.Quest;
+using GameServer.Domain.Entities.Reward;
 using GameServer.Domain.Entities.User;
 using GameServer.Domain.Entities.Wallet;
 using Microsoft.EntityFrameworkCore;
@@ -36,6 +37,9 @@ public class GameServerDbContext(DbContextOptions<GameServerDbContext> options) 
     public DbSet<GameSession> GameSessions { get; set; }
     public DbSet<GameSessionPlayer> GameSessionPlayers { get; set; }
     
+    /// <summary>보상 지급 원장 — 지급 멱등의 단일 진실(GrantKey UNIQUE).</summary>
+    public DbSet<RewardGrant> RewardGrants { get; set; }
+
     public DbSet<ChatMessage> ChatMessages { get; set; }
     
     public DbSet<OutboxMessage> OutboxMessages { get; set; }

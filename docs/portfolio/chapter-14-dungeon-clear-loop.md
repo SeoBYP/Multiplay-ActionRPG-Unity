@@ -60,16 +60,22 @@ public bool TryMarkCleared()
 Consumer Group은 재시작·재처리 시 **같은 메시지를 다시 준다**([05](./chapter-05-game-start-e2e.md) 3절의 Outbox도 마찬가지다). `AddExp`는 멱등이 아니므로 그대로 두면 보상이 두 배가 된다.
 
 ```csharp
-// DungeonResultConsumer.cs:42 — 처리했다는 사실을 먼저 원자적으로 선점한다
-bool claimed = await _redis.SetAddAsync(RedisKeys.DungeonResultProcessed(), message.RoomId);
-if (!claimed) return;                      // 이미 처리됨 → 스킵
-await _redis.KeyExpireAsync(RedisKeys.DungeonResultProcessed(), ProcessedTtl);
-// ... 여기서부터 지급
+// DungeonResultConsumer.cs — 지급과 "지급했음" 기록을 한 트랜잭션으로 묶는다(참가자 단위)
+bool granted = await ledger.GrantOnceAsync(
+    new RewardGrantRequest($"dungeon:{message.RoomId}:{userId}", userId, "exp", "", expReward),
+    token => progressionService.AddExpAsync(userId, expReward, token),
+    ct);
 ```
 
-**claim-first**가 핵심이다. 지급하고 나서 기록하면 그 사이에 죽었을 때 중복이 되고, 먼저 선점하면 최악의 경우 **미지급**(더 안전한 실패)이 된다. 분산 처리에서는 **"두 번 주는 것"보다 "안 주는 것"이 낫다** — 후자는 복구할 수 있지만 전자는 되돌리기 어렵다.
+**멱등 기록과 지급이 같은 트랜잭션에 있다**는 것이 핵심이다.
 
-> ⚠️ **현재 구현의 한계** — 처리 기록이 **RoomId 하나당 키가 아니라 Set 하나**이고, TTL(24h)이 **Set 전체**에 걸린다(추가할 때마다 갱신). 24시간 동안 던전 결과가 하나도 없으면 Set이 통째로 만료되고, 그 뒤 아주 오래된 메시지가 재배달되면 이중 지급이 가능하다. 재배달 경로가 실재한다는 점도 걸린다 — PEL 자동 회수(`XAUTOCLAIM`)가 없어 미ACK 메시지가 남는다([05](./chapter-05-game-start-e2e.md) 10절). RoomId별 키(`SET NX EX`)로 바꾸면 각자의 수명을 갖는다. (**미실측** — 코드 경로상 확인)
+원래는 Redis 키로 `claim-first` 했다 — "지급하고 나서 기록하면 그 사이에 죽었을 때 중복이 되니, 먼저 선점해 최악의 경우 **미지급**(더 안전한 실패)이 되게 한다"는 논리였다. 하지만 그 선택지 자체가 잘못이었다. **둘 중 하나를 고를 필요가 없다.**
+
+키와 지급이 **서로 다른 저장소**라서 어떤 순서로 배치해도 창이 남았던 것이다. 게다가 참가자별 지급이 각자 트랜잭션이라, 4인 파티 3번째에서 실패하면 1·2 는 이미 커밋된 채였다 — claim 을 실패 시 해제하면 재시도가 1·2 에게 이중지급을 하고, 해제하지 않으면 3·4 는 영구 미지급이었다.
+
+`reward_grants` 테이블(`GrantKey` UNIQUE)을 지급과 **같은 트랜잭션**에 넣으면 그 창이 사라진다. 멱등 단위도 메시지가 아니라 **참가자**로 내려가므로, 재시도가 이미 받은 사람은 건너뛰고 **못 받은 사람만 마저** 준다. 원장 행에는 TTL 이 없어 "기록이 만료돼 이중지급" 도 성립하지 않는다.
+
+> **경위(2026-08-24)** — ① 원래 처리 기록은 **Set 하나**였고 TTL(24h)이 **Set 전체**에 걸려, 무이벤트 24h 면 모든 방의 기록이 한꺼번에 사라졌다(F3). RoomId별 키 + `SET NX EX` 로 항목별 수명을 줬다. ② 그러나 Redis 키인 한 위의 한계는 남았고, 같은 날 **원장으로 대체**하면서 그 두 키는 제거됐다. ③ 재배달 경로(`XAUTOCLAIM` 부재, F4)도 함께 해소 — 상세 = [05](./chapter-05-game-start-e2e.md) 10절.
 
 ## 4. 스키마를 미리 나눈 이유
 

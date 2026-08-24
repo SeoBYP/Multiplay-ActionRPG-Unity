@@ -11,6 +11,13 @@ namespace Shared.Infrastructure.Messages;
 /// </summary>
 public sealed class PlayerConsumedMessage
 {
+    /// <summary>
+    /// 소비 1건의 고유 식별자(발행 측이 채운다). 회복 적용은 비멱등(+heal)이라
+    /// at-least-once 재배달에서 **이중 회복**이 될 수 있다 — 이 키로 방 단위 중복을 차단한다.
+    /// 빈 문자열이면(구 메시지) 중복 차단 없이 처리한다.
+    /// </summary>
+    public string ConsumeId { get; init; } = "";
+
     public long UserId { get; init; }
     public string EffectId { get; init; } = "";
     public string TraceId { get; init; } = "";
