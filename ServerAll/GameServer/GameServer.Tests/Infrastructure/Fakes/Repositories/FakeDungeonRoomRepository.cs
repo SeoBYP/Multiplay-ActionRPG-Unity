@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Domain.Entities;
@@ -30,6 +30,18 @@ public class FakeDungeonRoomRepository : IDungeonRoomRepository
 
     public Task<IEnumerable<DungeonRoom>> GetAllActiveRoomsAsync(CancellationToken ct = default)
         => Task.FromResult<IEnumerable<DungeonRoom>>(_rooms.Values.Where(r => r.Status != RoomStatus.Closed).ToList());
+
+    public Task<ActiveRoomsPage> GetActiveRoomsPageAsync(int offset, int limit, CancellationToken ct = default)
+    {
+        // 실제 저장소와 같은 계약: 최신순(RoomId 내림차순)으로 잘라 주고 총계는 페이지 크기와 무관.
+        var active = _rooms.Values
+            .Where(r => r.Status != RoomStatus.Closed)
+            .OrderByDescending(r => r.RoomId)
+            .ToList();
+
+        var page = active.Skip(offset).Take(limit).ToList();
+        return Task.FromResult(new ActiveRoomsPage(page, active.Count));
+    }
 
     public Task<long> GetActiveRoomCountAsync(CancellationToken ct = default)
         => Task.FromResult((long)_rooms.Count(r => r.Value.Status != RoomStatus.Closed));

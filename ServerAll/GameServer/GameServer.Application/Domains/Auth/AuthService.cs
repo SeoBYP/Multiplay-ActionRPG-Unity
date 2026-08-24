@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using GameServer.Application.Common;
 using GameServer.Application.Domains.Account;
 using GameServer.Application.Domains.Auth.Interfaces;
@@ -76,6 +76,8 @@ public class AuthService(
 
         credential.SetRefreshToken(hashedRefreshToken, refreshTokenExpiry);
         await userCredentialRepository.UpdateAsync(credential, ct);
+        // 새 로그인은 새 체인이다. 옛 세대 기록을 남겨 두면 오래된 토큰 하나로 갓 만든 세션이 끊길 수 있다.
+        await userCredentialRepository.ClearPreviousRefreshTokenAsync(user.UserId, ct);
 
         logger.LogInformation("Login succeeded for user {UserId} with session {SessionId}", user.UserId, userSession.SessionId);
 
@@ -99,6 +101,7 @@ public class AuthService(
         if (userSession is not null)
         {
             await userCredentialRepository.ClearRefreshTokenAsync(userSession.UserId, ct);
+            await userCredentialRepository.ClearPreviousRefreshTokenAsync(userSession.UserId, ct);
             logger.LogInformation("Cleared refresh token during logout for user {UserId}", userSession.UserId);
         }
 
@@ -145,38 +148,40 @@ public class AuthService(
 
         if (credential.RefreshToken is null)
         {
-            await userSessionRepository.RemoveSessionAsync(userSession.SessionId, ct);
             logger.LogWarning("Refresh failed because stored refresh token was missing for user {UserId}", credential.UserId);
             return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
         }
 
-        // Reuse Detection: Extract version from token
-        var tokenParts = refreshToken.Split('.');
-        if (tokenParts.Length != 2 || !int.TryParse(tokenParts[1], out var submittedVersion))
-        {
-            logger.LogWarning("Refresh failed because refresh token format is invalid for user {UserId}", credential.UserId);
-            return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
-        }
-
-        if (submittedVersion < credential.RefreshTokenVersion)
-        {
-            // Already rotated token -> Theft detected
-            await userCredentialRepository.ClearRefreshTokenAsync(credential.UserId, ct);
-            await userSessionRepository.RemoveSessionAsync(userSession.SessionId, ct);
-            logger.LogWarning("Refresh token reuse detected for user {UserId}. Submitted version: {Submitted}, Current: {Current}",
-                credential.UserId, submittedVersion, credential.RefreshTokenVersion);
-            return Result<LoginResult>.Failure(ErrorCodes.TokenReuseDetected, ErrorMessages.TokenReuseDetected);
-        }
-
+        // 소유 증명이 먼저다. 이 검사를 통과하지 못한 요청으로는 아무것도 파괴하지 않는다.
+        // (검사보다 파괴가 앞서면, 유출된 accessToken 하나로 아무 문자열이나 던져 세션을 끊는 DoS 가 된다.)
         var hashedInputToken = HashRefreshToken(refreshToken, deviceId);
-        if (!CryptographicOperations.FixedTimeEquals(
-                Convert.FromHexString(credential.RefreshToken),
-                Convert.FromHexString(hashedInputToken)))
+        var matchesCurrent = FixedTimeEqualsHex(credential.RefreshToken, hashedInputToken);
+
+        if (!matchesCurrent)
         {
-            await userCredentialRepository.ClearRefreshTokenAsync(credential.UserId, ct);
-            await userSessionRepository.RemoveSessionAsync(userSession.SessionId, ct);
-            logger.LogWarning("Refresh failed because refresh token validation failed (hash mismatch) for user {UserId}", credential.UserId);
-            return Result<LoginResult>.Failure(ErrorCodes.SessionExpired, ErrorMessages.SessionExpired);
+            var previous = await userCredentialRepository.GetPreviousRefreshTokenAsync(credential.UserId, ct);
+            if (previous is null || !FixedTimeEqualsHex(previous.HashedToken, hashedInputToken))
+            {
+                // 우리가 발급한 토큰이라는 증명이 없다. 실패만 반환하고 세션은 그대로 둔다.
+                logger.LogWarning("Refresh failed because refresh token did not match any issued token for user {UserId}", credential.UserId);
+                return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+            }
+
+            var elapsedSinceRotation = DateTime.UtcNow - previous.RotatedAt;
+            if (elapsedSinceRotation >= TimeSpan.FromSeconds(_jwtOptions.RefreshReuseGraceSeconds))
+            {
+                // 유예를 넘겨 제출된 구세대 토큰 = 탈취 확정. 여기서만 전부 무효화한다.
+                await userCredentialRepository.ClearRefreshTokenAsync(credential.UserId, ct);
+                await userCredentialRepository.ClearPreviousRefreshTokenAsync(credential.UserId, ct);
+                await userSessionRepository.RemoveSessionAsync(userSession.SessionId, ct);
+                logger.LogWarning("Refresh token reuse detected for user {UserId}. Rotated {ElapsedSeconds}s ago",
+                    credential.UserId, (int)elapsedSinceRotation.TotalSeconds);
+                return Result<LoginResult>.Failure(ErrorCodes.TokenReuseDetected, ErrorMessages.TokenReuseDetected);
+            }
+
+            // 회전 직후의 구세대 토큰 = 응답을 못 받은 클라이언트의 재시도. 탈취로 오판하면 대량 로그아웃이 된다.
+            logger.LogInformation("Refresh accepted previous-generation token as a retry for user {UserId} ({ElapsedSeconds}s after rotation)",
+                credential.UserId, (int)elapsedSinceRotation.TotalSeconds);
         }
 
         if (credential.RefreshTokenExpiresAt <= DateTime.UtcNow)
@@ -201,6 +206,19 @@ public class AuthService(
 
         credential.SetRefreshToken(hashedNewRefreshToken, refreshTokenExpiry);
         await userCredentialRepository.UpdateAsync(credential, ct);
+
+        // 물러난 토큰을 재사용 탐지용으로 남긴다. 재시도로 들어온 경우에는 갱신하지 않는다 —
+        // 갱신하면 같은 토큰을 유예 안에서 계속 되밀어 탐지를 무한히 미룰 수 있다.
+        if (matchesCurrent)
+        {
+            await userCredentialRepository.SetPreviousRefreshTokenAsync(
+                credential.UserId,
+                hashedInputToken,
+                DateTime.UtcNow,
+                TimeSpan.FromHours(_jwtOptions.RefreshTokenExpirationHours),
+                ct);
+        }
+
         logger.LogInformation("Refresh succeeded for user {UserId} with session {SessionId}", user.UserId, userSession.SessionId);
 
         return Result<LoginResult>.Success(new LoginResult(
@@ -209,6 +227,16 @@ public class AuthService(
             newAccessToken,
             newRawRefreshToken,
             accessTokenExpiresAt));
+    }
+
+    private static bool FixedTimeEqualsHex(string storedHash, string candidateHash)
+    {
+        if (storedHash.Length != candidateHash.Length)
+            return false;
+
+        return CryptographicOperations.FixedTimeEquals(
+            Convert.FromHexString(storedHash),
+            Convert.FromHexString(candidateHash));
     }
 
     private static string HashRefreshToken(string refreshToken, string deviceId)
@@ -245,6 +273,10 @@ public class AuthService(
             logger.LogInformation("ValidateToken failed because session {SessionId} was not found", sessionId.Value);
             return false;
         }
+
+        // 인증된 활동 = 생존 신호. 리퍼가 "아직 사람이 있다"를 판단할 유일한 근거라
+        // 검증 성공 지점에서 갱신한다(저장소가 스로틀하므로 요청마다 쓰지는 않는다).
+        await userSessionRepository.TouchSessionAsync(sessionId.Value, ct);
 
         logger.LogDebug("ValidateToken succeeded for session {SessionId}", sessionId.Value);
         return true;

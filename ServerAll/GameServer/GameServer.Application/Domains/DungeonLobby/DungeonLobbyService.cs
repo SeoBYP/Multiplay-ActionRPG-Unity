@@ -8,6 +8,7 @@ using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
 using GameServer.Domain.Entities.Outbox;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Shared.Infrastructure.Messages;
 using Shared.Infrastructure.Spawn;
 
@@ -24,6 +25,7 @@ public class DungeonLobbyService(
     IProgressionService progressionService,
     IRoomReadyStore roomReadyStore,
     IDistributedLock distributedLock,
+    IOptions<DungeonRoomReaperOptions> reaperOptions,
     ILogger<DungeonLobbyService> logger) : IDungeonLobbyService
 {
     /// <summary>
@@ -73,20 +75,14 @@ public class DungeonLobbyService(
     {
         try
         {
-            var all = (await dungeonRoomRepository.GetAllActiveRoomsAsync(ct))
-                .Where(data => data.Status != RoomStatus.Closed)
-                // 안정 정렬이 페이징의 전제다. 소스가 Redis Set(무순서)이라 정렬 없이 Skip/Take 하면
-                // 같은 페이지를 두 번 불러도 다른 방이 나오고 페이지 경계에서 방이 새거나 중복된다.
-                // RoomId 내림차순 = 최신 방 먼저(로비가 원하는 순서).
-                .OrderByDescending(data => data.RoomId)
-                .ToList();
+            // 정렬·건너뛰기·자르기는 DB 가 한다(B4). 안정 정렬(RoomId 내림차순 = 최신 먼저)이
+            // 페이징의 전제라 저장소 계약에 못 박아 두었다.
+            var page = await dungeonRoomRepository.GetActiveRoomsPageAsync(
+                DungeonLobbyPaging.ClampOffset(offset),
+                DungeonLobbyPaging.ClampLimit(limit),
+                ct);
 
-            var page = all
-                .Skip(DungeonLobbyPaging.ClampOffset(offset))
-                .Take(DungeonLobbyPaging.ClampLimit(limit))
-                .ToList();
-
-            return Result<ActiveRoomPage>.Success(new ActiveRoomPage(page, all.Count))!;
+            return Result<ActiveRoomPage>.Success(new ActiveRoomPage(page.Rooms, (int)page.TotalCount))!;
         }
         catch (Exception e)
         {
@@ -549,5 +545,72 @@ public class DungeonLobbyService(
             logger.LogError(e, "RemovePlayerFromRoomAsync failed for room {RoomId} user {UserId}", roomId, userId);
             return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
+    }
+
+    public async Task<Result<bool>> ReapRoomIfAbandonedAsync(long roomId, CancellationToken ct = default)
+    {
+        try
+        {
+            DungeonRoom? room;
+            try
+            {
+                room = await dungeonRoomRepository.GetByIdAsync(roomId, ct);
+            }
+            catch (KeyNotFoundException)
+            {
+                room = null;
+            }
+
+            // 이미 사라진 방 = 멱등 no-op.
+            if (room is null || room.Status == RoomStatus.Closed)
+                return Result<bool>.Success(false);
+
+            var players = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(roomId, ct);
+
+            if (players.Count == 0)
+            {
+                // association 이 하나도 없는 고아 방 — 뺄 사람이 없으니 방을 직접 지운다.
+                await dungeonRoomRepository.DeleteAsync(roomId, ct);
+                logger.LogInformation("[Reaper] Deleted orphan room {RoomId} (no players)", roomId);
+                return Result<bool>.Success(true);
+            }
+
+            var silentBefore = DateTime.UtcNow - reaperOptions.Value.Grace;
+            if (!await AllPlayersSilentAsync(players, silentBefore, ct))
+                return Result<bool>.Success(false);
+
+            // 기존 퇴장 경로를 그대로 쓴다 — 채팅 구독 해제·준비 상태·호스트 이양·빈 방 삭제가
+            // 이미 그 안에서 처리된다(마지막 한 명을 빼는 순간 방이 사라진다).
+            foreach (var player in players)
+                await RemovePlayerFromRoomAsync(roomId, player.UserId, ct);
+
+            logger.LogInformation("[Reaper] Reaped abandoned room {RoomId} ({PlayerCount} silent players)",
+                roomId, players.Count);
+            return Result<bool>.Success(true);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "ReapRoomIfAbandonedAsync failed for room {RoomId}", roomId);
+            return Result<bool>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
+        }
+    }
+
+    private async Task<bool> AllPlayersSilentAsync(
+        IReadOnlyCollection<DungeonRoomPlayer> players, DateTime silentBefore, CancellationToken ct)
+    {
+        foreach (var player in players)
+        {
+            var activeUntil = await userSessionRepository.GetSessionActiveUntilAsync(player.UserId, ct);
+
+            // 신호가 없으면(세션 자체가 사라짐) 조용한 것으로 본다.
+            if (activeUntil is null)
+                continue;
+
+            // 한 명이라도 유예 안에 활동 흔적이 있으면 그 방은 건드리지 않는다.
+            if (activeUntil.Value > silentBefore)
+                return false;
+        }
+
+        return true;
     }
 }

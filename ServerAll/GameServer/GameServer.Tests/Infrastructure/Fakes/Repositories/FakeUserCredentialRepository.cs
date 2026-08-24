@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities.User;
 
@@ -8,6 +8,7 @@ public class FakeUserCredentialRepository : IUserCredentialRepository
 {
     private readonly ConcurrentDictionary<long, UserCredential> _credentials = new();
     private readonly ConcurrentDictionary<string, long> _emailToUserId = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<long, PreviousRefreshToken> _previousRefreshTokens = new();
 
     public Task<UserCredential> CreateAsync(long userId, string email, string passwordHash, CancellationToken ct = default)
     {
@@ -57,6 +58,25 @@ public class FakeUserCredentialRepository : IUserCredentialRepository
         return Task.FromResult(true);
     }
 
+    public Task SetPreviousRefreshTokenAsync(long userId, string hashedToken, DateTime rotatedAt, TimeSpan ttl,
+        CancellationToken ct = default)
+    {
+        _previousRefreshTokens[userId] = new PreviousRefreshToken(hashedToken, rotatedAt);
+        return Task.CompletedTask;
+    }
+
+    public Task<PreviousRefreshToken?> GetPreviousRefreshTokenAsync(long userId, CancellationToken ct = default)
+    {
+        _previousRefreshTokens.TryGetValue(userId, out var previous);
+        return Task.FromResult(previous);
+    }
+
+    public Task ClearPreviousRefreshTokenAsync(long userId, CancellationToken ct = default)
+    {
+        _previousRefreshTokens.TryRemove(userId, out _);
+        return Task.CompletedTask;
+    }
+
     public Task<bool> UpdateAsync(UserCredential userCredential, CancellationToken ct = default)
     {
         if (!_credentials.ContainsKey(userCredential.UserId))
@@ -69,6 +89,7 @@ public class FakeUserCredentialRepository : IUserCredentialRepository
 
     public Task<bool> RemoveAsync(long userId, CancellationToken ct = default)
     {
+        _previousRefreshTokens.TryRemove(userId, out _);
         if (_credentials.TryRemove(userId, out var credential))
         {
             _emailToUserId.TryRemove(credential.Email, out _);

@@ -9,6 +9,7 @@ using GameServer.Domain.Entities;
 using GameServer.Domain.Entities.Outbox;
 using GameServer.Tests.Infrastructure.Fakes.Repositories;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Moq;
 using Shared.Infrastructure.MessageQueue;
 using Shared.Infrastructure.Messages;
@@ -42,7 +43,62 @@ public class DungeonLobbyServiceTests
             _progressionService,
             _readyStore,
             new Infrastructure.Fakes.NoOpDistributedLock(),
+            Options.Create(new DungeonRoomReaperOptions()),
             NullLogger<DungeonLobbyService>.Instance);
+    }
+
+    // ── 유령 방 정리(리퍼) ────────────────────────────────────────────────
+    // 시스템에 정식 하트비트가 없어 `session:active` 만료 시각이 유일한 생존 근사 신호다.
+    // 그래서 유예를 넉넉히 두고, "전원이 유예를 넘겨 조용할 때만" 정리한다.
+
+    [Fact]
+    public async Task 전원이_유예를_넘겨_조용하면_유령_방이_정리된다()
+    {
+        var session = await _sessionRepository.CreateSessionAsync(1);
+        var room = await _service.CreateDungeonRoomAsync(session!.SessionId, "Ghost Room", 4);
+        Assert.True(room.IsSuccess);
+
+        _sessionRepository.SetActiveUntil(1, DateTime.UtcNow.AddHours(-3));
+
+        var reaped = await _service.ReapRoomIfAbandonedAsync(room.Value!.RoomId);
+
+        Assert.True(reaped.IsSuccess);
+        Assert.True(reaped.Value);
+        Assert.Empty(await _roomPlayerRepository.GetPlayersByRoomIdAsync(room.Value.RoomId));
+    }
+
+    [Fact]
+    public async Task 한_명이라도_최근_활동이_있으면_방은_유지된다()
+    {
+        var host = await _sessionRepository.CreateSessionAsync(1);
+        var room = await _service.CreateDungeonRoomAsync(host!.SessionId, "Live Room", 4);
+        var guest = await _sessionRepository.CreateSessionAsync(2);
+        await _service.JoinRoomAsync(guest!.SessionId, room.Value!.RoomId);
+
+        _sessionRepository.SetActiveUntil(1, DateTime.UtcNow.AddHours(-3));   // 호스트는 조용
+        _sessionRepository.SetActiveUntil(2, DateTime.UtcNow.AddMinutes(5));  // 게스트는 살아 있음
+
+        var reaped = await _service.ReapRoomIfAbandonedAsync(room.Value.RoomId);
+
+        Assert.True(reaped.IsSuccess);
+        Assert.False(reaped.Value);
+        Assert.Equal(2, (await _roomPlayerRepository.GetPlayersByRoomIdAsync(room.Value.RoomId)).Count);
+    }
+
+    [Fact]
+    public async Task 세션_신호가_아예_없는_방도_정리된다()
+    {
+        var session = await _sessionRepository.CreateSessionAsync(1);
+        var room = await _service.CreateDungeonRoomAsync(session!.SessionId, "No Signal Room", 4);
+        Assert.True(room.IsSuccess);
+
+        _sessionRepository.SetActiveUntil(1, null);
+        await _sessionRepository.RemoveSessionAsync(session.SessionId);
+
+        var reaped = await _service.ReapRoomIfAbandonedAsync(room.Value!.RoomId);
+
+        Assert.True(reaped.IsSuccess);
+        Assert.True(reaped.Value);
     }
 
     [Fact]
@@ -711,6 +767,7 @@ public class DungeonLobbyServiceTests
             _progressionService,
             _readyStore,
             new Infrastructure.Fakes.NoOpDistributedLock(),
+            Options.Create(new DungeonRoomReaperOptions()),
             NullLogger<DungeonLobbyService>.Instance);
 
         var result = await service.RemovePlayerFromRoomAsync(999999L, 1);

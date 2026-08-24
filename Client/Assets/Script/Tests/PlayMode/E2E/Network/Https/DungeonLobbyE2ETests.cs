@@ -112,16 +112,21 @@ namespace Game.Tests.PlayMode.E2E
             Assert.AreEqual(1, page.RoomInfos.Count, "서버가 요청한 페이지 크기를 지켜야 한다");
             Assert.GreaterOrEqual(page.TotalCount, 2, "전체 활성 방 수는 페이지 크기와 무관하게 알려줘야 한다");
 
-            // 다음 페이지는 앞 페이지와 다른 방이어야 한다(안정 정렬이 없으면 여기서 겹친다).
-            var next = await LobbyService.GetRoomsAsync(new GetRoomsRequest
+            // 정렬·중복 검증은 **한 응답 안에서만** 한다.
+            // 두 번의 RPC 로 offset 0/1 을 비교하면, 그 사이 다른 클라이언트가 방을 만드는 순간
+            // 앞쪽 삽입으로 같은 방이 두 페이지에 나온다 — 그건 offset 페이징의 정상 동작이라 경합 테스트가 된다.
+            // (실측: 4290·4291 생성 → offset0=4291 → 다른 세션이 4292 생성 → offset1=4291)
+            // offset/limit 산술 자체는 서버 단위 테스트가 결정적으로 고정한다
+            // (DungeonLobbyServiceTests.GetActiveDungeonRooms_페이지들이_겹치지_않고_전체를_덮는다).
+            var twoAtOnce = await LobbyService.GetRoomsAsync(new GetRoomsRequest
             {
-                RoomCount = 1, Offset = 1
+                RoomCount = 2, Offset = 0
             }, Timeout());
 
-            Assert.IsTrue(next.Result.Success, next.Result.Message);
-            Assert.AreEqual(1, next.RoomInfos.Count);
-            Assert.AreNotEqual(page.RoomInfos[0].RoomId, next.RoomInfos[0].RoomId,
-                "offset 이 실제로 다음 방을 가리켜야 한다");
+            Assert.IsTrue(twoAtOnce.Result.Success, twoAtOnce.Result.Message);
+            Assert.AreEqual(2, twoAtOnce.RoomInfos.Count, "서버가 요청한 페이지 크기를 지켜야 한다");
+            Assert.AreNotEqual(twoAtOnce.RoomInfos[0].RoomId, twoAtOnce.RoomInfos[1].RoomId,
+                "한 페이지 안에 같은 방이 두 번 오면 안 된다");
         });
 
         [UnityTest]

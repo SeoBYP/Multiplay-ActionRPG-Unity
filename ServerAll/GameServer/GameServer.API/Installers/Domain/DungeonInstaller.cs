@@ -1,4 +1,4 @@
-using GameServer.Application.Domains.DungeonLobby;
+﻿using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.GameSession;
 using GameServer.Application.Domains.GameSession.Interfaces;
@@ -40,5 +40,9 @@ public class DungeonInstaller : IServiceInstaller
         services.AddHostedService<GameSessionReadyConsumer>();
         services.AddHostedService<RoomLifecycleConsumer>();
         services.AddHostedService<DungeonResultConsumer>();
+
+        // 유령 방 정리 — 소켓이 붙은 적 없는 방은 PlayerLeft 이벤트가 안 나와 영원히 남는다.
+        services.Configure<DungeonRoomReaperOptions>(configuration.GetSection("DungeonRoomReaper"));
+        services.AddHostedService<DungeonRoomReaper>();
     }
 }

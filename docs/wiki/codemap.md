@@ -80,6 +80,266 @@
 > ⚠️ **재번호(2026-07-17)** — 원래 2.60~2.76 으로 매겨져 기존 항목(2.60 회피·2.61 콤보·2.62 로스터·2.63 캡슐)과 **번호가 충돌**했다. 과거 커밋 메시지·PR 본문의 참조는 아래 대조표로 읽는다:
 > 구2.60(애니)→**2.64** · 2.61(B1)→**2.65** · 2.62(B2)→**2.66** · 2.63(B3)→**2.67** · 2.64(B4)→**2.68** · 2.65(B5)→**2.69** · 2.66(B6)→**2.70** · 2.67(C3-hotfix)→**2.71** · 2.68(C3)→**2.72** · 2.69(infra)→**2.73** · 2.70(C1a)→**2.74** · 2.71(C1b)→**2.75** · 2.72(C1c준비)→**2.76** · 2.73(사망체력바)→**2.77** · 2.74(C2)→**2.78** · 2.75(링포화)→**2.79** · 2.76(E~H)→**2.80**
 
+### 2.109 전역 토큰 저장소 제거(F18) · 입력 맵 해제(F19) · keep-alive 를 시간 압축으로 관측 (2026-08-24)
+
+2.108 이 남긴 세 꼬리를 닫았다. 셋 다 **프로덕션 결함이라기보다 "전역 상태가 테스트를 흔든다"** 는 같은 뿌리였다.
+
+**① F18 — 인증 토큰 저장소가 프로세스 전역이었다**
+
+`TokenStorage` 는 `PlayerPrefs` 를 감싼 **정적 클래스**였고, 프로덕션 `AuthSession` 과 `AuthFlowE2ETests` 가 같은 키를 공유했다.
+그래서 에디터 자동 로그인·keep-alive 등 다른 곳이 테스트 도중 같은 키를 덮어쓸 수 있었다.
+(전체 실행에서 1회 `Expected: Success / But was: NeedLogin` — 단독 5/5·재실행 224/224 통과. **간섭 주체는 끝내 특정 못 했다.**)
+
+```
+before  AuthSession ──▶ static TokenStorage ──▶ PlayerPrefs   ◀── 에디터 자동로그인·다른 픽스처도 같은 곳
+after   AuthSession(ITokenStore) ──▶ PlayerPrefsTokenStore    (앱)
+                                  └▶ InMemoryTokenStore       (테스트 인스턴스 전용)
+```
+- **추측으로 고치지 않았다**: 이 변경이 그 플래키를 없앤다고 주장하지 않는다. 다만 *프로세스 전역 가변 상태를 테스트 경로에서 제거* 하는 건 그 자체로 옳고, 간섭이라는 **부류 전체**를 없앤다.
+- 인터페이스를 만든 근거는 unity-client.md 의 기준 중 "테스트에서 실제로 교체한다" — 정확히 이 경우다.
+- 정적 `TokenStorage` 는 **삭제**했다(호출자 0). `AuthService` 는 `_authSession.TryLoadPersisted(...)` 로 읽는다.
+
+**② F19 — 켠 입력 맵을 아무도 끄지 않았다**
+```
+GlobalInputInitializer.Initialize()  Enable() · Player.Enable() · UI.Enable()
+루트 teardown → PlayerInputActions.Dispose() → asset 파괴
+        └─ 종료자 assert "…Player.Disable() has not been called"
+              └─ 그때 실행 중이던 무관한 테스트에 붙어 실패시킨다
+```
+→ `IDisposable` 을 붙여 dispose 시 `Disable()`.
+⚠️ `asset == null` 로 가드하려 했더니 `InputActionAsset` 때문에 **asmdef 에 `Unity.InputSystem` 참조가 필요**해졌다.
+널 체크 하나로 참조를 늘리지 않고, 해제 순서 불확정만 try/catch 로 흡수한다(예외를 흘리면 스코프 teardown 전체가 깨진다).
+이 수정으로 `SessionKeepAliveTests` 의 `LogAssert.ignoreFailingMessages` 마스크를 **제거**했다 — 마스크 없이 3/3 통과.
+
+**③ "사람이 60분 넘게 플레이" 를 시간 압축으로 관측했다**
+
+`AccessTokenMinutes=60` 이라 실제로 기다릴 수 없다. 대신 **토큰 수명 200ms** 짜리 Fake 로 1초 안에 여러 수명 주기를 통과시킨다.
+```
+토큰_수명을_여러_번_넘겨도_세션이_계속_살아있다
+  수명 200ms · refreshAtRatio 0.5 · minDelay 20ms · 800ms 관측
+  → RefreshCount ≥ 3
+  → AlwaysRefreshedBeforeExpiry: 매 갱신이 그 시점 ExpiresAt 보다 앞섰다(= 끊긴 적 없음)
+```
+이제 "keep-alive 가 장시간 플레이를 버틴다" 는 미실측이 아니라 **고정된 불변식**이다.
+※ 다만 이건 클라 루프의 증명이고, *서버 JWT 가 실제로 만료된 뒤*까지 재현한 것은 아니다(서버 수명은 설정값이라 E2E 로는 압축 불가).
+
+**F15 유예(2h) 축소 — 근거는 생겼지만 바꾸지 않았다**
+touch 스로틀이 TTL/2(30분), keep-alive 가 수명의 60%(36분)이므로 **살아 있는 클라의 `activeUntil` 은 항상 미래**다(= lastTouch+60분).
+따라서 유예는 "앱이 백그라운드/절전으로 멈춘 시간"만 덮으면 된다. 2h 는 그 관점에선 넉넉하다 —
+줄이는 것은 모바일 백그라운드 허용치를 정하는 **정책 결정**이라 값만 바꾸지 않고 남겨 둔다(`DungeonRoomReaperOptions.Grace` 한 줄).
+
+**코드 위치**
+- 클라 `System/Auth/ITokenStore.cs`(신설: `ITokenStore` + `PlayerPrefsTokenStore`) · `AuthSession.cs`(주입·`TryLoadPersisted`) · `AuthService.cs` · `VContainer/Installers/AuthInstaller.cs` · **삭제** `System/Auth/TokenStorage.cs`
+- 클라 `VContainer/Initializer/GlobalInputInitializer.cs` — `IDisposable`
+- 테스트 `Tests/PlayMode/E2E/AuthFlowE2ETests.cs`(픽스처 전용 `InMemoryTokenStore`) · `Tests/PlayMode/Network/SessionKeepAliveTests.cs`(마스크 제거 + 시간 압축 1건)
+
+**검증**: Unity 컴파일 0오류 · `SessionKeepAliveTests` 3/3(마스크 없이) · **PlayMode PLAYMODE_RESULT**. 서버는 무변경(429/429 유지).
+⚠️ **미실측** = F18 플래키의 간섭 주체(재현 안 됨). 서버 JWT 실만료 이후 동작.
+
+### 2.108 생존 신호를 진짜로 만들기 — 세션 하트비트(F16) · 페이징 DB 푸시다운(B4) (2026-08-24)
+
+2.107 의 리퍼는 **근사 신호 + 2h 유예**로 버티고 있었다. 그 근사를 진짜 신호로 바꾸고, 겸사 페이징의 전량 조회를 걷어냈다.
+
+**착수하자마자 나온 진짜 버그**: 액세스 토큰 수명은 `appsettings.json` 의 `AccessTokenMinutes: 60` 인데
+클라이언트는 **콜드스타트(`TryAutoLoginAsync`)에서만** 갱신했다. 401 을 받아 갱신하는 경로도 없다
+(`RefreshTokenAsync` 호출자가 그 하나뿐). → **60분 넘게 플레이하면 그 뒤 모든 gRPC 가 Unauthenticated 로 죽는다.**
+하트비트를 "주기적 토큰 갱신"으로 구현하면 이 버그가 같이 닫히고, **proto 도 건드릴 필요가 없다**.
+
+**결정 ①: 전용 하트비트 RPC 를 만들지 않는다**
+갱신 자체가 이미 인증된 왕복이라 목적을 그대로 달성한다. 공개 계약(proto)을 늘리지 않는 쪽이 싸고,
+`rpc Heartbeat` 를 새로 파면 클라 `Generated/` 재생성까지 딸려 온다.
+
+```
+[서버] 인증된 활동 = 생존 신호
+ AuthInterceptor → AuthService.ValidateTokenAsync   (모든 인증 RPC)
+      └─ 검증 성공 후 TouchSessionAsync(sessionId)
+            ├─ 스로틀: 남은 수명이 절반 이상이면 아무것도 쓰지 않는다
+            ├─ DB    UserSession.Touch() → LastActiveAt = now   ← 죽은 필드를 살렸다
+            └─ Redis 세션 해시·TTL·session:active score·매핑을 새 수명으로 재기록
+
+[클라] SessionKeepAlive (ProjectScope EntryPoint)
+      인증 완료 대기 → 남은 수명의 60% 지점마다 RefreshTokenAsync
+      실패하면 조용히 멈춘다(상위 흐름이 로그인 화면 복귀를 처리)
+```
+
+**결정 ②: 스로틀을 저장소 안에 둔다**
+`ValidateTokenAsync` 는 요청마다 불린다. 갱신을 그대로 쓰면 **요청당 DB UPDATE + Redis 쓰기**가 붙는다.
+남은 수명이 절반 이상이면 조용히 반환하도록 `TouchSessionAsync` 가 스스로 판단한다 —
+호출자가 "언제 써야 하나"를 알 필요가 없다. touch 실패는 요청을 깨뜨리지 않는다(경고 로그만).
+
+**결정 ③: Redis 가 비어도 오탐하지 않는다**
+`GetSessionActiveUntilAsync` 는 `session:active` score 가 없으면 **DB `LastActiveAt + AccessToken 수명`** 으로 폴백한다.
+이게 없으면 Redis 를 한 번 비우는 순간 살아 있는 세션이 전부 "조용하다"로 보여 리퍼가 방을 쓸어버린다.
+
+**B4 — 페이징을 DB 로 내렸다**
+```
+before: GetAllActiveRoomsAsync() 로 전량 → 메모리에서 OrderBy/Skip/Take
+after : GetActiveRoomsPageAsync(offset, limit)
+          ORDER BY "RoomId" DESC OFFSET .. LIMIT ..  +  COUNT(*)
+```
+안정 정렬(RoomId 내림차순 = 최신 먼저)을 **저장소 계약에 못 박았다** — 페이징의 전제라 호출자가 다시 정렬하지 않는다.
+`ActiveRoomsPage(Rooms, TotalCount)` 로 총계를 함께 돌려줘 카운트 쿼리를 따로 부르지 않는다.
+
+**"미실측"이었던 것을 측정으로 바꿨다**
+리퍼 오탐(살아 있는 방을 끊는 것)은 "사람이 로비에 오래 있어 봐야 안다"고 남겨 뒀는데,
+실 Redis+PG 통합 테스트로 결정적으로 고정했다 — `DungeonRoomReaperIntegrationTests` 3건:
+활동 중인 세션의 방은 유예 0 에서도 안 끊긴다 / Redis 활성기록이 비어도 DB 폴백으로 지킨다 / 조용한 방은 정리된다.
+
+**코드 위치**
+- `GameServer.Domain/Entities/User/UserSession.cs` — `Touch()`
+- `GameServer.Application/Domains/User/Repositories/IUserSessionRepository.cs` — `TouchSessionAsync`
+- `GameServer.Infrastructure/Domains/User/UserSessionRepository.cs` — `TouchSessionAsync`(스로틀) · `ActiveUntilFromDatabaseAsync`(폴백)
+- `GameServer.Application/Domains/Auth/AuthService.cs` — `ValidateTokenAsync` 에서 touch
+- `GameServer.Application/Domains/DungeonLobby/Interfaces/{IDungeonRoomRepository,ActiveRoomsPage}.cs` · `Infrastructure/.../DungeonRoomRepository.GetActiveRoomsPageAsync`
+- 클라 `System/Auth/SessionKeepAlive.cs` · `VContainer/Installers/AuthInstaller.cs`
+- 테스트: `UserSessionRepositoryIntegrationTests`(touch·폴백 2) · `DungeonRoomRepositoryIntegrationTests`(페이지 1) · `DungeonRoomReaperIntegrationTests`(오탐 3) · 클라 `Tests/PlayMode/Network/SessionKeepAliveTests`(2)
+
+**TDD 실측(RED 확인)**: 구현 전 3건이 정확히 실패 —
+`Redis_활성기록이_사라져도...` → `Assert.NotNull() Failure: Value of type 'Nullable<DateTime>' does not have a value`,
+`활성_방_페이지는_DB에서...` → `Expected: 2 / Actual: 0`.
+
+**검증**: 서버 빌드 0오류 · **GameServer 429/429** · SocketServer 224/224 · Shared 50/50 · Unity 컴파일 0오류 · **PlayMode PLAYMODE_RESULT**(Docker E2E, gameserver 리빌드 후).
+⚠️ **미실측** = 실제 사람이 60분 넘게 플레이해 keep-alive 가 도는 것을 눈으로 본 적은 없다(단위·통합으로만 고정). 유예 2h 를 줄이는 것도 아직 안 했다 — 신호가 진짜가 됐으니 다음 라운드에서 조정 가능.
+
+### 2.107 방 목록이 흔들리던 원인 + Register 롤백 자기파괴 + 유령 방 리퍼 (2026-08-24)
+
+F2 검증 중 E2E 가 잡은 실패 3건을 추적하다 나온 별건 3개. 전부 "테스트 오염"으로 넘길 뻔했는데 둘은 제품 결함이었다.
+
+**① `GetRooms` 페이징이 겹치던 진짜 이유 — 컬렉션 전체에 걸린 TTL (F3 와 같은 병)**
+
+`SetDungeonRoomCacheAsync` 는 방을 캐시할 때마다 **집합 전체**에 TTL 을 새로 건다:
+```
+SADD   game:room:active {roomId}
+EXPIRE game:room:active 30m      ◀── 항목별이 아니라 집합 전체
+```
+그래서 `GetAllActiveRoomsAsync` 가 두 세계를 오갔다:
+```
+활성셋 존재 + 전원 해석 성공 → 그 집합만 반환      (실측 34)
+활성셋 없음/불완전          → DB 전량 반환         (실측 1946)
+```
+연속된 `GetRooms(offset=0)`/`(offset=1)` 이 서로 다른 세계를 보면 같은 방이 두 페이지에 나온다 —
+E2E 의 `Expected: not equal to 3671 / But was: 3671` 이 이것이다. **정렬(`OrderByDescending(RoomId)`)은 이미 있었다.
+문제는 정렬이 아니라 소스 집합이 흔들린 것.**
+→ 목록·카운트의 진실을 **DB 단일화**(`AsNoTracking`). networking.md 의 "최신 상태는 항상 DB 에서 읽는다"와 일치하고,
+   N+1 Redis 왕복과 "DB 폴백 때마다 전 방을 재캐싱하던" 낭비도 사라진다. `GetActiveRoomCountAsync` 도 같은 병이라 함께 고쳤다
+   (호출자 0건이지만 고친 목록 옆에 같은 함정을 남길 수 없다 — 죽은 API 제거는 별건).
+   ⚠️ 전량 조회 자체의 한계는 그대로 = 백로그 **B4**(DB 페이징 푸시다운).
+
+   **⚠️ 이 수정이 E2E 실패를 없애지는 못했다 — 그건 원인이 달랐다.** 고친 뒤에도 같은 테스트가 깨져 서버 로그를 봤더니:
+```
+CreateRoom → 4290 (Paging A) → 4291 (Paging B)
+GetRooms(offset 0, count 1)  session 660a → 4291
+CreateRoom → 4292            session 665c   ◀── 다른 클라이언트가 그 사이에 방 생성
+GetRooms(offset 1, count 1)  session 660a → 4291   (앞쪽 삽입으로 한 칸 밀림)
+```
+   **offset 페이징은 두 호출 사이의 앞쪽 삽입에 원래 취약하다** — 같은 항목이 두 페이지에 나오는 게 정상 동작이다.
+   테스트가 "전역 목록이 두 RPC 사이에 고정"이라고 전제한 것이 틀렸다. offset/limit 산술은 이미 결정적 단위 테스트
+   (`GetActiveDungeonRooms_페이지들이_겹치지_않고_전체를_덮는다`)가 덮고 있으므로, E2E 는 **한 응답 안에서만**
+   크기·중복을 검증하도록 바꿨다(`RoomCount=2` 한 번 호출). 데이터를 지워 감추지 않고 전제를 고쳤다.
+
+**② Register 롤백이 실패한 Insert 를 다시 커밋했다**
+```
+CreateAsync(credential)  SaveChanges ✗ UNIQUE
+        └─ 실패한 엔티티가 Added 로 계속 추적됨
+catch → RemoveAsync(profile) → SaveChanges  ◀── 남은 Insert 재시도 → 같은 예외
+```
+결과: 원래 사유(중복 이메일)가 `INTERNAL_SERVER_ERROR` 로 뭉개지고, 롤백이 끝나지 못해 고아 레코드가 남는다.
+→ **실패한 저장소가 자기 엔티티만 Detached 로 되돌린다**(`UserCredentialRepository.CreateAsync`).
+   ⚠️ **처음엔 `GameServerDbContext.SaveChangesAsync` 오버라이드로 전역 정책을 걸었다가 되돌렸다.**
+   실데이터로 리퍼를 돌리자 `ArgumentOutOfRangeException: Unexpected entry.EntityState: Detached` 가 났다 —
+   Added 를 통째로 떼면 그 DbContext 를 계속 쓰는 호출자에서 변경 추적기가 깨진다.
+   설계 때 "너무 넓다"고 저울질하다 DRY 를 택했던 판단이 틀렸고, **실행이 그걸 잡았다.**
+   ※ UNIQUE 위반 → `EmailAlreadyTaken` 번역은 **하지 않았다**. 사전 검사를 통과한 진짜 레이스에서만 도달해 테스트로 못 박을 수 없고,
+     로그에는 원인이 그대로 남는다.
+
+**③ 유령 방 리퍼 — 먼저 "생존 신호가 없다"를 확인해야 했다**
+
+DB 실측: `Waiting 733 / Playing 1275 / Closed 0`. 방을 만들고 앱을 종료하면 **소켓이 붙은 적이 없어 PlayerLeft 이벤트가 안 나오고**,
+`RemovePlayerFromRoomAsync` 는 영원히 호출되지 않는다. 테스트 위생이 아니라 프로덕션 누수다.
+
+리퍼를 세션 기반으로 만들려다 재료부터 실측했더니 **생존 신호 자체가 없었다**:
+| 후보 | 실측 |
+|---|---|
+| `UserSession.LastActiveAt` | Create/Restore 에서만 대입. 갱신 지점 **0곳** = 로그인 시각으로 고정된 죽은 필드 |
+| `CleanupExpiredSessionsAsync` | 프로덕션 호출자 **0곳** |
+| 클라 `AuthService` | 콜드스타트에서만 refresh. **주기적 하트비트 없음** |
+| DB `UserSession` 행 | 로그아웃 전까지 남음 → 생존이 아님 |
+
+쓸 수 있는 건 하나뿐이었다 — `session:active` 의 score 는 세션 캐시가 만료된 뒤 다음 인증 RPC 에서
+`SetSessionCacheAsync` 가 다시 찍는다. 그래서 **"최근 인증 RPC + AccessToken 수명"의 근사값**으로 동작한다(15분 해상도).
+
+```
+DungeonRoomReaper (BackgroundService, 10분 주기)   ← "언제/어떤 스코프에서 도는가"
+   ├─ 목록 스코프 1개로 활성 방 id 수집
+   └─ 방마다 **새 스코프**(= 새 DbContext)
+        └─ IDungeonLobbyService.ReapRoomIfAbandonedAsync(roomId)   ← 판정·정리
+             플레이어 0명            → 방 직접 삭제(고아)
+             전원 조용(유예 2h 초과) → 플레이어마다 RemovePlayerFromRoomAsync
+                                       └─ 마지막 한 명에서 기존 로직이 방을 삭제
+             한 명이라도 활동 흔적    → 건드리지 않음
+```
+- **방 단위로 쪼갠 이유(실측)**: 처음엔 한 스코프로 전량을 돌렸는데, 한 방의 저장 실패가 그 DbContext 를 오염시켜
+  **뒤따르는 방까지 연쇄로 실패**했다(`Reap pass failed: INTERNAL_SERVER_ERROR`).
+  `DungeonRoomJoinConcurrencyTests` 가 이미 "요청마다 DbContext 를 새로 만든다"고 적어 둔 교훈을 리퍼에서 어겼던 것.
+- **기존 퇴장 경로를 재사용**한 이유: 채팅 구독 해제·준비 상태·호스트 이양·빈 방 삭제가 이미 그 안에 있고 멱등이다. 삭제 로직을 새로 쓰지 않는다.
+- **유예 2시간**(`DungeonRoomReaperOptions.Grace`): 신호가 하트비트가 아니라 근사값이라 해상도가 거칠다.
+  살아 있는 방을 끊는 쪽이 훨씬 나쁜 실패라서 넉넉히 잡았다. **정식 하트비트가 생기면 줄일 수 있다**(백로그).
+- 신호가 아예 없으면(세션 소멸) 조용한 것으로 본다.
+- BackgroundService 는 어떤 예외도 루프 밖으로 내보내지 않는다(주기 실패는 로그만, 다음 주기 재시도).
+
+**코드 위치**
+- `GameServer.Infrastructure/Domains/DungeonRoom/DungeonRoomRepository.cs` — `GetAllActiveRoomsAsync` · `GetActiveRoomCountAsync`
+- `GameServer.Infrastructure/Domains/User/UserCredentialRepository.cs` — `CreateAsync` 저장 실패 시 detach
+- `GameServer.Application/Domains/DungeonLobby/DungeonLobbyService.cs` — `ReapRoomIfAbandonedAsync` · `AllPlayersSilentAsync` / `DungeonRoomReaperOptions.cs`
+- `GameServer.Infrastructure/Common/DungeonRoomReaper.cs` · `GameServer.API/Installers/Domain/DungeonInstaller.cs`
+- `GameServer.Application/Domains/User/Repositories/IUserSessionRepository.cs` + `Infrastructure/Domains/User/UserSessionRepository.cs` — `GetSessionActiveUntilAsync`
+
+**TDD 실측(RED 확인)**
+- `활성_방_목록은_Redis_활성셋이_불완전해도_DB의_활성_방을_전부_돌려준다` → `Collection: [RoomId = 1, RoomId = 2]` (roomC 소멸)
+- `생성_실패는_같은_DbContext의_다음_저장을_오염시키지_않는다` → `UserProfileRepository.RemoveAsync ... line 112` 에서 같은 UNIQUE 위반
+- 리퍼 3건은 스텁(항상 미정리) 대비 2 실패 / 1 통과 — "살아있으면 유지"가 스텁으로도 통과하는 것까지 확인해 테스트가 방향을 제대로 잡았는지 봤다
+
+**검증**: 서버 빌드 0오류 · **GameServer 423/423** · SocketServer 224/224 · Shared 50/50 · Unity 컴파일 0오류 · **PlayMode 222/222**(Docker E2E, gameserver 리빌드 후) · 리퍼 실동작 464개 방 정리 · 실패 0건 · 누적 유령 방 2008 → 0.
+⚠️ **미실측** = 정식 하트비트 도입 후의 유예 축소, 그리고 사람이 로비에 오래 머무는 실제 세션에서의 오탐 여부.
+
+### 2.106 Refresh 실패의 세션 파괴 = DoS 벡터 제거 (F2, 2026-08-23)
+
+**문제(백로그보다 한 겹 깊었다)**: `RefreshTokenAsync` 는 만료된 accessToken 도 통과시킨다(의도, 테스트로 고정). 백로그 F2 는 "해시 불일치에 세션을 파괴한다"만 적었는데, 실제로는 **버전 역행 검사(`submittedVersion < RefreshTokenVersion`)가 해시 비교보다 앞**에 있었다. 그 검사는 공격자가 고르는 정수 하나만 본다 → 유출된 만료 accessToken 하나 + `aaa.0` 으로 **해시 비교에 도달하기도 전에** `TokenReuseDetected` + 세션 파괴가 났다. **OAuth BCP 의 표준 처방("무효화를 재사용 탐지로 한정")을 그대로 적용해도 DoS 가 남는 구조**였다.
+
+**결정 ①: 파괴는 소유 증명 뒤에만**
+```
+해시 == 현재 세대  → 정상 회전
+해시 == 직전 세대  → 유예 이내 = 재시도(정상 회전) / 유예 경과 = 탈취 확정 → Clear + RemoveSession
+둘 다 아님        → 실패만 반환. 세션·토큰 그대로
+```
+버전 역행 비교는 **삭제**했다(위조 가능한 파괴 근거). `RefreshTokenVersion` 은 토큰 접미사 생성에만 남는다. 곁다리로 `credential.RefreshToken is null` 분기의 `RemoveSession` 도 제거 — 같은 원칙(증명 없는 파괴 금지)에 어긋났다.
+
+**결정 ②: 직전 세대 해시는 Redis 전용 휘발성**
+재사용 탐지에는 "구세대 토큰도 우리가 발급한 것"이라는 증명이 필요한데, 저장된 해시가 현재 세대 하나뿐이라 증명이 불가능했다(그래서 버전 정수로 때웠던 것). 한 세대만 남긴다.
+- 키 `game:user:credential:refresh:prev:{userId}`, 값 `"{해시}:{회전시각Unix초}"`, TTL = 리프레시 토큰 수명.
+- 한 키에 시각까지 담은 이유 = **읽기 1회로 해시 일치와 유예 경과를 동시에 판정**하려고.
+- DB 컬럼을 늘리지 않은 이유 = 이건 **탐지 신호**다. 캐시가 날아가면 탐지가 "그냥 실패"로 강등될 뿐 잘못된 파괴로 이어지지 않는다. 반대로 컬럼화하면 엔티티·`Restore`·EF 마이그레이션·Redis 해시·파서·Fake 5곳을 동시 수정해야 한다(2.105 의 준비 상태와 같은 판단).
+- 정리 지점: 로그인(새 체인) · 로그아웃 · 탈취 탐지 시 DEL.
+
+**결정 ③: 재시도 유예창 (`JwtOptions.RefreshReuseGraceSeconds`, 기본 60s)**
+재사용 탐지를 소박하게 넣으면 **라이브에서 정상 사용자를 대량 로그아웃**시킨다 — 응답 유실·타임아웃 재시도·앱 복귀 더블탭으로 같은 토큰이 두 번 도착하는 경로가 흔하다. 유예 안의 구세대 토큰은 재시도로 보고 정상 회전한다(소유 증명·deviceId 는 이미 통과한 요청이라 보안을 깎지 않는다).
+⚠️ **유예 재시도는 회전시각을 갱신하지 않는다** — 갱신하면 같은 토큰을 유예 안에서 계속 되밀어 탐지를 무한히 미룰 수 있다. 그래서 `SetPreviousRefreshTokenAsync` 는 `matchesCurrent` 일 때만 호출한다.
+
+**안 넣은 것**: 실패 레이트 리밋. 리프레시 토큰이 `RandomNumberGenerator` 32바이트라 추측 공격이 성립하지 않고, DoS 는 파괴를 없애서 이미 닫혔다(YAGNI).
+
+**응답 코드 영향 없음**: gRPC 표면(`AuthGrpcService.Refresh`)은 실패를 전부 `CreateFailureGrpcResult()` 로 뭉개므로 내부 코드가 `SessionExpired`→`InvalidRequest` 로 바뀌어도 클라 분기에 영향이 없다(클라 코드에 `TokenReuseDetected`/`SessionExpired` 참조 0건 확인).
+
+**코드 위치**
+- `GameServer.Application/Domains/Auth/AuthService.cs` — `RefreshTokenAsync`(재정렬·유예 판정) · `LoginAsync`/`LogoutAsync`(prev 정리) · `FixedTimeEqualsHex`
+- `GameServer.Application/Security/JwtOptions.cs` — `RefreshReuseGraceSeconds`
+- `GameServer.Application/Domains/User/Repositories/IUserCredentialRepository.cs` — `Set/Get/ClearPreviousRefreshTokenAsync` + `record PreviousRefreshToken`
+- `GameServer.Infrastructure/Domains/User/UserCredentialRepository.cs` · `Domains/RedisKeys.cs`(`UserRefreshTokenPrevious`)
+- 테스트: `GameServer.Tests/Application/Services/AuthServiceTests.cs`(신규 3 + 기존 2 의미 변경) · `Infrastructure/Integrations/UserCredentialRepositoryIntegrationTests.cs`(실 Redis 왕복 1) · `Infrastructure/Fakes/Repositories/FakeUserCredentialRepository.cs` · 클라 `Tests/PlayMode/E2E/Network/Https/AuthE2ETests.cs`(신규 2)
+
+**TDD 실측**: 구현 전 신규/변경 테스트 4건이 정확히 RED — 그중 `RefreshToken_위조된_리프레시_문자열로는_세션을_파괴할_수_없다` 는 `Assert.NotEqual() Failure: Values are equal / Expected: Not TokenReuseDetected / Actual: TokenReuseDetected` 로 **공격 성립을 재현**했다.
+
+**검증**: 서버 빌드 0오류 · `AuthServiceTests` 15/15 · `GameServer.Tests` 417/417(Testcontainers 통합 포함) · `SocketServer.Tests` 224/224 · Unity 컴파일 0오류 · **EditMode 231/231** · **PlayMode 222/222**(Docker E2E — gameserver 이미지 리빌드 후). ⚠️ **미실측** = 실제 클라이언트에서 사람이 재접속·토큰 만료를 겪는 조작 감각.
+
 ### 2.105 대기실 준비(Ready) 상태 + 던전 입장 원자성(F1) (2026-08-23)
 
 **요구**: 호스트를 뺀 전원이 "준비"를 눌러야 호스트가 던전을 시작할 수 있다. 겸사 같은 경로에 있던 F1(입장 원자성)을 함께 닫았다.

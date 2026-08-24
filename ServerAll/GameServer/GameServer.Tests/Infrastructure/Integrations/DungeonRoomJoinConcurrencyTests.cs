@@ -12,6 +12,7 @@ using GameServer.Tests.Infrastructure.Fakes.Repositories;
 using GameServer.Tests.Infrastructure.Fakes.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace GameServer.Tests.Infrastructure.Integrations;
@@ -52,6 +53,7 @@ public class DungeonRoomJoinConcurrencyTests(RepositoryTestFixture fixture)
             new ProgressionService(new FakeProgressionRepository(), new FakeEquipmentService()),
             new RedisRoomReadyStore(_fixture.RedisConnection),
             new RedisDistributedLock(_fixture.RedisConnection),   // ← 진짜 락 (검증 대상)
+            Options.Create(new DungeonRoomReaperOptions()),
             NullLogger<DungeonLobbyService>.Instance);
 
         return (service, context);

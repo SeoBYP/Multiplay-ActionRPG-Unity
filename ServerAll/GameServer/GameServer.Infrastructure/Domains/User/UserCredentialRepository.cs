@@ -1,4 +1,4 @@
-using GameServer.Application.Domains.User.Interfaces;
+﻿using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities.User;
 using GameServer.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +22,19 @@ public class UserCredentialRepository(
             var newUserCredential = UserCredential.Create(userId, email, passwordHash);
 
             var userCredentialEntry = await context.UserCredentials.AddAsync(newUserCredential, ct);
-            await context.SaveChangesAsync(ct);
+            try
+            {
+                await context.SaveChangesAsync(ct);
+            }
+            catch
+            {
+                // 실패한 Insert 를 Added 로 남기면, 호출자의 롤백(SaveChanges)이 그것을 다시 커밋하려다
+                // 같은 예외를 던진다 — 원인이 뭉개지고 롤백이 끝나지 못해 고아 레코드가 남는다.
+                // (DbContext 전역에 같은 정책을 걸었다가 리퍼처럼 한 스코프를 오래 쓰는 호출자에서
+                //  변경 추적기가 깨지는 것을 실측하고 이 자리로 좁혔다.)
+                userCredentialEntry.State = EntityState.Detached;
+                throw;
+            }
 
             var credential = userCredentialEntry.Entity;
             await SetUserCredentialAsync(credential);
@@ -157,6 +169,38 @@ public class UserCredentialRepository(
             logger.LogError(e, "Failed to clear refresh token for user {UserId}", userId);
             throw;
         }
+    }
+
+    public async Task SetPreviousRefreshTokenAsync(long userId, string hashedToken, DateTime rotatedAt, TimeSpan ttl,
+        CancellationToken ct = default)
+    {
+        // 값 = "해시:회전시각(Unix초)". 한 번의 읽기로 해시 일치와 유예 경과를 함께 판정하려고 한 키에 담는다.
+        var payload = $"{hashedToken}:{new DateTimeOffset(rotatedAt, TimeSpan.Zero).ToUnixTimeSeconds()}";
+        await _database.StringSetAsync(RedisKeys.UserRefreshTokenPrevious(userId), payload, ttl);
+    }
+
+    public async Task<PreviousRefreshToken?> GetPreviousRefreshTokenAsync(long userId, CancellationToken ct = default)
+    {
+        var value = await _database.StringGetAsync(RedisKeys.UserRefreshTokenPrevious(userId));
+        if (!value.HasValue)
+            return null;
+
+        var raw = value.ToString();
+        var separator = raw.LastIndexOf(':');
+        if (separator <= 0 || !long.TryParse(raw[(separator + 1)..], out var rotatedAtUnix))
+        {
+            logger.LogWarning("Previous refresh token record for user {UserId} is malformed", userId);
+            return null;
+        }
+
+        return new PreviousRefreshToken(
+            raw[..separator],
+            DateTimeOffset.FromUnixTimeSeconds(rotatedAtUnix).UtcDateTime);
+    }
+
+    public async Task ClearPreviousRefreshTokenAsync(long userId, CancellationToken ct = default)
+    {
+        await _database.KeyDeleteAsync(RedisKeys.UserRefreshTokenPrevious(userId));
     }
 
     public async Task<bool> RemoveAsync(long userId, CancellationToken ct = default)

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Text;
 using System.Text.RegularExpressions;
 using Cysharp.Threading.Tasks;
@@ -12,6 +12,16 @@ namespace Game.System.Auth
     public class AuthSession
     {
         private readonly UniTaskCompletionSource _authenticatedTcs = new();
+        private readonly ITokenStore _tokenStore;
+
+        /// <param name="tokenStore">
+        /// 영속 저장소. 기본은 PlayerPrefs 지만 테스트는 자기 인스턴스를 넣어
+        /// 프로세스 전역 저장소를 다른 코드와 공유하지 않는다.
+        /// </param>
+        public AuthSession(ITokenStore tokenStore = null)
+        {
+            _tokenStore = tokenStore ?? new PlayerPrefsTokenStore();
+        }
 
         public string AccessToken { get; private set; }
         public string RefreshToken { get; private set; }
@@ -36,7 +46,7 @@ namespace Game.System.Auth
             RefreshToken = refreshToken;
             ExpiresAt = expiresAt;
             UserId = ParseUserIdFromToken(accessToken);
-            TokenStorage.Save(accessToken, refreshToken, expiresAt);
+            _tokenStore.Save(accessToken, refreshToken, expiresAt);
             _authenticatedTcs.TrySetResult(); // 최초 인증 시 1회 신호 — 이후 호출은 무시됨
         }
 
@@ -61,6 +71,12 @@ namespace Game.System.Auth
         }
 
         /// <summary>
+        /// 영속 저장소에 남아 있는 토큰을 읽는다(콜드스타트 복구용).
+        /// </summary>
+        public bool TryLoadPersisted(out string accessToken, out string refreshToken, out long expiresAt)
+            => _tokenStore.TryLoad(out accessToken, out refreshToken, out expiresAt);
+
+        /// <summary>
         /// 메모리 세션과 저장된 토큰을 모두 제거한다.
         /// </summary>
         public void Clear()
@@ -68,7 +84,7 @@ namespace Game.System.Auth
             AccessToken = null;
             RefreshToken = null;
             ExpiresAt = 0;
-            TokenStorage.Clear();
+            _tokenStore.Clear();
         }
     }
 }
