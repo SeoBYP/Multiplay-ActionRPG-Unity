@@ -536,6 +536,11 @@ ExportedObj/
 # Unity3D generated file on crash reports
 sysinfo.txt
 
+# Unity 가 크래시 후 만드는 씬 복구 사본. Unity 가 스스로 생성·삭제하는 폴더라
+# 커밋 대상이 아니다(실측: Main.unity 의 1252-GameObject 사본 2개 = 6.4MB).
+# 빌드 씬 목록(EditorBuildSettings)·Addressables 어디에서도 참조되지 않는다.
+/Client/Assets/_Recovery/
+
 # Builds
 *.apk
 *.aab
@@ -575,3 +580,6 @@ ServerAll/Temp/obj
 
 # Claude 훅 중복 경고 방지 상태(로컬 전용)
 .claude/hooks/.state/
+
+# Codex CLI 의 머신 로컬 MCP 설정(localhost 주소). 사람마다 다르므로 커밋하지 않는다.
+/.codex/
