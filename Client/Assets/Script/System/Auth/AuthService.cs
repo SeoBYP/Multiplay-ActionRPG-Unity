@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Network.Https.Core;
@@ -51,7 +51,7 @@ namespace Game.System.Auth
         public async UniTask<AuthResult> TryAutoLoginAsync(CancellationToken ct)
         {
             // 저장된 토큰이 없으면 즉시 로그인 UI로 보낸다.
-            if (!TokenStorage.TryLoad(out var accessToken, out var refreshToken, out var expirationTime))
+            if (!_authSession.TryLoadPersisted(out var accessToken, out var refreshToken, out var expirationTime))
             {
                 Debug.Log("Token is not exist");
                 return AuthResult.NeedLogin;

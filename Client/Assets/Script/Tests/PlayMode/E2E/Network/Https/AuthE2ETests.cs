@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using Cysharp.Threading.Tasks;
 using GameServer.Grpc.Auth;
 using NUnit.Framework;
@@ -149,6 +149,52 @@ namespace Game.Tests.PlayMode.E2E
             }, Timeout());
 
             Assert.IsFalse(response.Result.Success);
+        });
+
+        [UnityTest]
+        public IEnumerator Refresh_잘못된_DeviceId_실패해도_정상_기기는_갱신된다() => UniTask.ToCoroutine(async () =>
+        {
+            var email = UniqueEmail();
+            await RegisterAndLoginAsync(email, "Test1234!");
+
+            var wrongDevice = await AuthService.RefreshAsync(new RefreshRequest
+            {
+                RefreshToken = RefreshToken,
+                DeviceId = "another-device"
+            }, Timeout());
+            Assert.IsFalse(wrongDevice.Result.Success);
+
+            // 소유 증명에 실패한 요청은 세션을 파괴하지 않는다 — 정상 기기가 그대로 갱신할 수 있어야 한다.
+            var normalDevice = await AuthService.RefreshAsync(new RefreshRequest
+            {
+                RefreshToken = RefreshToken,
+                DeviceId = "e2e-device"
+            }, Timeout());
+
+            Assert.IsTrue(normalDevice.Result.Success, normalDevice.Result.Message);
+        });
+
+        [UnityTest]
+        public IEnumerator Refresh_위조된_리프레시_문자열은_세션을_끊지_못한다() => UniTask.ToCoroutine(async () =>
+        {
+            var email = UniqueEmail();
+            await RegisterAndLoginAsync(email, "Test1234!");
+
+            // 유출된 accessToken 하나로 아무 문자열이나 던지는 DoS 시도(버전 역행 형식 포함)
+            var forged = await AuthService.RefreshAsync(new RefreshRequest
+            {
+                RefreshToken = "aaa.0",
+                DeviceId = "attacker-device"
+            }, Timeout());
+            Assert.IsFalse(forged.Result.Success);
+
+            var normalDevice = await AuthService.RefreshAsync(new RefreshRequest
+            {
+                RefreshToken = RefreshToken,
+                DeviceId = "e2e-device"
+            }, Timeout());
+
+            Assert.IsTrue(normalDevice.Result.Success, normalDevice.Result.Message);
         });
 
         [UnityTest]

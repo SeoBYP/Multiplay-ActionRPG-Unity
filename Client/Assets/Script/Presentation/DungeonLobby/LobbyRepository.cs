@@ -66,6 +66,17 @@ namespace Game.Presentation.DungeonLobby
         }
 
         public async UniTask<(bool IsSuccess, string Error)>
+            SetReadyAsync(bool isReady, CancellationToken ct = default)
+        {
+            Debug.Log($"[LobbyRepository] SetReady 요청 isReady={isReady}");
+            var result = await _service.SetReadyAsync(isReady, ct);
+            Debug.Log($"[LobbyRepository] SetReady 응답: {result}");
+            return result == DungeonLobbyResult.Success
+                ? (true, null)
+                : (false, result.ToString());
+        }
+
+        public async UniTask<(bool IsSuccess, string Error)>
             LeaveRoomAsync(CancellationToken ct = default)
         {
             Debug.Log("[LobbyRepository] LeaveRoom 요청");

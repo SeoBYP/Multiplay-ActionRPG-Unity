@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -1227,6 +1227,14 @@ namespace Game.Tests.PlayMode.E2E
                     RoomId = created.RoomInfo.RoomId
                 }, Timeout());
                 Assert.IsTrue(joined.Result.Success, joined.Result.Message);
+
+                // 호스트를 뺀 전원이 준비해야 StartRoom 이 통과한다(준비 게이트, 서버 권위).
+                var guestReady = await lobbyService.SetReadyAsync(new SetReadyRequest
+                {
+                    RoomId  = created.RoomInfo.RoomId,
+                    IsReady = true
+                }, Timeout());
+                Assert.IsTrue(guestReady.Result.Success, guestReady.Result.Message);
 
                 provider.AccessTokenProvider = () => hostLogin.AccessToken;
 

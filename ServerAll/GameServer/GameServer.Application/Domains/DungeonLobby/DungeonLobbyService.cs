@@ -1,4 +1,5 @@
-using GameServer.Application.Common;
+﻿using GameServer.Application.Common;
+using GameServer.Application.Common.Interfaces;
 using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.Outbox;
@@ -7,6 +8,7 @@ using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Domain.Entities;
 using GameServer.Domain.Entities.Outbox;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Shared.Infrastructure.Messages;
 using Shared.Infrastructure.Spawn;
 
@@ -21,8 +23,17 @@ public class DungeonLobbyService(
     IChatSubscriptionService chatSubscriptionService,
     IUserProfileRepository userProfileRepository,
     IProgressionService progressionService,
+    IRoomReadyStore roomReadyStore,
+    IDistributedLock distributedLock,
+    IOptions<DungeonRoomReaperOptions> reaperOptions,
     ILogger<DungeonLobbyService> logger) : IDungeonLobbyService
 {
+    /// <summary>
+    /// 방 단위 임계구역 키. "인원 수를 읽고 → 한 명 넣는다" 처럼 검사와 쓰기가 갈라진 구간을 감싼다.
+    /// (한 유저가 동시에 두 방에 들어가는 축은 dungeon_room_players.UserId UNIQUE 제약이 막는다)
+    /// </summary>
+    private static string RoomLockKey(long roomId) => $"room:{roomId}";
+
     public async Task<Result<DungeonRoom>> CreateDungeonRoomAsync(string sessionId, string roomName, int maxPlayers, string mapId = "", CancellationToken ct = default)
     {
         try
@@ -47,6 +58,11 @@ public class DungeonLobbyService(
             await dungeonRoomPlayerRepository.CreateAsync(newRoom.RoomId, userSession.UserId, ct);
             return Result<DungeonRoom>.Success(newRoom);
         }
+        catch (PlayerAlreadyInRoomException)
+        {
+            // check-then-act 가 경합에서 뚫렸을 때의 최종 방어선(UNIQUE 제약).
+            return Result<DungeonRoom>.Failure(ErrorCodes.AlreadyInRoom, ErrorMessages.AlreadyInRoom);
+        }
         catch (Exception e)
         {
             logger.LogError(e, "Failed to create dungeon room");
@@ -59,20 +75,14 @@ public class DungeonLobbyService(
     {
         try
         {
-            var all = (await dungeonRoomRepository.GetAllActiveRoomsAsync(ct))
-                .Where(data => data.Status != RoomStatus.Closed)
-                // 안정 정렬이 페이징의 전제다. 소스가 Redis Set(무순서)이라 정렬 없이 Skip/Take 하면
-                // 같은 페이지를 두 번 불러도 다른 방이 나오고 페이지 경계에서 방이 새거나 중복된다.
-                // RoomId 내림차순 = 최신 방 먼저(로비가 원하는 순서).
-                .OrderByDescending(data => data.RoomId)
-                .ToList();
+            // 정렬·건너뛰기·자르기는 DB 가 한다(B4). 안정 정렬(RoomId 내림차순 = 최신 먼저)이
+            // 페이징의 전제라 저장소 계약에 못 박아 두었다.
+            var page = await dungeonRoomRepository.GetActiveRoomsPageAsync(
+                DungeonLobbyPaging.ClampOffset(offset),
+                DungeonLobbyPaging.ClampLimit(limit),
+                ct);
 
-            var page = all
-                .Skip(DungeonLobbyPaging.ClampOffset(offset))
-                .Take(DungeonLobbyPaging.ClampLimit(limit))
-                .ToList();
-
-            return Result<ActiveRoomPage>.Success(new ActiveRoomPage(page, all.Count))!;
+            return Result<ActiveRoomPage>.Success(new ActiveRoomPage(page.Rooms, (int)page.TotalCount))!;
         }
         catch (Exception e)
         {
@@ -156,30 +166,81 @@ public class DungeonLobbyService(
             if (userSession is null)
                 return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
 
-            var room = await dungeonRoomRepository.GetByIdAsync(roomId, ct);
-            if (room is null)
-                return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
+            // 정원 검사와 입장 기록 사이에 다른 요청이 끼어들면 정원을 넘긴다.
+            // 검사~쓰기 전체를 방 단위 임계구역으로 묶는다(F1).
+            DungeonRoom room;
+            await using (await distributedLock.AcquireAsync(RoomLockKey(roomId), ct))
+            {
+                var found = await dungeonRoomRepository.GetByIdAsync(roomId, ct);
+                if (found is null)
+                    return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
 
-            if (room.Status != RoomStatus.Waiting)
-                return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, ErrorMessages.RoomNotWaiting);
+                room = found;
 
-            var existingRoomPlayer = await dungeonRoomPlayerRepository.GetByUserIdAsync(userSession.UserId, ct);
-            if (existingRoomPlayer is not null)
-                return Result<DungeonRoom>.Failure(ErrorCodes.AlreadyInRoom, ErrorMessages.AlreadyInRoom);
+                if (room.Status != RoomStatus.Waiting)
+                    return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, ErrorMessages.RoomNotWaiting);
 
-            var currentPlayers = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(roomId, ct);
-            if (currentPlayers.Count >= room.MaxPlayers)
-                return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, ErrorMessages.RoomFull);
+                var existingRoomPlayer = await dungeonRoomPlayerRepository.GetByUserIdAsync(userSession.UserId, ct);
+                if (existingRoomPlayer is not null)
+                    return Result<DungeonRoom>.Failure(ErrorCodes.AlreadyInRoom, ErrorMessages.AlreadyInRoom);
 
-            await dungeonRoomPlayerRepository.CreateAsync(roomId, userSession.UserId, ct);
+                var currentPlayers = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(roomId, ct);
+                if (currentPlayers.Count >= room.MaxPlayers)
+                    return Result<DungeonRoom>.Failure(ErrorCodes.JoinRoomFailed, ErrorMessages.RoomFull);
+
+                await dungeonRoomPlayerRepository.CreateAsync(roomId, userSession.UserId, ct);
+            }
+
+            // 새로 들어온 사람은 항상 미준비 상태로 시작한다(이전 방의 잔재 차단).
+            await roomReadyStore.SetReadyAsync(roomId, userSession.UserId, false, ct);
             await chatSubscriptionService.UpdateRoomSubscriptionAsync(sessionId, roomId, ct);
 
             await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
             return Result<DungeonRoom>.Success(room);
         }
+        catch (PlayerAlreadyInRoomException)
+        {
+            return Result<DungeonRoom>.Failure(ErrorCodes.AlreadyInRoom, ErrorMessages.AlreadyInRoom);
+        }
         catch (Exception e)
         {
             logger.LogError(e, "Failed to join room {RoomId}", roomId);
+            return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
+        }
+    }
+
+    public async Task<Result<DungeonRoom>> SetReadyAsync(string sessionId, long roomId, bool isReady, CancellationToken ct = default)
+    {
+        try
+        {
+            var userSession = await userSessionRepository.GetBySessionIdAsync(sessionId, ct);
+            if (userSession is null)
+                return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+
+            var room = await dungeonRoomRepository.GetByIdAsync(roomId, ct);
+            if (room is null)
+                return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotFound, ErrorMessages.RoomNotFound);
+
+            var roomPlayer = await dungeonRoomPlayerRepository.GetByUserIdAsync(userSession.UserId, ct);
+            if (roomPlayer is null || roomPlayer.RoomId != roomId)
+                return Result<DungeonRoom>.Failure(ErrorCodes.NotInRoom, ErrorMessages.NotInRoom);
+
+            // 시작 절차에 들어간 방의 준비 상태를 뒤집는 것은 의미가 없다.
+            if (room.Status != RoomStatus.Waiting)
+                return Result<DungeonRoom>.Failure(ErrorCodes.RoomNotWaiting, ErrorMessages.RoomNotWaiting);
+
+            // 호스트는 준비 개념이 없다 — 시작 버튼이 곧 호스트의 의사표시다.
+            if (room.IsHost(userSession.UserId))
+                return Result<DungeonRoom>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
+
+            await roomReadyStore.SetReadyAsync(roomId, userSession.UserId, isReady, ct);
+            await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
+
+            return Result<DungeonRoom>.Success(room);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to set ready state for room {RoomId}", roomId);
             return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
     }
@@ -207,12 +268,14 @@ public class DungeonLobbyService(
                 .ToList();
 
             await dungeonRoomPlayerRepository.RemoveAsync(roomId, userSession.UserId, ct);
+            await roomReadyStore.SetReadyAsync(roomId, userSession.UserId, false, ct);
             await chatSubscriptionService.UpdateRoomSubscriptionAsync(sessionId, 0, ct);
 
             if (remainingPlayers.Count == 0)
             {
                 room.Close();
                 await dungeonRoomPlayerRepository.RemoveByRoomIdAsync(roomId, ct);
+                await roomReadyStore.ClearAsync(roomId, ct);
 
                 var deleted = await dungeonRoomRepository.DeleteAsync(roomId, ct);
                 if (!deleted)
@@ -261,6 +324,26 @@ public class DungeonLobbyService(
                 return Result<DungeonRoom>.Failure(ErrorCodes.NotRoomHost, ErrorMessages.NotRoomHost);
 
             var players = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(roomId, ct);
+
+            // 준비 게이트 — 호스트를 뺀 전원이 준비해야 시작된다(서버 권위).
+            // 클라의 버튼 비활성화는 UX일 뿐이라 여기서 다시 판정한다.
+            // Waiting 일 때만 본다: Starting/Playing 재시도 경로는 이미 준비 목록이 비워진 뒤라 판정 대상이 아니다.
+            if (room.Status == RoomStatus.Waiting)
+            {
+                var readyUserIds = await roomReadyStore.GetReadyUserIdsAsync(roomId, ct);
+                var notReady = players
+                    .Where(player => !room.IsHost(player.UserId) && !readyUserIds.Contains(player.UserId))
+                    .Select(player => player.UserId)
+                    .ToList();
+
+                if (notReady.Count > 0)
+                {
+                    logger.LogInformation(
+                        "StartGame rejected for room {RoomId} — {Count} player(s) not ready: {UserIds}",
+                        roomId, notReady.Count, string.Join(",", notReady));
+                    return Result<DungeonRoom>.Failure(ErrorCodes.NotAllPlayersReady, ErrorMessages.NotAllPlayersReady);
+                }
+            }
 
             var playerInfos = new List<PlayerInfo>();
             for (int i = 0; i < players.Count; i++)
@@ -348,6 +431,8 @@ public class DungeonLobbyService(
 
             await outboxRepository.AddWithRoomUpdateAsync(room, outboxMessage, ct);
             await dungeonRoomRepository.InvalidateCacheAsync(roomId, ct);
+            // 시작이 확정된 방의 준비 목록은 더 이상 의미가 없다.
+            await roomReadyStore.ClearAsync(roomId, ct);
 
             await dungeonLobbySubscriptionService.PublishAsync(roomId, ct);
             return Result<DungeonRoom>.Success(room);
@@ -420,6 +505,7 @@ public class DungeonLobbyService(
 
             // 1. association 제거 — 재로그인 시 CurrentRoomId로 복원되지 않게 한다.
             await dungeonRoomPlayerRepository.RemoveAsync(roomId, userId, ct);
+            await roomReadyStore.SetReadyAsync(roomId, userId, false, ct);
 
             // 2. 채팅 방 구독 해제 — userId로 세션을 찾아 처리.
             var userSession = await userSessionRepository.GetSessionByUserIdAsync(userId, ct);
@@ -430,6 +516,7 @@ public class DungeonLobbyService(
             {
                 // 3a. 빈 방 → 삭제 (gRPC LeaveRoom 빈방 경로와 통일).
                 await dungeonRoomPlayerRepository.RemoveByRoomIdAsync(roomId, ct);
+                await roomReadyStore.ClearAsync(roomId, ct);
                 var deleted = await dungeonRoomRepository.DeleteAsync(roomId, ct);
                 if (!deleted)
                     return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.DeleteRoomFailed);
@@ -458,5 +545,72 @@ public class DungeonLobbyService(
             logger.LogError(e, "RemovePlayerFromRoomAsync failed for room {RoomId} user {UserId}", roomId, userId);
             return Result<DungeonRoom>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
         }
+    }
+
+    public async Task<Result<bool>> ReapRoomIfAbandonedAsync(long roomId, CancellationToken ct = default)
+    {
+        try
+        {
+            DungeonRoom? room;
+            try
+            {
+                room = await dungeonRoomRepository.GetByIdAsync(roomId, ct);
+            }
+            catch (KeyNotFoundException)
+            {
+                room = null;
+            }
+
+            // 이미 사라진 방 = 멱등 no-op.
+            if (room is null || room.Status == RoomStatus.Closed)
+                return Result<bool>.Success(false);
+
+            var players = await dungeonRoomPlayerRepository.GetPlayersByRoomIdAsync(roomId, ct);
+
+            if (players.Count == 0)
+            {
+                // association 이 하나도 없는 고아 방 — 뺄 사람이 없으니 방을 직접 지운다.
+                await dungeonRoomRepository.DeleteAsync(roomId, ct);
+                logger.LogInformation("[Reaper] Deleted orphan room {RoomId} (no players)", roomId);
+                return Result<bool>.Success(true);
+            }
+
+            var silentBefore = DateTime.UtcNow - reaperOptions.Value.Grace;
+            if (!await AllPlayersSilentAsync(players, silentBefore, ct))
+                return Result<bool>.Success(false);
+
+            // 기존 퇴장 경로를 그대로 쓴다 — 채팅 구독 해제·준비 상태·호스트 이양·빈 방 삭제가
+            // 이미 그 안에서 처리된다(마지막 한 명을 빼는 순간 방이 사라진다).
+            foreach (var player in players)
+                await RemovePlayerFromRoomAsync(roomId, player.UserId, ct);
+
+            logger.LogInformation("[Reaper] Reaped abandoned room {RoomId} ({PlayerCount} silent players)",
+                roomId, players.Count);
+            return Result<bool>.Success(true);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "ReapRoomIfAbandonedAsync failed for room {RoomId}", roomId);
+            return Result<bool>.Failure(ErrorCodes.InternalServerError, ErrorMessages.InternalServerError);
+        }
+    }
+
+    private async Task<bool> AllPlayersSilentAsync(
+        IReadOnlyCollection<DungeonRoomPlayer> players, DateTime silentBefore, CancellationToken ct)
+    {
+        foreach (var player in players)
+        {
+            var activeUntil = await userSessionRepository.GetSessionActiveUntilAsync(player.UserId, ct);
+
+            // 신호가 없으면(세션 자체가 사라짐) 조용한 것으로 본다.
+            if (activeUntil is null)
+                continue;
+
+            // 한 명이라도 유예 안에 활동 흔적이 있으면 그 방은 건드리지 않는다.
+            if (activeUntil.Value > silentBefore)
+                return false;
+        }
+
+        return true;
     }
 }

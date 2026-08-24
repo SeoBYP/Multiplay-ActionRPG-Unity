@@ -1,9 +1,11 @@
-using System.Globalization;
+﻿using System.Globalization;
+using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Domain.Entities;
 using GameServer.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using StackExchange.Redis;
 
 namespace GameServer.Infrastructure.Domains.DungeonRoom;
@@ -13,6 +15,9 @@ public class DungeonRoomPlayerRepository(
     GameServerDbContext context,
     ILogger<DungeonRoomPlayerRepository> logger) : IDungeonRoomPlayerRepository
 {
+    /// <summary>PostgreSQL unique_violation SQLSTATE.</summary>
+    private const string UniqueViolation = "23505";
+
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
 
     public async Task<DungeonRoomPlayer> CreateAsync(long roomId, long userId, CancellationToken ct = default)
@@ -28,6 +33,14 @@ public class DungeonRoomPlayerRepository(
             await SetDungeonRoomPlayerCacheAsync(player);
 
             return player;
+        }
+        catch (DbUpdateException e) when (e.InnerException is PostgresException { SqlState: UniqueViolation })
+        {
+            // UserId UNIQUE 제약 = "한 유저는 한 방만"의 최종 방어선.
+            // DB 예외 타입이 Application 까지 새지 않도록 도메인 예외로 번역한다.
+            context.ChangeTracker.Clear();
+            logger.LogWarning(e, "User {UserId} is already in a room — rejected join to room {RoomId}", userId, roomId);
+            throw new PlayerAlreadyInRoomException(userId);
         }
         catch (Exception e)
         {

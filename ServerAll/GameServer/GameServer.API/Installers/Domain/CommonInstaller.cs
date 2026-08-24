@@ -7,7 +7,7 @@ public class CommonInstaller : IServiceInstaller
 {
     public void Install(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddSingleton<IUserLock, RedisUserLock>();
+        services.AddSingleton<IDistributedLock, RedisDistributedLock>();
         services.AddSingleton<IProfanityFilter, ProfanityFilter>();
     }
 }

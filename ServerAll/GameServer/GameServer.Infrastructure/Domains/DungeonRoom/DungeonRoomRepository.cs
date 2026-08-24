@@ -108,38 +108,43 @@ public class DungeonRoomRepository(
     {
         try
         {
-            // 1. 활성 RoomId 목록 조회
-            var roomIdsValues = await _database.SetMembersAsync(RedisKeys.DungeonRoomActive());
-            if (roomIdsValues.Length > 0)
-            {
-                var rooms = new List<Domain.Entities.DungeonRoom>(roomIdsValues.Length);
-                foreach (var idValue in roomIdsValues)
-                {
-                    if (long.TryParse(idValue.ToString(), out var roomId))
-                    {
-                        var room = await GetByIdAsync(roomId, ct);
-                        if (room is not null && room.Status != RoomStatus.Closed)
-                            rooms.Add(room);
-                    }
-                }
-
-                if (rooms.Count == roomIdsValues.Length)
-                    return rooms;
-            }
-
-            // 2. 캐시가 불완전한 경우 DB에서 전체 활성 방 조회
-            var dbActiveRooms = await context.DungeonRooms
+            // 목록의 진실은 DB 다. `room:active` 집합을 근거로 삼지 않는다 —
+            // 그 집합은 항목별이 아니라 **집합 전체**에 TTL 이 걸려 있어(SetDungeonRoomCacheAsync)
+            // 만료 뒤 최근 접근분만 재적재된다. 멤버십이 수시로 흔들리므로 목록이 그걸 믿으면
+            // ① DB 에 살아 있는 방이 통째로 사라지고
+            // ② 연속 호출이 서로 다른 집합을 봐서 페이징에서 같은 방이 두 페이지에 나온다.
+            // (전량 조회 자체의 성능 한계는 별건 — 백로그 B4 의 DB 페이징 푸시다운)
+            return await context.DungeonRooms
                 .AsNoTracking()
                 .Where(r => r.Status != RoomStatus.Closed)
                 .ToListAsync(ct);
-
-            await Task.WhenAll(dbActiveRooms.Select(SetDungeonRoomCacheAsync));
-
-            return dbActiveRooms;
         }
         catch (Exception e)
         {
             logger.LogError(e, "Failed to get all active dungeon rooms");
+            throw;
+        }
+    }
+
+    public async Task<ActiveRoomsPage> GetActiveRoomsPageAsync(int offset, int limit, CancellationToken ct = default)
+    {
+        try
+        {
+            // B4: 전량을 읽어 메모리에서 자르지 않는다. 정렬·건너뛰기·자르기를 전부 DB 가 한다.
+            var query = context.DungeonRooms.AsNoTracking().Where(r => r.Status != RoomStatus.Closed);
+
+            var total = await query.LongCountAsync(ct);
+            var rooms = await query
+                .OrderByDescending(r => r.RoomId)
+                .Skip(offset)
+                .Take(limit)
+                .ToListAsync(ct);
+
+            return new ActiveRoomsPage(rooms, total);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to get active dungeon room page (offset {Offset}, limit {Limit})", offset, limit);
             throw;
         }
     }
@@ -149,9 +154,8 @@ public class DungeonRoomRepository(
     /// </summary>
     public async Task<long> GetActiveRoomCountAsync(CancellationToken ct = default)
     {
-        var count = await _database.SetLengthAsync(RedisKeys.DungeonRoomActive());
-        if (count > 0) return count;
-
+        // 목록과 같은 이유로 `room:active` 크기를 세지 않는다 — 집합 전체 TTL 때문에
+        // 멤버십이 흔들려 실제보다 훨씬 작은 수를 "참"으로 돌려준다.
         return await context.DungeonRooms.CountAsync(r => r.Status != RoomStatus.Closed, ct);
     }
 

@@ -24,6 +24,8 @@ service DungeonLobbyService{
   rpc LeaveRoom(LeaveRoomRequest) returns (LeaveRoomResponse);
   // 방 시작
   rpc StartRoom(StartRoomRequest) returns (StartRoomResponse);
+  // 준비 상태 토글 (호스트 제외 — 호스트는 준비 개념이 없다)
+  rpc SetReady(SetReadyRequest) returns (SetReadyResponse);
 
   // 방 구독 시작
   rpc SubscribeRoom(SubscribeRoomRequest) returns (stream SubscribeRoomResponse);
@@ -101,6 +103,16 @@ message StartRoomResponse{
   RoomInfo room_info = 2;
 }
 
+message SetReadyRequest{
+  int64 room_id = 1;
+  bool is_ready = 2;
+}
+
+message SetReadyResponse{
+  gameserver.common.Result result = 1;
+  RoomInfo room_info = 2;
+}
+
 message UpdateRoomRequest{
   int64 room_id = 1;
   string room_name = 2;
@@ -148,6 +160,12 @@ message RoomInfo{
   RoomStatusType status = 6;
   // 이 방이 플레이할 던전(spawn-layouts.json 키). 방 생성 시 결정·영속(4.3). 로비 목록/상세 표시용.
   string map_id = 7;
+  // 준비 완료한 플레이어의 public_id 집합. 호스트는 포함되지 않는다(준비 개념 없음 = 항상 준비).
+  // 서버 Redis 전용 휘발성 상태라 방이 사라지면 함께 사라진다.
+  repeated string ready_public_ids = 8;
+  // host_user_id 의 공개 식별자. current_players 가 public_id 로만 식별되므로,
+  // 클라가 "이 슬롯이 방장인가 / 내가 방장인가"를 한 키로 판정할 수 있게 함께 싣는다.
+  string host_public_id = 9;
 }
 
 enum RoomStatusType{

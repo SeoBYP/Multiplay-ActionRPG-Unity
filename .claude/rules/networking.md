@@ -52,6 +52,7 @@ session:{sessionId}              → Hash
 session:active                   → Sorted Set (score = 만료 Unix timestamp)
 room:{roomId}                    → Hash
 room:active                      → Set
+room:ready:{roomId}              → Set (대기실 준비 완료 userId — DB 아닌 Redis 전용 휘발성)
 
 stream:room:{roomId}             → Stream (던전 로비 이벤트)
 stream:game:start                → Stream (GameServer → SocketServer)

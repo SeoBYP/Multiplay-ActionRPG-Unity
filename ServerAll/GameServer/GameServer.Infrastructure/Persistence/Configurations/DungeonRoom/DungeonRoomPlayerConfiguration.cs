@@ -19,7 +19,9 @@ public class DungeonRoomPlayerConfiguration : IEntityTypeConfiguration<DungeonRo
         builder.Property(x => x.JoinedAt)
             .IsRequired();
 
-        builder.HasIndex(x => x.UserId);
+        // UNIQUE — "한 유저는 한 방만"을 DB가 강제한다.
+        // 서비스의 사전 검사는 경합에서 뚫리므로(check-then-act) 제약이 최종 방어선이다.
+        builder.HasIndex(x => x.UserId).IsUnique();
 
         builder.ToTable("dungeon_room_players");
     }

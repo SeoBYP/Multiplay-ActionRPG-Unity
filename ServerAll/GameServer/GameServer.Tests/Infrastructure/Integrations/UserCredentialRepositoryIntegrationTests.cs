@@ -1,5 +1,6 @@
 ﻿using GameServer.Infrastructure.Domains;
 using GameServer.Infrastructure.Domains.User;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GameServer.Tests.Infrastructure.Integrations;
@@ -157,6 +158,62 @@ public class UserCredentialRepositoryIntegrationTests
 
         Assert.False(await db.KeyExistsAsync(RedisKeys.UserCredential(user.UserId)));
         Assert.False(await db.KeyExistsAsync(RedisKeys.UserCredentialEmailMapping("delete@example.com")));
+    }
+
+    [Fact]
+    public async Task 직전_세대_리프레시_토큰_기록은_해시와_회전시각을_그대로_되돌린다()
+    {
+        using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var user = await userRepo.CreateAsync();
+
+        var repository = new UserCredentialRepository(_fixture.RedisConnection, context, NullLogger<UserCredentialRepository>.Instance);
+        var db = _fixture.RedisConnection.GetDatabase();
+
+        // 실제 저장 형식(헥사 해시)과 같게 — 값 안에 ':' 가 없어야 파싱이 성립하는지까지 본다.
+        var hashedToken = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData("token-and-device"u8.ToArray()));
+        var rotatedAt = new DateTime(2026, 8, 23, 1, 2, 3, DateTimeKind.Utc);
+
+        await repository.SetPreviousRefreshTokenAsync(user.UserId, hashedToken, rotatedAt, TimeSpan.FromHours(24));
+
+        var restored = await repository.GetPreviousRefreshTokenAsync(user.UserId);
+        Assert.NotNull(restored);
+        Assert.Equal(hashedToken, restored!.HashedToken);
+        Assert.Equal(rotatedAt, restored.RotatedAt);
+
+        var ttl = await db.KeyTimeToLiveAsync(RedisKeys.UserRefreshTokenPrevious(user.UserId));
+        Assert.NotNull(ttl);
+        Assert.True(ttl!.Value.TotalHours > 23);
+
+        await repository.ClearPreviousRefreshTokenAsync(user.UserId);
+        Assert.Null(await repository.GetPreviousRefreshTokenAsync(user.UserId));
+    }
+
+    [Fact]
+    public async Task 생성_실패는_같은_DbContext의_다음_저장을_오염시키지_않는다()
+    {
+        // 회귀 고정: 실패한 Insert 가 Added 상태로 남으면, 이어지는 롤백(SaveChanges)이
+        // 그 Insert 를 다시 커밋하려다 같은 예외를 던진다.
+        // → 원래 실패 사유가 INTERNAL_SERVER_ERROR 로 뭉개지고 고아 레코드가 남는다.
+        using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var profileRepo = new UserProfileRepository(_fixture.RedisConnection, context, NullLogger<UserProfileRepository>.Instance);
+        var repository = new UserCredentialRepository(_fixture.RedisConnection, context, NullLogger<UserCredentialRepository>.Instance);
+
+        var occupant = await userRepo.CreateAsync();
+        await repository.CreateAsync(occupant.UserId, "collide@example.com", "hash");
+
+        var victim = await userRepo.CreateAsync();
+        await profileRepo.CreateAsync(victim.UserId, victim.PublicId);
+
+        await Assert.ThrowsAnyAsync<Exception>(
+            () => repository.CreateAsync(victim.UserId, "collide@example.com", "hash"));
+
+        // AccountService.RegisterAsync 의 롤백 경로와 동일한 순서
+        await profileRepo.RemoveAsync(victim.UserId);
+        await userRepo.RemoveAsync(victim.UserId);
+
+        Assert.Null(await context.UserProfiles.AsNoTracking().SingleOrDefaultAsync(up => up.UserId == victim.UserId));
     }
 
     [Fact]

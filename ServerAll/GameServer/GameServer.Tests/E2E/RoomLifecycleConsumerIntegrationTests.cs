@@ -1,4 +1,4 @@
-using GameServer.Application.Domains.Chat.Interfaces;
+﻿using GameServer.Application.Domains.Chat.Interfaces;
 using GameServer.Application.Domains.DungeonLobby;
 using GameServer.Application.Domains.DungeonLobby.Interfaces;
 using GameServer.Application.Domains.Outbox;
@@ -46,6 +46,8 @@ public class RoomLifecycleConsumerIntegrationTests
         services.AddLogging();
         services.AddSingleton<IDungeonRoomRepository>(rooms);
         services.AddSingleton<IDungeonRoomPlayerRepository>(players);
+        services.AddSingleton<IRoomReadyStore>(new Infrastructure.Fakes.Repositories.FakeRoomReadyStore());
+        services.AddSingleton<GameServer.Application.Common.Interfaces.IDistributedLock>(new Infrastructure.Fakes.NoOpDistributedLock());
         services.AddSingleton<IUserSessionRepository>(sessions);
         services.AddSingleton<IUserProfileRepository>(new FakeUserProfileRepository());
         services.AddSingleton(Mock.Of<IChatSubscriptionService>());

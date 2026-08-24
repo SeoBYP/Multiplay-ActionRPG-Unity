@@ -23,6 +23,7 @@ namespace Game.System.DungeonLobby
         private const int ErrNotRoomHost       = 2004;
         private const int ErrRoomNotWaiting    = 2005;
         private const int ErrRoomAlreadyPlaying= 2006;
+        private const int ErrNotAllPlayersReady = 2008;
 
         private readonly IDungeonLobbyGrpcService _grpc;
         private readonly DungeonLobbySession _session;
@@ -140,6 +141,30 @@ namespace Game.System.DungeonLobby
             return res.Result.Success ? DungeonLobbyResult.Success : MapError(res.Result.ErrorCode);
         }
 
+        public async UniTask<DungeonLobbyResult> SetReadyAsync(bool isReady, CancellationToken ct = default)
+        {
+            if (!_session.IsInRoom)
+                return DungeonLobbyResult.NotInRoom;
+
+            var res = await _grpc.SetReadyAsync(new SetReadyRequest
+            {
+                RoomId  = _session.CurrentRoom!.RoomId,
+                IsReady = isReady
+            }, ct);
+
+            if (!res.Result.Success)
+                return MapError(res.Result.ErrorCode);
+
+            // 브로드캐스트(SubscribeRoom)가 도착하기 전에도 내 화면이 즉시 반응하도록 응답분을 반영한다.
+            if (res.RoomInfo != null)
+            {
+                _session.SetRoom(res.RoomInfo);
+                OnRoomUpdated?.Invoke(res.RoomInfo);
+            }
+
+            return DungeonLobbyResult.Success;
+        }
+
         // ── Subscription 관리 ─────────────────────────────────────────────
 
         /// <summary>새 스트림 구독을 시작한다. 이전 구독이 있으면 먼저 취소한다.</summary>
@@ -223,6 +248,7 @@ namespace Game.System.DungeonLobby
             ErrNotRoomHost        => DungeonLobbyResult.NotHost,
             ErrRoomNotWaiting     => DungeonLobbyResult.RoomNotWaiting,
             ErrRoomAlreadyPlaying => DungeonLobbyResult.RoomAlreadyPlaying,
+            ErrNotAllPlayersReady => DungeonLobbyResult.NotAllPlayersReady,
             _                     => DungeonLobbyResult.Failed,
         };
 

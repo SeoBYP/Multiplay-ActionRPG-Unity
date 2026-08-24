@@ -16,6 +16,7 @@ namespace Game.Network.Https.Interfaces
         UniTask<JoinRoomResponse> JoinRoomAsync(JoinRoomRequest request, CancellationToken ct = default);
         UniTask<LeaveRoomResponse> LeaveRoomAsync(LeaveRoomRequest request, CancellationToken ct = default);
         UniTask<StartRoomResponse> StartRoomAsync(StartRoomRequest request, CancellationToken ct = default);
+        UniTask<SetReadyResponse> SetReadyAsync(SetReadyRequest request, CancellationToken ct = default);
         UniTask SubscribeRoomAsync(SubscribeRoomRequest request, Action<SubscribeRoomResponse> onMessage, CancellationToken ct = default);
     }
 }

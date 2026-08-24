@@ -26,14 +26,39 @@ namespace Game.Presentation.DungeonLobby
         public RoomStatus Status => MapStatus(Info.Status);
         /// <summary>이 방의 던전 식별자(spawn-layouts.json 키). 표시이름 변환은 DungeonCatalog 사용.</summary>
         public string MapId      => Info.MapId;
+        /// <summary>방장의 공개 식별자. 슬롯·자기자신 판정을 public_id 한 키로 통일하려고 서버가 함께 보낸다.</summary>
+        public string HostPublicId => Info.HostPublicId;
         public IReadOnlyList<RoomPlayerInfo> Players { get; }
+
+        /// <summary>방장을 뺀 전원이 준비됐는가. 호스트의 시작 버튼 활성 조건이다(판정 권위는 서버).</summary>
+        public bool AllOthersReady { get; }
 
         public DungeonRoomModel(RoomInfo info)
         {
-            Info    = info;
+            Info = info;
+
+            var readyIds = new HashSet<string>(info.ReadyPublicIds);
             Players = info.CurrentPlayers
-                .Select(u => new RoomPlayerInfo(u.PublicId, u.NickName))
+                .Select(u => new RoomPlayerInfo(
+                    u.PublicId,
+                    u.NickName,
+                    isHost: !string.IsNullOrEmpty(info.HostPublicId) && u.PublicId == info.HostPublicId,
+                    isReady: readyIds.Contains(u.PublicId)))
                 .ToArray();
+
+            AllOthersReady = Players.All(p => p.IsHost || p.IsReady);
+        }
+
+        /// <summary>주어진 플레이어가 이 방의 방장인가.</summary>
+        public bool IsHost(string publicId) =>
+            !string.IsNullOrEmpty(publicId) && publicId == Info.HostPublicId;
+
+        /// <summary>주어진 플레이어가 준비 상태인가. 방을 벗어난 식별자면 false.</summary>
+        public bool IsReady(string publicId)
+        {
+            for (var i = 0; i < Players.Count; i++)
+                if (Players[i].PublicId == publicId) return Players[i].IsReady;
+            return false;
         }
 
         private static RoomStatus MapStatus(RoomStatusType proto)

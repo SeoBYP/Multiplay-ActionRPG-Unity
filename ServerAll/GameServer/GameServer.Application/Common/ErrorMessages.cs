@@ -29,6 +29,7 @@ public class ErrorMessages
     public const string RoomNotWaiting = "ROOM_NOT_WAITING";
     public const string RoomAlreadyPlaying = "ROOM_ALREADY_PLAYING";
     public const string RoomClosed = "ROOM_CLOSED";
+    public const string NotAllPlayersReady = "NOT_ALL_PLAYERS_READY";
     public const string JoinRoomFailed = "JOIN_ROOM_FAILED";
     public const string LeaveRoomFailed = "LEAVE_ROOM_FAILED";
     public const string StartGameFailed = "START_GAME_FAILED";

@@ -238,6 +238,66 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
         Assert.DoesNotContain(activeRooms, r => r.RoomId == closedRoom.RoomId);
     }
 
+    [Fact]
+    public async Task 활성_방_목록은_Redis_활성셋이_불완전해도_DB의_활성_방을_전부_돌려준다()
+    {
+        // 회귀 고정: `game:room:active` 는 항목별이 아니라 **집합 전체**에 TTL 이 걸려 있어
+        // 멤버십이 수시로 흔들린다(만료 후 최근 접근분만 재적재). 그때 목록이 집합만 믿으면
+        // DB 에 살아 있는 방이 통째로 사라지고, 연속 호출이 서로 다른 집합을 보게 돼
+        // 페이징에서 같은 방이 두 페이지에 나온다.
+        using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
+        var db = _fixture.RedisConnection.GetDatabase();
+
+        var hostA = await userRepo.CreateAsync();
+        var hostB = await userRepo.CreateAsync();
+        var hostC = await userRepo.CreateAsync();
+
+        var roomA = await repository.CreateAsync(hostA.UserId, "Drift A");
+        var roomB = await repository.CreateAsync(hostB.UserId, "Drift B");
+        var roomC = await repository.CreateAsync(hostC.UserId, "Drift C");
+
+        // 집합에서 한 방만 빠진 상태 = TTL 만료 후 일부만 재적재된 상황
+        await db.SetRemoveAsync(RedisKeys.DungeonRoomActive(), roomC!.RoomId);
+
+        var rooms = (await repository.GetAllActiveRoomsAsync()).ToList();
+
+        Assert.Contains(rooms, r => r.RoomId == roomA!.RoomId);
+        Assert.Contains(rooms, r => r.RoomId == roomB!.RoomId);
+        Assert.Contains(rooms, r => r.RoomId == roomC.RoomId);
+    }
+
+    [Fact]
+    public async Task 활성_방_페이지는_DB에서_최신순으로_잘라_오고_총계를_함께_준다()
+    {
+        // B4: 전량 조회 후 메모리에서 Skip/Take 하던 것을 DB 로 내린다.
+        using var context = _fixture.CreateDbContext();
+        var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
+        var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
+
+        var before = await repository.GetActiveRoomCountAsync();
+
+        var created = new List<long>();
+        for (var i = 0; i < 3; i++)
+        {
+            var host = await userRepo.CreateAsync();
+            var room = await repository.CreateAsync(host.UserId, $"Page {i}");
+            created.Add(room!.RoomId);
+        }
+
+        var page = await repository.GetActiveRoomsPageAsync(offset: 0, limit: 2);
+
+        Assert.Equal(2, page.Rooms.Count);
+        Assert.Equal(before + 3, page.TotalCount);
+        // 최신순(RoomId 내림차순)
+        Assert.Equal(created[2], page.Rooms[0].RoomId);
+        Assert.Equal(created[1], page.Rooms[1].RoomId);
+
+        var next = await repository.GetActiveRoomsPageAsync(offset: 2, limit: 2);
+        Assert.DoesNotContain(next.Rooms, r => r.RoomId == created[2]);
+    }
+
     // ── 캐시 stale 버그 회귀 테스트 ──────────────────────────────────
     // 버그 재현 시나리오:
     //   AddWithRoomUpdateAsync는 DB만 업데이트하고 Redis 캐시를 갱신하지 않는다.

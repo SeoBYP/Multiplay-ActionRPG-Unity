@@ -1,4 +1,4 @@
-using System.Threading;
+﻿using System.Threading;
 using Cysharp.Threading.Tasks;
 using System.Collections;
 using Game.Network.Https.Core;
@@ -14,17 +14,41 @@ namespace Game.Tests.PlayMode.E2E
     [TestFixture]
     public class AuthFlowE2ETests : E2ETestBase
     {
+        /// <summary>
+        /// 이 픽스처 전용 저장소. 예전엔 프로세스 전역 PlayerPrefs 를 프로덕션 코드와 함께 써서
+        /// 다른 곳(에디터 자동 로그인 등)이 같은 키를 덮어쓸 수 있었고, 전체 실행에서만 흔들렸다.
+        /// </summary>
+        private sealed class InMemoryTokenStore : ITokenStore
+        {
+            private string _access, _refresh;
+            private long _expiresAt;
+
+            public void Save(string accessToken, string refreshToken, long expiresAt)
+            {
+                _access = accessToken; _refresh = refreshToken; _expiresAt = expiresAt;
+            }
+
+            public bool TryLoad(out string accessToken, out string refreshToken, out long expiresAt)
+            {
+                accessToken = _access; refreshToken = _refresh; expiresAt = _expiresAt;
+                return !string.IsNullOrWhiteSpace(_access) && !string.IsNullOrWhiteSpace(_refresh);
+            }
+
+            public void Clear() { _access = null; _refresh = null; _expiresAt = 0; }
+        }
+
         private GrpcChannelProvider _authFlowChannelProvider;
         private AuthSession _authSession;
         private IAuthService _clientAuthService;
+        private InMemoryTokenStore _tokenStore;
 
         [SetUp]
         public void 인증흐름_테스트_준비()
         {
-            TokenStorage.Clear();
+            _tokenStore = new InMemoryTokenStore();
 
             _authFlowChannelProvider = new GrpcChannelProvider(ServerConfig.GameServerGrpcAddress);
-            _authSession = new AuthSession();
+            _authSession = new AuthSession(_tokenStore);
             _authFlowChannelProvider.AccessTokenProvider = () => _authSession.AccessToken;
 
             IAuthGrpcService authGrpcService = new AuthGrpcService(_authFlowChannelProvider);
@@ -34,7 +58,7 @@ namespace Game.Tests.PlayMode.E2E
         [TearDown]
         public void 인증흐름_테스트_정리()
         {
-            TokenStorage.Clear();
+            _tokenStore?.Clear();
             _authFlowChannelProvider?.Dispose();
         }
 
@@ -47,7 +71,7 @@ namespace Game.Tests.PlayMode.E2E
 
             Assert.AreEqual(AuthResult.Success, result);
             Assert.IsTrue(_clientAuthService.IsAuthenticated);
-            Assert.IsTrue(TokenStorage.TryLoad(out var accessToken, out var refreshToken, out var expiresAt));
+            Assert.IsTrue(_tokenStore.TryLoad(out var accessToken, out var refreshToken, out var expiresAt));
             Assert.IsNotEmpty(accessToken);
             Assert.IsNotEmpty(refreshToken);
             Assert.Greater(expiresAt, 0);
@@ -60,7 +84,7 @@ namespace Game.Tests.PlayMode.E2E
             var loginResult = await _clientAuthService.LoginOrRegisterAsync(email, "Test1234!", CancellationToken.None);
             Assert.AreEqual(AuthResult.Success, loginResult);
 
-            var coldStartSession = new AuthSession();
+            var coldStartSession = new AuthSession(_tokenStore);
             using var coldStartProvider = new GrpcChannelProvider(ServerConfig.GameServerGrpcAddress);
             coldStartProvider.AccessTokenProvider = () => coldStartSession.AccessToken;
             var coldStartService = new AuthService(new AuthGrpcService(coldStartProvider), coldStartProvider, coldStartSession, new UserProfile(), new StartupIntentQueue());
@@ -77,11 +101,11 @@ namespace Game.Tests.PlayMode.E2E
             var email = UniqueEmail();
             var loginResult = await _clientAuthService.LoginOrRegisterAsync(email, "Test1234!", CancellationToken.None);
             Assert.AreEqual(AuthResult.Success, loginResult);
-            Assert.IsTrue(TokenStorage.TryLoad(out var oldAccessToken, out var oldRefreshToken, out _));
+            Assert.IsTrue(_tokenStore.TryLoad(out var oldAccessToken, out var oldRefreshToken, out _));
 
-            TokenStorage.Save(oldAccessToken, oldRefreshToken, 1);
+            _tokenStore.Save(oldAccessToken, oldRefreshToken, 1);
 
-            var coldStartSession = new AuthSession();
+            var coldStartSession = new AuthSession(_tokenStore);
             using var coldStartProvider = new GrpcChannelProvider(ServerConfig.GameServerGrpcAddress);
             coldStartProvider.AccessTokenProvider = () => coldStartSession.AccessToken;
             var coldStartService = new AuthService(new AuthGrpcService(coldStartProvider), coldStartProvider, coldStartSession, new UserProfile(), new StartupIntentQueue());
@@ -89,7 +113,7 @@ namespace Game.Tests.PlayMode.E2E
             var autoLoginResult = await coldStartService.TryAutoLoginAsync(CancellationToken.None);
 
             Assert.AreEqual(AuthResult.Success, autoLoginResult);
-            Assert.IsTrue(TokenStorage.TryLoad(out var newAccessToken, out var newRefreshToken, out var newExpiresAt));
+            Assert.IsTrue(_tokenStore.TryLoad(out var newAccessToken, out var newRefreshToken, out var newExpiresAt));
             Assert.IsNotEmpty(newAccessToken);
             Assert.IsNotEmpty(newRefreshToken);
             Assert.AreNotEqual(oldAccessToken, newAccessToken);
@@ -103,11 +127,11 @@ namespace Game.Tests.PlayMode.E2E
             var email = UniqueEmail();
             var loginResult = await _clientAuthService.LoginOrRegisterAsync(email, "Test1234!", CancellationToken.None);
             Assert.AreEqual(AuthResult.Success, loginResult);
-            Assert.IsTrue(TokenStorage.TryLoad(out var accessToken, out _, out _));
+            Assert.IsTrue(_tokenStore.TryLoad(out var accessToken, out _, out _));
 
-            TokenStorage.Save(accessToken, "invalid-refresh-token", 1);
+            _tokenStore.Save(accessToken, "invalid-refresh-token", 1);
 
-            var coldStartSession = new AuthSession();
+            var coldStartSession = new AuthSession(_tokenStore);
             using var coldStartProvider = new GrpcChannelProvider(ServerConfig.GameServerGrpcAddress);
             coldStartProvider.AccessTokenProvider = () => coldStartSession.AccessToken;
             var coldStartService = new AuthService(new AuthGrpcService(coldStartProvider), coldStartProvider, coldStartSession, new UserProfile(), new StartupIntentQueue());
@@ -115,7 +139,7 @@ namespace Game.Tests.PlayMode.E2E
             var autoLoginResult = await coldStartService.TryAutoLoginAsync(CancellationToken.None);
 
             Assert.AreEqual(AuthResult.NeedLogin, autoLoginResult);
-            Assert.IsFalse(TokenStorage.TryLoad(out _, out _, out _));
+            Assert.IsFalse(_tokenStore.TryLoad(out _, out _, out _));
             Assert.IsFalse(coldStartService.IsAuthenticated);
         });
 

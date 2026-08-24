@@ -1,4 +1,4 @@
-namespace GameServer.Domain.Entities;
+﻿namespace GameServer.Domain.Entities;
 
 public class UserSession
 {
@@ -26,6 +26,9 @@ public class UserSession
             LastActiveAt = DateTime.UtcNow
         };
     }
+
+    /// <summary>이 세션이 방금 활동했음을 기록한다(생존 신호).</summary>
+    public void Touch() => LastActiveAt = DateTime.UtcNow;
 
     public static UserSession Restore(string sessionId, long userId, DateTime loginAt, DateTime lastActiveAt)
     {

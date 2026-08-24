@@ -9,6 +9,7 @@ using GameServer.Domain.Entities;
 using GameServer.Domain.Entities.Outbox;
 using GameServer.Tests.Infrastructure.Fakes.Repositories;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Moq;
 using Shared.Infrastructure.MessageQueue;
 using Shared.Infrastructure.Messages;
@@ -26,6 +27,7 @@ public class DungeonLobbyServiceTests
     private readonly Mock<IOutboxRepository> _mockOutboxRepository = new();
     // 실제 ProgressionService(Fake 저장소) — StartGame 이 GetStatsAsync 로 레벨 스탯을 메시지에 채운다(Lv1 기본).
     private readonly ProgressionService _progressionService = new(new FakeProgressionRepository(), new Infrastructure.Fakes.Services.FakeEquipmentService());
+    private readonly FakeRoomReadyStore _readyStore = new();
     private readonly DungeonLobbyService _service;
 
     public DungeonLobbyServiceTests()
@@ -39,7 +41,64 @@ public class DungeonLobbyServiceTests
             _mockChatSubscriptionService.Object,
             _userProfileRepository,
             _progressionService,
+            _readyStore,
+            new Infrastructure.Fakes.NoOpDistributedLock(),
+            Options.Create(new DungeonRoomReaperOptions()),
             NullLogger<DungeonLobbyService>.Instance);
+    }
+
+    // ── 유령 방 정리(리퍼) ────────────────────────────────────────────────
+    // 시스템에 정식 하트비트가 없어 `session:active` 만료 시각이 유일한 생존 근사 신호다.
+    // 그래서 유예를 넉넉히 두고, "전원이 유예를 넘겨 조용할 때만" 정리한다.
+
+    [Fact]
+    public async Task 전원이_유예를_넘겨_조용하면_유령_방이_정리된다()
+    {
+        var session = await _sessionRepository.CreateSessionAsync(1);
+        var room = await _service.CreateDungeonRoomAsync(session!.SessionId, "Ghost Room", 4);
+        Assert.True(room.IsSuccess);
+
+        _sessionRepository.SetActiveUntil(1, DateTime.UtcNow.AddHours(-3));
+
+        var reaped = await _service.ReapRoomIfAbandonedAsync(room.Value!.RoomId);
+
+        Assert.True(reaped.IsSuccess);
+        Assert.True(reaped.Value);
+        Assert.Empty(await _roomPlayerRepository.GetPlayersByRoomIdAsync(room.Value.RoomId));
+    }
+
+    [Fact]
+    public async Task 한_명이라도_최근_활동이_있으면_방은_유지된다()
+    {
+        var host = await _sessionRepository.CreateSessionAsync(1);
+        var room = await _service.CreateDungeonRoomAsync(host!.SessionId, "Live Room", 4);
+        var guest = await _sessionRepository.CreateSessionAsync(2);
+        await _service.JoinRoomAsync(guest!.SessionId, room.Value!.RoomId);
+
+        _sessionRepository.SetActiveUntil(1, DateTime.UtcNow.AddHours(-3));   // 호스트는 조용
+        _sessionRepository.SetActiveUntil(2, DateTime.UtcNow.AddMinutes(5));  // 게스트는 살아 있음
+
+        var reaped = await _service.ReapRoomIfAbandonedAsync(room.Value.RoomId);
+
+        Assert.True(reaped.IsSuccess);
+        Assert.False(reaped.Value);
+        Assert.Equal(2, (await _roomPlayerRepository.GetPlayersByRoomIdAsync(room.Value.RoomId)).Count);
+    }
+
+    [Fact]
+    public async Task 세션_신호가_아예_없는_방도_정리된다()
+    {
+        var session = await _sessionRepository.CreateSessionAsync(1);
+        var room = await _service.CreateDungeonRoomAsync(session!.SessionId, "No Signal Room", 4);
+        Assert.True(room.IsSuccess);
+
+        _sessionRepository.SetActiveUntil(1, null);
+        await _sessionRepository.RemoveSessionAsync(session.SessionId);
+
+        var reaped = await _service.ReapRoomIfAbandonedAsync(room.Value!.RoomId);
+
+        Assert.True(reaped.IsSuccess);
+        Assert.True(reaped.Value);
     }
 
     [Fact]
@@ -147,6 +206,7 @@ public class DungeonLobbyServiceTests
         var user2Session = await _sessionRepository.CreateSessionAsync(2);
         var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4);
         await _service.JoinRoomAsync(user2Session!.SessionId, created.Value!.RoomId);
+        await _service.SetReadyAsync(user2Session.SessionId, created.Value.RoomId, true);
 
         var result = await _service.StartGameAsync(hostSession.SessionId, created.Value.RoomId, "trace-test");
 
@@ -411,12 +471,143 @@ public class DungeonLobbyServiceTests
         var player3Session = await _sessionRepository.CreateSessionAsync(3);
         var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4);
         await _service.JoinRoomAsync(player2Session!.SessionId, created.Value!.RoomId);
+        await _service.SetReadyAsync(player2Session.SessionId, created.Value.RoomId, true);
         await _service.StartGameAsync(hostSession.SessionId, created.Value.RoomId, "trace");
 
         var result = await _service.JoinRoomAsync(player3Session!.SessionId, created.Value.RoomId);
 
         Assert.False(result.IsSuccess);
         Assert.Equal(ErrorCodes.JoinRoomFailed, result.InternalErrorCode);
+    }
+
+    // ── 준비(Ready) 상태 ──────────────────────────────────────────
+
+    [Fact]
+    public async Task SetReady_비호스트가_준비하면_준비목록에_담긴다()
+    {
+        var hostSession = await _sessionRepository.CreateSessionAsync(1);
+        var guestSession = await _sessionRepository.CreateSessionAsync(2);
+        var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4);
+        await _service.JoinRoomAsync(guestSession!.SessionId, created.Value!.RoomId);
+
+        var result = await _service.SetReadyAsync(guestSession.SessionId, created.Value.RoomId, true);
+
+        Assert.True(result.IsSuccess);
+        Assert.Contains(2L, await _readyStore.GetReadyUserIdsAsync(created.Value.RoomId));
+    }
+
+    [Fact]
+    public async Task SetReady_준비를_해제하면_준비목록에서_빠진다()
+    {
+        var hostSession = await _sessionRepository.CreateSessionAsync(1);
+        var guestSession = await _sessionRepository.CreateSessionAsync(2);
+        var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4);
+        await _service.JoinRoomAsync(guestSession!.SessionId, created.Value!.RoomId);
+        await _service.SetReadyAsync(guestSession.SessionId, created.Value.RoomId, true);
+
+        var result = await _service.SetReadyAsync(guestSession.SessionId, created.Value.RoomId, false);
+
+        Assert.True(result.IsSuccess);
+        Assert.DoesNotContain(2L, await _readyStore.GetReadyUserIdsAsync(created.Value.RoomId));
+    }
+
+    [Fact]
+    public async Task SetReady_호스트는_준비_개념이_없어_거부된다()
+    {
+        var hostSession = await _sessionRepository.CreateSessionAsync(1);
+        var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4);
+
+        var result = await _service.SetReadyAsync(hostSession.SessionId, created.Value!.RoomId, true);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.InvalidRequest, result.InternalErrorCode);
+    }
+
+    [Fact]
+    public async Task SetReady_방에_없는_유저는_거부된다()
+    {
+        var hostSession = await _sessionRepository.CreateSessionAsync(1);
+        var outsiderSession = await _sessionRepository.CreateSessionAsync(2);
+        var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4);
+
+        var result = await _service.SetReadyAsync(outsiderSession!.SessionId, created.Value!.RoomId, true);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.NotInRoom, result.InternalErrorCode);
+    }
+
+    [Fact]
+    public async Task SetReady_대기중이_아닌_방에서는_거부된다()
+    {
+        var hostSession = await _sessionRepository.CreateSessionAsync(1);
+        var guestSession = await _sessionRepository.CreateSessionAsync(2);
+        var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4);
+        await _service.JoinRoomAsync(guestSession!.SessionId, created.Value!.RoomId);
+        await _service.SetReadyAsync(guestSession.SessionId, created.Value.RoomId, true);
+        await _service.StartGameAsync(hostSession.SessionId, created.Value.RoomId, "trace");
+
+        var result = await _service.SetReadyAsync(guestSession.SessionId, created.Value.RoomId, false);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.RoomNotWaiting, result.InternalErrorCode);
+    }
+
+    [Fact]
+    public async Task StartGame_비호스트가_한명이라도_미준비면_거부된다()
+    {
+        var hostSession = await _sessionRepository.CreateSessionAsync(1);
+        var readySession = await _sessionRepository.CreateSessionAsync(2);
+        var lazySession = await _sessionRepository.CreateSessionAsync(3);
+        var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4);
+        await _service.JoinRoomAsync(readySession!.SessionId, created.Value!.RoomId);
+        await _service.JoinRoomAsync(lazySession!.SessionId, created.Value.RoomId);
+        await _service.SetReadyAsync(readySession.SessionId, created.Value.RoomId, true);
+
+        var result = await _service.StartGameAsync(hostSession.SessionId, created.Value.RoomId, "trace");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorCodes.NotAllPlayersReady, result.InternalErrorCode);
+        Assert.Equal(RoomStatus.Waiting, (await _roomRepository.GetByIdAsync(created.Value.RoomId))!.Status);
+    }
+
+    [Fact]
+    public async Task StartGame_호스트_혼자면_준비_대상이_없어_시작된다()
+    {
+        var hostSession = await _sessionRepository.CreateSessionAsync(1);
+        var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4);
+
+        var result = await _service.StartGameAsync(hostSession.SessionId, created.Value!.RoomId, "trace");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(RoomStatus.Starting, result.Value!.Status);
+    }
+
+    [Fact]
+    public async Task LeaveRoom_퇴장하면_준비_상태도_함께_지워진다()
+    {
+        var hostSession = await _sessionRepository.CreateSessionAsync(1);
+        var guestSession = await _sessionRepository.CreateSessionAsync(2);
+        var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4);
+        await _service.JoinRoomAsync(guestSession!.SessionId, created.Value!.RoomId);
+        await _service.SetReadyAsync(guestSession.SessionId, created.Value.RoomId, true);
+
+        await _service.LeaveRoomAsync(guestSession.SessionId, created.Value.RoomId);
+
+        Assert.DoesNotContain(2L, await _readyStore.GetReadyUserIdsAsync(created.Value.RoomId));
+    }
+
+    [Fact]
+    public async Task RemovePlayerFromRoom_퇴장하면_준비_상태도_함께_지워진다()
+    {
+        var hostSession = await _sessionRepository.CreateSessionAsync(1);
+        var guestSession = await _sessionRepository.CreateSessionAsync(2);
+        var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4);
+        await _service.JoinRoomAsync(guestSession!.SessionId, created.Value!.RoomId);
+        await _service.SetReadyAsync(guestSession.SessionId, created.Value.RoomId, true);
+
+        await _service.RemovePlayerFromRoomAsync(created.Value.RoomId, 2);
+
+        Assert.DoesNotContain(2L, await _readyStore.GetReadyUserIdsAsync(created.Value.RoomId));
     }
 
     // ── LeaveRoom 추가 케이스 ──────────────────────────────────────
@@ -574,6 +765,9 @@ public class DungeonLobbyServiceTests
             _mockChatSubscriptionService.Object,
             _userProfileRepository,
             _progressionService,
+            _readyStore,
+            new Infrastructure.Fakes.NoOpDistributedLock(),
+            Options.Create(new DungeonRoomReaperOptions()),
             NullLogger<DungeonLobbyService>.Instance);
 
         var result = await service.RemovePlayerFromRoomAsync(999999L, 1);

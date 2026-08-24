@@ -58,6 +58,12 @@ public interface IDungeonLobbyService
     /// <returns>퇴장 결과</returns>
     Task<Result<DungeonRoom>> LeaveRoomAsync(string sessionId, long roomId, CancellationToken ct = default);
 
+    /// <summary>
+    /// 대기실에서 자신의 준비 상태를 켜고 끕니다 (호스트 제외 — 호스트는 준비 개념이 없다).
+    /// </summary>
+    /// <remarks>준비 상태는 Redis 전용 휘발성 로비 상태다(<see cref="IRoomReadyStore"/>).</remarks>
+    Task<Result<DungeonRoom>> SetReadyAsync(string sessionId, long roomId, bool isReady, CancellationToken ct = default);
+
     // ========== 게임 시작 ==========
 
     /// <summary>
@@ -85,4 +91,19 @@ public interface IDungeonLobbyService
     /// 이미 그 방 소속이 아니면 멱등 성공(중복 소비 안전).
     /// </summary>
     Task<Result<DungeonRoom>> RemovePlayerFromRoomAsync(long roomId, long userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// 방 하나가 유령 방이면 정리한다. 정리했으면 true.
+    /// </summary>
+    /// <remarks>
+    /// 방을 만들고 앱을 종료하면 소켓이 붙은 적이 없어 PlayerLeft 이벤트도 나오지 않는다.
+    /// 그래서 <see cref="RemovePlayerFromRoomAsync"/> 만으로는 그 방이 영원히 남는다.
+    /// 시스템에 정식 하트비트가 없으므로 세션 활성 만료 시각을 근사 신호로 쓰고,
+    /// 오탐(살아 있는 방을 끊는 것)을 막기 위해 유예를 넉넉히 둔다.
+    ///
+    /// **방 단위로 쪼갠 이유**: 한 스코프로 수백 개를 처리하면 한 방의 저장 실패가
+    /// 그 DbContext 의 변경 추적을 오염시켜 뒤따르는 방까지 연쇄로 실패한다(실측).
+    /// 호출자(<c>DungeonRoomReaper</c>)가 방마다 새 스코프를 연다.
+    /// </remarks>
+    Task<Result<bool>> ReapRoomIfAbandonedAsync(long roomId, CancellationToken ct = default);
 }

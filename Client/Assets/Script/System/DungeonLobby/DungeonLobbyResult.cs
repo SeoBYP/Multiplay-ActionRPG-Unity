@@ -1,4 +1,4 @@
-namespace Game.System.DungeonLobby
+﻿namespace Game.System.DungeonLobby
 {
     public enum DungeonLobbyResult
     {
@@ -11,5 +11,6 @@ namespace Game.System.DungeonLobby
         NotHost,
         RoomNotWaiting,
         RoomAlreadyPlaying,
+        NotAllPlayersReady,
     }
 }

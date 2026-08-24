@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.System.DungeonLobby;
@@ -27,6 +27,7 @@ namespace Game.Presentation.DungeonLobby
         private readonly LobbyRepository       _repository;
         private readonly IDungeonLobbyService  _lobbyService;
         private readonly IAuthService          _authService;
+        private readonly UserProfile           _userProfile;
         private readonly StartupIntentQueue    _startupQueue;
         private readonly IInputContext         _inputContext;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
@@ -52,12 +53,14 @@ namespace Game.Presentation.DungeonLobby
             LobbyRepository    repository,
             IDungeonLobbyService lobbyService,
             IAuthService         authService,
+            UserProfile          userProfile,
             StartupIntentQueue   startupQueue,
             IInputContext        inputContext)
         {
             _repository   = repository;
             _lobbyService = lobbyService;
             _authService  = authService;
+            _userProfile  = userProfile;
             _startupQueue = startupQueue;
             _inputContext = inputContext;
 
@@ -96,6 +99,10 @@ namespace Game.Presentation.DungeonLobby
         public async UniTask StartAsync(CancellationToken ct)
         {
             await _authService.AuthenticatedAsync().AttachExternalCancellation(ct);
+
+            // 방 안에서 "내가 방장인가 / 내가 준비했는가"를 판정하려면 내 public_id 가 State 에 있어야 한다.
+            // Reducer 는 순수 함수라 프로필을 직접 읽을 수 없으므로 Result 로 흘려 넣는다.
+            Dispatch(new LobbyResult.IdentityResolved(_userProfile.PublicId));
 
             Debug.Log($"[LobbyModel] StartAsync — auth 완료, StartupIntentQueue HasPending={_startupQueue.HasPending}");
 
@@ -144,6 +151,10 @@ namespace Game.Presentation.DungeonLobby
 
                 case LobbyIntent.StartGame _:
                     StartGameAsync().Forget();
+                    break;
+
+                case LobbyIntent.SetReady setReady:
+                    SetReadyAsync(setReady).Forget();
                     break;
 
                 case LobbyIntent.LeaveRoom _:
@@ -240,6 +251,22 @@ namespace Game.Presentation.DungeonLobby
                 Dispatch(new LobbyResult.Failed(res.Error));
             }
             // 성공: _isProcessing은 HandleGameSessionReady 또는 LeaveRoom에서 해제
+        }
+
+        private async UniTaskVoid SetReadyAsync(LobbyIntent.SetReady intent)
+        {
+            _isProcessing = true;
+            try
+            {
+                // Loading 을 띄우지 않는다 — 토글은 즉발이어야 하고, 갱신은 RoomUpdated 로 되돌아온다.
+                var res = await _repository.SetReadyAsync(intent.IsReady, _cts.Token);
+                if (!res.IsSuccess)
+                {
+                    Debug.LogWarning($"[LobbyModel] 준비 상태 변경 실패: {res.Error}");
+                    Dispatch(new LobbyResult.Failed(res.Error));
+                }
+            }
+            finally { _isProcessing = false; }
         }
 
         private async UniTaskVoid RestoreRoomAsync(LobbyIntent.RestoreRoom intent)

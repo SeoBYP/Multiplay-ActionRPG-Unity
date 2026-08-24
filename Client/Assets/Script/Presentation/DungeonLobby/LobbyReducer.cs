@@ -1,4 +1,4 @@
-namespace Game.Presentation.DungeonLobby
+﻿namespace Game.Presentation.DungeonLobby
 {
     /// <summary>
     /// 순수 함수: (OldState, Result) → NewState.
@@ -8,6 +8,9 @@ namespace Game.Presentation.DungeonLobby
     {
         public static LobbyState Reduce(LobbyState state, LobbyResult result)
         {
+            if (result is LobbyResult.IdentityResolved identity)
+                return state.WithIdentity(identity.MyPublicId);
+
             if (result is LobbyResult.Loading)
                 return state.WithLoading();
 

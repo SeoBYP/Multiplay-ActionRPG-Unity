@@ -129,7 +129,8 @@ namespace GameServer.Infrastructure.Persistence.Migrations
 
                     b.HasKey("RoomId", "UserId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .IsUnique();
 
                     b.ToTable("dungeon_room_players", (string)null);
                 });

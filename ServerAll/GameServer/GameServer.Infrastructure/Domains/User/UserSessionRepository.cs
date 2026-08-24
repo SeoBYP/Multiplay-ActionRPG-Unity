@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using GameServer.Application.Domains.User.Interfaces;
 using GameServer.Application.Security;
 using GameServer.Domain.Entities;
@@ -129,6 +129,20 @@ public class UserSessionRepository(
         }
     }
 
+    /// <summary>
+    /// Redis 활성 기록이 없을 때의 폴백. DB 의 마지막 활동 시각 + AccessToken 수명으로 환산한다.
+    /// </summary>
+    /// <remarks>
+    /// 이게 없으면 Redis 를 비우는 순간 살아 있는 세션이 전부 "조용하다"로 보여 리퍼가 오탐한다.
+    /// </remarks>
+    private async Task<DateTime?> ActiveUntilFromDatabaseAsync(long userId, CancellationToken ct)
+    {
+        var session = await context.UserSessions.AsNoTracking()
+            .SingleOrDefaultAsync(us => us.UserId == userId, ct);
+
+        return session is null ? null : session.LastActiveAt.Add(SessionTtl);
+    }
+
     private async Task SetSessionCacheAsync(UserSession session)
     {
         var ttl = SessionTtl;
@@ -239,6 +253,58 @@ public class UserSessionRepository(
         catch (Exception e)
         {
             logger.LogError(e, "Failed to get active sessions");
+            throw;
+        }
+    }
+
+    public async Task TouchSessionAsync(string sessionId, CancellationToken ct = default)
+    {
+        try
+        {
+            // 인증된 RPC 마다 불린다. 남은 수명이 절반 이상이면 아무것도 쓰지 않는다 —
+            // 안 그러면 요청 하나당 DB UPDATE + Redis 쓰기가 붙는다.
+            var score = await _database.SortedSetScoreAsync(RedisKeys.UserSessionActive(), sessionId);
+            if (score is not null)
+            {
+                var remaining = DateTimeOffset.FromUnixTimeSeconds((long)score.Value).UtcDateTime - DateTime.UtcNow;
+                if (remaining > SessionTtl / 2)
+                    return;
+            }
+
+            var session = await context.UserSessions.SingleOrDefaultAsync(us => us.SessionId == sessionId, ct);
+            if (session is null)
+                return;
+
+            session.Touch();
+            await context.SaveChangesAsync(ct);
+
+            // 캐시·활성집합·매핑을 한꺼번에 새 수명으로 다시 찍는다.
+            await SetSessionCacheAsync(session);
+        }
+        catch (Exception e)
+        {
+            // 생존 신호 갱신은 요청의 본질이 아니다 — 실패해도 요청을 깨뜨리지 않는다.
+            logger.LogWarning(e, "Failed to touch session {SessionId}", sessionId);
+        }
+    }
+
+    public async Task<DateTime?> GetSessionActiveUntilAsync(long userId, CancellationToken ct = default)
+    {
+        try
+        {
+            var sessionId = await _database.StringGetAsync(RedisKeys.UserSessionMapping(userId));
+            if (!sessionId.HasValue || string.IsNullOrWhiteSpace(sessionId.ToString()))
+                return await ActiveUntilFromDatabaseAsync(userId, ct);
+
+            var score = await _database.SortedSetScoreAsync(RedisKeys.UserSessionActive(), sessionId.ToString());
+            if (score is not null)
+                return DateTimeOffset.FromUnixTimeSeconds((long)score.Value).UtcDateTime;
+
+            return await ActiveUntilFromDatabaseAsync(userId, ct);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to read session active-until for user {UserId}", userId);
             throw;
         }
     }

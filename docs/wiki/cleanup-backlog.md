@@ -1,4 +1,4 @@
-# 코드 정리 백로그 (2026-08-22 갱신)
+# 코드 정리 백로그 (2026-08-24 갱신)
 
 > "지금 코드에서 문제나 이상한 부분을 다 정리한다"는 트랙의 **입력 문서**.
 > 각 항목은 **근거(실측/코드 위치)** 와 **왜 문제인가**, **선행 결정이 필요한지**를 함께 적는다.
@@ -100,10 +100,12 @@ bake 산출물 7종 중 **`items.json` 하나만 Exporter 가 없다**. 나머�
 - 던전 상호작용 실작동 경로는 `Game.Gameplay.Character`(detector + `IInteractable`). `InteractionSystem`(리치/라우터)은 아웃게임 등록·휴면 상태로 중복.
 - **조치**: 제거 또는 일원화 결정. 아이템 인벤토리(3.1) 합류 시 instigator 흐름과 함께 확정.
 
-### B4. `GetRooms` 페이징의 남는 한계 — ⬜ 낮음(문서화됨)
+### B4. `GetRooms` 페이징의 남는 한계 — ✅ **해소 (2026-08-24)**
 
-- 리포지토리가 여전히 **전체 활성 방을 읽고 메모리에서 자른다**. 진짜 O(page) 는 `room:active` 를 Set→Sorted Set 으로 옮겨야 하는데 Redis 키 계약 변경 + 마이그레이션이라 보류 중.
-- 페이징으로 실제로 줄어든 것 = 응답 크기 + 플레이어/유저 배치 쿼리 범위.
+- 전량을 읽어 메모리에서 자르던 것을 **DB 로 내렸다**: `GetActiveRoomsPageAsync(offset, limit)` → `ORDER BY "RoomId" DESC OFFSET/LIMIT` + `COUNT(*)`.
+- Redis 키 계약(Set→Sorted Set) 변경은 **필요 없었다** — 목록의 진실을 DB 로 옮긴 뒤라(§2.107 ①) 정렬·자르기를 그냥 DB 가 하면 됐다. 보류 사유였던 마이그레이션 자체가 사라진 셈.
+- 안정 정렬을 저장소 계약에 못 박아 호출자가 다시 정렬하지 않는다. 총계는 `ActiveRoomsPage.TotalCount` 로 함께 반환.
+- 상세 = [codemap.md](codemap.md) §2.108.
 
 ### B5. `Game.Gameplay.Editor` → `Game.Network` 참조 — ✅ 승인됨(기록용)
 
@@ -124,7 +126,7 @@ bake 산출물 7종 중 **`items.json` 하나만 Exporter 가 없다**. 나머�
 - ⚠ Docker(Postgres/Redis)·Unity 가 동시에 도는 환경이라 0 근처에서 서비스 손상 위험.
 - **선택지**: ① 공간 확보 후 이어서 ② 아트 커밋 되돌리고 미추적 유지 ③ 실제 참조 에셋만 선별 커밋.
 
-### C2. `.gitignore` 가 `*.meta` 를 제외 — ⬜ **높음(구조적 함정)**
+### C2. `.gitignore` 가 Unity 에셋을 삼키는 VS/NuGet 템플릿 규칙 — ✅ **해소 2026-08-24**
 
 - `.gitignore:80` 의 `*.meta` 때문에 **신규 에셋마다 `git add -f` 를 기억해야** 한다. 잊으면 클론 시 GUID 가 새로 생성돼 프리팹·머티리얼 참조가 전부 끊긴다.
 - Unity 프로젝트에서 `.meta` 는 **소스와 동급**이다. 이 규칙이 왜 들어왔는지 확인하고, 가능하면 `!*.meta` 예외로 되돌리는 게 맞다.
@@ -154,6 +156,65 @@ Assets/Art/Magic Pig Games (Infinity PBR)/.../v2_DemoEnvironment.prefab
 - **권장 분리**:
   1. ✅ **완료 2026-08-18**: `.gitignore` 의 `*.meta` 제거. **원인 규명 — 이 규칙은 `# Files built by Visual Studio` 블록(`*.ilk`·`*.obj`·`*.pch` 사이)에 있었다. VS 템플릿의 빌드 산출물 규칙이 Unity 에셋 `.meta` 까지 삼킨 것**이지 의도된 Unity 설정이 아니었다. 제거 사유를 파일에 주석으로 남김.
      - 실측: 제거 후 새로 노출된 `.meta` 는 **1,019개**(예상 8,593 아님). 나머지는 `Client/Assets/Packages/` 등 **다른 ignore 규칙**에 여전히 걸려 있다 → 2단계에서 함께 다뤄야 한다.
+  2. ✅ **완료(앞선 세션)**: 고아 `.meta` 일괄 커밋. — 2026-08-24 재실측에서 **고아 0건**.
+  3. ✅ **완료 2026-08-24**: `**/[Pp]ackages/*`(`.gitignore:207`) 예외 — 아래.
+
+---
+
+#### 해소 기록 (2026-08-24)
+
+**실측 — 문서 기재와 다름.** 위 본문의 "고아 8,593 / ⛔ 블로커"는 이미 난 상태였다.
+
+```
+추적 자산(비-meta) 18,089 · 추적 .meta 19,573
+★ .meta 미추적 자산(고아)  0건
+   (comm 이 잡은 `Packages/*/.signature.p7s` 20건은 오탐 —
+    `.` 으로 시작하는 파일은 Unity 가 임포트하지 않아 `.meta` 가 애초에 없다.
+    전수 확인: `find -name '.signature.p7s.meta'` → 0건)
+```
+
+**남아 있던 진짜 문제 — `*.meta` 와 완전히 같은 사고가 하나 더 있었다.**
+
+```
+.gitignore:206  # The packages folder can be ignored because of Package Restore
+.gitignore:207  **/[Pp]ackages/*        ← VS/NuGet 템플릿 규칙
+                    └─▶ Client/Assets/Packages/   (NuGetForUnity 복원 위치 = Unity 에셋)
+```
+
+80행 `*.meta` 가 "VS 빌드 산출물 블록에 섞여 Unity 에셋을 삼킨" 것과 **동일한 원인·동일한 결과**다 —
+`git add -f` 를 기억한 5개만 들어가 있는 반쪽 상태:
+
+```
+추적됨(-f 강제) 5개 : Microsoft.Bcl.AsyncInterfaces · Microsoft.Bcl.TimeProvider
+                        System.ComponentModel.Annotations · System.Runtime.CompilerServices.Unsafe
+                        System.Threading.Channels
+미추적     15개 : Google.Protobuf · Grpc.Net.Client/Common · Grpc.Core.Api · MemoryPack(3)
+                        R3 · ObservableCollections(2) · Microsoft.Extensions.*(2)
+                        System.Collections.Immutable · System.IO.Pipelines · System.Diagnostics.DiagnosticSource
+                        → .meta 259건 포함 총 416파일이 리포 밖에 있었다
+```
+
+**결정: 전부 추적** (미추적로 통일하는 대안 기각)
+- 용량 실측 **8.7MB** 전체 — 아트 3GB 리포에서 무시 가능한 비용.
+- 미추적로 통일하면 클론 직후 Unity 가 **컴파일 깨진 채** 열린다
+  (NuGetForUnity 복원은 에디터를 열어야 돌아가는 닭·달걀 구조) → asmdef 연쇄 실패.
+- Unity 에서 `Assets/` 하위는 전부 소스 — C2 가 세운 원칙(".meta 는 소스와 동급")과 같은 논리.
+
+**조치**: `.gitignore` 에 `!Client/Assets/Packages/*` 예외 + 사유 주석. `Packages` 416파일 추가.
+
+**검증**
+```
+Client/Assets 하위 ignored .meta        259 → 0
+Client/Assets 하위 고아 자산            0 (유지)
+ServerAll/packages/ · packages/ 무시     IGNORED ✓ (회귀 없음)
+소스 파일(.cs/.proto/.asmdef) 변경   0건 — git 인덱스만 바뀜
+```
+
+**규칙(재발 방지)**: `.gitignore` 에 VS/.NET 템플릿 규칙을 붙일 때는 **`Client/Assets/` 하위에 걸리는지 먼저 확인**한다.
+`*.meta`·`**/[Pp]ackages/*` 둘 다 같은 경로로 들어왔다. 남은 `**/` 규칙도 같은 위험을 가진다.
+
+**범위 밖 — 별도 보고**: `Client/Assets/_Recovery/` (Unity 크래시 복구 씬 덤프) 가 3건 커밋돼 있고 3건은 미추적이다.
+GUID 손상은 아니지만 리포에 들어갈 물건이 아니다. `Packages/.2.65.0`·`.8.0.0` 빈 디렉터리도 NuGetForUnity 설치 잔여물.
   2. **선행 정리 후**: 데모 폴더(`_DEMO SOURCE FILES`·`LP Files` 등) 정리 → 콘솔 error 0 확인 → 기존 고아 메타 커밋.
 
 ### A5. Editor Exporter 5종이 `DisplayDialog` 로 메인 스레드를 붙잡는다 — ✅ **해소 2026-08-18**
@@ -192,7 +253,7 @@ Assets/Art/Magic Pig Games (Infinity PBR)/.../v2_DemoEnvironment.prefab
 
 - **몬스터→플레이어 지연 실측값** — 관측 배선(`PlayerHpApplied`)은 완료됐지만 트레이스가 기본 Off 라 실제 ms 는 아직 없다. `Tools/Combat/Combat Trace` 에서 Record 켜고 던전 플레이 필요.
 - **MPPM 실플레이 육안 확인** — leviathan 보스가 실제 모델로 뜨고 슬램 모션이 나오는지. 가드 테스트로 배선은 고정했으나 사람이 본 적은 없다.
-- **B4 의 성능 영향** — 방이 많을 때 전량 조회가 실제로 문제인지 측정한 적 없음.
+- ~~**B4 의 성능 영향**~~ — 측정 없이 해소됨(2026-08-24). 전량 조회를 DB OFFSET/LIMIT 으로 대체해 질문 자체가 사라졌다. 남은 미실측은 "실제 부하에서의 쿼리 시간"이며 그건 인덱스 관점의 별건.
 - **아트 팩 3종의 실사용률** — 3.0GB 중 실제 참조되는 에셋 비율 미측정. C3 선별 커밋 판단의 근거가 된다.
 
 ---
@@ -203,7 +264,7 @@ Assets/Art/Magic Pig Games (Infinity PBR)/.../v2_DemoEnvironment.prefab
 > 기능 개발 중에는 보이지 않던 자리들이다. 근거는 전부 코드 위치로 남긴다.
 > ⚠️ **미실측**: 코드 경로상 확인이고 재현 테스트는 돌리지 않았다.
 
-### F1. 던전 방 입장 원자성 유실 — ⬜ **높음** (실제 동작 영향)
+### F1. 던전 방 입장 원자성 유실 — ✅ **해소 2026-08-23**
 
 ```
 DungeonLobbyService.cs:170-174
@@ -216,19 +277,85 @@ DungeonLobbyService.cs:170-174
 - **재료는 이미 있다**: `IUserLock`(`RedisUserLock`, `SET NX EX` + 소유자 토큰 Lua 해제)이 `ChatService.cs:36` 에서 쓰이고 있다. 로비 입장에만 안 걸려 있다.
 - 상세 = [chapter-03](../portfolio/chapter-03-dungeon-lobby.md) 3절.
 
-### F2. Refresh 실패 시 세션 파괴가 DoS 벡터 — ⬜ **높음**(보안) / ❓ 선행 결정
+**조치(2026-08-23)** — 축이 둘이라 방어도 둘로 나눴다. 상세 = codemap §2.105.
+
+| 깨지던 축 | 방어 | 위치 |
+|---|---|---|
+| 정원 초과 (서로 다른 유저의 경합) | 방 단위 락으로 "인원 검사~입장 기록"을 한 임계구역에 | `DungeonLobbyService.JoinRoomAsync` (`RoomLockKey`) |
+| 한 유저의 동시 다중 방 입장 | `dungeon_room_players.UserId` **UNIQUE** — 락 만료·다중 인스턴스에도 안 깨지는 최종 방어선 | `DungeonRoomPlayerConfiguration` + 마이그레이션 `MakeDungeonRoomPlayerUserIdUnique` |
+
+- `IUserLock` → **`IDistributedLock`** 으로 개명(구현 `RedisDistributedLock`). 방 스코프에도 쓰이는데 이름·키 프리픽스가 유저 전용이었다. 겸사 키가 `lock:user::chat:user:{id}` 로 콜론이 겹치던 것도 `lock:{scope}` 로 정리.
+- UNIQUE 위반은 `PlayerAlreadyInRoomException`(Application)으로 번역해 EF/Npgsql 예외 타입이 Application 까지 새지 않게 했다.
+- 마이그레이션은 UNIQUE 를 걸기 전에 기존 중복을 정리한다(없으면 제약 생성이 실패해 서버가 못 뜬다). ⚠️ 처음 쓴 `MIN((JoinedAt, RoomId))` 은 PostgreSQL 에서 `function min(record) does not exist` 로 실패 — `ROW_NUMBER() OVER (PARTITION BY ...)` 로 교체했다(실제로 서버 기동 실패로 밟음).
+- **경합 재현 테스트**(`DungeonRoomJoinConcurrencyTests`, Testcontainers 실 Redis+PG) 5건 — 락 상호배제 / 키 스코프 / 정원 동시입장 / UNIQUE 제약 / 서비스 end-to-end.
+  - **고장 주입으로 실효성 확인**: 락을 `NoOpDistributedLock` 으로 바꾸자 정원 4인 방에 **8명 전원 입장**(Expected 3, Actual 8)으로 실패 → 복구 후 통과.
+  - ⚠️ **동시성 테스트만으로는 UNIQUE 를 검증 못 한다**(실측): `.IsUnique()` 를 떼도 두 요청이 충분히 겹치지 않아 서비스 사전 검사가 먼저 걸러 **통과해 버렸다**. → 저장소 계층(사전 검사 없음) 직접 테스트를 따로 두어 결정적으로 고정. 그 테스트는 `.IsUnique()` 제거 시 `Assert.Throws() Failure: No exception was thrown` 로 정확히 실패한다.
+- **남은 것**: 죽은 API `IDungeonRoomRepository.TryJoinRoomAsync`(호출자 0, 구현은 상태 확인만) 는 이번에 건드리지 않았다 — 별건으로 제거 대상.
+
+### F2. Refresh 실패 시 세션 파괴가 DoS 벡터 — ✅ **해소 (2026-08-23)**
 
 ```
-AuthService.RefreshTokenAsync
-   ValidateToken(accessToken, validateLifetime: false)   ← 만료 토큰도 통과(의도·테스트로 고정)
-   해시 불일치        → ClearRefreshToken + RemoveSession
-   버전 역행(재사용)  → ClearRefreshToken + RemoveSession
+before                                          after
+─────────────────────────────────────────────   ──────────────────────────────────────────────
+버전 역행(위조 가능) → Clear + RemoveSession     해시 = 현재 세대  → 정상 회전
+해시 불일치          → Clear + RemoveSession     해시 = 직전 세대  → 유예 이내 = 재시도
+                                                                  → 유예 경과 = 탈취 → 파괴
+                                                둘 다 아님        → 실패만. 세션 유지
 ```
 
-- **왜 문제인가**: 유출된 **만료 accessToken 하나**만 있으면 형식만 맞춘 아무 리프레시 문자열(`aaa.99`)로 **피해자 세션을 강제 종료**시킬 수 있다. 반복하면 지속적 로그아웃.
-- **표준 관행**: OAuth 2.0 Security BCP 는 전체 무효화를 **재사용 탐지에 한정**한다. 단순 해시 불일치는 실패 카운트·레이트 리밋이 맞다.
-- **선행 결정**: 현재 파괴는 "DeviceId 불일치 = 탈취 의심"이라는 **의도적 정책**이다. 가용성과 보안 중 어느 쪽을 택할지가 먼저.
-- 상세 = [chapter-02](../portfolio/chapter-02-authentication.md) 8절.
+- **조사 중 드러난 것**: 문제는 해시 불일치 분기만이 아니었다. **버전 역행 검사가 해시 비교보다 앞**에 있어 `aaa.0` 한 방으로 `TokenReuseDetected` + 세션 파괴가 났다. → BCP 의 "무효화를 재사용 탐지로 한정"을 그대로 적용해도 DoS 가 안 없어지는 구조였다.
+- **택한 해법**: 파괴를 **소유 증명 뒤로** 옮기고, 직전 세대 해시를 Redis 휘발성 키(`game:user:credential:refresh:prev:{userId}`, 값 `해시:회전시각`, TTL=리프레시 수명)에 한 세대만 보관해 "우리가 발급한 토큰"이라는 증명을 되찾았다. 가용성·재사용 탐지 중 하나를 버릴 필요가 없어져 **선행 결정 자체가 소멸**했다.
+- **유예창**(`JwtOptions.RefreshReuseGraceSeconds`, 기본 60s): 응답 유실·타임아웃 재시도로 같은 토큰이 두 번 오는 정상 경로를 탈취로 오판하면 대량 로그아웃이 된다. 유예 안 재시도는 **회전시각을 갱신하지 않는다**(갱신하면 탐지를 무한히 미룰 수 있음).
+- **버려진 것**: 버전 역행 비교. 파괴 근거로서는 위조 가능해 제거했다(`RefreshTokenVersion` 은 토큰 접미사로만 남음).
+- **검증**: `AuthServiceTests` 15/15 · `GameServer.Tests` 417/417 · `SocketServer.Tests` 224/224 · Unity EditMode 231/231 · PlayMode E2E(`AuthE2ETests` 신규 2건 포함).
+- 상세 = [chapter-02](../portfolio/chapter-02-authentication.md) 6·8절.
+
+### F15. 유령 방이 영원히 남는다 — ✅ **해소 (2026-08-24)**
+
+- **실측**: `Waiting 733 / Playing 1275 / Closed 0`. 방을 만들고 앱을 종료하면 소켓이 붙은 적이 없어 `PlayerLeft` 이벤트가 안 나오고, `RemovePlayerFromRoomAsync` 가 영원히 호출되지 않는다.
+- **선행 확인**: 세션 기반 판정을 하려다 **생존 신호가 시스템에 없다**는 것을 먼저 확인했다 — `UserSession.LastActiveAt` 갱신 지점 0곳(죽은 필드), `CleanupExpiredSessionsAsync` 호출자 0곳, 클라는 콜드스타트에만 refresh(주기 하트비트 없음).
+- **조치**: `session:active` score(= 최근 인증 RPC + AccessToken 수명 근사)를 신호로 쓰되 **유예 2시간**. `DungeonRoomReaper`(10분 주기) → **방마다 새 스코프** → `ReapRoomIfAbandonedAsync(roomId)` → 기존 `RemovePlayerFromRoomAsync` 재사용.
+- ⚠️ 처음엔 한 스코프로 전량을 돌렸다가 한 방의 실패가 뒤따르는 방까지 연쇄로 깨뜨리는 것을 실측하고 방 단위로 쪼갰다.
+- **남은 것 = F16**(정식 하트비트). 도입되면 유예를 줄일 수 있다.
+- 상세 = [codemap.md](codemap.md) §2.107 ③.
+
+### F16. 정식 하트비트가 없다 — ✅ **해소 (2026-08-24)**
+
+- `UserSession.LastActiveAt` 은 로그인 시각으로 고정된 **죽은 필드**이고, 클라이언트는 콜드스타트에만 토큰을 갱신한다. 그래서 "이 플레이어가 아직 살아 있다"를 정확히 말할 수단이 없다.
+- 현재 F15 리퍼는 `session:active` score 라는 **근사 신호 + 2h 유예**로 버티고 있다. 오탐을 막으려 유예를 크게 잡은 만큼 정리가 늦다.
+- **조치**: ① 서버 — `AuthService.ValidateTokenAsync` 가 인증 성공마다 `TouchSessionAsync` 호출(저장소가 스로틀: 남은 수명 절반 이상이면 미기록). `UserSession.Touch()` 로 `LastActiveAt` 이 살아났다. ② 클라 — `SessionKeepAlive`(ProjectScope EntryPoint)가 남은 수명의 60% 지점마다 토큰을 갱신. **proto 변경 없음**.
+- **곁다리로 잡은 진짜 버그**: `AccessTokenMinutes: 60` 인데 클라가 콜드스타트에서만 갱신해 **60분 넘게 플레이하면 이후 전 RPC 가 Unauthenticated** 였다. keep-alive 가 이걸 같이 닫는다.
+- **오탐 방지**: `GetSessionActiveUntilAsync` 가 Redis score 없으면 DB `LastActiveAt + AccessToken 수명` 으로 폴백.
+- **남은 것**: F15 의 `Grace`(2h) 축소는 아직 안 했다 — 신호가 진짜가 됐으니 다음 라운드에서 조정 가능. `CleanupExpiredSessionsAsync`(호출자 0곳) 존치 여부도 그대로 남았다.
+- 상세 = [codemap.md](codemap.md) §2.108.
+
+### F17. Register 롤백이 실패한 Insert 를 재커밋했다 — ✅ **해소 (2026-08-24)**
+
+- `AccountService.RegisterAsync` 의 catch 가 `UserProfileRepository.RemoveAsync` → `SaveChangesAsync` 를 부르는데, 실패한 credential Insert 가 Added 로 남아 **다시 커밋되며 같은 UNIQUE 위반**을 던졌다. 원인이 `INTERNAL_SERVER_ERROR` 로 뭉개지고 고아 레코드가 남았다.
+- **조치**: 실패한 저장소가 **자기 엔티티만** Detached 로 되돌린다(`UserCredentialRepository.CreateAsync`).
+- ⚠️ 처음엔 `GameServerDbContext.SaveChangesAsync` 전역 오버라이드로 넣었다가 되돌렸다 — 리퍼 실행 중 `ArgumentOutOfRangeException: Unexpected entry.EntityState: Detached` 로 변경 추적기가 깨졌다. 전역 정책이 아니라 국소 수정이 맞다.
+- 상세 = [codemap.md](codemap.md) §2.107 ②.
+
+### F18. `AuthFlowE2ETests` 가 전역 `TokenStorage` 를 공유해 전체 실행에서만 흔들린다 — ✅ **해소 (2026-08-24)**
+
+- **실측**: 단독 실행 5/5 통과. 전체 실행에서 `자동로그인_만료된토큰이면_리프레시한다` 가 **1회** `Expected: Success / But was: NeedLogin` 로 실패했고, 같은 코드로 재실행하니 **224/224 통과**했다.
+- **원인 미규명**: 간섭 주체를 특정하지 못했다. 확인한 것만 적는다 — ⓐ 서버 회귀가 아니다(단독 통과) ⓑ `SessionKeepAlive` 는 원인일 수 없다(`AccessTokenMinutes=60` → 첫 발화가 로그인 후 ~36분인데 런은 4.5분) ⓒ 이 픽스처는 정적 `TokenStorage`(PlayerPrefs)를 프로덕션 `AuthSession.Update/Clear` 와 **그대로 공유**한다.
+- **조치**: `ITokenStore` 를 도입해 `AuthSession` 이 저장소를 **주입받는다**(앱=`PlayerPrefsTokenStore`, 테스트=픽스처 전용 `InMemoryTokenStore`). 정적 `TokenStorage` 는 삭제(호출자 0).
+- ⚠️ **이 변경이 그 플래키를 없앤다고 주장하지 않는다** — 간섭 주체는 끝내 특정하지 못했다(재현 안 됨). 다만 프로세스 전역 가변 상태를 테스트 경로에서 없앤 것은 그 자체로 옳고, 간섭이라는 부류 전체를 제거한다.
+- 상세 = [codemap.md](codemap.md) §2.109 ①.
+
+### F19. `GlobalInputInitializer` 가 입력 맵을 켜고 끄지 않는다 — ✅ **해소 (2026-08-24)**
+
+```
+GlobalInputInitializer.Initialize()   Enable() · Player.Enable() · UI.Enable()
+        └─ 해제 지점 없음
+루트 teardown → VContainer → PlayerInputActions.Dispose() → asset 파괴
+        └─ 파이널라이저 assert: "…Player.Disable() has not been called"
+```
+- **왜 문제인가**: 그 assert 로그가 **그때 실행 중이던 무관한 테스트에 붙어 실패시킨다**. 실제로 `SessionKeepAliveTests` 가 이것으로 깨져 `LogAssert.ignoreFailingMessages` 로 격리해 둔 상태다(마스크는 근본 수정 후 제거 대상).
+- **조치**: `IDisposable` 을 붙여 dispose 시 `Disable()`. `asset == null` 가드는 `Unity.InputSystem` asmdef 참조를 요구해 포기하고, 해제 순서 불확정만 try/catch 로 흡수했다.
+- `SessionKeepAliveTests` 의 `LogAssert.ignoreFailingMessages` 마스크 **제거** — 마스크 없이 3/3 통과.
+- 상세 = [codemap.md](codemap.md) §2.109 ②.
 
 ### F3. 멱등 처리 기록의 TTL 이 컬렉션 전체에 걸린다 (3곳 동일 패턴) — ⬜ 중간
 
@@ -237,6 +364,7 @@ AuthService.RefreshTokenAsync
 | `DungeonResultConsumer.cs:42,48` | `DungeonResultProcessed()` Set | 24h (Set 전체, 추가마다 갱신) |
 | `LootGrantConsumer.cs:50,56` | `LootPickupProcessed()` Set | 24h (동일) |
 | `ChatMessageRepository.cs:23,411` | `ChatAllMessages()` Sorted Set | RedisCacheTtl (동일) |
+| ~~`DungeonRoomRepository.cs:229`~~ | ~~`DungeonRoomActive()` Set~~ | ~~RedisCacheTtl~~ ✅ **2026-08-24 해소** — 목록·카운트를 DB 단일 소스로 바꿔 집합을 근거에서 뺐다(§2.107 ①) |
 
 - **왜 문제인가**: 일정 시간 이벤트가 없으면 **처리 기록이 통째로 만료**된다. 그 뒤 오래된 메시지가 재배달되면 **이중 지급**이 가능하다. 재배달 경로도 실재한다(F4).
 - 채팅 쪽은 성격이 조금 다르다 — 인덱스가 만료됐다 새 메시지 하나로 되살아난 상태에서 오래된 `afterMessageId` 로 조회하면 **그 사이 이력이 조용히 빈 채로 반환**된다(컬렉션 조회만 전부-아니면-전무. 단건 `GetMessageByIdAsync` 는 DB 폴백함).
@@ -337,19 +465,20 @@ DialogueView.cs:55          동일 패턴                                       
 | 재편 중 발견 | 기존 항목 |
 |---|---|
 | `CharacterMotor.Move` 가 `Time.deltaTime` 직접 읽음 | **B1** |
-| `GetRooms` 페이징의 남는 한계(전량 조회) | **B4** |
+| ~~`GetRooms` 페이징의 남는 한계(전량 조회)~~ | ~~**B4**~~ ✅ 2026-08-24 |
 | HUD 입력 임시 폴링 | **D** (F13 이 보강) |
 
 ---
 
-## 착수 순서 제안 (2026-08-22 갱신)
+## 착수 순서 제안 (2026-08-24 갱신)
 
-A·C 계열은 대부분 해소됐다. 남은 것은 **F(문서 재편 중 발견) 중심**이다.
+~~**F1**~~ ✅ 2026-08-23(방 단위 분산락) · ~~**F2**~~ ✅ 2026-08-23(소유 증명 우선) · ~~**C2**~~ ✅ 2026-08-24(NuGet 템플릿 규칙 예외).
+→ **🔴 높음 항목이 남아 있지 않다.** 남은 것은 F 계열 중간·낮음.
 
-1. **F1 (입장 원자성)** — 유일하게 **지금 플레이에서 잘못된 결과**를 만들 수 있다. 재료(`IUserLock`)도 이미 있어 작업량이 작다.
-2. **F3 + F4** — 묶어서. F4(재배달 경로)가 없으면 F3(기록 만료)의 위험이 현실화되지 않는다. 둘 중 하나만 고치면 반쪽짜리.
-3. **F2** — 고치기 전에 **정책 결정**이 먼저(가용성 vs 보안).
-4. **F6 · F13** — 이미 전제조건이 풀린 미완 작업. 각각 한 곳만 배선하면 끝난다.
-5. **F11** — M6 배포 전에는 반드시.
-6. **B1 · B2 · F9 · F12** — 전부 ❓ 선행 결정 필요(공개 계약·감각 영향).
-7. **F5 · F7 · F8 · F10 · F14 · C2 · D** — 개별 정리.
+1. **F3 + F4** — 묶어서. F4(재배달 경로)가 없으면 F3(기록 만료)의 위험이 현실화되지 않는다. 둘 중 하나만 고치면 반쪽짜리.
+   **남은 것 중 유일하게 데이터 손상(이중 지급)으로 이어진다** → 다음 착수 후보.
+2. **F6 · F13** — 이미 전제조건이 풀린 미완 작업. 각각 한 곳만 배선하면 끝난다.
+3. **F11** — M6 배포 전에는 반드시.
+4. **F5 · B3 · C3** — 중간. 설계 일관성·환경.
+5. **B1 · B2 · F9 · F12** — 전부 ❓ 선행 결정 필요(공개 계약·감각 영향).
+6. **F7 · F8 · F10 · F14 · D** — 개별 정리.

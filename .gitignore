@@ -207,6 +207,12 @@ PublishScripts/
 **/[Pp]ackages/*
 # except build/, which is used as an MSBuild target.
 !**/[Pp]ackages/build/
+# NOTE: 위 '**/[Pp]ackages/*' 도 VS/NuGet 템플릿 규칙인데, '**/' 때문에 NuGetForUnity 가 복원하는
+# Unity 에셋 폴더 'Client/Assets/Packages/' 까지 삼켰다. 80행의 '*.meta' 와 완전히 같은 사고다
+# (VS 템플릿 규칙이 Unity 에셋을 삼킴). 실제로 -f 로 강제 추가한 5개만 들어가고 15개가 빠진
+# 반쪽 상태였다. Unity 에서 Assets/ 하위는 전부 소스이므로 예외로 되돌린다 — cleanup-backlog C2.
+# ServerAll 등 진짜 NuGet 복원 폴더는 위 규칙이 계속 담당한다.
+!Client/Assets/Packages/*
 # Uncomment if necessary however generally it will be regenerated when needed
 #!**/[Pp]ackages/repositories.config
 # NuGet v3's project.json files produces more ignorable files
@@ -530,6 +536,11 @@ ExportedObj/
 # Unity3D generated file on crash reports
 sysinfo.txt
 
+# Unity 가 크래시 후 만드는 씬 복구 사본. Unity 가 스스로 생성·삭제하는 폴더라
+# 커밋 대상이 아니다(실측: Main.unity 의 1252-GameObject 사본 2개 = 6.4MB).
+# 빌드 씬 목록(EditorBuildSettings)·Addressables 어디에서도 참조되지 않는다.
+/Client/Assets/_Recovery/
+
 # Builds
 *.apk
 *.aab
@@ -569,3 +580,6 @@ ServerAll/Temp/obj
 
 # Claude 훅 중복 경고 방지 상태(로컬 전용)
 .claude/hooks/.state/
+
+# Codex CLI 의 머신 로컬 MCP 설정(localhost 주소). 사람마다 다르므로 커밋하지 않는다.
+/.codex/

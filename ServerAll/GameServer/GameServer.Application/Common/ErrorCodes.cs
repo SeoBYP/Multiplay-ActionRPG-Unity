@@ -25,6 +25,7 @@ public enum ErrorCodes : ushort
     RoomNotWaiting = 2005,
     RoomAlreadyPlaying = 2006,
     RoomClosed = 2007,
+    NotAllPlayersReady = 2008,
     JoinRoomFailed = 2010,   
     LeaveRoomFailed = 2011,  
     StartGameFailed = 2012,

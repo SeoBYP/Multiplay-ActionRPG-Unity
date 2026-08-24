@@ -26,6 +26,8 @@ public static class RedisKeys
     // UserCredential
     public static string UserCredential(long userId) => $"{Prefix}:user:credential:{userId}";
     public static string UserCredentialEmailMapping(string email) => $"{Prefix}:user:credential:email:{email}";
+    // 직전 세대 리프레시 토큰 해시 (재사용 탐지 — DB 아닌 Redis 전용 휘발성)
+    public static string UserRefreshTokenPrevious(long userId) => $"{Prefix}:user:credential:refresh:prev:{userId}";
     
     // UserSession
     public static string UserSession(string sessionId) => $"{Prefix}:session:{sessionId}";
@@ -40,6 +42,10 @@ public static class RedisKeys
     public static string DungeonRoomPlayer(long roomId, long userId) => $"{Prefix}:room:player:{roomId}:{userId}";
     public static string DungeonRoomPlayerByRoom(long roomId) => $"{Prefix}:room:player:by-room:{roomId}";
     public static string DungeonRoomPlayerByUser(long userId) => $"{Prefix}:room:player:by-user:{userId}";
+
+    // 방 준비 상태(Set of userId). DB 컬럼이 아니라 Redis 전용 — 방과 수명을 같이하는 휘발성 로비 상태다.
+    // 유실되면 전원 미준비로 되돌아갈 뿐이라 게임 진행에 영구 손상이 없다.
+    public static string DungeonRoomReady(long roomId) => $"{Prefix}:room:ready:{roomId}";
     
     // GameSession
     public static string GameSession(long gameSessionId) => $"{Prefix}:gamesession:{gameSessionId}";
