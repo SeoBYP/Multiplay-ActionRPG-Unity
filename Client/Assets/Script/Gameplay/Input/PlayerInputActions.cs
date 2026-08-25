@@ -237,6 +237,24 @@ namespace Game.Gameplay.Input
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Quest"",
+                    ""type"": ""Button"",
+                    ""id"": ""484440fc-5907-4e81-a5d6-e3b7303b748e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Ability"",
+                    ""type"": ""Button"",
+                    ""id"": ""96f2bfc1-eb3c-4cc7-9945-363aeb77ad46"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -699,6 +717,28 @@ namespace Game.Gameplay.Input
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""LockOn"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""bad50295-a4ab-411e-9a53-00ed5ff02a0d"",
+                    ""path"": ""<Keyboard>/q"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Quest"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""3932262c-26a7-4e0e-82c0-efb7bfd387e3"",
+                    ""path"": ""<Keyboard>/g"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Ability"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1302,6 +1342,8 @@ namespace Game.Gameplay.Input
             m_Player_Equipment = m_Player.FindAction("Equipment", throwIfNotFound: true);
             m_Player_HeavyAttack = m_Player.FindAction("HeavyAttack", throwIfNotFound: true);
             m_Player_LockOn = m_Player.FindAction("LockOn", throwIfNotFound: true);
+            m_Player_Quest = m_Player.FindAction("Quest", throwIfNotFound: true);
+            m_Player_Ability = m_Player.FindAction("Ability", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
             m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -1411,6 +1453,8 @@ namespace Game.Gameplay.Input
         private readonly InputAction m_Player_Equipment;
         private readonly InputAction m_Player_HeavyAttack;
         private readonly InputAction m_Player_LockOn;
+        private readonly InputAction m_Player_Quest;
+        private readonly InputAction m_Player_Ability;
         /// <summary>
         /// Provides access to input actions defined in input action map "Player".
         /// </summary>
@@ -1487,6 +1531,14 @@ namespace Game.Gameplay.Input
             /// </summary>
             public InputAction @LockOn => m_Wrapper.m_Player_LockOn;
             /// <summary>
+            /// Provides access to the underlying input action "Player/Quest".
+            /// </summary>
+            public InputAction @Quest => m_Wrapper.m_Player_Quest;
+            /// <summary>
+            /// Provides access to the underlying input action "Player/Ability".
+            /// </summary>
+            public InputAction @Ability => m_Wrapper.m_Player_Ability;
+            /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
             public InputActionMap Get() { return m_Wrapper.m_Player; }
@@ -1560,6 +1612,12 @@ namespace Game.Gameplay.Input
                 @LockOn.started += instance.OnLockOn;
                 @LockOn.performed += instance.OnLockOn;
                 @LockOn.canceled += instance.OnLockOn;
+                @Quest.started += instance.OnQuest;
+                @Quest.performed += instance.OnQuest;
+                @Quest.canceled += instance.OnQuest;
+                @Ability.started += instance.OnAbility;
+                @Ability.performed += instance.OnAbility;
+                @Ability.canceled += instance.OnAbility;
             }
 
             /// <summary>
@@ -1619,6 +1677,12 @@ namespace Game.Gameplay.Input
                 @LockOn.started -= instance.OnLockOn;
                 @LockOn.performed -= instance.OnLockOn;
                 @LockOn.canceled -= instance.OnLockOn;
+                @Quest.started -= instance.OnQuest;
+                @Quest.performed -= instance.OnQuest;
+                @Quest.canceled -= instance.OnQuest;
+                @Ability.started -= instance.OnAbility;
+                @Ability.performed -= instance.OnAbility;
+                @Ability.canceled -= instance.OnAbility;
             }
 
             /// <summary>
@@ -2031,6 +2095,20 @@ namespace Game.Gameplay.Input
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnLockOn(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Quest" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnQuest(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Ability" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnAbility(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.

@@ -80,6 +80,60 @@
 > ⚠️ **재번호(2026-07-17)** — 원래 2.60~2.76 으로 매겨져 기존 항목(2.60 회피·2.61 콤보·2.62 로스터·2.63 캡슐)과 **번호가 충돌**했다. 과거 커밋 메시지·PR 본문의 참조는 아래 대조표로 읽는다:
 > 구2.60(애니)→**2.64** · 2.61(B1)→**2.65** · 2.62(B2)→**2.66** · 2.63(B3)→**2.67** · 2.64(B4)→**2.68** · 2.65(B5)→**2.69** · 2.66(B6)→**2.70** · 2.67(C3-hotfix)→**2.71** · 2.68(C3)→**2.72** · 2.69(infra)→**2.73** · 2.70(C1a)→**2.74** · 2.71(C1b)→**2.75** · 2.72(C1c준비)→**2.76** · 2.73(사망체력바)→**2.77** · 2.74(C2)→**2.78** · 2.75(링포화)→**2.79** · 2.76(E~H)→**2.80**
 
+### 2.113 마지막 Resources 제거(F6) · HUD 입력 정식 이관(F13) (2026-08-25)
+
+**① F6 — 클라 스폰 데이터를 SO 직독으로**
+
+Addressables 전환의 목적이 "Resources = 빌드 항상 포함" 회피였는데, 맵이 늘수록 커지는
+`spawn-layouts.json` 이 마지막까지 `Resources.Load` 로 남아 있었다.
+
+```
+전  MapDefinition(SO) ──Export──▶ spawn-layouts.json ─┬─▶ 서버(임베디드)
+                                  클라 Resources/사본 ─┴─▶ SpawnLayoutProvider  ★
+후  MapDefinition(SO) ──Addressables──▶ SpawnLayoutProvider   (MapLoader 와 같은 주소 체계)
+                       ──Export──────▶ spawn-layouts.json ──▶ 서버(임베디드)
+```
+
+- **대가**: 클라는 저작(SO), 서버는 bake(JSON)를 읽게 되므로 **Export 를 잊으면 스폰 위치가 갈린다.**
+  예전에는 둘 다 같은 bake 를 읽어 그 사고가 구조적으로 불가능했다. 그래서 **드리프트 가드 테스트**를 함께 넣었다
+  (`SpawnLayoutSourceTests.MapDefinition_저작값이_서버_bake_와_일치한다` — 맵 목록·좌표·몬스터 슬롯 전수 대조).
+  가드가 실제로 잡는지는 **고장 주입**으로 확인했다: 서버 JSON 의 `dungeon_01` z 를 -16→-99 로 흔드니
+  `Expected: -16.0 / But was: -99.0` 로 즉시 실패.
+- **착수 전엔 안 보였던 것**: MapDefinition 에셋 8개 중 **Addressable 등록은 4개뿐**이었다.
+  그대로 전환했으면 `dungeon_03/04/05/e2e` 의 스폰이 런타임에 죽는다. 전환 직후 가드 테스트가
+  `KeyNotFoundException: ... 'dungeon_03' ...` 로 그걸 잡아냈고, 4건을 등록해 해소했다.
+- 미등록 주소를 그냥 `LoadAssetAsync` 하면 `InvalidKeyException` 이 **콘솔 에러와 함께** 난다 —
+  "알 수 없는 맵" 은 정상 흐름이므로 `LoadResourceLocationsAsync` 로 **먼저 조회**한 뒤 로드한다.
+- 값만 복사하고 핸들을 즉시 Release 한다(에셋을 붙들지 않는다). `MapDataExporter` 는 서버 전용 출력으로 축소.
+
+**② F13 — HUD 창 토글을 정식 입력 경로로**
+
+```
+전  GameHud.Update()  Keyboard.current 직접 폴링 (i·k·q·g)
+후  .inputactions → 생성 래퍼 → InputRouter → GameInputAction → GameHud.TryHandle
+```
+
+- **백로그의 "한 곳만 배선하면 끝난다" 는 사실이 아니었다.** 실측한 전제 3가지:
+  - `InputRouter` 는 `OutgameInstaller` → **Main 스코프에만** 설치돼 있었다. `GameHud` 는 Main·Dungeon 양쪽에서 산다(원칙 3)
+    → 배선만 했으면 **던전에서 창 토글이 죽는다**. 라우터 등록을 `InputInstaller` 로 떼어 양쪽이 설치하게 했다.
+  - `.inputactions` 에 `Quest`·`Ability` 액션이 **없었다**(Inventory·Equipment 만 있었다). 추가 후 래퍼 재생성(2114→2192줄).
+  - 폴링 키는 백로그가 적은 3개(i·k·q)가 아니라 **4개**였다(g = 어빌리티). 3개만 옮기면 같은 화면에 두 방식이 공존한다.
+- **곁다리로 고친 누수**: `InputRouter.Initialize()` 가 `performed += 람다` 로 구독만 하고 `Dispose()` 는
+  핸들러 목록만 비웠다. `PlayerInputActions` 는 **루트 싱글턴**이라 Main↔Dungeon 을 오갈 때마다 죽은 라우터의
+  델리게이트가 쌓인다. 구독을 기억해 Dispose 에서 해제하도록 고치고 테스트로 고정했다.
+- `GameHud` 는 `IInputHandler`(Priority 100, `LobbyViewController` 와 동일)를 구현하고 Start 등록·OnDestroy 해제한다.
+  등록을 Start 로 둔 이유는 `[Inject]` 필드 주입이 `OnEnable` 보다 늦을 수 있어서다(unity-client.md).
+
+**검증**: 클라 컴파일 0 · **EditMode 239/239**(231→239) · **PlayMode 225/225** · 서버 무변경(724/724 유지).
+
+⚠ PlayMode 최초 실행에서 101건이 무더기로 실패했는데 **Docker Desktop 이 내려가 있던 것**이었다
+(`StatusCode="Unavailable" ... os error 10061`). 재기동 후 정상. 그 뒤 `IInputRouter` 미등록으로 2건이
+진짜로 실패해(테스트 전용 최소 컨테이너), 기존 `NoopInputContext` 와 같은 패턴의 no-op 라우터를 등록해 해소했다.
+
+**별건 발견**: `Client/Assets/Script/Input/PlayerInputActions.cs`(namespace `Game.Input`, 2036줄)는
+**참조 0건 고아**다. 살아 있는 것은 `Script/Gameplay/Input/PlayerInputActions.cs`(`.inputactions` 의
+`wrapperCodePath` 가 그쪽을 가리킨다). cleanup-backlog 에 기록.
+
 ### 2.112 at-most-once → at-least-once + 보상 지급 원장 (F4 잔여, 2026-08-24)
 
 핸들러가 던지면 메시지가 **재배달 없이 소실**되던 것을 고쳤다. DB 순단 한 번이 곧 보상 유실이었다.

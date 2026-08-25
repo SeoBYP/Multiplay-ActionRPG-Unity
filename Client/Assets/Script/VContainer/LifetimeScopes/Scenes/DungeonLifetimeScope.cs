@@ -1,4 +1,5 @@
 using Game.Gameplay.Character;
+using Game.Installers;
 using Game.Gameplay.Spawn;
 using Game.GUI.OutGame;
 using Game.Presentation.InGame;
@@ -31,6 +32,9 @@ public class DungeonLifetimeScope : LifetimeScope
 
     protected override void Configure(IContainerBuilder builder)
     {
+        // 입력 라우팅 — GameHud 창 토글 키가 던전에서도 동작하려면 라우터가 이 스코프에도 있어야 한다(F13).
+        builder.Install(new InputInstaller());
+
         // 로컬 플레이어 ASC 공유 컨텍스트 — CharacterSpawner(생산)·InGameModel(소비)이 동일 인스턴스 공유.
         builder.Register<LocalPlayerContext>(Lifetime.Scoped).AsSelf();
 

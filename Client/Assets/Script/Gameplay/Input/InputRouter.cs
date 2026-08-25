@@ -25,6 +25,7 @@ namespace Game.Gameplay.Input
     {
         private readonly PlayerInputActions     _actions;
         private readonly List<IInputHandler>    _handlers = new List<IInputHandler>();
+        private readonly List<(InputAction Action, Action<InputAction.CallbackContext> Callback)> _bindings = new();
         private bool _dirty;
 
         /// <summary>
@@ -41,19 +42,40 @@ namespace Game.Gameplay.Input
 
         public void Initialize()
         {
-            _actions.Player.Interact.performed    += ctx => Route(GameInputAction.Interact,    ctx);
-            _actions.Player.Attack.performed      += ctx => Route(GameInputAction.Attack,      ctx);
-            _actions.Player.Dodge.performed       += ctx => Route(GameInputAction.Dodge,       ctx);
-            _actions.Player.ToggleLobby.performed += ctx => Route(GameInputAction.ToggleLobby, ctx);
-            _actions.Player.Pause.performed       += ctx => Route(GameInputAction.Pause,       ctx);
+            Bind(_actions.Player.Interact,    GameInputAction.Interact);
+            Bind(_actions.Player.Attack,      GameInputAction.Attack);
+            Bind(_actions.Player.Dodge,       GameInputAction.Dodge);
+            Bind(_actions.Player.ToggleLobby, GameInputAction.ToggleLobby);
+            Bind(_actions.Player.Pause,       GameInputAction.Pause);
+
+            // HUD 창 토글 — 예전엔 GameHud 가 Keyboard 를 직접 폴링했다(F13).
+            Bind(_actions.Player.Inventory,   GameInputAction.ToggleInventory);
+            Bind(_actions.Player.Equipment,   GameInputAction.ToggleEquipment);
+            Bind(_actions.Player.Quest,       GameInputAction.ToggleQuest);
+            Bind(_actions.Player.Ability,     GameInputAction.ToggleAbility);
 
             // 맵 활성화는 전역(GlobalInputInitializer)이 소유한다. 여기서 Enable/Disable 하지 않는다.
-            // (InputRouter는 Main 스코프 전용 → Dispose에서 전역 맵을 끄면 다음 씬(던전) 입력이 죽는다.)
+            // (라우터는 씬 스코프 → Dispose에서 전역 맵을 끄면 다음 씬 입력이 죽는다.)
+        }
+
+        /// <summary>
+        /// 구독을 기억해 두고 Dispose 에서 반드시 해제한다.
+        /// PlayerInputActions 는 **루트 싱글턴**이라, 씬을 오갈 때마다 새 라우터가 구독만 하고 끝나면
+        /// 죽은 라우터의 델리게이트가 계속 쌓인다(Main↔Dungeon 왕복마다 누적).
+        /// </summary>
+        private void Bind(InputAction action, GameInputAction mapped)
+        {
+            Action<InputAction.CallbackContext> callback = ctx => Route(mapped, ctx);
+            action.performed += callback;
+            _bindings.Add((action, callback));
         }
 
         public void Dispose()
         {
-            // 전역 PlayerInputActions의 맵을 끄지 않는다(다른 씬과 공유). 라우팅 핸들러만 비운다.
+            // 전역 PlayerInputActions의 맵을 끄지 않는다(다른 씬과 공유). 내 구독만 되돌린다.
+            foreach (var (action, callback) in _bindings)
+                action.performed -= callback;
+            _bindings.Clear();
             _handlers.Clear();
         }
 

@@ -15,6 +15,11 @@ MonoBehaviour:
   m_GroupName: Default Local Group
   m_GUID: 2efb398868f068141bdc3ad3f516ee73
   m_SerializeEntries:
+  - m_GUID: 086ef44398571d74faa5bfd3590428ac
+    m_Address: Assets/GameData/Maps/dungeon_e2e.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 0a28b832006a8824ca20d6db41bc7973
     m_Address: Assets/Prefabs/GUI/Title/RegisterWindow.prefab
     m_ReadOnly: 0
@@ -42,6 +47,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 19fa1017423ee724488791943fe96bf9
     m_Address: Assets/Prefabs/GUI/Quest/Quest_Slot.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1a0a29d002701314a87d428a5dedc399
+    m_Address: Assets/GameData/Maps/dungeon_03.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -135,6 +145,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 76b1eb6c6e7443948a8f57ee546bb04e
+    m_Address: Assets/GameData/Maps/dungeon_04.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 774f635f9f8c9234dab86b331e496fe5
     m_Address: Assets/GameData/Effects/EffectIconCatalog.asset
     m_ReadOnly: 0
@@ -142,6 +157,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 88a2d3e045580174c8c7173b08b8ac6f
     m_Address: Assets/Prefabs/GUI/Common/FaderCanvas.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c07f18de179606d42a22ab97832ffd50
+    m_Address: Assets/GameData/Maps/dungeon_05.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
