@@ -23,6 +23,7 @@ public class DungeonLobbyService(
     IChatSubscriptionService chatSubscriptionService,
     IUserProfileRepository userProfileRepository,
     IProgressionService progressionService,
+    IUserPositionService userPositionService,
     IRoomReadyStore roomReadyStore,
     IDistributedLock distributedLock,
     IOptions<DungeonRoomReaperOptions> reaperOptions,
@@ -415,6 +416,21 @@ public class DungeonLobbyService(
                 }
 
                 return Result<DungeonRoom>.Failure(ErrorCodes.RoomAlreadyPlaying, ErrorMessages.RoomAlreadyPlaying);
+            }
+
+            // Main 을 떠나는 시점 — 휘발(Redis) 위치를 DB 로 확정한다(B7).
+            // 이 한 번 덕분에 "던전 갔다 오면 입장 직전 자리에서 시작"이 별도 로직 없이 성립한다.
+            // 실패해도 게임 시작을 막지 않는다 — 위치는 편의 기능이고, 유실되면 저작 스폰으로 폴백된다.
+            foreach (var player in players)
+            {
+                try
+                {
+                    await userPositionService.FlushAsync(player.UserId, ct);
+                }
+                catch (Exception e)
+                {
+                    logger.LogWarning(e, "StartGame: 위치 확정 실패 user {UserId} (게임 시작은 계속)", player.UserId);
+                }
             }
 
             var message = new GameStartRequestedMessage

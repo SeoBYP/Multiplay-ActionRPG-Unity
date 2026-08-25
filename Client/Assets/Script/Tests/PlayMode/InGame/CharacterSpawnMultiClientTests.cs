@@ -192,6 +192,8 @@ namespace Game.Tests.PlayMode.InGame
             // AbilityCueRouter 가 발동 신호를 라우팅한다. DungeonLifetimeScope 와 같은 Scoped 로 맞춘다.
             builder.Register<ActorRegistry>(Lifetime.Scoped).AsSelf();
             builder.Register<SpawnLayoutProvider>(Lifetime.Scoped).AsSelf();
+            // CharacterSpawner 의존 충족 — 이 테스트는 소켓 Joined(던전) 경로라 위치 복원을 타지 않는다(B7).
+            builder.RegisterInstance<Game.System.Player.IPlayerPositionService>(new NoopPlayerPositionService());
             return builder;
         }
 
@@ -245,6 +247,17 @@ namespace Game.Tests.PlayMode.InGame
             public UniTask DisconnectAsync(CancellationToken ct) => UniTask.CompletedTask;
             public UniTask SendMoveAsync(C_Move packet, CancellationToken ct) => UniTask.CompletedTask;
             public UniTask SendAsync(Packet packet, CancellationToken ct) => UniTask.CompletedTask;
+        }
+        /// <summary>위치 지속화 no-op — 던전 경로라 호출되지 않는다(등록만 충족).</summary>
+        private sealed class NoopPlayerPositionService : Game.System.Player.IPlayerPositionService
+        {
+            public Cysharp.Threading.Tasks.UniTask SaveAsync(
+                Game.System.Player.PlayerPosition position, global::System.Threading.CancellationToken ct = default)
+                => Cysharp.Threading.Tasks.UniTask.CompletedTask;
+
+            public Cysharp.Threading.Tasks.UniTask<Game.System.Player.PlayerPosition?> GetLastAsync(
+                global::System.Threading.CancellationToken ct = default)
+                => Cysharp.Threading.Tasks.UniTask.FromResult<Game.System.Player.PlayerPosition?>(null);
         }
     }
 }

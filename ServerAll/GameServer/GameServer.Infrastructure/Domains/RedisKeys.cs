@@ -11,6 +11,9 @@ public static class RedisKeys
     // UserProfile
     public static string UserProfile(long userId) => $"{Prefix}:user:profile:{userId}";
 
+    // UserPosition (Main 마지막 위치 — 주기 보고의 1차 저장소. 확정은 DB user_positions)
+    public static string UserPosition(long userId) => $"{Prefix}:user:position:{userId}";
+
     // UserProgression (레벨·경험치)
     public static string UserProgression(long userId) => $"{Prefix}:user:progression:{userId}";
 

@@ -119,6 +119,9 @@ public class DungeonLifetimeScope : LifetimeScope
         builder.RegisterInstance(new CharacterPrefabSettings(localPlayerPrefab, remotePlayerPrefab, monsterPrefab, groundItemPrefab));
         // 결정론 스폰 레이아웃 제공자 (spawn-layouts.json 로드).
         builder.Register<SpawnLayoutProvider>(Lifetime.Scoped).AsSelf();
+
+        // CharacterSpawner 의존 충족용. 던전은 소켓 권위 스폰이라 이 경로를 타지 않는다(B7).
+        builder.Register<Game.System.Player.IPlayerPositionService, Game.System.Player.PlayerPositionService>(Lifetime.Scoped);
         // 던전 맵 배경 모델 로드 (MapDefinition.visualPrefab).
         builder.RegisterEntryPoint<MapLoader>(Lifetime.Scoped);
         builder.RegisterEntryPoint<CharacterSpawner>(Lifetime.Scoped);

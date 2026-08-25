@@ -30,5 +30,19 @@ namespace Game.Network.Https.Services
             var call = client.SetNickNameAsync(request, cancellationToken: ct);
             return await call.ResponseAsync;
         }
+
+        public async UniTask<SavePositionResponse> SavePositionAsync(SavePositionRequest request, CancellationToken ct = default)
+        {
+            var client = CreateClient();
+            var call = client.SavePositionAsync(request, cancellationToken: ct);
+            return await call.ResponseAsync;
+        }
+
+        public async UniTask<GetLastPositionResponse> GetLastPositionAsync(GetLastPositionRequest request, CancellationToken ct = default)
+        {
+            var client = CreateClient();
+            var call = client.GetLastPositionAsync(request, cancellationToken: ct);
+            return await call.ResponseAsync;
+        }
     }
 }

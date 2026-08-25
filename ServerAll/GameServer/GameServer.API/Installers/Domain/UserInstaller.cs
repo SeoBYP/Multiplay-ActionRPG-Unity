@@ -19,6 +19,10 @@ public class UserInstaller : IServiceInstaller
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();  // 추가
         services.AddScoped<IUserProfileService, UserProfileService>();
 
+        // Main 위치 지속화(B7) — 주기 보고는 Redis, 이탈 시점에 DB 확정.
+        services.AddScoped<IUserPositionRepository, UserPositionRepository>();
+        services.AddScoped<IUserPositionService, UserPositionService>();
+
         // Progression (레벨·경험치) — user 와 1:1 이라 여기서 등록.
         services.AddScoped<IProgressionRepository, ProgressionRepository>();
         services.AddScoped<IProgressionService, ProgressionService>();

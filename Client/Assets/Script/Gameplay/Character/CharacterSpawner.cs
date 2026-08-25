@@ -8,6 +8,7 @@ using Game.System.Auth;
 using Game.System.Player;
 using Script.System.GamePlayAbilitySystem;
 using UnityEngine;
+using UnityEngine.AI;
 using VContainer;
 using VContainer.Unity;
 
@@ -31,6 +32,7 @@ namespace Game.Gameplay.Character
         private readonly CharacterPrefabSettings _prefabs;
         private readonly LocalPlayerContext     _localPlayer;
         private readonly SpawnLayoutProvider    _spawnLayouts;
+        private readonly IPlayerPositionService _playerPositions;
         private readonly PartyAscRegistry       _partyRegistry;
         private readonly ActorRegistry          _actors;   // ActorId(=UserId) → RemoteDriver, 발동 Cue 라우팅용(몬스터와 공용)
 
@@ -45,6 +47,7 @@ namespace Game.Gameplay.Character
             CharacterPrefabSettings prefabs,
             LocalPlayerContext      localPlayer,
             SpawnLayoutProvider     spawnLayouts,
+            IPlayerPositionService  playerPositions,
             PartyAscRegistry        partyRegistry,
             ActorRegistry           actors)
         {
@@ -55,6 +58,7 @@ namespace Game.Gameplay.Character
             _prefabs       = prefabs;
             _localPlayer   = localPlayer;
             _spawnLayouts  = spawnLayouts;
+            _playerPositions = playerPositions;
             _partyRegistry = partyRegistry;
             _actors        = actors;
         }
@@ -128,7 +132,7 @@ namespace Game.Gameplay.Character
         private async UniTask<(Vector3 pos, Quaternion rot)> ResolveLocalSpawnPoseAsync(CancellationToken ct)
         {
             if (_socketSession.State != SocketSessionState.Joined)
-                return (Vector3.zero, Quaternion.identity);
+                return await ResolveMainSpawnPoseAsync(ct);   // Main — 마지막 위치 복원(B7)
 
             if (!await WaitForSelfSnapshotAsync(ct)
                 || !_packetState.TryGetPlayer(_authSession.UserId, out var self))
@@ -141,6 +145,35 @@ namespace Game.Gameplay.Character
             var sp = SpawnResolver.Resolve(layout, self.SpawnIndex);
             return (new Vector3(sp.X, sp.Y, sp.Z), Quaternion.Euler(0f, sp.RotY, 0f));
         }
+
+        /// <summary>
+        /// Main 스폰 위치(B7). 서버에 저장된 마지막 위치가 있으면 거기서, 없으면 기존 동작(원점)으로.
+        ///
+        /// 복원 좌표는 **지면에 스냅**한다 — 서버는 맵 경계만 검증하므로 벽 안·공중일 수 있고,
+        /// 내비메시는 클라 자산이라 서버가 볼 수 없다. 스냅에 실패하면 원점으로 폴백한다.
+        /// </summary>
+        private async UniTask<(Vector3 pos, Quaternion rot)> ResolveMainSpawnPoseAsync(CancellationToken ct)
+        {
+            if (_playerPositions == null)
+                return (Vector3.zero, Quaternion.identity);
+
+            var saved = await _playerPositions.GetLastAsync(ct);
+            if (saved is not { } p)
+                return (Vector3.zero, Quaternion.identity);   // 저장된 위치 없음 — 기존 동작
+
+            var raw = new Vector3(p.X, p.Y, p.Z);
+            var rot = Quaternion.Euler(0f, p.RotY, 0f);
+
+            // 지면 스냅. 실패(내비메시 밖)면 복원을 포기한다 — 끼임·낙사보다 기본 스폰이 낫다.
+            if (NavMesh.SamplePosition(raw, out var hit, SpawnGroundSnapRadius, NavMesh.AllAreas))
+                return (hit.position, rot);
+
+            Debug.LogWarning($"[CharacterSpawner] 복원 좌표가 내비메시 밖 — 기본 스폰으로 폴백 ({raw})");
+            return (Vector3.zero, Quaternion.identity);
+        }
+
+        /// <summary>복원 좌표를 지면에 붙일 때 허용할 최대 거리(m).</summary>
+        private const float SpawnGroundSnapRadius = 5f;
 
         /// <summary>self S_PlayerJoined(SpawnIndex+MapId) 수신까지 대기. 타임아웃 시 false.</summary>
         private async UniTask<bool> WaitForSelfSnapshotAsync(CancellationToken ct)
