@@ -149,7 +149,7 @@ string reason = state.Gold < total
 
 ## 8. 남은 것
 
-### ⚠️ Resources 경로가 하나 살아 있다
+### ✅ Resources 경로가 하나 살아 있었다 — 2026-08-25 해소 (F6)
 
 이 챕터는 게임 데이터를 Resources 밖으로 옮기는 것이 목표였는데, **`spawn-layouts.json`은 아직 `Resources.Load`로 읽힌다.**
 
@@ -159,7 +159,13 @@ SpawnLayoutProvider.cs:33  Resources.Load<TextAsset>  ← 살아 있는 프로�
    소비자: CharacterSpawner · LocalRespawnController · MainMonsterSpawner
 ```
 
-하필 **이 챕터 4절의 주인공인 그 파일**이고, 맵이 늘어날수록 커지는 데이터라 "빌드 항상 포함"의 대가가 가장 큰 축에 속한다. SO들은 옮겼는데 **bake 산출물(TextAsset)은 남은 것**이다.
+하필 **이 챕터 4절의 주인공인 그 파일**이었고, 맵이 늘어날수록 커지는 데이터라 "빌드 항상 포함"의 대가가 가장 큰 축이었다. SO들은 옮겼는데 **bake 산출물(TextAsset)만 남아 있었다.**
+
+**조치**: 클라는 bake 를 읽는 대신 `MapDefinition`(SO)을 Addressables 로 **직독**한다 — `MapLoader`(배경 프리팹)와 같은 주소 체계다. Resources 사본은 삭제했고, `MapDataExporter` 는 서버 전용 출력으로 축소됐다.
+
+**대신 생긴 위험과 그 대가**: 이제 클라는 저작(SO), 서버는 bake(JSON)를 읽는다. 예전에는 둘 다 같은 bake 를 읽어 불일치가 **구조적으로 불가능**했는데, 이제는 **Export 를 잊으면 스폰 위치가 갈린다.** 그래서 전수 대조 가드를 함께 넣었다(`SpawnLayoutSourceTests`). 가드가 실제로 잡는지는 고장 주입으로 확인했다 — 서버 JSON 의 좌표를 흔드니 `Expected: -16.0 / But was: -99.0` 로 즉시 실패했다.
+
+그리고 착수 전엔 안 보이던 것이 하나 나왔다: **MapDefinition 에셋 8개 중 Addressable 등록은 4개뿐**이었다. 그대로 전환했으면 `dungeon_03/04/05/e2e` 의 스폰이 런타임에 죽는다 — 가드 테스트가 `KeyNotFoundException: ... 'dungeon_03'` 으로 잡아냈다. "한 줄만 바꾸면 되는 정리"처럼 보이던 것이 아니었다.
 
 (`Assets/Resources/VContainerSettings.asset`은 프레임워크가 그 위치를 요구하므로 정상이다.)
 

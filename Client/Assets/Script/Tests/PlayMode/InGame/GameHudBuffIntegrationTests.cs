@@ -83,6 +83,7 @@ namespace Game.Tests.PlayMode.InGame
             builder.RegisterInstance(new PlayerProgressionHolder(new FakeProgressionService()));
             // InGameModel ctor의 IInputContext(C# 기본값이지만 VContainer가 무시) — no-op 으로 충족.
             builder.RegisterInstance<Game.System.Input.IInputContext>(new NoopInputContext());
+            builder.RegisterInstance<Game.Gameplay.Input.IInputRouter>(new NoopInputRouter());
             // 아이템 획득 토스트 의존(2026-07-12 추가). 역시 C# 기본값이지만 VContainer 가 무시하므로 등록 필요.
             builder.RegisterInstance(ScriptableObject.CreateInstance<Game.Presentation.Inventory.ItemDisplayCatalog>());
             builder.RegisterInstance(new Game.System.Player.ItemPickupNotifier());
@@ -113,6 +114,15 @@ namespace Game.Tests.PlayMode.InGame
                 if (slot.IsActive)
                     count++;
             return count;
+        }
+
+
+        /// <summary>입력 라우터 없는 최소 컨테이너용 no-op(NoopInputContext 와 동일 패턴).
+        /// GameHud 는 창 토글 키를 라우터로 받으므로 주입은 필요하지만, 이 테스트의 관심사는 렌더링이다.</summary>
+        private sealed class NoopInputRouter : Game.Gameplay.Input.IInputRouter
+        {
+            public void Register(Game.Gameplay.Input.IInputHandler handler) { }
+            public void Unregister(Game.Gameplay.Input.IInputHandler handler) { }
         }
 
         private sealed class NoopInputContext : Game.System.Input.IInputContext

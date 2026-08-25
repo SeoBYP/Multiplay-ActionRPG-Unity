@@ -427,7 +427,7 @@ TalkToNpc    클라 → ReportTalk(npcId) ────────────�
 - **그래도 기록하는 이유**: 챕터 19 가 세운 "클라는 진행을 건드릴 수 없다"가 더 이상 전면적으로 참이 아니다. 서버가 NPC 위치를 알고 있으므로 근접 검증을 넣거나 대화 자체를 서버가 여는 구조로 바꾸면 된다.
 - 상세 = [chapter-19](../portfolio/chapter-19-quest-system.md) 8절.
 
-### F6. `spawn-layouts.json` 이 아직 `Resources.Load` 로 읽힌다 — ⬜ 중간
+### F6. `spawn-layouts.json` 이 아직 `Resources.Load` 로 읽힌다 — ✅ **해소 (2026-08-25)**
 
 ```
 Script/Gameplay/Resources/spawn-layouts.json          ← 클라 사본이 Resources 안
@@ -438,6 +438,26 @@ SpawnLayoutProvider.cs:33  Resources.Load<TextAsset>  ← 살아 있는 프로�
 - **왜 문제인가**: Addressables 전환의 목적이 "Resources = 빌드 항상 포함" 회피였는데, **SO 는 옮겼지만 bake 산출물(TextAsset)은 남았다.** 맵이 늘수록 커지는 데이터라 대가가 가장 큰 축.
 - ※ `Assets/Resources/VContainerSettings.asset` 은 프레임워크가 그 경로를 요구하므로 **정상**. 잔존 문제는 이 1건.
 - 상세 = [chapter-20](../portfolio/chapter-20-content-pipeline-addressables.md) 8절.
+
+**해소 내역 (2026-08-25)** — 클라는 `MapDefinition`(SO)을 Addressables 로 **직독**하고 Resources 사본은 삭제했다.
+- 대가: 클라=저작(SO)·서버=bake(JSON) → **Export 를 잊으면 스폰이 갈린다**. 그래서 전수 대조 가드를 함께 넣었고,
+  고장 주입(서버 JSON z 를 -16→-99)으로 `Expected: -16.0 / But was: -99.0` 실패를 확인했다.
+- 착수 전엔 안 보이던 것: MapDefinition 8개 중 **Addressable 등록이 4개뿐**이라 그대로 갔으면 `dungeon_03/04/05/e2e` 스폰이 죽었다. 가드가 잡아 4건 등록.
+- 검증: 컴파일 0 · EditMode 239/239 · PlayMode 225/225. 상세 = [codemap.md](codemap.md) §2.113.
+
+### F15b. 고아 `PlayerInputActions.cs` 사본 — ✅ **해소 (2026-08-25)**
+
+```
+Script/Gameplay/Input/PlayerInputActions.cs   namespace Game.Gameplay.Input   2192줄  ← 살아 있음
+                                              (.inputactions 의 wrapperCodePath 가 가리키는 생성물)
+Script/Input/PlayerInputActions.cs            namespace Game.Input            2036줄  ← 참조 0건
+```
+
+- F13 작업 중 발견. `Game.Input` 네임스페이스를 쓰는 코드가 **0건**이다(실측).
+- 생성 설정이 갱신되기 전의 옛 출력으로 보인다. 컴파일 시간·혼동 비용만 있고 기능은 없다.
+- **조치**: 삭제 완료 — `Script/Input/` 폴더와 `.meta` 까지 제거(GUID 고아 방지).
+  삭제 전 `.inputactions` 의 `wrapperCodePath` 가 살아 있는 쪽(`Script/Gameplay/Input/`)을 가리키는 것을 확인했고,
+  `Game.Input` 참조가 0건임을 재확인했다. 검증: 컴파일 0 · EditMode 239/239 · PlayMode 225/225.
 
 ### F7. 존재하지 않는 어셈블리를 참조하는 asmdef 3개 — ⬜ 낮음
 
@@ -480,7 +500,7 @@ equipment.proto:26,28                          EQUIPMENT_TYPE_HEADER / _SHOOSE
 - 실제 내용은 DB 어댑터가 아니라 **임베디드 JSON 정적 카탈로그**(items/abilities/drop-tables/spawn) + 메시지 계약이라 **진짜 위반은 아니다.** 다만 이름만 보고는 위반으로 읽혀서, 이 규칙을 검사하는 사람·에이전트가 오판할 수 있다. `Shared.GameData` 계열이 맞다.
 - **선행 결정**: 어셈블리 개명은 참조 그래프 전체 + Dockerfile restore 목록 갱신을 동반한다.
 
-### F13. 입력 임시방편의 전제조건이 이미 해소됐다 — ⬜ 낮음 (D 섹션 "HUD 입력 임시 폴링" 보강)
+### F13. 입력 임시방편의 전제조건이 이미 해소됐다 — ✅ **해소 (2026-08-25)**
 
 당시 막고 있던 것(생성 래퍼 미반영)은 **이미 해결됐는데** 마지막 배선만 안 됐다.
 
@@ -494,6 +514,13 @@ DialogueView.cs:55          동일 패턴                                       
 
 - 주석 두 곳(`GameInputAction.cs:14`, `InventoryViewController.cs:19`)이 아직 "연결 예정"으로 남아 있다.
 - 대조군: **락온은 정식 경로로 갔다**(`.inputactions` → 생성 래퍼 → `<Keyboard>/tab` → `LockOn` 액션). 같은 프로젝트에서 한쪽은 제대로 됐다.
+
+**해소 내역 (2026-08-25)** — i·k·q·g 전부 `.inputactions` → 래퍼 → `InputRouter` → `GameInputAction` → `GameHud.TryHandle` 로 이관.
+- ⚠ **"한 곳만 배선하면 끝난다" 는 틀렸다**: ① `InputRouter` 가 **Main 스코프에만** 있어 던전에서 죽는다(→ `InputInstaller` 로 분리해 양쪽 설치)
+  ② `.inputactions` 에 `Quest`·`Ability` 액션이 **없었다**(추가 후 래퍼 재생성) ③ 폴링 키는 3개가 아니라 **4개**였다(g).
+- 곁다리 누수 수정: `InputRouter` 가 `performed` 구독을 해제하지 않아, 루트 싱글턴 `PlayerInputActions` 에
+  씬 왕복마다 죽은 라우터 델리게이트가 쌓이고 있었다. Dispose 해제 + 테스트 고정.
+- 검증: 컴파일 0 · EditMode 239/239(신규 5건) · PlayMode 225/225. 상세 = [codemap.md](codemap.md) §2.113.
 
 ### F14. 채팅 스트림에 트리밍이 없다 — ⬜ 낮음
 
@@ -516,7 +543,8 @@ DialogueView.cs:55          동일 패턴                                       
 
 1. ~~**F3 + F4**~~ ✅ 2026-08-24 (F3 = 보상 멱등을 **DB 원장**으로 + 채팅 DB 폴백 / F4 = 루프 단일화 + `XAUTOCLAIM` 스윕 + at-least-once).
    ~~잔여 = ACK 시점~~ ✅ 2026-08-24 (at-least-once + 보상 원장 + 소비 통지 멱등).
-2. **F6 · F13** — 이미 전제조건이 풀린 미완 작업. 각각 한 곳만 배선하면 끝난다.
+2. ~~**F6 · F13**~~ ✅ 2026-08-25 (F6 = SO 직독 + 드리프트 가드 / F13 = 입력 4키 정식 이관 + 라우터 구독 누수 수정).
+   ⚠ "각각 한 곳만 배선하면 끝난다" 는 **둘 다 틀렸다** — F6 은 Addressable 등록 4건 누락, F13 은 라우터가 던전 스코프에 없었다.
    (~~F11~~ ✅ 헬스체크는 이미 배선돼 있었다 — 2026-08-24 확인)
 3. **F5 · B3 · C3** — 중간. 설계 일관성·환경.
 4. **B1 · B2 · F9 · F12** — 전부 ❓ 선행 결정 필요(공개 계약·감각 영향).

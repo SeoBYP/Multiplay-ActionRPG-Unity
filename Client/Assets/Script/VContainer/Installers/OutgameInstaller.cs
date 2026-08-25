@@ -11,10 +11,8 @@ namespace Game.Installers
         public void Install(IContainerBuilder builder)
         {
             // ── Input 시스템 ──────────────────────────
-            // InputRouter: New Input System 콜백 기반, Initialize/Dispose로 수명 관리
-            builder.RegisterEntryPoint<InputRouter>(Lifetime.Scoped)
-                .AsImplementedInterfaces()
-                .AsSelf();
+            // 라우터 자체는 던전과 공용이라 InputInstaller 로 분리했다(F13).
+            builder.Install(new InputInstaller());
 
             // InteractionSystem: F키 처리, 범위 내 IInteractable 추적
             builder.RegisterEntryPoint<InteractionSystem>(Lifetime.Scoped);

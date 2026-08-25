@@ -16,9 +16,8 @@ namespace Game.GUI.OutGame
     /// 역할:
     ///   InGameModel.OnToggleInventory(HUD 버튼·I키 공용 신호) 수신 → Inventory.prefab 로드(최초 1회)·Inject 후 토글.
     ///
-    /// I키는 InputRouter→GameInputAction.ToggleInventory→InGameModel.Accept(ToggleInventory) 경로로 합류 예정
-    /// (현재 던전 씬에 InputRouter 미등록 + .inputactions Inventory 액션 필요 — 후속 Unity 작업).
-    /// 그때까지는 HUD 버튼만 이 신호를 발행한다.
+    /// I키 = InputRouter→GameInputAction.ToggleInventory→InGameModel.Accept(ToggleInventory) 경로.
+    /// HUD 버튼도 같은 신호를 발행한다(단일 funnel). 2026-08-25 배선 완료(F13).
     /// </summary>
     public sealed class InventoryViewController : IInitializable, IDisposable
     {

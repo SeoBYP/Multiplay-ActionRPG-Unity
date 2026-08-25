@@ -4,6 +4,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Core;
 using Game.GUI.Common;
+using Game.Gameplay.Input;
 using Game.Presentation.InGame;
 using R3;
 using TMPro;
@@ -21,7 +22,7 @@ namespace Game.GUI.OutGame
     ///   - 사용자 입력을 Intent로 변환해 Model에 전달한다.
     ///   - Service / Repository 직접 호출 없음.
     /// </summary>
-    public class GameHud : MonoBehaviour
+    public class GameHud : MonoBehaviour, IInputHandler
     {
         private enum SideButtonType
         {
@@ -41,6 +42,7 @@ namespace Game.GUI.OutGame
         }
         
         [Inject] private InGameModel _model;
+        [Inject] private IInputRouter _inputRouter;
 
         [Header("Dungeon Result")]
         [Tooltip("던전 클리어(몬스터 전멸) 결과 패널. 미할당이어도 동작은 무해(토글만 생략).")]
@@ -115,6 +117,9 @@ namespace Game.GUI.OutGame
         
         private void Start()
         {
+            // 라우터 등록은 Start 에서 한다 — [Inject] 필드 주입이 OnEnable 보다 늦을 수 있다(unity-client.md).
+            _inputRouter?.Register(this);
+
             // 결과 패널의 자체 return 버튼도 같은 복귀 흐름으로 연결.
             if (dungeonClearView != null) dungeonClearView.Bind(OnClickReturnToLobby);
             if (dungeonFailedView != null) dungeonFailedView.Bind(OnClickReturnToLobby);
@@ -248,24 +253,33 @@ namespace Game.GUI.OutGame
             _buffPoolInitialized = true;
         }
 
-        private void Update()
+        private void OnDestroy()
         {
-            // I키 인벤토리 토글 — .inputactions 의 Inventory 액션 C# 래퍼가 아직 미생성이라
-            // 임시로 Keyboard 를 직접 폴링(HUD 버튼과 동일 funnel). 래퍼 재생성 후 InputRouter 경로로 이관 예정.
-            var kb = UnityEngine.InputSystem.Keyboard.current;
-            if (_model == null || kb == null)
-                return;
+            // 라우터는 씬 스코프, HUD 는 Addressable 인스턴스 — 수명이 달라 반드시 스스로 해제한다.
+            _inputRouter?.Unregister(this);
+        }
 
-            // I키 = 인벤토리+장비 쌍 토글, K키 = 장비창 단독 토글, Q키 = 퀘스트창 단독 토글. 임시 폴링(래퍼 이관 예정).
-            // 상점은 키 없이 HUD 상점버튼으로만 연다(S는 WASD 후진과 충돌해 제외). 창 열림 시 이동 차단은 UiInputCaptureBehaviour가 처리.
-            if (kb.iKey.wasPressedThisFrame)
-                _model.Accept(InGameIntent.ToggleInventory.Instance);
-            if (kb.kKey.wasPressedThisFrame)
-                _model.Accept(InGameIntent.ToggleEquipment.Instance);
-            if (kb.qKey.wasPressedThisFrame)
-                _model.Accept(InGameIntent.ToggleQuest.Instance);
-            if (kb.gKey.wasPressedThisFrame)
-                _model.Accept(InGameIntent.ToggleAbility.Instance);
+        // ── IInputHandler ─────────────────────────
+        // UI 우선순위 100(LobbyViewController 와 동일) — 월드 인터랙션보다 먼저 소비한다.
+        public int Priority => 100;
+
+        /// <summary>
+        /// 창 토글 키. I = 인벤토리+장비 쌍 / K = 장비 / Q = 퀘스트 / G = 어빌리티.
+        /// 상점은 키 없이 HUD 상점버튼으로만 연다(S는 WASD 후진과 충돌해 제외).
+        /// 창 열림 시 이동 차단은 UiInputCaptureBehaviour 가 처리한다.
+        /// </summary>
+        public bool TryHandle(GameInputAction action)
+        {
+            if (_model == null) return false;
+
+            switch (action)
+            {
+                case GameInputAction.ToggleInventory: _model.Accept(InGameIntent.ToggleInventory.Instance); return true;
+                case GameInputAction.ToggleEquipment: _model.Accept(InGameIntent.ToggleEquipment.Instance); return true;
+                case GameInputAction.ToggleQuest:     _model.Accept(InGameIntent.ToggleQuest.Instance);     return true;
+                case GameInputAction.ToggleAbility:   _model.Accept(InGameIntent.ToggleAbility.Instance);   return true;
+                default: return false;
+            }
         }
 
         private void OnClickReturnToLobby()

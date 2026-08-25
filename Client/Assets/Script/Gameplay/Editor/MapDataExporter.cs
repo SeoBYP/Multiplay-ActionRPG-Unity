@@ -11,7 +11,9 @@ namespace Game.Gameplay.Editor
     /// <summary>
     /// MapDefinition(SO) ↔ spawn-layouts.json 양방향 툴.
     ///
-    /// - Export: 모든 MapDefinition 을 모아 JSON 으로 bake → 클라 Resources + 서버 임베디드 경로 동시 기록.
+    /// - Export: 모든 MapDefinition 을 모아 JSON 으로 bake → **서버** 임베디드 경로에 기록.
+    ///   클라는 SO를 직접 읽으므로 사본을 만들지 않는다 → **Export 를 잊으면 클라·서버 스폰이 갈린다**.
+    ///   그 드리프트는 SpawnLayoutSourceTests.MapDefinition_저작값이_서버_bake_와_일치한다 가 잡는다.
     ///   (서버는 UnityEngine 의존 0이라 SO를 못 읽으므로 JSON 이 유일한 교환 포맷.)
     ///   ※ 서버는 임베디드 리소스라 export 후 서버 재빌드 시 반영된다.
     /// - Import(부트스트랩): 기존 JSON → MapDefinition 에셋 생성. 손편집 JSON을 SO 저작 체계로 1회 이관.
@@ -21,7 +23,8 @@ namespace Game.Gameplay.Editor
     /// </summary>
     public static class MapDataExporter
     {
-        private const string ClientJsonRelative = "Script/Gameplay/Resources/spawn-layouts.json"; // Assets 기준
+        // 클라 사본은 없다 — 클라 런타임은 MapDefinition(SO)을 Addressables 로 직접 읽는다(F6).
+        // JSON 은 서버 전용 교환 포맷(서버는 UnityEngine 의존 0이라 SO를 못 읽는다).
         private const string ServerJsonRelative = "ServerAll/Shared/Shared.Infrastructure/Spawn/spawn-layouts.json"; // repo 루트 기준
         private const string MapAssetDir = "Assets/GameData/Maps"; // 런타임은 Addressables(address=asset path)로 로드. Resources 밖.
 
@@ -106,25 +109,20 @@ namespace Game.Gameplay.Editor
 
             var json = JsonUtility.ToJson(file, true);
 
-            var clientPath = Path.Combine(Application.dataPath, ClientJsonRelative);
             var serverPath = Path.Combine(RepoRoot(), ServerJsonRelative);
 
-            WriteFile(clientPath, json);
             WriteFile(serverPath, json);
 
             AssetDatabase.Refresh();
-            Debug.Log($"[MapDataExporter] Export 완료 — 맵 {file.maps.Count}개\n  클라: {clientPath}\n  서버: {serverPath}\n  ※ 서버 반영은 서버 재빌드 필요.");
+            Debug.Log($"[MapDataExporter] Export 완료 — 맵 {file.maps.Count}개\n  서버: {serverPath}\n  ※ 서버 반영은 서버 재빌드 필요.");
             return file.maps.Count;
         }
 
         [MenuItem("Tools/Spawn/Import Map Data from JSON (bootstrap)")]
         public static void Import()
         {
-            var clientPath = Path.Combine(Application.dataPath, ClientJsonRelative);
             var serverPath = Path.Combine(RepoRoot(), ServerJsonRelative);
-            var sourcePath = File.Exists(clientPath) ? clientPath
-                : File.Exists(serverPath) ? serverPath
-                : null;
+            var sourcePath = File.Exists(serverPath) ? serverPath : null;
 
             if (sourcePath == null)
             {
