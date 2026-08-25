@@ -49,6 +49,14 @@ namespace GameServer.Grpc.User {
     static readonly grpc::Marshaller<global::GameServer.Grpc.User.SetNicknameRequest> __Marshaller_gameserver_user_v1_SetNicknameRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.User.SetNicknameRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::GameServer.Grpc.User.SetNicknameResponse> __Marshaller_gameserver_user_v1_SetNicknameResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.User.SetNicknameResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::GameServer.Grpc.User.SavePositionRequest> __Marshaller_gameserver_user_v1_SavePositionRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.User.SavePositionRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::GameServer.Grpc.User.SavePositionResponse> __Marshaller_gameserver_user_v1_SavePositionResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.User.SavePositionResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::GameServer.Grpc.User.GetLastPositionRequest> __Marshaller_gameserver_user_v1_GetLastPositionRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.User.GetLastPositionRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::GameServer.Grpc.User.GetLastPositionResponse> __Marshaller_gameserver_user_v1_GetLastPositionResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::GameServer.Grpc.User.GetLastPositionResponse.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::GameServer.Grpc.User.SetNicknameRequest, global::GameServer.Grpc.User.SetNicknameResponse> __Method_SetNickName = new grpc::Method<global::GameServer.Grpc.User.SetNicknameRequest, global::GameServer.Grpc.User.SetNicknameResponse>(
@@ -57,6 +65,22 @@ namespace GameServer.Grpc.User {
         "SetNickName",
         __Marshaller_gameserver_user_v1_SetNicknameRequest,
         __Marshaller_gameserver_user_v1_SetNicknameResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::GameServer.Grpc.User.SavePositionRequest, global::GameServer.Grpc.User.SavePositionResponse> __Method_SavePosition = new grpc::Method<global::GameServer.Grpc.User.SavePositionRequest, global::GameServer.Grpc.User.SavePositionResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "SavePosition",
+        __Marshaller_gameserver_user_v1_SavePositionRequest,
+        __Marshaller_gameserver_user_v1_SavePositionResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::GameServer.Grpc.User.GetLastPositionRequest, global::GameServer.Grpc.User.GetLastPositionResponse> __Method_GetLastPosition = new grpc::Method<global::GameServer.Grpc.User.GetLastPositionRequest, global::GameServer.Grpc.User.GetLastPositionResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "GetLastPosition",
+        __Marshaller_gameserver_user_v1_GetLastPositionRequest,
+        __Marshaller_gameserver_user_v1_GetLastPositionResponse);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -70,6 +94,34 @@ namespace GameServer.Grpc.User {
     {
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::GameServer.Grpc.User.SetNicknameResponse> SetNickName(global::GameServer.Grpc.User.SetNicknameRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// Main 위치 지속화(B7). 클라가 주기적으로 보고 → 재접속 시 그 자리에서 시작.
+      ///
+      /// ⚠ 좌표는 **클라가 만든 값**이다. 서버는 자신이 아는 것(맵 경계)만 검증하고,
+      ///    경계 밖이면 가장 가까운 저작 스폰으로 스냅한다. 이동 궤적·근접 검증은 하지 않는다 —
+      ///    Main 이 클라 권위인 한 클라가 보고한 좌표로 클라를 검증하는 것은 순환이다(cleanup-backlog F5·B7).
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::GameServer.Grpc.User.SavePositionResponse> SavePosition(global::GameServer.Grpc.User.SavePositionRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// 마지막 저장 위치 조회. 없으면 has_position=false → 클라는 저작 스폰으로 폴백한다.
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::GameServer.Grpc.User.GetLastPositionResponse> GetLastPosition(global::GameServer.Grpc.User.GetLastPositionRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -123,6 +175,118 @@ namespace GameServer.Grpc.User {
       {
         return CallInvoker.AsyncUnaryCall(__Method_SetNickName, null, options, request);
       }
+      /// <summary>
+      /// Main 위치 지속화(B7). 클라가 주기적으로 보고 → 재접속 시 그 자리에서 시작.
+      ///
+      /// ⚠ 좌표는 **클라가 만든 값**이다. 서버는 자신이 아는 것(맵 경계)만 검증하고,
+      ///    경계 밖이면 가장 가까운 저작 스폰으로 스냅한다. 이동 궤적·근접 검증은 하지 않는다 —
+      ///    Main 이 클라 권위인 한 클라가 보고한 좌표로 클라를 검증하는 것은 순환이다(cleanup-backlog F5·B7).
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::GameServer.Grpc.User.SavePositionResponse SavePosition(global::GameServer.Grpc.User.SavePositionRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return SavePosition(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Main 위치 지속화(B7). 클라가 주기적으로 보고 → 재접속 시 그 자리에서 시작.
+      ///
+      /// ⚠ 좌표는 **클라가 만든 값**이다. 서버는 자신이 아는 것(맵 경계)만 검증하고,
+      ///    경계 밖이면 가장 가까운 저작 스폰으로 스냅한다. 이동 궤적·근접 검증은 하지 않는다 —
+      ///    Main 이 클라 권위인 한 클라가 보고한 좌표로 클라를 검증하는 것은 순환이다(cleanup-backlog F5·B7).
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::GameServer.Grpc.User.SavePositionResponse SavePosition(global::GameServer.Grpc.User.SavePositionRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_SavePosition, null, options, request);
+      }
+      /// <summary>
+      /// Main 위치 지속화(B7). 클라가 주기적으로 보고 → 재접속 시 그 자리에서 시작.
+      ///
+      /// ⚠ 좌표는 **클라가 만든 값**이다. 서버는 자신이 아는 것(맵 경계)만 검증하고,
+      ///    경계 밖이면 가장 가까운 저작 스폰으로 스냅한다. 이동 궤적·근접 검증은 하지 않는다 —
+      ///    Main 이 클라 권위인 한 클라가 보고한 좌표로 클라를 검증하는 것은 순환이다(cleanup-backlog F5·B7).
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::GameServer.Grpc.User.SavePositionResponse> SavePositionAsync(global::GameServer.Grpc.User.SavePositionRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return SavePositionAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Main 위치 지속화(B7). 클라가 주기적으로 보고 → 재접속 시 그 자리에서 시작.
+      ///
+      /// ⚠ 좌표는 **클라가 만든 값**이다. 서버는 자신이 아는 것(맵 경계)만 검증하고,
+      ///    경계 밖이면 가장 가까운 저작 스폰으로 스냅한다. 이동 궤적·근접 검증은 하지 않는다 —
+      ///    Main 이 클라 권위인 한 클라가 보고한 좌표로 클라를 검증하는 것은 순환이다(cleanup-backlog F5·B7).
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::GameServer.Grpc.User.SavePositionResponse> SavePositionAsync(global::GameServer.Grpc.User.SavePositionRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_SavePosition, null, options, request);
+      }
+      /// <summary>
+      /// 마지막 저장 위치 조회. 없으면 has_position=false → 클라는 저작 스폰으로 폴백한다.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::GameServer.Grpc.User.GetLastPositionResponse GetLastPosition(global::GameServer.Grpc.User.GetLastPositionRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetLastPosition(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// 마지막 저장 위치 조회. 없으면 has_position=false → 클라는 저작 스폰으로 폴백한다.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::GameServer.Grpc.User.GetLastPositionResponse GetLastPosition(global::GameServer.Grpc.User.GetLastPositionRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_GetLastPosition, null, options, request);
+      }
+      /// <summary>
+      /// 마지막 저장 위치 조회. 없으면 has_position=false → 클라는 저작 스폰으로 폴백한다.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::GameServer.Grpc.User.GetLastPositionResponse> GetLastPositionAsync(global::GameServer.Grpc.User.GetLastPositionRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetLastPositionAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// 마지막 저장 위치 조회. 없으면 has_position=false → 클라는 저작 스폰으로 폴백한다.
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::GameServer.Grpc.User.GetLastPositionResponse> GetLastPositionAsync(global::GameServer.Grpc.User.GetLastPositionRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_GetLastPosition, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override UserServiceClient NewInstance(ClientBaseConfiguration configuration)
@@ -137,7 +301,9 @@ namespace GameServer.Grpc.User {
     public static grpc::ServerServiceDefinition BindService(UserServiceBase serviceImpl)
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
-          .AddMethod(__Method_SetNickName, serviceImpl.SetNickName).Build();
+          .AddMethod(__Method_SetNickName, serviceImpl.SetNickName)
+          .AddMethod(__Method_SavePosition, serviceImpl.SavePosition)
+          .AddMethod(__Method_GetLastPosition, serviceImpl.GetLastPosition).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -148,6 +314,8 @@ namespace GameServer.Grpc.User {
     public static void BindService(grpc::ServiceBinderBase serviceBinder, UserServiceBase serviceImpl)
     {
       serviceBinder.AddMethod(__Method_SetNickName, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::GameServer.Grpc.User.SetNicknameRequest, global::GameServer.Grpc.User.SetNicknameResponse>(serviceImpl.SetNickName));
+      serviceBinder.AddMethod(__Method_SavePosition, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::GameServer.Grpc.User.SavePositionRequest, global::GameServer.Grpc.User.SavePositionResponse>(serviceImpl.SavePosition));
+      serviceBinder.AddMethod(__Method_GetLastPosition, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::GameServer.Grpc.User.GetLastPositionRequest, global::GameServer.Grpc.User.GetLastPositionResponse>(serviceImpl.GetLastPosition));
     }
 
   }

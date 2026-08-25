@@ -10,5 +10,7 @@ namespace Game.Network.Https.Interfaces
     public interface IUserGrpcService
     {
         UniTask<SetNicknameResponse> SetNickNameAsync(SetNicknameRequest request, CancellationToken ct = default);
+        UniTask<SavePositionResponse> SavePositionAsync(SavePositionRequest request, CancellationToken ct = default);
+        UniTask<GetLastPositionResponse> GetLastPositionAsync(GetLastPositionRequest request, CancellationToken ct = default);
     }
 }

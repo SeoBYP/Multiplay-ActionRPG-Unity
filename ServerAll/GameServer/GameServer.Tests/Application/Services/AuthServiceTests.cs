@@ -47,6 +47,7 @@ public class AuthServiceTests
             _credentialRepository,
             _sessionRepository,
             _profileRepository,
+            new GameServer.Tests.Infrastructure.Fakes.Services.FakeUserPositionService(),
             _jwtTokenGenerator,
             jwtOptionsWrapper,
             NullLogger<AuthService>.Instance);
@@ -314,6 +315,7 @@ public class AuthServiceTests
             _credentialRepository,
             _sessionRepository,
             _profileRepository,
+            new GameServer.Tests.Infrastructure.Fakes.Services.FakeUserPositionService(),
             new JwtTokenGenerator(options),
             options,
             NullLogger<AuthService>.Instance);

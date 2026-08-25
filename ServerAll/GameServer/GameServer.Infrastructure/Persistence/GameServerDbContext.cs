@@ -21,6 +21,9 @@ public class GameServerDbContext(DbContextOptions<GameServerDbContext> options) 
     public DbSet<UserProgression> UserProgressions { get; set; }
     public DbSet<UserSession> UserSessions { get; set; }
 
+    /// <summary>Main 마지막 위치(B7). 주기 보고는 Redis, 이탈 시점에 여기로 확정된다.</summary>
+    public DbSet<UserPosition> UserPositions { get; set; }
+
     public DbSet<InventoryItem> InventoryItems { get; set; }
 
     public DbSet<UserEquipment> UserEquipments { get; set; }

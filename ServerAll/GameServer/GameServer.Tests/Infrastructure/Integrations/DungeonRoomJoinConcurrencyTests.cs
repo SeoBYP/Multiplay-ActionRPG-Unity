@@ -51,6 +51,7 @@ public class DungeonRoomJoinConcurrencyTests(RepositoryTestFixture fixture)
             new FakeChatSubscriptionService(),
             new FakeUserProfileRepository(),
             new ProgressionService(new FakeProgressionRepository(), new FakeEquipmentService()),
+            new GameServer.Tests.Infrastructure.Fakes.Services.FakeUserPositionService(),
             new RedisRoomReadyStore(_fixture.RedisConnection),
             new RedisDistributedLock(_fixture.RedisConnection),   // ← 진짜 락 (검증 대상)
             Options.Create(new DungeonRoomReaperOptions()),

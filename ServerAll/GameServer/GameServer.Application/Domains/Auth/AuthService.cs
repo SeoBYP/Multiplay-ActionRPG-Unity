@@ -17,6 +17,7 @@ public class AuthService(
     IUserCredentialRepository userCredentialRepository,
     IUserSessionRepository userSessionRepository,
     IUserProfileRepository userProfileRepository,
+    IUserPositionService userPositionService,
     IJwtTokenGenerator jwtTokenGenerator,
     IOptions<JwtOptions> jwtOptions,
     ILogger<AuthService> logger)
@@ -103,6 +104,16 @@ public class AuthService(
             await userCredentialRepository.ClearRefreshTokenAsync(userSession.UserId, ct);
             await userCredentialRepository.ClearPreviousRefreshTokenAsync(userSession.UserId, ct);
             logger.LogInformation("Cleared refresh token during logout for user {UserId}", userSession.UserId);
+
+            // Main 이탈 — 휘발(Redis) 위치를 DB 로 확정한다(B7). 실패해도 로그아웃을 막지 않는다.
+            try
+            {
+                await userPositionService.FlushAsync(userSession.UserId, ct);
+            }
+            catch (Exception e)
+            {
+                logger.LogWarning(e, "Logout: 위치 확정 실패 user {UserId} (로그아웃은 계속)", userSession.UserId);
+            }
         }
 
         await userSessionRepository.RemoveSessionAsync(sessionId, ct);

@@ -59,6 +59,10 @@ namespace Game.Installers.Scenes
             builder.Register<InteractionPromptNotifier>(Lifetime.Scoped).AsSelf(); // 상호작용 안내(HUD)
             builder.Register<SpawnLayoutProvider>(Lifetime.Scoped).AsSelf();
 
+            // Main 위치 지속화(B7) — 주기 보고 + 재접속 복원.
+            builder.Register<Game.System.Player.IPlayerPositionService, Game.System.Player.PlayerPositionService>(Lifetime.Scoped);
+            builder.RegisterEntryPoint<MainPositionReporter>(Lifetime.Scoped);
+
             // GameHud(HP/MP/버프)를 Main 씬에서도 표시. 던전 구성과 동일하되,
             // EffectReceiver(서버 권위 수신)는 던전 전용이라 제외(Main은 미연결).
             // EffectIconCatalog는 Addressables 로드(인스펙터 할당 불요).

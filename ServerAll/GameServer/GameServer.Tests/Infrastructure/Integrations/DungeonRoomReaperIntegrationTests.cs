@@ -47,6 +47,7 @@ public class DungeonRoomReaperIntegrationTests(RepositoryTestFixture fixture)
             new FakeChatSubscriptionService(),
             new FakeUserProfileRepository(),
             new ProgressionService(new FakeProgressionRepository(), new FakeEquipmentService()),
+            new GameServer.Tests.Infrastructure.Fakes.Services.FakeUserPositionService(),
             new RedisRoomReadyStore(_fixture.RedisConnection),
             new NoOpDistributedLock(),
             Options.Create(new DungeonRoomReaperOptions { Grace = grace }),

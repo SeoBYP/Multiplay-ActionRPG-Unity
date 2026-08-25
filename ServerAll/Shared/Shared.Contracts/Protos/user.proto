@@ -8,6 +8,16 @@ option csharp_namespace = "GameServer.Grpc.User";
 
 service UserService{
   rpc SetNickName(SetNicknameRequest) returns (SetNicknameResponse);
+
+  // Main 위치 지속화(B7). 클라가 주기적으로 보고 → 재접속 시 그 자리에서 시작.
+  //
+  // ⚠ 좌표는 **클라가 만든 값**이다. 서버는 자신이 아는 것(맵 경계)만 검증하고,
+  //    경계 밖이면 가장 가까운 저작 스폰으로 스냅한다. 이동 궤적·근접 검증은 하지 않는다 —
+  //    Main 이 클라 권위인 한 클라가 보고한 좌표로 클라를 검증하는 것은 순환이다(cleanup-backlog F5·B7).
+  rpc SavePosition(SavePositionRequest) returns (SavePositionResponse);
+
+  // 마지막 저장 위치 조회. 없으면 has_position=false → 클라는 저작 스폰으로 폴백한다.
+  rpc GetLastPosition(GetLastPositionRequest) returns (GetLastPositionResponse);
 }
 
 message SetNicknameRequest{
@@ -23,4 +33,30 @@ message UserInfo {
   string nick_name = 1;
   string public_id = 2;
   int64 current_room_id = 3;
+}
+
+// ── Main 위치 지속화(B7) ────────────────────────────────────────────
+// 회전은 Y축만 보낸다(캐릭터는 수평 회전만 한다). 피치/롤은 카메라 관심사라 지속화 대상이 아니다.
+message Position {
+  string map_id = 1;
+  float x = 2;
+  float y = 3;
+  float z = 4;
+  float rot_y = 5;
+}
+
+message SavePositionRequest {
+  Position position = 1;
+}
+
+message SavePositionResponse {
+  gameserver.common.Result result = 1;
+}
+
+message GetLastPositionRequest {}
+
+message GetLastPositionResponse {
+  gameserver.common.Result result = 1;
+  bool has_position = 2;      // false 면 저장된 위치 없음 → 클라는 저작 스폰으로 시작
+  Position position = 3;      // has_position=true 일 때만 유효
 }
