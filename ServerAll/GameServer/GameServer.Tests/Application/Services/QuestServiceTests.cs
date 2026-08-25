@@ -2,6 +2,7 @@ using GameServer.Application.Domains.Codex;
 using GameServer.Application.Domains.Inventory;
 using GameServer.Application.Domains.Progression;
 using GameServer.Application.Domains.Quest;
+using GameServer.Application.Domains.Quest.Interfaces;
 using GameServer.Domain.Entities.Quest;
 using Shared.Infrastructure.Quests;
 using GameServer.Tests.Infrastructure.Fakes.Repositories;
@@ -18,6 +19,10 @@ public class QuestServiceTests
 {
     private const long UserId = 7L;
 
+    // 대화 목표를 가진 유일한 시드 퀘스트(quests.json).
+    private const string TalkQuestId = "quest_greet_elder";
+    private const string TalkNpcId   = "npc_elder";
+
     private readonly FakeQuestRepository _quests = new();
     private readonly FakeWalletRepository _walletRepo = new();
     private readonly FakeInventoryRepository _invRepo = new();
@@ -28,7 +33,8 @@ public class QuestServiceTests
         var progression = new ProgressionService(new FakeProgressionRepository(), new FakeEquipmentService());
         var wallet = new AppWalletService(_walletRepo);
         var inventory = new InventoryService(_invRepo, new CodexService(new FakeCodexRepository()));
-        _service = new QuestService(_quests, progression, wallet, inventory);
+        _service = new QuestService(_quests, progression, wallet, inventory,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<QuestService>.Instance);
     }
 
     [Fact]
@@ -160,5 +166,71 @@ public class QuestServiceTests
         Assert.True(claim.Success);
         var inv = await _invRepo.GetAllAsync(UserId);
         Assert.Contains(inv, i => i.ItemId == 1001 && i.Quantity == 2);
+    }
+
+    // ── ReportTalk 신뢰 경계 (F5) ────────────────────────────────────
+    //
+    // 근접 검증은 이 구조에서 불가능하다(서버는 NPC 위치도, Main 플레이어 위치도 모른다).
+    // 서버가 보는 것은 "이 요청을 정상적으로 처리할 수 있는가" 뿐이다.
+    // 불필요한 호출 자체를 막는 것은 클라 게이트의 몫(NPC.hasQuest + 수주 상태).
+
+    [Fact]
+    public async Task 대화_목표가_없는_NPC_는_저장소를_건드리지_않는다()
+    {
+        var counting = new CountingQuestRepository(_quests);
+        var service = BuildService(counting);
+
+        var advanced = await service.ReportTalkAsync(UserId, "npc_does_not_exist");
+
+        Assert.Equal(0, advanced);
+        // 카탈로그만 봐도 판정되는 요청이 DB 왕복을 유발하면 안 된다.
+        Assert.Equal(0, counting.GetAllCalls);
+    }
+
+    [Fact]
+    public async Task 수주하지_않았으면_진행하지_않는다()
+    {
+        var advanced = await _service.ReportTalkAsync(UserId, TalkNpcId);
+
+        Assert.Equal(0, advanced);
+    }
+
+    [Fact]
+    public async Task 수주한_대화_퀘스트는_진행되고_상한에서_멈춘다()
+    {
+        await _service.AcceptAsync(UserId, TalkQuestId);
+
+        Assert.Equal(1, await _service.ReportTalkAsync(UserId, TalkNpcId)); // requiredCount=1 → 완료
+        Assert.Equal(0, await _service.ReportTalkAsync(UserId, TalkNpcId)); // 상한 도달 → 무진행
+
+        var view = (await _service.GetQuestsAsync(UserId)).Single(v => v.Def.QuestId == TalkQuestId);
+        Assert.Equal(QuestProgressStatus.Completed, view.Status);
+    }
+
+    private QuestService BuildService(IQuestRepository repo)
+    {
+        var progression = new ProgressionService(new FakeProgressionRepository(), new FakeEquipmentService());
+        var wallet = new AppWalletService(new FakeWalletRepository());
+        var inventory = new InventoryService(new FakeInventoryRepository(), new CodexService(new FakeCodexRepository()));
+        return new QuestService(repo, progression, wallet, inventory,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<QuestService>.Instance);
+    }
+
+    /// <summary>저장소 왕복 횟수를 세는 래퍼 — "카탈로그로 걸러지면 DB 를 안 본다" 를 관측한다.</summary>
+    private sealed class CountingQuestRepository(IQuestRepository inner) : IQuestRepository
+    {
+        public int GetAllCalls { get; private set; }
+
+        public Task<List<UserQuest>> GetAllForUserAsync(long userId, CancellationToken ct = default)
+        {
+            GetAllCalls++;
+            return inner.GetAllForUserAsync(userId, ct);
+        }
+
+        public Task<UserQuest?> GetAsync(long userId, string questId, CancellationToken ct = default)
+            => inner.GetAsync(userId, questId, ct);
+
+        public Task UpsertAsync(UserQuest quest, CancellationToken ct = default)
+            => inner.UpsertAsync(quest, ct);
     }
 }

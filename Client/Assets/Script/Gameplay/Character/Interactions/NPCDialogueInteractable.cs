@@ -11,6 +11,10 @@ namespace Game.Gameplay.Character
     public class NPCDialogueInteractable : MonoBehaviour, IInteractable
     {
         [SerializeField] private string npcId;
+
+        [Tooltip("이 NPC 가 퀘스트와 관련이 있는가. 끄면 대화 중 퀘스트 서버 통신을 하지 않는다(잡담 NPC).\n" +
+                 "⚠ 이 NPC 를 대상으로 하는 퀘스트를 추가했다면 반드시 켜야 한다 — 꺼두면 그 퀘스트가 조용히 진행되지 않는다.")]
+        [SerializeField] private bool hasQuest = true;
         [Tooltip("카메라가 바라볼 대상(보통 NPC 머리/시선 트랜스폼). 비우면 이 오브젝트 transform.")]
         [SerializeField] private Transform lookTarget;
 
@@ -43,7 +47,7 @@ namespace Game.Gameplay.Character
             }
             // 카메라 먼저 대상 등록(이후 DialogueModel 이 노드 구도 SetShot). 카메라 미배치면 생략.
             _camera?.Enter(lookTarget != null ? lookTarget : transform, interactor != null ? interactor.transform : null);
-            _launcher.Open(npcId);
+            _launcher.Open(npcId, hasQuest);
         }
     }
 }
