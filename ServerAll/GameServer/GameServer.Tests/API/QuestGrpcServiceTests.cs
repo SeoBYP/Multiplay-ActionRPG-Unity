@@ -27,7 +27,8 @@ public class QuestGrpcServiceTests
         var progression = new ProgressionService(new FakeProgressionRepository(), new FakeEquipmentService());
         var wallet = new AppWalletService(new FakeWalletRepository());
         var inventory = new InventoryService(new FakeInventoryRepository(), new CodexService(new FakeCodexRepository()));
-        var questService = new GameServer.Application.Domains.Quest.QuestService(_quests, progression, wallet, inventory);
+        var questService = new GameServer.Application.Domains.Quest.QuestService(_quests, progression, wallet, inventory,
+            NullLogger<GameServer.Application.Domains.Quest.QuestService>.Instance);
         _service = new QuestGrpcService(questService, NullLogger<QuestGrpcService>.Instance);
     }
 

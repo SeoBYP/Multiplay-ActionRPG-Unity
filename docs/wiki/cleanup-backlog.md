@@ -241,7 +241,7 @@ GUID 손상은 아니지만 리포에 들어갈 물건이 아니다. `Packages/.
 |---|---|---|
 | gRPC 주소 하드코딩 | `Network/Https/GameApiClient.cs:19` | `TODO: 설정 파일/환경별 주입` — 배포(M6) 전 필요 |
 | Redis 락 설정 하드코딩 | `Infrastructure/Common/RedisDistributedLock.cs:10` (F1 때 개명) | `TODO: application.json 으로 분류 예정` |
-| HUD 입력 임시 폴링 | `GUI/Hud/GameHud.cs:255` · `GUI/Dialogue/DialogueView.cs:55` | Keyboard 직접 폴링 — `InputRouter` 경로로 이관 예정 |
+| 대사 진행 입력 직접 폴링 | `GUI/Dialogue/DialogueView.cs:51-62` | `Keyboard`/`Mouse` 직접 폴링. (`GameHud` 쪽은 F13 에서 이관 완료) — 상세·선행 결정 = **F13** |
 | 툴팁 미연동 | `GUI/Hud/Sub/BattleEffectSlot.cs:17` | Event Trigger 연동 |
 | 상시 `Debug.Log` | `CharacterSpawner`(21) · `LobbyModel`(14) · `GameSessionConnector`(13) 등 | 릴리스 빌드 로그 노이즈·성능. 조건부 컴파일/로그 레벨 검토 |
 
@@ -415,7 +415,7 @@ GlobalInputInitializer.Initialize()   Enable() · Player.Enable() · UI.Enable()
 - 상세 = [codemap.md](codemap.md) §2.112.
 - 상세 = [chapter-05](../portfolio/chapter-05-game-start-e2e.md) 10절.
 
-### F5. `ReportTalk` 에 근접 검증이 없다 — ⬜ 중간(설계 일관성)
+### F5. `ReportTalk` 에 근접 검증이 없다 — ✅ **재정의·해소 (2026-08-25)**
 
 ```
 KillMonster  클라 → ClaimMonsterExp(slot) → 서버 슬롯 검증 → 서버 내부 ReportKill  ← gRPC 표면에 없음
@@ -424,7 +424,27 @@ TalkToNpc    클라 → ReportTalk(npcId) ────────────�
 
 - `QuestService.cs:51` → `AdvanceMatchingAsync` 가 확인하는 것은 인증·퀘스트 Accepted 상태·`TargetId` 문자열 일치뿐. **실제로 그 NPC 근처에 갔는지 검증하지 않는다.**
 - **피해는 제한적**: `AddProgress` 가 `RequiredCount` 상한을 두고 보상은 Claimed 선마킹으로 1회만. 얻는 건 "NPC 까지 걸어가는 시간 절약"이지 무한 파밍이 아니다.
-- **그래도 기록하는 이유**: 챕터 19 가 세운 "클라는 진행을 건드릴 수 없다"가 더 이상 전면적으로 참이 아니다. 서버가 NPC 위치를 알고 있으므로 근접 검증을 넣거나 대화 자체를 서버가 여는 구조로 바꾸면 된다.
+- **그래도 기록하는 이유**: 챕터 19 가 세운 "클라는 진행을 건드릴 수 없다"가 더 이상 전면적으로 참이 아니다.
+
+**⚠ 위 항목의 전제가 틀렸다 (2026-08-25 실측)**
+
+원래 "서버가 NPC 위치를 알고 있으므로 근접 검증을 넣으면 된다"고 적혀 있었다. **둘 다 아니다**:
+- 서버는 **NPC 위치를 모른다** — NPC 는 씬 배치(`NPCDialogueInteractable`)고 위치 카탈로그가 없다. 서버가 아는 건 `quests.json` 의 `targetId` 문자열뿐.
+- 서버는 **Main 씬 플레이어 위치도 모른다** — Main 은 소켓 미연결(`SocketState != Joined`).
+- 대조군 `ClaimMonsterExp` 도 위치를 검증하지 않는다. `(mapId,slotId)` 카탈로그 존재 + Redis 쿨다운(파밍률 상한)뿐이다.
+
+→ **근접 검증은 Main 을 서버 권위로 올려야 성립한다.** 그 전에는 어떤 서버 검증도 위치를 증명하지 못한다.
+
+**해소 내역 (2026-08-25)** — 목표를 "치팅 차단"에서 **"정상 요청만 오게 한다"** 로 바꿔 닫았다(사용자 결정).
+- **클라 게이트**: `NPCDialogueInteractable.hasQuest`(저작 플래그)로 잡담 NPC 는 **통신 0회**. 실제 보고 여부는
+  서버가 내려준 퀘스트 상태(`QuestInfo.target_id`·`status`)로 판단 — 플래그만 믿지 않는다. proto 무변경.
+- **서버 검증**: 카탈로그에 대화 목표가 없는 npcId 는 **DB 를 읽지 않고** 0 + 경고 로그(예전엔 DB 를 먼저 읽었다).
+  실패를 Failure 로 만들지 않는다 — 퀘스트 없는 NPC 와의 대화는 정상 행동이다.
+- **뺀 것**: per-(user,npc) 쿨다운. `TalkToNpc` 퀘스트가 1개·`requiredCount=1`(실측)이라 막을 파밍이 없다(YAGNI).
+- ⚠ **남는 드리프트**: `hasQuest=false` 인 NPC 에 퀘스트를 붙이면 조용히 진행되지 않는다(호출이 아예 안 와서 서버 로그로도 안 잡힘). 툴팁에 경고.
+- **남는 한계(재분류)**: "안 걸어가도 대화 퀘스트를 완료할 수 있다" 는 그대로다. 이건 `ReportTalk` 의 결함이 아니라
+  **Main 이 클라 권위**라는 구조의 한 단면이므로, 해소 조건은 Main 의 서버 권위 승격이다.
+- 검증: 서버 728/728 · PlayMode 228/228 · EditMode 239/239. 상세 = [codemap.md](codemap.md) §2.114.
 - 상세 = [chapter-19](../portfolio/chapter-19-quest-system.md) 8절.
 
 ### F6. `spawn-layouts.json` 이 아직 `Resources.Load` 로 읽힌다 — ✅ **해소 (2026-08-25)**
@@ -500,7 +520,7 @@ equipment.proto:26,28                          EQUIPMENT_TYPE_HEADER / _SHOOSE
 - 실제 내용은 DB 어댑터가 아니라 **임베디드 JSON 정적 카탈로그**(items/abilities/drop-tables/spawn) + 메시지 계약이라 **진짜 위반은 아니다.** 다만 이름만 보고는 위반으로 읽혀서, 이 규칙을 검사하는 사람·에이전트가 오판할 수 있다. `Shared.GameData` 계열이 맞다.
 - **선행 결정**: 어셈블리 개명은 참조 그래프 전체 + Dockerfile restore 목록 갱신을 동반한다.
 
-### F13. 입력 임시방편의 전제조건이 이미 해소됐다 — ✅ **해소 (2026-08-25)**
+### F13. 입력 임시방편의 전제조건이 이미 해소됐다 — 🔄 **부분 해소 (2026-08-25)** — `DialogueView` 잔존
 
 당시 막고 있던 것(생성 래퍼 미반영)은 **이미 해결됐는데** 마지막 배선만 안 됐다.
 
@@ -522,8 +542,23 @@ DialogueView.cs:55          동일 패턴                                       
   씬 왕복마다 죽은 라우터 델리게이트가 쌓이고 있었다. Dispose 해제 + 테스트 고정.
 - 검증: 컴파일 0 · EditMode 239/239(신규 5건) · PlayMode 225/225. 상세 = [codemap.md](codemap.md) §2.113.
 
+⚠ **남은 1곳 — `DialogueView` (2026-08-25 확인)**. 위 결함 본문이 "2곳째" 로 적어둔 자리인데 해소 내역에 언급이 없다.
+
+```
+DialogueView.cs:51-62  Update() 안에서
+    Keyboard.current.enterKey / spaceKey .wasPressedThisFrame
+    Mouse.current.leftButton.wasPressedThisFrame        ← 대사 진행(Advance) 입력
+```
+
+- GameHud 쪽(i·k·q·g)은 정식 경로로 갔고 `HudToggleRoutingTests` 가드까지 있다. 이 한 곳만 같은 패턴이 남았다.
+- 다만 성격이 조금 다르다 — HUD 토글은 **전역 단축키**라 `InputRouter` 가 맞지만, 대사 진행은 **모달이 떠 있는 동안만** 받는 입력이라
+  `Advance` 액션을 새로 만들지, UI Submit(`EventSystem`)에 얹을지 **먼저 정할 것**. 판단 없이 `InputRouter` 로 밀면 대사창이 닫혀도 키가 살아 있다.
+
 ### F14. 채팅 스트림에 트리밍이 없다 — ⬜ 낮음
 
+- ⚠ **범위가 채팅만이 아니다(2026-08-25 실측)**: `maxLength` 없는 생산 지점은 비테스트 기준 **3곳**
+  (`ChatBroadcastChannel.cs:18` · `DungeonRoomBroadcastChannel.cs:13` · `RedisMessageQueueBase.PublishAsync`).
+  마지막 것은 공용 발행부라 **여기 하나 고치면 Consumer Group 큐 전부가 유계**가 된다.
 - `ChatBroadcastChannel.cs:18` `StreamAddAsync(channel, ...)` 에 `maxLength` 가 없고 스트림 키에 TTL 도 없다. 개별 메시지 Hash·인덱스 Sorted Set 에는 TTL 이 있어(`ChatMessageRepository.cs:408-411`) 캐시 층은 유계인데 **스트림만 무계**다. 장기 가동 시 Redis 메모리를 잠식한다. `XADD ... MAXLEN ~ N` 필요.
 
 ### (참고) F 섹션에서 제외한 것 — 이미 다른 항목에 있음
@@ -536,16 +571,12 @@ DialogueView.cs:55          동일 패턴                                       
 
 ---
 
-## 착수 순서 제안 (2026-08-24 갱신)
+## 착수 순서 제안 (2026-08-25 갱신)
 
-~~**F1**~~ ✅ 2026-08-23(방 단위 분산락) · ~~**F2**~~ ✅ 2026-08-23(소유 증명 우선) · ~~**C2**~~ ✅ 2026-08-24(NuGet 템플릿 규칙 예외).
-→ **🔴 높음 항목이 남아 있지 않다.** 남은 것은 F 계열 중간·낮음.
+**🔴 높음 0건.** F1·F2·C2·F3·F4·F6·F13(부분)·F11·B4·F15~F19 소진.
 
-1. ~~**F3 + F4**~~ ✅ 2026-08-24 (F3 = 보상 멱등을 **DB 원장**으로 + 채팅 DB 폴백 / F4 = 루프 단일화 + `XAUTOCLAIM` 스윕 + at-least-once).
-   ~~잔여 = ACK 시점~~ ✅ 2026-08-24 (at-least-once + 보상 원장 + 소비 통지 멱등).
-2. ~~**F6 · F13**~~ ✅ 2026-08-25 (F6 = SO 직독 + 드리프트 가드 / F13 = 입력 4키 정식 이관 + 라우터 구독 누수 수정).
-   ⚠ "각각 한 곳만 배선하면 끝난다" 는 **둘 다 틀렸다** — F6 은 Addressable 등록 4건 누락, F13 은 라우터가 던전 스코프에 없었다.
-   (~~F11~~ ✅ 헬스체크는 이미 배선돼 있었다 — 2026-08-24 확인)
-3. **F5 · B3 · C3** — 중간. 설계 일관성·환경.
-4. **B1 · B2 · F9 · F12** — 전부 ❓ 선행 결정 필요(공개 계약·감각 영향).
-5. **F7 · F8 · F10 · F14 · D** — 개별 정리.
+1. **F5** — 남은 것 중 유일한 **서버 신뢰 경계** 문제. `ReportTalk` 이 근접 검증 없이 퀘스트 진행을 올린다.
+2. **F13 잔여 · B3 · C3** — 각각 선행 판단이 하나씩 붙는다(대사 입력 경로 / InteractionSystem 일원화 / SFX 팩).
+3. **F14** — 공용 발행부(`RedisMessageQueueBase.PublishAsync`) 한 곳이면 큐 전부가 유계가 된다. 비용 대비 효과가 가장 좋다.
+4. **B1 · B2 · F9 · F12** — 전부 ❓ 선행 결정 필요(공개 계약·이동 감각).
+5. **F7 · F8 · F10 · D** — 개별 정리.

@@ -127,12 +127,22 @@ namespace Game.Tests.PlayMode.Dialogue
             public QuestProgressState State = QuestProgressState.NotAccepted;
             public string Accepted, Claimed;
 
+            /// <summary>대화 목표 퀘스트 시드(F5 클라 게이트 검증용). null 이면 대화 목표 없음.</summary>
+            public string TalkNpcId;
+            public QuestProgressState TalkState = QuestProgressState.Accepted;
+
+            /// <summary>서버 왕복 횟수 — "잡담 NPC 는 통신 0회" 를 관측한다.</summary>
+            public int GetQuestsCalls;
+
             public UniTask<(QuestResult, IReadOnlyList<QuestData>)> GetQuestsAsync(CancellationToken ct = default)
             {
+                GetQuestsCalls++;
                 var list = new List<QuestData>
                 {
                     new("q1", "q1", "", QuestObjectiveKind.KillMonster, "creepy_demon", 1, 0, State, default),
                 };
+                if (TalkNpcId != null)
+                    list.Add(new("q_talk", "q_talk", "", QuestObjectiveKind.TalkToNpc, TalkNpcId, 1, 0, TalkState, default));
                 return UniTask.FromResult((QuestResult.Success, (IReadOnlyList<QuestData>)list));
             }
 
@@ -225,18 +235,71 @@ namespace Game.Tests.PlayMode.Dialogue
 
         // ── Phase C: TalkToNpc 보고 ──
 
+        // ── F5: 필요할 때만 서버와 통신한다 ──
+        //
+        // 예전엔 대화창을 열 때마다 무조건 ReportTalk 을 불렀다. 서버는 그 요청이 정상인지 알 수 없었고
+        // 잡담 NPC 도 매번 왕복을 만들었다. 이제 판단은 클라가 한다:
+        //   hasQuest(저작 플래그) → 조기 차단 / 수주 상태 → 실제 보고 여부
+
         [UnityTest]
-        public IEnumerator 대화_시작시_TalkToNpc를_보고한다() => UniTask.ToCoroutine(async () =>
+        public IEnumerator 수주중인_대화퀘스트가_있으면_보고한다() => UniTask.ToCoroutine(async () =>
         {
-            var fake = new FakeQuestService();
+            var fake = new FakeQuestService { TalkNpcId = "npc_elder", TalkState = QuestProgressState.Accepted };
             var model = new DialogueModel(BuildCatalog("npc_elder", BuildDef()), quest: fake);
             using var sub = model.State.Subscribe(_ => { });
 
             model.Start("npc_elder");
-            await UniTask.Yield();
-            await UniTask.Yield();
+            for (int i = 0; i < 4; i++) await UniTask.Yield();
 
             Assert.AreEqual("npc_elder", fake.Talked);
+
+            model.Dispose();
+        });
+
+        [UnityTest]
+        public IEnumerator 수주하지_않은_NPC_에는_보고하지_않는다() => UniTask.ToCoroutine(async () =>
+        {
+            var fake = new FakeQuestService { TalkNpcId = "npc_elder", TalkState = QuestProgressState.NotAccepted };
+            var model = new DialogueModel(BuildCatalog("npc_elder", BuildDef()), quest: fake);
+            using var sub = model.State.Subscribe(_ => { });
+
+            model.Start("npc_elder");
+            for (int i = 0; i < 4; i++) await UniTask.Yield();
+
+            Assert.IsNull(fake.Talked, "수주하지 않았는데 보고했다");
+
+            model.Dispose();
+        });
+
+        [UnityTest]
+        public IEnumerator 완료된_대화퀘스트에는_다시_보고하지_않는다() => UniTask.ToCoroutine(async () =>
+        {
+            var fake = new FakeQuestService { TalkNpcId = "npc_elder", TalkState = QuestProgressState.Completed };
+            var model = new DialogueModel(BuildCatalog("npc_elder", BuildDef()), quest: fake);
+            using var sub = model.State.Subscribe(_ => { });
+
+            model.Start("npc_elder");
+            for (int i = 0; i < 4; i++) await UniTask.Yield();
+
+            Assert.IsNull(fake.Talked);
+
+            model.Dispose();
+        });
+
+        [UnityTest]
+        public IEnumerator 잡담_NPC_는_퀘스트_통신을_아예_하지_않는다() => UniTask.ToCoroutine(async () =>
+        {
+            var fake = new FakeQuestService { TalkNpcId = "npc_elder", TalkState = QuestProgressState.Accepted };
+            var model = new DialogueModel(BuildCatalog("npc_elder", BuildDef()), quest: fake);
+            DialogueState latest = null;
+            using var sub = model.State.Subscribe(s => latest = s);
+
+            model.Start("npc_elder", hasQuest: false);   // 저작 플래그로 조기 차단
+            for (int i = 0; i < 4; i++) await UniTask.Yield();
+
+            Assert.AreEqual(0, fake.GetQuestsCalls, "잡담 NPC 인데 퀘스트를 조회했다");
+            Assert.IsNull(fake.Talked);
+            Assert.IsTrue(latest.IsOpen, "통신을 건너뛰어도 대화는 정상적으로 열려야 한다");
 
             model.Dispose();
         });

@@ -31,6 +31,9 @@ namespace Game.Presentation.Dialogue
 
         private readonly Dictionary<string, QuestProgressState> _questStates = new();
 
+        // TalkToNpc 목표만 추린 캐시 — "이 NPC 에게 보고할 게 있는가" 판단용(F5 클라 게이트).
+        private readonly List<(string NpcId, QuestProgressState Status)> _talkTargets = new();
+
         private DialogueDefinition _current;
         private DialogueNode _node;
         private CancellationTokenSource _cts;
@@ -47,9 +50,10 @@ namespace Game.Presentation.Dialogue
         }
 
         /// <summary>IDialogueLauncher — NPC(Gameplay)가 호출하는 진입점.</summary>
-        public void Open(string npcId) => Start(npcId);
+        public void Open(string npcId, bool hasQuest) => Start(npcId, hasQuest);
 
-        public void Start(string npcId)
+        /// <param name="hasQuest">이 NPC 가 퀘스트와 관련 있는가(저작 플래그). false 면 퀘스트 서버 통신을 하지 않는다.</param>
+        public void Start(string npcId, bool hasQuest = true)
         {
             var def = _catalog != null ? _catalog.Get(npcId) : null;
             if (def == null)
@@ -62,18 +66,49 @@ namespace Game.Presentation.Dialogue
             _inputContext?.EnterUi();
             _cts?.Cancel();
             _cts = new CancellationTokenSource();
-            StartAsync(def, npcId, _cts.Token).Forget();
+            StartAsync(def, npcId, hasQuest, _cts.Token).Forget();
         }
 
-        private async UniTaskVoid StartAsync(DialogueDefinition def, string npcId, CancellationToken ct)
+        /// <summary>
+        /// 대화 진입. 퀘스트 서버 통신은 **필요할 때만** 한다(F5).
+        ///
+        ///   ① hasQuest=false(잡담 NPC)         → 통신 0회
+        ///   ② 상태 갱신 → 이 NPC 대상 TalkToNpc 가 Accepted 인가?
+        ///   ③ 아니면 ReportTalk 생략 / 맞으면 보고 후 진행이 있었으면 상태 재갱신
+        ///
+        /// 예전에는 대화창을 열 때마다 무조건 ReportTalk 을 불렀다 — 서버는 그 요청이 정상인지 알 수 없었고,
+        /// 잡담 NPC 도 매번 왕복을 만들었다.
+        /// </summary>
+        private async UniTaskVoid StartAsync(DialogueDefinition def, string npcId, bool hasQuest, CancellationToken ct)
         {
-            // TalkToNpc 진행 보고(Phase C) — 대화 시작 = NPC 와 대화. 서버 권위·멱등(잘못된 npcId/미수주는 무진행).
-            if (_quest != null) await _quest.ReportTalkAsync(npcId, ct);
-            if (ct.IsCancellationRequested) return;
+            if (_quest != null && hasQuest)
+            {
+                await RefreshQuestStatesAsync(ct);      // 조건부 선택지 평가 + 아래 보고 여부 판단의 근거
+                if (ct.IsCancellationRequested) return;
 
-            await RefreshQuestStatesAsync(ct);          // 진입 시 퀘스트 상태 캐시(ReportTalk 반영 후 — 조건부 선택지 평가용)
-            if (ct.IsCancellationRequested) return;
+                if (HasAcceptedTalkQuest(npcId))
+                {
+                    var reported = await _quest.ReportTalkAsync(npcId, ct);
+                    if (ct.IsCancellationRequested) return;
+
+                    if (reported == QuestResult.Success)
+                    {
+                        await RefreshQuestStatesAsync(ct);  // 진행 반영(Accepted→Completed 등)
+                        if (ct.IsCancellationRequested) return;
+                    }
+                }
+            }
+
             RenderNode(def.GetStartNode());
+        }
+
+        /// <summary>이 NPC 를 대상으로 하는 TalkToNpc 퀘스트를 수주했고 아직 진행 중인가.</summary>
+        private bool HasAcceptedTalkQuest(string npcId)
+        {
+            foreach (var q in _talkTargets)
+                if (q.NpcId == npcId && q.Status == QuestProgressState.Accepted)
+                    return true;
+            return false;
         }
 
         public void Accept(DialogueIntent intent)
@@ -184,12 +219,17 @@ namespace Game.Presentation.Dialogue
         private async UniTask RefreshQuestStatesAsync(CancellationToken ct)
         {
             _questStates.Clear();
+            _talkTargets.Clear();
             if (_quest == null) return;
 
             var (result, quests) = await _quest.GetQuestsAsync(ct);
             if (result != QuestResult.Success || quests == null) return;
             foreach (var q in quests)
+            {
                 _questStates[q.QuestId] = q.Status;
+                if (q.Objective == QuestObjectiveKind.TalkToNpc)
+                    _talkTargets.Add((q.TargetId, q.Status));
+            }
             _notifier?.Sync(quests);   // 완료 전이 감지 → 완료 알림(이름/보상 캐시 갱신)
         }
 

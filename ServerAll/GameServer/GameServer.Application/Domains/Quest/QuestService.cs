@@ -1,4 +1,5 @@
 using GameServer.Application.Domains.Inventory.Interfaces;
+using Microsoft.Extensions.Logging;
 using GameServer.Application.Domains.Progression.Interfaces;
 using GameServer.Application.Domains.Quest.Interfaces;
 using GameServer.Application.Domains.Wallet.Interfaces;
@@ -15,7 +16,8 @@ public sealed class QuestService(
     IQuestRepository repository,
     IProgressionService progression,
     IWalletService wallet,
-    IInventoryService inventory) : IQuestService
+    IInventoryService inventory,
+    ILogger<QuestService> logger) : IQuestService
 {
     public async Task<List<QuestStateView>> GetQuestsAsync(long userId, CancellationToken ct = default)
     {
@@ -48,8 +50,45 @@ public sealed class QuestService(
     public Task<int> ReportKillAsync(long userId, string monsterId, CancellationToken ct = default)
         => AdvanceMatchingAsync(userId, QuestObjectiveType.KillMonster, monsterId, ct);
 
-    public Task<int> ReportTalkAsync(long userId, string npcId, CancellationToken ct = default)
-        => AdvanceMatchingAsync(userId, QuestObjectiveType.TalkToNpc, npcId, ct);
+    /// <summary>
+    /// NPC 대화 보고. 서버가 검증하는 것은 **"이 요청을 정상적으로 처리할 수 있는가"** 다:
+    ///   ① 카탈로그에 이 npcId 를 대상으로 하는 TalkToNpc 퀘스트 정의가 있는가
+    ///   ② 그 유저가 그 퀘스트를 수락했고 미완료인가 (AdvanceMatchingAsync 가 판정)
+    ///
+    /// ⚠ **근접("정말 그 NPC 앞에 갔는가")은 검증하지 않는다 — 이 구조에서는 불가능하다.**
+    /// 서버는 NPC 위치를 모르고(NPC 는 씬 배치, 위치 카탈로그 없음), Main 씬은 소켓 미연결이라
+    /// 플레이어 위치도 모른다. 근접 검증은 Main 을 서버 권위로 올려야 성립한다(cleanup-backlog F5).
+    ///
+    /// ①을 DB 조회 **앞**에 두는 이유: 카탈로그만 봐도 판정되는 요청이 저장소 왕복을 유발하지 않게.
+    /// 실패는 예외가 아니라 0 이다 — 퀘스트 없는 NPC 와 대화하는 것은 정상 행동이다.
+    /// </summary>
+    public async Task<int> ReportTalkAsync(long userId, string npcId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(npcId))
+            return 0;
+
+        if (!HasTalkObjective(npcId))
+        {
+            // 클라는 퀘스트를 가진 NPC 에서만 호출한다 → 여기 오는 것 자체가 비정상 경로다(관측용 로그).
+            logger.LogWarning("[Quest] ReportTalk 무시 — 대화 목표가 없는 npcId={NpcId} (user {UserId})", npcId, userId);
+            return 0;
+        }
+
+        var advanced = await AdvanceMatchingAsync(userId, QuestObjectiveType.TalkToNpc, npcId, ct);
+        if (advanced > 0)
+            logger.LogInformation("[Quest] ReportTalk 진행 user={UserId} npc={NpcId} 퀘스트={Count}건", userId, npcId, advanced);
+
+        return advanced;
+    }
+
+    /// <summary>이 npcId 를 대상으로 하는 TalkToNpc 퀘스트 정의가 카탈로그에 있는가.</summary>
+    private static bool HasTalkObjective(string npcId)
+    {
+        foreach (var def in QuestCatalog.All)
+            if (def.ObjectiveType == QuestObjectiveType.TalkToNpc && def.TargetId == npcId)
+                return true;
+        return false;
+    }
 
     /// <summary>주어진 목표타입·대상(targetId)을 가진 Accepted·미완료 퀘스트들의 진행을 +1. 진행 수 반환.</summary>
     private async Task<int> AdvanceMatchingAsync(long userId, QuestObjectiveType objective, string targetId, CancellationToken ct)
