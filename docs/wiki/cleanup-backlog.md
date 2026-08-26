@@ -1,4 +1,4 @@
-# 코드 정리 백로그 (2026-08-24 갱신)
+# 코드 정리 백로그 (2026-08-27 갱신)
 
 > "지금 코드에서 문제나 이상한 부분을 다 정리한다"는 트랙의 **입력 문서**.
 > 각 항목은 **근거(실측/코드 위치)** 와 **왜 문제인가**, **선행 결정이 필요한지**를 함께 적는다.
@@ -79,6 +79,58 @@ bake 산출물 7종 중 **`items.json` 하나만 Exporter 가 없다**. 나머�
 - **결과**: A3 조사 중 호출한 `LoadPrefabContents`→`SaveAsPrefabAsset` 이 (5s 타임아웃으로 실패한 줄 알았으나 실제로는 적용돼) 프리팹을 재직렬화하며 고아 블록 **91줄을 제거**했다. `Capsule`·누락 guid 모두 0.
 - 검증(Unity 로드): `RemotePlayerCharacter` GameObject 115 · Skinned 14 · Mesh 1 · **머티리얼NULL 0 · 깨진컴포넌트 0** (`PlayerCharacter` 도 동일하게 clean).
 - ⚠ **재발 교훈(2회째)**: Unity CLI 의 타임아웃은 "미실행"을 뜻하지 않는다. `abilities.json`(DisplayDialog)·이 프리팹(main-thread 5s) 둘 다 **타임아웃 응답 뒤에 실제로는 적용**됐다. 타임아웃이 나면 결과를 **파일 상태로 재확인**한다.
+
+---
+
+### A6. 데이터 테이블의 클라용/서버용 미분리 — 공유 계약이 `Shared.Gameplay` 에 얹혀 있다 — ⬜ 중간 / ❓ 선행 결정
+
+**증상**: `EquipmentType`·`ItemGrade`·`ShopCategory`·`DropTable` 처럼 **게임플레이 로직이 아닌 데이터 계약**이
+`Shared.Gameplay`(=결정론 전투 코어) 안에 들어 있다. 읽는 사람은 매번 "이게 왜 여기 있지?"에 걸린다.
+
+**근본 원인(사용자 지적, 2026-08-27)**: 데이터 테이블을 **클라가 쓸 것 / 서버가 쓸 것으로 나누는 분기 처리가 없다.**
+그래서 "둘 다 쓰는 것"이 갈 곳이 없어, 클라가 유일하게 볼 수 있는 어셈블리에 전부 얹혔다.
+
+**왜 Shared.Infrastructure 로 그냥 옮길 수 없나** (실측 2026-08-27):
+
+```
+Shared.Infrastructure   net10.0 · StackExchange.Redis · Microsoft.Extensions.Logging
+        │                → Unity 가 못 읽음 · Client/Assets/Plugins 에 복사 안 됨
+        │ ProjectReference (Infrastructure → Gameplay, 역방향 불가)
+        ▼
+Shared.Gameplay         netstandard2.1 · 외부 의존 0
+                         → 빌드 시 Client/Assets/Plugins/Shared.Gameplay.dll 로 자동 복사
+                         → **Unity 가 참조하는 유일한 공유 DLL**
+```
+
+| 확인 | 실측값 |
+|---|---|
+| `Client/Assets/Plugins/` 내용 | `Roslyn`, `Shared.Gameplay` — Infrastructure **없음** |
+| 클라 참조 파일 수 | `ShopCategory` 14 · `EquipmentType` 12 · `ItemGrade` 7 · `DropTableRoll`/`DropEntry` 2 |
+
+→ 지금 옮기면 **클라 컴파일이 깨진다.** 위치가 틀린 게 아니라 **경계가 하나뿐인 게** 문제다.
+
+**두 어셈블리의 실제 분할 기준은 "게임플레이 vs 인프라"가 아니라 "클라가 볼 수 있는가"** 인데,
+이름이 그 기준을 말하지 않아 오해가 반복된다. (같은 뿌리의 항목 = **F12** `Shared.Infrastructure` 네이밍)
+
+**임시 조치 (2026-08-27, 완료)** — 나중에 통째로 떼어내기 쉽도록 **한 폴더로 모았다**:
+
+```
+Shared.Gameplay/Equipment/EquipmentType.cs ┐
+Shared.Gameplay/Items/ItemGrade.cs         ├─▶ Shared.Gameplay/Contracts/  (+ README.md 로 의도 명시)
+Shared.Gameplay/Items/ShopCategory.cs      │     ※ 네임스페이스는 그대로 — 클라 using 무변경
+Shared.Gameplay/Loot/DropTable.cs          ┘        (빈 폴더 Equipment/·Items/·Loot/ 는 제거)
+```
+
+- 파일 이동만이라 컴파일·와이어 영향 0. 검증: `ServerAll.sln` 0오류 · SocketServer 235/235 · Shared.Gameplay 50/50 · GameServer 단위 311/311.
+- **여기에 새 파일을 늘리지 말 것** — 늘어날수록 분리 비용이 커진다.
+
+**선행 결정 (분리 시 정해야 할 것)**
+
+1. **새 어셈블리를 만들 것인가** (`Shared.Contracts`, netstandard2.1·무의존) — 만들면 Unity Plugins 에 DLL 이 2개가 되고 asmdef `precompiledReferences` 갱신이 따라온다.
+2. **`DropTable` 은 어디로 가나** — enum 3종과 달리 *순수 roll 함수*라 `StatCombatMath` 와 같은 결정론 코어 성격이다. 계약이 아니라 Gameplay 에 남기는 선택지가 있다(현재 폴더에 함께 둔 건 편의상 임시).
+3. **F12 와 함께 갈 것인가** — `Shared.Infrastructure` → `Shared.GameData` 개명과 한 번에 처리하면 참조 그래프·Dockerfile restore 목록을 두 번 안 건드린다.
+
+**부수 효과**: `Shared.Gameplay` 안에 네임스페이스가 3종 혼재한다(`Script.System.GamePlayAbilitySystem` 23 · `Shared.Gameplay.Items` 2 · `Shared.Gameplay.Equipment` 1 · `Shared.Gameplay` 1 — `DropTable.cs` 는 폴더-네임스페이스 불일치). 분리할 때 함께 정리 대상.
 
 ---
 
@@ -616,7 +668,7 @@ Script/Input/PlayerInputActions.cs            namespace Game.Input            20
 ### F9. `EquipmentType` 공개 계약에 오타가 3곳으로 전파 — ⬜ 낮음 / ❓ 선행 결정
 
 ```
-Shared.Gameplay/Equipment/EquipmentType.cs:13  Header = 1     ← Helmet/Head 의 오타로 보임
+Shared.Gameplay/Contracts/EquipmentType.cs:13  Header = 1     ← Helmet/Head 의 오타로 보임
                                           :15  Shoose = 3     ← Shoes 의 오타
 equipment.proto:26,28                          EQUIPMENT_TYPE_HEADER / _SHOOSE
 클라(Plugins/Shared.Gameplay.dll)              동일 타입 사용
@@ -641,6 +693,7 @@ equipment.proto:26,28                          EQUIPMENT_TYPE_HEADER / _SHOOSE
 - `GameServer.Application.csproj:10` 이 `Shared.Infrastructure` 를 참조하는데, CLAUDE.md 는 "Application 이 Infrastructure 를 참조하면 위반"이라고 못 박고 있다.
 - 실제 내용은 DB 어댑터가 아니라 **임베디드 JSON 정적 카탈로그**(items/abilities/drop-tables/spawn) + 메시지 계약이라 **진짜 위반은 아니다.** 다만 이름만 보고는 위반으로 읽혀서, 이 규칙을 검사하는 사람·에이전트가 오판할 수 있다. `Shared.GameData` 계열이 맞다.
 - **선행 결정**: 어셈블리 개명은 참조 그래프 전체 + Dockerfile restore 목록 갱신을 동반한다.
+- **A6 과 같은 뿌리** — 클라/서버 데이터 분기가 없어 경계가 하나뿐인 문제. 함께 처리하면 참조 그래프를 두 번 안 건드린다.
 
 ### F13. 입력 임시방편의 전제조건이 이미 해소됐다 — 🔄 **부분 해소 (2026-08-25)** — `DialogueView` 잔존
 
@@ -693,7 +746,7 @@ DialogueView.cs:51-62  Update() 안에서
 
 ---
 
-## 착수 순서 제안 (2026-08-25 갱신)
+## 착수 순서 제안 (2026-08-27 갱신)
 
 **🔴 높음 0건.** F1·F2·C2·F3·F4·F5·F6·F13(부분)·F11·B4·F15~F19 소진.
 **B6**(근접 검증)은 *하지 않기로 결정*해 닫힘 — 미착수가 아니다.
@@ -703,5 +756,6 @@ DialogueView.cs:51-62  Update() 안에서
    착수 시점이 곧 신뢰 경계를 정하는 시점이라, 기능을 만든 뒤에 붙이면 늦는다.
 2. **F13 잔여 · B3 · C3** — 각각 선행 판단이 하나씩 붙는다(대사 입력 경로 / InteractionSystem 일원화 / SFX 팩).
 3. **F14** — 공용 발행부(`RedisMessageQueueBase.PublishAsync`) 한 곳이면 큐 전부가 유계가 된다. 비용 대비 효과가 가장 좋다.
-4. **B1 · B2 · F9 · F12** — 전부 ❓ 선행 결정 필요(공개 계약·이동 감각).
+4. **A6 + F12 (묶음) · B1 · B2 · F9** — 전부 ❓ 선행 결정 필요(공개 계약·이동 감각).
+   **A6 과 F12 는 한 건으로 본다** — 같은 뿌리(클라/서버 데이터 분기 부재)라 따로 하면 참조 그래프·Dockerfile restore 를 두 번 건드린다. A6 의 파일은 `Shared.Gameplay/Contracts/` 로 이미 모아뒀다(2026-08-27).
 5. **F7 · F8 · F10 · D** — 개별 정리.

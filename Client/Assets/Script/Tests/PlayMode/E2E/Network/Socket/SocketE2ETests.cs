@@ -669,28 +669,38 @@ namespace Game.Tests.PlayMode.E2E
         [UnityTest]
         public IEnumerator RawSocket_참가자_전원_다운하면_양쪽_S_DungeonFailed_수신() => UniTask.ToCoroutine(async () =>
         {
-            // M4 B: 참가자 전원이 C_PlayerDead 를 보고하면 서버 Room.TryMarkFailed(최초 1회) →
-            // S_DungeonFailed 를 방에 브로드캐스트. 일부만 다운이면 발화하지 않는다.
-            var room = await CreateStartedTwoPlayerRoomAsync();
+            // 참가자 전원이 **실제로 죽으면** 서버가 실패를 최초 1회 claim → S_DungeonFailed 를 방에 브로드캐스트.
+            //
+            // 예전엔 만피 상태에서 C_PlayerDead 를 보내 다운을 위조했다. 이제 서버가 그 자기신고를 거부한다
+            // (다운도 서버 권위 — 만피인 채로 다운을 주장해 AI 타깃에서 빠지는 구멍을 막았다).
+            // 그래서 진짜로 죽여야 한다: test_arena 의 fixture 몬스터 test_brute 는 즉사기(baseDamage 9999,
+            // 쿨다운 50ms, 사거리 1000)라 두 참가자가 입장하는 즉시 차례로 쓰러진다.
+            //
+            // "일부만 다운이면 실패가 아니다" 는 여기서 재지 않는다 — 즉사라 관측 창이 한 틱(100ms)뿐이라
+            // 본질적으로 경쟁적이다. 그 판정은 단위 테스트(DungeonFailTests.일부만_다운이면_실패가_아니다)가 담당한다.
+            var room = await CreateStartedTwoPlayerRoomAsync("test_arena");
             var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
             var guest = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
 
             try
             {
-                // 호스트만 다운 → 아직 전원 다운 아님 → S_DungeonFailed 없어야 한다.
-                await host.SendAsync(new C_PlayerDead(), Timeout());
-                await UniTask.Delay(TimeSpan.FromMilliseconds(400));
-                Assert.IsFalse(
-                    host.TryGetLatest<S_DungeonFailed>(p => p.RoomId == room.RoomId, out _),
-                    "일부만 다운이면 실패가 발화되면 안 된다");
+                await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "test_brute", Timeout());
 
-                // 게스트까지 다운 → 전원 다운 → 양쪽 모두 S_DungeonFailed 수신.
-                await guest.SendAsync(new C_PlayerDead(), Timeout());
+                // 둘 다 브루트 사거리 안(원점 근처)에 서서 keep-alive 만 보낸다. C_PlayerDead 는 절대 안 보낸다.
+                bool failed = false;
+                var deadline = DateTime.UtcNow.AddSeconds(25);
+                while (!failed && DateTime.UtcNow < deadline)
+                {
+                    await host.SendAsync(new C_Move { PosX = 0, PosY = 0, PosZ = 0, RotY = 0 }, Timeout());
+                    await guest.SendAsync(new C_Move { PosX = 1, PosY = 0, PosZ = 0, RotY = 0 }, Timeout());
+                    await UniTask.Delay(TimeSpan.FromMilliseconds(300));
+                    failed = host.TryGetLatest<S_DungeonFailed>(p => p.RoomId == room.RoomId, out _);
+                }
 
-                var hostFailed = await host.WaitForPacketAsync<S_DungeonFailed>(p => p.RoomId == room.RoomId, Timeout());
+                Assert.IsTrue(failed, "전원 사망 시 호스트가 S_DungeonFailed 를 받아야 한다(C_PlayerDead 미송신).");
+
                 var guestFailed = await guest.WaitForPacketAsync<S_DungeonFailed>(p => p.RoomId == room.RoomId, Timeout());
-                Assert.AreEqual(room.RoomId, hostFailed.RoomId, "호스트가 던전 실패를 받아야 한다");
-                Assert.AreEqual(room.RoomId, guestFailed.RoomId, "게스트가 던전 실패를 받아야 한다");
+                Assert.AreEqual(room.RoomId, guestFailed.RoomId, "게스트도 던전 실패를 받아야 한다");
             }
             finally
             {
@@ -726,29 +736,45 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         [UnityTest]
+        [Timeout(180000)]
         public IEnumerator RawSocket_다운된_아군을_부활하면_양쪽_S_PlayerRevived_수신() => UniTask.ToCoroutine(async () =>
         {
-            // 2.5.2 Co-op 부활: 게스트 다운(C_PlayerDead → 서버 _downed 집계) → 호스트가 사거리(2.5m) 안에서
-            // C_Revive → 서버 Room.TryRevive 검증(거리·다운상태·미실패) → S_PlayerRevived{게스트,Hp} 방 브로드캐스트.
+            // Co-op 부활: 게스트가 **실제로 죽고**(서버 HP 0 → State.Dead) → 호스트가 사거리(2.5m) 안에서 C_Revive
+            //   → 서버 TryRevive 검증(거리·다운상태·미실패) → S_PlayerRevived{게스트,Hp} 방 브로드캐스트.
+            //
+            // test_arena 를 쓰지 않는 이유: 그 fixture 는 즉사기라 게스트가 죽는 순간 호스트도 다음 틱에 죽어
+            // **전원 다운(실패) 확정** → TryRevive 가 막힌다. 그래서 기본 던전의 creepy_demon(12뎀·1.4s·사거리 1.3)을 쓴다.
+            // 게스트는 데몬(-4,0,2) 코앞에서 맞아 죽고, 호스트는 스폰(0,0,-16)에서 aggro(7) 밖으로 대기한다.
             var room = await CreateStartedTwoPlayerRoomAsync();
             var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
             var guest = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
 
             try
             {
-                // 호스트·게스트를 부활 사거리 안 + 슬라임 aggro 밖(원점 근처)에 배치.
-                await guest.SendAsync(new C_Move { PosX = 2, PosY = 0, PosZ = 2, RotY = 0 }, Timeout());
-                await host.SendAsync(new C_Move { PosX = 2, PosY = 0, PosZ = 3, RotY = 0 }, Timeout());
-                await UniTask.Delay(TimeSpan.FromMilliseconds(300)); // 서버 위치 갱신 대기
+                await guest.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "creepy_demon", Timeout());
 
-                // 게스트 다운(서버 _downed 집계). 호스트 생존 → 전원다운(실패) 아님.
-                await guest.SendAsync(new C_PlayerDead(), Timeout());
-                await guest.WaitForPacketAsync<S_PlayerDead>(p => p.UserId == room.GuestUserId, Timeout());
+                // ① 게스트를 데몬 사거리 안으로. 호스트는 스폰 자리(aggro 밖)에서 keep-alive 만.
+                bool guestDown = false;
+                var deadline = DateTime.UtcNow.AddSeconds(60);
+                while (!guestDown && DateTime.UtcNow < deadline)
+                {
+                    await guest.SendAsync(new C_Move { PosX = -4, PosY = 0, PosZ = 1, RotY = 0 }, Timeout());
+                    await host.SendAsync(new C_Move { PosX = 0, PosY = 0, PosZ = -16, RotY = 0 }, Timeout());
+                    await UniTask.Delay(TimeSpan.FromMilliseconds(300), ignoreTimeScale: true);
+                    guestDown = guest.TryGetLatest<S_PlayerDead>(p => p.UserId == room.GuestUserId, out _);
+                }
 
-                // 호스트가 게스트 부활 요청(홀드는 클라 UX이므로 E2E는 완료 신호 C_Revive 만 송신).
+                Assert.IsTrue(guestDown, "게스트가 몬스터에게 실제로 죽어야 한다(서버 권위 다운).");
+                Assert.IsFalse(
+                    host.TryGetLatest<S_DungeonFailed>(p => p.RoomId == room.RoomId, out _),
+                    "호스트는 살아 있어야 한다 — 전원 다운이면 부활이 막힌다");
+
+                // ② 호스트가 쓰러진 게스트 곁(2.5m 안)으로 이동 후 부활 시전.
+                await host.SendAsync(new C_Move { PosX = -4, PosY = 0, PosZ = 3, RotY = 0 }, Timeout());
+                await UniTask.Delay(TimeSpan.FromMilliseconds(300), ignoreTimeScale: true); // 서버 위치 갱신 대기
                 await host.SendAsync(new C_Revive { TargetUserId = room.GuestUserId }, Timeout());
 
-                // 양쪽 모두 부활 브로드캐스트 수신(원격 가시성). HP 부분복구(>0).
+                // ③ 양쪽 모두 부활 브로드캐스트 수신(원격 가시성). HP 부분복구(>0).
                 var guestRevived = await guest.WaitForPacketAsync<S_PlayerRevived>(
                     p => p.UserId == room.GuestUserId, Timeout());
                 Assert.AreEqual(room.GuestUserId, guestRevived.UserId);

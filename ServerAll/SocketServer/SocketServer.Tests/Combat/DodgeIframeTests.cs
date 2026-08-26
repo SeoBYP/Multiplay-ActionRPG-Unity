@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Script.System.GamePlayAbilitySystem;
-using Server.Player;
+using Server.Actors;
 using Shared.Infrastructure.Messages;
 using Shared.Infrastructure.Spawn;
 using Shared.Packet.Packets;
@@ -11,8 +11,8 @@ namespace Server.Tests.Combat;
 
 /// <summary>
 /// 2.6.1 회피(Dodge) 서버 권위 무적 프레임.
-/// - PlayerState.TryBeginDodge: 쿨다운 게이트(C_Dodge 연사=영구 무적 치팅 차단).
-/// - Room.TickMonsters: 무적 창 동안 몬스터 공격 피해 무시(빗나감).
+/// - PlayerActor.TryBeginDodge: 쿨다운 게이트(C_Dodge 연사=영구 무적 치팅 차단).
+/// - Room.Tick: 무적 창 동안 몬스터 공격 피해 무시(빗나감).
 /// </summary>
 public class DodgeIframeTests
 {
@@ -24,7 +24,7 @@ public class DodgeIframeTests
     [Fact]
     public void 회피_발동은_무적창을_부여하고_쿨다운_내_재발동은_거부된다()
     {
-        var state = new PlayerState();
+        var state = new PlayerActor(1);
         const long t0 = 1_000_000;
 
         Assert.True(state.TryBeginDodge(t0));                       // 첫 발동 OK
@@ -39,23 +39,23 @@ public class DodgeIframeTests
     public void 회피_무적_중인_플레이어는_몬스터_공격_피해를_무시한다()
     {
         var room = NewRoom();
-        room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f); // 몬스터(0,0,0) 사거리 안
+        room.AddPlayer(100, "A", 0, 0.5f, 0f, 0f, 0f); // 몬스터(0,0,0) 사거리 안
         room.MarkJoined(100);
         room.SpawnMonsters(
             new List<MonsterSpawnDef> { new("creepy_demon", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             new MapBounds(0f, 0f, 40f, 40f));
 
         const long t0 = 1_000_000;
-        Assert.True(room.GetPlayerState(100)!.TryBeginDodge(t0)); // t0+IframeMs 까지 무적
+        Assert.True(room.Actors.GetMember(100)!.Actor.TryBeginDodge(t0)); // t0+IframeMs 까지 무적
 
         // 무적 창 안: 몬스터 공격이 빗나감 — effect 없음, 서버 HP 유지.
-        var p1 = room.TickMonsters(0.1f, t0 + 100);
+        var p1 = room.Tick(0.1f, t0 + 100);
         Assert.Empty(p1.OfType<S_ApplyEffect>());
-        Assert.Equal(global::Server.Room.Room.DefaultMaxHp, room.GetPlayerState(100)!.Hp);
+        Assert.Equal(global::Server.Room.Room.DefaultMaxHp, room.Actors.GetMember(100)!.Actor.Gas[EGameplayAttribute.Health]);
 
         // 무적 만료 + 몬스터 쿨다운(1500ms) 경과 → 다시 피해. (slime 은 데미지+슬로우 2효과 — 데미지만 특정)
-        var p2 = room.TickMonsters(0.1f, t0 + 2000);
+        var p2 = room.Tick(0.1f, t0 + 2000);
         Assert.Single(p2.OfType<S_ApplyEffect>().Where(e => e.EffectId == CombatHandler.AbilityDamageEffectId));
-        Assert.True(room.GetPlayerState(100)!.Hp < global::Server.Room.Room.DefaultMaxHp);
+        Assert.True(room.Actors.GetMember(100)!.Actor.Gas[EGameplayAttribute.Health] < global::Server.Room.Room.DefaultMaxHp);
     }
 }

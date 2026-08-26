@@ -69,12 +69,12 @@
 | 도메인 | 소유(코옵) | 근거(축) | 코드 위치 |
 |--------|-----------|---------|-----------|
 | 플레이어 **이동** | 클라 입력 즉발 + 서버 릴레이 | ③ | `C_Move`(원본 timestamp 그대로 릴레이) |
-| 플레이어 **자기 HP**(던전 코옵) | **서버 권위** (결정 2026-06-11, §4) | ①② | 🚧 `PlayerState.Hp` 승격 작업 중 — 기존 클라 결정론은 *부채였음* |
+| 플레이어 **자기 HP**(던전 코옵) | **서버 권위** (결정 2026-06-11, §4) | ①② | 🚧 `Actor.Gas` HP 승격 작업 중 — 기존 클라 결정론은 *부채였음* |
 | 플레이어 **자기 HP**(Main 솔로) | **클라 권위** | §2 솔로(충돌 0) | 로컬 시뮬 |
-| 몬스터 **HP·전멸·사망** | **서버 권위** | ①② | `Room.DamageMonster`·`TryMarkCleared` |
+| 몬스터 **HP·전멸·사망** | **서버 권위** | ①② | `ActorStore.DamageMonster`·`TryMarkCleared` |
 | **적중 판정**(hitbox) | **서버 재계산** + 공유 공식 | ①④ | `CombatHandler` + `HitboxMath.Overlaps` |
 | **데미지 수치** | **서버 산정** | ① | `CombatEffectCatalog` |
-| **던전 클리어 감지** | **서버 1회 발화** | ①② | `Room.TryMarkCleared` → `S_DungeonClear` |
+| **던전 클리어 감지** | **서버 1회 발화** | ①② | `DungeonProgress.TryMarkCleared` → `S_DungeonClear` |
 | **보상 산정·지급** | **서버**(GameServer 도메인, 영속) | ① | `DungeonResultConsumer`(B 트랙) |
 | **스폰 좌표** | **공유 데이터 + 양쪽 계산**(미전송) | ④ | `SpawnResolver`(서버·클라 미러) |
 | **연출**(스윙 애니/HitStop/사운드/데미지텍스트) | **클라 즉발** | ③ | `PlayerCharacterAgent`·`HitStopController`·`DamageNumberView` |
@@ -86,14 +86,14 @@
 **결정(2026-06-11)**: **던전(코옵) 플레이어 HP = 서버 권위**로 승격한다. Main 솔로는 클라 권위 유지(§2 솔로 = 충돌 대상 0).
 
 ### 왜 승격하나 (이전 "클라 결정론"은 가정/부채였음)
-- 던전에서 **모든 데미지의 출처가 서버**다 — 몬스터→플레이어(`Room.TickMonsters`가 `monster_attack_dmg` 발행)·플레이어→대상(`CombatHandler` hitbox 판정). 서버가 "누가 누구에게 얼마"를 **이미 안다**. 단지 HP에 누적을 안 했을 뿐(`PlayerState`에 HP 필드 부재였음).
+- 던전에서 **모든 데미지의 출처가 서버**다 — 몬스터→플레이어(`Room.Tick`가 `monster_attack_dmg` 발행)·플레이어→대상(`CombatHandler` hitbox 판정). 서버가 "누가 누구에게 얼마"를 **이미 안다**. 단지 HP에 누적을 안 했을 뿐(`PlayerActor`에 HP 필드 부재였음).
 - 기존 "클라 결정론"은 §0-2 위반: **사용자 명시 결정 없이** 문서에 가정으로 박혀 있었다. 결과 = **C_PlayerDead 미송신/`S_ApplyEffect` 무시 시 불사 핵**(①치팅 구멍).
 - "PvE라 클라가 *할 수 있다*"는 맞지만 §0-3: 코옵에서 서버가 출처면 **서버 권위가 정합**(몬스터 HP와 대칭, ②일관성). PvP는 서버 권위가 *필수*이고 같은 hitbox 기계를 재사용한다.
 - ③ 손맛은 안 깨짐: 클라가 `S_ApplyEffect`를 **즉발 적용(예측)**, 서버 HP가 진실(정정). 권위 = tiebreaker(§2).
 
 ### 승격 설계 골자 (구현 시 채움)
-- 서버 `PlayerState.Hp`/`MaxHp` 추가 → 서버가 발행하는 데미지를 **자기도 누적**(GameplayEffectMath, 몬스터 HP와 동일) → **서버가 HP≤0 감지 → S_PlayerDead 직접 발화**(C_PlayerDead는 클라 예측 트리거로 격하/제거).
-- **회복 동기**: ✅ 구현됨(2.5.1 증분2). `ConsumeItem` gRPC(GameServer 검증·차감) → `PlayerConsumedMessage`(Redis) → SocketServer `PlayerConsumedConsumer`가 `Room.ApplyPlayerEffect(+heal)` + `S_ApplyEffect` 브로드캐스트. 회복 **수치 단일소스** = 클라 `ConsumableCatalog` SO 저작 → bake → `ConsumableEffectCatalog`(서버 검증·적용). 교리 = [gas-architecture.md §2.5](gas-architecture.md), 상세 codemap §2.6c.
+- 서버 `Actor.Gas` HP/`MaxHp` 추가 → 서버가 발행하는 데미지를 **자기도 누적**(GameplayEffectMath, 몬스터 HP와 동일) → **서버가 HP≤0 감지 → S_PlayerDead 직접 발화**(C_PlayerDead는 클라 예측 트리거로 격하/제거).
+- **회복 동기**: ✅ 구현됨(2.5.1 증분2). `ConsumeItem` gRPC(GameServer 검증·차감) → `PlayerConsumedMessage`(Redis) → SocketServer `PlayerConsumedConsumer`가 `DungeonProgress.ApplyPlayerEffect(+heal)` + `S_ApplyEffect` 브로드캐스트. 회복 **수치 단일소스** = 클라 `ConsumableCatalog` SO 저작 → bake → `ConsumableEffectCatalog`(서버 검증·적용). 교리 = [gas-architecture.md §2.5](gas-architecture.md), 상세 codemap §2.6c.
 - **max HP 출처**: 서버가 플레이어 base/max HP를 알아야 함(Progression/스탯 → 던전 입장 시 주입).
 
 ### 몬스터 HP는 그대로 서버 권위
@@ -133,7 +133,7 @@ map/spawn 데이터(dungeon + Main) = SO 저작→bake→Shared (데이터 진�
    └─ GameStartRequestedMessage.PlayerInfo { +AttackPower +Defense +MaxHealth } 적재 발행
               │ stream:game:start (Redis Stream, 기존 경로 — 필드만 additive 추가)
               ▼
-[SocketServer] GameStartRequestedConsumer → Room.InitPlayerState → PlayerState 에 스탯 세팅
+[SocketServer] GameStartRequestedConsumer → Room.AddPlayer → PlayerActor 에 스탯 세팅
               → CombatHandler 가 그 권위 스탯으로 데미지 재계산(DB·계산로직 불필요)
 ```
 
@@ -209,7 +209,7 @@ map/spawn 데이터(dungeon + Main) = SO 저작→bake→Shared (데이터 진�
 | 플레이어 이동 | — | ✅ 릴레이(원본 ts) | 입력 즉발·원격 보간 |
 | 적중·데미지·몬스터 HP·사망 | — | ✅ 서버권위(`HitboxMath`·`DamageMonster`) | 입력·연출·예측 |
 | 몬스터 sim(AI·이동) | — | ✅ `RoomTickService`·`MonsterAiMath` | 보간 렌더 |
-| 플레이어 자기 HP·사망 | — | 🚧 **서버권위 승격 중**(`PlayerState.Hp`, 데미지 누적, 0 감지→`S_PlayerDead`) — 결정 2026-06-11 §4 | 즉발 예측 + 서버 정정 |
+| 플레이어 자기 HP·사망 | — | 🚧 **서버권위 승격 중**(`Actor.Gas` HP, 데미지 누적, 0 감지→`S_PlayerDead`) — 결정 2026-06-11 §4 | 즉발 예측 + 서버 정정 |
 | **드랍 roll·바닥·줍기** | — | ✅ 월드 권위·경쟁중재 | 바닥 렌더·줍기 의도 |
 | 클리어/실패 감지 | — | ✅ 1회 발화 | 표시 |
 | **보상·아이템 지급(영속)** | ✅ Consumer→Progression/Inventory | (Redis Stream 발행) | 표시 |

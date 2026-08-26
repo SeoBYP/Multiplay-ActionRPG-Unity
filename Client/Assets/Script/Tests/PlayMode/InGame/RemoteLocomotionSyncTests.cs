@@ -177,11 +177,16 @@ namespace Game.Tests.PlayMode.InGame
             yield return WaitForState("Dead");
 
             _state.NotifyPlayerRevived(RemoteId, 100);
+
+            // "빠져나왔다"는 <b>전이 방향</b>으로 본다 — current 로 보면 안 된다.
+            // Unity 는 전이가 끝날 때까지 GetCurrentAnimatorStateInfo 를 **옛 상태(Dead)** 로 유지하므로,
+            // 부활 전이가 이미 시작(next=GetUp)됐는데도 current 만 보면 영원히 Dead 로 읽힌다.
+            // (실측: Revive 직후 f+0 부터 inTransition=True, next=GetUp)
             bool recovered = false;
-            for (int i = 0; i < 60 && !recovered; i++)
+            for (int i = 0; i < 120 && !recovered; i++)
             {
                 yield return null;
-                recovered = !InState("Dead");
+                recovered = HasLeft("Dead");
             }
 
             Assert.IsTrue(recovered, "부활하면 Dead 홀드에서 빠져나와야 한다.");
@@ -189,7 +194,7 @@ namespace Game.Tests.PlayMode.InGame
             // 부활 후에는 이동 상태 반영이 다시 살아나야 한다(사망 중 억제가 영구화되면 안 된다).
             _state.UpdatePlayerTransform(RemoteId, 0f, 1.2f, 0f, 0f, 20L, (byte)StateKind.Jump);
             bool jumped = false;
-            for (int i = 0; i < 40 && !jumped; i++) { yield return null; jumped = InState("Jump"); }
+            for (int i = 0; i < 120 && !jumped; i++) { yield return null; jumped = InState("Jump"); }
 
             Assert.IsTrue(jumped, "부활 후에는 다시 점프 등 로코모션 상태가 반영돼야 한다.");
         }
@@ -235,11 +240,22 @@ namespace Game.Tests.PlayMode.InGame
             for (int i = 0; i < 60 && !InState(name); i++) yield return null;
         }
 
+        /// <summary>그 상태에 <b>있거나 들어가는 중</b>인가(전이 시작도 도달로 본다).</summary>
         private bool InState(string name)
         {
             var info = _animator.GetCurrentAnimatorStateInfo(0);
             if (info.IsName(name)) return true;
             return _animator.IsInTransition(0) && _animator.GetNextAnimatorStateInfo(0).IsName(name);
         }
+
+        /// <summary>
+        /// 그 상태를 <b>벗어났나</b>. <see cref="InState"/> 의 부정이 아니다 —
+        /// 전이 중이면 <b>목적지</b>로 판정한다. Unity 는 전이가 끝날 때까지 current 를 옛 상태로 유지하므로,
+        /// current 를 부정하면 "이미 나가는 중"인 프레임을 전부 "아직 안 나감"으로 오독한다.
+        /// </summary>
+        private bool HasLeft(string name)
+            => _animator.IsInTransition(0)
+                ? !_animator.GetNextAnimatorStateInfo(0).IsName(name)
+                : !_animator.GetCurrentAnimatorStateInfo(0).IsName(name);
     }
 }

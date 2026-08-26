@@ -1,14 +1,17 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Server.Room;
 
-namespace Server.Monster;
+namespace Server.Room;
 
 /// <summary>
-/// 서버 권위 몬스터 시뮬레이션 루프. 고정 10Hz 로 모든 방의 몬스터를 진행(이동/페이즈)하고
-/// S_MonsterState 를 방에 브로드캐스트한다. AI 수식은 MonsterAiMath(순수), 상태/락은 Room.TickMonsters.
+/// <b>서버 권위 틱 호스트</b>. 고정 10Hz 로 모든 방을 한 번씩 진행시키고 결과 패킷을 브로드캐스트한다.
 ///
-/// BackgroundService 예외가 호스트를 종료하지 않도록 틱 본문을 try/catch 로 감싼다(서버는 멈추면 안 됨).
+/// <para>이 클래스가 하는 일은 <b>주기와 전송</b>뿐이다 — 무엇을 진행시킬지는 <see cref="Room.Tick"/>,
+/// 몬스터 AI 수식은 <c>MonsterAiMath</c>(순수), 상태·락은 <c>ActorStore</c> 가 맡는다.
+/// (원래는 몬스터 전용 루프라 <c>Monster/</c> 에 있었지만, 플레이어 마나 회복·재접속 유예 스윕까지
+/// 흡수하면서 몬스터 타입을 하나도 참조하지 않게 됐다.)</para>
+///
+/// <para>BackgroundService 예외가 호스트를 종료하지 않도록 틱 본문을 try/catch 로 감싼다(서버는 멈추면 안 된다).</para>
 /// </summary>
 public class RoomTickService(
     RoomManager roomManager,
@@ -47,12 +50,9 @@ public class RoomTickService(
         long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         foreach (var room in roomManager.GetAllRooms())
         {
-            var packets = room.TickMonsters(Dt, nowMs);
+            var packets = room.Tick(Dt, nowMs);
             foreach (var packet in packets)
-                room.Broadcast(packet);
-
-            // 마나 자연 회복(서버 권위). 동기화 패킷 없음 — 클라가 동일 rate 로 예측해 수렴.
-            room.RegenAllPlayerMana(Dt);
+                room.Sessions.Broadcast(packet);
         }
 
         // 재접속 유예 만료된 끊김 플레이어 정리(영구 퇴장 확정 + association 정리).

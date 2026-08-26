@@ -73,14 +73,14 @@ public class SpawnLayoutTests
         Assert.NotNull(room);
         Assert.Equal(MapIds.Dungeon01, room!.MapId);
 
-        var a = room.GetPlayerState(100)!;
+        var a = room.Actors.GetMember(100)!;
         Assert.Equal(0, a.SpawnIndex);
-        Assert.Equal(0f, a.PosX);
-        Assert.Equal(-16f, a.PosZ);
+        Assert.Equal(0f, a.Actor.PosX);
+        Assert.Equal(-16f, a.Actor.PosZ);
 
-        var b = room.GetPlayerState(200)!;
+        var b = room.Actors.GetMember(200)!;
         Assert.Equal(1, b.SpawnIndex);
-        Assert.Equal(2f, b.PosX);
-        Assert.Equal(0f, b.RotY);
+        Assert.Equal(2f, b.Actor.PosX);
+        Assert.Equal(0f, b.Actor.RotY);
     }
 }

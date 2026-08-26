@@ -86,7 +86,7 @@ public class RoomManagerLeaveRoomTests
 
         Assert.True(left);
         Assert.NotNull(_roomManager.GetRoom(roomId));
-        Assert.Equal(1, _roomManager.GetRoom(roomId)!.MemberCount);
+        Assert.Equal(1, _roomManager.GetRoom(roomId)!.Sessions.Count);
         // 부분 퇴장도 반드시 발행해야 GameServer가 떠난 유저 association을 제거한다.
         Assert.Single(_publisher.Published);
         Assert.Equal(100, _publisher.Published[0].UserId);
@@ -112,7 +112,7 @@ public class RoomManagerLeaveRoomTests
     }
 
     [Fact]
-    public void 퇴장한_플레이어의_PlayerState는_정리된다()
+    public void 퇴장한_플레이어의_참가자와_액터는_정리된다()
     {
         const long roomId = 4;
         var message = BuildMessage(roomId, 100, 200);
@@ -124,16 +124,16 @@ public class RoomManagerLeaveRoomTests
         _roomManager.JoinRoom(session2, roomId);
 
         // 퇴장 전엔 두 플레이어 모두 상태 존재
-        Assert.NotNull(_roomManager.GetRoom(roomId)!.GetPlayerState(100));
-        Assert.NotNull(_roomManager.GetRoom(roomId)!.GetPlayerState(200));
+        Assert.NotNull(_roomManager.GetRoom(roomId)!.Actors.GetMember(100));
+        Assert.NotNull(_roomManager.GetRoom(roomId)!.Actors.GetMember(200));
 
         _roomManager.LeaveRoom(session1);
 
         var room = _roomManager.GetRoom(roomId)!;
         // 떠난 100은 정리되고(유령 잔류 X), 남은 200만 유지
-        Assert.Null(room.GetPlayerState(100));
-        Assert.NotNull(room.GetPlayerState(200));
-        Assert.DoesNotContain(room.GetAllPlayerStates(), s => s.UserId == 100);
+        Assert.Null(room.Actors.GetMember(100));
+        Assert.NotNull(room.Actors.GetMember(200));
+        Assert.DoesNotContain(room.Actors.Members(), s => s.UserId == 100);
     }
 
     [Fact]

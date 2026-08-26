@@ -2,8 +2,8 @@ using System.Numerics;
 using Script.System.GamePlayAbilitySystem;
 using Server.Combat;
 using Server.Diagnostics;
+using Server.Actors;
 using Server.Monster;
-using Server.Player;
 using Shared.Infrastructure.Abilities;
 using Shared.Infrastructure.Loot;
 using Shared.Infrastructure.Spawn;
@@ -75,16 +75,22 @@ public static class CombatHandler
         }
         var skill = ability.Timeline;
 
-        var states = room.GetAllPlayerStates();
-        PlayerState? attacker = null;
-        foreach (var s in states)
-            if (s.UserId == session.UserId) { attacker = s; break; }
+        // 액터 직접 조회(O(1)). 예전엔 전체 플레이어를 순회해 UserId 로 찾았다.
+        var attacker = room.Actors.GetMember(session.UserId)?.Actor;
         if (attacker is null)
             return;
 
+        // 0a-0) 상태 태그 게이트(권위). 다운(State.Dead)·스턴 중에는 발동 자체가 불가하다.
+        //       다운 판정이 액터의 태그로 통일됐기 때문에 종족 구분 없이 같은 규칙을 쓴다.
+        if (attacker.Gas.IsActivationBlocked)
+        {
+            CombatTrace.Gate(CombatGate.Blocked, actorId, ability.NetworkId, ability.Id, recvMs);
+            return;
+        }
+
         // 0a) 마나 게이트(권위). 부족하면 발동 거부 + owner 에게 현재 마나 정정(클라 예측 차감 되돌림).
         //     쿨다운보다 먼저 본다 — 마나 부족으로 거부될 발동이 쿨다운 슬롯을 소모하지 않게.
-        if (attacker.Mana < skill.ManaCost)
+        if (attacker.Gas[EGameplayAttribute.Mana] < skill.ManaCost)
         {
             CombatTrace.Gate(CombatGate.NoMana, actorId, ability.NetworkId, ability.Id, recvMs);
             await SendManaAsync(session, attacker, ct);
@@ -104,8 +110,8 @@ public static class CombatHandler
         }
 
         // 0b-2) 서버 발동 게이트(권위 쿨다운). 쿨다운 중이면 발동 거부 → 데미지 0.
-        //     클라가 C_Attack 을 연사해도 서버가 cadence 를 강제해 폭딜 치팅을 막는다.
-        if (!attacker.TryBeginSkill(packet.SkillId, skill.CooldownMs, startTick))
+        //     쿨다운 저장소는 액터의 GAS 하나 — 플레이어·몬스터가 같은 키(abilityId)·같은 판정을 쓴다.
+        if (!attacker.Gas.TryBeginAbility(ability.Id, skill.CooldownMs, startTick))
         {
             CombatTrace.Gate(CombatGate.OnCooldown, actorId, ability.NetworkId, ability.Id, startTick);
             return;
@@ -114,14 +120,14 @@ public static class CombatHandler
         // 0c) 마나 차감(권위) + owner 정정. 무료 스킬(basic_swing, cost 0)은 차감/정정 패킷 모두 생략.
         if (skill.ManaCost > 0)
         {
-            attacker.TrySpendMana(skill.ManaCost);
+            attacker.Gas.TrySpendMana(skill.ManaCost);
             await SendManaAsync(session, attacker, ct);
         }
 
         // 0d) 원격 연출 브로드캐스트(AC 통합) — 서버 게이트(마나·쿨다운)를 통과한 스윙만 알린다.
         //     플레이어·몬스터 공용 S_AbilityActivated{ActorId} 한 파이프로 흡수(actor-combat-architecture §4.2).
         //     플레이어 ActorId = 양수 UserId. 연사 치팅이 원격 애니로 새지 않는다. 적중/데미지는 아래 S_ApplyEffect·S_MonsterState 가 담당.
-        room.Broadcast(new S_AbilityActivated
+        room.Sessions.Broadcast(new S_AbilityActivated
         {
             ActorId = ActorIds.FromPlayer(session.UserId),
             SkillId = packet.SkillId,
@@ -130,7 +136,7 @@ public static class CombatHandler
         // 1) 아군 오사 없음 — Co-op PvE 라 플레이어 공격은 <b>플레이어를 대상으로 삼지 않는다</b>(2026-08-22 결정).
         //
         //    예전엔 hitbox 안의 아군에게 S_ApplyEffect(피해)를 브로드캐스트했는데, 그 경로는
-        //    **클라 HP 만 깎고 서버 PlayerState.Hp 는 건드리지 않았다**(HP 서버 권위 승격 때 몬스터→플레이어만 옮겨짐).
+        //    **클라 HP 만 깎고 서버 액터의 HP 는 건드리지 않았다**(HP 서버 권위 승격 때 몬스터→플레이어만 옮겨짐).
         //    그래서 파티가 붙어 싸우면 클라가 서버보다 먼저 0 에 도달 → 클라는 사망 애니를 재생하는데
         //    서버는 살아 있다고 봐 S_PlayerDead 를 영영 발행하지 않았다(실측: 몬스터 공격 7회 vs 클라 피해 14회).
         //    아군 오사를 없애면 "클라만 깎는 HP" 경로 자체가 사라져 두 값이 항상 일치한다.
@@ -148,12 +154,12 @@ public static class CombatHandler
     public const string AbilityDamageEffectId = "ability_damage";
 
     /// <summary>owner(시전 세션)에게 현재 권위 마나를 정정 전송(차감/거부 시점). 리젠은 보내지 않는다.</summary>
-    private static Task SendManaAsync(Session session, PlayerState state, CancellationToken ct)
+    private static Task SendManaAsync(Session session, PlayerActor actor, CancellationToken ct)
         => session.SendPacketAsync(new S_PlayerMana
         {
-            UserId = state.UserId,
-            Mana = state.Mana,
-            MaxMana = state.MaxMana,
+            UserId = session.UserId,
+            Mana = actor.Gas[EGameplayAttribute.Mana],
+            MaxMana = actor.Gas.Max(EGameplayAttribute.Mana),
         }, ct);
 
     /// <summary>
@@ -175,27 +181,26 @@ public static class CombatHandler
     /// 시전자 hitbox 와 겹치는 몬스터에 on-hit 효과를 GAS Health 모디파이어로 적용(서버 권위).
     /// 사망 시 S_MonsterDead, 생존 시 갱신된 HP 를 S_MonsterState 로 즉시 브로드캐스트.
     /// </summary>
-    private static void ApplyAttackToMonsters(Session session, global::Server.Room.Room room, AbilityDef ability, PlayerState attacker, long recvMs)
+    private static void ApplyAttackToMonsters(Session session, global::Server.Room.Room room, AbilityDef ability, PlayerActor attacker, long recvMs)
     {
-        // 스탯 기반 데미지(2.4 + AC-B 안B): **어빌리티 baseDamage** 를 base 로 attacker.AttackPower 로 스케일.
-        // 몬스터 defense=0(몬스터 방어 스탯은 미도입).
-        const int MonsterDefense = 0;
-        var mods = BuildDamageMods(ability, attacker.AttackPower, MonsterDefense);
-
+        // 스탯 기반 데미지: **어빌리티 baseDamage** 를 base 로 시전자 AttackPower 로 스케일.
+        // 대상 Defense 는 그 액터의 GAS 에서 읽는다 — 예전의 const int MonsterDefense = 0 이 사라진 자리
+        // (몬스터가 방어 스탯을 갖게 되면 이 코드는 그대로 두고 스폰 데이터만 채우면 된다).
         var attackerPos = new Vector3(attacker.PosX, attacker.PosY, attacker.PosZ);
         bool anyKilled = false;
 
-        foreach (var monster in room.GetAllMonsters())
+        foreach (var monster in room.Actors.Monsters())
         {
-            if (monster.IsDead)
+            if (monster.Gas.IsDead)
                 continue;
 
             var targetPos = new Vector3(monster.PosX, monster.PosY, monster.PosZ);
             if (!HitboxMath.Overlaps(attackerPos, attacker.RotY, ability.Timeline.Hitbox, targetPos, TargetRadius))
                 continue;
 
-            int hpBefore = monster.Hp; // 차감 전 스냅샷 — 트레이스의 hp before→after 근거
-            var (hit, newHp, dead) = room.DamageMonster(monster.InstanceId, mods);
+            var mods = BuildDamageMods(ability, attacker.Gas[EGameplayAttribute.AttackPower], monster.Gas[EGameplayAttribute.Defense]);
+            int hpBefore = monster.Gas[EGameplayAttribute.Health]; // 차감 전 스냅샷 — 트레이스의 hp before→after 근거
+            var (hit, newHp, dead) = room.Actors.DamageMonster(monster.InstanceId, mods);
             if (!hit)
                 continue;
 
@@ -203,23 +208,13 @@ public static class CombatHandler
             if (dead)
             {
                 anyKilled = true;
-                room.Broadcast(new S_MonsterDead { InstanceId = monster.InstanceId });
+                room.Sessions.Broadcast(new S_MonsterDead { InstanceId = monster.InstanceId });
                 SpawnDrops(room, monster);
             }
             else
             {
                 stateSeq = monster.NextSeq();
-                room.Broadcast(new S_MonsterState
-                {
-                    InstanceId = monster.InstanceId,
-                    PosX = monster.PosX, PosY = monster.PosY, PosZ = monster.PosZ,
-                    RotY = monster.RotY,
-                    Hp = newHp,
-                    Phase = (byte)monster.Phase,
-                    // AC-C3: 틱이 **먼저 만들어 둔 옛 HP 패킷**보다 이 패킷이 새 상태임을 클라에 알린다.
-                    // 도착 순서가 뒤집혀도 클라가 Seq 로 스테일을 버린다(근본 해법).
-                    Seq = stateSeq,
-                });
+                room.Sessions.Broadcast(global::Server.Room.RoomSimulation.BuildMonsterState(monster, newHp, stateSeq));
                 // ※ 여기서 MarkStateSent() 를 호출하지 않는다(AC-C3-hotfix).
                 //   AC-C3(Seq) 로 클라가 스테일을 버리게 된 뒤에도 이 생략은 그대로 둔다:
                 //   마킹하면 다음 틱이 재전송을 포기하는데, 그 상태에서 Seq 판정에 구멍이 생기면
@@ -231,9 +226,9 @@ public static class CombatHandler
             // (직전 Seq 를 찍으면 클라 로그와 조인이 어긋난다.)
             CombatTrace.Damage(
                 CombatPath.PlayerToMonster, CombatTrace.FormulaMelee,
-                ActorIds.FromPlayer(attacker.UserId), ActorIds.FromMonster(monster.InstanceId),
+                attacker.ActorId, monster.ActorId,
                 ability.Id, ability.NetworkId,
-                ability.BaseDamage, attacker.AttackPower, MonsterDefense,
+                ability.BaseDamage, attacker.Gas[EGameplayAttribute.AttackPower], monster.Gas[EGameplayAttribute.Defense],
                 finalDamage: hpBefore - newHp,
                 hpBefore, newHp,
                 recvMs, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), stateSeq);
@@ -241,11 +236,11 @@ public static class CombatHandler
 
         // 클리어 감지: 이번 스윙으로 몬스터가 죽었고, 그 결과 전멸이면 1회만 발화.
         // S_DungeonClear(클라 결과화면) + DungeonClearMessage(GameServer 보상) 두 경로로 통지.
-        if (anyKilled && room.TryMarkCleared())
+        if (anyKilled && room.Progress.TryMarkCleared())
         {
             // 표시용 보상 = 지급(GameServer)과 동일 Shared 카탈로그 값(검증 가능).
             long rewardExp = SpawnLayoutTable.Get(room.MapId).ExpReward;
-            room.Broadcast(new S_DungeonClear { RoomId = room.RoomId, RewardExp = rewardExp });
+            room.Sessions.Broadcast(new S_DungeonClear { RoomId = room.RoomId, RewardExp = rewardExp });
             session.RoomManager.PublishDungeonClear(room);
         }
     }
@@ -255,14 +250,14 @@ public static class CombatHandler
     /// roll 은 itemId 문자열 + 확률만 다루며(정의는 GameServer 소유), 지급은 줍기 확정 시 별도 경로(loot-drop.md §1).
     /// 자동 지급이 아니라 월드에 떨어뜨리기만 한다 — 플레이어가 줍기(C_PickupItem)로 "먹을지" 선택.
     /// </summary>
-    private static void SpawnDrops(global::Server.Room.Room room, MonsterState monster)
+    private static void SpawnDrops(global::Server.Room.Room room, MonsterActor monster)
     {
         // AC-E4/G: 레벨을 반영해 굴린다(수량 = 보상 감각). 등급별 확률은 **변종 자기 ID 의 드롭 테이블**이 갖는다.
         var drops = DropTableCatalog.Roll(monster.MonsterId, Random.Shared, monster.Level);
         foreach (var drop in drops)
         {
-            var ground = room.SpawnGroundItem(drop.ItemId, drop.Qty, monster.PosX, monster.PosY, monster.PosZ);
-            room.Broadcast(new S_SpawnGroundItem
+            var ground = room.Loot.Spawn(drop.ItemId, drop.Qty, monster.PosX, monster.PosY, monster.PosZ);
+            room.Sessions.Broadcast(new S_SpawnGroundItem
             {
                 GroundId = ground.GroundId,
                 ItemId = ground.ItemId,

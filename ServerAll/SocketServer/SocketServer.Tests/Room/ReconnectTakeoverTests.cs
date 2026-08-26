@@ -13,7 +13,7 @@ namespace Server.Tests.Room;
 /// (실측 로그: `Room 3427 is full. Session 1042 cannot join` × 30, 그 뒤 `Room player timed out — UserId=1`).
 /// 재접속 유예(60s)는 그 다음에야 시작되므로, 유예가 있어도 돌아올 방법이 없었다.
 ///
-/// 인수는 <b>세션만</b> 교체한다 — PlayerState(위치·HP)는 보존해야 원래 자리로 복귀한다.
+/// 인수는 <b>세션만</b> 교체한다 — PlayerActor(위치·HP)는 보존해야 원래 자리로 복귀한다.
 /// </summary>
 public class ReconnectTakeoverTests
 {
@@ -50,33 +50,33 @@ public class ReconnectTakeoverTests
         var b = TestSessionFactory.Create(manager, sessionId: 2, userId: 200);
         Assert.True(manager.JoinRoom(a, room.RoomId));
         Assert.True(manager.JoinRoom(b, room.RoomId));
-        Assert.True(room.IsFull);
+        Assert.True(room.Sessions.IsFull);
 
         // 100 번이 끊긴 걸 서버가 아직 모르는 상태에서 재접속.
         var aAgain = TestSessionFactory.Create(manager, sessionId: 3, userId: 100);
         Assert.True(manager.JoinRoom(aAgain, room.RoomId),
             "같은 UserId 의 재접속은 옛 세션을 인수해 들어와야 한다(지금은 full 로 거절된다).");
 
-        Assert.Equal(2, room.MemberCount);
-        Assert.Null(room.GetSession(1));                 // 옛 세션은 방에서 빠졌다
-        Assert.NotNull(room.GetSession(3));
+        Assert.Equal(2, room.Sessions.Count);
+        Assert.Null(room.Sessions.Get(1));                 // 옛 세션은 방에서 빠졌다
+        Assert.NotNull(room.Sessions.Get(3));
     }
 
     [Fact]
-    public void 인수해도_PlayerState는_보존된다()
+    public void 인수해도_액터는_보존된다()
     {
         var (manager, room) = NewFullRoom();
-        room.InitPlayerState(100, "A", 0, 7f, 0f, -3f, 90f);
+        room.AddPlayer(100, "A", 0, 7f, 0f, -3f, 90f);
         var a = TestSessionFactory.Create(manager, sessionId: 1, userId: 100);
         manager.JoinRoom(a, room.RoomId);
 
         var aAgain = TestSessionFactory.Create(manager, sessionId: 3, userId: 100);
         Assert.True(manager.JoinRoom(aAgain, room.RoomId));
 
-        var state = room.GetPlayerState(100);
+        var state = room.Actors.GetMember(100);
         Assert.NotNull(state);
-        Assert.Equal(7f, state!.PosX);   // 끊긴 자리 그대로 복귀
-        Assert.Equal(-3f, state.PosZ);
+        Assert.Equal(7f, state!.Actor.PosX);   // 끊긴 자리 그대로 복귀
+        Assert.Equal(-3f, state.Actor.PosZ);
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public class ReconnectTakeoverTests
         var stranger = TestSessionFactory.Create(manager, sessionId: 4, userId: 999);
         Assert.False(manager.JoinRoom(stranger, room.RoomId),
             "인수는 같은 UserId 에만 허용된다 — 남의 자리를 뺏으면 안 된다.");
-        Assert.Equal(2, room.MemberCount);
+        Assert.Equal(2, room.Sessions.Count);
     }
 
     [Fact]
@@ -111,8 +111,8 @@ public class ReconnectTakeoverTests
         // 뒤늦은 타임아웃 처리(크래시 경로 = graceful)
         manager.LeaveRoom(a, graceful: true);
 
-        Assert.Equal(2, room.MemberCount);
-        Assert.NotNull(room.GetSession(3));
-        Assert.NotNull(room.GetSession(2));
+        Assert.Equal(2, room.Sessions.Count);
+        Assert.NotNull(room.Sessions.Get(3));
+        Assert.NotNull(room.Sessions.Get(2));
     }
 }

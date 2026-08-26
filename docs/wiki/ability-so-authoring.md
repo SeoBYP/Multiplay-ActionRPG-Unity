@@ -44,7 +44,7 @@ flowchart TB
     subgraph SV["SERVER (게임플레이만 · Cue 무시)"]
         SCAT["★ Shared.Infrastructure.Abilities.AbilityCatalog<br/>Get(id) / Get(networkId)"]
         CH["CombatHandler — ResolveSkill 하드코딩 switch **제거**<br/>→ 카탈로그 networkId 조회"]
-        RT["Room.TickMonsters — MonsterDef.attack* 대신<br/>abilityIds[] 중 사거리·쿨다운 만족 1개 선택"]
+        RT["Room.Tick — MonsterDef.attack* 대신<br/>abilityIds[] 중 사거리·쿨다운 만족 1개 선택"]
     end
 
     subgraph CL["CLIENT (게임플레이 + Cue)"]
@@ -138,7 +138,7 @@ CharacterAgentAnimations (프리팹별 직렬화)                    ← 실제 
 | `basic_attack_dmg`/`combo_a·b·c_dmg`/`monster_attack_dmg` (Health 감소 effect) | **폐기** — 데미지는 `ability.baseDamage` 로 이관. 이관 시 **현재 실효 데미지와 동일한 값**으로 산정(밸런스 무변경) |
 | `CombatEffectCatalog.Resolve` · `CombatHandler.ScaleDamageByStats` | Health 감소 처리 제거 → CC/버프 모디파이어만 통과 |
 | `S_ApplyEffect.Amount`(서버 권위 델타) | 그대로 사용 — 서버가 `MeleeDamage` 결과를 실어 보냄(몬스터 경로가 이미 그렇게 동작) |
-| 플레이어→몬스터 데미지 | `Room.DamageMonster(mods)` → `ability.baseDamage` 기반 mods 로 대체 |
+| 플레이어→몬스터 데미지 | `ActorStore.DamageMonster(mods)` → `ability.baseDamage` 기반 mods 로 대체 |
 
 > **리스크 = 플레이어 밸런스 회귀.** 그래서 **B5 를 독립 증분**으로 두고, 이관 시 각 스킬의 baseDamage 를
 > 현재 effect 값과 **동일**하게 넣어 실효 데미지 변화를 0 으로 만든 뒤 테스트로 고정한다.
@@ -150,8 +150,8 @@ CharacterAgentAnimations (프리팹별 직렬화)                    ← 실제 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant RT as Room.TickMonsters
-    participant MS as MonsterState
+    participant RT as Room.Tick
+    participant MS as MonsterActor
     participant CAT as AbilityCatalog
     participant Net as 네트워크
 
@@ -166,7 +166,7 @@ sequenceDiagram
     RT->>MS: LastCast[abilityId] = now
 ```
 
-**필요 변경**: `MonsterState.LastAttackAt`(단일 long) → **`Dictionary<string, long> LastCastByAbility`**(어빌리티별 쿨다운). `MonsterAiMath.Step` 의 `stats.AttackRange` 판정도 "가장 긴 ActivationRange" 기준으로 Attack 페이즈 진입 판정.
+**필요 변경**: `MonsterActor.LastAttackAt`(단일 long) → **`Dictionary<string, long> LastCastByAbility`**(어빌리티별 쿨다운). `MonsterAiMath.Step` 의 `stats.AttackRange` 판정도 "가장 긴 ActivationRange" 기준으로 Attack 페이즈 진입 판정.
 
 ---
 
@@ -177,8 +177,8 @@ sequenceDiagram
 | `Shared.Infrastructure/Skills/SkillCatalog.cs` | → `Abilities/AbilityCatalog.cs`(abilities.json, `Get(id)`/`Get(networkId)`) |
 | `Shared.Infrastructure/Monsters/MonsterCatalog.cs` | `MonsterDef` 에서 `AttackRange/AttackCooldownMs/AttackDamage/OnHitEffectId` 제거 → `AbilityIds` 추가 |
 | `CombatHandler.ResolveSkill` | 하드코딩 switch **삭제** → 카탈로그 조회 |
-| `Room.TickMonsters` | `stats.Attack*` → 어빌리티 선택 루프(§5) |
-| `Server.Monster.MonsterState` | `LastAttackAt` → `LastCastByAbility` |
+| `Room.Tick` | `stats.Attack*` → 어빌리티 선택 루프(§5) |
+| `Server.Monster.MonsterActor` | `LastAttackAt` → `LastCastByAbility` |
 | `MonsterAiMath.Step` | `stats.AttackRange` → 최대 ActivationRange |
 
 **Shared.Gameplay(순수)**: `SkillTimeline` 은 그대로 재사용(어빌리티의 게임플레이 부분). `AbilityActivationMath` 무변경.
@@ -192,7 +192,7 @@ sequenceDiagram
 | B1 | ✅ **완료(2026-07-16)** — SO 2종 + Exporter + 서버 `AbilityCatalog` + **5스킬 데이터 이관·bake**(읽기만, 아무도 미사용) | `AbilityCatalogTests` 7 · SocketServer.Tests 141/141 · Unity 0오류 |
 | B2 | ✅ **완료(2026-07-16)** — `ResolveSkill` 하드코딩 switch **제거** → `AbilityCatalog.Get(networkId)`. `skills.json`·`Skills/SkillCatalog.cs`·`SkillCatalogExporter` **삭제**. **동작 무변경**(데미지 경로는 B5 까지 onHit 유지) | SocketServer.Tests 137/137 · **Docker E2E 31/31**(양 서버 리빌드) |
 | B3 | ✅ **완료(2026-07-16)** — `AbilityCatalogProvider` 신설 → **클라도 Ability 카탈로그 단일 소스**. `IActorView.PlayAbilityCue(trigger, comboStep)`(라우터가 해석) → `RemoteDriver` 콤보 switch **제거**. `LocalCombat`/`PlayerCharacterAgent` 의 `SkillName` 하드코딩 매핑 **제거**. Skill 계열(SO·Provider·assets·Exporter) **전량 삭제** | EditMode 170/170 · PlayMode 애니 6/6(콤보 회귀) · Docker E2E 31/31 |
-| B4 | ✅ **완료(2026-07-16)** — `MonsterDefinition.abilityIds[]` + `MonsterDef`/`MonsterStats` 축소(AttackRange=어빌리티 최대 사거리 **파생**) + `Room.SelectMonsterAbility` 선택 루프 + `MonsterState.GetLastCast/MarkCast`(어빌리티별 쿨다운) + 몬스터 9종 어빌리티 SO(networkId 100+) | `MonsterAbilitySelectionTests` 5 신규 · SocketServer.Tests 145/145 · Docker E2E 31/31 |
+| B4 | ✅ **완료(2026-07-16)** — `MonsterDefinition.abilityIds[]` + `MonsterDef`/`MonsterStats` 축소(AttackRange=어빌리티 최대 사거리 **파생**) + `Room.SelectMonsterAbility` 선택 루프 + `MonsterActor.GetLastCast/MarkCast`(어빌리티별 쿨다운) + 몬스터 9종 어빌리티 SO(networkId 100+) | `MonsterAbilitySelectionTests` 5 신규 · SocketServer.Tests 145/145 · Docker E2E 31/31 |
 | B5 | ✅ **완료(2026-07-16)** — 데미지 출처 = `ability.BaseDamage` **단일**(플레이어·몬스터). `*_dmg` effect 5종 **폐기** → 데미지 라벨 `ability_damage` 하나(수치는 서버 `Amount`). `ScaleDamageByStats`(effect 경로) → `BuildDamageMods(ability, ap, def)`. onHit = **CC 전용** | SocketServer.Tests 146/146 · Shared 50/50 · EditMode 170/170 · Docker E2E 31/31 |
 | B6 | ✅ **완료(2026-07-16)** — `leviathan` = `[leviathan_slam(강·cd6000·range3.5·dmg90·stun), leviathan_attack(평타)]`. **코드 변경 0, 데이터 저작만으로** 강스킬→쿨다운이면 평타 폴백 동작 | `BossMultiAbilityTests` 8 · SocketServer.Tests 154/154 · Docker E2E 31/31 |
 

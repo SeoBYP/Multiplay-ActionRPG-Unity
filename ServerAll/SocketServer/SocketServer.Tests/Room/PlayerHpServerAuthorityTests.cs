@@ -27,32 +27,32 @@ public class PlayerHpServerAuthorityTests
     public void 입장하면_HP가_만피로_초기화된다()
     {
         var room = NewRoom();
-        room.InitPlayerState(100, "A", 0, 0f, 0f, 0f, 0f);
+        room.AddPlayer(100, "A", 0, 0f, 0f, 0f, 0f);
 
-        var p = room.GetAllPlayerStates().Single();
-        Assert.Equal(global::Server.Room.Room.DefaultMaxHp, p.Hp);
-        Assert.Equal(global::Server.Room.Room.DefaultMaxHp, p.MaxHp);
-        Assert.False(p.IsDowned);
+        var p = room.Actors.Members().Single();
+        Assert.Equal(global::Server.Room.Room.DefaultMaxHp, p.Actor.Gas[EGameplayAttribute.Health]);
+        Assert.Equal(global::Server.Room.Room.DefaultMaxHp, p.Actor.Gas.Max(EGameplayAttribute.Health));
+        Assert.False(p.Actor.Gas.IsDead);
     }
 
     [Fact]
     public void ApplyPlayerEffect는_데미지를_누적하고_HP0에서_최초_1회_다운한다()
     {
         var room = NewRoom();
-        room.InitPlayerState(100, "A", 0, 0f, 0f, 0f, 0f);
+        room.AddPlayer(100, "A", 0, 0f, 0f, 0f, 0f);
 
-        var a = room.ApplyPlayerEffect(100, Health(-30));
+        var a = room.Progress.ApplyPlayerEffect(100, Health(-30));
         Assert.Equal(70, a.NewHp);
         Assert.False(a.NewlyDowned);
 
-        room.ApplyPlayerEffect(100, Health(-30)); // 40
-        room.ApplyPlayerEffect(100, Health(-30)); // 10
-        var dead = room.ApplyPlayerEffect(100, Health(-30)); // 0 이하 → 다운
+        room.Progress.ApplyPlayerEffect(100, Health(-30)); // 40
+        room.Progress.ApplyPlayerEffect(100, Health(-30)); // 10
+        var dead = room.Progress.ApplyPlayerEffect(100, Health(-30)); // 0 이하 → 다운
         Assert.Equal(0, dead.NewHp);
         Assert.True(dead.NewlyDowned, "HP0 최초 도달 시 NewlyDowned");
         Assert.True(dead.FailClaimed, "솔로 전원다운 → 실패 claim");
 
-        var again = room.ApplyPlayerEffect(100, Health(-30)); // 재적용
+        var again = room.Progress.ApplyPlayerEffect(100, Health(-30)); // 재적용
         Assert.False(again.NewlyDowned, "이미 다운 — 중복 발화 없음");
     }
 
@@ -60,18 +60,18 @@ public class PlayerHpServerAuthorityTests
     public void 회복은_HP를_올리고_MaxHp로_클램프된다()
     {
         var room = NewRoom();
-        room.InitPlayerState(100, "A", 0, 0f, 0f, 0f, 0f);
-        room.ApplyPlayerEffect(100, Health(-50)); // 50
+        room.AddPlayer(100, "A", 0, 0f, 0f, 0f, 0f);
+        room.Progress.ApplyPlayerEffect(100, Health(-50)); // 50
 
-        Assert.Equal(70, room.ApplyPlayerEffect(100, Health(+20)).NewHp);
-        Assert.Equal(global::Server.Room.Room.DefaultMaxHp, room.ApplyPlayerEffect(100, Health(+9999)).NewHp); // 클램프
+        Assert.Equal(70, room.Progress.ApplyPlayerEffect(100, Health(+20)).NewHp);
+        Assert.Equal(global::Server.Room.Room.DefaultMaxHp, room.Progress.ApplyPlayerEffect(100, Health(+9999)).NewHp); // 클램프
     }
 
     [Fact]
     public void 서버가_몬스터_데미지로_HP0을_직접_감지해_C_PlayerDead_없이_S_PlayerDead를_발행한다()
     {
         var room = NewRoom(); // solo 100
-        room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f); // 슬라임(0,0,0) 사거리 안
+        room.AddPlayer(100, "A", 0, 0.5f, 0f, 0f, 0f); // 슬라임(0,0,0) 사거리 안
         room.MarkJoined(100);                                // 입장 완료 = 라이브 타깃
         room.SpawnMonsters(
             new List<MonsterSpawnDef> { new("creepy_demon", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
@@ -81,7 +81,7 @@ public class PlayerHpServerAuthorityTests
         long t = 1_000_000;
         for (int i = 0; i < 40 && !sawDead; i++)
         {
-            var packets = room.TickMonsters(0.1f, t);
+            var packets = room.Tick(0.1f, t);
             if (packets.OfType<S_PlayerDead>().Any(p => p.UserId == 100)) sawDead = true;
             if (packets.OfType<S_DungeonFailed>().Any()) sawFailed = true;
             t += 1600; // 쿨다운(1500ms) 넘겨 매 틱 공격

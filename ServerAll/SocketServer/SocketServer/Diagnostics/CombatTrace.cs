@@ -18,6 +18,7 @@ public enum CombatGate
     NoMana,
     ComboCadence,   // 콤보 연타 간격 미달(버스트 차단)
     OnCooldown,
+    Blocked,        // 상태 태그(State.Dead/State.Stun)로 발동 차단
 }
 
 /// <summary>

@@ -19,14 +19,14 @@
 
 | # | 결함 | 근거 | 영향 |
 |---|------|------|------|
-| **D1** | **송신 경로에 직렬화가 없다** — `Room.Broadcast` 가 `_ = session.SendPacketAsync(packet)`(fire-and-forget), `SendPacketAsync` 는 큐·락 없이 `while(offset<len) await Socket.SendAsync(...)` 부분전송 루프 | `Room.cs` Broadcast · `Session.cs:120-146` | 틱 스레드(`RoomTickService`)와 패킷 스레드(`CombatHandler`)가 **동일 소켓 동시 write** → ① 순서 역전 ② **부분전송 시 길이-프리픽스 프레임 인터리브 = 파싱 desync**(치명) |
-| **D2** | **dirty-flag 스테일 고착** — 틱이 만든 옛 HP 패킷이 데미지 패킷보다 늦게 도착하면 되돌아가고, 다음 틱은 `StateDirty()==false` 라 **정정하지 않는다** | `Room.TickMonsters`(생성 시 `MarkStateSent`) + `CombatHandler.ApplyAttackToMonsters`(즉시 전송 + `MarkStateSent`) | 몬스터 HP 가 **틀린 값에 영구 고착**(정지한 몬스터면 영원히). **증분7 이전엔 매 틱 재전송이 자가 교정**했다 → **내가 만든 회귀** |
+| **D1** | **송신 경로에 직렬화가 없다** — `RoomSessions.Broadcast` 가 `_ = session.SendPacketAsync(packet)`(fire-and-forget), `SendPacketAsync` 는 큐·락 없이 `while(offset<len) await Socket.SendAsync(...)` 부분전송 루프 | `Room.cs` Broadcast · `Session.cs:120-146` | 틱 스레드(`RoomTickService`)와 패킷 스레드(`CombatHandler`)가 **동일 소켓 동시 write** → ① 순서 역전 ② **부분전송 시 길이-프리픽스 프레임 인터리브 = 파싱 desync**(치명) |
+| **D2** | **dirty-flag 스테일 고착** — 틱이 만든 옛 HP 패킷이 데미지 패킷보다 늦게 도착하면 되돌아가고, 다음 틱은 `StateDirty()==false` 라 **정정하지 않는다** | `Room.Tick`(생성 시 `MarkStateSent`) + `CombatHandler.ApplyAttackToMonsters`(즉시 전송 + `MarkStateSent`) | 몬스터 HP 가 **틀린 값에 영구 고착**(정지한 몬스터면 영원히). **증분7 이전엔 매 틱 재전송이 자가 교정**했다 → **내가 만든 회귀** |
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant TS as RoomTickService (틱 스레드)
-    participant R as Room.TickMonsters
+    participant R as Room.Tick
     participant CH as CombatHandler (패킷 스레드)
     participant C as 클라
 
@@ -90,7 +90,7 @@ MeleeDamage(baseDamage, attackPower, defense) = max(1, baseDamage + attackPower 
 | 경로 | 산식 호출 | base | AP | DEF | 비고 |
 |------|-----------|------|----|-----|------|
 | 플레이어 → 몬스터 | `CombatHandler.BuildDamageMods` | `ability.BaseDamage` | 시전자 AttackPower | **0**(몬스터 방어 미도입) | 스탯 스케일 O |
-| 몬스터 → 플레이어 | `Room.TickMonsters` | `ability.BaseDamage` | **0** | 대상 Defense | 스탯 스케일 O |
+| 몬스터 → 플레이어 | `Room.Tick` | `ability.BaseDamage` | **0** | 대상 Defense | 스탯 스케일 O |
 | 플레이어 → 플레이어 | `CombatHandler.HandleAttack` | `ability.BaseDamage` | **미적용** | **미적용** | **플랫 — 산식 미경유** ⚠ (AC-D2) |
 
 → 트레이스가 경로·입력을 찍으면 **AC-D2 비대칭이 데이터로 보인다**(밸런스 결정의 근거).
@@ -269,7 +269,7 @@ flowchart LR
 
 | 항목 | 결정 | 근거 |
 |------|------|------|
-| 발급 위치 | `MonsterState.NextSeq()` — **패킷을 만드는 그 자리**(틱 `Room.TickMonsters` / 데미지 `CombatHandler`) | 생성 순서 = 상태 순서 |
+| 발급 위치 | `MonsterActor.NextSeq()` — **패킷을 만드는 그 자리**(틱 `Room.Tick` / 데미지 `CombatHandler`) | 생성 순서 = 상태 순서 |
 | 동시성 | `Interlocked.Increment` | 틱은 `lock(_monsters)` 안, 데미지는 **락 밖**에서 패킷 생성 → 서로 다른 컨텍스트 |
 | 범위 | 몬스터별 카운터(방 전역 아님) | 클라 baseline 비교가 몬스터 단위 |
 | 첫 발급 | 1 (클라 baseline 0) | "첫 상태는 항상 통과" 성립 |
@@ -304,7 +304,7 @@ flowchart LR
 
 **무엇** — `CombatHandler.ApplyAttackToMonsters` 의 즉시 브로드캐스트 뒤에 있던 `monster.MarkStateSent()` **한 줄 제거**(+ 이유 주석). 데미지 경로는 더 이상 "보냈다"고 마킹하지 않는다.
 
-**왜** — 틱은 패킷을 **만든 뒤 나중에** 전송한다(`Room.TickMonsters` 생성 → `RoomTickService` 송신). 그 사이 데미지가 들어가면 **옛 HP 패킷이 새 HP 뒤에 도착**한다. 마킹까지 해두면 다음 틱이 `StateDirty()==false` 로 보고 **정정을 포기** → 클라 HP 가 **영구 고착**. 마킹을 생략하면 다음 틱이 무조건 재전송해 **자가 교정**된다. 비용은 **피격당 1패킷**(증분7 의 Idle 트래픽 0 목적은 그대로 유지 — 위치·회전·페이즈 dirty 판정은 건드리지 않음).
+**왜** — 틱은 패킷을 **만든 뒤 나중에** 전송한다(`Room.Tick` 생성 → `RoomTickService` 송신). 그 사이 데미지가 들어가면 **옛 HP 패킷이 새 HP 뒤에 도착**한다. 마킹까지 해두면 다음 틱이 `StateDirty()==false` 로 보고 **정정을 포기** → 클라 HP 가 **영구 고착**. 마킹을 생략하면 다음 틱이 무조건 재전송해 **자가 교정**된다. 비용은 **피격당 1패킷**(증분7 의 Idle 트래픽 0 목적은 그대로 유지 — 위치·회전·페이즈 dirty 판정은 건드리지 않음).
 
 **한계(정직하게)** — 이건 **순서 역전 자체를 막지 못한다.** 클라는 여전히 한 틱 동안 옛 HP 를 볼 수 있고, 다음 틱에 정정될 뿐이다(체감: 짧은 HP 튐). 근본해법은 **C3(`S_MonsterState.Seq` + 스테일 드롭)** 이며 이 hotfix 는 그때까지의 **안전망**이다.
 

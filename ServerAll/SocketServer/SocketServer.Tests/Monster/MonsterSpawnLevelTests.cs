@@ -1,3 +1,4 @@
+using Script.System.GamePlayAbilitySystem;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shared.Infrastructure.Messages;
 using Shared.Infrastructure.Abilities;
@@ -55,12 +56,12 @@ public class MonsterSpawnLevelTests
         var room = NewRoom();
         room.SpawnMonsters(new List<MonsterSpawnDef> { Def() }, Bounds); // mapMonsterLevel 생략 = 0
 
-        var m = room.GetAllMonsters().Single();
+        var m = room.Actors.Monsters().Single();
 
         Assert.Equal(1, m.Level);
         Assert.Equal(MonsterTier.Normal, m.Tier);
-        Assert.Equal(MonsterCatalog.Get("creepy_demon").MaxHp, m.MaxHp); // 스케일 이전 값과 동일
-        Assert.Equal(m.MaxHp, m.Hp);
+        Assert.Equal(MonsterCatalog.Get("creepy_demon").MaxHp, m.Gas.Max(EGameplayAttribute.Health)); // 스케일 이전 값과 동일
+        Assert.Equal(m.Gas.Max(EGameplayAttribute.Health), m.Gas[EGameplayAttribute.Health]);
     }
 
     [Fact]
@@ -69,11 +70,11 @@ public class MonsterSpawnLevelTests
         var room = NewRoom();
         room.SpawnMonsters(new List<MonsterSpawnDef> { Def() }, Bounds, mapMonsterLevel: 5);
 
-        var m = room.GetAllMonsters().Single();
+        var m = room.Actors.Monsters().Single();
 
         Assert.Equal(5, m.Level);
-        Assert.Equal(MonsterLevelScaling.Hp(MonsterCatalog.Get("creepy_demon").MaxHp, 5), m.MaxHp);
-        Assert.True(m.MaxHp > MonsterCatalog.Get("creepy_demon").MaxHp, "레벨이 오르면 HP 가 커져야 한다");
+        Assert.Equal(MonsterLevelScaling.Hp(MonsterCatalog.Get("creepy_demon").MaxHp, 5), m.Gas.Max(EGameplayAttribute.Health));
+        Assert.True(m.Gas.Max(EGameplayAttribute.Health) > MonsterCatalog.Get("creepy_demon").MaxHp, "레벨이 오르면 HP 가 커져야 한다");
     }
 
     [Fact]
@@ -85,7 +86,7 @@ public class MonsterSpawnLevelTests
             Bounds,
             mapMonsterLevel: 3);
 
-        Assert.Equal(10, room.GetAllMonsters().Single().Level);
+        Assert.Equal(10, room.Actors.Monsters().Single().Level);
     }
 
     [Fact]
@@ -125,7 +126,7 @@ public class MonsterSpawnLevelTests
         var room = NewRoom();
         room.SpawnMonsters(new List<MonsterSpawnDef> { Def() }, Bounds, mapMonsterLevel: 4);
 
-        var m = room.GetAllMonsters().Single();
+        var m = room.Actors.Monsters().Single();
 
         Assert.Equal(MonsterCatalog.Get("creepy_demon").Tier, m.Tier);
         Assert.Equal(4, m.Level); // 레벨은 여전히 스폰/맵이 정한다(등급과 직교)
@@ -140,7 +141,7 @@ public class MonsterSpawnLevelTests
         var room = NewRoom();
         room.SpawnMonsters(new List<MonsterSpawnDef> { Def() }, Bounds, mapMonsterLevel: 6);
 
-        Assert.Equal(hp, room.GetAllMonsters().Single().MaxHp);
+        Assert.Equal(hp, room.Actors.Monsters().Single().Gas.Max(EGameplayAttribute.Health));
     }
 
     [Fact]

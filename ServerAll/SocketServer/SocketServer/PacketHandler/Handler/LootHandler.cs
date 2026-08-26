@@ -24,13 +24,18 @@ public static class LootHandler
         if (room is null)
             return ValueTask.CompletedTask;
 
+        // 시전자 위치를 먼저 스냅샷해 저장소에 넘긴다 — 액터 락과 아이템 락을 중첩하지 않기 위해서다.
+        var picker = room.Actors.GetMember(session.UserId)?.Actor;
+        if (picker is null)
+            return ValueTask.CompletedTask;
+
         // 경쟁 중재: 제거 성공한 1명만 non-null. 패배/범위 밖/미존재면 조용히 무시.
-        var item = room.TryPickup(session.UserId, packet.GroundId);
+        var item = room.Loot.TryPickup(picker.PosX, picker.PosZ, packet.GroundId);
         if (item is null)
             return ValueTask.CompletedTask;
 
         // ① 모든 클라 바닥서 제거
-        room.Broadcast(new S_GroundItemRemoved { GroundId = item.GroundId });
+        room.Sessions.Broadcast(new S_GroundItemRemoved { GroundId = item.GroundId });
 
         // ② 줍은 본인에게 획득 토스트(push). 인벤토리 수치 갱신은 클라가 GetInventory(pull).
         _ = session.SendPacketAsync(new S_ItemPickedUp { ItemId = item.ItemId, Qty = item.Qty });

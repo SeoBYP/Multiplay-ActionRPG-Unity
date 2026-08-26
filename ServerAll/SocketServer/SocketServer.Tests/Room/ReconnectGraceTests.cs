@@ -7,7 +7,7 @@ namespace Server.Tests.Room;
 
 /// <summary>
 /// 재접속 유예 창(grace window) 검증 — 크래시/끊김(graceful) 퇴장은 방에 다른 플레이어가 남아 있는 한
-/// PlayerState 를 ReconnectGraceMs 동안 보존(재접속 시 복귀)하고, 만료되면 스윕이 영구 퇴장으로 확정한다.
+/// PlayerActor 를 ReconnectGraceMs 동안 보존(재접속 시 복귀)하고, 만료되면 스윕이 영구 퇴장으로 확정한다.
 ///
 /// 대비: 명시 퇴장(C_PlayerLeave, graceful=false)은 즉시 제거 — RoomManagerLeaveRoomTests 가 검증.
 /// 배경: 9.4 부채 수정이 "모든 Leave에서 상태 즉시 제거"라 크래시=재접속 불가 회귀를 만들었고, 이를 해소한다.
@@ -62,7 +62,7 @@ public class ReconnectGraceTests
 
         Assert.True(left);
         Assert.NotNull(_roomManager.GetRoom(1));               // 방 유지(200 남음)
-        var state = room.GetPlayerState(100);
+        var state = room.Actors.GetMember(100);
         Assert.NotNull(state);                                  // 상태 보존(즉시 제거 X)
         Assert.NotNull(state!.DisconnectedAtMs);               // 끊김 마킹됨
         Assert.Empty(_publisher.Published);                    // 발행 보류(아직 퇴장 확정 아님)
@@ -72,19 +72,19 @@ public class ReconnectGraceTests
     public void graceful_퇴장후_재접속하면_보존_상태로_복귀한다()
     {
         var room = CreateJoinedRoom(2, out var sessions, 100, 200);
-        var before = room.GetPlayerState(100)!;
-        before.PosX = 12.5f; before.PosZ = -7.5f;               // 끊기기 전 위치
+        var before = room.Actors.GetMember(100)!;
+        before.Actor.PosX = 12.5f; before.Actor.PosZ = -7.5f;               // 끊기기 전 위치
 
         _roomManager.LeaveRoom(sessions[0], graceful: true);   // 크래시
-        Assert.NotNull(room.GetPlayerState(100)!.DisconnectedAtMs);
+        Assert.NotNull(room.Actors.GetMember(100)!.DisconnectedAtMs);
 
         var reconnected = room.MarkJoined(100);                // 재접속(유예 내)
 
         Assert.True(reconnected);
-        var state = room.GetPlayerState(100)!;
-        Assert.Null(state.DisconnectedAtMs);                   // 마킹 해제 = 다시 활성
-        Assert.Equal(12.5f, state.PosX);                       // 보존된 위치로 복귀
-        Assert.Equal(-7.5f, state.PosZ);
+        var member = room.Actors.GetMember(100)!;
+        Assert.Null(member.DisconnectedAtMs);                  // 마킹 해제 = 다시 활성
+        Assert.Equal(12.5f, member.Actor.PosX);                // 보존된 위치로 복귀
+        Assert.Equal(-7.5f, member.Actor.PosZ);
     }
 
     [Fact]
@@ -96,8 +96,8 @@ public class ReconnectGraceTests
         long afterGrace = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + GraceMs + 1_000;
         _roomManager.SweepDisconnectedPlayers(afterGrace);
 
-        Assert.Null(room.GetPlayerState(100));                 // 만료 → 제거
-        Assert.NotNull(room.GetPlayerState(200));              // 접속 중인 200은 유지
+        Assert.Null(room.Actors.GetMember(100));                 // 만료 → 제거
+        Assert.NotNull(room.Actors.GetMember(200));              // 접속 중인 200은 유지
         Assert.Single(_publisher.Published);                   // 만료 시점에 1회 발행
         Assert.Equal(100, _publisher.Published[0].UserId);
         Assert.False(_publisher.Published[0].RoomEmptied);     // 200 남음
@@ -112,7 +112,7 @@ public class ReconnectGraceTests
         long withinGrace = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();   // 막 끊김 — 유예 내
         _roomManager.SweepDisconnectedPlayers(withinGrace);
 
-        Assert.NotNull(room.GetPlayerState(100));              // 아직 보존
+        Assert.NotNull(room.Actors.GetMember(100));              // 아직 보존
         Assert.Empty(_publisher.Published);
     }
 

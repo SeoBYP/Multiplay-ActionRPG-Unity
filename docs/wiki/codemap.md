@@ -49,14 +49,15 @@
 | 방 생명주기(닫기) | 아래 §2.1 | [redis.md](redis.md) |
 | 게임 세션 | `GameServer.Application/Domains/GameSession/` | [gameflow.md](gameflow.md) |
 | 패킷/Union | `ServerAll/Shared/Shared.Packet/Packets/`, `Packet.cs` | [packets.md](packets.md), `.claude/rules/networking.md` |
-| **공유 결정론 코어(전투 수식·히트박스·스킬)** | `ServerAll/Shared/Shared.Gameplay/`(서버 ProjectReference) + 클라 `Client/Assets/Plugins/Shared.Gameplay.dll`(동일 ns, 단일 소스) | [authority-model.md](authority-model.md) §2, §2.6 |
-| **전투 흐름(입력→판정→데미지→연출)** | 클라 `Gameplay/Character/`(`PlayerCharacterAgent`·`CombatSyncSender`) → 서버 `SocketServer/.../Handler/CombatHandler` → `Room.DamageMonster` | [authority-model.md](authority-model.md), §2.7 |
-| **회피(Dodge) — 대시+무적프레임** | 클라 `Gameplay/Character/{DodgeDriver,DodgeSyncSender}`·`PlayerCharacterAgent.HandleDodgeInput` → 서버 `SocketServer/.../Handler/DodgeHandler`·`PlayerState.TryBeginDodge`·`Room.TickMonsters`(iframe 게이트). 수치=`Shared.Gameplay/Combat/DodgeConfig`. 아래 §2.47 | [authority-model.md](authority-model.md) |
+| **공유 결정론 코어(전투 수식·히트박스·스킬)** | `ServerAll/Shared/Shared.Gameplay/`(서버 ProjectReference) + 클라 `Client/Assets/Plugins/Shared.Gameplay.dll`(동일 ns, 단일 소스). ⚠ `Contracts/` 하위(EquipmentType·ItemGrade·ShopCategory·DropTable)는 **결정론 코어가 아니라 클라·서버 공용 데이터 계약**을 분리 대기로 모아둔 구역 — cleanup-backlog **A6** | [authority-model.md](authority-model.md) §2, §2.6 |
+| **전투 흐름(입력→판정→데미지→연출)** | 클라 `Gameplay/Character/`(`PlayerCharacterAgent`·`CombatSyncSender`) → 서버 `SocketServer/.../Handler/CombatHandler` → `Room.ApplyEffect(actorId, mods)` | [authority-model.md](authority-model.md), §2.7 |
+| **회피(Dodge) — 대시+무적프레임** | 클라 `Gameplay/Character/{DodgeDriver,DodgeSyncSender}`·`PlayerCharacterAgent.HandleDodgeInput` → 서버 `SocketServer/.../Handler/DodgeHandler`·`PlayerActor.TryBeginDodge`·`Room.Tick`(iframe 게이트). 수치=`Shared.Gameplay/Combat/DodgeConfig`. 아래 §2.47 | [authority-model.md](authority-model.md) |
 | **어빌리티 데이터(스킬·공격 단일 저작)** | 저작=클라 `Gameplay/Abilities/{AbilityDefinition,AbilityCatalogDefinition,AbilityCatalogProvider}` + `Editor/AbilityCatalogExporter` → bake `Shared.Infrastructure/Abilities/abilities.json` → 서버 `AbilityCatalog` → `CombatHandler.ResolveAbility(networkId)`. 자산 `Assets/GameData/Ability/`. ※구 Skill 계열(skills.json·SkillCatalog·SkillDefinition)은 AC-B 에서 전량 삭제 — §2.65~2.70 | [ability-so-authoring.md](ability-so-authoring.md) |
 | **Actor 통합 전투(GAS) — ✅ 전 트랙 완료** | `Shared.Gameplay/Actors/ActorIds.cs`(+UserId/−InstanceId) · 발동 파이프=`S_AbilityActivated`(1604)→클라 `ActorRegistry`+`AbilityCueRouter`→`IActorView.PlayAbilityCue` · 서버 게이트=`CombatHandler`(쿨다운·cadence·마나)+`AbilityActivationMath`. 연대기 = §2.64~2.80 | [actor-combat-architecture.md](actor-combat-architecture.md) |
+| **서버 액터 모델(캐릭터·전투 단일 표현)** | `SocketServer/Actors/{Actor,PlayerActor,MonsterActor}.cs` + `Shared.Gameplay/Actors/GasComponent.cs`(HP·마나·스탯·태그·쿨다운) · 방 관리는 `SocketServer/Room/RoomMember.cs` 분리 · 저장소=`Room._actors`(ActorId 키) 단일. §2.81 | [actor-combat-architecture.md](actor-combat-architecture.md) |
 | **몬스터 카탈로그·레벨링·변종** | `Shared.Infrastructure/Monsters/{MonsterCatalog+monsters.json,MonsterTier,MonsterLevelScaling}`(상수 0 — `LevelTable` 직독) · 저작=클라 `Gameplay/Monster/MonsterCatalogDefinition`+`Editor/MonsterCatalogExporter` · **변종=별개 ID 직접 저작**(leviathan_boss). 레벨=`MapDefinition.monsterLevel`→`MapSpawnLayout.ResolveLevel`→스폰 1회 확정. §2.80 | [monster-leveling.md](monster-leveling.md) |
 | **전투 진단(트레이스)** | 서버 `SocketServer/Diagnostics/CombatTrace`(Serilog Override 로 on/off) · 클라 `Network/Socket/Diagnostics/{CombatTraceRecorder,CombatTraceJoin}`(링 4096·무할당) · 창 `Gameplay/Editor/CombatTraceWindow`(`Tools/Combat/Combat Trace`). §2.74~2.76·2.79 | [combat-diagnostics.md](combat-diagnostics.md) |
-| **상태이상(CC) — 스턴·슬로우·넉백** | 정의=`Shared.Gameplay` `GameplayTags.Stun/Slow`+`GameplayEffectCatalog`(stun_1_5s/slow_3s,GrantedTags)+`Combat/CcConfig`. 게이트=클라 `PlayerCharacterAgent`(스턴)·`GroundState`(슬로우). 부여=던전 **어빌리티 `OnHitEffectIds`**(abilities.json, AC-B)→`Room.TickMonsters`·`CombatHandler` 가 S_ApplyEffect(Amount=0) / Main `LocalMonster.onHitCcId`. **넉백**=`Gameplay/Character/KnockbackDriver`+`PlayerCharacterAgent.ApplyKnockback`(public, Ability 융합용). 아래 §2.48 | [authority-model.md](authority-model.md) |
+| **상태이상(CC) — 스턴·슬로우·넉백** | 정의=`Shared.Gameplay` `GameplayTags.Stun/Slow`+`GameplayEffectCatalog`(stun_1_5s/slow_3s,GrantedTags)+`Combat/CcConfig`. 게이트=클라 `PlayerCharacterAgent`(스턴)·`GroundState`(슬로우). 부여=던전 **어빌리티 `OnHitEffectIds`**(abilities.json, AC-B)→`Room.Tick`·`CombatHandler` 가 S_ApplyEffect(Amount=0) / Main `LocalMonster.onHitCcId`. **넉백**=`Gameplay/Character/KnockbackDriver`+`PlayerCharacterAgent.ApplyKnockback`(public, Ability 융합용). 아래 §2.48 | [authority-model.md](authority-model.md) |
 | **게임플레이 카메라(3인칭 Follow)** | `Gameplay/Camera/{GameplayCameraRig,CharacterCameraFollow}` — rig가 `LocalPlayerContext.OnSet`→vcam.Follow 런타임 바인딩. 아래 §2.47 | — |
 | SocketServer(TCP/방/세션) | `ServerAll/SocketServer/SocketServer/{Room,Session,PacketHandler}` | [socketserver.md](socketserver.md) |
 | Redis 스트림/큐 | `Shared/Shared.Infrastructure/MessageQueue/`, `Messages/` | [redis.md](redis.md) |
@@ -69,6 +70,7 @@
 | 스폰 레이아웃/맵(서버·클라 공용) | 진실원 `MapDefinition`(SO, `Gameplay/Spawn/`, 에셋 `Assets/GameData/Maps/`) → **bake** → 서버 `Shared/Shared.Infrastructure/Spawn/spawn-layouts.json`(임베디드)·클라 `Gameplay/Resources/spawn-layouts.json`. 맵 비주얼=`MapLoader`. 툴 `Gameplay/Editor/`: `MapDataExporter`(Export/Import/BakeAll)·`MapEditorWindow`(프리뷰 저작) | 아래 §2.3 |
 | 클라 인증 | `Client/Assets/Script/System/Auth/` (ns `Game.System.Auth`) | — |
 | 클라 GUI/HUD | `Client/Assets/Script/GUI/` | — |
+| **채팅(클라)** | Model `Presentation/Chat/{ChatModel,ChatLine}`(루트 Singleton) · View `GUI/Hud/ChatView`(GameHud.prefab `ChatPanel`) · 입력 `Player/Chat=Enter` · 등록 `Installers/ChatInstaller`. 서버=`GameServer.Application/Domains/Chat/`. 아래 §2.117 | — |
 | 클라 DI(VContainer) | `Client/Assets/Script/VContainer/` | `.claude/rules/unity-client.md` |
 | 테스트 하네스 | 아래 §3 | `.claude/rules/testing.md` |
 
@@ -79,6 +81,110 @@
 > **AC 트랙 연대기 (2.64~2.80)** — 이 블록만 예외적으로 **오래된 것→새 것**(오름차순)이다: B1→B6→C→E~H 의 증분 서사를 보존한다.
 > ⚠️ **재번호(2026-07-17)** — 원래 2.60~2.76 으로 매겨져 기존 항목(2.60 회피·2.61 콤보·2.62 로스터·2.63 캡슐)과 **번호가 충돌**했다. 과거 커밋 메시지·PR 본문의 참조는 아래 대조표로 읽는다:
 > 구2.60(애니)→**2.64** · 2.61(B1)→**2.65** · 2.62(B2)→**2.66** · 2.63(B3)→**2.67** · 2.64(B4)→**2.68** · 2.65(B5)→**2.69** · 2.66(B6)→**2.70** · 2.67(C3-hotfix)→**2.71** · 2.68(C3)→**2.72** · 2.69(infra)→**2.73** · 2.70(C1a)→**2.74** · 2.71(C1b)→**2.75** · 2.72(C1c준비)→**2.76** · 2.73(사망체력바)→**2.77** · 2.74(C2)→**2.78** · 2.75(링포화)→**2.79** · 2.76(E~H)→**2.80**
+
+### 2.117 채팅 클라이언트(HUD) — 서버는 M0부터 있었는데 소비자가 0이었다 (2026-08-26)
+
+**착수 전 실측**: 서버 채팅(Global/Room/Whisper + Redis Streams)은 1.4에서 완성돼 있고 클라 래퍼
+`IChatGrpcService` 도 루트에 등록돼 있었다. **그런데 사용처가 E2E 테스트뿐**이었다 — 게임에는 채팅이 없었다.
+즉 이번 작업은 "GUI 붙이기"가 아니라 **소비자(Model·View·입력)를 처음 세우는 일**이었다.
+
+```
+GameHud.prefab/ChatPanel(ChatView)  ──▶  ChatModel(루트 Singleton)  ──▶  IChatGrpcService
+   로그 TMP · 스크롤 · 입력줄              스트림 수명 · 링버퍼 100줄       ChatStream(bidi)
+        └── Begin/EndUiCapture ──────────▶  IInputContext (Player 맵 ON/OFF)
+```
+
+**결정 ① 루트 스코프 Singleton** — 채팅 스트림의 수명은 로그인~종료다. 씬 스코프면 Main↔Dungeon 왕복마다
+재연결되고 그 사이 메시지를 놓치며 로그도 사라진다. HUD 는 씬마다 새로 생기지만 `Recent`(링버퍼)로 즉시 복원한다.
+
+**결정 ② System 서비스 계층을 두지 않았다** — 채팅의 소비자는 이 화면 하나뿐이라 감쌀 대상이 없다
+(unity-client.md "불필요한 추상화 금지"). 비UI 소비자가 생기면 그때 분리한다.
+
+**결정 ③ 같은 Enter 가 상태에 따라 다른 입력 맵에서 처리된다** — `InputContext.EnterUi()` 가 Player 맵을
+**통째로** 끄기 때문에, 입력 중에는 열기 키가 살아 있을 수 없다.
+
+```
+비입력: Player 맵 → InputRouter → ChatView.TryHandle(Chat) → 입력줄 열기 + EnterUi(Player 맵 OFF)
+입력중: UI 맵   → TMP_InputField.onSubmit → 전송 → 닫기 + ExitUi
+```
+
+`.inputactions` 에 `Player/Chat = <Keyboard>/enter` 추가 → 래퍼 재생성 → `GameInputAction.Chat` → `InputRouter.Bind`.
+(F13 에서 세운 정식 경로를 그대로 탄다. 키보드 직접 폴링 없음.)
+
+**결정 ④ 채널은 클라가 고르지 않는다** — 서버 `ChatService` 가 "방에 속했으면 Room, 아니면 Global,
+대상 닉네임이 있으면 Whisper" 로 정한다. 클라가 보내는 것은 본문 + (귓속말일 때만) 대상뿐이다.
+그래서 클라 파싱은 `/w 닉 내용` 하나뿐이고, **모르는 `/명령`은 삼키지 않고 그냥 말로 보낸다**
+(침묵하면 사용자는 왜 안 갔는지 알 수 없다).
+
+**결정 ⑤ 남의 문자열을 서식으로 해석하지 않는다** — 로그를 리치텍스트 한 덩어리로 그리므로,
+발신자·본문을 `<noparse>` 로 감싼다. 안 감싸면 남이 친 `<color>`·`<size>` 가 내 화면 서식을 바꾼다.
+
+**Outbox 가 연결 전 메시지를 들고 있는 이유** — 생성 코드 `ChatGrpcService` 는 스트림이 열릴 때 구독한다.
+재연결 시 보내는 `ReconnectPayload{LastMessageId}`(밀린 메시지 요청)가 구독 직전에 만들어지므로,
+버리면 재연결이 조용히 무의미해진다. 상한 32건(서버가 오래 죽어 있어도 무한히 자라지 않게).
+
+**위치**
+- `Client/Assets/Script/Presentation/Chat/{ChatModel,ChatLine}.cs` (ns `Game.Presentation.Chat`)
+- `Client/Assets/Script/GUI/Hud/ChatView.cs` (ns `Game.GUI.OutGame`) — GameHud.prefab `ChatPanel` 에 배선
+- `Client/Assets/Script/VContainer/Installers/ChatInstaller.cs` → `ProjectLifetimeScope`
+- 입력: `Gameplay/Input/GameInputAction.cs`(+Chat) · `InputRouter.Initialize` · `Assets/InputSystem_Actions.inputactions`
+
+**검증(실측)**: 클라 컴파일 0 · EditMode **채팅 19/19**(전체 257 중 255 — 잔여 2는 §2.116 의 미완 가드) ·
+PlayMode **채팅 6/6**(전체 231 중 228) · **Docker 서버 리빌드 후 실플레이 왕복 확인** — Play 모드에서
+`IsConnected=True`, 보낸 줄이 서버를 돌아 로그에 렌더(`EN4UJHdKCa: 클라 스모크 테스트`), Enter 로 입력줄 열림 확인,
+게임뷰 스크린샷으로 좌하단 패널 육안 확인.
+
+⚠️ **미실측**: 사람이 키보드로 실제 타이핑해 보내는 감각(스모크는 `TryHandle`·`Send` 직접 호출),
+2인 이상 동시 채팅(MPPM), 장시간 방치 후 재연결(3초 재시도 경로).
+
+**조사 중 발견(별건, 고치지 않음)**
+1. `Main.unity` 에 **GameHud 프리팹 인스턴스가 씬에 직접 배치**돼 있다(uncommitted). 런타임에 HUD 가 2개가 되고,
+   씬 배치본은 주입을 못 받아 시작 즉시 `NullReferenceException: GameHud.Start (GameHud.cs:136)` 를 낸다.
+   → 씬 배치본 제거 또는 `GameHudController` 로드 억제 중 하나로 정리 필요.
+2. §2.116 의 `RootContainerResolveTests` 는 **현재 통과할 수 없다** — 루트의 `IGameSceneManager`·
+   `PlayerInputActions`·`IInputContext` 는 인스톨러가 아니라 `ProjectLifetimeScope` 가 **직접** 등록하는데
+   테스트는 인스톨러만 설치한다. 가드를 살리려면 그 등록들도 인스톨러로 내려야 한다.
+3. `Assets/Prefabs/GUI/Chat/ChatBubble.prefab` 은 코드 참조 0 · Addressable 미등록 **고아**다.
+   이번 로그는 오브젝트를 줄마다 만들지 않는 리치텍스트 방식이라 쓰지 않았다 — 삭제 또는 용도 확정 대상.
+
+### 2.116 VContainer 는 C# 기본값을 채워주지 않는다 — 루트 DI 배선 가드 신설 (2026-08-26)
+
+**증상**: 게임 첫 씬에서 루트 컨테이너가 통째로 죽었다.
+
+```
+VContainerException: Failed to resolve Game.System.Auth.SessionKeepAlive
+                     : No such registration of type: System.Double
+  → 뒤따르는 "LocalPlayerContext 미주입" · CharacterAgent NullReference 는 전부 그 여파
+```
+
+**원인**: `SessionKeepAlive` 생성자가 C# 선택 인자를 썼다.
+
+```csharp
+public SessionKeepAlive(AuthSession, IAuthService, double refreshAtRatio = 0.6, TimeSpan? minDelay = null)
+```
+
+**VContainer 의 ReflectionInjector 는 C# 기본값을 존중하지 않고 모든 생성자 인자를 해석하려 한다.**
+`double` 등록이 없으니 실패하고, 엔트리포인트는 컬렉션으로 한 번에 해석되므로 **하나가 실패하면 루트가 통째로 죽는다.**
+
+**조치**: 튜닝 인자가 없는 생성자를 `[Inject]` 로 못 박았다. 4-인자 생성자는 테스트가 시간을 압축할 때 쓰므로 유지.
+
+**진짜 문제는 "왜 안 잡혔나" 였다**
+
+`SessionKeepAliveTests` 는 객체를 `new` 로 직접 만든다. 그래서 컴파일도 통과하고 단위 테스트도 통과했다.
+**루트 컨테이너를 실제로 빌드하는 테스트가 하나도 없었다** — 컨테이너를 세워봐야만 잡히는 부류다.
+
+→ `Tests/EditMode/VContainer/RootContainerResolveTests.cs` 신설. 루트 인스톨러 10종을 실제로 `Build()` 하고
+엔트리포인트를 전부 해석한다(= 모든 생성자 인자가 등록돼 있는가 검사).
+
+⚠ **가드를 EditMode 에 두는 이유(실패에서 배움)**: 처음엔 PlayMode 에 뒀다가 **에디터가 죽었다**.
+루트 컨테이너를 세우면 `NetworkInstaller` 등이 실제 자원을 만드는데, 그 상태에서 빌드가 예외로 끝나니
+에디터까지 끌고 갔다. 순수 DI 배선 검사에는 씬도 플레이모드도 필요 없다.
+
+**교훈(다음 사람에게)**: VContainer 로 등록하는 타입의 생성자에 **선택 인자를 두지 말 것.**
+튜닝 값이 필요하면 `[Inject]` 생성자를 따로 두거나 Options 타입으로 등록한다.
+
+**검증 상태**: 소스 수정·가드 작성 완료, 서버 무변경(738/738 그대로). ⚠ **Unity 검증 미완** —
+고장 주입 중 에디터가 종료돼 가드의 RED/GREEN 을 아직 확인하지 못했다. 에디터 재기동 후 확인 필요.
 
 ### 2.115 Main 위치 지속화 — 신뢰 경계를 기능보다 먼저 정했다 (B7, 2026-08-25)
 
@@ -1601,6 +1707,97 @@ Unity CLI 로 **PlayMode 전체 스위트를 처음 통째로** 돌려 드러난
 - **수정(몬스터와 동일 패턴)**: `S_PlayerJoined` += `Hp,MaxHp`(서버 `PlayerState`가 이미 보유, `InitPlayerState(maxHealth)`). `ToJoinedPacket` 한 곳만 채우면 **3 전송지점(본인응답·타인브로드캐스트·늦은입장 로스터)** 모두 반영. 클라 `SocketPlayerSnapshot`+`UpsertPlayer`(선택적 hp/maxHp)+핸들러 전달 → `CharacterSpawner.SpawnRemote`가 원격 ASC `Health.SetMax/SetCurrent`로 기준선 교정 후 등록. 이후 델타가 **정확한 기준선** 위에 얹혀 파티 HP 일치. (로컬은 PlayerStatApplier 그대로.)
 - **계약**: `S_PlayerJoined` 직렬화 필드 2개 append(MemoryPack 순서 보존, 서버+클라 미러 동시). gRPC 아님 → Generated 재생성 불요. 서버 리빌드+Docker 재배포 필요.
 - **파일**: `Shared.Packet/RoomPackets.cs`·`SocketServer/PacketHandler/Handler/RoomJoinLeaveHandler.cs`(ToJoinedPacket) / 클라 `Network/Socket/Packets/RoomPackets.cs`·`SocketApiClient.cs`(snapshot+Upsert)·`Handler/Contents/PlayerJoinedPacketHandler.cs`·`Gameplay/Character/CharacterSpawner.cs`.
+
+#### 2.85 Room 파사드 해체 — 협력자 5개 + GAS 스레드 안전화 + 액터가 자기 틱 소유 (2026-08-27)
+
+- **증상 측정**: `Room` 의 공개 멤버가 **각 핸들러에 한 번씩만** 쓰였다 — `Broadcast` 14회를 빼면 나머지 15개가 전부 1~2회. 20구 콘센트에 핸들러들이 하나씩 꽂는 파사드였고(ISP 위반), 그래서 계속 비대했다.
+- **S7 `GasComponent` 스레드 안전화 — 이건 리팩터링이 아니라 버그 수정.**
+  - 실측: 틱 스레드(`RegenMana`·`ApplyModifiers`, 저장소 락 안)와 핸들러 스레드(`TrySpendMana`·`TryBeginAbility`·`TryBeginDodge`, **락 없음**)가 같은 마나 항목을 동시에 썼다. 락이 방/저장소에 있어서 **저장소를 지나는 경로만** 안전했다.
+  - 이 경합은 **예전부터 있었다**(구 `PlayerState.Mana` 도 같은 두 경로). 다만 `AttributeSet` 도입으로 `int` 원자 쓰기 → `Entry{Current,Max}` 구조체 쓰기가 되며 실패 양상이 lost-update → torn 으로 조금 나빠졌다(구조 손상은 없음 — `Define` 이후 Add/Remove 가 없어 버킷 불변).
+  - 조치: 경계를 **GasComponent 안으로**. `AttributeSet`·`GameplayTagContainer` 를 **private** 으로 감추고(밖에 두면 락 우회 가능) 접근은 인덱서 하나(`gas[attr]`) + `Max`/`Has` + `AddTag`/`RemoveTag`/`HasTag`. 복합 연산(`TrySpendMana`·`TryBeginAbility`·`RegenMana`·`ApplyModifiers`)은 검사·기록이 **한 락 안**.
+  - **역검증 실측**: 락을 임시로 빼자 `동시_마나차감은_보유량을_넘지_않는다` 가 **Expected 10 / Actual 17** 로 실패 — 마나 100 으로 17회 시전됐다. 테스트에 이빨이 있음을 확인 후 원복.
+- **S4 `Room/DungeonProgress`**: 클리어·실패·다운·부활 + `_outcome`(Interlocked terminal)·`_monstersSpawned`. 넷이 한 클래스인 이유는 **같은 terminal 을 공유**하기 때문 — 흩어 놓으면 원자성을 지킬 주체가 사라진다. `ActorStore` 를 협력자로 받는다.
+- **S5 `Room/RoomSessions`**: `_playerSessions` + 정원·조회·인수(takeover) 검색 + `Broadcast`. **세션과 참가자는 수명이 다르다**(세션은 자주 죽고 액터는 유예 동안 산다) — 그 비대칭이 재접속을 가능하게 하는 구조라 저장소도 나눈다.
+- **S6 위임 전면 삭제**: 핸들러가 협력자를 직접 부른다. `room.TryPickup` → `room.Loot.TryPickup(picker.PosX, picker.PosZ, id)` · `room.MarkPlayerDowned` → `room.Progress.MarkDowned` · `room.DamageMonster` → `room.Actors.DamageMonster` · `room.Broadcast` → `room.Sessions.Broadcast` · `room.UpdatePlayerPosition` → `room.Actors.SetPosition`. **핸들러가 어느 하위 시스템을 건드리는지 호출부에 드러난다.**
+- **S8' `ActorTickResult`** — 사용자 제안 채택(내 `MonsterBrain` 제안은 철회). `Actor.Tick` 이 `int targetIdx` 대신 `{TargetIndex, Cast}` 를 돌려준다.
+  - `MonsterActor.Tick` 이 **이동·페이즈 + 어빌리티 선택 + 쿨다운 커밋**까지 소유한다(구 `RoomSimulation.SelectAbility`·`MarkCast` 이동). 결정이 두 곳에 쪼개져 있던 것이 원인이었다.
+  - `RoomSimulation` 은 그 결과를 **패킷·피해로 번역**만 한다. 데미지 산정은 대상 방어력을 읽어야 해서 방에 남긴다 — 액터가 다른 액터를 뒤지기 시작하면 경계가 무너진다.
+  - `Actor.Tick` 이라는 다형 지점이 이미 있어 두뇌 클래스를 따로 두지 않았다(결정 지점이 다시 둘이 된다).
+- **공간 분할은 보류**(사용자 합의). 실측: 한 방 최대 액터 15(몬스터 11 + 플레이어 4) → 타깃 탐색 44회/틱. 방 자체가 이미 공간 분할이고, 과거 실측 병목은 계산이 아니라 팬아웃(→ dirty-flag 로 해소)이었다. 착수선 = 한 방 100+ 또는 틱이 100ms 예산의 20% 초과(**틱 프로파일은 미실측** — 넣기 전 선행 측정 필요).
+- **결과**: `Room.cs` **590 → 291줄**. 남은 책임 = 방 정체성(RoomId·MapId·Bounds) · **생명주기 오케스트레이션**(Join/Leave/MarkJoined/Sweep — Sessions 와 Actors 를 함께 만져야 해 여기가 유일한 자기 일) · 스폰 · 소비 멱등 기록.
+
+```
+Room (구성 루트)
+ ├ Sessions   RoomSessions     125줄   연결·브로드캐스트
+ ├ Actors     ActorStore       191줄   누가 있나·효과 적용
+ ├ Loot       GroundItemStore   78줄   바닥 아이템
+ ├ Progress   DungeonProgress  145줄   클리어·실패·다운·부활
+ └ (private)  RoomSimulation   187줄   틱 → 액터 결정을 패킷으로 번역
+```
+
+- **검증**: `ServerAll.sln` 0오류 · `SocketServer.Tests` **304/304**(268→304, 신규 36) · `Shared.Gameplay.Tests` **74/74**(67→74, 신규 7 동시성) · `GameServer.Tests` 311/311.
+  - 신규: `DungeonProgressTests` 19 · `RoomSessionsTests` 8 · `MonsterActorTickTests` 9 · `GasComponentConcurrencyTests` 7. 동시성 테스트는 전부 `Parallel.For` 로 실제 경합을 만든다(마나·쿨다운·태그·피해·클리어·부활·정원).
+
+#### 2.84 Room 분할 — GroundItemStore · ActorStore · RoomSimulation (2026-08-27)
+
+- **문제**: `Room.cs` 가 **865줄 · 책임 8개 · 락 3개**였다. 세션·참가자 생명주기·몬스터 스폰·진행 판정·효과 적용·틱 시뮬레이션·바닥 아이템이 한 클래스에 있었다. "왜 `ApplyEffect`·`TryPickup` 이 Room 에 있나"가 자연스러운 질문이 되는 상태.
+- **S1 `Loot/GroundItemStore`** (−35줄): `_groundItems`+`_nextGroundItemId`+스폰/조회/줍기. **공유 상태 0** — 실측상 이 셋만 그 딕셔너리를 만졌다. `TryPickup(pickerX, pickerZ, groundId)` 로 **위치를 인자로** 받아 Room 을 모른다 → 방·세션 없이 경쟁 중재를 단위 테스트로 직접 친다. `Room.PickupRange` 는 `GroundItemStore.PickupRange` 별칭으로 보존.
+- **S2 `Actors/ActorStore`** (−83줄): `_actors`(ActorId 키)+`_members`(UserId 키)+`_nextMonsterInstanceId`+조회/추가/제거+**`ApplyEffect`**. 둘은 항상 함께 바뀌므로(참가자가 들어오면 액터도 생긴다) **락 하나**로 묶는다 — 나누면 예전 중첩이 돌아온다. 복합 연산(틱 등)은 호출자가 `SyncRoot` 를 잡고 `ActorsLocked`/`MembersLocked` 로 스냅샷 할당 없이 순회한다(Monitor 재진입).
+- **S3 `Room/RoomSimulation`** (−157줄): `Tick`·몬스터 발동/피해·어빌리티 선택·`BuildMonsterState`.
+  - **경계가 이 분리의 요점**: 시뮬레이션은 **진행 판정을 모른다**. `Tick` 은 `(Packets, DownedUserIds)` 를 돌려주고 `S_PlayerDead`·`S_DungeonFailed` 는 **Room 이 붙인다**. 그래서 `_outcome`·다운 집계 같은 방 상태를 시뮬레이션이 건드리지 않는다.
+  - 부수: 다운 패킷이 틱 루프 안이 아니라 **틱 끝**에 붙는다(같은 틱 내 순서만 바뀜 — 기존 테스트는 `OfType<>` 필터라 순서 무관).
+- **결과**: `Room.cs` **865 → 590줄**, 책임은 세션 · 참가자 생명주기 · 진행 판정(클리어/실패/부활) 셋으로.
+- **남긴 것**(분리하면 나빠짐): `ApplyPlayerEffect`·`MarkPlayerDowned`·`TryMarkCleared`·`TryRevive` — `_outcome`(Interlocked terminal)과 액터 상태를 원자적으로 함께 봐야 한다. `DamageMonster` 는 `ApplyEffect` 위의 1줄 어댑터.
+- **E2E 회귀 2건 수정**(§2.82 의 다운 자기신고 차단이 드러낸 것): `SocketE2ETests` 의 `참가자_전원_다운…`·`다운된_아군을_부활…` 이 **만피 상태에서 `C_PlayerDead` 로 다운을 위조**하고 있었다 — 막힌 그 경로다. 실제로 죽이도록 재작성: 실패 테스트는 즉사 fixture(`test_arena`/`test_brute`, baseDamage 9999), **부활 테스트는 기본 던전**(`creepy_demon` 12뎀·1.4s) — 즉사 fixture 로는 게스트가 죽는 순간 호스트도 다음 틱에 죽어 전원다운(실패) 확정 → `TryRevive` 가 막힌다.
+- **신규 테스트 30건**: `GroundItemStoreTests` 8(동시 줍기 `Parallel.For` 포함) · `ActorStoreTests` 12(동시 타격 사망 1회 보장 포함) · `RoomSimulationTests` 10(타깃 자격 3종·헛스윙·dirty-flag·**진행 패킷 미생성 경계**).
+- **`RoomTickService` 를 `Monster/` → `Room/` 로 이동**(네임스페이스 `Server.Monster`→`Server.Room`, `Program.cs` DI 등록 1줄). 원래는 진짜 몬스터 전용 루프(`Room.TickMonsters` 호출)였으나 §2.81(플레이어 마나 회복 흡수)·§2.84(몬스터 시뮬레이션이 `RoomSimulation` 으로 분리) 를 거치며 **몬스터 타입을 하나도 참조하지 않게** 됐다 — 남은 일은 주기(10Hz)와 전송뿐. `Monster/` 에는 순수 몬스터 것(`MonsterAiMath`·`MonsterCatalog`·`MonsterPhase`)만 남았다(Room/Actor 참조 0건 실측).
+- **검증**: `ServerAll.sln` 0오류 · `SocketServer.Tests` **268/268**(238→268) · `GameServer.Tests` 311/311 · `Shared.Gameplay.Tests` 67/67 · **Unity PlayMode 237/237 — Docker E2E 99/99 전원 통과**(재작성한 부활 8.9s·실패 2.3s 포함).
+
+#### 2.83 속성을 데이터로 — `AttributeSet` 도입 (2026-08-27)
+
+- **문제**: `GasComponent` 가 `EGameplayAttribute` 9종 중 **4종만 필드**(Health·Mana·AttackPower·Defense)로 들고, `ApplyModifiers` 는 `Where(m => m.AttributeType == Health)` 로 **Health 만 필터**했다. 그 결과 카탈로그에 이미 있는 `atk_up_20`(AttackPower ×120%)·`def_down_10`(Defense −10)을 **서버가 적용할 수 없었다**(현재 어빌리티가 안 써서 잠재). `Defense` 는 서버 데미지 산식의 입력이라, 클라만 적용하면 두 쪽 데미지가 갈린다.
+- **신규**: `Shared.Gameplay/Actors/AttributeSet.cs` — `Dictionary<EGameplayAttribute, (Current, Max)>`.
+  - **핵심은 "0 인 속성"과 "속성 없음"의 구분**이다. 필드로는 그 구분이 불가능해 호출부가 리터럴 0 으로 위장했다.
+  - `Has` / `TryGet` / `GetOr(fallback)` / `Define` / `SetCurrent` / `SetMax`. **미보유 속성에 쓰기는 무동작** — 없는 속성이 몰래 생기지 않는다.
+  - `AttributeSet.NoMax`(=int.MaxValue) — 스탯은 상한이 없다(버프가 base 를 넘어야 하므로 클램프 금지).
+- **GasComponent 에 속성별 멤버는 하나도 없다.** 중간에 `Hp`/`MaxHp`/`Mana`/`MaxMana`/`AttackPower`/`Defense` 위임 프로퍼티를 뒀다가 **삭제**했다 — 스탯이 늘 때마다 프로퍼티 쌍을 또 만들어야 하면 `AttributeSet` 을 넣은 이유(enum 하나만 추가)가 사라지고, `Attributes` 가 이미 public 이라 순수 중복이다.
+  - 접근자는 **저장소 타입에 하나만** — `AttributeSet` 인덱서(`gas.Attributes[EGameplayAttribute.Health]`, get=GetOr / set=SetCurrent) + `MaxOr`. 호출부가 길어지는 대가로 **어떤 속성을 읽는지 명시적**이 됐다.
+  - GasComponent 에 남은 것은 저장소(`Attributes`·`Tags`), 부여(`DefineResource`/`DefineStat`), **행위**(`TrySpendMana`·`RegenMana`·`TryBeginAbility`·`ApplyModifiers`), 도메인 술어(`IsDead`·`IsActivationBlocked`)뿐이다. 행위는 속성별 접근자가 아니므로 남긴다.
+  - `ApplyModifiers` 는 **속성별 그룹 집계**로 일반화(같은 속성은 한 번에 Aggregate 해야 Additive→Multiplicative 순서 규칙이 성립). 반환을 `int newHp`→`void` 로 바꿨다 — 속성 일반이 된 메서드가 Health 를 특별 취급할 이유가 없다.
+- **부여 규약**: 플레이어 = Health·Mana·AttackPower·Defense **4종 모두 보유**(0 이어도 보유) / 몬스터 = **Health 만**. 몬스터의 공격력·방어력·마나는 0 이 아니라 **미보유**다.
+- **스탯 추가 비용**: `EGameplayAttribute` 에 값 1개 + 스폰 시 `Define` 1줄. 저장소·적용 경로는 무변경.
+- **아직 안 되는 것(정확히)**: `AttributeSet` 은 *적용 가능성*만 열었다. `atk_up_20` 은 **Duration** 효과라 이 경로로 넣으면 **영구 버프**가 된다 — 지속효과를 서버가 소유하려면 활성 Effect 추적 + 만료 틱이 필요하고 그건 별도 증분이다. `ApplyModifiers` 주석에 명시.
+- **검증**: `ServerAll.sln` 0오류 · `Shared.Gameplay.Tests` **67/67**(신규 17: `AttributeSetTests` 6 + `GasComponentTests` 11) · `SocketServer.Tests` **238/238**(신규 3) · `GameServer.Tests` 311/311. 프로덕션의 하드코딩 위장(`MonsterAttackPower`·`MonsterDefense`·`currentMana: 0`·`blocked: false`) **잔재 0건**.
+
+#### 2.82 다운을 태그로 — `Room._downed` 제거 + 다운 자기신고 차단 (2026-08-27)
+
+- **문제**: "죽었나"의 진실원이 둘이었다 — `Actor.Gas.IsDead`(HP≤0)와 `Room._downed`(HashSet). 그리고 둘이 **실제로 갈라지는 경로**가 있었다: `DungeonLifecycleHandler` 가 `C_PlayerDead` 를 받아 `MarkPlayerDowned` 를 부를 때 **HP 검증이 없었다**. 만피인 채로 자기신고하면 `_downed` 에 들어가고, `Room.Tick` 의 타깃 자격 필터가 그걸 읽어 **몬스터가 영영 안 때린다**(사실상 무적). HP 는 서버 권위로 올려놓고 다운 여부만 클라를 믿던 반쪽 상태였다.
+- **조치**: `_downed` **삭제**. 다운 = 액터의 `GameplayTags.Dead` 태그.
+  - dedup·멱등은 `GameplayTagContainer.Add/Remove` 의 bool 반환이 그대로 대체(HashSet 과 같은 의미).
+  - `MarkPlayerDowned` 에 **HP 가드** — `Gas.IsDead` 가 아니면 거부. `C_PlayerDead` 는 예측 통지로 강등.
+  - 실패 판정 = `_members.Count > 0 && 전원 Dead 태그`(구 `_downed.Count >= _expectedUserIds.Count`).
+  - `TryRevive` 멱등 = `Tags.Remove(Dead)` 반환값. AI 타깃 제외 = `Tags.HasTag(Dead)` 직독.
+  - `CombatHandler` 에 **상태 태그 게이트** 추가(`Gas.IsActivationBlocked`) — 다운·스턴 중 발동 불가. `CombatGate.Blocked` 신설.
+- **락**: `_actors → _downed` 2중 중첩이 **사라져 `_actors` 하나**가 됐다(§2.81 의 3단→2단에 이어 최종 1단).
+- **테스트 계약이 바뀐 곳**: `DungeonFailTests` 는 참가자를 만들지 않고 `TryMarkFailed(id)` 만 불러 다운을 위조하고 있었다 — 이제 **실제로 HP 를 0 으로 만든다**(그 위조가 곧 위 취약점의 경로였다). `MonsterAttackTests.다운된_플레이어는…` 도 동일. 신규 `만피인_플레이어의_자기신고_다운은_거부된다` 가 가드를 고정.
+- **부수 수정(클라, 무관한 기존 실패)**: `RemoteLocomotionSyncTests.원격_부활하면_로코모션으로_복귀한다` — **프로덕션은 정상이었고 테스트 판정이 틀렸다.** 런타임 프로브 실측: Revive 직후 `inTransition=True next=GetUp` 으로 전이가 실제로 시작되는데, Unity 는 전이가 끝날 때까지 `GetCurrentAnimatorStateInfo` 를 **옛 상태(Dead)로 유지**한다. `!InState("Dead")` 로 판정하면 "이미 나가는 중"인 프레임을 전부 "아직 Dead"로 오독한다. → `HasLeft(name)`(전이 중이면 **목적지**로 판정) 헬퍼 추가. 상태 이탈 판정은 `InState` 의 부정이 아니다.
+- **검증**: `ServerAll.sln` 0오류 · `SocketServer.Tests` **236/236**(신규 1) · `GameServer.Tests` 311/311 · `Shared.Gameplay.Tests` 50/50 · `RemoteLocomotionSyncTests` **9/9**.
+- **잔여(미착수)**: `GasComponent` 가 `EGameplayAttribute` 9종 중 4종(Health·Mana·AttackPower·Defense)만 필드로 들고 `ApplyModifiers` 가 Health 만 필터한다 → 카탈로그의 `atk_up_20`·`def_down_10`(비-Health)은 **서버가 적용할 수 없다**(현재 어빌리티가 안 써서 잠재). `AttributeSet` 도입이 다음 단계.
+
+#### 2.81 서버 액터 모델 통합 — PlayerState/MonsterState → Actor + GasComponent (2026-08-27)
+
+- **계기**: `ActorId` 가 패킷 부호 규약일 뿐 **인스턴스의 정체성이 아니었다**. 그 결과 플레이어와 몬스터가 같은 개념을 두 벌로 들고 있었다(실측): 위치 4필드·HP 2필드 복제 / 쿨다운 저장소가 `Dictionary<int skillId>` vs `Dictionary<string abilityId>` 로 **키 타입만 다른 같은 것** / 몬스터에 없는 속성을 호출부가 리터럴로 위장(`const int MonsterAttackPower = 0`·`const int MonsterDefense = 0`·`manaCost:0, currentMana:0`·`blocked:false`).
+- **가른 축**: `PlayerState` 가 **방 관리 4 + 전투 8** 을 겸직하고 있었다 → 방 관리(UserId/Nickname/SpawnIndex/HasJoined/DisconnectedAtMs)는 `RoomMember`, 전투(위치·HP·마나·스탯·태그·쿨다운)는 `Actor`+`GasComponent`.
+  - **수명이 다른 것이 근거**다: 소켓(`Session`)이 죽어도 액터는 유예 60s 를 더 산다. 한 클래스일 땐 그 규칙을 주석으로만 설명할 수 있었다.
+- **신규**: `SocketServer/Actors/{Actor,PlayerActor,MonsterActor}.cs`(`ActorKind`·`TargetPos` 포함) · `SocketServer/Room/RoomMember.cs` · **`Shared.Gameplay/Actors/GasComponent.cs`**(클라도 쓰도록 Shared — 빌드 시 `Client/Assets/Plugins/Shared.Gameplay.dll` 자동 복사).
+- **삭제**: `SocketServer/Player/PlayerState.cs` · `SocketServer/Monster/MonsterState.cs`(→ `MonsterPhase.cs` 만 잔존) · 죽은 필드 `LastMovedAt`(쓰기 2곳·읽기 0곳).
+- **저장소·락**: `Room._playerStates`+`_monsters` → **`_actors`(ActorId 키) 하나** + `_members`(UserId 키, 같은 락). 몬스터→플레이어 피격 경로의 락 중첩이 **3단(`_monsters→_playerStates→_downed`) → 2단(`_actors→_downed`)**. 락 순서 규약을 Room 주석에 명시.
+- **API**: `InitPlayerState`→`AddPlayer` · `GetPlayerState`→`GetPlayerActor`/`GetMember` · `GetAllPlayerStates`→`GetMembers` · `UpdatePlayerState`→`UpdatePlayerPosition`(미사용 timestamp 인자 제거) · `TickMonsters`→`Tick`(플레이어 마나 회복 흡수 → `RegenAllPlayerMana` 삭제) · **`ApplyEffect(actorId, mods)` 가 효과 적용의 단일 진입점**(`DamageMonster`/`ApplyPlayerEffect` 는 그 위의 축약). `MonsterAiMath.Step` 의 `PlayerPos`→`TargetPos`(AI 는 플레이어가 아니라 **적대 액터**를 노린다).
+- **`ToJoinedPacket` 인자가 `PlayerState`→`RoomMember` 로 바뀐 것이 겸직 해소의 가시적 증거**다 — 신원·배정은 참가자에서, 위치·HP 는 액터에서 온다.
+- **새로 가능해진 것**: 발동 게이트가 `blocked: m.Gas.IsActivationBlocked`(태그)를 실제로 읽는다. 서버가 자기가 뿌린 CC 를 스스로 아는 첫 지점 — 신규 테스트 `Tests/Actors/ActorGasGateTests.cs` 4건이 고정.
+- **일부러 안 한 것**: 스폰/상태스트림/사망 패킷 통합(페이로드·권위 모델·후속 흐름이 실제로 다름) · Effect **만료** 서버 소유(틱 비용 — 별도 증분) · 회피 무적의 태그화(만료 틱이 없어 시각 비교 유지) · `MonsterAiMath.Step` 의 원시 파라미터화(현재 `MonsterActor` 수신 — 잔여 결합).
+- **검증**: `ServerAll.sln` 0오류 · `SocketServer.Tests` **235/235**(기준선 231 + 신규 4) · `GameServer.Tests` 단위 311/311 · `Shared.Gameplay.Tests` 50/50 · Unity EditMode 255/257 · **Unity PlayMode 전체 236/237** — 그중 **Docker E2E 99건 전원 통과**(`SocketE2ETests` 31 · `DungeonLobbyE2ETests` 19 · `AuthE2ETests` 14 · `EquipmentE2ETests` 6 · `AuthFlowE2ETests`/`QuestE2ETests`/`UserE2ETests` 각 5 · `MainLootE2ETests` 4 · `ChatE2ETests` 3 · 나머지 6). 실패는 EditMode 2건(미커밋 ChatView/VContainer 의 `IGameSceneManager` DI 배선)·PlayMode 1건(`RemoteLocomotionSyncTests.원격_부활하면_로코모션으로_복귀한다` — Animator Revive 전이, 클라 전용)뿐이고 **모두 이 변경 전부터 존재**한다(해당 소스 전부 HEAD clean, Shared.Gameplay 참조 0건).
+- **패킷 0 변경** — Union·필드·와이어 포맷 불변. 그래서 클라 수정 없이 서버만 갈아끼웠다.
 
 #### 2.59 Actor 통합 전투 인프라 착수 — ActorIds + AbilityActivationMath (2026-07-16, 증분1/7)
 - **계기**: 몬스터 공격 모션 부재 진단 → 근본은 "몬스터가 공격했다" 신호 경로 자체가 없음(플레이어는 `S_Attack`→`RemoteDriver`(§2.55 R2) 있으나 몬스터는 통째 부재). 전체 설계·전 축 통합지도 = [actor-combat-architecture.md](actor-combat-architecture.md).

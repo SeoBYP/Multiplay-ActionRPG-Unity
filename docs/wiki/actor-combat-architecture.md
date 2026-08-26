@@ -21,7 +21,7 @@
 | 층 | 플레이어 | 몬스터 | 통합 여부 |
 |----|---------|--------|-----------|
 | ID | `UserId` (long, 계정 영속) | `InstanceId` (int, 방 임시) | ❌ |
-| 서버 상태 | `PlayerState` | `MonsterState` | ❌ (유지 — 권위 모델이 다름) |
+| 서버 상태 | `PlayerActor` | `MonsterActor` | ❌ (유지 — 권위 모델이 다름) |
 | 클라 ASC | `AbilitySystemComponent` 보유 | 없음 (plain int HP) | ❌ |
 | 발동 트리거 | `S_Attack{AttackerId}` → 원격 스윙 재생 | **없음 → 공격 모션 미표시(버그)** | ❌ |
 | 데미지 | `S_ApplyEffect{TargetId, SourceId}` | 동일 패킷 (단 `SourceId=0` 뭉뚱그림) | ⭕ 절반 |
@@ -52,7 +52,7 @@ flowchart LR
 
 ### 1.3 서버 병목 — per-monster per-tick 무조건 브로드캐스트
 
-`Room.TickMonsters`는 몬스터마다 매 틱 `S_MonsterState`를 만든다(변화 없어도).
+`Room.Tick`는 몬스터마다 매 틱 `S_MonsterState`를 만든다(변화 없어도).
 플레이어 M명 방에 몬스터 N마리 = **10Hz × N × M 패킷 송신**. Idle 경비 몬스터도 계속 쏜다.
 → dirty-flag(변화분만 송신)로 patrol 없는 Idle 몬스터의 트래픽을 0으로 만들 수 있다(§5.2).
 
@@ -81,7 +81,7 @@ ActorId (long)
 | 어빌리티 발동 신호 (`S_AbilityActivated`) | 스폰 (`S_PlayerJoined` / `S_SpawnMonster`) | 스폰 페이로드가 본질적으로 다름(장비·닉네임 vs monsterId·HP) |
 | 효과 적용 (`S_ApplyEffect` — 기존) | 상태 스트림 (`S_Move` / `S_MonsterState`) | 이동 권위 모델이 다름(클라 릴레이 vs 서버 시뮬) |
 | 클라 액터 조회 (`ActorRegistry`) | 사망 (`S_PlayerDead` / `S_MonsterDead`) | 플레이어=다운·부활 / 몬스터=제거·드랍, 후속 흐름이 전혀 다름 |
-| 발동 게이트 규칙 (`AbilityActivationMath`) | 서버 상태 (`PlayerState` / `MonsterState`) | 서버는 ASC 불가(헤드리스) — gas 문제②⑥, 별도 트랙 |
+| 발동 게이트 규칙 (`AbilityActivationMath`) | 서버 상태 (`PlayerActor` / `MonsterActor`) | 서버는 ASC 불가(헤드리스) — gas 문제②⑥, 별도 트랙 |
 
 > 완전 Actor 통합(스폰·상태·사망까지 단일 패킷)을 **안 하는 이유**: 서버가 ASC를 못 쓰는 한
 > "통합"은 반쪽이고, 재접속·루트·HP권위 전부 갈아엎는 대공사 대비 이득이 없다 (원칙1 YAGNI).
@@ -97,7 +97,7 @@ ActorId (long)
 | **클라 조회** | `RemoteDriver` + 로컬 `PlayerCharacterAgent` 가 Registry 등록 | `MonsterEntity` 등록 | ✅ 같은 `ActorRegistry` |
 | **`IActorView`** | RemoteDriver·PlayerCharacterAgent 구현 | MonsterEntity 구현 | ✅ 같은 `PlayAbilityCue` |
 | **공격 발동** | `S_AbilityActivated{ActorId=userId}` (증분5) | `S_AbilityActivated{ActorId=-id}` (증분3) | ✅ 같은 패킷·핸들러 |
-| **발동 게이트** | `CombatHandler` → CanActivate | `Room.TickMonsters` → CanActivate | ✅ 같은 Shared 규칙 |
+| **발동 게이트** | `CombatHandler` → CanActivate | `Room.Tick` → CanActivate | ✅ 같은 Shared 규칙 |
 | **데미지** | `S_ApplyEffect{Target,Source=ActorId}` | 동일 | ✅ 기존 통합 |
 | **회피(Dodge)** | `S_Dodge` → SetTrigger (별도 패킷) | 없음 | 🔜 어빌리티化 후보 — 같은 파이프로 흡수 가능(확장점) |
 | **사망/부활** | `S_PlayerDead`/`S_PlayerRevived` | `S_MonsterDead`(제거·드랍) | ⛔ 생명주기 축 — §2.2 규칙대로 종족별 유지 |
@@ -185,7 +185,7 @@ flowchart TB
     subgraph SV["SERVER (발동·적중 권위 · Cue 모름)"]
         direction TB
         RTS["RoomTickService 10Hz (존재)"]
-        RT["Room.TickMonsters<br/>몬스터 게이트 + dirty-flag (NEW)"]
+        RT["Room.Tick<br/>몬스터 게이트 + dirty-flag (NEW)"]
         CH["CombatHandler<br/>플레이어 게이트 (NEW)"]
         RTS --> RT
     end
@@ -212,7 +212,7 @@ Main(싱글)은 서버 박스 없이 CLIENT 만으로 동작 — `LocalMonster �
 ```mermaid
 sequenceDiagram
     autonumber
-    participant RT as Room.TickMonsters (서버)
+    participant RT as Room.Tick (서버)
     participant Net as 네트워크
     participant H as AbilityActivatedHandler (클라)
     participant Reg as ActorRegistry
@@ -322,13 +322,13 @@ flowchart TB
 ### 5.2 서버 틱 송신 — dirty-flag (변화분만) ✅ 증분7 구현
 
 ```
-Room.TickMonsters:
+Room.Tick:
   변경 전:  모든 몬스터 → 매 틱 S_MonsterState 생성
-  변경 후:  MonsterState.StateDirty()=위치/회전/HP/페이즈가 직전 송신(MarkStateSent)과 같으면 skip
+  변경 후:  MonsterActor.StateDirty()=위치/회전/HP/페이즈가 직전 송신(MarkStateSent)과 같으면 skip
             (Idle 경비 몬스터 = 트래픽 0. Chase/Patrol 은 어차피 매 틱 변함 = 기존과 동일)
   주의:     · 신규 입장자는 S_SpawnMonster 로스터로 최신 상태를 받으므로 유실 없음(기존 흐름 보존).
             · CombatHandler 데미지 S_MonsterState 송신도 MarkStateSent 호출(틱 중복 재송신 방지).
-  구현:     MonsterState._sent* + StateDirty()/MarkStateSent(). 테스트 MonsterTickDirtyStateTests(idle 생략/chase 매틱).
+  구현:     MonsterActor._sent* + StateDirty()/MarkStateSent(). 테스트 MonsterTickDirtyStateTests(idle 생략/chase 매틱).
 ```
 배칭(`S_MonsterStateBatch` — 한 틱의 전체 변화를 패킷 1개로)은 **확장점으로만 명시**하고 지금은 안 만든다
 — dirty-flag 만으로 idle 다수 시나리오가 해결되고, 배칭은 공개계약 변경이라 별도 합의 필요.
@@ -367,11 +367,11 @@ public interface IActorView            // RemoteDriver·MonsterEntity·LocalMons
 |---|------|------|
 | 1 | ✅ **완료** — Shared `ActorIds` + `AbilityActivationMath`(원시 파라미터 게이트) + 단위테스트 | `Shared.Gameplay.Tests` 50/50 그린 (신규 10) |
 | 2 | ✅ **완료** — 패킷 `S_AbilityActivated`(Union **1604**){ActorId, SkillId} + ClientCodegen 미러 재생성 | `SocketServer.Tests` 직렬화 3/3, Unity 컴파일 0오류 |
-| 3 | ✅ **완료** — `Room.TickMonsters` → `AbilityActivationMath`(MonsterDef.AttackCooldownMs) 게이트 + `S_AbilityActivated`(ActorId=−instanceId) broadcast + `SourceId=−instanceId` 승격 | `MonsterAttackTests` +2(발동신호·헛스윙), SocketServer.Tests 132/132 |
+| 3 | ✅ **완료** — `Room.Tick` → `AbilityActivationMath`(MonsterDef.AttackCooldownMs) 게이트 + `S_AbilityActivated`(ActorId=−instanceId) broadcast + `SourceId=−instanceId` 승격 | `MonsterAttackTests` +2(발동신호·헛스윙), SocketServer.Tests 132/132 |
 | 4 | ✅ **완료(몬스터 공격 모션 해소)** — `ActorRegistry`+`IActorView`+`AbilityCueRouter`+`AbilityActivatedPacketHandler`+`MonsterEntity.PlayAbilityCue`(attackState CrossFade+lock)+스포너 등록+8프리팹 attackState="Attack" | EditMode 172/172(라우팅 6) · PlayMode `MonsterEntityAnimTests`(Attack 전이) · Docker E2E 31/31(S_AbilityActivated 수신 신규) |
-| 5 | ✅ **완료** — `CombatHandler` `S_Attack`→`S_AbilityActivated{ActorId=UserId}` 전환 + `RemoteDriver` IActorView(PlayAbilityCue) + `CharacterSpawner` 레지스트리 등록. ※발동 게이트는 이미 존재(PlayerState 콤보/쿨다운)라 유지 · S_Attack(1601) 타입은 보존(orphaned, 삭제는 후속 승인) | Docker E2E 31/31(플레이어 S_AbilityActivated) · PlayMode 콤보 4/4 · EditMode 172/172 |
+| 5 | ✅ **완료** — `CombatHandler` `S_Attack`→`S_AbilityActivated{ActorId=UserId}` 전환 + `RemoteDriver` IActorView(PlayAbilityCue) + `CharacterSpawner` 레지스트리 등록. ※발동 게이트는 이미 존재(PlayerActor 콤보/쿨다운)라 유지 · S_Attack(1601) 타입은 보존(orphaned, 삭제는 후속 승인) | Docker E2E 31/31(플레이어 S_AbilityActivated) · PlayMode 콤보 4/4 · EditMode 172/172 |
 | 6 | ✅ **완료(Main 몬스터 공격 모션 해소)** — `LocalMonster` 인라인 쿨다운→`AbilityActivationMath` 게이트 + `IActorView.PlayAbilityCue`(attackState CrossFade+lock, 헛스윙 포함) + CreepyDemonLocal prefab attackState="Attack" | PlayMode `LocalMonsterAnimTests`(Attack 전이) · EditMode 172/172 |
-| 7 | ✅ **완료** — 서버 dirty-flag(§5.2, `MonsterState.StateDirty`/`MarkStateSent`): Idle 몬스터 S_MonsterState 트래픽 0. ※클라 이동 라우팅 Registry화(§4.4)는 **보류(YAGNI)** — fan-out은 병목 아님(int 비교), 실비용은 엔티티 Update. 확장점만 | `MonsterTickDirtyStateTests` 2 · SocketServer.Tests 134/134 · Docker E2E 31/31 |
+| 7 | ✅ **완료** — 서버 dirty-flag(§5.2, `MonsterActor.StateDirty`/`MarkStateSent`): Idle 몬스터 S_MonsterState 트래픽 0. ※클라 이동 라우팅 Registry화(§4.4)는 **보류(YAGNI)** — fan-out은 병목 아님(int 비교), 실비용은 엔티티 Update. 확장점만 | `MonsterTickDirtyStateTests` 2 · SocketServer.Tests 134/134 · Docker E2E 31/31 |
 
 - 1~4 만으로 **몬스터 공격 모션 버그가 해소**된다(최소 가치 선행).
 - 5 는 공개계약(1601 제거) 변경 — 단계 진입 전 재확인.
@@ -418,7 +418,7 @@ public interface IActorView            // RemoteDriver·MonsterEntity·LocalMons
 ```mermaid
 flowchart TB
     subgraph now["현재 — 단일 SocketServer 프로세스"]
-        R["Room (한 락)<br/>PlayerState + MonsterState 공동 소유"]
+        R["Room (한 락)<br/>PlayerActor + MonsterActor 공동 소유"]
         RT["RoomTickService 10Hz<br/>MonsterAiMath (순수)"]
         RT --> R
     end
@@ -442,7 +442,7 @@ flowchart TB
 | **위치 투명 ID** | `ActorId` = 순수 identity, 서버 소유 미인코딩 | 몬스터가 다른 프로세스에서 시뮬돼도 클라 라우팅 불변. **부호로 권위 서버 자명**(음수=Monster Server) |
 | **relocatable 순수 로직** | `MonsterAiMath`·`AbilityActivationMath`·`HitboxMath` = 무상태 순수함수 | 틱 루프를 다른 프로세스로 옮기는 건 **호스팅 변경**이지 로직 재작성이 아님 |
 | **메시지 경계** | 전투가 in-process 호출이 아니라 패킷(`S_AbilityActivated`/`S_ApplyEffect`) | 분리는 메시지 경계에서 일어남. 직접 RPC 금지 규칙 덕에 이미 Stream 화 가능 |
-| **상태 미병합** | §2.2 — PlayerState/MonsterState 를 억지로 Actor 로 안 합침 | MonsterState 만 떼어 다른 프로세스로 이전 가능. 합쳤다면 통짜라 분해 불가 |
+| **상태 미병합** | §2.2 — PlayerActor/MonsterActor 를 억지로 Actor 로 안 합침 | MonsterActor 만 떼어 다른 프로세스로 이전 가능. 합쳤다면 통짜라 분해 불가 |
 
 → 즉 §2.2 의 "완전 통합 안 함" 결정이 여기서 **분리 가능성으로 되돌아온다**(통합했으면 오히려 못 뗌).
 
@@ -458,6 +458,6 @@ flowchart TB
 
 지금 Monster Server 를 만들지 않는다 — 단일 프로세스로 충분. **아래 3원칙만 지키면 나중에 뗄 수 있다:**
 
-1. `MonsterState` 를 `PlayerState` 와 **한 구조로 합치지 않는다**(§2.2 유지).
+1. `MonsterActor` 를 `PlayerActor` 와 **한 구조로 합치지 않는다**(§2.2 유지).
 2. `MonsterAiMath` 등 sim 로직에 **락·IO·프로세스 가정을 넣지 않는다**(순수 유지 — 테스트 가능성과 동일 규율).
 3. 서버 간 통신이 필요해지면 **직접 RPC 금지 → Redis Stream**(기존 GameServer↔SocketServer 규칙 그대로).

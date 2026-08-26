@@ -33,23 +33,23 @@ public class DungeonClearTests
     public void 몬스터가_남아있으면_클리어가_아니다()
     {
         var room = NewRoomWithMonsters(2);
-        var first = room.GetAllMonsters()[0].InstanceId;
+        var first = room.Actors.Monsters()[0].InstanceId;
 
-        room.DamageMonster(first, new[] { Lethal }); // 1마리만 처치, 1마리 생존
+        room.Actors.DamageMonster(first, new[] { Lethal }); // 1마리만 처치, 1마리 생존
 
-        Assert.False(room.TryMarkCleared());
+        Assert.False(room.Progress.TryMarkCleared());
     }
 
     [Fact]
     public void 전멸하면_TryMarkCleared는_최초_1회만_true다()
     {
         var room = NewRoomWithMonsters(2);
-        foreach (var m in room.GetAllMonsters())
-            room.DamageMonster(m.InstanceId, new[] { Lethal });
+        foreach (var m in room.Actors.Monsters())
+            room.Actors.DamageMonster(m.InstanceId, new[] { Lethal });
 
-        Assert.Empty(room.GetAllMonsters()); // 전멸
-        Assert.True(room.TryMarkCleared());   // 최초 발화
-        Assert.False(room.TryMarkCleared());  // 재호출은 false(중복 방지)
+        Assert.Empty(room.Actors.Monsters()); // 전멸
+        Assert.True(room.Progress.TryMarkCleared());   // 최초 발화
+        Assert.False(room.Progress.TryMarkCleared());  // 재호출은 false(중복 방지)
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public class DungeonClearTests
             NullLogger<global::Server.Room.Room>.Instance);
 
         // SpawnMonsters 미호출 → _monsters 비어있지만 클리어 아님(빈 방 오판 방지)
-        Assert.False(room.TryMarkCleared());
+        Assert.False(room.Progress.TryMarkCleared());
     }
 
     [Fact]

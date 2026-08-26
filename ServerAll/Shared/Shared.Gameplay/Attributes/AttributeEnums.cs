@@ -1,3 +1,4 @@
+
 namespace Script.System.GamePlayAbilitySystem
 {
     /// <summary>Resource: 즉발로 영구 변동(HP/MP). Stat: 활성 Effect로부터 파생(공격력 등).</summary>

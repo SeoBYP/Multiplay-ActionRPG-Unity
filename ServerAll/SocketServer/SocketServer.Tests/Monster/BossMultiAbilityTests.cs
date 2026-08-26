@@ -28,7 +28,7 @@ public class BossMultiAbilityTests
     private static global::Server.Room.Room NewBossRoom(float playerX = 1f)
     {
         var room = NewRoom();
-        room.InitPlayerState(100, "A", 0, playerX, 0f, 0f, 0f, attackPower: 0, defense: 0, maxHealth: 100_000);
+        room.AddPlayer(100, "A", 0, playerX, 0f, 0f, 0f, attackPower: 0, defense: 0, maxHealth: 100_000);
         room.MarkJoined(100);
         room.SpawnMonsters(
             new List<MonsterSpawnDef> { new("leviathan", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
@@ -62,7 +62,7 @@ public class BossMultiAbilityTests
     {
         var room = NewBossRoom();
 
-        var act = room.TickMonsters(0.1f, 1_000_000).OfType<S_AbilityActivated>().Single();
+        var act = room.Tick(0.1f, 1_000_000).OfType<S_AbilityActivated>().Single();
 
         Assert.Equal(AbilityCatalog.Get("leviathan_slam")!.NetworkId, act.SkillId);
     }
@@ -76,11 +76,11 @@ public class BossMultiAbilityTests
         var attack = AbilityCatalog.Get("leviathan_attack")!;
         const long t0 = 1_000_000;
 
-        var first = room.TickMonsters(0.1f, t0).OfType<S_AbilityActivated>().Single();
+        var first = room.Tick(0.1f, t0).OfType<S_AbilityActivated>().Single();
         Assert.Equal(slam.NetworkId, first.SkillId); // 1) 강스킬
 
         // slam 쿨다운(6000) 중이지만 평타 쿨다운(1800)은 지남 → 평타 발동.
-        var second = room.TickMonsters(0.1f, t0 + attack.Timeline.CooldownMs).OfType<S_AbilityActivated>().Single();
+        var second = room.Tick(0.1f, t0 + attack.Timeline.CooldownMs).OfType<S_AbilityActivated>().Single();
         Assert.Equal(attack.NetworkId, second.SkillId); // 2) 평타 폴백
     }
 
@@ -91,10 +91,10 @@ public class BossMultiAbilityTests
         var slam = AbilityCatalog.Get("leviathan_slam")!;
         const long t0 = 1_000_000;
 
-        room.TickMonsters(0.1f, t0); // slam 발동 → 쿨다운 시작
+        room.Tick(0.1f, t0); // slam 발동 → 쿨다운 시작
 
         // slam 쿨다운 경과 시점 → 우선순위대로 다시 slam.
-        var again = room.TickMonsters(0.1f, t0 + slam.Timeline.CooldownMs).OfType<S_AbilityActivated>().Single();
+        var again = room.Tick(0.1f, t0 + slam.Timeline.CooldownMs).OfType<S_AbilityActivated>().Single();
         Assert.Equal(slam.NetworkId, again.SkillId);
     }
 
@@ -107,12 +107,12 @@ public class BossMultiAbilityTests
         var attack = AbilityCatalog.Get("leviathan_attack")!;
         const long t0 = 1_000_000;
 
-        room.TickMonsters(0.1f, t0);                                   // slam
-        room.TickMonsters(0.1f, t0 + attack.Timeline.CooldownMs);      // 평타
-        room.TickMonsters(0.1f, t0 + attack.Timeline.CooldownMs * 2);  // 평타
+        room.Tick(0.1f, t0);                                   // slam
+        room.Tick(0.1f, t0 + attack.Timeline.CooldownMs);      // 평타
+        room.Tick(0.1f, t0 + attack.Timeline.CooldownMs * 2);  // 평타
 
         // slam 쿨다운이 지나면, 평타를 그 사이 몇 번 썼든 slam 이 다시 최우선.
-        var act = room.TickMonsters(0.1f, t0 + slam.Timeline.CooldownMs).OfType<S_AbilityActivated>().Single();
+        var act = room.Tick(0.1f, t0 + slam.Timeline.CooldownMs).OfType<S_AbilityActivated>().Single();
         Assert.Equal(slam.NetworkId, act.SkillId);
     }
 
@@ -122,7 +122,7 @@ public class BossMultiAbilityTests
         var room = NewBossRoom();
         var slam = AbilityCatalog.Get("leviathan_slam")!;
 
-        var effects = room.TickMonsters(0.1f, 1_000_000).OfType<S_ApplyEffect>().ToList();
+        var effects = room.Tick(0.1f, 1_000_000).OfType<S_ApplyEffect>().ToList();
 
         // 데미지 = slam.baseDamage(90) — 평타(40)보다 강하다. Defense 0 → base 그대로.
         var dmg = effects.Single(e => e.EffectId == CombatHandler.AbilityDamageEffectId);
@@ -142,10 +142,10 @@ public class BossMultiAbilityTests
         var slam = AbilityCatalog.Get("leviathan_slam")!;
         const long t0 = 1_000_000;
 
-        var first = room.TickMonsters(0.1f, t0).OfType<S_AbilityActivated>().Single();
+        var first = room.Tick(0.1f, t0).OfType<S_AbilityActivated>().Single();
         Assert.Equal(slam.NetworkId, first.SkillId);
 
         // slam 쿨다운 중 + 평타는 사거리 밖 → 아무것도 발동하지 않는다(접근만).
-        Assert.Empty(room.TickMonsters(0.1f, t0 + 2000).OfType<S_AbilityActivated>());
+        Assert.Empty(room.Tick(0.1f, t0 + 2000).OfType<S_AbilityActivated>());
     }
 }

@@ -1,9 +1,7 @@
+using Server.Actors;
 using Shared.Infrastructure.Spawn;
 
 namespace Server.Monster;
-
-/// <summary>플레이어 위치(XZ)만 담는 경량 입력 — MonsterAiMath 를 PlayerState 에서 분리해 테스트 가능하게.</summary>
-public readonly record struct PlayerPos(float X, float Z);
 
 /// <summary>
 /// 몬스터 1마리의 한 틱 이동/페이즈를 계산하는 **순수 함수**(시계·난수 없음 → 단위 테스트 가능).
@@ -17,8 +15,8 @@ public static class MonsterAiMath
     private const float WaypointEpsilonSq = 0.04f; // 0.2 units
 
     /// <summary>한 틱 진행 후 aggro 타깃(추격/공격 중인) 플레이어의 인덱스를 반환한다. 없으면 -1.
-    /// 호출자(Room.TickMonsters)가 Attack 페이즈 + 쿨다운 경과 시 이 인덱스로 플레이어를 공격한다.</summary>
-    public static int Step(MonsterState m, IReadOnlyList<PlayerPos> players, MapBounds bounds, MonsterStats stats, float dt)
+    /// 호출자(Room.Tick)가 Attack 페이즈 + 쿨다운 경과 시 이 인덱스로 플레이어를 공격한다.</summary>
+    public static int Step(MonsterActor m, IReadOnlyList<TargetPos> players, MapBounds bounds, MonsterStats stats, float dt)
     {
         int nearestIdx = FindNearestIndex(m.PosX, m.PosZ, players, out float nearestDistSq);
         int aggroTarget = -1;
@@ -60,7 +58,7 @@ public static class MonsterAiMath
         return aggroTarget;
     }
 
-    private static int FindNearestIndex(float x, float z, IReadOnlyList<PlayerPos> players, out float bestSq)
+    private static int FindNearestIndex(float x, float z, IReadOnlyList<TargetPos> players, out float bestSq)
     {
         bestSq = float.MaxValue;
         int best = -1;
@@ -76,7 +74,7 @@ public static class MonsterAiMath
         return best;
     }
 
-    private static void MoveTowards(MonsterState m, float tx, float tz, float speed, float dt)
+    private static void MoveTowards(MonsterActor m, float tx, float tz, float speed, float dt)
     {
         float dx = tx - m.PosX;
         float dz = tz - m.PosZ;
@@ -97,7 +95,7 @@ public static class MonsterAiMath
         m.RotY = DirToYaw(dx, dz);
     }
 
-    private static void FaceTowards(MonsterState m, float tx, float tz)
+    private static void FaceTowards(MonsterActor m, float tx, float tz)
     {
         float dx = tx - m.PosX;
         float dz = tz - m.PosZ;

@@ -19,8 +19,8 @@ public static class MovementHandler
             return ValueTask.CompletedTask;
         }
         
-        room.UpdatePlayerState(session.UserId, packet.PosX, packet.PosY, packet.PosZ, packet.RotY, packet.TimeStamp);
-        room.Broadcast(BuildBroadcast(session.UserId, packet), session.SessionId);
+        room.Actors.SetPosition(session.UserId, packet.PosX, packet.PosY, packet.PosZ, packet.RotY);
+        room.Sessions.Broadcast(BuildBroadcast(session.UserId, packet), session.SessionId);
         
         return ValueTask.CompletedTask;
     }

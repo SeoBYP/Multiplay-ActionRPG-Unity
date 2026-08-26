@@ -1,3 +1,4 @@
+using Script.System.GamePlayAbilitySystem;
 using Microsoft.Extensions.Logging.Abstractions;
 using Server.Room;
 using Server.Tests.Fakes;
@@ -7,7 +8,7 @@ namespace Server.Tests.Room;
 
 /// <summary>
 /// 합산 전투 스탯 전파(2.4 증분1) — GameServer 가 게임시작 메시지로 보낸 스탯을 SocketServer 가
-/// PlayerState 에 세팅하는지. SocketServer 는 DB 접근 없이 메시지 값만 받는다(authority-model §4c).
+/// PlayerActor 에 세팅하는지. SocketServer 는 DB 접근 없이 메시지 값만 받는다(authority-model §4c).
 /// </summary>
 public class PlayerStatSeedTests
 {
@@ -17,28 +18,28 @@ public class PlayerStatSeedTests
             NullLogger<global::Server.Room.Room>.Instance);
 
     [Fact]
-    public void InitPlayerState는_전달된_스탯을_PlayerState에_세팅한다()
+    public void AddPlayer는_전달된_스탯을_액터_GAS에_세팅한다()
     {
         var room = NewRoom();
-        room.InitPlayerState(100, "A", 0, 0f, 0f, 0f, 0f, attackPower: 25, defense: 8, maxHealth: 300);
+        room.AddPlayer(100, "A", 0, 0f, 0f, 0f, 0f, attackPower: 25, defense: 8, maxHealth: 300);
 
-        var p = room.GetAllPlayerStates().Single();
-        Assert.Equal(25, p.AttackPower);
-        Assert.Equal(8, p.Defense);
-        Assert.Equal(300, p.Hp);   // MaxHealth>0 → 권위값으로 만피
-        Assert.Equal(300, p.MaxHp);
+        var p = room.Actors.Members().Single();
+        Assert.Equal(25, p.Actor.Gas[EGameplayAttribute.AttackPower]);
+        Assert.Equal(8, p.Actor.Gas[EGameplayAttribute.Defense]);
+        Assert.Equal(300, p.Actor.Gas[EGameplayAttribute.Health]);   // MaxHealth>0 → 권위값으로 만피
+        Assert.Equal(300, p.Actor.Gas.Max(EGameplayAttribute.Health));
     }
 
     [Fact]
     public void 스탯_미설정이면_MaxHp는_상수폴백_스탯은_0이다()
     {
         var room = NewRoom();
-        room.InitPlayerState(100, "A", 0, 0f, 0f, 0f, 0f); // 스탯 인자 생략(레거시/테스트 경로)
+        room.AddPlayer(100, "A", 0, 0f, 0f, 0f, 0f); // 스탯 인자 생략(레거시/테스트 경로)
 
-        var p = room.GetAllPlayerStates().Single();
-        Assert.Equal(global::Server.Room.Room.DefaultMaxHp, p.MaxHp);
-        Assert.Equal(0, p.AttackPower);
-        Assert.Equal(0, p.Defense);
+        var p = room.Actors.Members().Single();
+        Assert.Equal(global::Server.Room.Room.DefaultMaxHp, p.Actor.Gas.Max(EGameplayAttribute.Health));
+        Assert.Equal(0, p.Actor.Gas[EGameplayAttribute.AttackPower]);
+        Assert.Equal(0, p.Actor.Gas[EGameplayAttribute.Defense]);
     }
 
     [Fact]
@@ -52,15 +53,15 @@ public class PlayerStatSeedTests
     }
 
     [Fact]
-    public void ToJoinedPacket은_PlayerState의_HP기준선을_S_PlayerJoined에_싣는다()
+    public void ToJoinedPacket은_액터의_HP기준선을_S_PlayerJoined에_싣는다()
     {
         // 파티 HP HUD(§2.58b): 원격 클라가 S_PlayerJoined 의 Hp/MaxHp 로 원격 ASC 기준선을 맞춘다.
         // 늦은 입장 로스터는 '현재' Hp(이미 피해분 반영)를 실어야 하므로 Hp 와 MaxHp 를 독립 검증한다.
         var room = NewRoom();
-        room.InitPlayerState(100, "A", 0, 0f, 0f, 0f, 0f, maxHealth: 140);
+        room.AddPlayer(100, "A", 0, 0f, 0f, 0f, 0f, maxHealth: 140);
 
-        var state = room.GetAllPlayerStates().Single();
-        state.Hp = 110; // 피해로 현재 HP 가 줄어든 상황
+        var state = room.Actors.Members().Single();
+        state.Actor.Gas[EGameplayAttribute.Health] = 110; // 피해로 현재 HP 가 줄어든 상황
 
         var packet = global::Server.PacketHandler.Handler.RoomJoinLeaveHandler.ToJoinedPacket(state, "dungeon_01");
 
@@ -70,9 +71,9 @@ public class PlayerStatSeedTests
     }
 
     [Fact]
-    public void CreateRoom은_게임시작_메시지의_PlayerInfo_스탯을_PlayerState로_전파한다()
+    public void CreateRoom은_게임시작_메시지의_PlayerInfo_스탯을_액터_GAS로_전파한다()
     {
-        // 실제 production 경로(RoomManager.CreateRoom → InitPlayerState) — 던전에 스탯이 들어가는지.
+        // 실제 production 경로(RoomManager.CreateRoom → AddPlayer) — 던전에 스탯이 들어가는지.
         var roomManager = new RoomManager(
             NullLogger<RoomManager>.Instance,
             NullLogger<global::Server.Room.Room>.Instance,
@@ -92,9 +93,9 @@ public class PlayerStatSeedTests
 
         var room = roomManager.CreateRoom(1, message.PlayerInfos, message);
 
-        var p = room!.GetAllPlayerStates().Single();
-        Assert.Equal(25, p.AttackPower);
-        Assert.Equal(8, p.Defense);
-        Assert.Equal(300, p.MaxHp);
+        var p = room!.Actors.Members().Single();
+        Assert.Equal(25, p.Actor.Gas[EGameplayAttribute.AttackPower]);
+        Assert.Equal(8, p.Actor.Gas[EGameplayAttribute.Defense]);
+        Assert.Equal(300, p.Actor.Gas.Max(EGameplayAttribute.Health));
     }
 }

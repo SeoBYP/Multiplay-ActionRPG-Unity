@@ -26,16 +26,16 @@ public class MonsterTickDirtyStateTests
     public void Idle_몬스터는_첫틱만_송신하고_이후_변화없으면_생략한다()
     {
         var room = NewRoom();
-        room.InitPlayerState(100, "A", 0, 100f, 0f, 0f, 0f); // 멀리 = aggro 밖 → Idle(제자리)
+        room.AddPlayer(100, "A", 0, 100f, 0f, 0f, 0f); // 멀리 = aggro 밖 → Idle(제자리)
         room.MarkJoined(100);
         SpawnCreepyDemon(room);
 
         // 첫 틱: 아직 송신 이력 없음 → dirty → 1건 송신.
-        Assert.Single(room.TickMonsters(0.1f, 1_000_000).OfType<S_MonsterState>());
+        Assert.Single(room.Tick(0.1f, 1_000_000).OfType<S_MonsterState>());
 
         // 이후 틱: 위치·회전·HP·페이즈 불변 → 생략(트래픽 0).
-        Assert.Empty(room.TickMonsters(0.1f, 1_000_100).OfType<S_MonsterState>());
-        Assert.Empty(room.TickMonsters(0.1f, 1_000_200).OfType<S_MonsterState>());
+        Assert.Empty(room.Tick(0.1f, 1_000_100).OfType<S_MonsterState>());
+        Assert.Empty(room.Tick(0.1f, 1_000_200).OfType<S_MonsterState>());
     }
 
     [Fact]
@@ -48,22 +48,22 @@ public class MonsterTickDirtyStateTests
         // 이때 틱이 "이미 보냈다"고 마킹해 두면 다음 틱이 정정하지 않아 클라 HP 가 **영구 고착**된다.
         // → 데미지 경로는 마킹하지 않고, 틱이 무조건 재전송해 자가 교정하도록 고정한다.
         var room = NewRoom();
-        room.InitPlayerState(100, "A", 0, 100f, 0f, 0f, 0f); // 멀리 = Idle(이동/회전/페이즈 불변)
+        room.AddPlayer(100, "A", 0, 100f, 0f, 0f, 0f); // 멀리 = Idle(이동/회전/페이즈 불변)
         room.MarkJoined(100);
         SpawnCreepyDemon(room);
 
         const long t0 = 1_000_000;
-        Assert.Single(room.TickMonsters(0.1f, t0).OfType<S_MonsterState>());        // 첫 틱 = 송신
-        Assert.Empty(room.TickMonsters(0.1f, t0 + 100).OfType<S_MonsterState>());   // 무변화 = 생략(증분7 목적 유지)
+        Assert.Single(room.Tick(0.1f, t0).OfType<S_MonsterState>());        // 첫 틱 = 송신
+        Assert.Empty(room.Tick(0.1f, t0 + 100).OfType<S_MonsterState>());   // 무변화 = 생략(증분7 목적 유지)
 
         // 플레이어 공격 경로가 하는 일 = 서버 권위 HP 차감(+ 즉시 전송).
-        int id = room.GetAllMonsters()[0].InstanceId;
+        int id = room.Actors.Monsters()[0].InstanceId;
         var dmg = new[] { GameplayAttributeModifier.Create(EGameplayAttribute.Health, -10, EModifierType.Additive) };
-        var (hit, newHp, _) = room.DamageMonster(id, dmg);
+        var (hit, newHp, _) = room.Actors.DamageMonster(id, dmg);
         Assert.True(hit);
 
         // 이동이 전혀 없어도 HP 가 바뀌었으니 다음 틱이 **반드시** 재전송해야 한다(스테일 고착 방지).
-        var state = room.TickMonsters(0.1f, t0 + 200).OfType<S_MonsterState>().Single();
+        var state = room.Tick(0.1f, t0 + 200).OfType<S_MonsterState>().Single();
         Assert.Equal(newHp, state.Hp);
         Assert.Equal(id, state.InstanceId);
     }
@@ -78,33 +78,33 @@ public class MonsterTickDirtyStateTests
         // 누군가 CombatHandler 에 MarkStateSent 를 다시 넣으면 "왜 안 되는지"가 여기 남아 있게 한다.
         // (현 프로덕션 경로는 마킹하지 않으므로 위 테스트가 자가 교정을 보장한다.)
         var room = NewRoom();
-        room.InitPlayerState(100, "A", 0, 100f, 0f, 0f, 0f); // Idle
+        room.AddPlayer(100, "A", 0, 100f, 0f, 0f, 0f); // Idle
         room.MarkJoined(100);
         SpawnCreepyDemon(room);
 
         const long t0 = 1_000_000;
-        room.TickMonsters(0.1f, t0); // 첫 송신 + 마킹
+        room.Tick(0.1f, t0); // 첫 송신 + 마킹
 
-        var monster = room.GetAllMonsters()[0];
+        var monster = room.Actors.Monsters()[0];
         var dmg = new[] { GameplayAttributeModifier.Create(EGameplayAttribute.Health, -10, EModifierType.Additive) };
-        room.DamageMonster(monster.InstanceId, dmg);
+        room.Actors.DamageMonster(monster.InstanceId, dmg);
         monster.MarkStateSent(); // ← 구 CombatHandler 가 하던 짓(회귀 재현)
 
         // 마킹했으므로 틱은 무변화로 보고 **정정하지 않는다** = 클라가 스테일을 받았다면 복구 불가.
-        Assert.Empty(room.TickMonsters(0.1f, t0 + 200).OfType<S_MonsterState>());
+        Assert.Empty(room.Tick(0.1f, t0 + 200).OfType<S_MonsterState>());
     }
 
     [Fact]
     public void Chase_몬스터는_매틱_이동하므로_매틱_송신한다()
     {
         var room = NewRoom();
-        room.InitPlayerState(100, "A", 0, 3f, 0f, 0f, 0f); // aggro 안·attack 밖 → Chase(추격 이동)
+        room.AddPlayer(100, "A", 0, 3f, 0f, 0f, 0f); // aggro 안·attack 밖 → Chase(추격 이동)
         room.MarkJoined(100);
         SpawnCreepyDemon(room);
 
         // 추격 중 = 매 틱 위치가 변함 → 매 틱 송신.
-        Assert.Single(room.TickMonsters(0.1f, 1_000_000).OfType<S_MonsterState>());
-        Assert.Single(room.TickMonsters(0.1f, 1_000_100).OfType<S_MonsterState>());
-        Assert.Single(room.TickMonsters(0.1f, 1_000_200).OfType<S_MonsterState>());
+        Assert.Single(room.Tick(0.1f, 1_000_000).OfType<S_MonsterState>());
+        Assert.Single(room.Tick(0.1f, 1_000_100).OfType<S_MonsterState>());
+        Assert.Single(room.Tick(0.1f, 1_000_200).OfType<S_MonsterState>());
     }
 }

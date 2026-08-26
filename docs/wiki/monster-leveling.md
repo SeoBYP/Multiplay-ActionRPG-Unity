@@ -105,7 +105,7 @@ HP(L) = 100 + 20(L-1) = HP(1)·(1 + 0.2(L-1))
 
 ## 4. 컴포넌트 배치 · 흐름
 
-> ⚠️ **이력(AC-G)**: 구판 다이어그램엔 `T`(등급) 인자와 `spawn.tier` 가 있었다 — 제거됨. 등급 강도는 **변종 ID 의 저작값**이 담당하고, `MonsterState.Tier` 는 카탈로그(monsterId 행)에서 읽는 표시용 분류다. **아래 다이어그램은 현행.**
+> ⚠️ **이력(AC-G)**: 구판 다이어그램엔 `T`(등급) 인자와 `spawn.tier` 가 있었다 — 제거됨. 등급 강도는 **변종 ID 의 저작값**이 담당하고, `MonsterActor.Tier` 는 카탈로그(monsterId 행)에서 읽는 표시용 분류다. **아래 다이어그램은 현행.**
 
 ```mermaid
 flowchart TB
@@ -121,7 +121,7 @@ flowchart TB
     LV --> SC
     MO -->|"maxHp₁"| SC
     AB -->|"base₁"| SC
-    SC -->|"Hp(maxHp₁, L)"| ST["MonsterState — 스폰 시 1회 확정"]
+    SC -->|"Hp(maxHp₁, L)"| ST["MonsterActor — 스폰 시 1회 확정"]
     SC -->|"Damage(base₁, L)"| DMG["StatCombatMath.MeleeDamage<br/>(산식 무변경 — 입력만 스케일)"]
     SC -->|"DropQuantityMultiplier(L)"| ROLL["DropTableCatalog.Roll(id, rng, L)"]
     DR --> ROLL
@@ -134,7 +134,7 @@ Room.SpawnMonsters(defs, bounds, mapMonsterLevel)
    │   L    = MapSpawnLayout.ResolveLevel(def.Level, mapMonsterLevel)   ← 스폰 > 맵 > 1 (단일 구현)
    │   Tier = MonsterCatalog.Get(def.MonsterId).Tier                    ← 카탈로그 분류(스탯 무관)
    ▼
-MonsterState { Level = L, Tier, MaxHp = Scaling.Hp(stats.MaxHp, L), Hp = MaxHp }
+MonsterActor { Level = L, Tier, MaxHp = Scaling.Hp(stats.MaxHp, L), Hp = MaxHp }
 ```
 
 > 매 틱 재계산하지 않는다 — 스탯은 스폰 순간의 값이 진실. (레벨업하는 몬스터는 없다.)
@@ -142,7 +142,7 @@ MonsterState { Level = L, Tier, MaxHp = Scaling.Hp(stats.MaxHp, L), Hp = MaxHp }
 ### 4.2 피해 — 기존 산식은 그대로, **입력만 스케일**
 
 ```
-Room.TickMonsters
+Room.Tick
    └─▶ StatCombatMath.MeleeDamage( Scaling.Damage(chosen.BaseDamage, m.Level), 0, target.Defense )
                                    └───────── 여기만 바뀐다 ─────────┘
 ```
@@ -188,7 +188,7 @@ CombatHandler.SpawnDrops(room, monster)
 |---|------|------|
 | **E1** ✅ | `MonsterLevelScaling`(Shared.Infrastructure) + 단위테스트 — **코드만, 배선 없음** | 단위(역할 보존·바닥 없음·경계) |
 | **E2** ✅ | `MonsterSpawnDef.Level/Tier` + `MapSpawnLayout.MonsterLevel` 저작 + 스폰 시 확정 | 단위(맵 기본/override) · 기존 테스트 무변경 확인 |
-| **E3** ✅ | 피해·HP·Exp 배선(`Room.TickMonsters`·`SpawnMonsters`) | 단위(레벨별 피해) · **Docker E2E** |
+| **E3** ✅ | 피해·HP·Exp 배선(`Room.Tick`·`SpawnMonsters`) | 단위(레벨별 피해) · **Docker E2E** |
 | **E4** ✅ | 드롭 9마리 전수 + 레벨/등급 롤 + goblin 제거 | 단위(롤 분포·유령 부재) |
 | **E5** ✅ | 클라 SO 저작(`MonsterCatalogDefinition`·spawn) + Export 왕복 | Unity 컴파일 · EditMode |
 

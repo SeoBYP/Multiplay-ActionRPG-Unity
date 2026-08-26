@@ -24,8 +24,8 @@ GameServer (.NET 8 / ASP.NET Core)
     ▼
 SocketServer (.NET / TCP)
 ├── Session    : TCP 세션 관리 (Room 직접 참조)
-├── Room       : 인게임 방 관리 + PlayerState
-├── Player     : PlayerState (위치, 회전)
+├── Room       : 인게임 방 관리 + PlayerActor
+├── Player     : PlayerActor (위치, 회전)
 ├── Consumer   : GameStartRequestedConsumer (BackgroundService)
 ├── Infrastructure: TcpListenerService, HeartBeatService, ServerOptions
 └── PacketHandler: Auth, PlayerJoin/Leave, Move, PingPong
@@ -105,7 +105,7 @@ SocketServer (.NET / TCP)
 | TCP 리스너 | ✅ | TcpListenerService (BackgroundService) |
 | 세션 관리 | ✅ | Session.Room 직접 참조 |
 | 방 관리 | ✅ | lock 기반 thread-safe |
-| PlayerState 관리 | ✅ | Room 생성 시점에 SpawnIndex 기반 초기화 |
+| PlayerActor 관리 | ✅ | Room 생성 시점에 SpawnIndex 기반 초기화 |
 | IHost / BackgroundService 전환 | ✅ | Program.cs DI 기반으로 리팩토링 |
 | 서비스 분리 | ✅ | Consumer, TcpListenerService, HeartBeatService, TestRoomService |
 | 패킷 핸들러 (Auth) | ✅ | 인증 전용 분리 (RoomId 제거) |
@@ -319,7 +319,7 @@ SocketServer IP:Port 하드코딩 잔존 여부 확인 및 `appsettings.json` �
 
 **완료:**
 - 패킷 정의 (C_Auth, C_PlayerJoin/Leave, C_Move, S_Move, S_PlayerJoined/Left, S_GameStatus)
-- 이동 동기화 (C_Move → UpdatePlayerState → S_Move 브로드캐스트)
+- 이동 동기화 (C_Move → ActorStore.SetPosition → S_Move 브로드캐스트)
 - HeartBeat (30초 타임아웃)
 
 **미구현:**

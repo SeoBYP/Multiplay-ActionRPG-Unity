@@ -51,7 +51,7 @@ public class RoomManager
         {
             _userRoomIndex[playerInfo.UserId] = msgRoomId;
             var spawn = SpawnResolver.Resolve(layout, playerInfo.SpawnIndex);
-            room.InitPlayerState(
+            room.AddPlayer(
                 playerInfo.UserId, playerInfo.Nickname, playerInfo.SpawnIndex,
                 spawn.X, spawn.Y, spawn.Z, spawn.RotY,
                 playerInfo.AttackPower, playerInfo.Defense, playerInfo.MaxHealth, playerInfo.MaxMana);
@@ -91,7 +91,7 @@ public class RoomManager
         if (room != null)
             EvictStaleSession(room, session);
 
-        if (room != null && room.Join(session))
+        if (room != null && room.Sessions.Add(session))
         {
             _playerRooms[session.SessionId] = room.RoomId;
             session.Room = room;
@@ -108,12 +108,12 @@ public class RoomManager
     /// 유휴 타임아웃까지(실측 63초) 세션이 방에 남아 2/2 방은 <b>본인조차</b> "Room is full" 로 거절됐다
     /// — 재접속 유예(60s)는 그 뒤에야 시작되므로 유예가 있어도 돌아올 방법이 없었다.
     ///
-    /// <b>graceful: true</b> 로 비운다 — 세션만 교체하고 PlayerState(위치·HP)는 보존해야 원래 자리로 복귀한다.
+    /// <b>graceful: true</b> 로 비운다 — 세션만 교체하고 액터(위치·HP)는 보존해야 원래 자리로 복귀한다.
     /// 자리를 넘겨받는 것은 <b>같은 UserId</b> 뿐이다(남의 자리를 뺏지 않는다).
     /// </summary>
     private void EvictStaleSession(Room room, Session incoming)
     {
-        var stale = room.FindSessionByUserId(incoming.UserId, incoming.SessionId);
+        var stale = room.Sessions.FindByUserId(incoming.UserId, incoming.SessionId);
         if (stale is null)
             return;
 
@@ -128,7 +128,7 @@ public class RoomManager
 
     /// <param name="graceful">
     /// true = 크래시/네트워크 끊김(C_PlayerLeave 없음). 방에 다른 플레이어가 남아 있으면
-    ///        재접속 유예 창(<see cref="Room.ReconnectGraceMs"/>) 동안 PlayerState 를 보존하고
+    ///        재접속 유예 창(<see cref="Room.ReconnectGraceMs"/>) 동안 참가자·액터를 보존하고
     ///        S_PlayerLeft 브로드캐스트·association 정리를 <b>보류</b>한다(재접속하면 복귀).
     ///        유예 안에 재접속 안 하면 RoomTickService 의 <see cref="SweepDisconnectedPlayers"/> 가 만료 확정.
     /// false = 명시 퇴장(C_PlayerLeave) — 즉시 퇴장 확정(상태 제거 + 이벤트 발행).
@@ -148,13 +148,13 @@ public class RoomManager
         session.Room = null;
 
         // 크래시인데 방에 다른 플레이어가 남음 → 재접속 유예. 퇴장 확정(브로드캐스트/association 정리)을 보류한다.
-        if (graceful && room.MemberCount > 0)
+        if (graceful && room.Sessions.Count > 0)
             return true;
 
         // 명시 퇴장 OR 크래시로 방이 빔 → 즉시 퇴장 확정.
         if (userId > 0)
         {
-            room.Broadcast(new S_PlayerLeft
+            room.Sessions.Broadcast(new S_PlayerLeft
             {
                 UserId = userId
             });
@@ -185,7 +185,7 @@ public class RoomManager
                     room.RoomId, userId);
 
                 if (userId > 0)
-                    room.Broadcast(new S_PlayerLeft { UserId = userId });
+                    room.Sessions.Broadcast(new S_PlayerLeft { UserId = userId });
 
                 PublishPlayerLeft(room, room.RoomId, userId);
             }
@@ -201,12 +201,12 @@ public class RoomManager
         if (room == null)
             return false;
 
-        var session = room.GetSession(sessionId);
+        var session = room.Sessions.Get(sessionId);
         var userId = session?.UserId ?? 0;
         room.Leave(sessionId);
         if (userId > 0)
         {
-            room.Broadcast(new S_PlayerLeft
+            room.Sessions.Broadcast(new S_PlayerLeft
             {
                 UserId = userId
             });
@@ -223,19 +223,19 @@ public class RoomManager
     /// </summary>
     private void PublishPlayerLeft(Room room, long roomId, long userId)
     {
-        var emptied = room.MemberCount == 0;
+        var emptied = room.Sessions.Count == 0;
         if (emptied && _rooms.TryRemove(roomId, out _))
         {
             // 빈 방 제거 — 유예 보존 중이던 다른 끊김 플레이어들도 함께 영구 퇴장 확정(association 정리 누락 방지).
             // (예: 전원 크래시 — 마지막 세션이 떠날 때 앞서 끊긴 플레이어 상태가 유예로 남아 있을 수 있음)
-            foreach (var state in room.GetAllPlayerStates())
+            foreach (var member in room.Actors.Members())
             {
-                if (state.UserId > 0 && state.UserId != userId && state.DisconnectedAtMs is not null)
+                if (member.UserId > 0 && member.UserId != userId && member.DisconnectedAtMs is not null)
                 {
                     _ = _lifecycleQueue.EnqueueAsync(new PlayerLeftRoomMessage
                     {
                         RoomId = roomId,
-                        UserId = state.UserId,
+                        UserId = member.UserId,
                         RoomEmptied = true
                     });
                 }
@@ -264,7 +264,7 @@ public class RoomManager
     /// </summary>
     public void PublishDungeonClear(Room room)
     {
-        var participants = room.GetAllPlayerStates().Select(p => p.UserId).ToArray();
+        var participants = room.Actors.Members().Select(m => m.UserId).ToArray();
         _ = _dungeonResultQueue.EnqueueAsync(new DungeonClearMessage
         {
             RoomId = room.RoomId,
@@ -310,7 +310,7 @@ public class RoomManager
 
     public Room? FindAvailableRoom()
     {
-        return _rooms.Values.FirstOrDefault(r => !r.IsFull);
+        return _rooms.Values.FirstOrDefault(r => !r.Sessions.IsFull);
     }
 
     public Room? GetRoom(long roomId)

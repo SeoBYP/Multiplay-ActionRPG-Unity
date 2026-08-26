@@ -201,11 +201,11 @@ Session
   ├── Socket, Connected, LastRecvAt   (네트워크)
   ├── UserId, Nickname                (인증)
   ├── Room?     ← C_PlayerJoin 성공 시 직접 참조 세팅
-  └── PlayerState? ← GameStartRequestedMessage 수신 시 미리 초기화
+  └── PlayerActor? ← GameStartRequestedMessage 수신 시 미리 초기화
 ```
 
 - 이동 패킷에서 `session.Room`으로 O(1) 직접 접근. `RoomManager.GetRoom()` 탐색은 입장/퇴장에서만.
-- `GameStartRequestedMessage` 수신 → `Room.InitPlayerState()` 즉시 호출. `C_PlayerJoin`에서 재초기화 금지.
+- `GameStartRequestedMessage` 수신 → `Room.AddPlayer()` 즉시 호출. `C_PlayerJoin`에서 재초기화 금지.
 - `_playerSessions`, `_playerStates` 접근 시 반드시 `lock`.
 - 이동 패킷의 `TimeStamp`는 클라이언트 원본 그대로 릴레이. 서버에서 덮어쓰지 않는다.
 

@@ -13,7 +13,7 @@
      │                        ├─ XADD stream:game:start ──>│
      │                        │   {roomId, players, traceId}
      │                        │                            ├─ Room.Create()
-     │                        │                            ├─ InitPlayerState()
+     │                        │                            ├─ AddPlayer()
      │                        │   <── SET socket:ready ────│
      │                        │                            │
      │                        ├─ room.SetSocketInfo()      │

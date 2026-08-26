@@ -51,10 +51,10 @@ public class PlayerConsumedConsumer(
                 return Task.CompletedTask;
             }
 
-            var (newHp, _, _) = room.ApplyPlayerEffect(msg.UserId, mods);
+            var (newHp, _, _) = room.Progress.ApplyPlayerEffect(msg.UserId, mods);
 
             // 클라 미러용 브로드캐스트 — EffectReceiver 가 같은 effectId 로 로컬 ASC 적용(서버 HP=진실).
-            room.Broadcast(new S_ApplyEffect
+            room.Sessions.Broadcast(new S_ApplyEffect
             {
                 InstanceId = room.NextEffectInstanceId(),
                 EffectId = msg.EffectId,

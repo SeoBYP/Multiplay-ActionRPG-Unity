@@ -26,14 +26,14 @@ public class MonsterLevelDamageTests
     {
         var room = NewRoom();
         // 몬스터는 원점, 플레이어를 바로 옆에 → attack 사거리 진입.
-        room.InitPlayerState(100, "A", 0, 0.5f, 0f, 0f, 0f, maxHealth: 100_000, defense: playerDefense);
+        room.AddPlayer(100, "A", 0, 0.5f, 0f, 0f, 0f, maxHealth: 100_000, defense: playerDefense);
         room.MarkJoined(100);
         room.SpawnMonsters(
             new List<MonsterSpawnDef> { new("creepy_demon", 0f, 0f, 0f, 0f, 1, 0, Array.Empty<PatrolPoint>()) },
             Bounds,
             mapLevel);
 
-        var effects = room.TickMonsters(0.1f, 1_000_000).OfType<S_ApplyEffect>().ToList();
+        var effects = room.Tick(0.1f, 1_000_000).OfType<S_ApplyEffect>().ToList();
         var dmg = effects.Single(e => e.Amount != 0);
         return -dmg.Amount; // Amount 는 Health 델타(음수)
     }

@@ -1,5 +1,5 @@
 using Server.PacketHandler.Handler;
-using Server.Player;
+using Server.Actors;
 
 namespace Server.Tests.Combat;
 
@@ -45,7 +45,7 @@ public class ComboCadenceTests
     [Fact]
     public void 직전_단계의_ComboChainMs_전에는_다음_콤보를_거부한다()
     {
-        var state = new PlayerState { UserId = 1 };
+        var state = new PlayerActor(1);
         var comboA = Shared.Infrastructure.Abilities.AbilityCatalog.Get("combo_a")!.Timeline;
         long t = 10_000;
 
@@ -66,7 +66,7 @@ public class ComboCadenceTests
     {
         // 클라는 정확히 ComboChainMs 간격으로 보내지만 패킷별 지연 차로 서버 도착 간격이 더 짧아질 수 있다.
         // 허용치가 없으면 **정상 콤보가 거부돼 데미지가 유실**된다(던전에서만 나는 버그).
-        var state = new PlayerState { UserId = 1 };
+        var state = new PlayerActor(1);
         var comboA = Shared.Infrastructure.Abilities.AbilityCatalog.Get("combo_a")!.Timeline;
         long t = 10_000;
 
@@ -82,7 +82,7 @@ public class ComboCadenceTests
     public void 허용치를_넘는_연타는_여전히_거부한다()
     {
         // 허용치를 줘도 버스트(즉시 3연타) 차단은 유지돼야 한다.
-        var state = new PlayerState { UserId = 1 };
+        var state = new PlayerActor(1);
         var comboA = Shared.Infrastructure.Abilities.AbilityCatalog.Get("combo_a")!.Timeline;
         long t = 10_000;
 
@@ -99,7 +99,7 @@ public class ComboCadenceTests
     public void 데이터가_0이면_최소_안전값으로_폴백한다()
     {
         // 저작 누락(chainMs=0)이어도 버스트 구멍이 열리면 안 된다 → ComboMinIntervalMs 로 폴백.
-        var state = new PlayerState { UserId = 1 };
+        var state = new PlayerActor(1);
         long t = 10_000;
 
         Assert.True(state.TryBeginComboAttack(t, 0, CombatHandler.ComboMinIntervalMs)); // chainMs=0 → 폴백 기록

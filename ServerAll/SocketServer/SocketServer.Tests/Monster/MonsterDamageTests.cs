@@ -70,46 +70,46 @@ public class MonsterDamageTests
     public void DamageMonster는_GAS로_HP를_깎는다()
     {
         var room = NewRoomWithMonster();
-        var id = room.GetAllMonsters()[0].InstanceId;
+        var id = room.Actors.Monsters()[0].InstanceId;
         var mods = DamageMods10(); // basic_swing baseDamage=10 → Health -10
 
-        var (hit, newHp, dead) = room.DamageMonster(id, mods);
+        var (hit, newHp, dead) = room.Actors.DamageMonster(id, mods);
 
         Assert.True(hit);
         Assert.False(dead);
         Assert.Equal(30, newHp); // 40 - 10
-        Assert.Equal(30, room.GetMonster(id)!.Hp);
+        Assert.Equal(30, room.Actors.GetMonster(id)!.Gas[EGameplayAttribute.Health]);
     }
 
     [Fact]
     public void HP가_0이하면_사망처리되고_방에서_제거된다()
     {
         var room = NewRoomWithMonster();
-        var id = room.GetAllMonsters()[0].InstanceId;
+        var id = room.Actors.Monsters()[0].InstanceId;
         var mods = DamageMods10(); // -10 each
 
-        room.DamageMonster(id, mods); // 40 → 30
-        room.DamageMonster(id, mods); // 30 → 20
-        room.DamageMonster(id, mods); // 20 → 10
-        var (hit, newHp, dead) = room.DamageMonster(id, mods); // 10 → 0
+        room.Actors.DamageMonster(id, mods); // 40 → 30
+        room.Actors.DamageMonster(id, mods); // 30 → 20
+        room.Actors.DamageMonster(id, mods); // 20 → 10
+        var (hit, newHp, dead) = room.Actors.DamageMonster(id, mods); // 10 → 0
 
         Assert.True(hit);
         Assert.True(dead);
         Assert.Equal(0, newHp);
-        Assert.Empty(room.GetAllMonsters());        // 제거됨
-        Assert.Null(room.GetMonster(id));
+        Assert.Empty(room.Actors.Monsters());        // 제거됨
+        Assert.Null(room.Actors.GetMonster(id));
     }
 
     [Fact]
     public void 이미_제거된_몬스터_공격은_Miss를_반환한다()
     {
         var room = NewRoomWithMonster();
-        var id = room.GetAllMonsters()[0].InstanceId;
+        var id = room.Actors.Monsters()[0].InstanceId;
         var big = new[] { new GameplayAttributeModifier(EGameplayAttribute.Health, -999, EModifierType.Additive) };
 
-        room.DamageMonster(id, big); // 즉사 → 제거
+        room.Actors.DamageMonster(id, big); // 즉사 → 제거
 
-        var (hit, _, _) = room.DamageMonster(id, big);
+        var (hit, _, _) = room.Actors.DamageMonster(id, big);
         Assert.False(hit); // 이미 없음
     }
 }
