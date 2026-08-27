@@ -24,7 +24,7 @@ public class CombatHandlerTests
     {
         var room = new global::Server.Room.Room(
             roomId: 1,
-            expectedUserIds: new List<PlayerInfo> { new() { UserId = 100, Nickname = "A", SpawnIndex = 0 } },
+            participants: new List<PlayerInfo> { new() { UserId = 100, Nickname = "A", SpawnIndex = 0 } },
             logger: NullLogger<global::Server.Room.Room>.Instance);
 
         Assert.Equal(1, room.NextEffectInstanceId());

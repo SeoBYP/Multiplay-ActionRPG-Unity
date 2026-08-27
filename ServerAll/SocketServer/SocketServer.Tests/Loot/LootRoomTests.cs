@@ -18,7 +18,7 @@ public class LootRoomTests
     {
         var room = new global::Server.Room.Room(
             roomId: 1,
-            expectedUserIds: new List<PlayerInfo> { new() { UserId = userId, Nickname = "A", SpawnIndex = 0 } },
+            participants: new List<PlayerInfo> { new() { UserId = userId, Nickname = "A", SpawnIndex = 0 } },
             logger: NullLogger<global::Server.Room.Room>.Instance);
         // 플레이어를 원점에 배치(거리 검증 기준).
         room.AddPlayer(userId, "A", 0, 0f, 0f, 0f, 0f);

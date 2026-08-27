@@ -48,7 +48,6 @@ public class Room
     /// <summary>한 틱 몬스터 시뮬레이션. 방의 저장소 위에서 돌지만 진행 판정(실패·다운)은 모른다.</summary>
     private readonly RoomSimulation _simulation;
 
-    private readonly HashSet<long> _expectedUserIds;
     private readonly ILogger<Room> _logger;
 
     private MapBounds _bounds = MapBounds.Unbounded;
@@ -100,28 +99,27 @@ public class Room
             return _handledConsumeIds.Add(consumeId);
     }
 
-    public Room(long roomId, IReadOnlyList<PlayerInfo> expectedUserIds, ILogger<Room> logger)
+    /// <param name="participants">
+    /// 게임 시작 시 확정된 참가자 목록. <b>정원(<see cref="MaxMembers"/>)을 정하는 데만 쓴다</b> —
+    /// 입장 자격은 이 목록이 아니라 GameServer 가 선기입한 Redis 입장권
+    /// (<c>gamesession:player:{userId}</c>)이 판정한다. 인메모리 목록은 프로세스 재시작에 소실되므로
+    /// 인증 근거로 삼지 않는다.
+    /// </param>
+    public Room(long roomId, IReadOnlyList<PlayerInfo> participants, ILogger<Room> logger)
     {
         RoomId = roomId;
-        MaxMembers = expectedUserIds.Count;
-        _expectedUserIds = new HashSet<long>();
-        foreach (var playerInfo in expectedUserIds)
-        {
-            _expectedUserIds.Add(playerInfo.UserId);
-        }
+        MaxMembers = participants.Count;
         _logger = logger;
         Sessions = new RoomSessions(roomId, MaxMembers, logger);
         Progress = new DungeonProgress(Actors);
         _simulation = new RoomSimulation(Actors, NextEffectInstanceId, logger);
     }
 
-    public bool IsExpectedPlayer(long userId) => _expectedUserIds.Contains(userId);
-
     /// <param name="graceful">
     /// true = 크래시/네트워크 끊김(C_PlayerLeave 없음). 참가자를 즉시 지우지 않고
     ///        <see cref="ReconnectGraceMs"/> 동안 보존(DisconnectedAtMs 마킹) → 재접속 시 복귀.
     /// false = 명시 퇴장(C_PlayerLeave). 참가자·액터 즉시 제거(영구 퇴장).
-    /// 어느 쪽이든 세션(_playerSessions)은 즉시 제거된다. 빈 방 처리·이벤트 발행은 RoomManager 책임.
+    /// 어느 쪽이든 세션(<see cref="Sessions"/>)은 즉시 제거된다. 빈 방 처리·이벤트 발행은 RoomManager 책임.
     /// </param>
     public bool Leave(ulong sessionId, bool graceful = false)
     {
