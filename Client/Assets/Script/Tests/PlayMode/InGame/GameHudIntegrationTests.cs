@@ -107,12 +107,12 @@ namespace Game.Tests.PlayMode.InGame
             return localPlayer;
         }
 
-        private AbilitySystemComponent CreateAsc(int hp, int maxHp, int mp, int maxMp)
+        private GasComponent CreateAsc(int hp, int maxHp, int mp, int maxMp)
         {
             var go = new GameObject("LocalPlayer");
             _objects.Add(go);
 
-            var asc = go.AddComponent<AbilitySystemComponent>();
+            var asc = go.AddComponent<GasComponent>();
             asc.Attributes = new List<GameplayAttribute>
             {
                 new(EGameplayAttribute.Health, hp, maxHp),
@@ -122,7 +122,7 @@ namespace Game.Tests.PlayMode.InGame
             return asc;
         }
 
-        private static void ApplyDamage(AbilitySystemComponent asc, EGameplayAttribute type, int amount)
+        private static void ApplyDamage(GasComponent asc, EGameplayAttribute type, int amount)
         {
             var effect = new GameplayEffect(new List<GameplayAttributeModifier>
             {

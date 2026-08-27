@@ -15,10 +15,10 @@ namespace Game.Gameplay.Character
     public sealed class PlayerStatApplier : MonoBehaviour
     {
         private PlayerProgressionHolder _progression;
-        private AbilitySystemComponent _asc;
+        private GasComponent _asc;
         private int _appliedMaxHealth;
 
-        private void Awake() => _asc = GetComponent<AbilitySystemComponent>();
+        private void Awake() => _asc = GetComponent<GasComponent>();
 
         /// <summary>
         /// 진행/스탯 홀더 연결(로컬 스폰 시 CharacterSpawner 가 호출). 즉시 1회 적용 + 레벨업(OnChanged) 구독.
@@ -50,12 +50,12 @@ namespace Game.Gameplay.Character
         /// </summary>
         public void ApplyMaxHealth(int maxHealth)
         {
-            if (_asc == null) _asc = GetComponent<AbilitySystemComponent>();
+            if (_asc == null) _asc = GetComponent<GasComponent>();
             if (_asc == null || maxHealth <= 0 || maxHealth == _appliedMaxHealth) return;
-            if (!_asc.TryGetAttribute(EGameplayAttribute.Health, out var hp)) return;
+            if (!_asc.Has(EGameplayAttribute.Health)) return;
 
-            hp.SetMax(maxHealth);
-            hp.SetCurrent(maxHealth); // 스폰=풀피 / 레벨업=풀회복(흔한 RPG 처리)
+            _asc.SetMax(EGameplayAttribute.Health, maxHealth);
+            _asc.SetCurrent(EGameplayAttribute.Health, maxHealth); // 스폰=풀피 / 레벨업=풀회복(흔한 RPG 처리)
             _appliedMaxHealth = maxHealth;
         }
     }

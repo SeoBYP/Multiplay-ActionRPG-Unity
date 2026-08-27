@@ -78,7 +78,7 @@ namespace Game.Presentation.InGame
         private bool _connectionLostHandled;
         private bool _uiCaptured;
 
-        private AbilitySystemComponent _asc;
+        private GasComponent _asc;
         private bool _isProcessing;
 
         public ReadOnlyReactiveProperty<InGameState> State =>
@@ -197,7 +197,7 @@ namespace Game.Presentation.InGame
 
         // ── 로컬 플레이어 ASC ↔ State 중계 ────────────
 
-        private void BindLocalPlayer(AbilitySystemComponent asc)
+        private void BindLocalPlayer(GasComponent asc)
         {
             if (asc == null || ReferenceEquals(asc, _asc))
                 return;
@@ -220,8 +220,8 @@ namespace Game.Presentation.InGame
 
         private void PushInitial(EGameplayAttribute type, Action<int, int> dispatch)
         {
-            if (_asc.TryGetAttribute(type, out var attr))
-                dispatch(attr.CurrentValue, attr.MaxValue);
+            if (_asc.Has(type))
+                dispatch(_asc.Current(type), _asc.Max(type));
         }
 
         private void OnAttributeChanged(EGameplayAttribute type, int current, int max)

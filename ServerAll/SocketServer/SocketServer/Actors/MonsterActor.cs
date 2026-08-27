@@ -73,15 +73,18 @@ public sealed class MonsterActor(int instanceId) : Actor(ActorIds.FromMonster(in
     /// </summary>
     public override ActorTickResult Tick(float dt, long nowMs, IReadOnlyList<TargetPos> targets, MapBounds bounds)
     {
+        // 만료를 먼저 걷는다 — 스턴이 이 틱에 풀렸다면 이번 AI 판단부터 풀린 상태로 가야 한다.
+        var expired = Gas.TickEffects(nowMs);
+
         int targetIdx = MonsterAiMath.Step(this, targets, bounds, Server.Monster.MonsterCatalog.Get(MonsterId), dt);
         if (Phase != MonsterPhase.Attack || targetIdx < 0)
-            return new ActorTickResult(targetIdx, null);
+            return new ActorTickResult(targetIdx, null, expired);
 
         var chosen = SelectAbility(targets[targetIdx], nowMs);
         if (chosen is not null)
             Gas.MarkCast(chosen.Id, nowMs); // 발동 확정 = 쿨다운 시작(자기 상태는 자기가 커밋)
 
-        return new ActorTickResult(targetIdx, chosen);
+        return new ActorTickResult(targetIdx, chosen, expired);
     }
 
     /// <summary>

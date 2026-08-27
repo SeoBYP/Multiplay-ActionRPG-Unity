@@ -79,7 +79,7 @@ namespace Game.Tests.PlayMode.InGame
             var motor  = go.AddComponent<CharacterMotor>();
             var ground = go.AddComponent<GroundedDetector>();
             var anims  = go.AddComponent<CharacterAgentAnimations>();
-            var asc    = go.AddComponent<AbilitySystemComponent>();
+            var asc    = go.AddComponent<GasComponent>();
             asc.Attributes = new List<GameplayAttribute> { new(EGameplayAttribute.Health, 100, 100) };
             go.SetActive(true);
 
@@ -118,7 +118,7 @@ namespace Game.Tests.PlayMode.InGame
             cc.height = 2f; cc.radius = 0.5f; cc.center = new Vector3(0f, 1f, 0f);
             var motor = go.AddComponent<CharacterMotor>();
             var anims = go.AddComponent<CharacterAgentAnimations>();
-            var asc   = go.AddComponent<AbilitySystemComponent>();
+            var asc   = go.AddComponent<GasComponent>();
             asc.Attributes = new List<GameplayAttribute> { new(EGameplayAttribute.Health, 100, 100) };
             go.SetActive(true);
             go.transform.position = new Vector3(0f, 5f, 0f); // 공중
@@ -159,7 +159,7 @@ namespace Game.Tests.PlayMode.InGame
             animator.avatar = null;
 
             var agent = go.AddComponent<TestableAgent>();
-            var asc = go.GetComponent<AbilitySystemComponent>();
+            var asc = go.GetComponent<GasComponent>();
             asc.Attributes = new List<GameplayAttribute> { new(EGameplayAttribute.Health, 100, 100) };
 
             // CharacterAgentAnimations 트리거명(런타임 AddComponent 라 프리팹값 없음) — Awake 전에 세팅.
@@ -175,7 +175,7 @@ namespace Game.Tests.PlayMode.InGame
             Assume.That(animator.runtimeAnimatorController, Is.Not.Null, "PlayerController 로드 실패(에디터 외 실행)");
 
             // 사망: HP→0 → OnAttributeChanged → SetTrigger(Dead) → AnyState→Dead
-            asc.GetAttribute(EGameplayAttribute.Health).SetCurrent(0);
+            asc.SetCurrent(EGameplayAttribute.Health, 0);
             for (int i = 0; i < 12; i++) { animator.Update(0.1f); yield return null; }
             Assert.IsTrue(asc.HasTag(GameplayTags.Dead), "HP0 이면 State.Dead 태그가 서야 한다.");
             Assert.IsTrue(animator.GetCurrentAnimatorStateInfo(0).IsName("Dead"), "사망 시 Animator 가 Dead 상태여야 한다.");
@@ -198,12 +198,12 @@ namespace Game.Tests.PlayMode.InGame
             var rig = BuildAnimRig(("m_animationDeathTrigger", "Dead"), ("m_animationHitTrigger", "Hit"));
 
             // 첫 통지는 기준값만 세운다(피격 아님) — 그 다음 감소부터가 피격.
-            rig.asc.GetAttribute(EGameplayAttribute.Health).SetCurrent(90);
+            rig.asc.SetCurrent(EGameplayAttribute.Health, 90);
             yield return null;
             Assert.IsFalse(rig.animator.GetCurrentAnimatorStateInfo(0).IsName("Hit"),
                 "첫 HP 통지만으로는 피격 애니가 나오면 안 된다.");
 
-            rig.asc.GetAttribute(EGameplayAttribute.Health).SetCurrent(70);
+            rig.asc.SetCurrent(EGameplayAttribute.Health, 70);
             for (int i = 0; i < 6; i++) { rig.animator.Update(0.05f); yield return null; }
             Assert.IsTrue(rig.animator.GetCurrentAnimatorStateInfo(0).IsName("Hit"),
                 "HP 가 줄면 피격(Hit) 애니로 전이해야 한다.");
@@ -214,9 +214,9 @@ namespace Game.Tests.PlayMode.InGame
         {
             var rig = BuildAnimRig(("m_animationDeathTrigger", "Dead"), ("m_animationHitTrigger", "Hit"));
 
-            rig.asc.GetAttribute(EGameplayAttribute.Health).SetCurrent(90);
+            rig.asc.SetCurrent(EGameplayAttribute.Health, 90);
             yield return null;
-            rig.asc.GetAttribute(EGameplayAttribute.Health).SetCurrent(0); // 치명타
+            rig.asc.SetCurrent(EGameplayAttribute.Health, 0); // 치명타
             for (int i = 0; i < 12; i++) { rig.animator.Update(0.1f); yield return null; }
 
             Assert.IsTrue(rig.animator.GetCurrentAnimatorStateInfo(0).IsName("Dead"),
@@ -320,7 +320,7 @@ namespace Game.Tests.PlayMode.InGame
         }
 
         /// <summary>실제 컨트롤러가 붙은 Animator + ASC + Motor 리그. 파라미터명은 프리팹 값이 없으므로 주입한다.</summary>
-        private (GameObject go, Animator animator, AbilitySystemComponent asc, CharacterAgentAnimations caa)
+        private (GameObject go, Animator animator, GasComponent asc, CharacterAgentAnimations caa)
             BuildAnimRig(params (string field, string value)[] names)
         {
             var go = new GameObject("AnimRigAgent");
@@ -338,7 +338,7 @@ namespace Game.Tests.PlayMode.InGame
             animator.avatar = null;
 
             go.AddComponent<TestableAgent>(); // RequireComponent 로 ASC·Motor·Animations 자동 추가
-            var asc = go.GetComponent<AbilitySystemComponent>();
+            var asc = go.GetComponent<GasComponent>();
             asc.Attributes = new List<GameplayAttribute> { new(EGameplayAttribute.Health, 100, 100) };
 
             var caa = go.GetComponent<CharacterAgentAnimations>();
@@ -356,7 +356,7 @@ namespace Game.Tests.PlayMode.InGame
 
         // ── 리그 (CcGateTests 와 동일 구조) ──────────────
 
-        private (TestableAgent agent, FakeInput input, AbilitySystemComponent asc) BuildAgent(bool withDetector = false)
+        private (TestableAgent agent, FakeInput input, GasComponent asc) BuildAgent(bool withDetector = false)
         {
             var go = new GameObject("ActionRootAgent");
             go.SetActive(false);
@@ -372,7 +372,7 @@ namespace Game.Tests.PlayMode.InGame
                     .SetValue(det, (LayerMask)(-1));
             }
             var agent = go.AddComponent<TestableAgent>(); // RequireComponent 로 ASC·Motor·Animations 등 자동 추가
-            var asc = go.GetComponent<AbilitySystemComponent>();
+            var asc = go.GetComponent<GasComponent>();
             asc.Attributes = new List<GameplayAttribute> { new(EGameplayAttribute.Health, 100, 100) };
 
             go.SetActive(true);

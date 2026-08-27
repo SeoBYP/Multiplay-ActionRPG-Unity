@@ -21,7 +21,7 @@ namespace Game.Gameplay.Character
         private static readonly float CooldownSec = DodgeConfig.CooldownMs / 1000f;
 
         private readonly CharacterMotor _motor;
-        private readonly AbilitySystemComponent _asc;
+        private readonly GasComponent _asc;
         private readonly CharacterAgentAnimations _animations;
         private readonly float _dashSpeed;
         private readonly float _dashDuration;
@@ -34,7 +34,7 @@ namespace Game.Gameplay.Character
 
         public bool IsActive => _active;
 
-        public DodgeDriver(CharacterMotor motor, AbilitySystemComponent asc,
+        public DodgeDriver(CharacterMotor motor, GasComponent asc,
             CharacterAgentAnimations animations, LocomotionSettings settings)
         {
             _motor = motor;

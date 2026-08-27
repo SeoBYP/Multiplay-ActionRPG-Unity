@@ -94,7 +94,7 @@ namespace Game.Tests.EditMode.InGame
             // 수치는 effect 카탈로그가 아니라 **서버 권위 Amount**(=ability.baseDamage 산출) — healthOverride 로 적용된다.
             state.ApplyEffect(new SocketEffectApply("ability_damage", instanceId: 1, targetId: LocalUserId, sourceId: 200, startTick: 0, stacks: 1, amount: -10));
 
-            Assert.AreEqual(90, asc.GetAttribute(EGameplayAttribute.Health).CurrentValue);
+            Assert.AreEqual(90, asc.Current(EGameplayAttribute.Health));
             Assert.AreEqual(0, asc.ActiveEffects.Count, "즉발 피해는 ActiveEffect로 추적되지 않는다");
         }
 
@@ -114,8 +114,8 @@ namespace Game.Tests.EditMode.InGame
 
             state.ApplyEffect(new SocketEffectApply("ability_damage", instanceId: 5, targetId: 999, sourceId: 200, startTick: 0, stacks: 1, amount: -10));
 
-            Assert.AreEqual(90, remoteAsc.GetAttribute(EGameplayAttribute.Health).CurrentValue, "원격 대상 효과는 레지스트리의 원격 ASC 에 적용돼야 한다.");
-            Assert.AreEqual(100, localAsc.GetAttribute(EGameplayAttribute.Health).CurrentValue, "원격 대상 효과가 로컬 ASC 에 새면 안 된다.");
+            Assert.AreEqual(90, remoteAsc.Current(EGameplayAttribute.Health), "원격 대상 효과는 레지스트리의 원격 ASC 에 적용돼야 한다.");
+            Assert.AreEqual(100, localAsc.Current(EGameplayAttribute.Health), "원격 대상 효과가 로컬 ASC 에 새면 안 된다.");
         }
 
         // ── 헬퍼 ────────────────────────────────────────
@@ -127,11 +127,11 @@ namespace Game.Tests.EditMode.InGame
             return receiver;
         }
 
-        private AbilitySystemComponent CreateAsc()
+        private GasComponent CreateAsc()
         {
             var go = new GameObject("LocalPlayer");
             _objects.Add(go);
-            var asc = go.AddComponent<AbilitySystemComponent>();
+            var asc = go.AddComponent<GasComponent>();
             asc.Attributes = new List<GameplayAttribute>
             {
                 new(EGameplayAttribute.Health, 100, 100),

@@ -181,4 +181,68 @@ public class RoomSimulationTests
 
         Assert.True(member.Actor.Gas[EGameplayAttribute.Mana] > 0, "틱이 마나를 회복시켜야 한다");
     }
+
+    // ── 지속 Effect(CC) — 서버가 부여도 만료도 소유한다 ──────────────
+
+    /// <summary>사거리(1.8) 안에 stun_1_5s 를 거는 gargoyle 을 원점에 놓는다.</summary>
+    private static MonsterActor AddGargoyle(ActorStore store)
+    {
+        var monster = new MonsterActor(store.NextMonsterInstanceId())
+        {
+            MonsterId = "gargoyle",
+            Phase = MonsterPhase.Idle,
+        };
+        monster.Gas.DefineResource(EGameplayAttribute.Health, 80);
+        store.Add(monster);
+        return monster;
+    }
+
+    [Fact]
+    public void 몬스터_CC는_브로드캐스트만이_아니라_서버_액터에도_걸린다()
+    {
+        // 예전엔 S_ApplyEffect 만 쏘고 서버 액터에는 아무 흔적이 없었다 —
+        // 즉 스턴 중인 플레이어의 공격을 서버가 거를 수 없었다(IsActivationBlocked 가 항상 false).
+        var (sim, store) = NewSim();
+        var player = AddJoinedPlayer(store, 100, x: 1.0f, z: 0f);
+        AddGargoyle(store);
+
+        var (packets, _) = sim.Tick(0.1f, 1_000_000, Bounds);
+
+        Assert.Contains(packets.OfType<S_ApplyEffect>(), p => p.EffectId == "stun_1_5s");
+        Assert.True(player.Actor.Gas.HasTag(GameplayTags.Stun));
+        Assert.True(player.Actor.Gas.IsActivationBlocked);
+    }
+
+    [Fact]
+    public void CC가_만료되면_S_RemoveEffect를_브로드캐스트한다()
+    {
+        var (sim, store) = NewSim();
+        var player = AddJoinedPlayer(store, 100, x: 1.0f, z: 0f);
+        AddGargoyle(store);
+
+        var (hitPackets, _) = sim.Tick(0.1f, 1_000_000, Bounds);
+        int stunInstance = hitPackets.OfType<S_ApplyEffect>().Single(p => p.EffectId == "stun_1_5s").InstanceId;
+
+        // 재피격이 섞이지 않도록 사거리 밖으로 빼고 스턴 지속시간(1500ms) 이후로 넘긴다.
+        store.SetPosition(100, 30f, 0f, 30f, 0f);
+        var (expiryPackets, _) = sim.Tick(0.1f, 1_001_600, Bounds);
+
+        Assert.Equal(stunInstance, expiryPackets.OfType<S_RemoveEffect>().Single().InstanceId);
+        Assert.False(player.Actor.Gas.HasTag(GameplayTags.Stun));
+        Assert.False(player.Actor.Gas.IsActivationBlocked);
+    }
+
+    [Fact]
+    public void CC가_살아있는_동안은_만료_패킷이_나가지_않는다()
+    {
+        var (sim, store) = NewSim();
+        AddJoinedPlayer(store, 100, x: 1.0f, z: 0f);
+        AddGargoyle(store);
+
+        sim.Tick(0.1f, 1_000_000, Bounds);
+        store.SetPosition(100, 30f, 0f, 30f, 0f);
+        var (packets, _) = sim.Tick(0.1f, 1_001_400, Bounds); // 1500ms 전
+
+        Assert.Empty(packets.OfType<S_RemoveEffect>());
+    }
 }

@@ -3,15 +3,15 @@ using Script.System.GamePlayAbilitySystem;
 namespace Shared.Gameplay.Tests;
 
 /// <summary>
-/// GasComponent — 속성 적용이 <b>Health 전용이 아니라 속성 일반</b>이 됐다는 것을 고정한다.
+/// AbilitySystemComponent — 속성 적용이 <b>Health 전용이 아니라 속성 일반</b>이 됐다는 것을 고정한다.
 /// 예전 구현은 <c>mods.Where(m =&gt; m.AttributeType == Health)</c> 로 Health 만 걸러서,
 /// 카탈로그에 이미 있던 <c>atk_up_20</c>(AttackPower)·<c>def_down_10</c>(Defense)을 **서버가 적용할 수 없었다**.
 /// </summary>
-public class GasComponentTests
+public class AbilitySystemComponentTests
 {
-    private static GasComponent Player(int hp = 100, int mana = 50, int atk = 25, int def = 8)
+    private static AbilitySystemComponent Player(int hp = 100, int mana = 50, int atk = 25, int def = 8)
     {
-        var gas = new GasComponent();
+        var gas = new AbilitySystemComponent();
         gas.DefineResource(EGameplayAttribute.Health, hp);
         gas.DefineResource(EGameplayAttribute.Mana, mana);
         gas.DefineStat(EGameplayAttribute.AttackPower, atk);
@@ -20,9 +20,9 @@ public class GasComponentTests
     }
 
     /// <summary>몬스터 — Health 만 보유(공격력·방어력·마나 미보유).</summary>
-    private static GasComponent Monster(int hp = 30)
+    private static AbilitySystemComponent Monster(int hp = 30)
     {
-        var gas = new GasComponent();
+        var gas = new AbilitySystemComponent();
         gas.DefineResource(EGameplayAttribute.Health, hp);
         return gas;
     }

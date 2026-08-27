@@ -16,14 +16,14 @@ namespace Game.System.Player
     /// </summary>
     public sealed class PartyAscRegistry
     {
-        private readonly Dictionary<long, AbilitySystemComponent> _byUserId = new();
+        private readonly Dictionary<long, GasComponent> _byUserId = new();
 
         /// <summary>등록/해제 시 발행(파티 구성 변경). PartyModel 이 구독해 리스트를 갱신한다.</summary>
         public event Action Changed;
 
-        public IReadOnlyDictionary<long, AbilitySystemComponent> Entries => _byUserId;
+        public IReadOnlyDictionary<long, GasComponent> Entries => _byUserId;
 
-        public void Register(long userId, AbilitySystemComponent asc)
+        public void Register(long userId, GasComponent asc)
         {
             if (userId <= 0 || asc == null) return;
             _byUserId[userId] = asc;
@@ -36,7 +36,7 @@ namespace Game.System.Player
                 Changed?.Invoke();
         }
 
-        public bool TryGet(long userId, out AbilitySystemComponent asc) => _byUserId.TryGetValue(userId, out asc);
+        public bool TryGet(long userId, out GasComponent asc) => _byUserId.TryGetValue(userId, out asc);
 
         public void Clear()
         {

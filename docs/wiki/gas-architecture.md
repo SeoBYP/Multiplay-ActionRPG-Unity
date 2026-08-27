@@ -23,13 +23,13 @@
 | # | 문제 | 위치 |
 |---|------|------|
 | ① | ~~**데미지 수치 이중 정의** — 같은 effect가 클라/서버 카탈로그에 손으로 중복~~ → **해소**: 전투=`CombatEffectCatalog`가 Shared 코드 시드 위임(2.6b ⓑ), 소모품=클라 SO 저작→bake 단일소스(§2.5·2.6c). | (해소됨) |
-| ② | **"Effect 적용"이 두 엔진** — 클라 ASC vs 서버 인라인(`Room.DamageMonster`가 `GameplayEffectMath` 직접 호출) | ASC가 MonoBehaviour라 Shared 불가 |
+| ② | ~~**"Effect 적용"이 두 엔진**~~ → **✅ 해소(2026-08-27, codemap §2.86)** — 상태·산식이 Shared `AbilitySystemComponent` 하나로 합쳐졌다. 서버 `Actor.Gas` 와 클라 `GasComponent` 가 **같은 객체 타입**을 쓴다 | `Shared.Gameplay/Actors/AbilitySystemComponent.cs` |
 | ③ | ~~**죽은 구 ability 경로 잔존**~~ → **정정(2026-07-17 검수): 삭제 계획 폐기** — `GameplayEffect` 는 이후 **Main 로컬 권위 경로에서 부활**(`LocalMonster` 즉발 피해 생성·`ConsumableEffectHandler`), `AbilitySystemUtils` 는 테스트 헬퍼로 생존. 더는 죽은코드가 아니다 | `Effects/GameplayEffect.cs` |
-| ④ | ~~**태그 시스템 부재**~~ → **✅ 해소** — `GameplayTagContainer` 가 ASC 에 존재(AddTag/HasTag + 활성 Effect 의 GrantedTags 동적 합산). CC(스턴·슬로우)·사망 태그가 실사용 중 | `AbilitySystemComponent` |
+| ④ | ~~**태그 시스템 부재**~~ → **✅ 해소** — `GameplayTagContainer` 가 ASC 에 존재(AddTag/HasTag + 활성 Effect 의 GrantedTags 동적 합산). CC(스턴·슬로우)·사망 태그가 실사용 중. 2026-08-27 부터 **서버도 동일**(§2.86) | `AbilitySystemComponent` |
 | ⑤ | ~~**서버 발동 권위 없음**~~ → **✅ 대부분 해소(AC, 2026-07-17)** — 쿨다운(`TryBeginSkill`)·콤보 cadence·마나 게이트가 구현돼 `C_Attack` 연사가 서버에서 거부된다(거부 사유는 `[CombatTrace]` gate 로 관측). **잔여**: active-window 정밀 타이밍·플레이어 서버측 HP 추적 | `CombatHandler.HandleAttack` |
-| ⑥ | ASC가 MonoBehaviour + 자가 `Update` tick → 헤드리스 불가 (서버가 ASC 못 씀의 근인) | `AbilitySystemComponent` |
+| ⑥ | ~~ASC가 MonoBehaviour + 자가 `Update` tick → 헤드리스 불가~~ → **✅ 해소(2026-08-27, §2.86)** — 상태·산식은 엔진 없는 Shared `AbilitySystemComponent` 로 내려갔고, MonoBehaviour(`GasComponent`)에는 **엔진이 있어야만 되는 일**(프리팹 직렬화·`Update` 시계·C# 이벤트 재발행)만 남았다. 서버는 `Actor.Tick` 이 시계를 준다 | `GasComponent`(어댑터) / `AbilitySystemComponent`(로직) |
 
-> ②⑥는 본 정리 범위 밖(option C, YAGNI). 이번은 ①③④⑤ 중심.
+> (구 메모: "②⑥는 본 정리 범위 밖(option C, YAGNI)" — 2026-08-27 §2.86 에서 둘 다 해소됐다.)
 
 ---
 
@@ -46,7 +46,7 @@ flowchart TB
     SHARED -.->|"클라 = Plugins/Shared.Gameplay.dll (동일 ns)"| CLIENT
     SHARED -.->|"서버 = ProjectReference (Cue 를 모른다)"| SERVER
     subgraph CLIENT["CLIENT — 연출은 전부 여기, ID 로 조인"]
-        ASC["AbilitySystemComponent : MonoBehaviour<br/>TagContainer · Attributes+Tick · 이벤트"]
+        ASC["GasComponent : MonoBehaviour (Unity 어댑터)<br/>프리팹 직렬화 · Update 시계 · 이벤트 재발행<br/>└ Shared AbilitySystemComponent 소유(상태·산식)"]
         CUE["연출(현행): AbilityDefinition.cueTrigger(SO, bake 제외)<br/>→ AbilityCueRouter(ActorId → IActorView)<br/>→ CharacterAgentAnimations(파라미터명 = 프리팹 보유)"]
     end
     subgraph SERVER["SERVER"]

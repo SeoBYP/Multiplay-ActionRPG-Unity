@@ -33,7 +33,7 @@ namespace Game.Presentation.InGame
         private readonly PartyAscRegistry _registry;
         private readonly ISocketPacketState _state;
         private readonly AuthSession _auth;
-        private readonly List<AbilitySystemComponent> _subscribed = new();
+        private readonly List<GasComponent> _subscribed = new();
 
         public event Action Changed;
 
@@ -90,12 +90,12 @@ namespace Game.Presentation.InGame
             {
                 var asc = kv.Value;
                 if (asc == null) continue;
-                var hp = asc.GetAttribute(EGameplayAttribute.Health);
                 string nick = _state.TryGetPlayer(kv.Key, out var snap) && !string.IsNullOrEmpty(snap.Nickname)
                     ? snap.Nickname
                     : $"Player {kv.Key}";
                 bool isLocal = _auth != null && kv.Key == _auth.UserId;
-                list.Add(new PartyMemberInfo(kv.Key, nick, hp?.CurrentValue ?? 0, hp?.MaxValue ?? 0, isLocal));
+                list.Add(new PartyMemberInfo(kv.Key, nick,
+                    asc.Current(EGameplayAttribute.Health), asc.Max(EGameplayAttribute.Health), isLocal));
             }
             return list;
         }

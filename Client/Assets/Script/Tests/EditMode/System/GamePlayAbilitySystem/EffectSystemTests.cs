@@ -27,7 +27,7 @@ namespace Game.Tests.EditMode.GamePlayAbilitySystem
             var asc = CreateAsc();
             asc.ApplyEffect(AtkBuffMultiplicative(durationMs: 5000, amount: 120));
 
-            Assert.AreEqual(60, asc.GetAttribute(EGameplayAttribute.AttackPower).CurrentValue);
+            Assert.AreEqual(60, asc.Current(EGameplayAttribute.AttackPower));
         }
 
         [Test]
@@ -35,14 +35,14 @@ namespace Game.Tests.EditMode.GamePlayAbilitySystem
         {
             var asc = CreateAsc();
             asc.ApplyEffect(AtkBuffMultiplicative(durationMs: 1000, amount: 120));
-            Assert.AreEqual(60, asc.GetAttribute(EGameplayAttribute.AttackPower).CurrentValue);
+            Assert.AreEqual(60, asc.Current(EGameplayAttribute.AttackPower));
 
             asc.Tick(0.5f); // 0.5s — 아직 유지
-            Assert.AreEqual(60, asc.GetAttribute(EGameplayAttribute.AttackPower).CurrentValue);
+            Assert.AreEqual(60, asc.Current(EGameplayAttribute.AttackPower));
 
             asc.Tick(0.6f); // 누적 1.1s — 만료
             Assert.AreEqual(0, asc.ActiveEffects.Count);
-            Assert.AreEqual(AtkBase, asc.GetAttribute(EGameplayAttribute.AttackPower).CurrentValue);
+            Assert.AreEqual(AtkBase, asc.Current(EGameplayAttribute.AttackPower));
         }
 
         [Test]
@@ -59,7 +59,7 @@ namespace Game.Tests.EditMode.GamePlayAbilitySystem
             asc.ApplyEffect(def);
 
             Assert.AreEqual(1, asc.ActiveEffects.Count, "Stack은 인스턴스를 늘리지 않고 stack 수만 올린다.");
-            Assert.AreEqual(AtkBase + 30, asc.GetAttribute(EGameplayAttribute.AttackPower).CurrentValue);
+            Assert.AreEqual(AtkBase + 30, asc.Current(EGameplayAttribute.AttackPower));
         }
 
         [Test]
@@ -86,7 +86,7 @@ namespace Game.Tests.EditMode.GamePlayAbilitySystem
 
             Assert.AreEqual(-1, instanceId, "즉발은 추적 인스턴스를 만들지 않는다.");
             Assert.AreEqual(0, asc.ActiveEffects.Count);
-            Assert.AreEqual(70, asc.GetAttribute(EGameplayAttribute.Health).CurrentValue);
+            Assert.AreEqual(70, asc.Current(EGameplayAttribute.Health));
         }
 
         [Test]
@@ -99,11 +99,11 @@ namespace Game.Tests.EditMode.GamePlayAbilitySystem
 
             Assert.AreEqual(1, asc.ActiveEffects.Count);
             Assert.AreEqual(99, asc.ActiveEffects[0].InstanceId, "클라가 생성한 id가 아니라 서버 InstanceId를 써야 한다.");
-            Assert.AreEqual(60, asc.GetAttribute(EGameplayAttribute.AttackPower).CurrentValue);
+            Assert.AreEqual(60, asc.Current(EGameplayAttribute.AttackPower));
 
             asc.RemoveEffect(99); // 서버 S_RemoveEffect 권위 제거
             Assert.AreEqual(0, asc.ActiveEffects.Count);
-            Assert.AreEqual(AtkBase, asc.GetAttribute(EGameplayAttribute.AttackPower).CurrentValue);
+            Assert.AreEqual(AtkBase, asc.Current(EGameplayAttribute.AttackPower));
         }
 
         [Test]
@@ -129,7 +129,7 @@ namespace Game.Tests.EditMode.GamePlayAbilitySystem
             // 서버가 Defense 반영해 보낸 -7 을 적용(카탈로그 -30 무시) → 93.
             asc.ApplyEffectAuthoritative(dmg, instanceId: 5, stacks: 1, healthOverride: -7);
 
-            Assert.AreEqual(93, asc.GetAttribute(EGameplayAttribute.Health).CurrentValue);
+            Assert.AreEqual(93, asc.Current(EGameplayAttribute.Health));
         }
 
         [Test]
@@ -142,17 +142,17 @@ namespace Game.Tests.EditMode.GamePlayAbilitySystem
 
             asc.ApplyEffectAuthoritative(dmg, instanceId: 6, stacks: 1, healthOverride: 0);
 
-            Assert.AreEqual(70, asc.GetAttribute(EGameplayAttribute.Health).CurrentValue); // 하위호환
+            Assert.AreEqual(70, asc.Current(EGameplayAttribute.Health)); // 하위호환
         }
 
         // ── 헬퍼 ────────────────────────────────────────
 
-        private AbilitySystemComponent CreateAsc()
+        private GasComponent CreateAsc()
         {
             var go = new GameObject("Combatant");
             _objects.Add(go);
 
-            var asc = go.AddComponent<AbilitySystemComponent>();
+            var asc = go.AddComponent<GasComponent>();
             asc.Attributes = new List<GameplayAttribute>
             {
                 new(EGameplayAttribute.Health, 100, 100),                              // Resource

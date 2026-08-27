@@ -51,7 +51,7 @@ namespace Game.Gameplay.Camera
         }
 
         /// <summary>로컬 플레이어 ASC 준비 시 vcam Follow/LookAt 을 CameraFollowTarget 으로 연결.</summary>
-        private void Bind(AbilitySystemComponent abilitySystem)
+        private void Bind(GasComponent abilitySystem)
         {
             if (gameplayCamera == null)
             {

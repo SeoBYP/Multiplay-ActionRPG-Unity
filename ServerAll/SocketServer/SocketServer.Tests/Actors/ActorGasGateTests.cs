@@ -60,7 +60,7 @@ public class ActorGasGateTests
     [Fact]
     public void 쿨다운은_종족과_무관하게_같은_저장소에서_추적된다()
     {
-        // 플레이어와 몬스터가 같은 GasComponent API 를 쓴다 — 예전엔 키 타입이 int/string 으로 갈려 있었다.
+        // 플레이어와 몬스터가 같은 AbilitySystemComponent API 를 쓴다 — 예전엔 키 타입이 int/string 으로 갈려 있었다.
         Actor player = new PlayerActor(100);
         Actor monster = new MonsterActor(1) { MonsterId = "creepy_demon" };
 
@@ -102,7 +102,7 @@ public class ActorGasGateTests
     [Fact]
     public void 서버가_Health_이외_속성_효과도_적용한다_Defense()
     {
-        // 회귀 가드: 예전 GasComponent 는 Health 만 필터해 def_down_10 같은 효과를 조용히 버렸다.
+        // 회귀 가드: 예전 AbilitySystemComponent 는 Health 만 필터해 def_down_10 같은 효과를 조용히 버렸다.
         // Defense 는 서버 데미지 산식의 입력이라, 클라만 적용하면 두 쪽 데미지가 갈린다.
         var room = NewRoom();
         room.AddPlayer(100, "A", 0, 0f, 0f, 0f, 0f, attackPower: 0, defense: 8);

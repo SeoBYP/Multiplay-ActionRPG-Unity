@@ -47,7 +47,7 @@ namespace Game.Tests.PlayMode.InGame
 
             foreach (var rd in Object.FindObjectsByType<RemoteDriver>(FindObjectsSortMode.None))
                 if (rd != null) Object.DestroyImmediate(rd.gameObject);
-            foreach (var asc in Object.FindObjectsByType<AbilitySystemComponent>(FindObjectsSortMode.None))
+            foreach (var asc in Object.FindObjectsByType<GasComponent>(FindObjectsSortMode.None))
                 if (asc != null) Object.DestroyImmediate(asc.gameObject);
             var plane = GameObject.Find("Plane(Clone)");
             if (plane != null) Object.DestroyImmediate(plane);
@@ -74,7 +74,7 @@ namespace Game.Tests.PlayMode.InGame
             await UniTask.DelayFrame(2);
 
             // 로컬 = ASC 보유(템플릿 제외) 1개, 결정론 좌표 (2,0,0)
-            var locals = NonTemplate(Object.FindObjectsByType<AbilitySystemComponent>(FindObjectsSortMode.None)
+            var locals = NonTemplate(Object.FindObjectsByType<GasComponent>(FindObjectsSortMode.None)
                 .Select(c => c.gameObject));
             Assert.AreEqual(1, locals.Count, "로컬 캐릭터는 1개여야 한다");
             // 기대 좌표를 하드코딩하지 않는다 — 스폰 포인트는 저작 데이터(spawn-layouts)라 맵을 재기획하면 바뀐다.
@@ -133,11 +133,10 @@ namespace Game.Tests.PlayMode.InGame
 
             var remoteAsc = NonTemplate(Object.FindObjectsByType<RemoteDriver>(FindObjectsSortMode.None)
                     .Select(c => c.gameObject))
-                .Select(g => g.GetComponent<AbilitySystemComponent>())
+                .Select(g => g.GetComponent<GasComponent>())
                 .Single(a => a != null);
-            var hp = remoteAsc.GetAttribute(EGameplayAttribute.Health);
-            Assert.AreEqual(140, hp.MaxValue, "원격 MaxHp 는 서버 권위값(140)이어야 한다(prefab 100 아님).");
-            Assert.AreEqual(110, hp.CurrentValue, "원격 현재 HP 는 서버 권위값(110)이어야 한다.");
+            Assert.AreEqual(140, remoteAsc.Max(EGameplayAttribute.Health), "원격 MaxHp 는 서버 권위값(140)이어야 한다(prefab 100 아님).");
+            Assert.AreEqual(110, remoteAsc.Current(EGameplayAttribute.Health), "원격 현재 HP 는 서버 권위값(110)이어야 한다.");
 
             // 레지스트리에도 같은 ASC 가 등록돼 EffectReceiver/PartyModel 이 델타를 얹을 수 있어야 한다.
             var registry = _container.Resolve<PartyAscRegistry>();
@@ -200,7 +199,7 @@ namespace Game.Tests.PlayMode.InGame
         private GameObject MakeTemplate(string name, bool withAsc, bool withRemoteDriver = false)
         {
             var go = new GameObject(name);
-            if (withAsc) go.AddComponent<AbilitySystemComponent>();
+            if (withAsc) go.AddComponent<GasComponent>();
             if (withRemoteDriver) go.AddComponent<RemoteDriver>();
             _templates.Add(go);
             return go;

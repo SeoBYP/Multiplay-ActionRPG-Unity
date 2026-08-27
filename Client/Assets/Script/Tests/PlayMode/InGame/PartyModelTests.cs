@@ -68,7 +68,7 @@ namespace Game.Tests.PlayMode.InGame
             _model.Changed += () => changes++;
 
             // 서버 권위 피해가 도착해 원격 ASC HP 가 줄어드는 상황(EffectReceiver 가 SetCurrent/ApplyModifier 로 반영).
-            remote.GetAttribute(EGameplayAttribute.Health).SetCurrent(70);
+            remote.SetCurrent(EGameplayAttribute.Health, 70);
 
             Assert.GreaterOrEqual(changes, 1, "ASC HP 변경 시 Model.Changed 가 발행돼야 한다.");
             Assert.AreEqual(70, Find(_model.GetParty(), 200).Hp);
@@ -91,11 +91,11 @@ namespace Game.Tests.PlayMode.InGame
 
         // ── 헬퍼 ────────────────────────────────────────
 
-        private AbilitySystemComponent MakeAsc(int hp)
+        private GasComponent MakeAsc(int hp)
         {
             var go = new GameObject("ASC");
             _objects.Add(go);
-            var asc = go.AddComponent<AbilitySystemComponent>();
+            var asc = go.AddComponent<GasComponent>();
             asc.Attributes = new List<GameplayAttribute> { new(EGameplayAttribute.Health, hp, 100) };
             asc.InitializeAttributes();
             return asc;

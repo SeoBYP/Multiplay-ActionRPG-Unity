@@ -28,4 +28,11 @@ public static class CombatEffectCatalog
     /// <summary>effectId 의 Attribute 모디파이어 목록(Shared 카탈로그 위임). 미등록이면 빈 목록.</summary>
     public static IReadOnlyList<GameplayAttributeModifier> Resolve(string effectId)
         => _shared.Get(effectId)?.Modifiers ?? Array.Empty<GameplayAttributeModifier>();
+
+    /// <summary>
+    /// effectId 의 <b>정의 전체</b>. 미등록이면 null.
+    /// 지속효과는 모디파이어만으로 표현되지 않는다 — 지속시간·스택 정책·GrantedTags 가 있어야
+    /// 서버가 만료를 소유할 수 있다(<see cref="AbilitySystemComponent.ApplyEffect"/>).
+    /// </summary>
+    public static GameplayEffectDefinition? Get(string effectId) => _shared.Get(effectId);
 }

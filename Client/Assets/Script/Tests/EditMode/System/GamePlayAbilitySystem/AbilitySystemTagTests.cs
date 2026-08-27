@@ -82,12 +82,12 @@ namespace Game.Tests.EditMode.GamePlayAbilitySystem
             Assert.IsFalse(asc.HasTag("State.Stunned"));
         }
 
-        private AbilitySystemComponent CreateAsc()
+        private GasComponent CreateAsc()
         {
             var go = new GameObject("Combatant");
             _objects.Add(go);
 
-            var asc = go.AddComponent<AbilitySystemComponent>();
+            var asc = go.AddComponent<GasComponent>();
             asc.Attributes = new List<GameplayAttribute>
             {
                 new(EGameplayAttribute.Health, 100, 100),

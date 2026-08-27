@@ -12,14 +12,14 @@ namespace Game.Gameplay.Character
         [SerializeField] private Animator _animator;
         [SerializeField] private float _defaultDurationSec = 0.08f;
 
-        private AbilitySystemComponent _asc;
+        private GasComponent _asc;
         private int _lastHealth = int.MinValue;
         private float _restoreAt = -1f;
 
         private void Awake()
         {
             if (_animator == null) _animator = GetComponentInChildren<Animator>();
-            _asc = GetComponentInParent<AbilitySystemComponent>();
+            _asc = GetComponentInParent<GasComponent>();
         }
 
         private void OnEnable()

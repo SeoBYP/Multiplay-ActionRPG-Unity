@@ -12,7 +12,7 @@ namespace Game.Gameplay.Character
         private readonly CharacterAgentAnimations _animations;
         private readonly ICharacterInputSource   _inputSource;
         private readonly LocomotionSettings      _settings;
-        private readonly AbilitySystemComponent  _abilitySystem;  // null이면 CC(슬로우) 미적용
+        private readonly GasComponent  _abilitySystem;  // null이면 CC(슬로우) 미적용
 
         private float   _verticalVelocity;
         private float   _animationMovementSpeed;
@@ -27,7 +27,7 @@ namespace Game.Gameplay.Character
             CharacterAgentAnimations animations,
             ICharacterInputSource inputSource,
             LocomotionSettings settings,
-            AbilitySystemComponent abilitySystem = null)
+            GasComponent abilitySystem = null)
         {
             _motor           = motor;
             _groundedDetector = groundedDetector;

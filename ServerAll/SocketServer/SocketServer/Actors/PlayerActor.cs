@@ -65,6 +65,6 @@ public sealed class PlayerActor(long userId) : Actor(ActorIds.FromPlayer(userId)
     public override ActorTickResult Tick(float dt, long nowMs, IReadOnlyList<TargetPos> targets, MapBounds bounds)
     {
         Gas.RegenMana(dt);
-        return ActorTickResult.None;
+        return base.Tick(dt, nowMs, targets, bounds); // 지속 Effect 만료(CC 해제)는 공통 처리
     }
 }

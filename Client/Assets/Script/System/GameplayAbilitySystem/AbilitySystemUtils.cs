@@ -6,7 +6,7 @@ namespace Script.System.GamePlayAbilitySystem
     /// </summary>
     public static class AbilitySystemUtils
     {
-        public static void ApplyEffect(AbilitySystemComponent target, GameplayEffect effect)
+        public static void ApplyEffect(GasComponent target, GameplayEffect effect)
         {
             effect.ApplyEffect(target);
         }

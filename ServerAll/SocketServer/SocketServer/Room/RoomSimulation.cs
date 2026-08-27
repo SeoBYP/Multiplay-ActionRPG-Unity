@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Script.System.GamePlayAbilitySystem;
 using Server.Actors;
+using Server.Combat;
 using Server.Diagnostics;
 using Server.Monster;
 using Shared.Infrastructure.Abilities;
@@ -68,14 +69,15 @@ public sealed class RoomSimulation
             {
                 if (actor is not MonsterActor monster)
                 {
-                    // 플레이어: 마나 자연 회복만. 다운 여부와 무관하게 진행한다.
-                    actor.Tick(dt, nowMs, targetPositions, bounds);
+                    // 플레이어: 마나 자연 회복 + 지속 Effect 만료. 다운 여부와 무관하게 진행한다.
+                    EmitExpired(actor.Tick(dt, nowMs, targetPositions, bounds), outPackets);
                     continue;
                 }
 
                 if (monster.Gas.IsDead) continue;
 
                 var decision = monster.Tick(dt, nowMs, targetPositions, bounds);
+                EmitExpired(decision, outPackets);
 
                 // dirty-flag: 위치·회전·HP·페이즈가 직전 송신과 같으면 생략 → Idle 경비 몬스터 트래픽 0.
                 // 신규 입장자는 S_SpawnMonster 로스터로 최신 상태를 받으므로 유실 없음.
@@ -95,6 +97,20 @@ public sealed class RoomSimulation
         }
 
         return (outPackets, downed);
+    }
+
+    /// <summary>
+    /// 만료된 지속 Effect 를 <c>S_RemoveEffect</c> 로 번역한다.
+    /// <b>만료 판정은 액터가 이미 끝냈다</b> — 여기서는 시각을 다시 보지 않는다(권위가 두 곳으로 갈리지 않게).
+    /// </summary>
+    private static void EmitExpired(ActorTickResult result, List<Packet> outPackets)
+    {
+        var expired = result.ExpiredEffectIds;
+        if (expired is null)
+            return;
+
+        for (int i = 0; i < expired.Count; i++)
+            outPackets.Add(new S_RemoveEffect { InstanceId = expired[i] });
     }
 
     /// <summary>몬스터 1마리의 발동·피해 처리(호출자가 저장소 락을 잡고 있어야 한다).</summary>
@@ -148,14 +164,32 @@ public sealed class RoomSimulation
             Amount = -finalDamage, // 서버 권위 Health 델타(클라가 그대로 적용)
         });
 
-        // CC(상태이상): 어빌리티의 OnHitEffectIds(태그/CC 전용)를 데미지와 함께 브로드캐스트.
+        // CC(상태이상): 어빌리티의 OnHitEffectIds(태그/CC 전용)를 데미지와 함께 부여한다.
         // Amount=0 = HP 변경 없는 상태태그(Duration+GrantedTags) → 클라 EffectReceiver 가 적용 → 입력/이동 게이트.
+        //
+        // **서버도 자기에게 건다.** 예전엔 브로드캐스트만 하고 서버 액터에는 아무 흔적이 없어서,
+        // 서버의 IsActivationBlocked 는 항상 false 였고 만료 시각도 클라만 알았다 — CC 권위가 통째로 클라에 있었다.
+        // 이제 서버가 활성 Effect 를 들고 만료를 틱에서 소유한다(S_RemoveEffect 는 그 결과의 통지일 뿐).
         foreach (var ccId in chosen.Timeline.OnHitEffectIds)
         {
             if (string.IsNullOrEmpty(ccId)) continue;
+
+            int instanceId = _nextEffectInstanceId();
+            var def = CombatEffectCatalog.Get(ccId);
+            if (def is null)
+            {
+                // 카탈로그에 없는 id 를 조용히 흘려보내면 클라만 CC 를 알고 서버는 모르는 옛 상태로 되돌아간다.
+                _logger.LogWarning("[GameplayEffect] 미등록 effectId '{EffectId}' — 어빌리티 '{AbilityId}' 의 CC 를 건너뛴다", ccId, chosen.Id);
+                continue;
+            }
+
+            // **반환된 id 를 쓴다.** 스택 정책이 기존 인스턴스를 재사용하면 방금 뽑은 id 는 버려지고,
+            // 그걸 그대로 브로드캐스트하면 나중에 만료가 알리는 id 와 짝이 어긋나 클라에 CC 가 영영 남는다.
+            int appliedId = target.Actor.Gas.ApplyEffect(def, instanceId, nowMs);
+
             outPackets.Add(new S_ApplyEffect
             {
-                InstanceId = _nextEffectInstanceId(),
+                InstanceId = appliedId,
                 EffectId = ccId,
                 TargetId = targetUserId,
                 SourceId = attackerActorId,

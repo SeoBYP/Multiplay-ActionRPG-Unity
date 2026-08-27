@@ -11,7 +11,7 @@ namespace Game.Gameplay.Character
     [RequireComponent(typeof(CharacterController))]
     [RequireComponent(typeof(GroundedDetector))]
     [RequireComponent(typeof(CharacterMotor))]
-    [RequireComponent(typeof(AbilitySystemComponent))]
+    [RequireComponent(typeof(GasComponent))]
     public abstract class CharacterAgent : MonoBehaviour
     {
         [SerializeField] protected CharacterStateConfig stateConfig;
@@ -23,7 +23,7 @@ namespace Game.Gameplay.Character
         protected GroundedDetector GroundDetector;
         protected CharacterAgentAnimations AgentAnimations;
         protected CharacterMotor Motor;
-        protected AbilitySystemComponent AbilitySystem;
+        protected GasComponent AbilitySystem;
 
         protected State CurrentState;
         protected CharacterStateContext Context;
@@ -43,7 +43,7 @@ namespace Game.Gameplay.Character
             GroundDetector = GetComponent<GroundedDetector>();
             AgentAnimations = GetComponent<CharacterAgentAnimations>();
             Motor = GetComponent<CharacterMotor>();
-            AbilitySystem = GetComponent<AbilitySystemComponent>();
+            AbilitySystem = GetComponent<GasComponent>();
         }
 
         protected virtual void Start()

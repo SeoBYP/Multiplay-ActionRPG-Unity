@@ -145,7 +145,7 @@ Action 축     = FSM 아님    공격 / 상호작용 / 스킬
     → Animation Event: PerformHit
     → CharacterHitEventReceiver.PerformHit()
     → HitDetector.Detect()  (OverlapBox)
-    → 대상 AbilitySystemComponent → GameplayEffect → Health 감소
+    → 대상 GasComponent → GameplayEffect → Health 감소
 ```
 
 **Hit 판정은 입력 순간이 아니라 Animation Event 기준**이다. 이래야 무기별 히트박스,
@@ -183,7 +183,7 @@ InteractionDetector        매 프레임 최근접 IInteractable 선택 (탐지 
 단순 `target.health -= damage`는 쓰지 않는다. 데미지는 항상 GameplayEffect로 간다.
 
 ```csharp
-target.GetComponent<AbilitySystemComponent>().ApplyEffect(effect);
+target.GetComponent<GasComponent>().ApplyEffect(effect);
 ```
 
 Attribute·Effect·Ability·Cue의 전체 구조와 **2층 연출 분리 / 발동 권위**는
@@ -212,7 +212,7 @@ public class GameplayAttribute
 }
 ```
 
-`AbilitySystemComponent`는 Attribute 목록이 비어 있으면 기본 Health Attribute를 생성하고, `OnValidate`에서 값 범위를 검증한다.
+`GasComponent`는 Attribute 목록이 비어 있으면 기본 Health Attribute를 생성하고, `OnValidate`에서 값 범위를 검증한다.
 
 ---
 
@@ -229,7 +229,8 @@ public class GameplayAttribute
 | CharacterAgent | `Client/Assets/Script/Gameplay/Character/Agent/CharacterAgent.cs` |
 | HitDetector | `Client/Assets/Script/Gameplay/Character/Weapon/HitDetector.cs` |
 | CharacterHitEventReceiver | `Client/Assets/Script/Gameplay/Character/CharacterHitEventReceiver.cs` |
-| AbilitySystemComponent | `Client/Assets/Script/Main/System/GamePlayAbilitySystem/AbilitySystemComponent.cs` |
+| GasComponent (Unity 어댑터) | `Client/Assets/Script/System/GameplayAbilitySystem/GasComponent.cs` |
+| AbilitySystemComponent (Shared 로직) | `ServerAll/Shared/Shared.Gameplay/Actors/AbilitySystemComponent.cs` |
 | GameplayEffect | `Client/Assets/Script/Main/System/GamePlayAbilitySystem/Effects/GameplayEffect.cs` |
 | PlayerStateConfig | `Client/Assets/GameResources/StateConfigs/PlayerStateConfig.asset` |
 | NpcStateConfig | `Client/Assets/GameResources/StateConfigs/NpcStateConfig.asset` |

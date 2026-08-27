@@ -33,7 +33,8 @@ room.Loot.TryPickup(picker.PosX, picker.PosZ, groundId);
 
 ```
 Actor (abstract)              신원(ActorId) · 공간(Pos/RotY) · 수명
- ├─ Gas  GasComponent         HP·마나·스탯·태그·쿨다운  ← 전투 상태 일체
+ ├─ Gas  AbilitySystemComponent   HP·마나·스탯·태그·활성 Effect·쿨다운  ← 전투 상태 일체
+ │        └ Shared.Gameplay 소유. **클라 `GasComponent`(MonoBehaviour)도 같은 타입을 들고 위임한다**
  ├─ PlayerActor               회피 무적창 · 콤보 cadence
  └─ MonsterActor              MonsterId · Level · Tier · Phase · Patrol · dirty-flag · Seq
 ```
@@ -46,13 +47,15 @@ Actor (abstract)              신원(ActorId) · 공간(Pos/RotY) · 수명
 ### Actor.Tick — 액터가 자기 결정을 소유한다
 
 ```csharp
-ActorTickResult Tick(dt, nowMs, targets, bounds)   // { TargetIndex, Cast }
+ActorTickResult Tick(dt, nowMs, targets, bounds)   // { TargetIndex, Cast, ExpiredEffectIds }
 ```
 
 - `MonsterActor` 가 **이동·페이즈 결정 + 어빌리티 선택 + 쿨다운 커밋**까지 한다.
 - `RoomSimulation` 은 그 결과를 **패킷·피해로 번역**만 한다.
   데미지 산정은 대상 방어력을 읽어야 해서 방에 남긴다 — 액터가 다른 액터를 뒤지면 경계가 무너진다.
 - 액터는 패킷을 모른다.
+- **지속 Effect 만료도 액터가 소유한다** — 기본 `Actor.Tick` 이 `Gas.TickEffects(nowMs)` 를 돌려 만료된
+  인스턴스 id 를 결과에 실어 보내고, 방은 그것을 `S_RemoveEffect` 로 번역하기만 한다.
 
 ## Session Composition
 
@@ -98,6 +101,24 @@ t>60s  유예 만료            SweepExpiredDisconnected → 참가자·액터 �
 - **`C_PlayerDead` 만으로는 다운되지 않는다** — `DungeonProgress.MarkDowned` 가 서버 HP 0 을 확인한다.
   만피인 채로 자기신고해 AI 타깃에서 빠지는 구멍을 막는다(다운도 서버 권위).
 
+## 상태이상(CC)은 서버가 걸고 서버가 푼다
+
+```
+몬스터 발동 → RoomSimulation
+   ├ 서버 액터에 적용   Gas.ApplyEffect(def, id, nowMs)   ← 활성 목록 + GrantedTags
+   └ 클라에 통지        S_ApplyEffect { InstanceId = 적용된 id }
+
+다음 틱들 → Actor.Tick → Gas.TickEffects(nowMs)
+   └ 만료분 → S_RemoveEffect { InstanceId }
+```
+
+- **브로드캐스트만 하던 시절의 구멍**: 서버 액터에 흔적이 없어 `IsActivationBlocked` 가 스턴 중에도 false 였다.
+  스턴을 무시하는 클라의 `C_Attack` 을 서버가 거를 근거가 아예 없었다(지금은 `CombatHandler` 가 거른다).
+- **태그는 저장하지 않고 파생한다** — `HasTag` 가 직접 부여 태그 ∪ 활성 Effect 의 `GrantedTags` 를 합산한다.
+  회수 장부를 두면 같은 스턴을 두 개 맞았을 때 하나가 끝나며 잘못 떼는 사고가 나고, 그 순간 영구 스턴이 된다.
+- **브로드캐스트하는 id 는 `ApplyEffect` 의 반환값**이다. 스택 정책이 기존 인스턴스를 재사용하면
+  방금 뽑은 id 는 버려지므로, 그걸 그대로 보내면 만료 통지와 짝이 어긋나 클라에 CC 가 영영 남는다.
+
 ## 이동 동기화 정책
 
 서버가 클라이언트 `TimeStamp` 를 **그대로 릴레이**. 덮어쓰지 않는다.
@@ -112,11 +133,11 @@ room.Sessions.Broadcast(new S_Move { TimeStamp = packet.TimeStamp }, excludeSess
 | 락 | 보호 대상 | 잡는 곳 |
 |---|---|---|
 | `ActorStore.SyncRoot` | 액터 + 참가자(둘은 항상 함께 바뀐다) | 저장소 메서드 내부. 복합 연산(틱)은 호출자가 잡고 `ActorsLocked`/`MembersLocked` 로 순회 |
-| `GasComponent.SyncRoot` | 한 액터의 속성·태그·쿨다운 | GasComponent 내부. **틱 스레드와 핸들러 스레드가 동시에 만진다** |
+| `AbilitySystemComponent.SyncRoot` | 한 액터의 속성·태그·활성 Effect·쿨다운 | 컴포넌트 내부. **틱 스레드와 핸들러 스레드가 동시에 만진다** |
 | `RoomSessions` 내부 | 연결 집합 | 자체 |
 | `GroundItemStore` 내부 | 바닥 아이템 | 자체 |
 
-- **`GasComponent` 는 스스로 스레드 안전하다.** 예전엔 락이 방/저장소에 있어 *저장소를 지나는 경로만* 안전했고,
+- **`AbilitySystemComponent` 는 스스로 스레드 안전하다.** 예전엔 락이 방/저장소에 있어 *저장소를 지나는 경로만* 안전했고,
   핸들러가 `Gas` 를 직접 만지는 경로(마나 차감·쿨다운·회피)가 구멍이었다.
 - 락 중첩을 만들지 않는다. 특히 액터 락 안에서 아이템 락을 잡지 않는다 —
   줍기는 시전자 위치를 **먼저 스냅샷**해 저장소에 넘긴다.
@@ -134,7 +155,5 @@ room.Sessions.Broadcast(new S_Move { TimeStamp = packet.TimeStamp }, excludeSess
 ## 알려진 한계
 
 - `RoomManager.GetAssignedRoom` — 인메모리 인덱스라 프로세스 재시작에 소실된다(인증 근거로 쓰지 않는다).
-- 지속시간 Effect 의 **만료를 서버가 소유하지 않는다** — CC 는 브로드캐스트만 하고 만료는 클라가 한다.
-  서버가 소유하려면 활성 Effect 추적 + 만료 틱이 필요하다(별도 증분).
 - 공간 분할 없음 — 한 방 최대 액터 15(몬스터 11 + 플레이어 4)라 아직 불필요.
   착수선 = 한 방 100+ 또는 틱이 100ms 예산의 20% 초과(**틱 프로파일 미실측**).

@@ -22,6 +22,16 @@ namespace Script.System.GamePlayAbilitySystem
         {
             public int Current;
             public int Max;
+
+            /// <summary>버프 적용 <b>전</b> 원본. 스탯 재계산은 항상 여기서 다시 시작한다.</summary>
+            public int Base;
+
+            /// <summary>
+            /// 스탯인가(공격력·방어력 …). true 면 활성 Effect 로부터 <b>파생</b>되는 값이라
+            /// 지속효과가 붙고 떨어질 때마다 Base 기준으로 재계산된다.
+            /// false = 자원(HP·마나) — 소비·회복으로 <b>스스로 변하는</b> 값이라 재계산 대상이 아니다.
+            /// </summary>
+            public bool IsStat;
         }
 
         private readonly Dictionary<EGameplayAttribute, Entry> _map = new Dictionary<EGameplayAttribute, Entry>();
@@ -42,9 +52,30 @@ namespace Script.System.GamePlayAbilitySystem
         /// <summary>보유 속성 목록(적용 대상 판별·디버그용).</summary>
         public IEnumerable<EGameplayAttribute> Defined => _map.Keys;
 
-        /// <summary>속성을 부여한다. current 는 [0, max] 로 클램프. 이미 있으면 덮어쓴다.</summary>
-        public void Define(EGameplayAttribute attribute, int current, int max)
-            => _map[attribute] = new Entry { Current = Clamp(current, max), Max = max };
+        /// <summary>
+        /// 속성을 부여한다. current 는 [0, max] 로 클램프되고 그 값이 Base 가 된다. 이미 있으면 덮어쓴다.
+        /// <paramref name="isStat"/> = 활성 Effect 로부터 파생되는 값인가(재계산 대상인가).
+        /// </summary>
+        public void Define(EGameplayAttribute attribute, int current, int max, bool isStat = false)
+        {
+            int clamped = Clamp(current, max);
+            _map[attribute] = new Entry { Current = clamped, Max = max, Base = clamped, IsStat = isStat };
+        }
+
+        /// <summary>스탯 재계산의 기준값(버프 적용 전 원본). 미보유면 <paramref name="fallback"/>.</summary>
+        public int BaseOr(EGameplayAttribute attribute, int fallback = 0)
+            => _map.TryGetValue(attribute, out var e) ? e.Base : fallback;
+
+        /// <summary>재계산 대상(스탯)만 열거한다. 자원(HP·마나)은 나오지 않는다.</summary>
+        public IEnumerable<EGameplayAttribute> Stats
+        {
+            get
+            {
+                foreach (var kv in _map)
+                    if (kv.Value.IsStat)
+                        yield return kv.Key;
+            }
+        }
 
         /// <summary>보유 시 현재값을 내고 true. 미보유면 false(out 0).</summary>
         public bool TryGet(EGameplayAttribute attribute, out int current)
@@ -84,6 +115,7 @@ namespace Script.System.GamePlayAbilitySystem
                 return;
 
             e.Max = max;
+            e.Base = Clamp(e.Base, max);
             e.Current = Clamp(e.Current, max);
             _map[attribute] = e;
         }

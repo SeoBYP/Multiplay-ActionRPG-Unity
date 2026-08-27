@@ -9,13 +9,13 @@ namespace Shared.Gameplay.Tests;
 ///
 /// <para>예전에는 락이 방/저장소에 있어서 <b>저장소를 지나는 경로만</b> 안전했고,
 /// 핸들러가 <c>Gas</c> 를 직접 만지는 경로(<c>TrySpendMana</c>·<c>TryBeginAbility</c>·회피)는 구멍이었다.
-/// 이 테스트들이 그 구멍을 고정한다 — 락을 GasComponent 밖으로 옮기면 여기서 깨진다.</para>
+/// 이 테스트들이 그 구멍을 고정한다 — 락을 AbilitySystemComponent 밖으로 옮기면 여기서 깨진다.</para>
 /// </summary>
-public class GasComponentConcurrencyTests
+public class AbilitySystemComponentConcurrencyTests
 {
-    private static GasComponent Player(int hp = 100, int mana = 100)
+    private static AbilitySystemComponent Player(int hp = 100, int mana = 100)
     {
-        var gas = new GasComponent();
+        var gas = new AbilitySystemComponent();
         gas.DefineResource(EGameplayAttribute.Health, hp);
         gas.DefineResource(EGameplayAttribute.Mana, mana);
         return gas;

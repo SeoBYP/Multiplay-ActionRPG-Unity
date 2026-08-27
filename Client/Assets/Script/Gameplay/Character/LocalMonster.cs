@@ -160,7 +160,7 @@ namespace Game.Gameplay.Character
         }
 
         /// <summary>쿨다운마다 플레이어 ASC 에 즉발 피해(로컬 권위). HP≤0 → PlayerCharacterAgent 가 다운 처리.</summary>
-        private void TryAttack(AbilitySystemComponent target)
+        private void TryAttack(GasComponent target)
         {
             // 발동 게이트 = AbilityActivationMath(던전 몬스터·플레이어와 동일 Shared 규칙). Main 은 마나·차단태그 없어 쿨다운만 먹인다.
             long nowMs = (long)(Time.time * 1000f);

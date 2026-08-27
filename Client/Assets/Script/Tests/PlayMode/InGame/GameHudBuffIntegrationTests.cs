@@ -93,11 +93,11 @@ namespace Game.Tests.PlayMode.InGame
             return localPlayer;
         }
 
-        private AbilitySystemComponent CreateAsc()
+        private GasComponent CreateAsc()
         {
             var go = new GameObject("LocalPlayer");
             _objects.Add(go);
-            var asc = go.AddComponent<AbilitySystemComponent>();
+            var asc = go.AddComponent<GasComponent>();
             asc.Attributes = new List<GameplayAttribute>
             {
                 new(EGameplayAttribute.Health, 100, 100),

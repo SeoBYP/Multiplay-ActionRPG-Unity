@@ -22,14 +22,14 @@ namespace Game.Gameplay.Character
 
         private ISocketSession _session;
         private ICharacterInputSource _input;
-        private AbilitySystemComponent _asc;
+        private GasComponent _asc;
 
         private DownedAllyMarker _lastReported;
         private bool _everReported;
 
         private void Awake()
         {
-            _asc = GetComponent<AbilitySystemComponent>();
+            _asc = GetComponent<GasComponent>();
             // 입력은 DI 가 아니라 같은 GO 의 컴포넌트(CharacterInputBuffer) — CharacterAgent 와 동일 방식.
             _input = GetComponent<ICharacterInputSource>();
             Debug.Log($"[ReviveInteractor] 활성화 — 입력={(_input != null ? "OK" : "없음")} · 다운 아군 사거리({ReviveConfig.RangeMeters}m)에서 E로 부활.");

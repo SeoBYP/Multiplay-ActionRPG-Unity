@@ -217,8 +217,7 @@ namespace Game.Gameplay.Character
             _dodge?.Cancel(); // 진행 중이던 회피 무적/대시 정리
             _knockback?.Cancel();
             AbilitySystem.RemoveTag(DeadTag);
-            var hp = AbilitySystem.GetAttribute(EGameplayAttribute.Health);
-            hp?.SetCurrent(hp.MaxValue);
+            AbilitySystem.SetCurrent(EGameplayAttribute.Health, AbilitySystem.Max(EGameplayAttribute.Health));
 
             AgentAnimations?.ResetTrigger(AnimationTriggerType.Dead);
             AgentAnimations?.SetTrigger(AnimationTriggerType.Revive); // Dead 포즈 → 로코모션 복귀(양성 신호)
@@ -250,8 +249,7 @@ namespace Game.Gameplay.Character
             _dodge?.Cancel();
             _knockback?.Cancel();
             AbilitySystem.RemoveTag(DeadTag);
-            var health = AbilitySystem.GetAttribute(EGameplayAttribute.Health);
-            health?.SetCurrent(hp);
+            AbilitySystem.SetCurrent(EGameplayAttribute.Health, hp);
             AgentAnimations?.ResetTrigger(AnimationTriggerType.Dead);
             AgentAnimations?.SetTrigger(AnimationTriggerType.Revive); // Dead 포즈 → 로코모션 복귀(양성 신호)
 
@@ -359,23 +357,26 @@ namespace Game.Gameplay.Character
         private bool HasMana(int cost)
         {
             if (cost <= 0) return true;
-            var mana = AbilitySystem?.GetAttribute(EGameplayAttribute.Mana);
-            return mana == null || mana.CurrentValue >= cost;
+            if (AbilitySystem == null || !AbilitySystem.Has(EGameplayAttribute.Mana))
+                return true; // 마나 속성이 없는 캐릭터/테스트는 무료
+            return AbilitySystem.Current(EGameplayAttribute.Mana) >= cost;
         }
 
         /// <summary>마나 예측 차감. 서버가 권위로 검증·차감하고 S_PlayerMana 로 정정한다(되돌림 가능).</summary>
         private void SpendMana(int cost)
         {
             if (cost <= 0) return;
-            var mana = AbilitySystem?.GetAttribute(EGameplayAttribute.Mana);
-            mana?.ApplyModifier(GameplayAttributeModifier.Create(EGameplayAttribute.Mana, -cost, EModifierType.Additive));
+            AbilitySystem?.ApplyModifiers(new[]
+            {
+                GameplayAttributeModifier.Create(EGameplayAttribute.Mana, -cost, EModifierType.Additive),
+            });
         }
 
         /// <summary>시간 비례 마나 자연 회복(예측). <see cref="ManaConfig.RegenPerSecond"/> 누적 → 정수 단위 가산, Max 클램프.</summary>
         private void RegenMana(float dt)
         {
-            var mana = AbilitySystem?.GetAttribute(EGameplayAttribute.Mana);
-            if (mana == null || mana.CurrentValue >= mana.MaxValue)
+            if (AbilitySystem == null || !AbilitySystem.Has(EGameplayAttribute.Mana)
+                || AbilitySystem.Current(EGameplayAttribute.Mana) >= AbilitySystem.Max(EGameplayAttribute.Mana))
             {
                 _manaRegenAccum = 0f;
                 return;
@@ -387,7 +388,10 @@ namespace Game.Gameplay.Character
                 return;
 
             _manaRegenAccum -= whole;
-            mana.ApplyModifier(GameplayAttributeModifier.Create(EGameplayAttribute.Mana, whole, EModifierType.Additive));
+            AbilitySystem.ApplyModifiers(new[]
+            {
+                GameplayAttributeModifier.Create(EGameplayAttribute.Mana, whole, EModifierType.Additive),
+            });
         }
 
         /// <summary>스킬 쿨다운 경과 여부(클라 예측). 통과 시 마지막 발동시각 갱신. 데이터 미주입(테스트)이면 항상 true.</summary>

@@ -57,7 +57,7 @@ namespace Game.Tests.PlayMode.InGame
                 "lethal", EEffectCategory.AttackPower, EDurationPolicy.Instant, 0,
                 new[] { GameplayAttributeModifier.Create(EGameplayAttribute.Health, -999, EModifierType.Additive) }));
 
-            Assert.AreEqual(0, asc.GetAttribute(EGameplayAttribute.Health).CurrentValue);
+            Assert.AreEqual(0, asc.Current(EGameplayAttribute.Health));
             Assert.IsTrue(asc.HasTag(GameplayTags.Dead), "HP 0 이면 State.Dead 가 세워져야 한다.");
 
             input.AttackPressed = true;
@@ -69,7 +69,7 @@ namespace Game.Tests.PlayMode.InGame
 
         // ── 리그 ──────────────────────────────────────────────
 
-        private (TestableAgent agent, FakeInput input, AbilitySystemComponent asc) BuildAgent()
+        private (TestableAgent agent, FakeInput input, GasComponent asc) BuildAgent()
         {
             var go = new GameObject("DeathGateAgent");
             go.SetActive(false);                          // Awake 를 구성 완료 후 한 번에 돌리려고 비활성으로 시작
@@ -77,7 +77,7 @@ namespace Game.Tests.PlayMode.InGame
 
             var input = go.AddComponent<FakeInput>();
             var agent = go.AddComponent<TestableAgent>(); // RequireComponent 로 ASC·Motor·Animations 등 자동 추가
-            var asc = go.GetComponent<AbilitySystemComponent>();
+            var asc = go.GetComponent<GasComponent>();
             asc.Attributes = new List<GameplayAttribute> { new(EGameplayAttribute.Health, 100, 100) };
 
             go.SetActive(true);                           // Awake: 에이전트가 ASC.OnAttributeChanged 구독. Start 는 override 로 스킵.

@@ -84,11 +84,11 @@ namespace Game.Tests.EditMode.InGame
 
         // ── 헬퍼 ────────────────────────────────────────
 
-        private AbilitySystemComponent CreateAsc(int hp, int maxHp)
+        private GasComponent CreateAsc(int hp, int maxHp)
         {
             var go = new GameObject("LocalPlayer");
             _objects.Add(go);
-            var asc = go.AddComponent<AbilitySystemComponent>();
+            var asc = go.AddComponent<GasComponent>();
             asc.Attributes = new List<GameplayAttribute>
             {
                 new(EGameplayAttribute.Health, hp, maxHp),
@@ -98,7 +98,7 @@ namespace Game.Tests.EditMode.InGame
             return asc;
         }
 
-        private static void ApplyDamage(AbilitySystemComponent asc, EGameplayAttribute type, int amount)
+        private static void ApplyDamage(GasComponent asc, EGameplayAttribute type, int amount)
         {
             var effect = new GameplayEffect(new List<GameplayAttributeModifier>
             {

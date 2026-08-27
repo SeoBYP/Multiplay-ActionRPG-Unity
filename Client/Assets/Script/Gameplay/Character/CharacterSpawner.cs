@@ -106,14 +106,14 @@ namespace Game.Gameplay.Character
             await UniTask.Yield(ct); // 프레임 경계 대기 — Awake/Start 완료 보장
 
             // 로컬 ASC를 공유 컨텍스트에 등록 → InGameModel이 HUD로 스탯을 중계한다.
-            var asc = go.GetComponent<AbilitySystemComponent>();
+            var asc = go.GetComponent<GasComponent>();
             if (asc != null)
             {
                 _localPlayer.Set(asc);
                 _partyRegistry.Register(_authSession.UserId, asc); // 파티 HP HUD 용 로컬 등록
             }
             else
-                Debug.LogError("[CharacterSpawner] 로컬 프리팹에 AbilitySystemComponent가 없습니다.");
+                Debug.LogError("[CharacterSpawner] 로컬 프리팹에 GasComponent가 없습니다.");
 
             // 서버 권위 레벨 MaxHealth 를 ASC 에 정렬(prefab 100 ↔ 서버 레벨값 desync 해소). Main·던전 공통.
             // 홀더가 스코프에 있으면 연결(Main/던전), 없으면(미등록 테스트 하네스) 생략 — 스폰은 정상 진행.
@@ -341,17 +341,13 @@ namespace Game.Gameplay.Character
             // 파티 HP HUD 용 원격 ASC 등록(S_ApplyEffect 를 TargetId 로 라우팅해 HP 추적).
             // 서버 권위 HP 기준선(S_PlayerJoined Hp/MaxHp)으로 정렬 — 이후 델타가 정확한 기준선 위에 얹힌다.
             // MaxHp==0 이면 서버 미전송(레거시/테스트) → prefab 기본값(100) 유지.
-            var remoteAsc = go.GetComponent<AbilitySystemComponent>();
+            var remoteAsc = go.GetComponent<GasComponent>();
             if (remoteAsc != null)
             {
                 if (snapshot.MaxHp > 0)
                 {
-                    var hpAttr = remoteAsc.GetAttribute(EGameplayAttribute.Health);
-                    if (hpAttr != null)
-                    {
-                        hpAttr.SetMax(snapshot.MaxHp);
-                        hpAttr.SetCurrent(snapshot.Hp);
-                    }
+                    remoteAsc.SetMax(EGameplayAttribute.Health, snapshot.MaxHp);
+                    remoteAsc.SetCurrent(EGameplayAttribute.Health, snapshot.Hp);
                 }
                 _partyRegistry.Register(snapshot.UserId, remoteAsc);
             }

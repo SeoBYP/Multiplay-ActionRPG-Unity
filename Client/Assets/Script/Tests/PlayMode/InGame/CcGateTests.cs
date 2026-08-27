@@ -58,7 +58,7 @@ namespace Game.Tests.PlayMode.InGame
 
         // ── 리그 (PlayerDeathGateTests 와 동일 구조) ──────────────
 
-        private (TestableAgent agent, FakeInput input, AbilitySystemComponent asc) BuildAgent()
+        private (TestableAgent agent, FakeInput input, GasComponent asc) BuildAgent()
         {
             var go = new GameObject("CcGateAgent");
             go.SetActive(false);
@@ -66,7 +66,7 @@ namespace Game.Tests.PlayMode.InGame
 
             var input = go.AddComponent<FakeInput>();
             var agent = go.AddComponent<TestableAgent>(); // RequireComponent 로 ASC·Motor·Animations 등 자동 추가
-            var asc = go.GetComponent<AbilitySystemComponent>();
+            var asc = go.GetComponent<GasComponent>();
             asc.Attributes = new List<GameplayAttribute> { new(EGameplayAttribute.Health, 100, 100) };
 
             go.SetActive(true);

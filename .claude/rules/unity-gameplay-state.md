@@ -65,7 +65,7 @@ Hit 판정은 공격 버튼을 누른 순간이 아니라 **Animation Event** �
 Animation Event (타격 프레임)
     → CharacterHitEventReceiver.PerformHit()
     → HitDetector.Detect()
-    → AbilitySystemComponent (대상)
+    → GasComponent (대상 — Shared AbilitySystemComponent 로 위임)
     → GameplayEffect 적용
     → Health 감소
 ```

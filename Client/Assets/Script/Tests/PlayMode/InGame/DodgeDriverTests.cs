@@ -100,7 +100,7 @@ namespace Game.Tests.PlayMode.InGame
             yield break;
         }
 
-        private (CharacterMotor motor, AbilitySystemComponent asc, CharacterAgentAnimations anims) BuildRig()
+        private (CharacterMotor motor, GasComponent asc, CharacterAgentAnimations anims) BuildRig()
         {
             var go = new GameObject("DodgeRig");
             go.SetActive(false);
@@ -108,7 +108,7 @@ namespace Game.Tests.PlayMode.InGame
 
             go.AddComponent<CharacterController>();
             var motor = go.AddComponent<CharacterMotor>();
-            var asc = go.AddComponent<AbilitySystemComponent>();
+            var asc = go.AddComponent<GasComponent>();
             var anims = go.AddComponent<CharacterAgentAnimations>();
 
             go.SetActive(true); // Awake 실행(motor 가 CharacterController 캐시)

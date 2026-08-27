@@ -14,12 +14,12 @@ namespace Game.System.Player
     /// </summary>
     public sealed class LocalPlayerContext
     {
-        public AbilitySystemComponent AbilitySystem { get; private set; }
+        public GasComponent AbilitySystem { get; private set; }
 
         /// <summary>로컬 ASC가 준비되면 발행.</summary>
-        public event Action<AbilitySystemComponent> OnSet;
+        public event Action<GasComponent> OnSet;
 
-        public void Set(AbilitySystemComponent abilitySystem)
+        public void Set(GasComponent abilitySystem)
         {
             AbilitySystem = abilitySystem;
             OnSet?.Invoke(abilitySystem);

@@ -15,17 +15,10 @@ namespace Script.System.GamePlayAbilitySystem
             Modifiers = modifiers;
         }
 
-        public void ApplyEffect(AbilitySystemComponent target)
+        public void ApplyEffect(GasComponent target)
         {
-            // Effect 안의 Modifier를 순회하며 대상이 가진 Attribute에만 적용한다.
-            foreach (var modifier in Modifiers)
-            {
-                if (target.TryGetAttribute(modifier.AttributeType, out var attribute))
-                {
-                    attribute.ApplyModifier(modifier);
-                    continue;
-                }
-            }
+            // 미보유 속성 필터링·집계는 Shared 산식이 한다(서버와 같은 경로).
+            target.ApplyModifiers(Modifiers);
         }
     }
 }

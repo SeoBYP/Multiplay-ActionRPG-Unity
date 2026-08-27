@@ -12,10 +12,10 @@ namespace Game.Tests.PlayMode.Character
     [TestFixture]
     public class PlayerStatApplierTests
     {
-        private static (GameObject go, AbilitySystemComponent asc, PlayerStatApplier applier) Make()
+        private static (GameObject go, GasComponent asc, PlayerStatApplier applier) Make()
         {
             var go = new GameObject("local_player");
-            var asc = go.AddComponent<AbilitySystemComponent>();
+            var asc = go.AddComponent<GasComponent>();
             asc.InitializeAttributes();             // 기본 Health 100/100 (prefab 기준선 모사)
             var applier = go.AddComponent<PlayerStatApplier>();
             return (go, asc, applier);
@@ -29,9 +29,9 @@ namespace Game.Tests.PlayMode.Character
             {
                 applier.ApplyMaxHealth(140);        // 레벨3 maxHealth 모사
 
-                Assert.IsTrue(asc.TryGetAttribute(EGameplayAttribute.Health, out var hp));
-                Assert.AreEqual(140, hp.MaxValue, "서버 MaxHealth 로 Max 정렬");
-                Assert.AreEqual(140, hp.CurrentValue, "스폰 시 풀피");
+                Assert.IsTrue(asc.Has(EGameplayAttribute.Health));
+                Assert.AreEqual(140, asc.Max(EGameplayAttribute.Health), "서버 MaxHealth 로 Max 정렬");
+                Assert.AreEqual(140, asc.Current(EGameplayAttribute.Health), "스폰 시 풀피");
             }
             finally { Object.DestroyImmediate(go); }
         }
@@ -43,12 +43,14 @@ namespace Game.Tests.PlayMode.Character
             try
             {
                 applier.ApplyMaxHealth(140);
-                Assert.IsTrue(asc.TryGetAttribute(EGameplayAttribute.Health, out var hp));
 
-                hp.ApplyModifier(GameplayAttributeModifier.Create(EGameplayAttribute.Health, -40, EModifierType.Additive)); // 140→100
+                asc.ApplyModifiers(new[]
+                {
+                    GameplayAttributeModifier.Create(EGameplayAttribute.Health, -40, EModifierType.Additive), // 140→100
+                });
                 applier.ApplyMaxHealth(140);        // holder 가 킬마다 OnChanged 를 쏴도 변화 없으면 무시
 
-                Assert.AreEqual(100, hp.CurrentValue, "MaxHealth 무변화 재적용은 풀힐 금지(킬마다 풀힐 방지)");
+                Assert.AreEqual(100, asc.Current(EGameplayAttribute.Health), "MaxHealth 무변화 재적용은 풀힐 금지(킬마다 풀힐 방지)");
             }
             finally { Object.DestroyImmediate(go); }
         }
@@ -61,8 +63,7 @@ namespace Game.Tests.PlayMode.Character
             {
                 applier.ApplyMaxHealth(0);          // 스탯 미pull(default) 상태
 
-                Assert.IsTrue(asc.TryGetAttribute(EGameplayAttribute.Health, out var hp));
-                Assert.AreEqual(100, hp.MaxValue, "미갱신(0)이면 prefab 기준선 유지");
+                Assert.AreEqual(100, asc.Max(EGameplayAttribute.Health), "미갱신(0)이면 prefab 기준선 유지");
             }
             finally { Object.DestroyImmediate(go); }
         }
