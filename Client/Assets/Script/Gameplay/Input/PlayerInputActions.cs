@@ -255,6 +255,15 @@ namespace Game.Gameplay.Input
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Chat"",
+                    ""type"": ""Button"",
+                    ""id"": ""3f6a1c22-0b47-4c11-9f2e-71d5c4a90e13"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -739,6 +748,17 @@ namespace Game.Gameplay.Input
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",
                     ""action"": ""Ability"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""9c0be5d1-2f8a-4a63-bb17-6d0e4f21ac58"",
+                    ""path"": ""<Keyboard>/enter"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Chat"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1344,6 +1364,7 @@ namespace Game.Gameplay.Input
             m_Player_LockOn = m_Player.FindAction("LockOn", throwIfNotFound: true);
             m_Player_Quest = m_Player.FindAction("Quest", throwIfNotFound: true);
             m_Player_Ability = m_Player.FindAction("Ability", throwIfNotFound: true);
+            m_Player_Chat = m_Player.FindAction("Chat", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
             m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -1455,6 +1476,7 @@ namespace Game.Gameplay.Input
         private readonly InputAction m_Player_LockOn;
         private readonly InputAction m_Player_Quest;
         private readonly InputAction m_Player_Ability;
+        private readonly InputAction m_Player_Chat;
         /// <summary>
         /// Provides access to input actions defined in input action map "Player".
         /// </summary>
@@ -1539,6 +1561,10 @@ namespace Game.Gameplay.Input
             /// </summary>
             public InputAction @Ability => m_Wrapper.m_Player_Ability;
             /// <summary>
+            /// Provides access to the underlying input action "Player/Chat".
+            /// </summary>
+            public InputAction @Chat => m_Wrapper.m_Player_Chat;
+            /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
             public InputActionMap Get() { return m_Wrapper.m_Player; }
@@ -1618,6 +1644,9 @@ namespace Game.Gameplay.Input
                 @Ability.started += instance.OnAbility;
                 @Ability.performed += instance.OnAbility;
                 @Ability.canceled += instance.OnAbility;
+                @Chat.started += instance.OnChat;
+                @Chat.performed += instance.OnChat;
+                @Chat.canceled += instance.OnChat;
             }
 
             /// <summary>
@@ -1683,6 +1712,9 @@ namespace Game.Gameplay.Input
                 @Ability.started -= instance.OnAbility;
                 @Ability.performed -= instance.OnAbility;
                 @Ability.canceled -= instance.OnAbility;
+                @Chat.started -= instance.OnChat;
+                @Chat.performed -= instance.OnChat;
+                @Chat.canceled -= instance.OnChat;
             }
 
             /// <summary>
@@ -2109,6 +2141,13 @@ namespace Game.Gameplay.Input
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnAbility(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Chat" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnChat(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.

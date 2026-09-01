@@ -22,7 +22,18 @@ namespace Game.Installers
     /// </summary>
     public class ProjectLifetimeScope : LifetimeScope
     {
-        protected override void Configure(IContainerBuilder builder)
+        protected override void Configure(IContainerBuilder builder) => InstallRoot(builder);
+
+        /// <summary>
+        /// 루트 컨테이너의 **전체** 등록. `Configure` 와 DI 배선 테스트가 이 하나를 공유한다.
+        ///
+        /// 왜 static 으로 뽑았나: 테스트가 이 목록을 손으로 베끼면 여기에 등록이 추가될 때마다
+        /// 사본이 조용히 어긋난다(실제로 `IGameSceneManager` 누락으로 그렇게 됐다).
+        /// 미러링 대신 같은 함수를 부르게 해서 드리프트를 구조적으로 없앤다.
+        ///
+        /// 여기 있는 것은 전부 POCO 라 씬 없이도 해석된다 — MonoBehaviour/씬 의존 등록은 자식 스코프 몫이다.
+        /// </summary>
+        public static void InstallRoot(IContainerBuilder builder)
         {
             builder.Install(new NetworkInstaller());
             builder.Install(new AuthInstaller());
@@ -34,6 +45,7 @@ namespace Game.Installers
             builder.Install(new WalletInstaller());
             builder.Install(new ShopInstaller());
             builder.Install(new QuestInstaller());
+            builder.Install(new ChatInstaller());
 
             builder.Register<IGameSceneManager, GameSceneManager>(Lifetime.Singleton);
 

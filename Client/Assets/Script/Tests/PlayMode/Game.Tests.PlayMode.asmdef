@@ -8,6 +8,7 @@
         "Game.Gameplay",
         "Game.Presentation",
         "Game.GUI",
+        "Unity.TextMeshPro",
         "UniTask",
         "VContainer",
         "Unity.InputSystem",

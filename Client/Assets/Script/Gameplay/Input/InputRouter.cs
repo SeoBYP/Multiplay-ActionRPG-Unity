@@ -54,6 +54,9 @@ namespace Game.Gameplay.Input
             Bind(_actions.Player.Quest,       GameInputAction.ToggleQuest);
             Bind(_actions.Player.Ability,     GameInputAction.ToggleAbility);
 
+            // 채팅 입력 열기. 닫기/전송은 UI 맵(InputField)이 받는다 — 입력 중엔 Player 맵이 통째로 꺼지므로.
+            Bind(_actions.Player.Chat,        GameInputAction.Chat);
+
             // 맵 활성화는 전역(GlobalInputInitializer)이 소유한다. 여기서 Enable/Disable 하지 않는다.
             // (라우터는 씬 스코프 → Dispose에서 전역 맵을 끄면 다음 씬 입력이 죽는다.)
         }

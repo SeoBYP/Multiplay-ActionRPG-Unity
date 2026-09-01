@@ -88,6 +88,8 @@ namespace Game.Tests.PlayMode.InGame
             builder.RegisterInstance(ScriptableObject.CreateInstance<Game.Presentation.Inventory.ItemDisplayCatalog>());
             builder.RegisterInstance(new Game.System.Player.ItemPickupNotifier());
             builder.RegisterInstance(new Game.System.Player.InteractionPromptNotifier()); // 상호작용 안내 채널
+            // HUD prefab 의 ChatView 가 주입받는 채팅 Model(네트워크 없는 대역). 실서비스에선 루트 스코프가 등록한다.
+            builder.RegisterInstance(HudChatTestDouble.CreateModel());
             builder.Register<InGameModel>(Lifetime.Singleton).AsSelf();
             _resolver = builder.Build();
             return localPlayer;

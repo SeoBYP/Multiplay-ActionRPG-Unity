@@ -15,6 +15,7 @@ namespace Game.Gameplay.Input
         ToggleEquipment,   // K  — 장비창 단독 토글
         ToggleQuest,       // Q  — 퀘스트창 단독 토글
         ToggleAbility,     // G  — 어빌리티창 단독 토글
+        Chat,              // Enter — 채팅 입력 열기(전송 Enter 는 UI 맵의 InputField 가 받는다)
 
         // ── 월드 인터랙션 ─────────────────────────
         Interact,          // E  — 아이템 줍기 / 문 열기 / NPC 대화
