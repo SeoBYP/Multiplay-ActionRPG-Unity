@@ -38,6 +38,9 @@ namespace Game.Tests.EditMode.Input
         public override void TearDown()
         {
             _router.Dispose();
+            // Disable 없이 asset 만 파괴하면 PlayerInputActions 종료자가 맵 누수 assert 를 띄운다.
+            // 그 로그는 GC 시점에 붙어 "뒤이어 실행되는 무관한 테스트"를 실패시킨다.
+            _actions.Disable();
             if (_actions.asset != null)
                 Object.DestroyImmediate(_actions.asset);
 

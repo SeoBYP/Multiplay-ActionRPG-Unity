@@ -1,4 +1,5 @@
-﻿using Game.GUI;
+﻿using System.Collections.Generic;
+using Game.GUI;
 using Game.Gameplay.Input;
 using NUnit.Framework;
 using UnityEngine;
@@ -16,20 +17,52 @@ namespace Game.Tests.PlayMode.Input
     [TestFixture]
     public class UiInputCaptureBehaviourTests
     {
+        private readonly List<GameObject> _spawned = new List<GameObject>();
         private GameObject _go;
+        private PlayerInputActions _actions;
 
         [TearDown]
         public void TearDown()
         {
-            if (_go != null) Object.DestroyImmediate(_go);
+            // 생성물 정리를 테스트 본문 끝이 아니라 TearDown 에 모은 이유:
+            // 본문 중간에서 Assert 가 실패하면 그 아래 줄에 도달하지 못해 정리가 통째로 건너뛰어지고,
+            // 남은 GameObject 와 켜진 입력 맵이 **뒤이어 실행되는 무관한 테스트**로 새어 들어간다.
+            foreach (var go in _spawned)
+                if (go != null) Object.DestroyImmediate(go);
+            _spawned.Clear();
             _go = null;
+
+            // 특히 입력 맵은 켜진 채 GC 되면 PlayerInputActions 종료자가 누수 assert 를 띄우고,
+            // 그 로그가 그때 돌던 엉뚱한 테스트를 실패시킨다.
+            // (Dispose() 는 Destroy(asset) 만 하므로 Disable 을 대신하지 못한다.)
+            if (_actions != null)
+            {
+                _actions.Disable();
+                if (_actions.asset != null) Object.DestroyImmediate(_actions.asset);
+                _actions = null;
+            }
+        }
+
+        /// <summary>입력 액션 생성 — TearDown 이 반드시 정리하도록 필드에 보관한다.</summary>
+        private PlayerInputActions NewActions()
+        {
+            _actions = new PlayerInputActions();
+            return _actions;
+        }
+
+        /// <summary>GameObject 생성 — TearDown 이 반드시 파괴하도록 추적 목록에 넣는다.</summary>
+        private GameObject NewGo(string name)
+        {
+            var go = new GameObject(name);
+            _spawned.Add(go);
+            return go;
         }
 
         [Test]
         public void 활성화시_점유_비활성화시_해제된다()
         {
             int begin = 0, end = 0;
-            _go = new GameObject("ui-capture");
+            _go = NewGo("ui-capture");
             var cap = _go.AddComponent<UiInputCaptureBehaviour>();
 
             cap.Bind(() => begin++, () => end++);
@@ -48,7 +81,7 @@ namespace Game.Tests.PlayMode.Input
         public void 파괴시에도_점유가_해제된다()
         {
             int begin = 0, end = 0;
-            _go = new GameObject("ui-capture");
+            _go = NewGo("ui-capture");
             _go.AddComponent<UiInputCaptureBehaviour>().Bind(() => begin++, () => end++);
             Assert.AreEqual(1, begin);
 
@@ -60,33 +93,28 @@ namespace Game.Tests.PlayMode.Input
         [Test]
         public void SetActive_false면_실제_Player맵이_다시_켜진다()
         {
-            var actions = new PlayerInputActions();
+            var actions = NewActions();
             actions.Player.Enable(); // 게임플레이 기본 상태
             var ctx = new InputContext(actions);
 
-            _go = new GameObject("ui-capture");
+            _go = NewGo("ui-capture");
             _go.AddComponent<UiInputCaptureBehaviour>().Bind(ctx.EnterUi, ctx.ExitUi);
 
             Assert.IsFalse(actions.Player.enabled, "UI 활성 → Player 맵 OFF (이동/점프 차단)");
 
             _go.SetActive(false); // X 닫기
             Assert.IsTrue(actions.Player.enabled, "숨기면 Player 맵 복구 → 플레이어 다시 움직임");
-
-            // Disable 없이 asset 만 파괴하면 PlayerInputActions 종료자가 맵 누수 assert 를 띄우고,
-            // 그 로그가 **뒤에 실행되는 무관한 테스트**에 붙어 실패시킨다(InputSystemIntegrationTests 가 같은 함정을 주석으로 남겼다).
-            actions.Disable();
-            Object.DestroyImmediate(actions.asset);
         }
 
         /// <summary>로비 X(숨김) → L(재표시) 사이클: 숨기면 이동 복구, 다시 열면 다시 차단.</summary>
         [Test]
         public void 숨김_후_다시_표시하면_Player맵이_다시_꺼진다()
         {
-            var actions = new PlayerInputActions();
+            var actions = NewActions();
             actions.Player.Enable();
             var ctx = new InputContext(actions);
 
-            _go = new GameObject("lobby");
+            _go = NewGo("lobby");
             _go.AddComponent<UiInputCaptureBehaviour>().Bind(ctx.EnterUi, ctx.ExitUi);
             Assert.IsFalse(actions.Player.enabled, "열림 → OFF");
 
@@ -95,21 +123,18 @@ namespace Game.Tests.PlayMode.Input
 
             _go.SetActive(true);  // L 재표시
             Assert.IsFalse(actions.Player.enabled, "재표시 → 다시 OFF");
-
-            actions.Disable(); // 위와 동일 — 누수 assert 방지
-            Object.DestroyImmediate(actions.asset);
         }
 
         /// <summary>중첩(로비+팝업): 하나만 닫혀선 안 되고 둘 다 닫혀야 Player 맵이 복구된다(refcount).</summary>
         [Test]
         public void 중첩_점유는_둘다_해제돼야_Player맵이_켜진다()
         {
-            var actions = new PlayerInputActions();
+            var actions = NewActions();
             actions.Player.Enable();
             var ctx = new InputContext(actions);
 
-            var lobby = new GameObject("lobby");
-            var popup = new GameObject("popup");
+            var lobby = NewGo("lobby");
+            var popup = NewGo("popup");
             lobby.AddComponent<UiInputCaptureBehaviour>().Bind(ctx.EnterUi, ctx.ExitUi); // depth 1
             popup.AddComponent<UiInputCaptureBehaviour>().Bind(ctx.EnterUi, ctx.ExitUi); // depth 2
             Assert.IsFalse(actions.Player.enabled);
@@ -119,9 +144,6 @@ namespace Game.Tests.PlayMode.Input
 
             Object.DestroyImmediate(lobby); // depth 0
             Assert.IsTrue(actions.Player.enabled, "둘 다 닫히면 복구");
-
-            actions.Disable(); // 위와 동일 — 누수 assert 방지
-            Object.DestroyImmediate(actions.asset);
         }
     }
 }
