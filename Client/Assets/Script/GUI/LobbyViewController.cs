@@ -35,6 +35,18 @@ namespace Game.GUI.OutGame
         private AddressableInstance?     _detailInst;
         private CancellationTokenSource  _cts;
 
+        // 로드는 프레임을 넘긴다. 그 사이 같은 요청이 또 오면 인스턴스가 두 개 만들어지는데
+        // 필드는 마지막 것만 가리켜 **앞의 것이 미아**가 된다 — GUIRoot 는 DontDestroyOnLoad 라
+        // 그 미아는 씬을 옮겨도 살아남아 던전 화면에 로비 창으로 남는다(실측: 인스턴스 2개).
+        private bool _lobbyLoading;
+        private bool _detailLoading;
+        private bool _closed;
+
+        // 닫힘 세대. 닫을 때마다 올려서 **그 전에 시작된 로드**를 무효화한다
+        // (던전 입장 신호가 로드 도중 오면 Dispose 도, 취소도 아니라서 다른 신호가 필요하다).
+        private int _lobbyGeneration;
+        private int _detailGeneration;
+
         public LobbyViewController(
             LobbyModel      model,
             IObjectResolver resolver,
@@ -77,13 +89,16 @@ namespace Game.GUI.OutGame
                 })
                 .AddTo(_cts.Token);
 
-            // SocketServer 준비 완료 — RoomDetail은 그대로 유지한다.
-            // 던전 씬이 로드되면 씬 전환이 자연스럽게 정리하므로 여기서 닫지 않는다.
-            // (NavigateToGame 시점에 CloseRoomDetail 하면 Addressable 로드 중일 때 handle이 무효화됨)
+            // SocketServer 준비 완료 = 던전 입장 — 로비 계열 창을 **여기서 명시적으로 닫는다**.
+            // 예전엔 "씬 전환이 정리해 준다"고 두었지만, 로드 중 만들어진 미아 인스턴스는
+            // 아무 필드도 가리키지 않아 씬 전환으로도 사라지지 않는다(던전에 방 목록이 남던 원인).
+            // 로드 도중 닫는 문제는 아래 열기 경로의 in-flight 가드가 처리한다.
             _model.NavigateToGame
                 .Subscribe(args =>
                 {
-                    Debug.Log($"[LobbyViewController] 게임 세션 준비 완료 — {args.Ip}:{args.Port}");
+                    Debug.Log($"[LobbyViewController] 게임 세션 준비 완료 — {args.Ip}:{args.Port} · 로비/대기실 닫기");
+                    CloseLobby();
+                    CloseRoomDetail();
                 })
                 .AddTo(_cts.Token);
 
@@ -91,6 +106,7 @@ namespace Game.GUI.OutGame
 
         public void Dispose()
         {
+            _closed = true;
             _router.Unregister(this);
             _cts?.Cancel();
             _cts?.Dispose();
@@ -125,20 +141,44 @@ namespace Game.GUI.OutGame
                 return;
             }
 
-            // 로비가 열리는 시점에 방 목록을 로드한다.
-            _model.Accept(LobbyIntent.LoadRooms.Instance);
+            if (_lobbyLoading) return; // 로드 중 중복 요청 — 두 번째 인스턴스가 미아가 된다
+            _lobbyLoading = true;
+            int generation = _lobbyGeneration;
 
-            _lobbyInst = await AddressableLoader.LoadAndInstantiateAsync(
-                AddressKeys.UI.LobbyView, GUIRoot.Instance.transform, _cts.Token);
+            try
+            {
+                // 로비가 열리는 시점에 방 목록을 로드한다.
+                _model.Accept(LobbyIntent.LoadRooms.Instance);
 
-            if (_lobbyInst != null)
-                _resolver.InjectGameObject(_lobbyInst.GameObject);
-            // 입력 점유는 DungeonRoomLobbyView의 UiInputCaptureBehaviour가 활성 동안 담당
-            // (X로 숨기면 OnDisable에서 자동 해제 → 플레이어 이동 복구).
+                var inst = await AddressableLoader.LoadAndInstantiateAsync(
+                    AddressKeys.UI.LobbyView, GUIRoot.Instance.transform, _cts.Token);
+                if (inst == null) return;
+
+                // 로드 중에 닫혔다면(던전 입장·씬 전환) 자기 자신이 즉시 치운다 — 아니면 미아가 된다.
+                if (_closed || _cts.IsCancellationRequested || generation != _lobbyGeneration)
+                {
+                    inst.Dispose();
+                    return;
+                }
+
+                _lobbyInst = inst;
+                _resolver.InjectGameObject(inst.GameObject);
+                // 입력 점유는 DungeonRoomLobbyView의 UiInputCaptureBehaviour가 활성 동안 담당
+                // (X로 숨기면 OnDisable에서 자동 해제 → 플레이어 이동 복구).
+            }
+            catch (OperationCanceledException)
+            {
+                // 씬 전환 등으로 취소 — 정상 경로
+            }
+            finally
+            {
+                _lobbyLoading = false;
+            }
         }
 
         private void CloseLobby()
         {
+            _lobbyGeneration++;    // 진행 중인 로드가 있으면 완료 시점에 스스로 파괴하도록 무효화
             _lobbyInst?.Dispose(); // Dispose가 점유 해제까지 처리(CaptureWhileOpen)
             _lobbyInst = null;
         }
@@ -148,22 +188,40 @@ namespace Game.GUI.OutGame
         private async UniTaskVoid OpenRoomDetailAsync()
         {
             Debug.Log($"[LobbyViewController] OpenRoomDetailAsync 진입 — detailInst={(_detailInst != null ? "있음" : "null")}");
-            if (_detailInst != null) return;
+            if (_detailInst != null || _detailLoading) return;
+            _detailLoading = true;
+            int generation = _detailGeneration;
 
-            Debug.Log("[LobbyViewController] RoomDetail 로드 시작");
-            _detailInst = await AddressableLoader.LoadAndInstantiateAsync(
-                AddressKeys.UI.RoomDetailView, GUIRoot.Instance.transform, _cts.Token);
-
-            if (_detailInst != null)
+            try
             {
-                _resolver.InjectGameObject(_detailInst.GameObject);
-                _detailInst.CaptureWhileOpen(_model); // 방 상세 떠 있는 동안 게임플레이 입력 점유(닫힘에 자동 해제)
+                Debug.Log("[LobbyViewController] RoomDetail 로드 시작");
+                var inst = await AddressableLoader.LoadAndInstantiateAsync(
+                    AddressKeys.UI.RoomDetailView, GUIRoot.Instance.transform, _cts.Token);
+                if (inst == null) return;
+
+                if (_closed || _cts.IsCancellationRequested || generation != _detailGeneration)
+                {
+                    inst.Dispose(); // 로드 도중 던전 입장/씬 전환 — 미아로 남기지 않는다
+                    return;
+                }
+
+                _detailInst = inst;
+                _resolver.InjectGameObject(inst.GameObject);
+                inst.CaptureWhileOpen(_model); // 방 상세 떠 있는 동안 게임플레이 입력 점유(닫힘에 자동 해제)
                 Debug.Log("[LobbyViewController] RoomDetail 로드 완료");
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            finally
+            {
+                _detailLoading = false;
             }
         }
 
         private void CloseRoomDetail()
         {
+            _detailGeneration++;
             _detailInst?.Dispose(); // Dispose가 점유 해제까지 처리
             _detailInst = null;
         }
