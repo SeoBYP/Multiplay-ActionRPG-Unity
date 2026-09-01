@@ -70,7 +70,7 @@
 | 스폰 레이아웃/맵(서버·클라 공용) | 진실원 `MapDefinition`(SO, `Gameplay/Spawn/`, 에셋 `Assets/GameData/Maps/`) → **bake** → 서버 `Shared/Shared.Infrastructure/Spawn/spawn-layouts.json`(임베디드)·클라 `Gameplay/Resources/spawn-layouts.json`. 맵 비주얼=`MapLoader`. 툴 `Gameplay/Editor/`: `MapDataExporter`(Export/Import/BakeAll)·`MapEditorWindow`(프리뷰 저작) | 아래 §2.3 |
 | 클라 인증 | `Client/Assets/Script/System/Auth/` (ns `Game.System.Auth`) | — |
 | 클라 GUI/HUD | `Client/Assets/Script/GUI/` | — |
-| **채팅(클라)** | Model `Presentation/Chat/{ChatModel,ChatLine}`(루트 Singleton) · View `GUI/Hud/ChatView`(GameHud.prefab `ChatPanel`) · 입력 `Player/Chat=Enter` · 등록 `Installers/ChatInstaller`. 서버=`GameServer.Application/Domains/Chat/`. 아래 §2.117 | — |
+| **채팅(클라)** | Model `Presentation/Chat/{ChatModel,ChatLine}`(루트 Singleton, `IsInRoom`=로비세션‖소켓Joined) · View `GUI/Hud/{ChatView,ChatBubbleView}`(GameHud.prefab `ChatPanel` — 말풍선 행·항상 보이는 입력줄·동적 채널 드롭다운) · 입력 `Player/Chat=Enter` · 등록 `Installers/ChatInstaller`. 서버=`GameServer.Application/Domains/Chat/`. 아래 §2.117 | — |
 | 클라 DI(VContainer) | `Client/Assets/Script/VContainer/` | `.claude/rules/unity-client.md` |
 | 테스트 하네스 | 아래 §3 | `.claude/rules/testing.md` |
 
@@ -82,6 +82,70 @@
 > ⚠️ **재번호(2026-07-17)** — 원래 2.60~2.76 으로 매겨져 기존 항목(2.60 회피·2.61 콤보·2.62 로스터·2.63 캡슐)과 **번호가 충돌**했다. 과거 커밋 메시지·PR 본문의 참조는 아래 대조표로 읽는다:
 > 구2.60(애니)→**2.64** · 2.61(B1)→**2.65** · 2.62(B2)→**2.66** · 2.63(B3)→**2.67** · 2.64(B4)→**2.68** · 2.65(B5)→**2.69** · 2.66(B6)→**2.70** · 2.67(C3-hotfix)→**2.71** · 2.68(C3)→**2.72** · 2.69(infra)→**2.73** · 2.70(C1a)→**2.74** · 2.71(C1b)→**2.75** · 2.72(C1c준비)→**2.76** · 2.73(사망체력바)→**2.77** · 2.74(C2)→**2.78** · 2.75(링포화)→**2.79** · 2.76(E~H)→**2.80**
 
+### 2.119 로딩·페이드가 게임 UI 아래에 있었다 — 화면 덮개의 정렬 순서 (2026-08-27)
+
+**증상**: 로딩(페이드) 중에 뒤에 있어야 할 UI 들이 앞으로 튀어나왔다.
+
+**원인**: 화면 전체를 덮는 Screen Space - Overlay 캔버스가 **전부 `sortingOrder = 0`** 이었다(실측).
+
+```
+GUIRoot Canvas(게임 창들) : 0
+FaderCanvas               : 0
+LoadingCanvas             : 0
+```
+
+Overlay 는 정렬값이 같으면 **나중에 생성된 캔버스가 위**에 그려진다. 씬 전환 중 새 씬이 활성화되면
+`GameHudController` 등이 그 시점에 창을 만드는데, 그게 로딩보다 나중이라 **로딩 위로 올라왔다.**
+즉 "덮개가 맨 위"라는 전제가 코드 어디에도 적혀 있지 않았고, 우연히 생성 순서에 기대고 있었다.
+
+**조치** (`Presentation/GameScene/GameSceneManager.cs`)
+- 정렬값을 **코드가 소유**한다 — `LoadingSortingOrder = 1000`, `FaderSortingOrder = 1100`(페이더가 로딩까지 덮는다).
+- `ApplyOverlaySorting(go, order)` 로 **인스턴스화 직후 런타임에서 강제**한다. 프리팹에도 같은 값을 넣었지만
+  프리팹은 사람이 열어 저장하면 되돌아갈 수 있고(이 레포에서 실제로 두 번 겪었다) 그때 증상만 조용히 재발한다.
+- 자식 캔버스는 `overrideSorting` 을 켜야 정렬값이 먹는다 — 헬퍼가 같이 처리.
+
+**테스트**: `Tests/EditMode/Presentation/LoadingOverlaySortingTests.cs` 3건 —
+로딩·페이더가 게임 UI보다 위 · **프리팹 값이 코드 상수와 일치**(되돌아가면 빨개진다) · 중첩 캔버스 override.
+
+**실환경 실측**: 플레이 중 실제 씬 전환을 걸고 Overlay 캔버스를 나열 —
+`FaderCanvas 1100 > LoadingCanvas 1000 > Canvas(GUIRoot) 0`. 전환 순간 게임뷰 캡처도 UI 노출 없이 검은 화면.
+
+**검증**: 클라 컴파일 0 · **EditMode 265/265** · **PlayMode 245/245**(Docker E2E 포함).
+
+### 2.118 GUIRoot 아래 창은 씬 전환이 치워주지 않는다 — 던전에 남던 방 목록 (2026-08-27)
+
+**증상**: 던전에 들어가도 **로비(방 목록) 창이 화면에 그대로** 남았다.
+
+**실측**: 플레이 중 오브젝트 그래프를 찍어 보니 스코프는 하나인데 창은 두 개였다.
+
+```
+GUIRoot 자식:  DungeonRoomLobbyView(Clone) active=False
+               GameHud(Clone)              active=True
+               DungeonRoomLobbyView(Clone) active=False   ← 미아
+LifetimeScope: ProjectLifetimeScope / MainLifetimeScope    (스코프는 1개)
+```
+
+**원인 2겹**
+1. `OpenLobbyAsync` 에 **in-flight 가드가 없었다.** Addressable 로드는 프레임을 넘기는데 그 사이 같은 요청이
+   또 오면 인스턴스가 두 개 만들어지고, `_lobbyInst` 는 **마지막 것만** 가리킨다 → 앞의 것은 아무도 파괴하지 못한다.
+   `GUIRoot` 는 `DontDestroyOnLoad` 라 그 미아는 **씬 전환으로도 사라지지 않는다.**
+2. 던전 입장(`NavigateToGame`)에서 **아무것도 닫지 않았다** — "씬 전환이 정리해 준다"는 주석이 붙어 있었지만
+   ①의 미아에는 그 말이 성립하지 않는다.
+
+**조치**
+- `NavigateToGame` 에서 `CloseLobby()` + `CloseRoomDetail()` 을 **명시적으로** 호출.
+- `_lobbyLoading`/`_detailLoading` in-flight 가드로 중복 인스턴스 자체를 막는다.
+- **닫힘 세대(`_lobbyGeneration`/`_detailGeneration`)** — 닫을 때 증가시키고, 로드 완료 시 세대가 바뀌었으면
+  방금 만든 인스턴스를 즉시 `Dispose()`. 로드 도중 던전에 입장하는 경우는 Dispose 도 취소도 아니라서
+  이 신호가 따로 필요하다(테스트가 이 케이스만 빨갛게 잡아냈다).
+
+**위치**: `Client/Assets/Script/GUI/LobbyViewController.cs`
+
+**테스트**: `Tests/PlayMode/InGame/LobbyWindowLifetimeTests.cs` 3건 —
+겹친 열기 요청에도 인스턴스 1개 · 던전 입장 시 0개 · **로드 도중 입장해도 0개**.
+
+**검증**: 클라 컴파일 0 · **EditMode 262/262** · **PlayMode 245/245**(Docker E2E 포함).
+
 ### 2.117 채팅 클라이언트(HUD) — 서버는 M0부터 있었는데 소비자가 0이었다 (2026-08-26)
 
 **착수 전 실측**: 서버 채팅(Global/Room/Whisper + Redis Streams)은 1.4에서 완성돼 있고 클라 래퍼
@@ -90,8 +154,11 @@
 
 ```
 GameHud.prefab/ChatPanel(ChatView)  ──▶  ChatModel(루트 Singleton)  ──▶  IChatGrpcService
-   로그 TMP · 스크롤 · 입력줄              스트림 수명 · 링버퍼 100줄       ChatStream(bidi)
+   말풍선 행(ChatBubbleView) · 스크롤        스트림 수명 · 링버퍼 100줄       ChatStream(bidi)
+   입력줄(항상 표시) · 채널 드롭다운          IsInRoom(방 소속 판정)
         └── Begin/EndUiCapture ──────────▶  IInputContext (Player 맵 ON/OFF)
+                                          ├─▶ DungeonLobbySession (대기실 방)
+                                          └─▶ ISocketSession.State (던전 Joined)
 ```
 
 **결정 ① 루트 스코프 Singleton** — 채팅 스트림의 수명은 로그인~종료다. 씬 스코프면 Main↔Dungeon 왕복마다
@@ -100,24 +167,43 @@ GameHud.prefab/ChatPanel(ChatView)  ──▶  ChatModel(루트 Singleton)  ─�
 **결정 ② System 서비스 계층을 두지 않았다** — 채팅의 소비자는 이 화면 하나뿐이라 감쌀 대상이 없다
 (unity-client.md "불필요한 추상화 금지"). 비UI 소비자가 생기면 그때 분리한다.
 
+**결정 ③-0 입력줄은 항상 보인다(2026-08-27 변경).** 처음엔 Enter 로만 여는 방식이었는데,
+그러면 Enter 라우팅이 한 번이라도 막히는 순간 **입력 수단 자체가 화면에 없어** "채팅이 안 된다"가 된다.
+항상 띄워 두면 클릭으로도 칠 수 있다(가시성 = 최후의 폴백). 클릭 포커스도 `onSelect` 로 같은 점유를 건다
+— 안 걸면 타이핑이 WASD 로 새어 캐릭터가 움직인다.
+
 **결정 ③ 같은 Enter 가 상태에 따라 다른 입력 맵에서 처리된다** — `InputContext.EnterUi()` 가 Player 맵을
 **통째로** 끄기 때문에, 입력 중에는 열기 키가 살아 있을 수 없다.
 
 ```
-비입력: Player 맵 → InputRouter → ChatView.TryHandle(Chat) → 입력줄 열기 + EnterUi(Player 맵 OFF)
+비입력: Player 맵 → InputRouter → ChatView.TryHandle(Chat) → 입력줄 포커스 + EnterUi(Player 맵 OFF)
 입력중: UI 맵   → TMP_InputField.onSubmit → 전송 → 닫기 + ExitUi
 ```
 
 `.inputactions` 에 `Player/Chat = <Keyboard>/enter` 추가 → 래퍼 재생성 → `GameInputAction.Chat` → `InputRouter.Bind`.
 (F13 에서 세운 정식 경로를 그대로 탄다. 키보드 직접 폴링 없음.)
 
+**결정 ④-1 채널 드롭다운은 항목이 상황에 따라 바뀐다(2026-08-27 추가).**
+Main(방 미소속) = `[전체, 개인]` / 방·던전 = `[방, 개인]`. 고를 수 없는 항목을 띄워 놓고 서버가 무시하면
+그게 거짓말이므로, **서버 규칙을 클라 UI 가 그대로 비추는** 쪽을 택했다(proto·서버 무변경).
+'개인'은 **첫 단어가 받는 사람**(`홍길동 어디야`), `/w 닉 내용` 문법도 유지.
+
+⚠ **방 소속 판정에 함정**: `DungeonLobbySession` 만 보면 던전에서 틀린다 — 던전 입장 시
+`GameSessionEvent` 수신 후 `ClearRoom()` 이 불려 클라 세션은 비지만 **서버 쪽 방 소속은 유지**된다.
+그래서 `ChatModel.IsInRoom = lobbySession.IsInRoom || socketSession.State == Joined` 로 두 경로를 모두 본다.
+
 **결정 ④ 채널은 클라가 고르지 않는다** — 서버 `ChatService` 가 "방에 속했으면 Room, 아니면 Global,
 대상 닉네임이 있으면 Whisper" 로 정한다. 클라가 보내는 것은 본문 + (귓속말일 때만) 대상뿐이다.
 그래서 클라 파싱은 `/w 닉 내용` 하나뿐이고, **모르는 `/명령`은 삼키지 않고 그냥 말로 보낸다**
 (침묵하면 사용자는 왜 안 갔는지 알 수 없다).
 
-**결정 ⑤ 남의 문자열을 서식으로 해석하지 않는다** — 로그를 리치텍스트 한 덩어리로 그리므로,
-발신자·본문을 `<noparse>` 로 감싼다. 안 감싸면 남이 친 `<color>`·`<size>` 가 내 화면 서식을 바꾼다.
+**결정 ⑤ 남의 문자열을 서식으로 해석하지 않는다** — 말풍선 행의 발신자·본문 TMP 는 `richText=false` 다.
+안 끄면 남이 친 `<color>`·`<size>` 가 내 화면 서식을 바꾼다. (초기엔 단일 리치텍스트 로그라 `<noparse>` 로
+감쌌으나, 2026-08-27 에 **행 단위 말풍선**으로 바뀌면서 플래그 하나로 원천 차단하는 쪽이 단순해졌다.)
+
+**결정 ⑥ 로그는 행 오브젝트(말풍선) 방식(2026-08-27 변경).** 사용자가 ChatPanel 을 말풍선 구조
+(`Content/ChatBubble{Sender,Message}`)로 다시 만들면서 단일 TMP 렌더는 폐기됐다. `ChatView` 는 그 행을
+**템플릿으로 복제·풀링**한다(별도 프리팹 에셋을 만들지 않는다 — 원본은 숨김). 상한은 여전히 Model 한 곳(100줄).
 
 **Outbox 가 연결 전 메시지를 들고 있는 이유** — 생성 코드 `ChatGrpcService` 는 스트림이 열릴 때 구독한다.
 재연결 시 보내는 `ReconnectPayload{LastMessageId}`(밀린 메시지 요청)가 구독 직전에 만들어지므로,
@@ -125,17 +211,28 @@ GameHud.prefab/ChatPanel(ChatView)  ──▶  ChatModel(루트 Singleton)  ─�
 
 **위치**
 - `Client/Assets/Script/Presentation/Chat/{ChatModel,ChatLine}.cs` (ns `Game.Presentation.Chat`)
-- `Client/Assets/Script/GUI/Hud/ChatView.cs` (ns `Game.GUI.OutGame`) — GameHud.prefab `ChatPanel` 에 배선
+- `Client/Assets/Script/GUI/Hud/{ChatView,ChatBubbleView}.cs` (ns `Game.GUI.OutGame`) — GameHud.prefab `ChatPanel` 에 배선
+  (`logContent`=Content · `bubbleTemplate`=ChatBubble · `channelDropdown`=ChattingChannelDropdown · `inputField`=ChatInput)
 - `Client/Assets/Script/VContainer/Installers/ChatInstaller.cs` → `ProjectLifetimeScope`
 - 입력: `Gameplay/Input/GameInputAction.cs`(+Chat) · `InputRouter.Initialize` · `Assets/InputSystem_Actions.inputactions`
 
-**검증(실측)**: 클라 컴파일 0 · EditMode **채팅 19/19**(전체 257 중 255 — 잔여 2는 §2.116 의 미완 가드) ·
-PlayMode **채팅 6/6**(전체 231 중 228) · **Docker 서버 리빌드 후 실플레이 왕복 확인** — Play 모드에서
-`IsConnected=True`, 보낸 줄이 서버를 돌아 로그에 렌더(`EN4UJHdKCa: 클라 스모크 테스트`), Enter 로 입력줄 열림 확인,
-게임뷰 스크린샷으로 좌하단 패널 육안 확인.
+**검증(실측)**
 
-⚠️ **미실측**: 사람이 키보드로 실제 타이핑해 보내는 감각(스모크는 `TryHandle`·`Send` 직접 호출),
-2인 이상 동시 채팅(MPPM), 장시간 방치 후 재연결(3초 재시도 경로).
+- 1차(2026-08-26, 단일 TMP 로그 · Enter 로 여는 입력줄): 클라 컴파일 0 · EditMode 채팅 19/19(전체 255/257) ·
+  PlayMode 채팅 6/6(전체 228/231) · Docker 리빌드 후 **Play 모드 실왕복**(`IsConnected=True`, 보낸 줄이 서버를
+  돌아 렌더 `EN4UJHdKCa: 클라 스모크 테스트`) · 게임뷰 스크린샷 육안 확인.
+- 2차(2026-08-27, 말풍선 · 항상 보이는 입력줄 · 동적 드롭다운): **클라 컴파일 0 · EditMode 채팅 24/24(전체 260/262 —
+  잔여 2는 §2.116 의 미완 가드) · PlayMode 242/242 전건 통과(채팅 17/17)** — Docker 이미지 리빌드 후 실행.
+  신규 E2E `ChatChannelE2ETests` 3/3 으로 **서버 채널 규칙을 실서버에 못 박았다**(`방 밖=Global / 방=Room / 개인=Whisper`)
+  — 드롭다운이 "고를 수 없는 항목"을 보여주는 거짓말이 되지 않게 하는 근거. Play 모드 스크린샷으로 말풍선·드롭다운 육안 확인.
+
+⚠️ **프리팹 배선은 되돌아갈 수 있다(실측 2회)** — 에디터에서 ChatPanel 을 열어 둔 채 저장하면
+CLI 로 넣은 `ChatBubbleView` 부착·`logContent/bubbleTemplate/channelDropdown` 배선이 통째로 사라진다
+(테스트 `GameHud_프리팹의_ChatView_배선이_살아있다` 가 그때 빨갛게 뜬다 — 이 테스트가 곧 감지기다).
+
+⚠️ **미실측(1차부터 계속)**: 사람이 물리 키보드로 실제 타이핑해 보내는 것 — CLI 로는 OS 키 입력을 주입할 수 없다
+(`InputSystem.QueueStateEvent` 는 에디터 컨텍스트에서 디바이스에 도달조차 하지 않았다: `keyboardEvents=0`).
+MPPM 2인 동시 채팅, 장시간 방치 후 재연결(3초 재시도)도 미실측.
 
 **조사 중 발견(별건, 고치지 않음)**
 1. `Main.unity` 에 **GameHud 프리팹 인스턴스가 씬에 직접 배치**돼 있다(uncommitted). 런타임에 HUD 가 2개가 되고,

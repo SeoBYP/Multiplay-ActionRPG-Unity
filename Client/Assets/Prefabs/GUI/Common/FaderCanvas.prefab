@@ -137,7 +137,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 1100
   m_TargetDisplay: 0
 --- !u!114 &2219373513491071812
 MonoBehaviour:
@@ -192,3 +192,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.GUI::FaderCanvas
   fader: {fileID: 872518858529627886}
+  duration: 0.5
