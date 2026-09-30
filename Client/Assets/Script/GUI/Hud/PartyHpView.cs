@@ -139,7 +139,7 @@ namespace Game.GUI.OutGame
                 _label.font = TMP_Settings.defaultFontAsset;
                 _label.fontSize = 16f;
                 _label.alignment = TextAlignmentOptions.Left;
-                _label.enableWordWrapping = false;
+                _label.textWrappingMode = TextWrappingModes.NoWrap;
                 _label.overflowMode = TextOverflowModes.Ellipsis;
                 _label.color = Color.black;
             }

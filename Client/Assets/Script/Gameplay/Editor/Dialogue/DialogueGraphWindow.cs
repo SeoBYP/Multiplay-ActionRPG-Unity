@@ -29,9 +29,9 @@ namespace Game.Gameplay.Editor.Dialogue
 
         /// <summary>DialogueDefinition 에셋 더블클릭 → 이 윈도우로 연다.</summary>
         [OnOpenAsset]
-        public static bool OnOpenAsset(int instanceId, int line)
+        public static bool OnOpenAsset(EntityId entityId, int line)
         {
-            if (EditorUtility.InstanceIDToObject(instanceId) is not DialogueDefinition def) return false;
+            if (EditorUtility.EntityIdToObject(entityId) is not DialogueDefinition def) return false;
             var win = GetWindow<DialogueGraphWindow>();
             win.titleContent = new GUIContent("Dialogue Graph");
             win.Load(def);
