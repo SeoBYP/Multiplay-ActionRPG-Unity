@@ -82,6 +82,40 @@
 > ⚠️ **재번호(2026-07-17)** — 원래 2.60~2.76 으로 매겨져 기존 항목(2.60 회피·2.61 콤보·2.62 로스터·2.63 캡슐)과 **번호가 충돌**했다. 과거 커밋 메시지·PR 본문의 참조는 아래 대조표로 읽는다:
 > 구2.60(애니)→**2.64** · 2.61(B1)→**2.65** · 2.62(B2)→**2.66** · 2.63(B3)→**2.67** · 2.64(B4)→**2.68** · 2.65(B5)→**2.69** · 2.66(B6)→**2.70** · 2.67(C3-hotfix)→**2.71** · 2.68(C3)→**2.72** · 2.69(infra)→**2.73** · 2.70(C1a)→**2.74** · 2.71(C1b)→**2.75** · 2.72(C1c준비)→**2.76** · 2.73(사망체력바)→**2.77** · 2.74(C2)→**2.78** · 2.75(링포화)→**2.79** · 2.76(E~H)→**2.80**
 
+### 2.120 Title 화면 복구 + 회원가입 창 — 지워진 UI 팩에 기대던 화면 (2026-09-30)
+
+**증상**: Unity 6.6 업그레이드 재임포트 때 Title 창 3개에서 Missing Prefab 에러가 났다. 에디터에서는 자동 로그인이
+Title UI 를 건너뛰어 **넉 달 동안 아무도 몰랐다** — 빌드/수동 로그인 경로는 버튼·입력칸 없는 창이었다.
+
+**원인 (두 겹)**
+- `e0c22700`(2026-05-28)이 MedievalKingdomUI 팩 873파일을 통째로 삭제 → 창 안의 버튼·입력칸·틀 스프라이트·폰트가 전부 null.
+- `Title.unity` 의 두 창 인스턴스가 **존재하지 않는 guid**(72dc…/e0a4…)를 가리켰다 — `.meta` 가 gitignore 이던 시절
+  프리팹 guid 가 재발급된 것으로 추정(`3c36b9ca` 에서 새 guid 로 커밋됨).
+
+**조치**
+- 씬 guid 를 실제 프리팹 guid 로 교체(`c43f36ae…` MainMenu, `674bce32…` Login).
+- 버튼·입력칸 14개를 **HONETi**(GUI 스프라이트 참조 545 vs Artsystack 23 — 실제 주력 팩)로 재구성.
+  템플릿 = `CreateDungeonRoomPopup` 의 `btn_Confirm` / `maxPlayersInput`(fg4_slotBrown). 배경 = Artsystack `bg_2.png`.
+- 회원가입: 서버 Register RPC·`AuthService` 가입 로직은 있었는데 **UI 소비자가 0**이었다.
+  `IAuthService.RegisterAsync`(가입→로그인) 공개 · `LoginOrRegisterAsync` 가 재사용.
+  입력 검증(빈 값·비밀번호 확인)과 사용자 메시지는 **View 가 아니라 `TitleModel`** 에 둬서 단위 테스트한다.
+- 로그인 실패가 화면에 전혀 안 떴다(`WithError(result.ToString())` → 표시부 없음, 예외 시 로딩에 갇힘) → ErrorText + 예외 catch.
+- 씬 전환은 **LoginWindow 한 곳**만 한다 — RegisterWindow 는 LoginWindow 에서만 열리므로 그 구독이 먼저 살아 있다(이중 LoadScene 방지).
+
+**함정**: 프리팹 **루트 RectTransform 은 씬 인스턴스에서 항상 오버라이드**라, 창 높이는 프리팹과 씬 양쪽에 넣어야 한다.
+ErrorText 는 창 높이와 무관하도록 `Buttons` 와 같은 하단 앵커로 붙였다.
+
+**위치**: `Presentation/Title/{TitleModel,TitleIntent}.cs` · `System/Auth/{IAuthService,AuthService}.cs` ·
+`GUI/Title/{LoginWindow,RegisterWindow}.cs` · `Prefabs/GUI/Title/*.prefab` · `Scenes/Title.unity`(autoInjectGameObjects 에 RegisterWindow 추가)
+
+UI 문구는 전부 한국어(헤더·캡션·버튼·안내문). TMP 버튼 폰트(ChironSungHK SDF)는 한글 글리프 누락 0 확인.
+
+**테스트**: `Tests/EditMode/Presentation/TitleModelTests.cs` 6건(TDD — RED=컴파일 에러 8건 확인 후 구현) ·
+`Tests/PlayMode/E2E/Network/Https/AuthFlowE2ETests.cs` 2건 추가(실서버: 가입 즉시 로그인 · 중복 이메일 실패).
+
+**검증**: 클라 컴파일 0 · 콘솔 에러 0 · **EditMode 271/271** · **PlayMode 245/245**(Docker E2E 포함, 이미지 리빌드 후) · `AuthFlowE2ETests` 7/7(신규 2 포함).
+⚠️ **미실측** = 빌드에서 사람이 Title 화면을 직접 클릭해 가입·로그인하는 플레이.
+
 ### 2.119 로딩·페이드가 게임 UI 아래에 있었다 — 화면 덮개의 정렬 순서 (2026-08-27)
 
 **증상**: 로딩(페이드) 중에 뒤에 있어야 할 UI 들이 앞으로 튀어나왔다.

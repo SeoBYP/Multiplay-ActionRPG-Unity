@@ -69,6 +69,8 @@ namespace Game.Tests.PlayMode.Network
             public UniTask<AuthResult> TryAutoLoginAsync(CancellationToken ct) => UniTask.FromResult(AuthResult.Success);
             public UniTask<AuthResult> LoginOrRegisterAsync(string email, string password, CancellationToken ct)
                 => UniTask.FromResult(AuthResult.Success);
+            public UniTask<AuthResult> RegisterAsync(string email, string password, CancellationToken ct)
+                => UniTask.FromResult(AuthResult.Success);
             public void Logout() { }
         }
 

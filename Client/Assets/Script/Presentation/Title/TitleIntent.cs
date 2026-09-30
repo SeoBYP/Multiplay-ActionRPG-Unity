@@ -19,5 +19,19 @@ namespace Game.Presentation.Title
                 Password = password;
             }
         }
+
+        public sealed class Register : TitleIntent
+        {
+            public readonly string Email;
+            public readonly string Password;
+            public readonly string PasswordConfirm;
+
+            public Register(string email, string password, string passwordConfirm)
+            {
+                Email           = email;
+                Password        = password;
+                PasswordConfirm = passwordConfirm;
+            }
+        }
     }
 }

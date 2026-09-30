@@ -103,13 +103,20 @@ namespace Game.System.Auth
             }
 
             // 계정이 없는 경우에만 회원가입 후 로그인 흐름으로 진입한다.
+            return await RegisterAsync(email, password, ct);
+        }
+
+        /// <summary>
+        /// 회원가입 후 곧바로 로그인해 세션을 연다. (중복 이메일 등 가입 실패 시 Failed)
+        /// </summary>
+        public async UniTask<AuthResult> RegisterAsync(string email, string password, CancellationToken ct)
+        {
             var register = await _authGrpcClient.RegisterAsync(new RegisterRequest
             {
                 Email = email,
                 Password = password
             }, ct);
 
-            Debug.Log(register.Result.Message);
             if (!register.Result.Success)
             {
                 Debug.Log(register.Result.Message);
@@ -117,7 +124,7 @@ namespace Game.System.Auth
             }
 
             // 회원가입 직후 다시 로그인해서 access/refresh token을 발급받는다.
-            loginResult = await TryLoginAsync(email, password, ct);
+            var loginResult = await TryLoginAsync(email, password, ct);
             if (!loginResult.Result.Success)
             {
                 Debug.Log(loginResult.Result.Message);

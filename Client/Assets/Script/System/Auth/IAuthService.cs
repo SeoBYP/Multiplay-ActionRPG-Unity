@@ -17,6 +17,9 @@ namespace Game.System.Auth
         // 로그인 실패(사용자 없음)면 자동 회원가입 후 재로그인
         UniTask<AuthResult> LoginOrRegisterAsync(string email, string password, CancellationToken ct);
 
+        // RegisterWindow에서 호출 — 가입 후 곧바로 로그인
+        UniTask<AuthResult> RegisterAsync(string email, string password, CancellationToken ct);
+
         void Logout();
 
         UniTask<AuthResult> RefreshTokenAsync(CancellationToken ct);

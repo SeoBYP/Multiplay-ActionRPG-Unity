@@ -12,7 +12,7 @@ namespace Game.Presentation.Title
     ///
     /// 역할:
     ///   - 앱 시작 시 자동 로그인 시도 (StartAsync)
-    ///   - 수동 로그인 처리 (Accept → Login intent)
+    ///   - 수동 로그인·회원가입 처리 (Accept → Login / Register intent, 입력 검증 포함)
     ///   - View에 인증 상태(IsAuthenticated, IsLoading, Error) 발행
     ///
     /// GUI 레이어는 IAuthService를 직접 참조하지 않는다.
@@ -66,33 +66,54 @@ namespace Game.Presentation.Title
 
         // ── View의 단일 진입점 ────────────────────────
 
+        public const string EmptyInputMessage       = "이메일과 비밀번호를 입력하세요.";
+        public const string PasswordMismatchMessage = "비밀번호가 일치하지 않습니다.";
+        public const string LoginFailedMessage      = "이메일 또는 비밀번호가 올바르지 않습니다.";
+        public const string RegisterFailedMessage   = "회원가입에 실패했습니다. 이미 사용 중인 이메일일 수 있습니다.";
+        public const string ConnectionFailedMessage = "서버에 연결할 수 없습니다.";
+
         public void Accept(TitleIntent intent)
         {
             switch (intent)
             {
                 case TitleIntent.Login login:
-                    LoginAsync(login).Forget();
+                    if (IsBlank(login.Email, login.Password)) { _state.Value = _state.Value.WithError(EmptyInputMessage); return; }
+                    RunAuthAsync(ct => _authService.LoginOrRegisterAsync(login.Email, login.Password, ct), LoginFailedMessage).Forget();
+                    break;
+
+                case TitleIntent.Register register:
+                    if (IsBlank(register.Email, register.Password)) { _state.Value = _state.Value.WithError(EmptyInputMessage); return; }
+                    if (register.Password != register.PasswordConfirm) { _state.Value = _state.Value.WithError(PasswordMismatchMessage); return; }
+                    RunAuthAsync(ct => _authService.RegisterAsync(register.Email, register.Password, ct), RegisterFailedMessage).Forget();
                     break;
             }
         }
 
+        private static bool IsBlank(string email, string password)
+            => string.IsNullOrWhiteSpace(email) || string.IsNullOrEmpty(password);
+
         // ── Effect ───────────────────────────────────
 
-        private async UniTaskVoid LoginAsync(TitleIntent.Login intent)
+        private async UniTaskVoid RunAuthAsync(Func<CancellationToken, UniTask<AuthResult>> call, string failedMessage)
         {
             _state.Value = _state.Value.WithLoading();
             try
             {
-                var result = await _authService.LoginOrRegisterAsync(
-                    intent.Email, intent.Password, _cts.Token);
+                var result = await call(_cts.Token);
 
                 _state.Value = result == AuthResult.Success
                     ? _state.Value.WithAuthenticated()
-                    : _state.Value.WithError(result.ToString());
+                    : _state.Value.WithError(failedMessage);
             }
             catch (OperationCanceledException)
             {
                 _state.Value = TitleState.Initial;
+            }
+            catch (Exception e)
+            {
+                // 서버 미기동·네트워크 단절 — 로딩에 갇히지 않도록 에러 상태로 되돌린다.
+                UnityEngine.Debug.LogWarning($"[TitleModel] 인증 요청 실패: {e.Message}");
+                _state.Value = _state.Value.WithError(ConnectionFailedMessage);
             }
         }
 

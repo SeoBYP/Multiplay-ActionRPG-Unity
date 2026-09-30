@@ -156,5 +156,30 @@ namespace Game.Tests.PlayMode.E2E
             Assert.AreEqual(AuthResult.Failed, result);
             Assert.IsFalse(_clientAuthService.IsAuthenticated);
         });
+
+        [UnityTest]
+        public IEnumerator 회원가입_새_이메일이면_가입_후_바로_로그인된다() => UniTask.ToCoroutine(async () =>
+        {
+            var email = UniqueEmail();
+
+            var result = await _clientAuthService.RegisterAsync(email, "Test1234!", CancellationToken.None);
+
+            Assert.AreEqual(AuthResult.Success, result);
+            Assert.IsTrue(_clientAuthService.IsAuthenticated);
+            Assert.IsTrue(_tokenStore.TryLoad(out var accessToken, out _, out _));
+            Assert.IsNotEmpty(accessToken);
+        });
+
+        [UnityTest]
+        public IEnumerator 회원가입_이미_있는_이메일이면_실패하고_로그인되지_않는다() => UniTask.ToCoroutine(async () =>
+        {
+            var email = UniqueEmail();
+            await RegisterAndLoginAsync(email, "Test1234!");
+
+            var result = await _clientAuthService.RegisterAsync(email, "Other1234!", CancellationToken.None);
+
+            Assert.AreEqual(AuthResult.Failed, result);
+            Assert.IsFalse(_clientAuthService.IsAuthenticated);
+        });
     }
 }
