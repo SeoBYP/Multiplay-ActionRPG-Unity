@@ -267,4 +267,45 @@ public class AbilitySystemComponentActiveEffectTests
         Assert.Equal(35, gas[EGameplayAttribute.AttackPower]); // 중첩되지 않는다
         Assert.NotNull(gas.TickEffects(5000)); // 지속시간도 갱신되지 않는다(0 기준 5000ms)
     }
+
+    // ── 값 타입 계약 (할당 결정을 못박는다) ────────────────────────
+
+    [Fact]
+    public void ActiveGameplayEffect_는_값_타입이다()
+    {
+        // class 로 되돌리면 피격마다·만료마다 힙 객체가 하나씩 생긴다.
+        // 이 타입은 필드 넷뿐이라 List 배열에 인라인으로 들어가는 편이 맞다.
+        Assert.True(typeof(ActiveGameplayEffect).IsValueType);
+    }
+
+    [Fact]
+    public void 스택_갱신은_목록에_되쓰여야_한다()
+    {
+        // struct 조회는 복사본을 준다. 되쓰기를 빠뜨리면 갱신이 조용히 사라진다 —
+        // 이 테스트가 그 회귀의 감지기다(내부 목록에서 다시 읽어 확인한다).
+        var gas = Player(atk: 25);
+        var def = AtkUp(amount: 10, durationMs: 1000, stack: EStackPolicy.Stack, maxStacks: 3);
+
+        gas.ApplyEffect(def, instanceId: 1, nowMs: 0);
+        gas.ApplyEffect(def, instanceId: 2, nowMs: 800);
+
+        var active = Assert.Single(gas.ActiveEffects());
+        Assert.Equal(2, active.Stacks);     // AddStack 이 반영됐다
+        Assert.Equal(800, active.StartMs);  // Refresh 도 반영됐다
+        Assert.Null(gas.TickEffects(1500)); // 800 기준이라 아직 살아 있다
+    }
+
+    [Fact]
+    public void 스냅샷을_들고_있어도_내부_갱신에_영향받지_않는다()
+    {
+        // 값 타입이라 스냅샷은 그 시점의 복사본이다. 참조를 흘리면 밖에서 내부 상태를 흔들 수 있다.
+        var gas = Player();
+        gas.ApplyEffect(Stun(durationMs: 1000), instanceId: 1, nowMs: 0);
+        var snapshot = gas.ActiveEffects()[0];
+
+        gas.ApplyEffect(Stun(durationMs: 1000), instanceId: 1, nowMs: 500); // 내부 갱신
+
+        Assert.Equal(0, snapshot.StartMs);                    // 스냅샷은 그대로
+        Assert.Equal(500, gas.ActiveEffects()[0].StartMs);    // 내부는 갱신됨
+    }
 }

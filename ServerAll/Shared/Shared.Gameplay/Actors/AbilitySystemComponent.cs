@@ -299,15 +299,19 @@ namespace Script.System.GamePlayAbilitySystem
 
                 // 같은 Effect 가 이미 걸려 있으면 스택 정책이 결정한다. 새 인스턴스를 만드는 건
                 // "아직 안 걸려 있을 때"뿐이다 — 그래야 None 이 중첩되지 않는다.
-                var same = FindByEffectId(definition.Id);
-                if (same != null)
+                int sameIndex = IndexOfEffectId(definition.Id);
+                if (sameIndex >= 0)
                 {
+                    var same = _active[sameIndex];
                     if (definition.Stack == EStackPolicy.None)
                         return same.InstanceId; // 재적용 무시 — 상태가 그대로라 재계산도 불필요
 
-                    same.Refresh(nowMs); // 지속시간 갱신은 Refresh·Stack 공통
+                    var updated = same.WithStart(nowMs); // 지속시간 갱신은 Refresh·Stack 공통
                     if (definition.Stack == EStackPolicy.Stack)
-                        same.AddStack(definition.MaxStacks);
+                        updated = updated.WithAddedStack(definition.MaxStacks);
+
+                    // struct 라 위의 `same` 은 **복사본**이다. 여기서 되쓰지 않으면 갱신이 조용히 사라진다.
+                    _active[sameIndex] = updated;
 
                     RecalculateStatsLocked();
                     return same.InstanceId;
@@ -373,12 +377,17 @@ namespace Script.System.GamePlayAbilitySystem
             return -1;
         }
 
-        private ActiveGameplayEffect? FindByEffectId(string effectId)
+        /// <summary>
+        /// 같은 Effect Id 의 활성 인스턴스 위치. 없으면 −1.
+        /// <b>값이 아니라 인덱스를 돌려주는 이유</b>: struct 를 돌려주면 호출부가 받는 것은 복사본이라
+        /// 거기 대고 갱신해도 목록에 반영되지 않는다. 인덱스를 주면 되쓰기(<c>_active[i] = …</c>)가 강제된다.
+        /// </summary>
+        private int IndexOfEffectId(string effectId)
         {
             for (int i = 0; i < _active.Count; i++)
                 if (_active[i].Definition.Id == effectId)
-                    return _active[i];
-            return null;
+                    return i;
+            return -1;
         }
 
         /// <summary>
