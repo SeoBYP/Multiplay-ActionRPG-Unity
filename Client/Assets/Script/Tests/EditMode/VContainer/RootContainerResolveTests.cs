@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Game.Installers;
+using Game.Gameplay.Input;
 using NUnit.Framework;
-using UnityEngine.TestTools;
+using UnityEngine;
 using VContainer;
 using VContainer.Unity;
 
@@ -44,13 +45,16 @@ namespace Game.Tests.EditMode.VContainerWiring
             }
             finally
             {
-                // 해제 구간에서만 로그를 무시한다(검증 구간은 그대로 감시).
-                // 루트에는 PlayerInputActions 가 들어 있고 그 Dispose() 는 Object.Destroy(asset) 를 부른다.
-                // 런타임엔 정상이지만 EditMode 에선 Unity 가 에러 로그를 남긴다 —
-                // 배선 결함이 아니라 생성 코드의 해제 방식이라 여기서 고칠 수 없다.
-                LogAssert.ignoreFailingMessages = true;
+                // 루트에 PlayerInputActions 가 있고, 생성된 Dispose() 는 Object.Destroy(asset) 를 부른다.
+                // EditMode 에선 그게 "Destroy may not be called from edit mode" 에러를 콘솔에 남긴다.
+                // 생성 파일이라 못 고치니, 컨테이너가 해제되기 전에 우리가 DestroyImmediate 로 먼저 치운다.
+                // (로그를 무시하는 방식은 테스트만 통과시키고 콘솔 에러는 그대로 남겨 둔다 — 그래서 바꿨다.)
+                var actions = container.Resolve<PlayerInputActions>();
+                actions.Disable();
+                if (actions.asset != null)
+                    Object.DestroyImmediate(actions.asset);
+
                 container.Dispose();
-                LogAssert.ignoreFailingMessages = false;
             }
         }
 

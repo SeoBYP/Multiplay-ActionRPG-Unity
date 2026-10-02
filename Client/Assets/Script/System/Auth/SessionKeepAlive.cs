@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using VContainer;
 using VContainer.Unity;
 
 namespace Game.System.Auth
@@ -22,19 +23,34 @@ namespace Game.System.Auth
     /// </remarks>
     public sealed class SessionKeepAlive : IAsyncStartable, IDisposable
     {
+        /// <summary>남은 수명의 이 비율만큼 기다린 뒤 갱신(0.6 = 40% 여유).</summary>
+        private const double DefaultRefreshAtRatio = 0.6;
+
         private readonly AuthSession _session;
         private readonly IAuthService _authService;
         private readonly double _refreshAtRatio;
         private readonly TimeSpan _minDelay;
         private readonly CancellationTokenSource _cts = new();
 
+        /// <summary>
+        /// DI 진입점. **VContainer 는 C# 기본값을 존중하지 않고 모든 생성자 인자를 해석하려 한다** —
+        /// 선택 인자(double·TimeSpan?)를 그대로 두면 루트 컨테이너가
+        /// `No such registration of type: System.Double` 로 빌드에 실패한다.
+        /// 그래서 튜닝 인자가 없는 이 생성자를 [Inject] 로 못 박는다(값은 아래 기본값).
+        /// </summary>
+        [Inject]
+        public SessionKeepAlive(AuthSession session, IAuthService authService)
+            : this(session, authService, DefaultRefreshAtRatio, null)
+        {
+        }
+
         /// <param name="refreshAtRatio">남은 수명의 이 비율만큼 기다린 뒤 갱신한다(0.6 = 40% 여유를 남김).</param>
         /// <param name="minDelay">토큰이 이미 만료에 가까울 때 갱신 폭주를 막는 하한.</param>
         public SessionKeepAlive(
             AuthSession session,
             IAuthService authService,
-            double refreshAtRatio = 0.6,
-            TimeSpan? minDelay = null)
+            double refreshAtRatio,
+            TimeSpan? minDelay)
         {
             _session = session;
             _authService = authService;
