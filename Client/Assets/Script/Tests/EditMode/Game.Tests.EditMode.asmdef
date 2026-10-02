@@ -8,6 +8,7 @@
         "Game.System.InGame",
         "Game.Presentation",
         "Game.Gameplay",
+        "Game.VContainer",
         "VContainer",
         "UniTask",
         "Unity.InputSystem",

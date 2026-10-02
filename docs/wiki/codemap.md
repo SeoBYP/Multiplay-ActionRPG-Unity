@@ -82,6 +82,24 @@
 > ⚠️ **재번호(2026-07-17)** — 원래 2.60~2.76 으로 매겨져 기존 항목(2.60 회피·2.61 콤보·2.62 로스터·2.63 캡슐)과 **번호가 충돌**했다. 과거 커밋 메시지·PR 본문의 참조는 아래 대조표로 읽는다:
 > 구2.60(애니)→**2.64** · 2.61(B1)→**2.65** · 2.62(B2)→**2.66** · 2.63(B3)→**2.67** · 2.64(B4)→**2.68** · 2.65(B5)→**2.69** · 2.66(B6)→**2.70** · 2.67(C3-hotfix)→**2.71** · 2.68(C3)→**2.72** · 2.69(infra)→**2.73** · 2.70(C1a)→**2.74** · 2.71(C1b)→**2.75** · 2.72(C1c준비)→**2.76** · 2.73(사망체력바)→**2.77** · 2.74(C2)→**2.78** · 2.75(링포화)→**2.79** · 2.76(E~H)→**2.80**
 
+### 2.121 루트 스코프가 씬에 또 있었다 — 모든 루트 등록이 이중 생성 (2026-09-30)
+
+**증상**: Title 에서 Play → `InvalidOperationException: Duplicate packet handler: S_PlayerJoined`(SocketPacketDispatcher 생성자).
+
+**원인**: `VContainerSettings.RootLifetimeScope` 가 `ProjectLifetimeScope.prefab` 을 루트로 **자동 생성**하는데,
+`Title.unity` 에도 같은 프리팹 인스턴스가 있었다(`33f45324`, 2026-05-28 부터). 씬 인스턴스는 `IsRoot=false` 라
+**루트의 자식 스코프**가 되어 `InstallRoot` 전체를 한 번 더 등록했다. VContainer 의 `IEnumerable<T>` 주입은
+`CollectFromParentScopes` 로 부모 등록까지 모으므로 핸들러가 2개씩 들어왔다. 패킷 핸들러만이 아니라
+루트 싱글톤·엔트리포인트(입력 초기화·채팅 등)가 **전부 이중 생성**되던 상태였다.
+
+**조치**: Title 씬의 `ProjectLifetimeScope` 인스턴스 삭제. `TitleSceneScope` 는 `parentReference` 가 **타입 이름**이라
+자동 생성된 루트(`ProjectLifetimeScope(Clone)`, DontDestroyOnLoad)를 그대로 부모로 찾는다. Main/Dungeon 은 원래 0개.
+
+**가드**: `Tests/EditMode/VContainer/RootScopeSceneTests.cs` — 활성 빌드 씬 YAML 에 루트 프리팹/스크립트 guid 가 있으면 실패.
+수정 전 씬으로 RED(`Title.unity` 지목) → 수정 후 GREEN 확인.
+
+**검증**: Title Play 시 스코프 = 루트 1 + TitleSceneScope 1 · 콘솔 에러 0 · **EditMode 272/272** · **PlayMode 247/247**(Docker E2E 포함).
+
 ### 2.120 Title 화면 복구 + 회원가입 창 — 지워진 UI 팩에 기대던 화면 (2026-09-30)
 
 **증상**: Unity 6.6 업그레이드 재임포트 때 Title 창 3개에서 Missing Prefab 에러가 났다. 에디터에서는 자동 로그인이
