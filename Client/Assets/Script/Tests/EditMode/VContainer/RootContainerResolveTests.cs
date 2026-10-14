@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Game.Installers;
-using Game.Gameplay.Input;
 using NUnit.Framework;
-using UnityEngine;
+using UnityEngine.TestTools;
 using VContainer;
 using VContainer.Unity;
 
@@ -45,15 +45,12 @@ namespace Game.Tests.EditMode.VContainerWiring
             }
             finally
             {
-                // 루트에 PlayerInputActions 가 있고, 생성된 Dispose() 는 Object.Destroy(asset) 를 부른다.
-                // EditMode 에선 그게 "Destroy may not be called from edit mode" 에러를 콘솔에 남긴다.
-                // 생성 파일이라 못 고치니, 컨테이너가 해제되기 전에 우리가 DestroyImmediate 로 먼저 치운다.
-                // (로그를 무시하는 방식은 테스트만 통과시키고 콘솔 에러는 그대로 남겨 둔다 — 그래서 바꿨다.)
-                var actions = container.Resolve<PlayerInputActions>();
-                actions.Disable();
-                if (actions.asset != null)
-                    Object.DestroyImmediate(actions.asset);
-
+                // 루트의 PlayerInputActions 를 생성된 Dispose() 가 Object.Destroy(asset) 로 치우는데,
+                // EditMode 에선 그게 에러 로그다. 생성 파일이라 고칠 수 없고,
+                // asset 을 미리 DestroyImmediate 해도 Destroy 는 **이미 파괴된 객체에도** 같은 에러를 낸다(실측).
+                // 즉 이 로그는 피할 수 없다. 그래서 무시(ignoreFailingMessages)가 아니라 "반드시 난다"고 선언한다 —
+                // 무시는 로그가 사라져도 모르지만, Expect 는 안 나면 테스트를 빨갛게 만들어 알려준다.
+                LogAssert.Expect(UnityEngine.LogType.Error, new Regex("Destroy may not be called from edit mode"));
                 container.Dispose();
             }
         }
