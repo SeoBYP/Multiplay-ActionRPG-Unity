@@ -22,7 +22,7 @@
 - **수정 가이드**: 블록 삭제. `AllowAdmin = true` 도 FLUSH 용이었다면 함께 뺀다. 개발 중 초기화가 필요하면 `docker compose down -v` 로 한다(코드에 남기지 않는다).
 - **주의**: 고친 뒤 **Docker E2E 전체** 실행 — "기동 = 깨끗한 Redis" 에 기대던 E2E 가 있을 수 있다(미실측).
 
-### S1. 플레이어가 몬스터·테스트 어빌리티를 발동한다 — ✔ 실측
+### S1. 플레이어가 몬스터·테스트 어빌리티를 발동한다 — ✅ 해결(2026-10-27, 보유 어빌리티 검사 — codemap §2.123)
 
 - **위치**: `SocketServer/PacketHandler/Handler/CombatHandler.cs:52,70` — `AbilityCatalog.Get(skillId)` 가 null 만 아니면 통과
 - **시나리오**: `C_Attack{SkillId=105}` → `test_brute_attack`(데미지 9999·쿨다운 50ms) 발동 → 던전 즉시 클리어 → 보상. 109(`leviathan_slam` 90)도 동일. 쿨다운이 어빌리티별이라 서로 다른 SkillId 를 동시에 보내면 전부 맞는다.

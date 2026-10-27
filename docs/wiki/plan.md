@@ -19,7 +19,7 @@
 순서 = 싸고 효과 큰 것부터. `RED 테스트` 클래스가 전부 그린이 되면 체크한다.
 
 - [ ] **G1** GameServer 기동마다 Redis `FlushAllDatabases()` — `RedisStartupPreservationTests` — 🔄 xUnit GREEN(2026-10-27), Docker 리빌드 후 E2E 남음
-- [ ] **S1** 플레이어가 몬스터·테스트 어빌리티 발동(105 = 데미지 9999) — `AttackAbilityTrustTests` — 🔄 기준 확정(2026-10-27): 발동자는 세션으로 확정(패킷에 ID 추가 안 함), `Gas.HasAbility(abilityId)` 로 보유 검사. 보유 = 기본기 상수 + `PlayerInfo.AbilityIds`(아래 스킬 장착)
+- [x] **S1** 플레이어가 몬스터·테스트 어빌리티 발동(105 = 데미지 9999) — `AttackAbilityTrustTests` — ✅ GREEN(2026-10-27, codemap §2.123): 발동자는 세션으로 확정(패킷에 ID 추가 안 함), `Gas.HasAbility(abilityId)` 로 보유 검사. 보유 = 기본기 상수 + `PlayerInfo.AbilityIds`(아래 스킬 장착)
 - [ ] **S3** `C_Move` 무검증 — NaN·순간이동, NaN 이면 거리 검사 전부 통과 — `MoveInputValidationTests` — 최대 이동 속도 결정
 - [ ] **G3** 지갑·인벤토리·Exp lost update / 이중 차감 통과 — `EconomyConcurrencyTests`
 - [ ] **G2** 퀘스트 보상 동시 요청 시 중복 지급 — `QuestClaimConcurrencyTests`
@@ -48,7 +48,7 @@ dotnet test ServerAll/SocketServer/SocketServer.Tests/SocketServer.Tests.csproj
 
 결정(2026-10-27): **슬롯 4개** · **던전 안 장착 변경은 거부**(유저의 방이 Starting/Playing 이면 Equip/Unequip 거부 — 로드아웃은 시작 시점 스냅샷이라 SocketServer 는 DB 를 모른다). 미결: 포인트 규칙(레벨당 포인트·노드 비용).
 
-- [ ] Phase 1 — ASC `GrantAbility`/`HasAbility` + `ActorStore.AddPlayer(abilityIds)` + 기본기 상수 + `PlayerInfo.AbilityIds`(빈 목록 = 기본기만) → S1 GREEN
+- [x] Phase 1 — ASC `GrantAbility`/`HasAbility` + `ActorStore.AddPlayer(abilityIds)` + 기본기 상수 + `PlayerInfo.AbilityIds`(빈 목록 = 기본기만) → S1 GREEN
 - [ ] Phase 2 — Entity·Migration(`user_skills` PK(UserId,AbilityId) / `user_skill_slots` PK(UserId,Slot) + UNIQUE(UserId,AbilityId))·Repository·`SkillService` Learn/Equip/Unequip. RED 먼저: 동시 학습 포인트 초과 · 미학습 장착 · 같은 스킬 두 슬롯 · 슬롯 범위(0~3) · 던전 중 변경 거부
 - [ ] Phase 3 — `skill.proto`(공개 계약, 승인 후) + 클라 Generated 재생성 + 트리·슬롯 UI · 슬롯 키 → 장착 스킬 networkId 로 `C_Attack`
 

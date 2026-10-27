@@ -82,6 +82,23 @@
 > ⚠️ **재번호(2026-07-17)** — 원래 2.60~2.76 으로 매겨져 기존 항목(2.60 회피·2.61 콤보·2.62 로스터·2.63 캡슐)과 **번호가 충돌**했다. 과거 커밋 메시지·PR 본문의 참조는 아래 대조표로 읽는다:
 > 구2.60(애니)→**2.64** · 2.61(B1)→**2.65** · 2.62(B2)→**2.66** · 2.63(B3)→**2.67** · 2.64(B4)→**2.68** · 2.65(B5)→**2.69** · 2.66(B6)→**2.70** · 2.67(C3-hotfix)→**2.71** · 2.68(C3)→**2.72** · 2.69(infra)→**2.73** · 2.70(C1a)→**2.74** · 2.71(C1b)→**2.75** · 2.72(C1c준비)→**2.76** · 2.73(사망체력바)→**2.77** · 2.74(C2)→**2.78** · 2.75(링포화)→**2.79** · 2.76(E~H)→**2.80**
 
+### 2.123 플레이어 발동 권한 = 보유 어빌리티(GAS) — 카탈로그 존재만으로 발동하지 않는다 (S1, 2026-10-27)
+
+**위치**: 부여 `SocketServer/Actors/ActorStore.AddPlayer` → `actor.Gas.GrantAbility` (기본기 `PlayerActor.BasicAbilityIds` + `PlayerInfo.AbilityIds`).
+보유 저장소 `Shared.Gameplay/Actors/AbilitySystemComponent` `GrantAbility`/`HasAbility`(abilityId 키, `SyncRoot` 락).
+검사 `CombatHandler.HandleAttack` — 차단 태그 다음·마나 앞에서 `HasAbility(ability.Id)` 거부.
+
+**왜**: 카탈로그는 플레이어·몬스터·테스트 어빌리티를 함께 담아서 "있으면 통과"면 `C_Attack{SkillId=105}`(9999 데미지)가 플레이어 이름으로 나갔다.
+발동자는 **세션으로 확정**한다 — 패킷에 발동자 ID 를 넣으면 위조 표면만 늘고 결국 세션과 비교해야 한다.
+networkId 대역(0~5)으로 거르는 안은 스킬 트리(유저별 장착)를 못 담아서 택하지 않았다.
+
+**보유 = 두 출처**: 기본기(전원 상시, 서버 상수) + 장착 트리 스킬(GameServer 가 게임 시작 시 `PlayerInfo.AbilityIds` 로 스냅샷 전달 — 스탯과 같은 경로).
+SocketServer 는 DB 를 모르고, 스트림 메시지에 담겨 있어 재시작·PEL 재처리 때도 복원된다. 필드 기본값 `[]` = 옛 메시지 하위호환.
+스킬 트리 DB·장착 API 는 plan.md "스킬 트리 · 장착" Phase 2·3.
+
+**가드**: `AttackAbilityTrustTests`(105·109·100 거부 + 대조군 0) · `PlayerAbilityGrantTests`(기본기 카탈로그 존재·입장 시 보유·장착 목록 부여·`CreateRoom` 연결·부여 시 발동) · `Shared.Gameplay.Tests/AbilityGrantTests`.
+⚠️ 클라 `GasComponent` 는 부여하지 않으므로 클라에서 `HasAbility` 는 항상 false — 클라 판정에 쓰지 말 것.
+
 ### 2.122 GameServer 기동 시 Redis FLUSH 제거 — Redis 는 더 이상 "지워도 되는 캐시"가 아니다 (G1, 2026-10-27)
 
 **위치**: `GameServer.API/Installers/ServiceInstaller.cs` Redis 연결부. `FlushAllDatabases()` 블록 + `AllowAdmin = true` 삭제.

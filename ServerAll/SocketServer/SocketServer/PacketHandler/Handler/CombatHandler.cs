@@ -63,7 +63,13 @@ public static class CombatHandler
             CombatTrace.Gate(CombatGate.Blocked, actorId, ability.NetworkId, ability.Id, recvMs);
             return;
         }
-
+        
+        if (!attacker.Gas.HasAbility(ability.Id))
+        {
+            CombatTrace.Gate(CombatGate.NotGranted, actorId, ability.NetworkId, ability.Id, recvMs);
+            return;
+        }
+        
         // 마나는 쿨다운보다 먼저 — 거부될 발동이 쿨다운 슬롯을 소모하지 않게.
         if (attacker.Gas[EGameplayAttribute.Mana] < skill.ManaCost)
         {

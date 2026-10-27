@@ -11,6 +11,12 @@ public sealed class PlayerActor(long userId) : Actor(ActorIds.FromPlayer(userId)
 {
     public override ActorKind Kind => ActorKind.Player;
 
+    // TODO : 추후 기본 공격 테이블을 따로 만들어서 관리
+    public static readonly IReadOnlyList<string> BasicAbilityIds =
+    [
+        "basic_swing", "heavy_swing", "combo_a", "combo_b", "combo_c", "combo_d"
+    ];
+
     // ── 회피(Dodge) 무적 ──────────────────────────────────────────────
     // 태그(State.Invulnerable)가 아니라 만료 시각 — 시각 비교는 틱 주기와 무관하게 정확하다.
 

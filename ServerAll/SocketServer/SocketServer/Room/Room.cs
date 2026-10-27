@@ -192,15 +192,17 @@ public class Room
     /// 참가자와 그 캐릭터를 생성한다(게임 시작 시 1회, 소켓 입장 전).
     /// 스탯(<paramref name="maxHealth"/> 등)은 GameServer 가 계산해 보낸 권위값 — SocketServer 는 받아 쓰기만 한다.
     /// </summary>
-    public void AddPlayer(long userId, string nickname, int spawnIndex, float spawnX, float spawnY, float spawnZ, float rotY,
-        int attackPower = 0, int defense = 0, int maxHealth = 0, int maxMana = 0)
+    public void AddPlayer(long userId, string nickname, int spawnIndex, float spawnX, float spawnY, float spawnZ,
+        float rotY,
+        int attackPower = 0, int defense = 0, int maxHealth = 0, int maxMana = 0,
+        IReadOnlyList<string>? abilityIds = null)
     {
         // MaxHp/MaxMana = GameServer 가 보낸 스탯(권위). 0(미설정)이면 상수 폴백(테스트·레거시 경로 호환).
         int hp = maxHealth > 0 ? maxHealth : DefaultMaxHp;
         int mana = maxMana > 0 ? maxMana : DefaultMaxMana;
 
         Actors.AddPlayer(userId, nickname, spawnIndex, spawnX, spawnY, spawnZ, rotY,
-            attackPower, defense, hp, mana);
+            attackPower, defense, hp, mana,abilityIds);
 
         _logger.LogInformation(
             "Initialized player {UserId} ({Nickname}) slot {SpawnIndex} at ({SpawnX}, {SpawnY}, {SpawnZ}) in Room {RoomId}",

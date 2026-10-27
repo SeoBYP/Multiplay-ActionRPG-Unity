@@ -30,13 +30,16 @@ public sealed class ActorStore
     public RoomMember AddPlayer(
         long userId, string nickname, int spawnIndex,
         float x, float y, float z, float rotY,
-        int attackPower, int defense, int maxHp, int maxMana)
+        int attackPower, int defense, int maxHp, int maxMana, IReadOnlyList<string>? abilityIds = null)
     {
         var actor = new PlayerActor(userId) { PosX = x, PosY = y, PosZ = z, RotY = rotY };
         actor.Gas.DefineResource(EGameplayAttribute.Health, maxHp);
         actor.Gas.DefineResource(EGameplayAttribute.Mana, maxMana);
         actor.Gas.DefineStat(EGameplayAttribute.AttackPower, attackPower);
         actor.Gas.DefineStat(EGameplayAttribute.Defense, defense);
+
+        GrantPlayerAbilities(PlayerActor.BasicAbilityIds, actor);
+        GrantPlayerAbilities(abilityIds, actor);
 
         var member = new RoomMember
         {
@@ -53,6 +56,14 @@ public sealed class ActorStore
         }
 
         return member;
+    }
+
+    private void GrantPlayerAbilities(IReadOnlyList<string>? abilityIds, PlayerActor actor)
+    {
+        if (abilityIds is null) return;
+        if (abilityIds.Count == 0) return;
+        foreach (var abilityId in abilityIds) 
+            actor.Gas.GrantAbility(abilityId);
     }
 
     public RoomMember? GetMember(long userId)

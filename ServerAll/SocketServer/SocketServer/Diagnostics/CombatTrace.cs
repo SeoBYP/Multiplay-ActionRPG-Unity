@@ -17,6 +17,7 @@ public enum CombatGate
     ComboCadence,
     OnCooldown,
     Blocked,
+    NotGranted,
 }
 
 // 기본 Off(Debug 레벨). 켜기: Serilog:MinimumLevel:Override:CombatTrace=Debug (Logging:LogLevel 은 무시된다).

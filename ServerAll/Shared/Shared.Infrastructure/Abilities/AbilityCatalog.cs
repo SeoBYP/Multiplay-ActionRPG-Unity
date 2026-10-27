@@ -24,7 +24,7 @@ public static class AbilityCatalog
 
     /// <summary>패킷 networkId(S_AbilityActivated.SkillId / C_Attack.SkillId) 의 정의. 미등록이면 null.</summary>
     public static AbilityDef? Get(int networkId)
-        => Data.Value.ByNetworkId.TryGetValue(networkId, out var a) ? a : null;
+        => Data.Value.ByNetworkId.GetValueOrDefault(networkId);
 
     /// <summary>등록된 전체 어빌리티.</summary>
     public static IReadOnlyList<AbilityDef> All => Data.Value.All;
