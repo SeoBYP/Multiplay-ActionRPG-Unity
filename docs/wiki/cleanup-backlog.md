@@ -118,6 +118,12 @@
 - **G13** `OutboxPublisherService` 가 역직렬화 실패 메시지를 processed 로 안 바꿈 → 영원히 재시도, 20건 쌓이면 배치 전체 정지.
 - **G14** `DungeonRoom.Create/UpdateRoomSettings` 에 MaxPlayers 상한 없음.
 - **G15** `ChatService.cs:7` Application 이 `Microsoft.AspNetCore.Mvc.Filters` 를 using(미사용) — 계층 오염, 지우면 끝.
+- **G16** ✔ 코드 확인 — `ServerCallContextExtension.cs:42` `Bearer ` 접두어 없는 Authorization 헤더를 **원문 그대로 로깅** → 접두어 없이 보낸 토큰이 로그에 남는다. → 값 로깅 제거.
+- **G17** ✔ 코드 확인 — `ServiceInstaller.cs:61` `EnableDetailedErrors = true` 가 환경 무관 → 운영에서 내부 예외 메시지가 클라로 나간다. → Development 에서만.
+- **G18** 스트리밍 RPC(`ChatStream` · `SubscribeRoom`)는 `AuthInterceptor`(Unary 전용)를 안 탄다 → `ValidateTokenAsync` 대신 JWT 미들웨어 + 서비스별 세션 조회에만 기댄다. 로그아웃된 토큰으로 스트림이 열리는지 미실측. `SubscribeRoom` 은 sessionId null 에 `InvalidOperationException`(→ Unknown) 대신 `Unauthenticated` 가 맞다.
+- **G19** `RedisMessageQueueBase.cs:185,236` 내 PEL 재읽기가 `count: 10` 1회, 배달 횟수 조회가 64건까지 → 재시작 직후 미ACK 가 10건을 넘으면 나머지는 XAUTOCLAIM(60s)까지 대기, 64건 초과분은 `MaxDeliveryAttempts` 드롭을 건너뛴다. 유실은 아니고 복구 지연.
+- **G20** `QuestService.ReportTalkAsync` NPC 근접 검증 없음 — 어디서나 대화 퀘스트 진행.
+- **G21** `Program.cs:94-100` 기동 실패를 `Log.Fatal` 후 삼켜 종료 코드 0. `restart: unless-stopped` 는 코드와 무관하게 재시작하므로 복구엔 지장 없으나, 실패가 정상 종료로 보인다. → `return 1`.
 
 **SocketServer**
 - **S6** 수신 속도 제한 없음 — `C_Move` 초당 수천 개 × N-1 브로드캐스트로 상대 송신 큐(1024)를 채워 **남의 연결을 끊을 수 있다**. `PingPongHandler.cs:10` 이 핑마다 Information 로그.
@@ -127,6 +133,8 @@
 - **S10** `PlayerActor.cs:29-32` 회피 마나 검사·차감이 다른 락 → 사이에 리젠이 끼면 회복분 유실. `TrySpendMana` 사용.
 - **S11** `RoomTickService.cs:51-55` try/catch 가 방 전체 루프를 감쌈 → 방 하나의 예외가 그 주기 모든 방의 틱·유예 정리를 건너뜀. → 방 단위 catch.
 - **S12** ❓ 미입장·끊김 멤버도 클리어 보상 대상 (`RoomManager.cs:267`). 의도인지 결정 필요.
+- **S13** `TcpNetworkListener.cs:82` 총·IP별 연결 수 제한 없음 + 미인증 연결 30s 유지 → 연결 소진.
+- **S14** `Session.cs:104` 핸들러 예외가 `RunAsync` catch-all 로 가 세션을 끊는다 — 핸들러 버그 하나가 연결 종료. 패킷 단위 catch 로.
 
 **Unity 클라**
 - **C5** `GameSessionConnector.cs:100,147` 재시도 루프 안에서 `ConnectAsync` 예외 미처리 → 첫 실패에서 재시도 전체 종료.
@@ -169,6 +177,7 @@
 - **F10** 팝업 호출 4단계 보일러플레이트 8곳 반복(`SetAddressableOwner` 호출부). `ShowAlertAsync(title, msg, glow)` 하나로.
 - 하드코딩: gRPC 주소 `Network/Https/GameApiClient.cs:19`(M6 배포 전 필요) · Redis 락 설정 `RedisDistributedLock.cs:10`
 - 툴팁 미연동 `GUI/Hud/Sub/BattleEffectSlot.cs:17`
+- 서버 잔챙이(2026-10-27 주석 정리 중 발견, 리뷰): `ChatChannels.cs:19` Room/Whisper 인데 값 null 이면 NRE · `ItemCatalogData.cs:117` 문자열 키 `ToDictionary` 라 중복 ItemId 면 기동 예외(numericId 만 `TryAdd`) · `RedisDistributedLock.cs:24-33` 취소도 `TimeoutException` · `DungeonRoomRepository.TryJoinRoomAsync` 이름과 달리 상태만 확인(`userId` 미사용) · `UserCredentialRepository.cs:~44` 의미 없는 `catch { throw; }` · `AdminController` 의 `game:*` 패턴이 실제 키와 불일치(DEBUG 전용) · `DungeonProgress.TryMarkFailed` 하위호환 래퍼 사용처 확인 · DummyClient 도움말이 실제 명령과 불일치
 - 상시 `Debug.Log` — `CharacterSpawner`(21) · `LobbyModel`(14) · `GameSessionConnector`(13) 등. 릴리스 빌드 전 조건부 컴파일/로그 레벨.
 
 ---
