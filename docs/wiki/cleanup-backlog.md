@@ -145,6 +145,12 @@
 - **C10** `MainLifetimeScope.cs:101,119` `ProgressionModel` 중복 등록.
 - **C11** `DungeonLobbyService.cs:93-106` `LeaveRoomAsync` gRPC 예외 시 `StopSubscription`·`ClearRoom` 미실행.
 - **C12** 인터페이스 도입 기준 미충족: `IStateFactory` · `IStateMachineBuilder` · `IWalletService`(구현 1, 테스트 대역 없음). 규칙상 제거 대상.
+- **C13** `MainPositionReporter.cs:68` `SaveAsync` 예외 미처리 → 한 번 실패하면 위치 보고 루프 영구 종료(Redis/서버 순단 후 복구 안 됨).
+- **C14** `EffectReceiver.cs:78` 적용은 `PartyAscRegistry` 로 원격 파티원까지 가는데 제거(`OnEffectRemoved`)는 로컬만 → 원격 파티원의 스턴·버프 표시가 안 풀린다.
+- **C15** `InventoryModel.cs:103` `GetShopAsync` 실패에도 빈 판매가 사전을 캐시 → 이후 판매가가 계속 0.
+- **C16** ❓ `ConsumableEffectHandler` 가 클라 권위 회복을 전제 — 플레이어 HP 는 서버 권위라 `S_ApplyEffect` 와 이중 적용 여부 확인 필요.
+- **C17** 예외가 사라지는 fire-and-forget: `TitleSceneInitializer.cs:22` `TryAutoLoginAsync`(Task 버림) · `AuthService.FireAndForgetLogoutAsync` 빈 catch · `SocketSession.HandlePacketAsync` 무로그 catch.
+- **C18** `PlayerRotationStrategy.cs:12` 메인 카메라를 `Awake` 에서 1회만 찾음 → 카메라가 늦게 생기면 이동이 캐릭터 로컬 기준.
 - 경미: `State => _state.ToReadOnlyReactiveProperty()` 가 읽을 때마다 새 구독 · `InGameModel.Dispose` 가 `_toggleQuest`·`_toggleAbility`·`_interactionPrompt` 미해제.
 
 ---
@@ -177,6 +183,7 @@
 - **F10** 팝업 호출 4단계 보일러플레이트 8곳 반복(`SetAddressableOwner` 호출부). `ShowAlertAsync(title, msg, glow)` 하나로.
 - 하드코딩: gRPC 주소 `Network/Https/GameApiClient.cs:19`(M6 배포 전 필요) · Redis 락 설정 `RedisDistributedLock.cs:10`
 - 툴팁 미연동 `GUI/Hud/Sub/BattleEffectSlot.cs:17`
+- 클라 잔챙이(2026-10-27 주석 정리 중 발견, 리뷰): 죽은 파일 `Network/Socket/Handler/Contents/AuthPacketHandler.cs` · `Network/Socket/Packets/AuthPackets.cs`(주석뿐) · `DungeonLobbyService.cs:184` `StopSubscription` 마다 StackTrace 로그 · `DungeonRoomLobbyView` 방 목록 전체 로그 · `GameHud` Smithy/Setting 버튼 무반응 · `InventoryViewController.cs:72` 로드 실패에도 장비창 열림 · `SwitchInteractable.cs:15` `Awake` 가 SerializeField Animator 덮어씀 · `CharacterMotor.cs:146` `_settings` null 미검사 · `MoveSyncSender` 송신 빈도 제한 없음(S6 와 짝) · `CharacterStateId` 의 Attack/Interact/Hit/Dead 잔재 · `AbilityCatalogExporter.cs:30` `DisplayDialog` 직접 호출(`EditorToolReport` 규칙 위반) · GUI 네임스페이스 혼재(`Script.GUI.*`·전역·`Game.GUI.OutGame`/`Hud`)
 - 서버 잔챙이(2026-10-27 주석 정리 중 발견, 리뷰): `ChatChannels.cs:19` Room/Whisper 인데 값 null 이면 NRE · `ItemCatalogData.cs:117` 문자열 키 `ToDictionary` 라 중복 ItemId 면 기동 예외(numericId 만 `TryAdd`) · `RedisDistributedLock.cs:24-33` 취소도 `TimeoutException` · `DungeonRoomRepository.TryJoinRoomAsync` 이름과 달리 상태만 확인(`userId` 미사용) · `UserCredentialRepository.cs:~44` 의미 없는 `catch { throw; }` · `AdminController` 의 `game:*` 패턴이 실제 키와 불일치(DEBUG 전용) · `DungeonProgress.TryMarkFailed` 하위호환 래퍼 사용처 확인 · DummyClient 도움말이 실제 명령과 불일치
 - 상시 `Debug.Log` — `CharacterSpawner`(21) · `LobbyModel`(14) · `GameSessionConnector`(13) 등. 릴리스 빌드 전 조건부 컴파일/로그 레벨.
 
