@@ -3,30 +3,18 @@ using Server.Room;
 
 namespace Server.Actors;
 
-/// <summary>
-/// 방 하나의 액터·참가자 저장소. 액터(ActorId)와 참가자(UserId)는 항상 함께 바뀌므로 락 하나로 보호한다.
-/// 복합 연산은 호출자가 <see cref="SyncRoot"/> 를 잡고(재진입 가능) 그 안에서 <see cref="ActorsLocked"/> 로 순회한다.
-/// 패킷·방 진행은 모른다 — 사망 후속은 호출자가 <see cref="ActorKind"/> 로 분기한다.
-/// </summary>
+// 락 하나(SyncRoot)로 액터·참가자를 함께 보호. 복합 연산은 호출자가 락을 잡고(재진입 가능) ActorsLocked 로 순회.
 public sealed class ActorStore
 {
-    /// <summary>액터(플레이어 + 몬스터). 키 = ActorId.</summary>
     private readonly Dictionary<long, Actor> _actors = new();
 
-    /// <summary>방 참가자. 키 = UserId.</summary>
     private readonly Dictionary<long, RoomMember> _members = new();
 
     private int _nextMonsterInstanceId;
 
-    /// <summary>복합 연산을 원자적으로 묶을 때 호출자가 잡는 락. 단일 연산은 이 클래스가 알아서 잡는다.</summary>
     public object SyncRoot { get; } = new();
 
-    // ── 참가자(플레이어) ────────────────────────────────────────────────
-
-    /// <summary>
-    /// 게임 시작 시 1회(소켓 입장 전) 참가자와 액터를 만든다. 스탯은 GameServer 권위값.
-    /// 네 속성을 0 이어도 모두 부여한다 — "0 인 스탯"과 "스탯 없음"은 다르다.
-    /// </summary>
+    // 네 속성을 0 이어도 모두 부여한다 — "0 인 스탯"과 "스탯 없음"은 다르다.
     public RoomMember AddPlayer(
         long userId, string nickname, int spawnIndex,
         float x, float y, float z, float rotY,
@@ -71,13 +59,11 @@ public sealed class ActorStore
         lock (SyncRoot) return _members.GetValueOrDefault(userId);
     }
 
-    /// <summary>참가자 스냅샷(락 밖에서 순회해도 안전한 복사본).</summary>
     public IReadOnlyList<RoomMember> Members()
     {
         lock (SyncRoot) return _members.Values.ToList();
     }
 
-    /// <summary>참가자와 그 액터를 함께 제거한다. 반환 = 실제로 있었는가.</summary>
     public bool RemoveMember(long userId)
     {
         lock (SyncRoot)
@@ -89,7 +75,7 @@ public sealed class ActorStore
         }
     }
 
-    /// <summary>클라가 보낸 위치를 그대로 반영한다. 미존재 참가자는 false.</summary>
+    // 클라 권위 위치를 그대로 반영.
     public bool SetPosition(long userId, float x, float y, float z, float rotY)
     {
         lock (SyncRoot)
@@ -110,9 +96,6 @@ public sealed class ActorStore
         get { lock (SyncRoot) return _members.Count; }
     }
 
-    // ── 몬스터 ──────────────────────────────────────────────────────────
-
-    /// <summary>방 단위 순차 InstanceId 발급(1부터). 스폰 시에만 부른다.</summary>
     public int NextMonsterInstanceId()
     {
         lock (SyncRoot) return ++_nextMonsterInstanceId;
@@ -128,7 +111,6 @@ public sealed class ActorStore
         lock (SyncRoot) return _actors.GetValueOrDefault(ActorIds.FromMonster(instanceId)) as MonsterActor;
     }
 
-    /// <summary>몬스터 스냅샷.</summary>
     public IReadOnlyList<MonsterActor> Monsters()
     {
         lock (SyncRoot) return _actors.Values.OfType<MonsterActor>().ToList();
@@ -139,7 +121,6 @@ public sealed class ActorStore
         lock (SyncRoot) return _actors.Remove(ActorIds.FromMonster(instanceId));
     }
 
-    /// <summary>살아 있는 몬스터가 하나라도 있는가(클리어 판정). 스냅샷 할당 없이 센다.</summary>
     public bool HasAnyMonster()
     {
         lock (SyncRoot)
@@ -151,18 +132,12 @@ public sealed class ActorStore
         }
     }
 
-    // ── 락 안 순회 (틱 전용) ────────────────────────────────────────────
-
-    /// <summary>액터 전체. <b>호출자가 <see cref="SyncRoot"/> 를 잡고 있어야 한다.</b> 스냅샷 할당이 없다.</summary>
+    // 호출자가 SyncRoot 를 잡아야 한다. 스냅샷 할당 없음.
     public IEnumerable<Actor> ActorsLocked => _actors.Values;
 
-    /// <summary>참가자 전체. <b>호출자가 <see cref="SyncRoot"/> 를 잡고 있어야 한다.</b></summary>
     public IEnumerable<RoomMember> MembersLocked => _members.Values;
 
-    // ── 효과 적용 ───────────────────────────────────────────────────────
-
-    /// <summary>효과 적용의 단일 진입점(종족 무관). 사망한 몬스터는 즉시 제거, 플레이어는 다운으로 남는다(부활 대상).</summary>
-    /// <returns>Applied=대상이 존재·생존했는가, DiedNow=이번 적용으로 사망했는가.</returns>
+    // 단일 진입점. 몬스터는 사망 즉시 제거, 플레이어는 다운으로 남는다(부활 대상).
     public (bool Applied, int NewHp, bool DiedNow) ApplyEffect(
         long actorId, IReadOnlyList<GameplayAttributeModifier> mods)
     {
@@ -181,7 +156,6 @@ public sealed class ActorStore
         }
     }
 
-    /// <summary>몬스터 대상 <see cref="ApplyEffect"/> 축약(InstanceId 로 부른다).</summary>
     public (bool Hit, int NewHp, bool Dead) DamageMonster(int instanceId, IReadOnlyList<GameplayAttributeModifier> mods)
         => ApplyEffect(ActorIds.FromMonster(instanceId), mods);
 }

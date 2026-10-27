@@ -11,24 +11,21 @@ using Shared.Packet.Packets;
 
 namespace Server.PacketHandler.Handler;
 
-/// <summary>
-/// 전투 패킷 핸들러. C_Attack → 발동 게이트(차단·마나·콤보·쿨다운) → 서버 권위 적중 판정 → 몬스터 HP 차감.
-/// </summary>
 public static class CombatHandler
 {
-    /// <summary>피격 반경(캡슐 근사).</summary>
+    // 피격 반경(m), 캡슐 근사.
     public const float TargetRadius = 0.5f;
 
-    /// <summary>콤보 간격 폴백(ms). 데이터 ComboChainMs 가 0 일 때만 쓴다 — 단계별 개별 쿨다운으론 연타를 못 막는다.</summary>
+    // ms. 데이터 ComboChainMs 가 0 일 때만 쓰는 폴백.
     public const int ComboMinIntervalMs = 300;
 
-    /// <summary>콤보 간격 지터 허용치(ms). 패킷별 지연 차로 도착 간격이 짧아져도 정상 콤보가 거부되지 않게.</summary>
+    // ms. 지터 허용치 — 없으면 패킷 지연 차로 정상 콤보가 거부된다.
     public const int ComboCadenceToleranceMs = 100;
 
-    /// <summary>콤보 단계 skillId(클라 ComboDriver 와 동일 규약: 2~5 = combo_a~d).</summary>
+    // 클라 ComboDriver 와 동일 규약: 2~5 = combo_a~d.
     public static bool IsComboSkill(int skillId) => skillId is 2 or 3 or 4 or 5;
 
-    /// <summary>SkillId → 어빌리티 정의. 미등록이면 null → 발동 거부.</summary>
+    // null = 미등록 → 발동 거부.
     public static AbilityDef? ResolveAbility(int skillId) => AbilityCatalog.Get(skillId);
 
     public static SkillTimeline? ResolveSkill(int skillId) => ResolveAbility(skillId)?.Timeline;
@@ -100,7 +97,6 @@ public static class CombatHandler
             await SendManaAsync(session, attacker, ct);
         }
 
-        // 게이트를 통과한 스윙만 원격 연출로 알린다.
         room.Sessions.Broadcast(new S_AbilityActivated
         {
             ActorId = ActorIds.FromPlayer(session.UserId),
@@ -112,7 +108,6 @@ public static class CombatHandler
         ApplyAttackToMonsters(session, room, ability, attacker, recvMs);
     }
 
-    /// <summary>데미지 S_ApplyEffect 의 라벨. 수치는 ability.BaseDamage 를 서버가 Amount 로 실어 보낸다.</summary>
     public const string AbilityDamageEffectId = "ability_damage";
 
     private static Task SendManaAsync(Session session, PlayerActor actor, CancellationToken ct)
@@ -123,7 +118,6 @@ public static class CombatHandler
             MaxMana = actor.Gas.Max(EGameplayAttribute.Mana),
         }, ct);
 
-    /// <summary>ability.BaseDamage 를 공격력·방어력으로 스케일한 Health 모디파이어. on-hit CC 는 별도.</summary>
     public static List<GameplayAttributeModifier> BuildDamageMods(AbilityDef ability, int attackPower, int defense)
     {
         int finalDamage = StatCombatMath.MeleeDamage(ability.BaseDamage, attackPower, defense);
@@ -178,7 +172,6 @@ public static class CombatHandler
                 recvMs, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), stateSeq);
         }
 
-        // 전멸 시 1회만: 클라 결과화면 + GameServer 보상.
         if (anyKilled && room.Progress.TryMarkCleared())
         {
             long rewardExp = SpawnLayoutTable.Get(room.MapId).ExpReward;
@@ -187,7 +180,7 @@ public static class CombatHandler
         }
     }
 
-    /// <summary>사망 몬스터 드롭을 바닥에 스폰만 한다. 지급은 줍기(C_PickupItem) 확정 시.</summary>
+    // 스폰만 한다. 지급은 줍기(C_PickupItem) 확정 시.
     private static void SpawnDrops(global::Server.Room.Room room, MonsterActor monster)
     {
         var drops = DropTableCatalog.Roll(monster.MonsterId, Random.Shared, monster.Level);
