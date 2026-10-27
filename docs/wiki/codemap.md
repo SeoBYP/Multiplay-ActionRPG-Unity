@@ -82,6 +82,23 @@
 > ⚠️ **재번호(2026-07-17)** — 원래 2.60~2.76 으로 매겨져 기존 항목(2.60 회피·2.61 콤보·2.62 로스터·2.63 캡슐)과 **번호가 충돌**했다. 과거 커밋 메시지·PR 본문의 참조는 아래 대조표로 읽는다:
 > 구2.60(애니)→**2.64** · 2.61(B1)→**2.65** · 2.62(B2)→**2.66** · 2.63(B3)→**2.67** · 2.64(B4)→**2.68** · 2.65(B5)→**2.69** · 2.66(B6)→**2.70** · 2.67(C3-hotfix)→**2.71** · 2.68(C3)→**2.72** · 2.69(infra)→**2.73** · 2.70(C1a)→**2.74** · 2.71(C1b)→**2.75** · 2.72(C1c준비)→**2.76** · 2.73(사망체력바)→**2.77** · 2.74(C2)→**2.78** · 2.75(링포화)→**2.79** · 2.76(E~H)→**2.80**
 
+### 2.122 GameServer 기동 시 Redis FLUSH 제거 — Redis 는 더 이상 "지워도 되는 캐시"가 아니다 (G1, 2026-10-27)
+
+**위치**: `GameServer.API/Installers/ServiceInstaller.cs` Redis 연결부. `FlushAllDatabases()` 블록 + `AllowAdmin = true` 삭제.
+
+**왜 있었나**: `a0335082`(2026-03-15, 채팅 MQ 전환) 때 도입. 당시 Redis = 캐시 + 채팅 스트림이라 지워도 DB 에서 복구됐다.
+
+**왜 지웠나**: 그 뒤 Redis 가 복구 불가 데이터를 갖게 됐다 — 서버 간 큐(미소비 보상·줍기·퇴장 + 컨슈머 그룹 PEL),
+Main 위치(1차 저장소, §2.115), SocketServer 입장 배정 `gamesession:player:*`, 세션·직전 refresh 토큰.
+GameServer 재시작 한 번으로 보상 영구 미지급 · 진행 중 던전 재입장 거부 · 전원 토큰 갱신 실패가 났다.
+`#if DEBUG` 로 감싸는 안은 로컬에서 같은 증상을 남기고, 설정 플래그는 아무도 켜지 않을 스위치라 택하지 않았다.
+개발 초기화는 `docker compose down -v` / `Infra/reset-dev-data.ps1` 로 사람이 명시적으로 한다.
+
+**가드**: `GameServer.Tests/Infrastructure/Integrations/RedisStartupPreservationTests.cs` — `Install` 후 기존 스트림·`gamesession` 키가 남아 있어야 한다.
+수정 전 RED(`기동이 미소비 보상 스트림을 지웠다.`) → 수정 후 GREEN(2026-10-27). ⚠️ Docker 리빌드 후 E2E 는 미실측.
+
+**남은 개발용 삭제 경로**: `Controllers/AdminController.cs`(`#if DEBUG`, 인증 없음) — Release 빌드인 Docker 엔 없다.
+
 ### 2.121 루트 스코프가 씬에 또 있었다 — 모든 루트 등록이 이중 생성 (2026-09-30)
 
 **증상**: Title 에서 Play → `InvalidOperationException: Duplicate packet handler: S_PlayerJoined`(SocketPacketDispatcher 생성자).

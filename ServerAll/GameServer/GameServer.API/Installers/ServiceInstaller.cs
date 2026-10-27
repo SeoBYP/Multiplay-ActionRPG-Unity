@@ -23,24 +23,8 @@ public class ServiceInstaller : IServiceInstaller
         // Redis
         var redisConnStr = configuration.GetConnectionString("Redis") ?? "localhost:6379";
         var options = ConfigurationOptions.Parse(redisConnStr);
-        options.AllowAdmin = true;
         
         var redis = ConnectionMultiplexer.Connect(options);
-        
-        // Clear Redis on start
-        foreach (var endpoint in redis.GetEndPoints())
-        {
-            var server = redis.GetServer(endpoint);
-            try
-            {
-                server.FlushAllDatabases();
-                Log.Information("Flushed all Redis databases on {Endpoint}", endpoint);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Failed to flush Redis databases on {Endpoint}", endpoint);
-            }
-        }
         
         services.AddSingleton<IConnectionMultiplexer>(redis);
 

@@ -1,696 +1,192 @@
-# 작업 플랜 (현재 진행 상황)
+# 작업 플랜
 
-> **새 채팅 시작 시 이 파일을 먼저 읽어라.**
-> Phase가 완료될 때마다 즉시 갱신한다.
-> 마지막 갱신: 2026-10-02 — **중복 루트 스코프 제거 + GAS Effect struct 화 + Unity 6.6 전환 (밀린 작업 일괄 정리)**.
-> ① **루트 스코프가 씬에 또 있었다** — Title Play 시 `Duplicate packet handler: S_PlayerJoined`. `VContainerSettings` 가 자동 생성하는 루트 외에 `Title.unity` 에도 같은 프리팹이 2026-05-28 부터 있었다. 씬 인스턴스는 `IsRoot=false` 라 **루트의 자식**이 되어 `InstallRoot` 를 통째로 한 번 더 등록 → 패킷 핸들러만이 아니라 **루트 싱글톤·엔트리포인트 전부가 이중 생성**되던 상태. 씬 인스턴스 삭제로 해결. 가드 `RootScopeSceneTests`(씬 YAML 에 루트 guid 가 있으면 빨개짐 — 사람이 에디터에서 다시 끌어다 놓을 수 있어 코드가 아니라 씬 파일을 봐야 한다). 상세 = [codemap.md](codemap.md) §2.121.
-> ② **`ActiveGameplayEffect` class → `readonly struct`** — 피격마다 붙고 지속시간마다 사라져 생성·소멸이 잦은데 필드는 넷(24B)뿐이라 `List<T>` 배열에 인라인으로 들어가면 개별 할당이 0. 다만 **가변 struct 를 컬렉션에 담으면** `list[i].Refresh(...)` 가 복사본을 고치고 조용히 버린다 → `readonly` + `WithStart`/`WithAddedStack`(새 값 반환)으로 되쓰기를 강제. `FindByEffectId` 도 값 대신 **인덱스** 반환(값을 주면 호출부가 또 복사본을 받는다). `ApplyEffect` 의 Refresh·Stack 경로가 실제로 그 함정에 걸려 있었다.
-> ③ **`SessionKeepAlive` 선택 인자 제거** — VContainer 는 C# 기본값을 존중하지 않고 모든 생성자 인자를 해석하려 들어 `No such registration of type: System.Double` 로 루트가 통째로 죽는다. 튜닝 인자 없는 `[Inject]` 생성자를 못 박음.
-> ④ **배선 테스트의 콘솔 에러 — 제거 불가로 결론, 대신 선언으로 전환** — `RootContainerResolveTests` 해제 시 "Destroy may not be called from edit mode" 가 매번 찍힌다. 원인은 루트의 `PlayerInputActions` 를 **생성된** `Dispose()` 가 `Object.Destroy(asset)` 로 치우는 것. ⚠️ **해제 전에 `DestroyImmediate` 로 미리 치우는 방법은 통하지 않는다(2026-10-14 실측, EditMode 270/272)** — `Object.Destroy` 는 *이미 파괴된 객체에도* 같은 edit-mode 에러를 낸다. 생성 파일이라 손댈 수 없으므로 로그 자체는 피할 수 없다. → `LogAssert.ignoreFailingMessages`(무시) 대신 **`LogAssert.Expect`(반드시 난다고 선언)** 로 바꿨다. 무시는 로그가 사라져도 모르지만 Expect 는 안 나면 테스트가 빨개져 알려준다. **콘솔 에러를 정말 없애려면 이 테스트를 PlayMode 로 옮겨야 한다(Play 중엔 `Destroy` 가 합법) — 미착수·협의 필요.**
-> ⑤ Unity **6000.6.3 업그레이드**(컴파일 에러 4곳 + Pipeline 0.8.0) · **Title 화면 복구**(재임포트 때 Missing Prefab) + 회원가입 창 + 로그인 에러 표시.
-> **검증: 서버 빌드 0 에러 · `Shared.Gameplay.Tests` 93/93 · 클라 컴파일 0 · EditMode 272/272.** ⚠️ **PlayMode 미실측**(이번 세션에서 돌리지 않음 — 직전 기록은 247/247).
->
-> 직전: 2026-08-27 — **로딩·페이드를 모든 UI 위로 (화면 덮개 정렬)**. 로딩 중 다른 UI 가 앞으로 튀어나왔다. 원인은 화면을 덮는 Overlay 캔버스가 **전부 `sortingOrder=0`** 이었던 것(GUIRoot·Fader·Loading 모두, 실측) — Overlay 는 동률이면 나중에 생성된 캔버스가 위라, 씬 전환 중 새로 만들어지는 HUD·창이 로딩을 덮었다. → 정렬값을 **코드가 소유**하고(`LoadingSortingOrder=1000` / `FaderSortingOrder=1100`) 인스턴스화 직후 **런타임에서 강제**한다(프리팹 값은 사람이 열어 저장하면 되돌아가므로 진실원이 될 수 없다 — 이 레포에서 두 번 겪음). 가드 `LoadingOverlaySortingTests` 3건(프리팹 값이 상수와 어긋나면 빨개짐). 실환경 실측: 전환 중 `FaderCanvas 1100 > LoadingCanvas 1000 > GUIRoot 0`. 상세 = [codemap.md](codemap.md) §2.119. **검증: 클라 컴파일0 · EditMode 265/265 · PlayMode 245/245(Docker E2E 포함).**
->
-> 직전: 2026-08-27 — **던전에 남던 방 목록 창 정리 (클라 UI 수명)**. 던전에 들어가도 로비 방 목록이 화면에 남았다. 실측하니 스코프는 1개인데 창이 2개 — `OpenLobbyAsync` 에 in-flight 가드가 없어 로드 중 중복 요청이 인스턴스를 하나 더 만들고 `_lobbyInst` 는 마지막 것만 가리켜 **앞의 것이 미아**가 됐다. `GUIRoot` 가 DontDestroyOnLoad 라 미아는 씬 전환으로도 안 사라진다. → ① 던전 입장(`NavigateToGame`)에서 로비·대기실을 **명시적으로 닫고** ② in-flight 가드로 중복 생성을 막고 ③ **닫힘 세대**로 로드 도중 닫힘까지 무효화(이 케이스만 테스트가 따로 빨갛게 잡았다). 테스트 `LobbyWindowLifetimeTests` 3건 신설. 상세 = [codemap.md](codemap.md) §2.118. **검증: 클라 컴파일0 · EditMode 262/262 · PlayMode 245/245(Docker E2E 포함).**
->
-> 직전: 2026-08-27 — **서버 액터 모델 재편(Room 해체)**. ① 출발점은 "ActorId 가 패킷 부호 규약일 뿐 인스턴스 정체성이 아니다"였다 — 그래서 플레이어와 몬스터가 같은 개념을 두 벌로 들고 있었고(위치·HP 복제, 쿨다운 저장소가 int/string 로 이원화), 몬스터에 **없는** 속성을 호출부가 리터럴 0 으로 위장했다(`const int MonsterAttackPower = 0` 외 3곳). ② `PlayerState` 는 **방 관리 4 + 전투 8** 을 겸직하고 있었다 → 방 관리는 `RoomMember`, 전투는 `Actor`+`GasComponent`. 가른 근거는 취향이 아니라 **수명**이다(세션은 죽어도 액터는 유예 60s 를 더 산다 = 재접속의 구조). ③ 다운을 `_downed` HashSet 에서 **`State.Dead` 태그**로 옮기며 "죽었나"의 두 번째 진실원을 없앴고, 그 과정에서 **만피 상태 `C_PlayerDead` 자기신고로 AI 타깃에서 빠지던 구멍**을 닫았다(HP 는 서버 권위인데 다운만 클라를 믿고 있었다). ④ `AttributeSet` 으로 **"0 인 스탯"과 "스탯 없음"을 구분** — 위 위장 4곳이 데이터로 내려갔다. ⑤ 그 과정에서 **실존 경합 발견**: 틱과 핸들러가 마나를 락 없이 동시에 썼다(예전부터). 경계를 `GasComponent` 안으로 내리고 **역검증**(락 제거 시 마나 100 으로 17회 시전)으로 테스트에 이빨이 있음을 확인. ⑥ `Room` 공개 멤버가 **각 핸들러에 1회씩만** 쓰이는 20구 파사드(ISP 위반)라 협력자 5개로 해체 — `Room.cs` 865→291줄. ⑦ `Actor.Tick` 이 `int targetIdx`→`ActorTickResult` 로 넓어져 몬스터가 어빌리티 선택·쿨다운 커밋까지 소유하고, 방은 **패킷·피해로 번역**만 한다(결정이 두 곳에 쪼개져 있던 것이 원인). ⑧ **공간 분할은 하지 않았다** — 한 방 최대 액터 15라 이득 0이고, 과거 실측 병목은 계산이 아니라 팬아웃이었다(dirty-flag 로 해소). 착수선을 문서에 남김. ⑨ 이어서 **지속 Effect 만료를 서버가 소유**하게 하고 GAS 를 단일 구현으로 합쳤다 — 그 전까지 서버는 CC 를 브로드캐스트만 하고 활성 목록조차 없어 `IsActivationBlocked` 가 스턴 중에도 false 였다(= 스턴 무시 클라를 못 막았다). 이름도 역할대로 정리: 로직 = Shared `AbilitySystemComponent`, Unity 어댑터 = 클라 `GasComponent`(그 로직을 **소유**). 클라 `GameplayAttribute` 는 프리팹 저작 DTO 로 내려가고 런타임 상태는 전부 Shared 가 갖는다. 이 과정에서 **갈라져 있던 `EStackPolicy.None` 의미**(클라=재적용 무시 / 서버=새 인스턴스)를 클라 쪽으로 통일했다. 상세 = [codemap.md](codemap.md) §2.81~2.86, 구조 = [socketserver.md](socketserver.md). **검증: 솔루션 0오류 · SocketServer 307/307 · Shared.Gameplay 90/90 · GameServer 457/457 · Unity 컴파일 0 · EditMode 260/262(실패 2건은 미커밋 채팅 DI 작업) · PlayMode 242/242(Docker 리빌드 후 E2E 포함).** ⚠️ 미실측 = 틱 프로파일(공간 분할 착수선 판단에 필요).
->
-> 직전: 2026-08-26 — **채팅 클라이언트(HUD) 신설**. ① 착수 전 실측에서 전제가 바뀌었다 — 서버 채팅(Global/Room/Whisper·Redis Streams)은 1.4 부터 완성돼 있었고 클라 래퍼 `IChatGrpcService` 도 루트에 등록돼 있었는데 **사용처가 E2E 테스트뿐**이었다. 즉 "GUI 붙이기"가 아니라 소비자(Model·View·입력)를 처음 세우는 일. ② `ChatModel` 은 **루트 Singleton** — 스트림 수명이 로그인~종료라 씬에 묶으면 Main↔Dungeon 왕복마다 재연결되고 로그가 사라진다. HUD 는 씬마다 새로 생겨도 링버퍼(100줄)로 복원. ③ **같은 Enter 가 상태에 따라 다른 입력 맵에서 처리된다** — `EnterUi()` 가 Player 맵을 통째로 끄므로 열기=Player 맵(InputRouter), 전송=UI 맵(InputField.onSubmit). `.inputactions` 에 `Player/Chat=enter` 추가 → 래퍼 재생성(F13 정식 경로). ④ **채널은 서버 권위** — 클라는 본문 + `/w 닉 내용` 만 보낸다. 모르는 `/명령`은 삼키지 않고 그냥 말로 보낸다(침묵하면 왜 안 갔는지 알 수 없다). ⑤ 남의 `<color>` 태그가 내 화면 서식을 바꾸지 못하게 말풍선 TMP 는 `richText=false`. ⑥ **2026-08-27 UI 재작업** — 사용자가 ChatPanel 을 말풍선(`Content/ChatBubble{Sender,Message}`) + 채널 드롭다운 구조로 다시 만들어 클라를 거기 맞춰 재배선했다: 로그=행 템플릿 복제·풀링(`ChatBubbleView`), **입력줄은 항상 표시**(Enter 로만 열던 방식은 Enter 가 막히는 순간 입력 수단이 화면에서 사라져 '채팅이 안 된다'가 된다), 채널 드롭다운은 **동적**(Main=[전체,개인] / 방·던전=[방,개인])이고 '개인'은 첫 단어가 받는 사람. 방 소속 판정은 `DungeonLobbySession` 단독으로는 던전에서 틀려서(입장 시 ClearRoom) `소켓 Joined` 를 함께 본다. 상세 = [codemap.md](codemap.md) §2.117. **검증(1차): 클라 컴파일0 · EditMode 채팅 19/19(전체 255/257) · PlayMode 채팅 6/6(전체 228/231) · Docker 리빌드 후 Play 모드 실왕복 확인.** **검증(2차, UI 재작업분): 클라 컴파일0 · EditMode 채팅 24/24(전체 260/262) · PlayMode 242/242 전건 통과(채팅 17/17, Docker 리빌드 후) · 신규 E2E `ChatChannelE2ETests` 3/3 으로 서버 채널 규칙(방 밖=Global/방=Room/개인=Whisper)을 실서버에 고정.** ⚠️ 프리팹 배선은 에디터에서 ChatPanel 을 열어둔 채 저장하면 사라진다(실측 2회) — 그 감지기가 `GameHud_프리팹의_ChatView_배선이_살아있다` 테스트다. ⚠️ 미실측 = 사람이 키보드로 직접 타이핑, MPPM 2인 동시 채팅, 장시간 방치 후 재연결. ⑦ 별건 발견(고치지 않음): **`Main.unity` 에 GameHud 가 씬 배치**돼 있어 런타임 HUD 2개 + 주입 못 받은 쪽이 시작 즉시 NRE(`GameHud.cs:136`) · §2.116 의 `RootContainerResolveTests` 는 현재 통과 불가(루트가 직접 등록하는 `IGameSceneManager` 등을 테스트가 설치하지 않음) · `ChatBubble.prefab` 고아.
->
-> 직전: 2026-08-25 — **Main 위치 지속화 (B7) — 신뢰 경계를 기능보다 먼저**. ① 기능이 아니라 **좌표의 출처**가 바뀌는 것이 문제였다(전: 원점 고정 / 후: 클라가 만든 좌표가 복원 시작점). F1 이 "기능을 다 만든 뒤 신뢰 경계를 붙였다가 결함으로 되돌아온" 사례라 순서를 뒤집었다. ② ⚠ 착수 전 실측으로 **두 가지 정정** — 진입 게이트 시스템은 **없다**(검색 0건, 그래서 "게이트 우회"는 아직 없는 위험), Main 스폰은 "저작 고정값"이 아니라 **원점**이었다(`SocketState != Joined` → `Vector3.zero`). ③ 결정 3가지(사용자): 경계 검증+밖이면 스냅 / 주기 Redis+이탈 시 DB 확정 / 던전 복귀는 입장 직전 위치. ④ **서버는 경계만, 클라는 지면만** 검증한다(각 계층이 아는 것만 — 내비메시는 클라 자산). 경계 밖은 clamp 가 아니라 **최근접 저작 스폰으로 스냅**(clamp 는 경계선 위 임의 점이라 벽 안일 수 있다). 보고는 고정 주기가 아니라 **이동 2m + 5초** 조건 — 정지 중 트래픽 0. 던전 왕복은 별도 로직 없이 성립(StartGame 에서 확정 저장). ⑤ **하지 않은 것**: 이동 궤적·근접 검증. 좌표 자체가 클라가 만든 값이라 순환이다 — NPC 좌표를 bake 해도 마찬가지. 해소 조건은 여전히 Main 의 서버 권위 승격. ⑥ **교리 예외 1건 신설**: 이 도메인만 Redis 가 1차 저장소(쓰기 잦음·유실 허용·폴백 존재 3조건). networking.md 에 조건과 함께 명시. 상세 = [codemap.md](codemap.md) §2.115, [cleanup-backlog.md](cleanup-backlog.md) B7. **검증: 서버 빌드0 · 서버 738/738(733→738) · 클라 컴파일0 · PlayMode 228/228 · EditMode 239/239 · 마이그레이션 실환경 적용 확인.** ⚠️ 미실측 = 사람이 Main 에서 이동 후 재접속해 그 자리에서 시작하는 것. 클라 복원 분기(NavMesh 스냅)는 베이크된 내비메시 씬이 필요해 자동 테스트 미적용.
->
-> 직전: 2026-08-25 — **ReportTalk 신뢰 경계 재정의 (F5)**. ① ⚠ **백로그 전제가 틀렸다** — "서버가 NPC 위치를 안다"는 사실이 아니다(실측). NPC 는 씬 배치라 위치 카탈로그가 없고, Main 씬은 소켓 미연결이라 플레이어 위치도 모른다. 대조군 `ClaimMonsterExp` 조차 위치가 아니라 "카탈로그 존재 + 쿨다운"만 본다. → **근접 검증은 Main 을 서버 권위로 올려야 성립**한다. ② 그래서 목표를 "치팅 차단"에서 **"정상 요청만 오게 한다"** 로 바꿨다(사용자 결정 — 대화 진행 치팅은 운영상 검증 대상 아님). ③ **클라 게이트**: `NPCDialogueInteractable.hasQuest` 로 잡담 NPC 는 통신 0회, 실제 보고 여부는 서버가 준 퀘스트 상태로 판단(플래그만 믿지 않음). proto 무변경. ④ **서버**: 대화 목표가 없는 npcId 는 **DB 를 읽지 않고** 0 + 경고 로그(예전엔 DB 를 먼저 읽어 임의 문자열 스팸이 곧 저장소 왕복이었다). 실패를 Failure 로 만들지 않는다 — 퀘스트 없는 NPC 와의 대화는 정상이다. ⑤ 쿨다운은 검토 후 **뺐다** — TalkToNpc 퀘스트 1개·requiredCount=1 이라 막을 파밍이 없다(YAGNI). 상세 = [codemap.md](codemap.md) §2.114, [cleanup-backlog.md](cleanup-backlog.md) F5. **검증: 서버 빌드0 · 서버 728/728(724→728) · 클라 컴파일0 · PlayMode 228/228(225→228) · EditMode 239/239.** ⚠️ 남는 한계 = "안 걸어가도 대화 퀘스트 완료 가능"(Main 클라 권위의 구조적 단면) · `hasQuest=false` 오설정 시 퀘스트가 조용히 죽는 드리프트.
->
-> 직전: 2026-08-25 — **마지막 Resources 제거(F6) · HUD 입력 정식 이관(F13)**. ① **F6** = 클라가 `MapDefinition`(SO)을 Addressables 로 **직독**하고 `Resources/spawn-layouts.json` 사본 삭제. 대가는 클라=저작·서버=bake 분리라 **Export 를 잊으면 스폰이 갈린다** → 전수 대조 가드를 함께 넣고 **고장 주입**으로 실효성 확인(`Expected: -16.0 / But was: -99.0`). ② **F13** = i·k·q·g 4키를 `.inputactions`→래퍼→`InputRouter`→`GameHud.TryHandle` 로 이관. ③ ⚠ **백로그의 "각각 한 곳만 배선하면 끝난다" 는 둘 다 틀렸다** — F6 은 MapDefinition 8개 중 **Addressable 등록이 4개뿐**이라 그대로 갔으면 `dungeon_03/04/05/e2e` 스폰이 죽었고(가드가 잡음), F13 은 `InputRouter` 가 **Main 스코프에만** 있어 던전에서 창 토글이 죽었다(→ `InputInstaller` 로 분리해 양쪽 설치). 폴링 키도 3개가 아니라 4개였다. ④ 곁다리 누수 수정: `InputRouter` 가 `performed` 구독을 해제하지 않아 루트 싱글턴 `PlayerInputActions` 에 씬 왕복마다 죽은 델리게이트가 쌓이고 있었다. 상세 = [codemap.md](codemap.md) §2.113, [cleanup-backlog.md](cleanup-backlog.md) F6·F13. **검증: 클라 컴파일0 · EditMode 239/239(231→239) · PlayMode 225/225 · 서버 무변경(724/724).** ⚠️ PlayMode 첫 실행 101건 실패는 **Docker Desktop 이 내려가 있던 것**(os error 10061) — 재기동 후 정상. ⑤ 별건 발견·해소: `Script/Input/PlayerInputActions.cs`(`Game.Input`, 2036줄)는 **참조 0건 고아** → 폴더·`.meta` 까지 삭제(F15b). 삭제 후 컴파일0 · EditMode 239/239 · PlayMode 225/225 재확인.
->
-> 직전: 2026-08-24 — **at-most-once → at-least-once + 보상 지급 원장 (F4 잔여 해소)**. ① ACK 가 핸들러보다 앞서서 **핸들러가 던지면 메시지가 영구 소실**됐다(DB 순단 = 데이터 유실). ACK 를 봉투(`StreamMessage<T>`)에 담아 **성공한 소비자가 직접** 하게 바꿨다 + 재시도 상한 5회(없으면 항상 실패하는 메시지가 30초마다 영원히 재시도). ② **ACK 시점만 바꿔서는 보상 경로에 실효가 없었다** — `claim-first` 가 재시도를 막고, 해제하면 이번엔 이중지급이 된다(참가자별 지급이 각자 트랜잭션이라 부분 커밋이 남는다). 근본 원인은 지급과 기록이 다른 저장소라는 것 → **`reward_grants`(GrantKey UNIQUE)를 지급과 같은 트랜잭션**에 넣어 exactly-once. 멱등 단위가 메시지 → **참가자**로 내려가 부분 실패 후 **못 받은 사람만 마저** 받는다. Redis claim 키는 제거(F3 의 그 두 키는 원장으로 대체 — TTL 만료 문제 자체가 소멸). ③ 재실행될 핸들러 6종 멱등성 감사 — 5종은 이미 안전, **`PlayerConsumedConsumer` 만 비멱등**(이중 회복)이라 `ConsumeId`(Guid) 추가 + 방 단위 차단. ④ TDD — 4단계로 쪼갰다(봉투 계약=순수 리팩터 확인 → 실패 테스트 RED → ACK 뒤집기 GREEN → 원장). RED 증거: `Actual: [1,2,3]`(실패한 2도 ACK) · `attempts=1`(재배달 없음) · 부분실패 재시도 20s 타임아웃(claim 이 막음). 상세 = [codemap.md](codemap.md) §2.112, [cleanup-backlog.md](cleanup-backlog.md) F4. **검증: 서버 빌드0 · 서버 724/724(Shared 50 · SocketServer 231 · GameServer 443) · 마이그레이션 실환경 적용 확인 · 클라 컴파일0 · PlayMode 225/225 · EditMode 231/231.** **실환경 실측**: PlayMode E2E 만으로 원장에 실지급 이력이 쌓였고(`dungeon:5020:12155|exp|100` 등 참가자별 1행), 같은 방 재발행 시 Exp 변화 0 · 원장 2행 유지 · 로그 `이미 지급됨 — 스킵`. ⚠️ 미실측 = 프로덕션에서 고의로 핸들러를 실패시켜 재배달→재시도가 도는 것(실 Redis 통합 테스트로만 고정).
->
-> 직전: 2026-08-24 — **컨슈머그룹 루프 단일화 + PEL 자동 회수 (F4 해소)**. ① 7개 큐가 **같은 Consumer Group 루프를 각자 복사**(~120줄 × 7)하고 있어 회수를 붙이려면 7군데를 똑같이 고쳐야 했다 → `RedisMessageQueueBase<T>.ConsumeGroupAsync()` 한 벌로 통합(각 큐 ~25줄). ② **XAUTOCLAIM 스윕** — 유휴 구간에서만(30s 주기) `MinIdle` 60s 초과분 회수. 살아 있는 컨슈머의 처리 중 메시지는 빼앗지 않는다(테스트 고정). ③ 조사에서 백로그보다 나쁜 사실 2건 확인 — **GameServer 6개 큐의 컨슈머 이름이 매 기동 새 GUID** 라 "재시작 시 내 PEL 복구"가 거짓이었다(→ `{prefix}-{MachineName}` 로 안정화) · **역직렬화 실패 엔트리가 ACK 되지 않아** 회수를 붙이는 순간 독이 무한 재시도된다(→ 성패 무관 ACK, 테스트로 고정). ④ TDD — 회수 테스트 3건이 RED(회수 0건 / 독 PEL 잔류)로 결함을 재현한 뒤 GREEN. 상세 = [codemap.md](codemap.md) §2.111, [cleanup-backlog.md](cleanup-backlog.md) F4. **검증: 서버 빌드0 · 서버 713/713(Shared 50 · SocketServer 225 · GameServer 438) · Docker 리빌드 후 클라 컴파일0 · PlayMode 225/225 · EditMode 231/231.** ⑥ 연결 커버리지 가드 지적을 받아 SocketServer 소비 큐(던전 입장을 가로막는 그 큐)의 회수를 `SocketServer.Tests` 에 실 Redis 로 따로 고정했다(그 프로젝트에 Testcontainers 첫 도입). **고장 주입**으로 실효성 확인 — 스윕을 빼면 즉시 실패. **운영 기본값 실측 완료(Docker 실환경)** — MULTI 로 XADD+XREADGROUP 을 원자 실행해 죽은 컨슈머를 만든 뒤, SocketServer 그룹 **t+64s** / GameServer 그룹 **t+89s** 에 pending 1→0. 로그에 `Reclaimed 1 stale pending entries …` 확인, A 는 핸들러(`알 수 없는 MapId … 보상 스킵`)까지 도달. 두 값 차이는 편차가 아니라 **스윕 위상 차**(컨테이너 기동 7초 차)로 예측과 5초 이내 일치하며 이론 상한 `MinIdle+Interval`=90s 안이다. 곁다리로 F3 도 실환경 확증 — `game:dungeon:result:done:990001` 이 TTL 86360s 인 **항목별 키**로 존재했다. 프로브 잔여물은 전부 정리(사후 pending=0). ⑤ **잔여 = ACK 시점** — 여전히 핸들러보다 먼저 ACK(at-most-once)라 핸들러가 던지면 메시지가 소실된다. at-least-once 전환은 핸들러 4종 멱등성 재검증이 선행이라 별도 항목으로 남겼다.
->
-> 직전: 2026-08-24 — **멱등 처리 기록에 항목별 수명 부여 (F3 해소)**. ① 보상·지급 멱등이 `SADD` + **집합 전체 EXPIRE(24h)** 여서, 추가마다 TTL 이 통째로 갱신되고 무이벤트 24h 면 **모든 방·모든 줍기의 기록이 동시에 소멸**했다 → `SET game:{dungeon:result,loot:pickup}:done:{id} 1 NX EX 86400` 로 항목별 분리. 선점이 2왕복 → **1왕복 원자 연산**이 된 것은 덤. ② 채팅은 SortedSet 이라 항목별 TTL 이 불가능 → **정확성이 TTL 에 의존하지 않게** 바꿨다: 인덱스가 경계를 덮는지 검사(`ZCOUNT -inf..afterMessageId > 0`) 후 못 덮으면 DB 폴백 + `FetchMessagesByIds` 가 해시 없는 id 를 DB 로 보충. ③ 조사 중 **백로그 기술보다 넓은 구멍**을 확인 — 인덱스 TTL 은 add 마다 갱신되는데 **메시지 해시 TTL 은 생성 시 1회뿐**이라 인덱스가 해시보다 오래 산다 → 조용한 누락이 "드문 상황"이 아니라 **트래픽만 있으면 상시**였다. ④ TDD — 신규 통합테스트 6건이 RED(두 방 처리해도 키 1개 / 이력 조회가 `[4]` 만 반환 / 해시 만료 시 `[]`)로 결함을 재현한 뒤 GREEN. 상세 = [codemap.md](codemap.md) §2.110, [cleanup-backlog.md](cleanup-backlog.md) F3. **검증: 서버 빌드0 · 서버 전체 709/709(Shared 50 · SocketServer 224 · GameServer 435). 클라 무변경.** ⚠️ 미실측 = 실제로 24h 무이벤트 뒤 재배달을 겪어본 적 없음(결함 재현은 키 삭제로 압축). ⑤ **F4(XAUTOCLAIM)는 다음 착수** — 방향 승인 완료(공통 베이스 통합). 조사 중 별건 2건 기록: **GameServer 컨슈머 이름이 매 기동 새 GUID** 라 "재시작 시 내 PEL 복구"가 사실이 아님 · **ACK 가 핸들러보다 먼저**(at-most-once, 핸들러 실패 = 소실).
->
-> 직전: 2026-08-24 — **전역 토큰 저장소 제거(F18) · 입력 맵 해제(F19) · keep-alive 시간 압축 관측**. ① `TokenStorage`(정적 PlayerPrefs)를 **삭제**하고 `ITokenStore` 주입으로 바꿨다 — 앱은 `PlayerPrefsTokenStore`, 테스트는 픽스처 전용 `InMemoryTokenStore`. ⚠️ 이 변경이 그 플래키를 없앤다고 **주장하지 않는다**(간섭 주체 미규명, 재현 안 됨). 전역 가변 상태를 테스트 경로에서 없앤 것 자체가 옳아서 한 것. ② `GlobalInputInitializer` 에 `IDisposable` → dispose 시 `Disable()`. 켠 맵이 켜진 채 asset 이 파괴돼 종료자 assert 가 무관한 테스트를 깨뜨리던 문제. `ignoreFailingMessages` 마스크 제거. ③ "사람이 60분 넘게 플레이"를 **토큰 수명 200ms Fake 로 시간 압축**해 관측 — `RefreshCount ≥ 3` + 매 갱신이 만료 전(끊긴 적 없음). 미실측이 불변식이 됐다. ④ **F15 유예(2h) 축소는 하지 않았다** — touch 스로틀 30분·keep-alive 36분이라 살아 있는 클라의 `activeUntil` 은 항상 미래이므로 유예는 백그라운드 정지 시간만 덮으면 된다. 그 허용치는 정책 결정이라 값만 바꾸지 않았다. 상세 = [codemap.md](codemap.md) §2.109, [cleanup-backlog.md](cleanup-backlog.md) F18·F19. **검증: Unity 컴파일0 · SessionKeepAliveTests 3/3(마스크 없이) · PlayMode 225/225 · 서버 무변경(429/429).**
->
-> 직전: 2026-08-24 — **세션 하트비트(F16) + 페이징 DB 푸시다운(B4) + 리퍼 오탐 실측**. ① 착수하자마자 **진짜 버그**를 밟았다 — 액세스 토큰 수명 60분인데 클라는 콜드스타트에서만 갱신해 **60분 넘게 플레이하면 이후 전 gRPC 가 Unauthenticated**. 하트비트를 "주기적 토큰 갱신"(`SessionKeepAlive`)으로 구현해 이 버그를 같이 닫았고 **proto 는 건드리지 않았다**. ② 서버는 `ValidateTokenAsync` 성공마다 `TouchSessionAsync`(저장소가 스로틀) → `LastActiveAt` 이 죽은 필드에서 살아났고, Redis score 가 없으면 DB 로 폴백해 캐시 유실 시 리퍼 오탐을 막는다. ③ **B4** = 전량 조회를 `ORDER BY RoomId DESC OFFSET/LIMIT + COUNT(*)` 로 DB 에 내렸다. 보류 사유였던 Redis Set→Sorted Set 마이그레이션은 §2.107 에서 목록 진실을 DB 로 옮긴 뒤라 **필요 자체가 사라졌다**. ④ "사람이 로비에 오래 있어야 안다"던 리퍼 오탐을 실 Redis+PG 통합 테스트 3건으로 **결정적으로 고정**했다. 상세 = [codemap.md](codemap.md) §2.108, [cleanup-backlog.md](cleanup-backlog.md) F16·B4. **검증: 서버 빌드0 · GameServer 429/429 · SocketServer 224/224 · Shared 50/50 · 클라 컴파일0 · PlayMode 224/224(Docker E2E).** ⚠️ 미실측 = 사람이 60분 넘게 플레이해 keep-alive 가 도는 것을 눈으로 본 적 없음. F15 유예(2h) 축소도 아직. ⑤ 검증 중 별건 2건을 새로 기록 — **F18**(`AuthFlowE2ETests` 가 전역 `TokenStorage` 를 공유해 전체 실행에서만 1회 흔들림, 재실행 224/224 통과, **간섭 주체 미규명**) · **F19**(`GlobalInputInitializer` 가 입력 맵을 켜고 끄지 않아 파이널라이저 assert 가 무관한 테스트에 붙음).
->
-> 직전: 2026-08-24 — **F2 검증 중 튀어나온 별건 3건 해소**(방 목록 흔들림 · Register 롤백 자기파괴 · 유령 방 리퍼). ① `GetRooms` 페이징이 겹치던 원인은 정렬이 아니라 **소스 집합이 흔들린 것** — `game:room:active` 에 **집합 전체 TTL**(F3 와 같은 병)이 걸려 있어 목록이 "활성셋 34개"와 "DB 전량 1946개" 두 세계를 오갔다. 목록·카운트를 **DB 단일 소스**로. ② `AccountService.RegisterAsync` 롤백이 실패한 Insert 를 재커밋해 같은 UNIQUE 위반을 던지던 것을 **실패한 저장소가 자기 엔티티만 detach** 하도록 차단. (처음엔 DbContext 전역 오버라이드로 넣었다가 리퍼에서 변경 추적기가 깨지는 것을 실측하고 국소 수정으로 되돌렸다.) ③ **유령 방 리퍼**(`DungeonRoomReaper` 10분 주기 → `ReapAbandonedRoomsAsync`, 기존 `RemovePlayerFromRoomAsync` 재사용). 착수 전 **생존 신호가 없다는 것부터 실측**했다 — `LastActiveAt` 갱신 0곳·`CleanupExpiredSessionsAsync` 호출자 0곳·클라 주기 하트비트 없음 → `session:active` score 근사 + **유예 2h**. 상세 = [codemap.md](codemap.md) §2.107, [cleanup-backlog.md](cleanup-backlog.md) F15·F16·F17. **검증: 서버 빌드0 · GameServer 423/423 · SocketServer 224/224 · Shared 50/50 · 클라 컴파일0 · PlayMode 222/222(Docker E2E).** ⚠️ 미실측 = 하트비트(F16) 도입 후 유예 축소, 로비 장시간 체류 시 오탐 여부.
->
-> 직전: 2026-08-23 — **Refresh 실패의 세션 파괴 = DoS 벡터 제거 (F2 해소)**. ① 조사 중 **백로그보다 한 겹 깊은 구멍**을 확인 — 파괴가 소유 증명보다 **앞**에 있었다(`submittedVersion < RefreshTokenVersion` 이 해시 비교 이전). 유출된 만료 accessToken 하나 + `aaa.0` 으로 `TokenReuseDetected` + 세션 파괴가 성립했고, OAuth BCP 의 표준 처방("무효화를 재사용 탐지로 한정")을 그대로 적용해도 DoS 가 남는 구조였다. ② **파괴를 소유 증명 뒤로** 옮기고, 직전 세대 해시를 **Redis 전용 휘발성**(`game:user:credential:refresh:prev:{userId}`, 값 `해시:회전시각`)에 한 세대만 보관해 "우리가 발급한 토큰"이라는 증명을 되찾았다 → 가용성·재사용 탐지 중 하나를 버릴 필요가 없어져 **선행 결정 자체가 소멸**. ③ **재시도 유예창**(`RefreshReuseGraceSeconds` 기본 60s) — 응답 유실·타임아웃 재시도로 같은 토큰이 두 번 오는 정상 경로를 탈취로 오판하면 라이브에서 대량 로그아웃이 된다. 유예 재시도는 **회전시각을 갱신하지 않는다**(탐지 무한 연기 방지). ④ 버전 역행 비교는 파괴 근거로서 **삭제**(위조 가능). 레이트 리밋은 넣지 않았다(토큰 32바이트 난수라 추측 불가, YAGNI). 상세 = [codemap.md](codemap.md) §2.106, [cleanup-backlog.md](cleanup-backlog.md) F2. TDD 로 착수 — 구현 전 4건 RED(위조 문자열 테스트가 `Expected: Not TokenReuseDetected / Actual: TokenReuseDetected` 로 공격 성립을 재현). **검증: 서버 빌드0 · GameServer 417/417 · SocketServer 224/224 · 클라 컴파일0 · EditMode 231/231 · PlayMode 222/222(Docker E2E, `AuthE2ETests` 14/14 신규 2 포함).** ⚠️ 미실측 = 실클라이언트에서 사람이 겪는 재접속·토큰 만료 감각.
->
-> 직전: 2026-08-23 — **대기실 준비(Ready) 상태 + 던전 입장 원자성(F1) 해소**. ① 비호스트 전원이 준비해야 호스트가 시작 가능(서버 권위 게이트 `NOT_ALL_PLAYERS_READY`), 준비 상태는 **Redis 전용 휘발성**(`IRoomReadyStore`) — 호스트는 준비 개념 없음(1인 방은 그대로 시작). ② proto 확장 = `rpc SetReady` + `RoomInfo.ready_public_ids`/`host_public_id`(기존 필드 무변경). ③ **F1** = 방 단위 락(정원) + `dungeon_room_players.UserId` UNIQUE(다중 방 입장) 이중 방어, `IUserLock`→`IDistributedLock` 개명. 곁다리로 시작 버튼의 `Status==Waiting` 조건 주석 해제 + 슬롯 입장순 정렬 고정. 상세 = [codemap.md](codemap.md) §2.105, [cleanup-backlog.md](cleanup-backlog.md) F1. ④ 경합 재현 테스트 5건(Testcontainers 실 Redis+PG) — 고장 주입으로 실효성 확인(락 제거 시 정원 4인 방에 8명 입장). ⑤ 실플레이 피드백 2건 수정 — 구독 뒤에 버튼 라벨을 배선해 **첫 Render 가 라벨을 못 쓰던 것**(=버튼 눌러야 바뀜) · GetRooms 목록에 준비 정보 누락. **검증: 서버 691/691 · 클라 컴파일0 · EditMode 231/231 · PlayMode 221/222**(잔여 1건은 격리 실행 8/8 통과인 교차 오염 플레이크). ⚠️ 미실측 = 대기실 화면 실조작 감각.
->
-> 직전: 2026-07-18 — **CA-5 어빌리티 타임라인 툴 개선 백로그(W1~W8) 완주 → main 병합([PR #62](https://github.com/SeoBYP/Multiplay-ActionRPG-Unity/pull/62), merge commit `d2aefc7b`)**. W1 인스펙터 정식 바인딩(BindProperty+TrackPropertyValue)·W2a/b/c 라이브 3D 프리뷰(PreviewRenderUtility+PlayableGraph 스크럽 샘플·URP SubmitRenderRequest·VFX ParticleSystem.Simulate·cueTrigger 자동 클립 해석)·W3 Sections/loop 구간·W5/6/7(점바 시각·트랙 mute·Anim 재생) + 디자인 폴리시·반응형 레이아웃(창 폭 확장)·어빌리티 범위 안팎 색 구분. 데모 GIF `assets/AbilityEditorWindow.gif`. **CA-5 툴 코드 100% 완료** — 컴파일0·EditMode 199/199·기능별 비파괴 스모크(execute_code). codemap §2.92~2.96. **잔여 = 사용자 에셋 배선(Phase 1b): 이벤트에 실 SFX/VFX·프리팹에 `AbilityCuePlayer`·Actor 프리팹.**
->
-> 직전: 2026-07-17 — **AC 트랙 전체 완료(PR #60) + 문서 전면 검수·정리**. AC/AC-B(Actor 통합·Ability SO 단일 저작) · AC-C(전투 진단 → D1 송신큐·D2 Seq 근본수정, **측정으로 C2b 불필요 판정**) · AC-E~G(몬스터 레벨링·밸런스 데이터 전면 SO화·던전 5개 L1→L30·**등급은 ID 로**) · AC-H(Main 몬스터 체력바). 잔여 = AC-D(전용 애니·P→P 스케일·VFX Cue)·dungeon_03~05 맵 배경.
->
-> **문서 정리 라운드(PR #60 이후, main 직접 커밋)** — 코드가 아니라 *문서가 코드와 어긋난 것*을 실측 대조로 고쳤다:
->
-> | 커밋 | 내용 |
-> |---|---|
-> | `15dfe272`·`07439bac` | codemap 번호 충돌 해소 + **실제 코드/SO 대조 검수** — gas-architecture 의 뒤집힌 사실 정정(S_AbilityActivated "안 만든다"→도입됨 1604 / 발동게이트 "안 본다"→구현됨), codemap §1 행 현행화, README 정정 |
-> | `79fdfd16` | **죽은 코드 `SkillCatalog` 삭제**(호출 0) + 위키 ASCII 다이어그램 → **mermaid 6종**(현재 시그니처로 재작도) |
-> | `ea73efbb` | `Shared.Gameplay.dll` 재배포(소스 삭제 반영, SHA256 대조) — 클라 컴파일0·EditMode 192/192 |
-> | `cda7524d` | **포트폴리오 챕터 26 신설**(AC 트랙 = 측정이 이끈 전투 정리) + 로드맵 M5 현행화 + README 구체화(규모 스냅샷·문제→원인→해결 7건) |
->
-> | 커밋 | 내용 | codemap |
-> |---|---|---|
-> | `23884d16` | NPC 애니 · 락온 8방향 strafe · 락온 UI 마커 | §2.57 |
-> | `80912693` | 던전 파티 HP HUD · 원격 HP 기준선 동기화(`S_PlayerJoined` += Hp/MaxHp) | §2.58·§2.58b |
-> | `ed46fe15` | 부활 기상(GetUp) · 아이템 줍기 토스트(던전·Main) · 한글 폰트 전역 폴백 | §2.59 |
-> | `aafcda1d` | 원격 회피 애니(`S_Dodge`, Union 1603) + 프리팹 트리거명 누락 수정 | §2.60 |
-> | `f7b77bdf` | **Attack 콤보 A→B→C** — 타이밍 진실원 = SkillTimeline(공유 데이터) | §2.61 |
->
-> **이번에 박제한 교리 (다음 세션이 같은 함정을 다시 밟지 않도록)**
-> - **스킬/콤보 타이밍의 진실원 = SkillTimeline**(SO 저작→bake→skills.json). 서버 cadence 권위와 클라 선입력이 **같은 값**을 본다 → 프리팹 매직넘버·서버 하드코딩 금지.
-> - **Unity 함정: Trigger + `hasExitTime` = 트리거 소실** → 체인 전이는 `hasExitTime=false`, 타이밍은 데이터가 소유. (인스펙터에서 다시 켜면 콤보가 조용히 깨진다.)
-> - **원격 연출엔 AnyState 안전망 필수** — 네트워크 지연이 상태 유지시간을 넘으면 서브SM 체인만으론 애니가 안 나온다.
-> - **서버 cadence 엔 지터 허용치 필요**(100ms) — 없으면 정상 콤보가 거부돼 데미지가 유실된다(던전에서만 나는 버그).
-> - **E2E 는 패킷 수신까지만 본다** → 애니 재생은 **실프리팹 Animator 전이 가드**(`RemoteDriverAnimTests`)로 따로 잡아야 한다. (프리팹 CAA 파라미터명이 비면 SetTrigger 가 조용히 스킵된다.)
-> - Shared.Gameplay 수정 시 **`dotnet build` 가 클라 Plugins DLL 로 자동 복사**(csproj post-build Copy).
->
-> **검증**: 서버 build0 · SocketServer.Tests **126** · Shared.Gameplay.Tests **39** · 클라 컴파일0 · EditMode **167** · PlayMode **8** · Docker E2E `SocketE2ETests` **30/30** · MPPM 2인 던전 플레이 확인(사용자).
->
-> **CA-5 어빌리티 타임라인 툴 — 코드 100% 완료 (P0~P8 + 개선 백로그 W1~W8), main 병합(PR #62)** (2026-07-18): 참조([Fofanius Event Track](https://github.com/Fofanius/unity-tool-timeline-event-track)) 해부 후 **기능 재분할**([ability-timeline-tool.md](ability-timeline-tool.md)). 데이터·런타임·UI Toolkit 창·직접 리소스·리사이즈 클립·**라이브 3D 프리뷰(메시·VFX·cueTrigger 자동 클립)**·**Sections/loop**·Event(메서드+타입인자+드롭다운+판정창→Event)·QoL·디자인 폴리시·반응형 레이아웃. 아키텍처=커스텀 창 강화(서버 권위 유지, 연출·프리뷰 데이터는 bake 안 됨). codemap §2.81~2.96. **잔여 = 사용자 배선**(Phase 1b: 이벤트에 실 SFX/VFX·프리팹에 `AbilityCuePlayer`·Actor 프리팹) + Main 판정 통일 애니이벤트 실제 제거·플레이검증.
->
-> **다음 후보** (T1 잔여 없음. 2.5.1/2.5.2 사망·부활 ✅, 애니 폴리시 #1~#7 소진, **CA-5 툴 코드 완료·병합**):
-> | 후보 | 성격 | 규모 | 비고 |
-> |---|---|---|---|
-> | ~~**AC-D1 어빌리티별 전용 애니**~~ ✅(2026-08-17 확정) | 연출(코드) | 소~중 | **완료** — leviathan_boss 슬램을 `AttackSpecial` 트리거로 분리(enum+CAA+컨트롤러 AttackHard 클립+SO). **08-17 검증에서 `MonsterVisualCatalog` 변종 4종 누락(캡슐 폴백)을 발견·수정 + 가드 3종 신설** → 그 전엔 슬램 애니 도달 불가였다. codemap §2.97·§2.98 |
-> | **CA-5 Phase 1b 에셋 배선** | 연출(사용자) | 소 | 완성된 툴로 이벤트에 실 SFX/VFX·프리팹 `AbilityCuePlayer`·Actor 지정. 코드 아닌 저작 작업 |
-> | ~~**dungeon_03~05 맵 비주얼**~~ ✅(2026-07-20) | 에셋 | 중 | **placeholder 완료** — `visualPrefab`=`Plane.prefab`(01/02와 동일, 100×100 이 각 bounds 64/72/80 덮음) → void 방지. ⚠ 실제 던전 환경 아트 팩은 프로젝트에 없음 → 진짜 아트는 팩 임포트 후 별도(AC-D4) |
-> | **4.6 PVE 오픈월드** | 신규 콘텐츠 | 대 | 월드/존·NPC/대화·상호작용 [4.4~4.7] |
-> | **M6 마감** | 포트폴리오 | 중 | 데모 영상·부하 검증·배포 문서. **DoD 는 이미 달성** — 지금 시점에 "보여줄 것"을 만드는 선택지 |
->
-> 직전: 2026-07-11 (**M5 애니/전투연출 폴리시 — 클라 PROTOFACTOR Animator 실배선 + 히트박스 방향 버그 수정** — MM 외부화 후 비어있던 캐릭터 애니를 실제로 세웠다. ① **플레이어 애니 기반**(커밋 `698b0728`): `SK_Protof-Actor` 모델+Animator 를 `PlayerCharacter.prefab` 에 배선(회색 캡슐→실캐릭터), `PlayerController` 깨진 모션 재지정(1hMelee in-place)+고아 `MM_` 제거+Dead/Dodge 상태+순환클립 LoopTime 정정. 무기 프롭 `SM_BludgeonProp` 오른손 부착 + `WeaponHitbox`(AttackA 애니이벤트 active-window, Main 클라권위)·던전은 서버 HitboxMath 유지. 히트박스 무기 리치 저작→skills.json bake. ② **이동잠금(Rooted)**: 공격/상호작용 중 수평이동 금지(`ActionTags.Rooted`, GroundState+Fall/Jump 폴링, CA-1 태그·전이 아님). ③ **원격 플레이어 애니**(커밋 `1e5a0a6d`): `RemotePlayerCharacter` 모델+Animator+무기(**메시 전용**=서버권위 보호), `RemoteDriver` 가 보간변위→Speed·사망/부활·공격(`S_Attack` 브로드캐스트) 애니 구동. ④ **몬스터 체력바**(월드공간 Canvas+`MonsterHealthBar`, `MonsterEntity` HP 노출). ⑤ **HitboxMath yaw 부호 버그 수정**(서버·클라 공유, 커밋 `1e5a0a6d`): 월드→로컬 회전이 `-yaw` 라 yaw 0/180 에서만 맞고 측면(90/270·대각)은 히트박스가 반대로 갔다 → 부호 교정. **던전 전 방향 공격/피격 판정 정상화**(기존 테스트가 0/180만 봐 사각지대). ⑥ **부활 복귀 애니**: Dead 상태 탈출 전이가 없어 부활해도 사망포즈에 갇힘 → 양성 `Revive` 트리거 신설(컨트롤러 Dead→로코모션 전이). ⑦ **SocketConnector 송신↔종료 레이스 NRE 수정**(락 대기 중 `_stream` null 교체). **검증: Shared.Gameplay 39/39 · SocketServer 118/118 · EditMode 155/155 · PlayMode ActionRootTests(이동잠금·공중·부활 애니) · Docker SocketE2E 27/27. MPPM 플레이 검증(사용자: 줍기 이동잠금·공격 전방·부활 복귀 모두 확인).** 상세 codemap §2.52~2.56. **잔여(폴리시)**: NPC/몬스터 애니(캡슐)·Attack 콤보·원격 회피(S_Dodge 패킷 없음)·기상(GetUp) 클립 — 목록화·우선순위 = [animation-combat-polish-backlog.md](animation-combat-polish-backlog.md). **다음 후보**: B(애니 폴리시) 또는 C(4.6 PVE 오픈월드).)
->
-> 직전: 2026-07-07 (**MotionMatching 외부화 — M5 애니 트랙(🟣) 접음** — 사용자 결정으로 MM을 별도 프로젝트 `C:\Users\user\Github\MotionMatchingProject`(Unity 6000.4.8f1)로 이동. 이 레포에서 `Script/System/MotionMatchingSystem`·`GameData/MotionMatching`·`Art/SampleAnimation`(522 FBX)·MM 테스트 제거(591 파일 삭제). **클라는 단순 Animator로 복원**(PlayerCharacter.prefab git checkout=원본 Animator `PlayerController.controller`, `IMotionMatchingDriver` 플러밍 제거 → GroundState 항상 Animator 경로). MM 프로젝트에 asmdef 4개 신설(runtime/editor/test2). **클라 검증: 컴파일0 + EditMode 152/152**. MM 프로젝트 컴파일은 사용자가 열어 확인. **다음 = 서버 작업 우선.** 상세 = 메모리 project_motion_matching_system.md.)
->
-> 직전: 2026-07-03 (**MotionMatchingSystem P0~P2 완료 — UE5 GASP 기반 Bake 파이프라인 + MVP DB 실굽기** — 애니 소스 = `Assets/Art/SampleAnimation`(GASP 522 FBX, UEFN Mannequin). ① **P0**: `SampleAnimationImporter`로 Idle/Walk/Run 340 FBX Humanoid 일괄 전환+루프 30클립 loopTime, V1 고아 에셋 30개 검증 후 삭제, CreateAssetMenu 잔재 5곳 수정. ② **P1**: `MotionMatchingSystem/Editor/`+`Game.System.Editor.asmdef`+`DatabaseBuilder`(RootT/RootQ 커브 샘플러+PlayableGraph 평가+per-sample 루트 상대화). **결함 3건 실측 발견·수정**: TrajectoryChannel 방향이 주입 샘플러 무시(forward 붕괴)/rootInverse 원점 고정(절대좌표 굽힘)/PoseChannel 자체 SampleAnimation(원시 커브로 포즈 오염). ③ **P2**: `MvpDatabaseCreator`→`GameData/MotionMatching/` Schema(30Hz, Traj 4샘플+양발)+`PSD_Locomotion_Dense` 29클립 → **Bake 성공 IsBaked=true·2933포즈·28차원, 값 물리 검증**(RunF@1s: 궤적 now=(0,0)·+0.6s=2.6m 전방·발 로컬±0.3m·vel4.6m/s). 검증: Unity 컴파일 0 + Game.System dotnet 빌드 0오류. **잔여 P3(프리팹 부착 — UEFN Mannequin 교체 결정됨)·P4(Play 검증/튜닝)**. 단일소스 `docs/MotionMatchingSystem/design.md` §4.)
->
-> 직전: 2026-07-03 (**MotionMatching V2 → MotionMatchingSystem 리네임 + 문서 정리** — 폴더/네임스페이스 `Script.System.MotionSystemV2`→`Script.System.MotionMatchingSystem`(31파일, .meta 동반 이동으로 GUID 보존). 옛 문서 2건 삭제(`docs/MotionMatchingV2/design.md`=옛 계획, `docs/MotionMatchingSystem_RuntimeFlow.md`=삭제된 V1 코드 설명) → 신규 단일소스 `docs/MotionMatchingSystem/design.md`. **실측 현황**: 엔진 코드 + 게임플레이 배선 코드만 존재, **Bake 파이프라인·데이터 에셋·프리팹 부착 전무 → 런타임 미작동**(Animator 폴백). 신규 4단계 플랜: P1 Bake 파이프라인 → P2 데이터 저작 → P3 프리팹 부착 → P4 Play 검증. 코드 기능변경 0 = 빌드 검증만 필요.)
->
-> 직전: 2026-06-30 (**2.6.3 타겟팅/락온 완료 → 2.6 전투보조 전체 ✅** — 순수 클라 조준 보조, **패킷·서버 변경 0**. 락온 토글(Tab) 시 화면중앙 최근접 `LockOnTarget`(레지스트리 마커, 던전 Monster + Main LocalMonster 양 프리팹) 획득 → `LockOnDriver`(순수C#, 에이전트 소유)가 매프레임 `CharacterMotor.FacingOverride`(타겟 향해 회전, 이동은 카메라기준 스트레이프)+`CharacterCameraFollow.LockTarget`(카메라 타겟 프레이밍) push. facing→rotY→C_Move 로 던전 서버 hitbox 자동 정렬(Main 은 LocalCombat 동일 facing). 사거리(+3m)/소실/사망 시 자동 해제. 입력 `LockOn` one-shot 신설(.inputactions Tab + 래퍼 재생성 + 계약5파일). **버그 수정**: Tick 의 `_target==null`(Unity fake-null) 조기반환이 파괴된 락대상도 걸러내 죽은 몬스터에 카메라 영구잠김 → `ReferenceEquals` 로 미락/락중파괴 구분(테스트 포착). **검증: PlayMode LockOnDriverTests 4/4 + PlayMode 전체 160/160(E2E Docker 포함) + EditMode 152/152 + 컴파일0**. 네트워크 무변경=Docker E2E 불요. **플레이 검증 완료(MPPM, 2026-06-30)**. 포트폴리오 챕터 25. 상세 codemap §2.51. **잔여(선택)**: 락온 UI 마커·타겟전환 입력·strafe 애니.)
->
-> 직전: 2026-06-29 (**2.5.2 Co-op 부활 완료** — 커밋 `ae5026e4`. 다운 아군 살리기(서버 권위): 사거리 안+E→`C_Revive`(1824)→`Room.TryRevive`(거리·다운상태·미실패 검증, HP 50% 복구, 멱등)→`S_PlayerRevived`(1825) 브로드캐스트. 클라 `DownedAllyMarker`(원격 다운=Destroy→**다운 보존**, 2.5.1 ⓔ-2 교체)+`ReviveInteractor`(사거리+E 즉시, 입력=GetComponent)+`ReviveInPlace`(텔레포트X). `ReviveConfig` 단일소스. **검증: SocketServer 118/118(ReviveTests 4)+던전 부활 E2E 1/1(신선 Docker)+PlayMode 156/156+EditMode 152/152+MPPM 2창 플레이 검증**. 교훈: ① 입력은 DI 아닌 컴포넌트(TryResolve 항상 null이 "아예 안 되던" 원인→GetComponent) ② 전체 PlayMode가 인접 스폰테스트 DI 회귀 포착(단위·컴파일만으론 못 봄) → 실테스트 전 E2E/PlayMode 전체 그린 규율 박제. 2.5 사망/부활 전체 ✅. 포트폴리오 챕터 24. 상세 codemap §2.50.)
->
-> 직전: 2026-06-29 (**2.2 마나 + 공격 GameplayAbility 식별·로그** — 커밋 `c556ca6a`. ① **마나 게이트/검증/리젠/동기화**: 서버권위+클라예측. `PlayerState.Mana/TrySpendMana/RegenMana`·`CombatHandler`/`DodgeHandler` 게이트·`S_PlayerMana`(Union 1642, owner 정정)·`RoomTick` 리젠·`MaxMana` 전파(PlayerStats→PlayerInfo→InitPlayerState, Lv1=50). 클라 `PlayerCharacterAgent` 게이트/예측차감/매프레임 리젠·`ManaPacketHandler`→`EffectReceiver` 정정. 리젠 단일소스 `ManaConfig.RegenPerSecond=10`, **동기화=차감/거부/입장 시점만**(리젠 예측 수렴). ② **공격=이름있는 GameplayAbility 식별+발동 로그(경량, 새 엔진 0)**: 정식 Ability 엔진(CA-3)은 보류 유지, AbilityId 식별·로그만 — 플레이어 `FireSkill`·슬라임 `LocalMonster`/`Room.TickMonsters`. ③ **데미지 적중/HP 로그**(`LocalCombat`/`LocalMonster`). ④ **슬라임(Main) 넉백→슬로우(slow_3s)**. ⑤ **HUD 마나바=기존 HP/MP MVI로 이미 완비**(차감/리젠 도입으로 실제 변동). 검증: SocketServer.Tests 114/114(PlayerStateMana 4 신규)·클라 EditMode 152/152·**던전 마나 E2E 2/2(신선 Docker)**. 상세 codemap §2.49.)
->
-> 직전: 2026-06-25 (**M5 폴리시 묶음** — ① **4.3 던전 메타 = `DungeonRoom.MapId`** 영속(방 생성 시 결정) + 던전 선택 UI(`CreateRoomRequest`/`RoomInfo.map_id`·`DungeonCatalog` SO·팝업 드롭다운) + `expReward` Export 왕복 결함 수정 + 샘플 던전 `dungeon_02`(=9.2 부채 해소). ② **게임데이터 SO Resources 폐기 → Addressables/GameData**(빌드 항상포함 회피 — MapDefinition+카탈로그5종 Addressables, 저작전용 SO는 GameData 이동만, `VContainerSettings`만 Resources 잔존). ③ **Quest 인증 레이스 수정**(자동로그인 async 전 GetQuests 발사→401, `QuestService`에 `AuthSession` 게이트). ④ **Shop 구매 실패 = AlertPopup 가시화**(토스트 로그폴백 한계 + "골드 부족" 오인 메시지 정정). 검증: GameServer 단위65·통합11·SocketServer 7 + 클라 Unity 컴파일0·EditMode + `DungeonLobbyE2ETests` 13/13(Docker). 상세 = codemap §2.45·§2.46 + §9.2(4.3). **다음 후보(M5 잔여)**: 2.6 전투보조 · 2.5.2 Co-op부활 · 4.6 PVE오픈월드 · 애니(MotionMatchingSystem). 작은 후속: necklace_vitality 1005 원인·인벤토리 판매/소비 실패 팝업화.)
->
-> 직전: 2026-06-11 (**GAS 구조 정리 + 플레이어 HP 서버 권위 승격(2.5.1 사망)** — 커밋 `ebbb8579`. ① **GAS 정리(ⓐ~ⓓ)**: Shared.Gameplay 폴더 개념별 재구성 / `GameplayTag`·Container / effect 수치 단일소스화(서버 위임) / **서버 발동 게이트(쿨다운)로 C_Attack 연사 치팅 차단**. ② **2.5.1 사망**: `State.Dead` 태그 입력게이트(던전 다운-잠금) + `S_PlayerDead`(Union 1823) 원격 다운 가시성. ③ **플레이어 HP 서버 권위(authority-model §0 권위결정규칙 + §4 승격)**: 기존 "클라 결정론"은 사용자 미승인 가정·**불사 핵 부채**였음 → 던전 HP=서버권위로. 증분1=서버 데미지누적→HP0 직접감지→S_PlayerDead(C_PlayerDead 격하). 증분2=회복 크로스서버(ConsumeItem→GameServer 검증·차감→Redis→SocketServer ApplyPlayerEffect(+heal)+S_ApplyEffect). ④ **버그픽스**: 다운 플레이어 몬스터 타깃 제외. ⑤ **맵 선택 슬림 배선**(StartRoomRequest.map_id, 4.3 부분상환) + test fixture(test_brute/test_arena). **검증: GameServer 252/252 + SocketServer 85/85 + Shared 30/30 + 클라 EditMode/PlayMode + SocketE2E 2종(회복/사망) 그린**. 상세 = codemap §2.6b. **잔여(2.5.1): 다운 포즈/애니·Main 타이머 리스폰·회복 수치 단일소스. 던전 내 부활=2.5.2.**)
->
-> 직전: 2026-06-09 (**3.3.7 루트 풀 E2E + 재접속 유예 창(6.4)** — ① 던전 루트 풀 E2E(사냥→드랍→줍기→인벤토리) 작성, `DropTable` 슬라임 potion 보장드랍(결정성)·`StartedRoomContext.HostAccessToken`. ② **9.4 부채수정이 만든 재접속 회귀**(크래시 시 `_playerStates` 즉시삭제 → 재입장 거부)를 **재접속 유예 창(grace)**으로 해소 = WBS 6.4 진척: 크래시는 60s 상태 보존+AI 유령필터, 명시퇴장만 즉시제거, 만료 스윕. **SocketServer.Tests 72/72 + PlayMode 16/16 그린**(UnityMCP). 상세 = codemap §2.17. **Main 루트 경로(3.3.8~10)·클라 재접속 팝업 잔여.**)
->
-> 직전: 2026-06-07 (**M4 던전 루프 완성 = DoD 달성** 🎉 — A 트랙(클리어 루프)·B 트랙(Exp 보상+실패 경로+UI) 코드 완료에 더해, **MPPM 2-창 수동 플레이로 클리어→보상→로비 복귀 1판 전체 시각 검증 통과**(사람 확인). M4 마지막 잔여(완전한 Co-op 1판 루프) 닫힘 → **M4 전체 ✅**. **다음 = M5 폴리시/콘텐츠** 또는 서버 도메인 병렬 트랙(3.1 인벤토리 등). DoD: 2명 접속→방 생성·시작→던전 입장(서로 보임·이동)→몬스터 협력 처치→클리어→Exp 보상→로비 복귀 전 과정 서버 권위 + E2E 통과 — **충족**.)
->
-> 직전: 2026-06-06 (**M4 A 트랙 완료** — 던전 클리어 루프 골격 그린. 몬스터 전멸→`Room.TryMarkCleared`(서버 권위 1회)→`S_DungeonClear`(1820) 브로드캐스트+`DungeonClearMessage`(stream:game:dungeon:result)→`DungeonResultConsumer`(수신·로그, 보상 TODO)→클라 `InGameState.IsDungeonCleared`→`GameHud` 패널+기존 `ReturnToLobby`. **SocketServer.Tests 47/47 + PlayMode SocketE2ETests 12/12**(Docker 리빌드 후). 상세 = codemap §2.9. **A 잔여(사용자 영역)**: 전투 플레이 검증·결과 패널 아트. **다음 = B 트랙(보상)**: DungeonId(EF 마이그레이션)→Inventory→Progression→`DungeonResultConsumer` TODO 자리에 보상 산정·지급(Outbox 원자화)→결과/보상 UI.)
->
-> 직전: 2026-06-05 (**M4 착수 — DoD 던전 루프**: A 트랙(클리어 루프 골격)→B 트랙(보상). **전투**: 플레이어→몬스터 = **서버 권위 유지**(기존 M3 ⑤ `C_Attack`→서버 hitbox→`DamageMonster`). 클라는 **트리거(`C_Attack`)만** 송신. 클리어 = **몬스터 전멸 1회**. 보상 = 경험치+아이템 둘 다.)
->
-> 직전: 2026-06-05 (**M3 몬스터 완료** 🎉 — 스폰·이동(`MonsterAiMath` Patrol/Chase/Attack + 매 틱 bounds.Clamp)·**양방향 전투**(플레이어→몬스터 피격/사망 GAS·`S_MonsterDead` / 몬스터→플레이어 공격 `S_ApplyEffect{monster_attack_dmg}`)·클라 렌더(`MonsterEntity` 보간, **2인 플레이 시각검증**)·E2E 3종 작성. 서버 권위 + 단일 `RoomTickService` + GAS. SocketServer.Tests **43/43** + 클라/E2E 빌드 0오류. **추가 보완**: ① 게임시작 불가 버그(컨테이너 재시작 시 Redis `LOADING`에 `GameStartRequestedConsumer` 영구사망) → `ResilientStreamConsumer` 복원력 중앙화·3개 컨슈머 이관(plan §9.10 / codemap §2.8). ② 몬스터 프리팹(Capsule+빨강 URP) 제작. 상세 = `§M3`.)
->
-> 직전 갱신: 2026-06-04 (**M3 몬스터 플랜 확정** — 스폰·패트롤(자식 마커 씬 드래그)·맵경계를 Map Editor에서 저작 → spawn-layouts.json → 서버 파싱. 증분 ①패킷→②a데이터·②b에디터·②c파싱→③서버상태→④틱AI→⑤피격사망→⑥클라렌더→⑦E2E. 같은 날 선행: **WBS 통합**(`wbs.md` 삭제·마일스톤↔WBS ID 일원화).)
+> 새 채팅이면 이 파일부터 읽는다. 상태가 바뀌면 그 자리에서 갱신한다(체크박스·WBS 마커).
+> **이 파일엔 "지금·다음"만 둔다.** 지난 이력은 `git log` 와 [codemap.md](codemap.md) §2(결정 로그)에 있다.
+> 마지막 갱신: 2026-10-15 — 보안·데이터 무결성 결함 트랙 착수(RED 테스트 19건) · 문서 정리.
 
 ---
 
-## 🎯 최종 목표 — 포트폴리오 게임 완성
+## 🔴 현재 작업 — 보안·데이터 무결성 결함 수정 (TDD)
 
-**완성 정의(DoD)**: 2명이 (MPPM) 접속 → 로비에서 방 생성·시작 → 던전 입장(서로 보임·이동) → 몬스터 협력 처치 → 클리어 → 보상 수령 → 로비 복귀. **전 과정 서버 권위 + E2E 통과 + 데모 영상.**
+2026-10-14 서버·클라 전수 리뷰에서 나온 결함 중 **클라 하나로 악용되거나 데이터가 사라지는 것**부터 고친다.
+위치·재현 시나리오·수정 가이드는 [cleanup-backlog.md](cleanup-backlog.md) §P0.
 
-**범위**: Co-op 던전 **버티컬 슬라이스** + **PVE 오픈월드 맛보기**(싱글 탐험/퀘스트 최소). 폴리시(애니메이션·스킬·아이템·사운드)는 **코어 루프 이후**.
+**작업 방식 (2026-10-15 합의)**: 테스트·문서 = Claude 작성 / **프로덕션 코드 = 사용자가 직접 작성**, Claude 는 방향 가이드.
+한 항목씩 `RED 확인 → 사용자 구현 → GREEN → 전체 스위트` 순서로 닫는다.
 
-**범위 제외(2026-06-03 결정)**: **던전 난이도/시즌 · 가챠 · 우편함**은 포트폴리오 범위에서 제외 — WBS·로드맵에 넣지 않는다.
+**RED 실측 (2026-10-15)**: GameServer `실패 9 / 통과 458` · SocketServer `실패 10 / 통과 308`. 실패는 전부 신규 테스트, 기존 457·307 은 그린 유지.
 
-| 마일스톤 | 목표 | WBS 노드 |
+순서 = 싸고 효과 큰 것부터. `RED 테스트` 클래스가 전부 그린이 되면 체크한다.
+
+- [ ] **G1** GameServer 기동마다 Redis `FlushAllDatabases()` — `RedisStartupPreservationTests` — 🔄 xUnit GREEN(2026-10-27), Docker 리빌드 후 E2E 남음
+- [ ] **S1** 플레이어가 몬스터·테스트 어빌리티 발동(105 = 데미지 9999) — `AttackAbilityTrustTests` — 판별 기준 결정
+- [ ] **S3** `C_Move` 무검증 — NaN·순간이동, NaN 이면 거리 검사 전부 통과 — `MoveInputValidationTests` — 최대 이동 속도 결정
+- [ ] **G3** 지갑·인벤토리·Exp lost update / 이중 차감 통과 — `EconomyConcurrencyTests`
+- [ ] **G2** 퀘스트 보상 동시 요청 시 중복 지급 — `QuestClaimConcurrencyTests`
+- [ ] **G4** 착용 장비를 팔아도 스탯 유지 — `EquippedItemOwnershipTests` — ❓ 판매 거부 vs 조회 시 필터
+- [ ] **S2** 입장한 연결이 다른 UserId 로 재-Join → 남의 자리 탈취 — `PlayerJoinIdentityTests` — ❓ 새 연결 경로는 join 토큰(공개 계약)
+
+**GREEN 판정 명령**
+
+```bash
+dotnet test ServerAll/GameServer/GameServer.Tests/GameServer.Tests.csproj
+dotnet test ServerAll/SocketServer/SocketServer.Tests/SocketServer.Tests.csproj
+```
+
+- 통합 테스트는 Testcontainers 다 — Docker Desktop 이 막 뜬 직후엔 컨테이너 기동 실패로 수백 건이 한꺼번에 빨개진다(2026-10-14 실측 144건). 재실행해서 확인한다.
+- G3·G2 는 경합 재현 테스트라 **고치기 전엔 드물게 우연히 통과**할 수 있다. 고친 뒤엔 항상 통과해야 정상이다.
+- G1 은 고친 뒤 **Docker E2E 전체**를 돌린다 — 기동 시 FLUSH 에 기대던 E2E 가 있을 수 있다(미실측).
+
+**다음 묶음 (P1 — 정상 플레이 중 고착·유실)**: S4·S5·G5·C1·C2·C3·C4. 착수 전에 RED 테스트부터 만든다. 목록 = cleanup-backlog §P1.
+
+---
+
+## 🎯 최종 목표
+
+**DoD**: 2명이 접속 → 로비에서 방 생성·시작 → 던전 입장 → 몬스터 협력 처치 → 클리어 → 보상 → 로비 복귀. 전 과정 서버 권위 + E2E + 데모 영상.
+**DoD 는 M4 에서 달성됐다(2026-06-07).** 지금은 폴리시·콘텐츠(M5)와 마감(M6) 단계.
+
+**범위 제외 (2026-06-03 결정)**: 던전 난이도/시즌 · 가챠 · 우편함.
+
+| 마일스톤 | 목표 | 상태 |
 |---|---|---|
-| ✅ M0 | 인증·로비·채팅·소켓·던전 입퇴장·DB/캐시·Unity OutGame (기반) | 1.* |
-| ✅ M1 | 인게임 진입 — 로컬/원격 캐릭터 스폰·이동, 인게임 UI 전환 | 1.6 |
-| 🔄 M2 | 전투 코어 — Character 두 축 리팩터(GAS) + 서버 권위 Attack/Hit/Damage | 2.1·2.2·2.5.1·2.6.2 |
-| ✅ M3 | 몬스터 — Spawn·이동(AI)·State·Dead + 양방향 전투(P↔M) + 클라 렌더(2인 검증) | 4.1.1~4.1.5 |
-| ✅ M4 | 던전 루프 완성 — Clear → 보상 → 로비 복귀 **(= DoD 달성)** | 2.3·4.2·6.2·7.1 |
-| M5 | 폴리시/콘텐츠 — 애니(MotionMatchingSystem)·스킬·아이템·사운드 + PVE 맛보기 | 2.4·2.6·2.7·3.2~3.8·4.4~4.7·5.*·6.3~6.4·7.2~7.8·8.* |
-| M6 | 마감 — 데모·부하/E2E 검증·배포/포트폴리오 문서 | 9.8·9.9 |
+| M0 | 인증·로비·채팅·소켓·DB/캐시 기반 | ✅ |
+| M1 | 인게임 진입 — 스폰·이동·원격 보간 | ✅ |
+| M2 | 전투 코어 — 두 축 분리(GAS) + 서버 권위 Attack/Hit/Damage | 🔄 정밀화만 남음 |
+| M3 | 몬스터 — 스폰·AI·양방향 전투 | ✅ |
+| M4 | 던전 루프 — 클리어 → 보상 → 로비 복귀 (= DoD) | ✅ |
+| M5 | 폴리시·콘텐츠 + PVE 맛보기 | 🔄 |
+| M6 | 마감 — 데모·부하/E2E·배포·포트폴리오 문서 | ⬜ |
 
-> Character 아키텍처([character-architecture.md](character-architecture.md))는 M1(합성/Driver)·M2(GAS)에 **통합**됨. 상세 태스크는 아래 "작업 순서".
+## 마일스톤 잔여 작업
+
+**M2**
+- [ ] 전투 정밀화 — 공유 시계(서버 tick 기반 만료) · 클라 예측/정정 · 원격 캐릭터 ASC 라우팅
+
+**M5**
+- [ ] 정적 기획데이터 단일 저작 — 서버 완료, **클라 잔여 4건**: ① `ItemDisplayCatalog`+`ConsumableCatalog` → 단일 아이템 SO + `ItemCatalogExporter`(모달 없는 `BakeAll`) ② 클라 중복 enum(`ItemGrade`·`ShopCategory`×2) → `Shared.Gameplay` 타입으로 ③ SO↔bake 드리프트 EditMode 테스트 ④ Docker 리빌드 후 E2E
+- [ ] 아이템 숫자 id 2단계 — DB 3테이블 마이그레이션 · Redis Hash field · proto 5파일 `string item_id`→`int32` · `LootPackets` · 클라
+- [ ] CA-5 Phase 1b — 어빌리티 타임라인에 실제 SFX/VFX 에셋 배선 (사용자 저작 작업)
+- [ ] dungeon_03~05 실제 환경 아트 — 지금은 `Plane.prefab` 임시 배정(빈 공간 방지만 됨)
+- [ ] 애니 튜닝 — ARPGWarrior 전환 페이즈는 전부 닫힘, 남은 건 폴리시
+- [ ] PVE 오픈월드 맛보기 [4.6]
+- [ ] 핑/이모트 · 설정/옵션 · 재접속 마무리 [5.2·6.3·6.4]
+
+**M6**
+- [ ] 데모 영상/gif · 부하 + 전체 E2E 회귀 자동화 [9.8] · 배포 문서 + 포트폴리오 마감 [9.9]
+
+---
+
+## ⚠ 재발 방지 메모 (실제로 밟은 함정)
+
+- **스킬·콤보 타이밍의 진실원 = SkillTimeline**(SO 저작 → bake). 서버 cadence 와 클라 선입력이 같은 값을 본다. 프리팹 매직넘버·서버 하드코딩 금지.
+- **Animator: Trigger + `hasExitTime` = 트리거 소실.** 체인 전이는 `hasExitTime=false`. 원격 연출엔 AnyState 안전망.
+- **VContainer 는 C# 기본값 인자를 채우지 않는다** — 모든 생성자 인자를 해석하려다 루트가 통째로 죽는다(`No such registration of type: System.Double`).
+- **`Shared.Gameplay` 를 고치면 `dotnet build` 가 `Client/Assets/Plugins/` DLL 로 자동 복사**한다. 공개 API 를 바꾸면 클라 컴파일을 Unity 에서 확인.
+- **로컬 `dotnet build` 는 미커밋 파일 때문에 항상 통과할 수 있다.** 커밋본 검증 = `git archive HEAD ServerAll | tar -x` 후 빌드.
+- **E2E 전 Docker 이미지 신선도 확인** — 옛 이미지면 전부 타임아웃(거짓 실패).
+- **E2E 는 패킷 수신까지만 본다** — 애니 재생 같은 연출은 실프리팹 Animator 가드 테스트로 따로 잡는다.
+- **테스트가 그린이어도 악의적·동시 요청은 검증되지 않는다**(2026-10-14 리뷰에서 결함 30여 건). 신뢰 경계·경합 테스트를 기능과 함께 만든다.
 
 ---
 
 ## 🌳 전체 범위 — WBS 트리
 
-> RPG 게임 완성에 필요한 **전체 작업의 계층 분해(Work Breakdown Structure)**. 마일스톤(아래 "작업 순서")이 *실행 순서* 뷰라면, 이 트리는 *구조* 뷰다. 둘은 WBS ID로 묶인다.
->
-> **범례** — 상태: `✅`완료 `🔄`진행 `⬜`미착수 / **Tier**: **T1** 코어·DoD 필수 · **T2** RPG 확장 · **T3** 향후/선택 / **Owner**: 🟢 서버 도메인 세션 · 🔵 GAS/전투 세션 · 🟣 애니(MotionMatchingSystem) 세션 · ⚪ 미배정. (말단에만 `상태 | Tier | Owner` 태그)
->
-> **YAGNI**: 카탈로그는 *가시화* 목적. 실제 착수는 Tier 순(T1→T2→T3)으로 마일스톤에 편입될 때만.
->
-> **🔗 GitHub Project 자동 동기화**: 노드 줄의 상태 마커(✅/🔄/⬜)를 바꿔 plan.md를 **커밋**하면 post-commit 훅이 [Project #2](https://github.com/users/SeoBYP/projects/2)에 자동 반영한다 — Status 필드 + 이슈 open/close, **새 `x.y` 노드는 이슈 자동 생성**(`9.2`처럼 중복은 스크립트 EXCLUDE). 한 줄=한 노드·`**x.y**`+상태마커 형식을 지켜야 파싱된다. 수동/미리보기: `python .claude/scripts/sync-github-project.py [--dry-run]`.
+> **🔗 GitHub Project 자동 동기화**: 이 섹션의 노드 줄 상태 마커(✅/🔄/⬜)를 바꿔 커밋하면 post-commit 훅이 [Project #2](https://github.com/users/SeoBYP/projects/2)에 반영한다(`.claude/scripts/sync-github-project.py`).
+> **형식 유지 필수**: 한 줄 = 한 노드, `- **x.y** 이름 — 상태 | Tier | Owner`. 새 `x.y` 노드를 추가하면 **GitHub 이슈가 자동 생성**된다. 그룹 1 은 동기화 제외.
+> 범례 — 상태 `✅`완료 `🔄`진행 `⬜`미착수 · Tier `T1` 코어 `T2` 확장 `T3` 선택 · Owner 🟢 서버 · 🔵 GAS/전투 · 🟣 애니 · ⚪ 미배정
 
-### 1. 기반 시스템 — ✅ 완료 (M0/M1) → 상세는 `§완료된 Phase`
-- **1.1** 계정/인증 · **1.2** 유저/프로필 · **1.3** 로비/매칭 · **1.4** 채팅 · **1.5** 게임 세션 연결 — ✅
-- **1.6** 인게임 진입(입장·이동·결정론 스폰·전원입장 게이트·HUD·로비 복귀) — ✅
-- **1.7** 인프라(PostgreSQL·Redis·Docker·Serilog+Graylog·Testcontainers·E2E) — ✅
-- **1.8** GAS 기반(Attribute·GameplayEffect·ASC·버프/디버프 서버 동기화 EF-1·EF-2) — ✅
+### 1. 기반 시스템 — ✅ 완료 (M0/M1)
+- 1.1 인증 · 1.2 유저/프로필 · 1.3 로비/매칭 · 1.4 채팅 · 1.5 게임 세션 연결 · 1.6 인게임 진입 · 1.7 인프라(PostgreSQL·Redis·Docker·Graylog·Testcontainers) · 1.8 GAS 기반
 
 ### 2. 캐릭터 시스템
-- **2.1** 전투 코어 — 서버 권위 Attack/Hit/Damage (GAS) — 🔄 | T1 | 🔵
-- **2.2** 스킬/어빌리티 — SkillTimeline, `basic_swing` 외 확장 — 🔄 | T1 | 🔵 (**스킬 데이터 자산화 완료 2026-06-26**: 스킬을 SO 자산으로 저작(Client) → bake → 서버가 baked JSON 으로 검증(gas-architecture §2.5, 몬스터/드랍 카탈로그 동일 교리). ① 서버: `Shared.Infrastructure/Skills/{skills.json,SkillCatalog.cs}`(임베디드 로드→`SkillTimeline`) + .csproj. `CombatHandler.ResolveSkill(int)` 가 코드시드(`Shared.Gameplay.SkillCatalog`) 대신 이 JSON 사용 + skillId int→문자열 매핑(0=basic_swing,1=heavy_swing). ② 클라: `Gameplay/Abilities/{SkillDefinition(스킬당 SO),SkillCatalogDefinition(묶음),SkillCatalogProvider(런타임 id→Timeline)}` + `Editor/SkillCatalogExporter`(Tools/Skill/Export, SO→skills.json) + `LocalCombat` 가 Provider 로 hitbox 조회(코드시드 제거). `MainLifetimeScope` Provider 등록(AddressKeys.Data.SkillCatalog). ③ 자산: `Skill_BasicSwing`·`Skill_HeavySwing`(넓은 hitbox·느림) + `SkillCatalogDefinition`(Addressable). **검증: SocketServer.Tests 110/110**(SkillCatalog 4 신규=basic/heavy 로드·ResolveSkill 매핑·null) + **EditMode SkillCatalogProviderTests 2/2** + Unity 컴파일0 + 양 빌드0 + Export 왕복 검증. **인게임 멀티스킬 입력 완료(2026-06-26)**: `HeavyAttack`(우클릭) 입력 신설 — `.inputactions` 액션 추가 + 입력래퍼 `.meta` 생성경로 정정(stale `Script/Input`→실사용 `Gameplay/Input`, Game.Input→Game.Gameplay.Input) + 입력 계약(`CharacterInputFrame.HeavyAttackPressed`·Writer/Source/Buffer·`PlayerInputComponent`). `PlayerCharacterAgent.OnAttackPerformed`=`Action<int skillId>`(0=좌/basic·1=우/heavy) → 던전 `CombatSyncSender` C_Attack{SkillId} 가변 송신 / Main `LocalCombat` 가 skillId→스킬 hitbox 해석. **서버 발동권위 무변경으로 확보**(기존 SkillTimeline.CooldownMs 게이트가 heavy_swing 1200ms 쿨다운 강제). 검증: Unity 컴파일0 + EditMode 3/3(Locomotion·SkillProvider 무회귀). **클라 쿨다운 예측 완료(2026-06-26)**: `PlayerCharacterAgent`에 `SkillCatalogProvider` 주입(Main/Dungeon 스코프) + skillId별 `_lastCastTime` 추적 → `FireSkill` 발동 전 `SkillCooldownReady`(skill.CooldownMs) 클라 게이트(서버 SkillTimeline 게이트와 동일 수치, 손맛·송신 절감). dodge는 `DodgeDriver.CanBegin` 기존. 검증: Unity 컴파일0 + EditMode 3/3. **마나 데이터 완료(2026-06-26)**: `SkillTimeline.ManaCost`(+8번째 ctor param 기본0) + skills.json `manaCost`(basic0·heavy20) + Infra 파서 + 클라 `SkillDefinition.manaCost`/Exporter + `DodgeConfig.ManaCost=15` + 플레이어 프리팹 ASC 에 `Mana(100,100)` 속성 추가(Health 명시 병기). 자산값(heavy=20) → skills.json → 서버 정렬 완료. 검증: 서버빌드0 + SkillCatalog 4/4(manaCost 단언). **마나 게이트/검증/리젠/동기화 완료(2026-06-26)**: 권위=서버(클라 예측). ① **Shared**: `ManaConfig.RegenPerSecond=10`(클라·서버 리젠 단일소스, DodgeConfig 형제) + 패킷 `S_PlayerMana`(Union 1642, owner-only). ② **서버**: `PlayerState.Mana/MaxMana`+`TrySpendMana`(검증·차감)+`RegenMana`(소수부 누적) · `TryBeginDodge(nowMs, manaCost)` 원자 게이트(쿨다운·마나 동시) · `CombatHandler.HandleAttack`=마나게이트(쿨다운 前)→차감→owner `S_PlayerMana` 정정(무료 basic 은 생략) · `DodgeHandler`=`DodgeConfig.ManaCost(15)` 게이트+정정 · `RoomTickService`→`Room.RegenAllPlayerMana`(매 틱, **동기화 패킷 없음**=클라 동일예측 수렴) · `MaxMana` 전파(`PlayerStats.MaxMana`→`PlayerInfo.MaxMana`→`InitPlayerState` 시드, Lv1=50) · 입장 시 초기 `S_PlayerMana`(클라 prefab 100→권위 Max 정렬). ③ **클라**: `PlayerCharacterAgent` `HasMana`/`SpendMana`(예측 차감)/`RegenMana`(매 프레임) — `FireSkill`(마나→쿨다운 순)·`HandleDodgeInput` 게이트 / `ManaPacketHandler`→`ISocketPacketState.OnManaUpdated`→`EffectReceiver` 가 로컬 ASC `SetMax`+`SetCurrent` 정정. **동기화 = 차감/거부/입장 시점만**(리젠 per-tick 스팸 회피, 사용자 결정). **검증: SocketServer.Tests 114/114**(PlayerStateMana 4 신규=차감/리젠/소수누적/회피게이트) + 서버솔루션빌드0 + Unity컴파일0 + 클라 EditMode 152/152 + ClientCodegen 미러 재생성 + Shared.Gameplay.dll 재배치 + **던전 마나 E2E 2/2**(`SocketE2ETests` 입장초기동기화·회피차감정정, **신선 Docker 대상**, gameserver·socketserver 리빌드·배포). **HUD 마나바=이미 완비**(HP/MP 동일 MVI: InGameModel(Mana)→MpChanged→GameHud.mpSlider/MP_Ball — 차감/리젠 도입으로 실제 변동, 별도 작업 0). **잔여**: 스킬 CC 몬스터 honoring · 코드시드 `Shared.Gameplay.SkillCatalog` 폐기.)
-- **2.3** 진행/성장(Progression) — 레벨·경험치·스탯 성장 영속 (`Progression` 신규) — ✅ | T1 | 🟢 (Exp 영속 + **레벨업 산식·레벨별 스탯 테이블 룩업·클라 노출(GetProgression) 완료 2026-06-14**. 스탯=레벨 룩업 파생(DB는 Level/Exp만). 상세 codemap §2.22. 스탯창 prefab(7.3)·`LevelTable.asset` 실저작은 사용자 Unity)
-- **2.4** 스탯 산식 — 레벨/장비/버프 합산 서버 권위 재계산 — 🔄 | T2 | 🟢 (**증분 1·2·3 완료 2026-06-14**: ① 스탯 전파 = GameServer 가 `ProgressionService.GetStatsAsync`(단일 합산 권위, LevelTable 룩업)로 계산해 `GameStartRequestedMessage.PlayerInfo`에 적재 → SocketServer `InitPlayerState`가 `PlayerState`에 세팅. **SocketServer DB 접근 0 — "합산 결과"만 메시지로 받음**(근거 authority-model §4c). ② 플레이어→몬스터 데미지 = `StatCombatMath.MeleeDamage(base+AttackPower−Defense)`(Shared 결정론, `CombatHandler.ScaleDamageByStats`) — AP=0이면 base 동일=하위호환. ③ **몬스터→플레이어 Defense 반영(2026-06-14)**: `Room.TickMonsters`가 `StatCombatMath.MeleeDamage(MonsterDef.AttackDamage, 0, PlayerState.Defense)`로 계산→서버 HP 차감 + `S_ApplyEffect.Amount`(신규 필드)로 권위 수치 전달. 클라 `EffectReceiver→ASC.ApplyEffectAuthoritative(healthOverride)`가 카탈로그 고정값 대신 그 값 적용(Amount=0=버프/디버프 하위호환). 클라 예측-정정은 미도입(서버 수치 렌더, EF-2d 후속). 검증(단위+통합+**E2E**): GetStatsAsync 2 + 스탯전파 4 + StatCombatMath 4 + ScaleDamage 3 + StartGame 메시지 스탯적재 + 보상→레벨업 E2E + **MonsterAttack Defense 2(SocketServer 103) + 클라 HealthOverride 2(EffectSystemTests 9)** — 전체 그린 **GameServer 272·SocketServer 103·Shared 34·클라 EditMode**. **던전 플레이 검증 통과(2026-06-15: Lv1 Def5가 slime AD5에 `amount=-1`·HP 1씩)**. ④ **Main 대응판(클라전용, 2026-06-15)**: `LocalMonster`도 `StatCombatMath.MeleeDamage(attackDamage,0,holder.Defense)`로 Defense 반영(서버/패킷0, 던전=서버권위 §2.26 ↔ Main=클라권위 §2.26b). 상세 codemap §2.23·§2.26·§2.26b. **잔여 = 장비/버프 합류는 3.2**)
-- **2.5 사망/부활** — ✅ | T1 | 🔵 (2.5.1 사망·2.5.2 Co-op 부활 모두 코드 완료)
-  - **2.5.1** 사망 처리 — HP 0 다운/리스폰 (전투 루프 필수) — ✅ | T1 | 🔵 (**플레이 검증 완료 2026-06-13**: Main 타이머 리스폰(`LocalRespawnController`, Main 전용 등록=던전 다운잠금 유지)+`LocalMonster` 근접공격(사망 트리거)+다운→3s 부활 로그 플레이 확인. 다운포즈 Animator 클립은 클라 발전 시(로그 대체). **ⓔ-1 로컬 사망 게이트 코드 완료 2026-06-11**: GAS 정리(ⓐ~ⓓ) 위에 `State.Dead` 태그로. HP≤0(클라 결정론) → `PlayerCharacterAgent`가 `ASC.AddTag(State.Dead)` → `Update` 게이트가 Action(공격/상호작용) 무시 + `base.Update()` 미호출로 Locomotion 정지 = **던전 다운-잠금**. 상수 `GameplayTags.Dead`(Shared). 서버 빌드 0오류. **ⓔ-2 원격 다운 가시성 완료 2026-06-11**: `S_PlayerDead`(Union 1823) — 서버 `DungeonLifecycleHandler`가 `C_PlayerDead`→방 브로드캐스트, 클라 `PlayerDeadPacketHandler`→`CharacterSpawner.HandlePlayerDead`(원격=로그+Destroy / 로컬=로그만, 카메라·HUD 보호). SocketServer **80/80**(직렬화 2) + Docker 리빌드. EditMode 4+PlayMode 2(ⓔ-1) 그린. **플레이어 HP 서버 권위 승격 완료 2026-06-11**(authority-model §0 권위결정규칙 + §4): 던전 플레이어 HP=서버권위(기존 클라결정론은 미승인 가정·불사핵 부채). 증분1=서버 데미지누적+HP0 직접감지→S_PlayerDead(C_PlayerDead 격하), 증분2=회복 크로스서버(ConsumeItem→GameServer검증·차감→Redis→SocketServer ApplyPlayerEffect(+heal)+S_ApplyEffect, 던전 ConsumableEffectHandler 미등록). GameServer 252/252 + SocketServer 85/85 + 양서버 Docker. 상세=codemap §2.6b·§2.6e. **완료(2026-06-13)**: Main 타이머 리스폰·회복수치 단일소스(SO 저작→bake, §2.6c)·다운/부활. 다운포즈 Animator 클립=클라 발전 시 보류(로그 대체). 던전 내 부활=2.5.2(별도 T2))
-  - **2.5.2** Co-op 부활 — 다운된 아군 살리기 — ✅ | T2 | 🔵 (**코드+단위 완료 2026-06-29**, 서버 권위. 흐름: 아군 다운(State.Dead/HP0) → 시전자 근접+Interact 홀드(채널) → 서버 검증(거리·다운상태·미실패) → HP 부분복구+다운해제 → S_PlayerRevived 브로드캐스트. ① **Shared**: `ReviveConfig`(Range 2.5m·Hold 3s·Restore 50%) + 패킷 `C_Revive`(1824)·`S_PlayerRevived`(1825). ② **서버**: `Room.TryRevive(reviver,target)` 검증(자기제외·_outcome≠Failed·시전자생존입장·대상다운·거리, 멱등=_downed.Remove) → HP=MaxHp×50% · `ReviveHandler`(C_Revive)→브로드캐스트. ③ **클라(던전)**: `DownedAllyMarker`(정적 레지스트리, 원격 다운=보존) + `ReviveInteractor`(채널: E 시작·제자리 유지로 완성·이동/이탈 취소, DefaultExecutionOrder −10로 Interact 우선소비) + `PlayerCharacterAgent.ReviveInPlace(hp)`(텔레포트X) + `RevivePacketHandler`→`OnPlayerRevived`→`CharacterSpawner`(로컬=ReviveInPlace/원격=마커제거). **핵심 변경: 원격 다운=Destroy→다운 보존**(2.5.1 ⓔ-2 교체, 부활 대상 유지). 홀드시간=클라 UX, 서버는 거리/상태만(사용자 결정). **검증: SocketServer.Tests 118/118**(ReviveTests 4 신규=복구/거리거부/멱등/자기제외) + 서버솔루션빌드0 + Unity컴파일0 + 클라 EditMode 152/152 + ClientCodegen 미러 + Shared.Gameplay.dll 재배치 + **던전 부활 E2E 1/1**(`SocketE2ETests.RawSocket_다운된_아군을_부활하면_양쪽_S_PlayerRevived_수신`, 신선 Docker) + **PlayMode 전체 156/156·EditMode 152/152**. ⚠️ 전체 PlayMode 실행이 **DI 회귀 2건 포착**(ReviveInteractor `[Inject] ICharacterInputSource`가 입력 미등록 스폰테스트 스코프에서 throw) → 수정. **플레이 검증 완료(MPPM 2창, 2026-06-29)**: 다운→접근 "부활 가능✔"→E→C_Revive→S_PlayerRevived→다운보존 해제 전 경로 로그 확인(사용자). **시전 단순화(사용자 요청)**: 홀드 채널 제거 → 사거리 안+E 즉시 부활. **입력 버그 수정**: ReviveInteractor 입력을 DI(TryResolve, 항상 null)→`GetComponent<ICharacterInputSource>`(CharacterInputBuffer, 에이전트 동일)로 — 이전엔 Update 무동작이었음. **잔여**: 다운/부활 Animator 포즈(미배선=로그). 상세 codemap §2.50.)
-- **2.6 전투 보조** — ✅ | T2 | 🔵 (회피·CC·부활·락온 전부 완료)
-  - **2.6.1** 회피/구르기(Dodge) — 무적 프레임·모션 — ✅ | T2 | 🔵 (**코드+단위 완료 2026-06-26**. Action 축 임펄스(FSM 아님, CA-1): `DodgeDriver`(순수C#)가 고정 월드방향 대시(`CharacterMotor.Dash`)+`State.Invulnerable` i-frame 태그+애니 트리거. 방향=입력시 카메라기준/무입력시 정면구르기. **무적=권위 정합**: Main(클라권위)=`LocalMonster.TryAttack` 태그 게이트 / 던전(서버권위)=`C_Dodge`(Union 1602)→`DodgeHandler`→`PlayerState.TryBeginDodge`(쿨다운 검증=영구무적 치팅차단)→`Room.TickMonsters`가 무적창 동안 피해 무시. 수치 단일소스=Shared `DodgeConfig`(IframeMs 500·CooldownMs 1000). 입력 LeftCtrl(기존 배선). **검증: SocketServer.Tests 105/105**(DodgeIframe 2 신규 + slime AD 5→15 스테일테스트 3 정정) + **PlayMode DodgeDriverTests 2/2** + Unity 컴파일0 + 양 빌드0. 동반: **3인칭 카메라 수정**(`GameplayCameraRig`가 LocalPlayerContext.OnSet→vcam.Follow 런타임 바인딩, Main 와이어링/Dungeon 리그 신설, ThirdPersonAim 제거). **플레이 검증 완료(사용자, 2026-06-26: 3인칭 추적·LeftCtrl 구르기·카메라 정상 확인)**. **잔여(선택)**: Animator dodge 클립/파라미터 배선(사용자, 미배선=연출만 없음·로직 동작)·던전 dodge E2E(+Docker 리빌드).)
-  - **2.6.2** 상태이상/CC — 스턴·슬로우·넉백 (GAS 태그/이펙트 확장) — ✅ | T2 | 🔵 (**스턴+슬로우+넉백 코드+단위 완료 2026-06-26.** **넉백 추가(2026-06-26)**: `KnockbackDriver`(순수C#, DodgeDriver 형제)가 외부 부여 강제 변위 — `CharacterMotor.Dash(faceDirection:false)` 회전없이 밀어냄. `PlayerCharacterAgent.ApplyKnockback(sourcePos,dist,dur)` public API(추후 Ability 융합) + Update 게이트(스턴보다 우선). 테스트 배선=`LocalMonster.knockbackOnHit`. **스턴 이동정지 견고화**: 게이트가 `base.Update()` 전 return 으로 Motor 이동 정지(이미 동작) + 애니 Speed=0 추가(루트모션/걷기클립 정지). **검증: PlayMode DodgeDriverTests 4/4(넉백 2 신규)+CcGate 1**. Main 슬라임 데모=stun_1_5s+knockback(이동정지·밀림 직접 검증), 던전=slow_3s. 기존 GAS 머신러리 **완전 재사용·새 패킷 0**: CC=`GrantedTags` 부여 Duration 효과 + 태그 폴링 게이트. ① Shared(DLL 1회): `GameplayTags.Stun/Slow` + `GameplayEffectCatalog` 시드 `stun_1_5s`(Dur1500,Granted=[Stun])·`slow_3s`(Dur3000,Granted=[Slow]) + `CcConfig.SlowMultiplier=0.5`. ② 클라 게이트: `PlayerCharacterAgent` Stun 게이트(입력/이동 정지+dodge.Cancel, ASC.Tick 자동만료) · `GroundState` Slow 감속(targetSpeed×0.5, ASC 주입). ③ 소스: 던전=서버 `monsters.json onHitEffectId`(slime=slow_3s)→`Room.TickMonsters`가 데미지와 함께 `S_ApplyEffect{Amount=0}` 브로드캐스트→기존 `EffectReceiver` 경로 / Main=`LocalMonster.onHitCcId`(slow_3s, 클라권위 ApplyEffect). bake 파이프라인 전체 반영(SO 필드+exporter+monsters.json). **검증: SocketServer.Tests 106/106**(CC 브로드캐스트 1 신규 + slime 2효과화로 데미지패킷 EffectId 특정 정정 4) + **PlayMode CcGateTests 1/1**(스턴 억제·만료재개) + 양 빌드0 + Unity 컴파일0. 권위 주의: 스턴/슬로우 게이트는 클라(자기 입력) — 서버 입력 거부 하드닝은 dodge처럼 후속. **던전 CC E2E 완료(2026-06-26)**: `SocketE2ETests.RawSocket_몬스터_공격은_슬로우_CC도_함께_브로드캐스트한다` 1/1 — 슬라임 공격 시 서버가 `slow_3s` S_ApplyEffect(Amount=0) 브로드캐스트(신선 Docker 대상). Docker(gameserver·socketserver) 리빌드·배포 완료 → 던전 플레이에서 슬로우 실작동. **잔여**: 넉백의 던전(서버권위) 경로 = 사용자 계획대로 **Ability 융합 단계로 연기**(현재 넉백=Main 클라 전용) · 스턴/슬로우 입력거부 서버 하드닝.)
-  - **2.6.3** 타겟팅/락온 — ✅ | T2 | 🔵 (**코드+단위 완료 2026-06-30**, 순수 클라 조준 보조 — **패킷·서버 변경 0**. 근거: 공격 적중은 이미 플레이어 facing/위치 기반이고 facing 은 `MoveSyncSender`가 rotY 를 정지 중에도 송신 → 락온이 플레이어를 타겟으로 **회전만** 시키면 던전 서버 hitbox 가 자동 정렬, Main 은 `LocalCombat`가 같은 facing 으로 판정. 키=**Tab**(E는 Interact 충돌로 회피), 타겟=**화면중앙 최근접**(뷰포트 중심), 범위=**Main+던전**. ① **마커**: `LockOnTarget`(정적 레지스트리 + `FindBest(camera,pos,range)` 뷰포트 중심 스코어링, `DownedAllyMarker` 패턴) → Monster.prefab(던전 `MonsterEntity`)·LocalMonster.prefab(Main) 양쪽 부착. ② **드라이버**: `LockOnDriver`(순수C#, DodgeDriver 형제, 에이전트 소유) — Toggle(획득/해제)·Tick(매프레임 facing+카메라 push, 사거리(+3m 히스테리시스)/소실 자동 해제)·ForceUnlock(사망 시). ③ **연결점**: `CharacterMotor.FacingOverride`(nullable, 세팅 시 회전전략 대신 타겟향·이동은 카메라기준 스트레이프 유지) + `CharacterCameraFollow.LockTarget`(세팅 시 마우스 대신 타겟 방향 yaw/pitch 수렴, 해제 시 캐시연속). ④ **입력**: `LockOn` one-shot 신설(`.inputactions` Tab 액션 + 래퍼 재생성 + Frame/Writer/Source/Buffer/`PlayerInputComponent`). ⑤ **에이전트**: `PlayerCharacterAgent`가 dodge 게이트 옆에서 토글 폴링+Tick(base.Update 전), 사망 게이트에서 ForceUnlock. **버그 발견·수정**: Tick 첫 가드 `_target==null`(Unity fake-null)이 **파괴된 락 대상도 조기반환** → 죽은 몬스터에 카메라 영구 잠김. `ReferenceEquals(_target,null)`로 "미락(C#null)"과 "락중 파괴(fake-null)" 구분 → 후자는 유효성검사로 내려가 정리(테스트가 포착). **검증: PlayMode LockOnDriverTests 4/4**(화면중앙선정·토글잠금/해제·사거리밖거부·소실자동언락) + **PlayMode 전체 160/160**(E2E Docker 포함 무회귀) + **EditMode 152/152**(입력계약 확장 무회귀) + Unity 컴파일0. 네트워크/소켓 소스 무변경 → Docker E2E 불요. **키=Tab 확정**(E는 Interact 충돌). **플레이 검증 완료(MPPM, 2026-06-30: 사용자 "잘 된다" — Tab 락온·카메라/몸 타겟 고정·이동 스트레이프 확인)**. 포트폴리오 챕터 25. **잔여(선택)**: 락온 표시 UI(타겟 위 마커)·타겟 전환(다음 적) 입력·Animator strafe 블렌드. 상세 codemap §2.51.)
+- **2.1** 전투 코어 — 서버 권위 Attack/Hit/Damage — 🔄 | T1 | 🔵 (잔여 = M2 정밀화)
+- **2.2** 스킬/어빌리티 — Ability SO 저작 → bake → 서버 검증 — 🔄 | T1 | 🔵
+- **2.3** 진행/성장(Progression) — 레벨·Exp·스탯 테이블 — ✅ | T1 | 🟢
+- **2.4** 스탯 산식 — 레벨/장비/버프 합산 서버 권위 — 🔄 | T2 | 🟢 (버프 합산 미완)
+- **2.5 사망/부활** — ✅ | T1 | 🔵
+  - 2.5.1 사망 — 던전 다운 잠금 / Main 타이머 리스폰 — ✅ · 2.5.2 Co-op 부활 — ✅
+- **2.6 전투 보조** — ✅ | T2 | 🔵
+  - 2.6.1 회피(i-frame) — ✅ · 2.6.2 CC(스턴·슬로우·넉백) — ✅ · 2.6.3 락온 — ✅
 - **2.7** 스킬 트리/습득·강화 — ⬜ | T3 | ⚪
 - **2.8** 직업/클래스 — ⬜ | T3 | ⚪
 
 ### 3. 아이템 / 경제 시스템
-- **3.1 인벤토리(Inventory)** — `Inventory` 신규 도메인(서버 권위 영속) — ✅ | T1 | 🟢 (2026-06-07 완료. 상세 = codemap §2.14. **설계**: ⓐ 정의=코드 `ItemCatalog`(DB 아님) → DB엔 소유만 ⓑ `InventoryItem`=스택형 `(UserId,ItemId)→Quantity`(장비 인스턴스는 3.2) ⓒ 키=user_id(미래 character_id, [[character-swap-direction]]) ⓓ 캐시=Hash 1키, Update→DEL ⓔ proto=`GetInventory` pull(획득 push·보상배선은 3.3, UI는 7.2) ⓕ `InventoryInstaller` 신규. **검증**: 서버 단위 18 + Testcontainers 통합 11 = **29/29**(2026-06-07 **D(소비) 추가로 CRUD 완성** — `ConsumeItemAsync`+`RemoveQuantityAsync`), 서버 빌드 0오류, 클라 Generated 재생성. ※잔여(범위 밖): 소비 클라 RPC·포션 효과(3.8)·획득 드랍 배선(3.3)·인벤토리 UI 마감(7.2))
-  - [x] **3.1.1** Domain — `InventoryItem`(소유·수량규칙) + `ItemCatalog`/`ItemDef`/`ItemGrade`(정의 시드 3종)
-  - [x] **3.1.2** Application — `IInventoryService`/`Service`·`IInventoryRepository`·`ItemGrantResult`(보상 진입점)
-  - [x] **3.1.3** Infrastructure — `InventoryRepository` (PostgreSQL + Redis Cache-Aside+Delete, `AsNoTracking`)
-  - [x] **3.1.4** EF 마이그레이션(`inventory_items` 복합키) + DbSet + Config + `InventoryInstaller`
-  - [x] **3.1.5** `inventory.proto`(GetInventory) + `InventoryGrpcService` + 클라 Generated 재생성 (획득 push는 3.3로 보류)
-  - [x] **3.1.6** 단위(엔티티·카탈로그·서비스 13) + Testcontainers 통합 7(캐시 무효화 계약)
-- **3.2** 장비(Equipment) — 착용 슬롯·장비 스탯 모디파이어 → 2.4 합산 — ✅ | T2 | 🟢 (**서버 풀스택 완료 2026-06-15**, 상세 = codemap §2.27. 스택형 재사용(개별 인스턴스 X, 강화=3.6)·Weapon/Armor 2슬롯·`EquipmentCatalog` 분리. **핵심 합류점=`ProgressionService.GetStatsAsync` 한 곳에 장비 Σ → SocketServer/전투 무수정 반영**(authority-model §4c). 증분 3.2.1~3.2.6 전부 완료(도메인→앱→인프라→EF→합산→proto). 시드 `sword_basic`(Weapon+5AP)·`armor_leather`(Armor+3Def). **검증: 장비 단위/통합 28(Catalog 4·Service 8·Repo통합 8·Progression합산 1·gRPC 7) + GameServer.Tests 306/306(ProgressionService 생성자 변경이 깬 DI 호스트 4곳 보정: DungeonResultConsumer통합·DungeonResultReward E2E·GameStart E2E·RoomLifecycle — IEquipmentService 미등록 회귀), 전체 솔루션 빌드 0오류, 클라 Generated 재생성·Game.Network 빌드 0오류**. **후속(범위 밖)**: 클라 wrapper/System service·장비 UI 배선(7.2, 소비자 생길 때)·외형 동기화·강화(3.6))
-  - [x] **3.2.1** Domain — `EquipmentSlot`/`EquipmentStatModifier`/`EquipmentDef`/`EquipmentCatalog`(시드 2종) + ItemCatalog 장비 등록
-  - [x] **3.2.2** Application — `IEquipmentService`/`Service`(Equip/Unequip/GetEquipped + `GetEquippedStatsAsync` 합산, 소유·슬롯 검증) + `IEquipmentRepository` + `UserEquipment` 엔티티 + `EquipResult`. 소유 검증=`IInventoryService` 위임. 단위 `EquipmentServiceTests` 8(장착/미보유/비장비/교체/해제/멱등/합산/빈) 그린
-  - [x] **3.2.3** Infrastructure — `EquipmentRepository`(PostgreSQL + Redis Cache-Aside+Delete, `AsNoTracking`, Hash field=(int)slot→itemId) + `UserEquipment.ChangeItem` upsert. Testcontainers 통합 8(set/교체/캐시DEL/HIT/MISS+TTL/clear/빈clear/빈조회) 그린
-  - [x] **3.2.4** EF 마이그레이션 `AddUserEquipments`(`user_equipments` (UserId,Slot) 복합키, raw SQL 멱등) + DbSet + `UserEquipmentConfiguration` + RedisKey + DI(`InventoryInstaller`에 합류 — 별도 Installer 안 만듦, YAGNI). 전체 솔루션 빌드 0오류
-  - [x] **3.2.5** `GetStatsAsync` 합산 합류 — `ProgressionService`가 `IEquipmentService.GetEquippedStatsAsync` Σ를 base(레벨룩업) 위에 가산. **SocketServer/게임시작 전파는 무수정**으로 장비 스탯이 전투에 반영(단일 합산 권위 authority-model §4c). 생성자 주입 추가로 기존 3 테스트 사이트 보정(`FakeEquipmentService`). 단위 `장비_스탯은_레벨_base_위에_가산된다` + 회귀 90/90 그린
-  - [x] **3.2.6** `equipment.proto`(Equip/Unequip/GetEquipment, 도메인별 gRPC 패턴 = 별도 서비스) + `EquipmentGrpcService`(인증 게이트 + proto↔도메인 슬롯 enum 매핑 + 결과 매핑) + `MiddlewareInstaller` 등록 + **ClientCodegen 재생성**(클라 stub `Equipment.cs`·`EquipmentGrpc.cs` + 래퍼 `IEquipmentGrpcService`/`EquipmentGrpcService` 자동). 단위 `EquipmentGrpcServiceTests` 7 그린 + 클라 `Game.Network` 컴파일 0오류. **Docker gameserver 리빌드 + PlayMode E2E `EquipmentE2ETests` 6/6 그린**(미보유거부/미인증거부/빈조회/멱등해제/미지정거부, Docker 대상). 부수: `E2ETestBase.SetUp` 토큰 리셋 추가(순서 의존 "미인증" 버그 수정, Https E2E 46/46 회귀확인). **System service/Model·장비 UI 배선은 7.2**(소비자 생기면)
-- **3.3** 루트/드랍(Loot) — **월드 드랍 + 줍기**, **2경로** — ✅ | T2 | 🟢 (**설계=** [loot-drop.md](loot-drop.md). **던전 경로 서버 풀스택(증분 1~5) + 클라 렌더/줍기(증분 6) 완료·플레이 검증 통과 2026-06-08**, 상세 = codemap §2.16·§2.15·[chapter-15](../portfolio/chapter-15-loot-drop-inventory.md). roll·바닥·줍기중재=SocketServer / 지급=GameServer(`GrantItemAsync`, PickupId 멱등) / Redis Stream 단방향. 패킷 1830~1833. 클라=`GroundItemEntity`(IInteractable, E 줍기)·`GroundItemSpawner`·`GroundItem.prefab`(Layer7). **플레이 검증**: 슬라임 처치→드랍→E 줍기→인벤토리 아이콘 표시까지 통과. **Main 경로 증분8(`GrantItem` gRPC+서버 가드) 완료 2026-06-09** — proto `GrantItem(item_id,qty)`→`GrantItemResponse{result,new_quantity}`, 서버 가드=인증(AuthInterceptor 자동)+호출당 수량상한(`MaxGrantPerCall=99`, gRPC 진입점에만 — 던전 `LootGrantConsumer`는 무관)+catalog 검증(`GrantItemAsync` 재사용). 클라 Generated 재생성 + `IInventoryGrpcService`/`InventoryGrpcService` 래퍼. **서버 단위 `InventoryGrpcServiceTests` 5/5 + 클라 `InventoryE2ETests` PlayMode 6/6 그린**(2026-06-09, GameServer 리빌드 후 — 정상지급·수량상한거부·0이하거부·미존재거부·미인증거부). 서버빌드·Game.Network 0오류. 상세=codemap §2.18. **증분9a(DropTable 데이터화) 완료 2026-06-09** — 하드코딩 `Server.Loot.DropTable` → `Shared.Gameplay.DropTableRoll`(순수)+`Shared.Infrastructure.DropTableCatalog`(임베디드 `drop-tables.json`, spawn-layouts 컨벤션). 던전·Main 동일 roll 공유. 동작 보존(슬라임 동일). Shared.Gameplay 22/22 + SocketServer 72/72. **9a-2(`DropTableDefinition` SO + `DropTableExporter` bake) 완료 2026-06-09** — 클라 SO 저작→JSON bake(MapDefinition 컨벤션), 클라는 SO 직접 읽음. `.asset` 부트스트랩·goblin 추가→Export→임베디드 반영 검증(`DropTableCatalogTests` goblin, SocketServer **73/73**) + socketserver Docker 리빌드. Unity 컴파일 0오류. 상세=codemap §2.19. **9b·9c(Main 로컬 전투) 완료 2026-06-09** — `LocalMonster`(HP·간단AI·TakeDamage→OnDied)·`MainMonsterSpawner`(비-Joined만)·`LocalCombat`(OnAttackPerformed→`HitboxMath` 로컬 히트, Shared DLL 공유) + `CharacterSpawner.AttachLocalCombat`/`MainLifetimeScope` 등록. Unity 컴파일 0오류(상세 codemap §2.20). **9d(드랍→줍기→지급) 완료 2026-06-09** — `MainMonsterSpawner.HandleDied`→`DropTableRoll`(공유)→`LocalGroundItem`(E 줍기→`GrantItemAsync` 증분8)→디스폰. 클라 `Shared.Gameplay.dll` 재배치 완료. Unity 컴파일 0오류. **→ 3.3 던전·Main 양 경로 코드 완결.** **Main 루트 E2E `MainLootE2ETests` 1/1 그린**(2026-06-09, 클라 SO→`DropTableRoll`→`GrantItem`→인벤토리, Docker) + GameServer Dockerfile에 `Shared.Gameplay.csproj` COPY 추가(9a 전이의존 빌드 실패 수정). **Main 플레이 검증 통과(사용자, 2026-06-10)**: 공격→LocalMonster 사망→바닥 드랍 스폰→E 줍기→인벤토리 아이콘 전체 1판 시각 확인(`LocalMonster.prefab`/`LocalGroundItem.prefab` 제작·할당 완료). **→ 3.3 던전·Main 양 경로 코드+E2E+플레이 완결 ✅.** **후속(범위 밖)**: 정식 획득 토스트 위젯(7.x, 현재 로그))
-  - [x] **3.3.1** DropTable(SocketServer 정적) + GroundItem + roll/줍기 단위테스트
-  - [x] **3.3.2** 패킷 4종 + Union(1830~1833) + `ItemPickedUpMessage`(Shared)
-  - [x] **3.3.3** Room GroundItem 보유·SpawnGroundItem·TryPickup(경쟁중재) + CombatHandler 사망분기 드랍 + 입장 로스터
-  - [x] **3.3.4** `C_PickupItem` 핸들러 + `ILootPickupPublisher`/MessageQueue(`stream:game:loot:pickup`) + DI
-  - [x] **3.3.5** GameServer `LootGrantConsumer`(ResilientStreamConsumer) → GrantItemAsync, PickupId 멱등 + 통합/E2E
-  - [x] **3.3.6** 클라: 패킷 미러(ClientCodegen) + `ISocketPacketState` 바닥아이템 상태/이벤트 + `LootPacketHandler` 3종 + `GroundItemEntity`(IInteractable 줍기) + `GroundItemSpawner` + DI(`DungeonLifetimeScope`/`CharacterPrefabSettings`) + `GroundItem.prefab`(Layer7·트리거·구체). 클라 빌드 검증(Game.Network/Gameplay/VContainer 0오류). **플레이 검증 통과(2026-06-08)**: 드랍→E 줍기→인벤토리 지급·아이콘 표시. (E 줍기 버그=오브가 바닥높이라 감지구체 미스 → +0.7 띄움으로 해결) 정식 획득 토스트 위젯은 후속(현재 로그)
-  - 🔄 **3.3.7** 풀 E2E(사냥→드랍→줍기→인벤토리) + Main 경로(3.3.8~10) — **던전 풀 E2E 작성 완료**(2026-06-08): `SocketE2ETests.RawSocket_슬라임_처치_드랍_줍기하면_GameServer_인벤토리에_지급된다`(처치→`S_SpawnGroundItem`→`C_PickupItem`→`S_ItemPickedUp`/`S_GroundItemRemoved`→Stream→GameServer 지급→`GetInventory` 폴링). **결정성 확보**: `DropTable` 슬라임 `potion_hp_small` 보장 드랍(Chance 0.5→1.0, gold 0.2 유지) — 슬라임 1마리뿐인 dungeon_01에서 40% 거짓실패 제거. SocketServer.Tests **66/66**(DropTable 5, 보장 드랍 1 신규) + 양 서버 Docker 리빌드·재배포 완료. **PlayMode 실행 통과(2026-06-09, UnityMCP)**: SocketE2ETests 13/13 + GameSessionConnectorE2ETests 3/3 = **16/16 그린**(루트 풀E2E 포함). **Main 경로: 증분8(`GrantItem` gRPC+가드)·증분10(가드 E2E 작성) 완료 2026-06-09(codemap §2.18). 증분9(Main 로컬 sim 배선) 잔여.**
-- **3.4** 재화(Wallet) — 골드 보유·증감(서버 권위) — ✅ | T2 | 🟢 (**완료 2026-06-17, E2E 검증**. 골드=통화(인벤토리 아이템 아님)로 전환. ① **도메인 코어**(인벤토리 미러): `UserWallet`(UserId PK·Balance long) + `IWalletService`/`WalletService`(GetBalance/Add/TrySpend, 서버권위) + `IWalletRepository`/`WalletRepository`(PostgreSQL + Redis **String** Cache-Aside+Delete, `AsNoTracking`) + `WalletSpendResult` + EF `AddWallets`(`user_wallets` UserId 단일키, raw SQL 멱등) + DbSet + DI(`InventoryInstaller` 합류) + RedisKey `game:user:wallet:{userId}`. ② **gRPC** `wallet.proto`(GetWallet, 조회전용=증감RPC 없음=치팅차단) + `WalletGrpcService` + `MiddlewareInstaller` 매핑 + 클라 Generated(빌드 코드젠 자동). ③ **골드 리라우트**(A안): `gold_pouch`→`gold`(통화), `ItemCatalog`에서 제거, `Currencies.Gold` 신설. `LootGrantConsumer`·`MainSpawnClaimService.ClaimKill`이 itemId=gold면 인벤토리 대신 `IWalletService.AddAsync`로 라우팅. SocketServer는 gold를 일반 ground item 문자열로 취급(무수정). **검증: 서버빌드0 + GameServer 329/329(Wallet 23=도메인8·서비스6·Testcontainers통합9, LootGrant 골드→지갑 멱등 통합, ClaimKill 지갑 의존) + SocketServer 103 + Shared 34 + 양서버 Docker 리빌드 후 PlayMode 던전줍기 E2E 1/1·MainLoot 4/4.** 상세 codemap §2.28. **클라 지갑 표시(2026-06-17)**: 인벤토리 UI에 골드 잔액 연동 — System `Game.System.Wallet`(`IWalletService`, proto 은닉) + `InventoryState.Gold` + `InventoryModel` 선택주입(null-safe) `RefreshAsync` 동시로드 + `Inventory` View `_goldText` 바인딩(MVI 준수). PlayMode InventoryModelTests 6/6. **골드 드랍 밸런스(2026-06-17)**: slime gold = 항상 드랍(1.0) + 10~30(요청 반영, 매 킬 골드 보장 + potion + 장비확률). DropTable 11 + 던전줍기 E2E 1/1. **잔여(폴리시)**: 정식 지갑 위젯(상점 7.6 합류)·Inventory 프리팹 `_goldText` 인스펙터 할당(Unity)·클라 ItemDisplayCatalog gold_pouch 사장 엔트리 정리·판매 UI.)
-- **3.5** 상점(Shop) — 구매/판매·가격·재고 — ✅ | T2 | 🟢 (**완료 2026-06-17, 커밋 `73020553`·플레이 검증·포폴 챕터18**. 판매 UI만 후속(서버 Sell 완비, 클라 구매 UI 합의). ① **서버 도메인**: `ShopCatalog`(정적, 코드 — itemId→BuyPrice/SellPrice/ShopCategory, 영속 없음) + `IShopService`/`ShopService`(지갑·인벤 **조합**, 서버권위) + `ShopBuyResult`/`ShopSellResult`. **원자성**: 구매=`Wallet.TrySpend`(부족 거부)→`Inventory.Grant`(실패 시 환불), 판매=`Inventory.Consume`(미보유 거부)→`Wallet.Add` — 차감 먼저로 복제 차단. ② **gRPC** `shop.proto`(GetShop/Buy/Sell, 가격 서버권위·스탯 미리보기=EquipmentCatalog 파생) + `ShopGrpcService` + DI(`InventoryInstaller` 합류) + Middleware 매핑. ③ **클라 데이터층**: System `Game.System.Shop`(IShopService/ShopService, proto 은닉, GetShop+Buy) + `ShopInstaller`/`GameApiClient` 등록 + Presentation `ShopModel`(MVI: 탭/선택/수량/구매 의도 + 골드, InventoryModel 동형). **검증: 서버빌드0 + GameServer 340/340(통합 포함, Shop 11=카탈로그 3·서비스 8) + 클라 컴파일(InventoryModelTests 6/6).** 사용자 결정: 판매가=아이템별 명시, 클라 UI=구매만, 재고=무한(YAGNI). **클라 View 배선 완료 2026-06-17**: HUD 상점버튼 열기(`ToggleShop`→`ShopViewController` 독립토글, Main 전용, S키는 WASD 충돌로 제거) + 이동차단(`UiInputCaptureBehaviour`) + Shop View MVI 배선(탭/리스트/선택패널/수량/구매, 슬롯 Bind). 리스트/스탯 슬롯=Addressable prefab(`Shop_Item`/`Status_Slot`) 동적 생성(인벤 슬롯 패턴). AddressKeys 3키 추가 + 양서버 Docker 리빌드 완료(컨테이너 healthy). 구매 결과 토스트(`ShopToastMessage` 성공/실패 → 창 내 색구분 토스트, 자동 숨김). 검증 **ShopModelTests 7/7** + InventoryModelTests 6/6 + InputRouter/InGameExpRelay 12/12. 상세 codemap §2.29. 열기=HUD 상점버튼만(S키는 WASD 후진 충돌로 제거). **잔여(Unity)**: 3 prefab Unity Addressable 마킹(주소=코드 키 일치)·QuickSetting·인스펙터 확인 + 판매 UI.)
+- **3.1** 인벤토리(Inventory) — 스택형 소유, 서버 권위 영속 — ✅ | T1 | 🟢
+- **3.2** 장비(Equipment) — Weapon/Armor 슬롯 · 스탯 합산 — ✅ | T2 | 🟢 (⚠ 결함 G4)
+- **3.3** 루트/드랍(Loot) — 던전 드랍·줍기 + Main 경로 — ✅ | T2 | 🟢
+- **3.4** 재화(Wallet) — 골드 서버 권위 — ✅ | T2 | 🟢 (⚠ 결함 G3)
+- **3.5** 상점(Shop) — 구매/판매 — ✅ | T2 | 🟢
 - **3.6** 강화/크래프팅 — ⬜ | T3 | ⚪
-- **3.7** 아이템 등급/레어도 + 도감 — 🔄 | T2 | 🟢 (**방향전환 2026-06-21: 등급=완료(슬롯 통합+배경 스프라이트), 도감=보류**. 상세 codemap §2.30·§2.31. **① 등급/레어도 ✅**: `ItemGrade`(서버 enum) → 클라 미러 `ItemDisplayCatalog.Entry.grade`. **등급 배경 = 실제 슬롯 스프라이트**(`GradeSpriteCatalog` SO: Common=GreyMedium·Rare=Blue·Epic=Violet·Legendary=Orange, fantasy_gui_4 fg4_slot{색}). **슬롯 통합**: `ItemContentsSlot` 1개로 인벤+상점 공통화(`ShopItemSlotView` 삭제, Shop_Item 프리팹 컴포넌트 교체+배경 wiring 완료). 등급 해석=Model(Inventory/Shop/Equipment Model 이 GradeSpriteCatalog.Get→Sprite → SlotModel.GradeBackground → View). **장비도 등급 처리**: Equipment 슬롯 배경(Slot Image)을 착용 아이템 등급 스프라이트로(해제 시 기본 복원). `GradeSpriteCatalog.asset` 생성+4스프라이트 할당·프리팹 wiring(Shop_Item·ItemContentsSlot) 완료. proto 무변경(미러). **② 도감 = 전체 보류**(사용자 결정): 클라 도감(System/Presentation/GUI/CodexViewController/CodexInstaller/btn_Codex/ToggleCodex/AddressKeys) **제거**. **서버 도감(도메인·proto·grpc·`AddUserCodex` 마이그레이션·테스트 354/354)은 휴면 유지**(파괴적 롤백 회피 — 재개 시 클라만 재작성). **③ 상점 아이템 설명(2026-06-21 추가)**: `ItemDisplayCatalog.Entry.description`(미러) → `ShopItemModel.Description` → `Shop.RenderSelected` 가 선택 패널 desc 에 표시(이전엔 빈 문자열이라 어색). 11종 전부 플레이버/용도 설명 저작. **검증: 클라 컴파일0 + PlayMode 109/109 그린**(통합/E2E 포함, 무회귀). **등급 표시 = 플레이 검증 완료(사용자 2026-06-21: 인벤/상점/장비·상점 선택패널 등급색 배경 정상)**. `ItemDisplayCatalog.asset` grade(ring_power·necklace_vitality=Rare, 나머지 Common, 서버 ItemCatalog 권위 동기)+description 저작 완료. **잔여(선택)**: Epic/Legendary 노출 원하면 서버 ItemCatalog+이 에셋 양쪽 등급 상향 · 신규 .cs `.meta` `git add -f`([[unity-meta-gitignored]]).)
-- **3.8** 소모품/포션 — HP/MP 회복 (인벤토리 소비 → GAS 효과) — ✅ | T2 | ⚪ (**α 로직 슬라이스 완료 2026-06-10**: MVI Side Effect 패턴. `ConsumeItem` gRPC(서버 권위 차감) + 클라 System `ConsumeItemAsync`(proto 은닉) + `ConsumableCatalog`(클라 SO, itemId→stat/amount/policy, 서버 미공유=회복은 클라 권위) + `InventoryModel.UseItem` 의도 → consume 성공 시 **Side Effect** `OnConsumableUsed`(회복)·`OnToast`(메시지) 발행 → `ConsumableEffectHandler`가 GAS `ASC.ApplyEffect`로 적용(HUD 자동). 권위=인벤토리 수량(서버)/HP 회복(클라). `InventoryGrpcServiceTests` 9/9(ConsumeItem 4) + `InventoryModelTests` 5/5(UseItem Side Effect 2). 서버빌드·Unity 컴파일 0오류. **β UI 코드 완료 2026-06-10**: 슬롯 클릭(`ItemContentsSlot` IPointerClickHandler)→`Inventory.OpenActionPanel`(Canvas 직속 `ItemActionPanel` 슬롯 오른쪽 배치 + 풀스크린 `BackDropButton` 뒤 클릭 닫기)→사용 버튼→`UseItem`, `OnToast`→로그. 슬롯 클릭=`itemButton`(Button), 패널=온디맨드 Addressable(`InstantiateAsync`↔`ReleaseInstance`). **플레이 검증 완전 통과(사용자, 2026-06-10)**: 슬롯 클릭→패널→사용→ConsumeItem(서버 차감)→Side Effect→**GAS ASC.ApplyEffect HP 회복**+토스트 전 경로 동작(`ConsumableCatalog.asset` potion_hp_small→Health 저작 완료, `[ConsumableEffectHandler] 효과 적용` 로그 확인). Unity 컴파일 0오류. 상세=codemap §2.21. **→ 3.8 코어 완결 ✅.** **후속(폴리시)**: 소모품만 사용가능 제한(현 gold도 차감)·정식 토스트 위젯(7.x))
+- **3.7** 아이템 등급/레어도 + 도감 — ✅ | T2 | 🟢 (도감은 보류)
+- **3.8** 소모품/포션 — 인벤토리 소비 → GAS 효과 — ✅ | T2 | ⚪
 
 ### 4. 콘텐츠 시스템
-- **4.1 몬스터** — ✅ | T1 | ⚪ (코어 완료, 상세 = `§M3`)
-  - **4.1.1** 패킷 `S_SpawnMonster`(1810)/`S_MonsterState`(1811)/`S_MonsterDead`(1812) + Union — ✅ | T1 | ⚪
-  - **4.1.2** 서버 스폰 — `Room` 몬스터 보유(단일 `RoomTickService`, MonsterManager 분리 안 함) + `monsterSpawns[]`/패트롤/경계 Map Editor 저작→파싱 — ✅ | T1 | 🟢
-  - **4.1.3** 서버 AI 틱 — `MonsterAiMath`(Patrol/Chase/Attack + bounds clamp) → `S_MonsterState` — ✅ | T1 | ⚪
-  - **4.1.4** 서버 전투 — 플레이어→몬스터 피격/사망(GAS, `S_MonsterDead`) + 몬스터→플레이어 공격(`S_ApplyEffect`) 양방향 — ✅ | T1 | 🔵
-  - **4.1.5** 클라 `MonsterEntity` 스폰/보간/사망 (`RemoteDriver` 패턴 재사용) — ✅ | T1 | ⚪
-  - **4.1.6** 몬스터 웨이브/스폰 페이즈 — ⬜ | T2 | ⚪ (**= 단일 SpawnSystem 승격 1순위 트리거**. 착수 시 [spawn-system-evolution.md](spawn-system-evolution.md)대로 `SpawnRequest`+`SpawnSystem` 신설, 기존 `Room.SpawnMonsters` 재사용. 4.4 퀘스트·4.6.1 존 스폰도 같은 라우터에 합류)
-- **4.2 던전 클리어/보상(DungeonResult)** — ✅ | T1 | 🟢 (클리어+실패 루프 + Exp 보상 전원 지급 완료. 결과패널 아트·PlayMode 실행은 Unity)
-  - **4.2.1** 패킷 `S_DungeonClear`(1820) + Union — ✅ | T1 | ⚪
-  - **4.2.2** SocketServer 클리어 감지 → `DungeonClearMessage` → Redis Stream — ✅ | T1 | 🟢
-  - **4.2.3** GameServer `DungeonResultConsumer` → 보상 산정(경험치) — ✅ | T1 | 🟢 (Shared 카탈로그 expReward → 참가자 전원 Exp 지급·RoomId 멱등. 아이템은 범위 제외)
-  - **4.2.4** 보상 지급 — 2.3 Progression.AddExp 호출(RoomId 멱등 Redis SET, at-most-once) — ✅ | T1 | 🟢 (Inventory·Outbox는 범위 제외, Exp 전용)
-- **4.3** 던전 메타 — `DungeonRoom.MapId` 추가(=9.2 부채) — ✅ | T1 | 🟢 (**완료 2026-06-25**. 던전 선택값을 **방 생성 시 결정·영속**. 명명: `DungeonId` 대신 기존 스폰 카탈로그와 통일된 **`MapId`(string, spawn-layouts.json 키)** — 식별자 1개로 매핑 오버헤드 제거. 범위 = **Option B(생성 시 선택)**: `CreateRoomRequest.map_id` proto 추가 + 클라 Generated 재생성. 엔티티 4곳(`Create`/`Clone`/`FromRedis`/Redis `ToHashEntry`·`ParseFromRedis`) + EF 마이그레이션 `AddDungeonRoomMapId`(`dungeon_rooms.map_id` varchar(64) NOT NULL, 기존행 `dungeon_01` 백필) + Redis Hash 필드 `MapId`(구버전 캐시엔 없을 수 있어 파싱 시 기본맵 폴백). **정규화·검증=Application 권위**: `CreateDungeonRoomAsync`가 빈값→`MapIds.Default`, `SpawnLayoutTable.IsKnown` 실패→거부(Domain은 값 보관만, Shared 미참조). `StartGameAsync`는 **방의 `MapId`를 진실의 원천**으로 `GameStartRequestedMessage.MapId`에 적재(명시 param=E2E override 우선, 둘 다 비면 Default 폴백). 검증: 서버 빌드0 + GameServer 단위 64 그린(도메인 Create/Clone/FromRedis MapId 3 + 서비스 빈값기본/지정영속/미지정거부/StartGame전파 4 신규). Redis·DB 라운드트립 통합테스트 작성(`MapId_ShouldRoundTripThroughDbRedisAndCacheMiss` — Docker 기동 시 실행). 신규 .cs(마이그레이션)는 ServerAll라 `.meta` 무관. **후속 완료 2026-06-25**: ① **던전 선택 UI**(B) — `RoomInfo.map_id` proto 노출 + `ToRoomInfo` 양 오버로드 매핑 + 클라 체인 관통(`LobbyIntent.CreateRoom.MapId`→`LobbyModel`→`LobbyRepository`→`System.DungeonLobbyService`→`CreateRoomRequest.MapId`) + `DungeonCatalog` SO(Presentation, mapId→표시이름) + `CreateDungeonRoomPopupView` 드롭다운(graceful 폴백) + `DungeonRoomModel.MapId`. ② **expReward Export 결함 수정**(A) — `MapDefinition.expReward` 필드 + `MapDataExporter` 왕복(Export/Import) + `dungeon_01.asset` expReward=100 설정(SO↔JSON 정합 — 이전엔 Export 시 보상 소실 footgun). **Unity 에셋·풀검증 완료 2026-06-25**: ① 샘플 던전 `dungeon_02`(슬라임 소굴, expReward150, 슬라임3·patrol·bounds50) `MapDefinition` SO 생성 → `MapDataExporter.BakeAll` Export(클라+서버 JSON, **dungeon_01 expReward=100 보존 확인=A검증**) ② `DungeonCatalog.asset`(dungeon_01"슬라임 동굴"·dungeon_02"슬라임 소굴" 2항목) ③ 팝업 프리팹 `CreateDungeonRoomPopup`에 TMP_Dropdown 생성·`dungeonCatalog`/`dungeonDropdown` 배선(LoadPrefabContents 원자편집, 영속 검증). **검증 풀스택 그린**: 서버 빌드0 · GameServer 단위 65 + 통합 11(`MapId_ShouldRoundTripThroughDbRedisAndCacheMiss` 실DB/Redis) · SocketServer expReward 가드 7 · 클라 Unity 컴파일0 + EditMode 3(`CreateRoom 선택 MapId 전파`) · **Docker 리빌드·재기동 후 PlayMode `DungeonLobbyE2ETests` 13/13**(`전체흐름_방생성_입장_시작` 포함). 신규 에셋·.cs `.meta`는 커밋 시 `git add -f`([[unity-meta-gitignored]]): `DungeonCatalog.{cs,asset}`·`dungeon_02.asset`.)
-- **4.4** 퀘스트(Quest) — 수주/진행/완료·보상 (`Quest` 신규) — ✅ | T2 | 🟢 (**풀스택 완료 + 플레이 검증 통과 2026-06-22**: 사용자 인게임 확인 — 수주→슬라임 처치 진행→보상 수령(골드/exp/아이템) 정상 수령. 전체 PlayMode 117/117 그린(QuestE2ETests 4 포함). 상세 codemap §2.32. MVP 목표=KillMonster(slime, Main에 slime만 스폰) — KillMonster 퀘스트 2종(slime×3 exp50+gold100 / slime×5 exp80+potion×2) + CollectItem 1종(potion×3, **구조 시연 — 진행 훅 보류**: InventoryService에 IQuestService 추가 시 DI호스트 다수 재파손하므로 MVP 제외). **서버 권위 진행** = 킬 클레임(`MainSpawnClaimService.ClaimExpAsync`)에서 `IQuestService.ReportKillAsync(monsterId)` → 매칭 KillMonster 퀘스트 progress++(클라 보고 아님·위조 불가). 보상=Progression+Wallet+Inventory 조합, **Claimed 선마킹 후 지급(중복 차단)**. `QuestCatalog`(정적)+`QuestDef`/`QuestReward`+`UserQuest`(`user_quests` (UserId,QuestId) DB-only, EF `AddUserQuests` raw SQL 멱등, upsert)+`IQuestService`/`QuestService`+`IQuestRepository`+DI(`InventoryInstaller`)+gRPC `quest.proto`(GetQuests 전체카탈로그×상태 병합/AcceptQuest/ClaimQuestReward)+`QuestGrpcService`. 클라 System `Game.System.Quest`(proto 은닉)+Presentation `QuestModel`(MVI)+기존 View 스캐폴드(`Quest`/`QuestSlot`/`QuestConditionSlot`/`QuestRewardSlot` 마스터-디테일) 배선+`QuestViewController`(HUD `btn_Quest` 토글, 기존 버튼 활용)+DI(GameApiClient·QuestInstaller·MainLifetimeScope). **검증: 서버 빌드0 + GameServer 373/373**(단위+Testcontainers통합+E2E — QuestService 9·QuestGrpc 4·QuestRepo통합 4·MainSpawnClaim 킬훅 2; `MainSpawnClaimService` 생성자 IQuestService 추가는 테스트 1곳만 영향=InventoryService 무변경으로 DI호스트 무파손) + **클라 컴파일0 + PlayMode QuestModelTests 그린 + PlayMode `QuestE2ETests` 4/4 그린(Docker 풀루프: 수주→ClaimMonsterExp 슬롯1/2/3 킬진행→Completed→ClaimQuestReward 골드+100 지갑반영→Claimed / 미완료수령거부 / 중복수주거부 / 미인증 RpcException)**. **후속(코어 무관)**: CollectItem 목표 진행 훅(InventoryService.GrantItemAsync 합류 — DI호스트 재파손 회피 위해 보류) + 신규 .cs `.meta` `git add -f`([[unity-meta-gitignored]]). **NPC 수주/턴인=4.5**. 이하 원설계: MVP 목표=KillMonster("슬라임 N마리") 1종(`QuestObjectiveType` enum은 CollectItem/TalkToNpc 확장 여지만). **서버 권위 진행** — 클라 보고 아님, 킬 클레임 경로(`MainSpawnClaimService.ClaimExpAsync`)에서 서버가 progress++(위조 불가). 조합 도메인 — 보상(exp/gold/item)은 Progression+Wallet+Inventory 조합(Shop 동형). 구성: `QuestCatalog`(코드 정적, ItemCatalog 동형) + `QuestDef`(목표타입/대상/필요수/보상) + `UserQuest`(영속, `user_quests` (UserId,QuestId)→Status{Accepted/Claimed}+Progress, 완료=progress≥required 파생) + `IQuestService`/`QuestService`(GetQuests/Accept/ReportKill/ClaimReward) + `IQuestRepository`(**DB-only** — read-rare/write-heavy라 Redis 캐싱 부적합, AsNoTracking) + EF 마이그레이션 `AddUserQuests`(raw SQL 멱등) + DI(`InventoryInstaller`) + gRPC `quest.proto`(GetQuests/AcceptQuest/ClaimQuestReward) + `QuestGrpcService`. 클라 MVI(System/Presentation/View) + UI(7.4)까지. 보상 수령=Claimed 먼저 마킹 후 지급(중복 수령 차단). **NPC 수주/턴인은 4.5 합류 시**(지금은 직접 수주).)
-- **4.5** NPC/대화(Dialogue) — 상호작용·대화 트리 + 그래프 저작툴 (`Npc` 신규) — ✅ | T2 | 🟢 (**전체 완료 + 플레이 검증 통과 2026-06-23** — A1~C 코드 + Unity 저작/배선 + 사용자 인게임 확인(대화·분기·퀘스트 수주/완료/보상 정상). 범위(사용자 결정): **범용 대화 트리(다분기) + ScriptableObject 카탈로그 + GraphView 저작툴 + 서버 NPC/TalkToNpc 전부 — 작업 단위 분할 진행**. NPC=퀘스트 수주/턴인 창구이자 `TalkToNpc` 진행원.
-  - **데이터 모델(A1 확정)**: `DialogueDefinition` SO = startNodeId + nodes[](id=안정 GUID·editorPosition(그래프 레이아웃 보존, 런타임 무시)·speaker·bodyText·choices[]{label, action: GoTo(targetNodeId)|EndDialogue|AcceptQuest|ClaimQuest, showIf: Always|QuestStatus}). `DialogueCatalog` SO(npcId→DialogueDefinition). 그래프 친화적으로 처음부터(nodeId GUID·명시 엣지·좌표 저장).
-  - **Phase A1 — 대화 코어(클라, 서버 0) ✅ 코드완료 2026-06-22**: graph-friendly SO(`DialogueDefinition`: startNodeId + nodes[id GUID·editorPosition·speaker·body·choices{action,target,questId,showIf}], `DialogueCatalog` npcId→def) + 런타임 MVI(`DialogueModel`/State/Intent + `DialogueView` 동적 선택지 풀) + NPC `NPCDialogueInteractable`(`IInteractable`, E 상호작용) + `NPCDialogueBinder`(씬 NPC 일괄 launcher 바인딩) + `DialogueViewController`(State.IsOpen 구동 Addressable 창 로드) + DI(MainLifetimeScope). **레이어 다리 수정**: GUI는 System 직접참조 금지라 `IDialogueLauncher`(System) 구현을 **DialogueModel(Presentation→System ✓)** 에 둠(GUI 컨트롤러가 아니라). NPC(Gameplay→System ✓)→IDialogueLauncher→DialogueModel.Start, GUI 창은 State.IsOpen 만 봄(GUI→Presentation ✓). **검증: 클라 컴파일0 + PlayMode `DialogueModelTests` 12/12**(A1: Start/GoTo/EndDialogue/콘텐츠없음 4 · Phase B: 조건부 노출·수락 위임 3 · 추가: TalkToNpc 보고·노드별 카메라 구도·종료 시 카메라Exit+입력해제·끊긴 GoTo 닫힘·시작노드 폴백 5). **잔여(Unity)**: `Dialogue.prefab`(DialogueView) 저작·Addressable(AddressKeys.UI.Dialogue) + `DialogueCatalog.asset`(Resources, 빈 생성됨)에 npcId→def 등록 + Main 씬 NPC 배치(npcId 지정) + 플레이 검증. A2 그래프툴이 DialogueDefinition 저작.
-  - **Phase A2 — 그래프 저작툴 ✅ 코드완료 2026-06-22**: `DialogueGraphWindow`(EditorWindow, 메뉴 Tools▸Dialogue▸Graph Editor + 에셋 더블클릭 OnOpenAsset) + `DialogueGraphView`(GraphView — 우클릭 Add Node·드래그 연결·삭제·Set Start, PopulateFrom/SaveTo) + `DialogueNodeView`(Node — 입력포트1 + speaker/body + 선택지행[label·action·questId·showIf·conditionQuestId·출력포트]). 엣지(선택지 출력→노드 입력)=targetNodeId, editorPosition 저장. 위치 `Gameplay/Editor/Dialogue/`(Game.Gameplay.Editor, Presentation 참조). **검증: 컴파일0(GraphView API 가용 확인). 실제 그래프 저작은 사용자 플레이.** **A1 후속(이번 함께)**: `DialogueView`↔`Dialogue.prefab`(본문 바) 배선 완료 — bodyText 연결 + **선형 진행(클릭/Submit=선택지1개면 진행·0개면 닫기, 2개+는 선택지 버튼 필요)**. ⚠️ `Dialogue.prefab` Addressable 주소(AddressKeys.UI.Dialogue) 마킹 필요.
-  - **Phase A3 — 대화 카메라 토킷 ✅ 코드+씬 완료 2026-06-22**: Cinemachine 3.1.6 → **전용 dialogue vcam Priority 승격**(Brain 블렌딩, 기존 게임 vcam 무수정). 구도(Closeup/OverShoulder/TwoShot)는 **노드별 `DialogueShot` enum 으로 그래프툴 EnumField 선택**. `DialogueShot`(System.Dialogue) + `DialogueNode.shot`(그래프툴 저장/로드) + `IDialogueCamera`(System: Enter(npc,player)/SetShot/Exit) → `DialogueCameraController`(Gameplay, Cinemachine: Closeup=LookAt/Follow NPC·OverShoulder=Follow Player·TwoShot=TargetGroup, vcam.Priority 100↔-10). 배선: NPC.Interact→`Enter(lookTarget,interactor)` / `DialogueModel.GoToNode→SetShot(node.shot)`·`Close→Exit`(optional 주입, 미배치 시 대화만 정상). asmdef: Game.Gameplay += Unity.Cinemachine, Game.Gameplay.Editor += Game.System. **씬 생성(Main.unity)**: `Dialogue Vcam`(CinemachineCamera + RotationComposer) + `Dialogue Camera Controller`(dialogueCam 배선, RegisterComponentInHierarchy 로 IDialogueCamera 노출). **검증: 컴파일0**. **잔여(Unity 튠)**: vcam 바디(거리/오프셋·오버숄더 Follow 오프셋) 튜닝 + TwoShot 원하면 CinemachineTargetGroup 만들어 controller.twoShotGroup 할당 + 플레이.
-  - **Phase B — 퀘스트 연동 ✅ 완료 2026-06-22**: `DialogueModel`이 `IQuestService` 재사용 — 선택지 action `AcceptQuest`/`ClaimQuest`→`AcceptAsync`/`ClaimRewardAsync`(서버 권위) + `showIf`(QuestNotAccepted/InProgress/Completed/Claimed) 조건부 노출. 퀘스트 상태는 대화 진입·수락/수령 직후 `GetQuests`로 캐시(노드 렌더는 캐시로 동기 평가, 노드 진입마다 round-trip 회피). 액션 후 targetNodeId 있으면 이동·없으면 현재 노드 재렌더(조건부 선택지 갱신). conditionQuestId 미지정 가드(null-key 크래시 방지). DI 무변경(IQuestService 기등록). **검증: 컴파일0 + PlayMode `DialogueModelTests` 7/7**(A1 4 + 미수주→수락만/완료→보상만/수락→QuestService 위임 3).
-  - **Phase C — TalkToNpc 진행(서버 권위) ✅ 완료 2026-06-22**: `IQuestService.ReportTalkAsync(npcId)` + `ReportTalk` gRPC + `QuestGrpcService.ReportTalk` → 매칭 Accepted·미완료 TalkToNpc 퀘스트 progress++. **NpcCatalog 도메인 생략(YAGNI)**: 잘못된 npcId=매칭 0=무진행(자동 안전), RequiredCount=1+진행 상한으로 반복 대화 멱등(파밍 불가) — 별도 멱등 저장 불필요. 클라 = `DialogueModel.StartAsync` 가 대화 시작 시 `ReportTalkAsync(npcId)` 호출(→ RefreshQuestStates 로 조건부 선택지 즉시 반영). 시드 `quest_greet_elder`(TalkToNpc npc_elder×1→exp30+gold50). ⚠️ Main NPC=클라 로컬이라 위치 검증 불가 → 멱등으로 영향 상한(킬 클레임 사상). 진짜 서버 권위는 4.6 World 세션 합류 시 승격. **검증: GameServer 375/375(단위+통합+E2E) + 클라 컴파일0 + PlayMode `QuestE2ETests` TalkToNpc 풀루프(수주→ReportTalk→Completed→보상 gold+50) + DialogueModelTests 7/7.**
-  - **→ 4.5 전체 완결(A1·A2·A3·B·C + Unity 저작/플레이 검증 2026-06-23).** Unity 저작 완료: `Dialogue.prefab` 선택지 UI 구성 + Addressable(AddressKeys.UI.Dialogue) 마킹, `Dialogue_Elder.asset` 샘플 대화(그래프툴 저작, 수주/완료턴인 분기), `DialogueCatalog` npc_elder 매핑, Main 씬 `NPC_Elder`(Interactive 레이어) 배치, 대화중 오브젝트 숨김(그래프툴 hideObjects 지정). **UX 정리(2026-06-23)**: 퀘스트 수주·보상 수령을 **NPC 대화로 일원화**(Quest 창 수락/보상 버튼 폐지=저널 전용) + **AlertPopup 알림**(수락 Info/완료 Warning/보상 Success — `QuestNotifier` 단일 소스) + **Q키 퀘스트창 토글**(이동 차단=UiInputCaptureBehaviour). 상세 codemap §2.34·2.37·2.38. 추가 NPC/대화 콘텐츠 저작은 상시. 신규 .cs `.meta` `git add -f`.
-  - 의존성: A1→A2→B→C. A1·A2·B는 클라 중심(서버 0/재사용), C에서 서버 신규. 기존 `NPCInteractable`(wave 데모)은 대화용으로 대체/확장.)
-- **4.6 월드/존(World)** — 오픈월드 PVE 맛보기 (`World` 신규) — ⬜ | T2 | ⚪ (**Main 몬스터의 전제**: 현재 Main은 소켓 미연결이라 서버 권위 몬스터 없음 → Main에 몬스터를 내려면 **Main이 네트워크 World 세션**이어야 함. SocketServer `Room`→`World` 일반화 시 드랍/줍기(3.3)가 그대로 적용. 상세 = [loot-drop.md](loot-drop.md) §6)
-  - **4.6.1** 존 맵·존 전환·포탈 — ⬜ | T2 | ⚪
-  - **4.6.2** 텔레포트/패스트트래블 — ⬜ | T2 | ⚪
-  - **4.6.3** Main 몬스터/드랍 = **Client 로컬 시뮬·렌더 + 서버 검증(B-lite)** — ✅ | T1 | 🟢 (**플레이 검증 완료 2026-06-13** — 서버 솔루션 374 + PlayMode E2E 그린 + 플레이: 슬롯 스폰→킬→`ClaimKill` 서버 roll 지급(potion+gold)→5s 재스폰, 쿨다운 파밍 차단 전부 확인. **승격 2026-06-13**: 구 "클라 신뢰+GrantItem 가드"는 **무한 파밍 핵** → 폐기. **결정 정본 = [authority-model.md §4b](authority-model.md)**. 서버가 map 스폰 데이터 보유(SO→bake→Shared 교리) → `ClaimKill(mapId, slotId)` gRPC: ①슬롯∈map ②per-user 쿨다운(Redis claim) → **서버 권위 DropTableRoll → GrantItemAsync**. `GrantItem(itemId,qty)`는 Main 경로 제거(치팅 진입점 봉쇄). 서버 실시간 AI 없음(map데이터+클레임상태만). **증분**: ①spawn-layouts에 Main map+`SpawnSlot{id,monsterType,respawnCooldownMs}` ②클라 슬롯기반 스폰 ③`ClaimKill` 서버검증+roll+grant ④클라 줍기→ClaimKill 교체 ⑤GrantItem Main제거 ⑥테스트(슬롯/쿨다운 거부·E2E). B-full(서버 권위 풀 시뮬)=co-op 필요 시 YAGNI)
-- **4.7 상호작용 오브젝트** (`IInteractable` 확장) — 🔄 | T2 | ⚪
-  - **4.7.1** 문/상자/채집 노드·파괴 가능 오브젝트 — 🔄 | T2 | ⚪
-  - **4.7.2** 함정/환경 기믹 — ⬜ | T3 | ⚪
+- **4.1 몬스터** — ✅ | T1 | ⚪
+  - 4.1.1~4.1.5 패킷·스폰·AI·양방향 전투·클라 렌더 — ✅ · 4.1.6 웨이브/스폰 페이즈 — ⬜ (착수 시 [spawn-system-evolution.md](spawn-system-evolution.md))
+- **4.2 던전 클리어/보상(DungeonResult)** — ✅ | T1 | 🟢
+- **4.3** 던전 메타 — `DungeonRoom.MapId` + 던전 선택 UI — ✅ | T1 | 🟢
+- **4.4** 퀘스트(Quest) — 수주/진행/보상 — ✅ | T2 | 🟢 (DB 전용·캐시 없음 / Claimed 선마킹 후 지급 = 지급 실패해도 재수령 불가 — codemap §2.32 · ⚠ 결함 G2)
+- **4.5** NPC/대화(Dialogue) — 대화 트리 + 그래프 저작툴 + 퀘스트 연동 — ✅ | T2 | 🟢
+- **4.6** 월드/존(World) — 오픈월드 PVE 맛보기 — ⬜ | T2 | ⚪ (서버 권위 Main 몬스터는 Main 이 네트워크 World 세션이어야 성립)
+  - 4.6.1 존 전환·포탈 — ⬜ · 4.6.2 패스트트래블 — ⬜ · 4.6.3 Main 몬스터/드랍(클라 시뮬 + 서버 검증) — ✅
+- **4.7** 상호작용 오브젝트 — 🔄 | T2 | ⚪
+  - 4.7.1 문/상자/채집 — 🔄 · 4.7.2 함정/기믹 — ⬜
 - **4.8** 보스/특수 몬스터 — ⬜ | T3 | ⚪
 
 ### 5. 소셜 / 멀티플레이
-- **5.1** 파티 — 방=파티(현 로비 일부 충족) + 인게임 파티 UI(**파티 HP HUD ✅ 2026-07-12, codemap §2.58** — 원격 ASC 레지스트리+GAS 재사용, 신규 패킷0) — 🔄 | T2 | ⚪
-- **5.2** 인게임 핑/이모트 — Co-op 의사소통 — ⬜ | T2 | ⚪
+- **5.1** 파티 — 방=파티 + 파티 HP HUD — 🔄 | T2 | ⚪
+- **5.2** 인게임 핑/이모트 — ⬜ | T2 | ⚪
 - **5.3** 플레이어 간 거래(Trade) — ⬜ | T3 | ⚪
 - **5.4** 길드/클랜 — ⬜ | T3 | ⚪
 - **5.5** 랭킹/리더보드 — ⬜ | T3 | ⚪
 - **5.6** 친구/소셜 — ⬜ | T3 | ⚪
 
 ### 6. 메타 / 영속
-- **6.1** 캐릭터 진행 영속 — 레벨·인벤토리·장비·지갑 DB 영속 (2.3/3.1/3.2/3.4 합류) — ✅ | T1 | 🟢 (**완료 2026-06-17, 재접속 E2E**. 영속 레이어는 이미 완비 — 네 도메인 전부 DB 테이블(`user_progressions`/`inventory_items`/`user_equipments`/`user_wallets`) + cache-aside(MISS→DB). 로그인은 토큰만 반환, 클라가 도메인별 pull → DB 복원. **갭=재접속 검증**이었음 → `CharacterPersistenceE2ETests`(register→ClaimExp+ClaimKill로 exp/인벤/골드 변경→Logout→재Login→**전부 보존** 확인, 1/1 그린). E2ETestBase에 WalletService 추가. 장비 영속은 동일 패턴이라 `EquipmentRepositoryIntegrationTests`(MISS→DB)가 직접 증명(E2E는 장비 결정적 획득 곤란해 제외). 각 도메인 개별 영속도 Repository 통합테스트로 기존 검증.)
-- **6.2** 던전 결과 → 로비 복귀 — 결과 처리 + 기존 던전→Main 복귀 재사용 — ✅ | T1 | ⚪ (M4: 클리어/실패 → `GameHud` 패널 → `ReturnToLobby` 재사용, MPPM 1판 루프 시각 검증)
-- **6.3** 설정/옵션 — 그래픽·사운드·키 바인딩 + 영속 — ⬜ | T2 | ⚪
-- **6.4** 재접속/세션 복구 — 인게임 끊김 복구 — 🔄 | T2 | 🟢 (**재접속 유예 창(grace) 구현 2026-06-09**, 상세 = codemap §2.17. 크래시/끊김 시 방에 인원 남으면 `PlayerState`를 60s(`Room.ReconnectGraceMs`) 보존 → 재접속 시 보존 상태로 던전 즉시 복귀, 만료 시 `RoomTickService` 스윕 정리. **9.4 부채수정이 만든 재접속 회귀(크래시=재입장 불가)를 해소** — 명시퇴장만 즉시 제거, 크래시는 유예+AI 유령필터. SocketServer.Tests 72/72 + PlayMode **복귀 플로우 Green/Red 6종**(보존위치 복귀·유예중 보류 / 명시퇴장·전원끊김·유예만료 거부) + 기존 재접속 2 = `SocketE2ETests` **19/19** + `GameSessionConnectorE2ETests` 3/3. **클라 끊김 팝업 완료 2026-06-23**: 던전 중 비정상 끊김(서버 다운/네트워크 절단) 감지 → 입력 정지 + AlertPopup("연결 끊김", Danger) → 확인 시 Main 복귀. `ISocketSession.OnDisconnected` 이벤트(의도적 DisconnectAsync는 발화 안 함, 메인스레드 전환 후 발화) → `InGameModel`(IInputContext.EnterUi 입력정지 + R3 `OnConnectionLost` side-channel, Dispose에서 ExitUi 균형) → `GameHud`가 AlertPopup 표시. `MoveSyncSender`도 State!=Joined면 송신 skip(예외 스팸 제거). 상세 codemap §2.39. 검증: 클라 컴파일0 + EditMode InGameModelTests 4/4(끊김→입력정지·신호·중복무시·Dispose 복원). **클라 하트비트 + 연결처리 E2E 보강 2026-06-23(codemap §2.40)**: 근본 원인=클라 keep-alive 부재(무이동 60s→서버 유휴 타임아웃). `SocketSession.HeartbeatInterval`(15s) 주기 C_Ping 추가. 누락됐던 연결 생존성 E2E 추가(SocketSessionHeartbeatTests 2/2 + 유휴 생존/끊김 E2E 81.8s + 세션검증 거부 E2E) + **재발방지 Stop 훅 `check-network-e2e-coverage.ps1`** + testing.md 연결 커버리지 정책. **잔여**: 방 자체 유예(전원 끊김 시 방 60s 생존), 자동 재접속 시도(현재는 로비 복귀))
+- **6.1** 캐릭터 진행 영속 — 레벨·인벤토리·장비·지갑 — ✅ | T1 | 🟢
+- **6.2** 던전 결과 → 로비 복귀 — ✅ | T1 | ⚪
+- **6.3** 설정/옵션 — ⬜ | T2 | ⚪
+- **6.4** 재접속/세션 복구 — 60s 유예 + 재접속 인수 — 🔄 | T2 | 🟢
 - **6.5** 통계/플레이 기록 — ⬜ | T3 | ⚪
 - **6.6** 도전과제/업적 — ⬜ | T3 | ⚪
 - **6.7** 튜토리얼/온보딩 — ⬜ | T3 | ⚪
 
-### 7. UI / UX (클라 프레젠테이션 — MVI, View는 자기 Model만 참조)
-- **7.1** 결과/보상 화면 (대응 6.2/4.2) — ✅ | T1 | 🟢 (**클리어+실패 패널 모두 GameHud 배선 완료 2026-06-23**. `dungeonClearView`(보상 Exp 표시) + `dungeonFailedView`(return 버튼만) 둘 다 GameHud.prefab 자식으로 할당·기본 비활성, `InGameState.IsDungeonCleared`/`IsDungeonFailed` 토글. **실패 패널은 이전 세션에 이미 저작됨**(plan 노트가 stale였음) — 이번엔 오타만 교정(GO `DungeonFaild`→`DungeonFailed`, 타이틀 "Dungeon Faild"→"Dungeon Failed"). 코드 측(DungeonClear/DungeonFailed.Bind + GameHud Render)은 기존 완비. 아트 폴리시는 상시.)
-- **7.2** 인벤토리/장비 UI (대응 3.1/3.2) — 🔄 | T2 | ⚪ (2026-06-07 MVI 스택 코드 완료 → **2026-06-08 열기·슬롯·아이콘 플레이 검증 통과**, 상세 = codemap §2.15. Network→System→Presentation(`InventoryModel`+`ItemDisplayCatalog`)→GUI(`Inventory`/`UniversalSlot`/`ItemContentsSlot`) MVI. **2026-06-08 수정**: ① 열기 버그(`InventoryViewController`가 `MainLifetimeScope` 누락 → Main 씬 무반응) 수정 ② 슬롯 재설계(`UniversalSlot`=컨테이너 고정 30 + `ItemContentsSlot` 동적 Content, 타입별 슬롯 대비, 두 prefab Addressable 로드) ③ I키=`GameHud.Update` Keyboard 폴링(임시, 래퍼 재생성 후 InputRouter 이관) ④ `ItemDisplayCatalog` Resources 경로 버그 수정 + 서버 itemId 정렬(아이콘 표시). **잔여**: 탭(Material/Quest/Etc) 토글 배선, I키 정석 배선. **장비 UI(3.2 연동) 코드 완료 2026-06-16**: ① **공통 enum 통일** — GUI/서버 `EquipmentSlot`→`Shared.Gameplay.Equipment.EquipmentType`(8슬롯: Header/Armor/Shoose/Glove/Shield/Weapon/Ring/Necklace, 카탈로그는 Weapon/Armor만 채움) + proto enum 8값 확장·재생성·DLL 재배치. ② **클라 MVI 신설** — System(`IEquipmentService`/`EquipmentService`, OnChanged 이벤트) → Presentation(`EquipmentModel`/`State`/`Intent`/`SlotModel`) → GUI(`Equipment` View, EquipmentModel만 주입). ③ **장착 트리거** — `ItemActionPanel` 분류별 버튼(장비=장착/소모품=사용, 그외 비활성) → `InventoryModel.EquipItem`(IEquipmentService 주입) → 성공 시 OnChanged로 장비창 자동갱신. ④ **열닫 연동** — I키/HUD=인벤토리+장비 쌍 토글(`InventoryViewController`가 `EquipmentViewController` Show/Hide 참조), K키=장비 단독 토글(`InGameIntent.ToggleEquipment`), 각 X버튼=독립 닫힘. Addressable `Equipment.prefab`. **검증**: 서버 306/306·장비통합 8·**E2E 6/6**(enum 통일 후)·클라 컴파일 0에러·InventoryModelTests 5/5. 상세 codemap §2.27. **잔여(사용자 Unity)**: Equipment.prefab 슬롯 인스펙터 할당(QuickSetting)·플레이 검증. **후속 작업 2026-06-16**: ⑤ **장비 8종 추가**(8슬롯 1종씩: sword_basic/armor_leather + helmet_iron/boots_leather/gloves_leather/shield_wooden/ring_power/necklace_vitality) → 서버 `ItemCatalog`/`EquipmentCatalog`(코드) + 클라 `ItemDisplayCatalog.asset`(표시, 아이콘은 사용자 할당). ⑥ **몬스터 드랍**: 유일 스폰 몬스터 slime 에 장비 8종 추가(0.15~0.3 확률, `DropTableDefinition.asset`→Export→`drop-tables.json`→양 서버 리빌드). goblin 미스폰이라 potion만 유지. ⑦ **UI 입력 차단 버그픽스**: 인벤토리/장비창 열린 동안 WASD 이동 누수 → `UiInputCaptureBehaviour`+`IInputContext.EnterUi/ExitUi`(refcount) 적용(DungeonRoomLobbyView와 동일, `InventoryModel`/`EquipmentModel`에 `BeginUiCapture/EndUiCapture` 추가). ⑧ **InputRouterTests 9개 픽스**: 테스트 Setup에 `_actions.Player.Enable()` 누락(InputRouter가 맵 활성화를 GlobalInputInitializer에 위임하도록 바뀐 뒤 미반영) → 추가. **검증**: 서버 빌드 0 + DropTableCatalog 6 + DropTableRoll 5 + GameServer 장비/인벤 74 + InputRouterTests **10/10** + EquipmentE2E **6/6** + SocketE2E 26/27. **별건 회귀 수정 완료 2026-06-17(E2E 검증 통과)**: SocketE2E `RawSocket_몬스터에게_죽으면_S_PlayerDead` 회귀를 근본 수정. ① **1차 오진(2026-06-16, 미검증)**: 픽스처 `test_brute`가 2.4 Defense(`max(1,AD−Def)`)로 약해진 게 원인인 줄 알고 `attackDamage 5→9999`로 올렸으나, Unity 브리지 복구 후 실제 E2E를 돌리니 **여전히 실패**. ② **진짜 원인 = 입장 전 사망 레이스**: 몬스터는 `_playerStates`(GameStart 시 초기화) 기준으로 공격하며 소켓 join 여부를 안 봄. test_brute 가 (0,0,0)·호스트 slot0 도 (0,0,0) → 9999=첫 100ms 틱 즉사인데, 그 시점엔 테스트 collector 가 아직 미입장 → `S_PlayerDead` 가 빈 방에 발행돼 **유실**(이후 호스트는 `_downed`라 재공격 안 됨 → 영영 못 받음). 2.4 이전 5뎀일 땐 ~2초 걸려 죽어 join 이후라 캐치됐던 것(=잠복 결함이 즉사로 표면화). ③ **수정(방향 A)**: `PlayerState.HasJoined` 추가 — `InitPlayerState`=false(미입장), `C_PlayerJoin` 성공 시 `Room.MarkJoined`(구 `MarkReconnected` 개명)가 true. `TickMonsters` 타깃 필터에 `HasJoined` 추가 → 아직 입장 안 한(로딩 중) 플레이어를 몬스터가 죽이는 고스트-공격 결함 자체를 제거. test_brute 9999 는 유지(입장 후엔 결정론적 즉사 = 픽스처 의도). **검증: SocketServer 단위 103/103 + 서버 솔루션 빌드 0오류 + socketserver 리빌드·재배포 후 PlayMode SocketE2ETests 21/21 그린**(사망·재접속 포함). 영향 단위테스트(MonsterAttackTests·PlayerHpServerAuthorityTests 몬스터데미지)에 `MarkJoined` 보정. **⑨ 장비 해제 + 인벤토리 연동 2026-06-16**: ⓐ Equipment View — 미착용 슬롯은 Icon·Button GameObject 비활성/착용 시 활성, 슬롯 Button 클릭 → `ItemActionPanel`(Addressable) 팝업 → Unequip 버튼 → `EquipmentIntent.Unequip(slot)`. ⓑ **패널 로직 공용화** — Inventory의 패널 열기/배치/닫기를 `ItemActionPanelController`(GUI/Common)로 추출, Inventory·Equipment 공유(DRY). `ItemActionPanel.Bind`에 onUnequip/canUnequip 추가(소모품=use, 장비=equip, 장비창=unequip). ⓒ **착용↔인벤토리 동기** — `InventoryModel`이 착용 itemId를 표시에서 제외 + `IEquipmentService.OnChanged` 구독 → 장착 시 인벤토리에서 사라지고 장비창에 나타남, 해제 시 반대(양쪽 동시 갱신). **검증**: 클라 컴파일 0 + InventoryModelTests **6/6**(착용 제외 필터 신규). **잔여(사용자 Unity)**: Equipment.prefab 슬롯/버튼·ItemActionPanel unEquipButton 인스펙터 할당, 플레이 검증)
-- **7.3** 캐릭터 정보/스탯창 (대응 2.3/2.4) — ✅ | T2 | 🟢 (**완료 2026-06-25**. GameHud Ability버튼·**G키** → InGameModel.ToggleAbility → StatViewController(Quest 동형 POCO)가 StatWindow.prefab 단독 토글. StatWindow(View)=ProgressionModel 주입→열기 시 GetProgression pull→레벨/경험치/스탯7 = **9개 라인**(라벨:값, rowTemplate 복제). GUI는 System(ProgressionData) 비참조 → Presentation이 `StatLine` 으로 변환 노출. 창 활성 중 이동 차단(UiInputCapture). Main 전용(MainLifetimeScope). 상세 codemap §2.44. **검증**: 컴파일0 + ProgressionViewStateTests 3 + GameHud(Buff)Integration 2 + InGameModelTests 4 그린. 잔여: 던전 내 스탯창(ProgressionModel 던전 등록 필요), 프리팹 색/레이아웃 다듬기는 Unity)
-- **7.4** 퀘스트 UI/추적 HUD (대응 4.4) — ✅ | T2 | 🟢 (**추적 HUD 완료 2026-06-25**. 퀘스트 UI(창)+수락/완료/보상은 4.4·4.5 NPC 대화로 완비. **추적 HUD**: GameHud 우상단 QuestTracker 패널이 진행중(Accepted/Completed) 퀘스트 이름+조건 표시. QuestTrackerView(GUI)가 QuestModel(Main 전용) 을 IObjectResolver.TryResolve 로 **선택 주입** → 던전(QuestModel 미등록)에선 자동 숨김(GameHud DI 깨짐 방지). 진입 시 Refresh 1회+State 구독 + **QuestNotifier.OnNotice 구독(수락/보상 즉시) + QuestModel 이 PlayerProgressionHolder.OnChanged 구독(킬 진행도 2/3→3/3 즉시)**. 수락=등장·진행=실시간·완료/보상수령=사라짐 전 흐름 라이브. 상세 codemap §2.43. **검증**: 컴파일0 + Quest 4스위트 21(QuestModel·QuestNotifier·QuestTrackerView·DialogueModel) + GameHud(Buff)IntegrationTests 2 그린. 잔여: exp쿨다운 중 킬은 다음 갱신 시(드문 엣지), 던전 추적(QuestModel·QuestNotifier 던전 등록 필요))
-- **7.5** 대화 UI (대응 4.5) — ⬜ | T2 | ⚪
-- **7.6** 상점 UI (대응 3.5) — ✅ | T2 | 🟢 (**구매 UI 완료 2026-06-17** + **판매(Sell) UI 완료 2026-06-23**. 구매: Shop View MVI(탭/리스트/선택패널/수량/구매) + 동적 Addressable 슬롯 + 결과 토스트 + HUD 상점버튼 열기·이동차단. 골드 표시는 인벤토리 화면(InventoryModel WithGold)에 이미 반영. **판매**: 인벤토리 비장착 아이템 클릭 → ItemActionPanel 판매버튼 → 가격(서버 sell_price) 확인 ConfirmPopup → 확인 시 IShopService.Sell(서버 권위 인벤차감→골드적립)·취소 시 닫힘. 장착품은 인벤 표시에서 이미 제외(판매버튼 안 뜸). 상세 codemap §2.29·§2.42. **검증**: 클라 컴파일0 + InventoryModelTests 8(판매가 룩업·SellItem 위임 2 신규)·ShopModelTests 7 그린. 잔여: 스택 수량 선택(현재 1개/확인), 프리팹 인스펙터 sellButton 할당(사용자 완료))
-- **7.7** 미니맵 HUD (대응 4.6) — ⬜ | T2 | ⚪
-- **7.8** 설정 메뉴 (대응 6.3) — ⬜ | T2 | ⚪
+### 7. UI / UX
+- **7.1** 결과/보상 화면 — ✅ | T1 | 🟢
+- **7.2** 인벤토리/장비 UI — 🔄 | T2 | ⚪
+- **7.3** 캐릭터 정보/스탯창 — ✅ | T2 | 🟢
+- **7.4** 퀘스트 UI/추적 HUD — ✅ | T2 | 🟢
+- **7.5** 대화 UI — ⬜ | T2 | ⚪
+- **7.6** 상점 UI — 구매·판매 — ✅ | T2 | 🟢
+- **7.7** 미니맵 HUD — ⬜ | T2 | ⚪
+- **7.8** 설정 메뉴 — ⬜ | T2 | ⚪
 
 ### 8. 오디오
 - **8.1** BGM/환경음 — ⬜ | T3 | ⚪
-- **8.2** 전투 SFX/타격감 (HitStop 연계) — ⬜ | T2 | ⚪
+- **8.2** 전투 SFX/타격감 — ⬜ | T2 | ⚪
 - **8.3** UI SFX — ⬜ | T3 | ⚪
 
 ### 9. 인프라 / 품질 / 기술 부채
-- **9.1** SocketServer IP 하드코딩 → appsettings.json — ✅ | 높음 | 🟢 (2026-06-07: 실은 이미 `ServerOptions`(Server 섹션)로 env 구성됨 — docker `Server__Ip/AdvertiseIp`. 남은 갭 = `appsettings.json`에 `Server` 블록 명시(자기문서화) + docker `AdvertiseIp`에 "원격 배포 시 호스트 IP 교체" 주석. 코드 변경 0)
-- **9.2** `DungeonRoom.DungeonId` 부재 (= 4.3) — ✅ | 중간 | 🟢 (**해소 2026-06-25 — 4.3과 함께 완료**. `DungeonRoom.MapId`(string, 스폰 카탈로그 키와 통일) 영속·방 생성 시 결정. 상세 = 4.3 항목.)
-- **9.3** Auth: 로그인 시 이전 세션 강제 만료 — ✅ | 중간 | 🟢 (2026-06-07: **이미 end-to-end 구현 확인 + 회귀 테스트 추가**. ① 로그인=`UserSessionRepository.CreateSessionAsync`가 기존 세션 DB+캐시 제거 ② **`ValidateTokenAsync`가 매 요청 sid 클레임→세션 저장소 존재 검증**(`AuthService.cs:242`), `AuthInterceptor`가 호출 → 기기A 세션 제거 즉시 다음 요청 거부(**15분 창 없음**) ③ refresh 바인딩 실패도 세션 제거. 테스트: `새_기기_로그인_시_이전_세션은_강제_만료된다` + Fake 충실도 수정)
-- **9.4** `Room.Leave` 시 `_playerStates` 정리 누락 — ✅ | 낮음 | ⚪ (2026-06-07: `Room.Leave`가 session.UserId로 `_playerStates.Remove` — 떠난 플레이어 유령 잔류(AI 타깃/위치) 차단. SocketServer.Tests +1)
-- **9.5** Redis Consumer name `socket-1` 고정 → 동적 생성 — ✅ | 낮음 | ⚪ (2026-06-07: `socket-{Environment.MachineName}` — 수평 확장 시 PEL 충돌 방지, 컨테이너 hostname 안정적이라 재시작 PEL 복구 유지)
-- **9.6** `GetRooms` count/페이징 정책 — ✅ | 낮음 | 🟢 (2026-06-07 **N+1 해소** — 방마다 2왕복 → `GetPlayersByRoomIdsAsync` 1쿼리 + 유저 1쿼리 배치.
-  **2026-08-17 페이징 완료**(사용자 승인). 부채의 실체 = `GetRoomsRequest.room_count` 가 **완전히 무시되고 전체 활성 방이 반환**되던 것. proto 는 **필드 추가만**(`offset`=2, `total_count`=3 — 태그 불변이라 와이어 호환) + 클라 `Generated/` 재생성.
-  ⚠️ **정렬이 페이징의 전제**: 소스가 Redis `room:active`=**Set(무순서)** 이라 정렬 없이 Skip/Take 하면 호출마다 순서가 달라져 페이지 간 중복·누락이 난다 → 서버가 **RoomId 내림차순(최신 먼저)** 으로 고정한다.
-  clamp 는 서버 권위(`DungeonLobbyPaging`: 기본 20 · 상한 50 · 음수 offset→0) — 클라가 큰 값을 보내도 잘린다. `IDungeonLobbyService.GetActiveDungeonRoomsAsync(offset, limit)` → `ActiveRoomPage(Rooms, TotalCount)`.
-  동반 수정: 실패 Result 에 `throw new InvalidOperationException("Room List is null")` 하던 것 → `if (!result.IsSuccess) return response`(정상 실패를 미처리 예외로 만들던 경로).
-  UI 페이저는 안 붙였다 — `LobbyModel` 은 첫 페이지만 요청(YAGNI, 목록이 20을 넘으면 그때). 검증: GameServer **391/391**(신규 7) · SocketServer **209/209** · EditMode **204/204** · `DungeonLobbyE2ETests` **14/14**(신규 1, 신선 Docker). codemap §2.100)
-- **9.7** status.md stale → plan.md 일원화 — ✅ | 낮음 | 🟢 (2026-06-07: stale status.md **삭제** + 참조(CLAUDE.md·AGENTS.md·plan.md) 정리. 현황 진실원 = plan.md 단일화)
+- **9.1** SocketServer IP 하드코딩 → appsettings.json — ✅ | 높음 | 🟢
+- **9.2** `DungeonRoom.DungeonId` 부재 (= 4.3) — ✅ | 중간 | 🟢
+- **9.3** Auth: 로그인 시 이전 세션 강제 만료 — ✅ | 중간 | 🟢
+- **9.4** `Room.Leave` 시 플레이어 상태 정리 누락 — ✅ | 낮음 | ⚪
+- **9.5** Redis Consumer name 고정 → 머신명 기반 — ✅ | 낮음 | ⚪
+- **9.6** `GetRooms` count/페이징 정책 — ✅ | 낮음 | 🟢
+- **9.7** status.md stale → plan.md 일원화 — ✅ | 낮음 | 🟢
 - **9.8** 부하 테스트 + 전체 E2E 회귀 자동화 — ⬜ | 마감 | ⚪
 - **9.9** 배포 문서 + 포트폴리오 챕터 마감 — ⬜ | 마감 | ⚪
-- **9.10** 컨슈머 복원력 — 일시적 Redis 오류(`LOADING`/연결끊김)에 BackgroundService 컨슈머가 outer catch로 루프 종료 → **영구히 죽던 버그**(게임시작 체인 끊김 실사례). `Shared.Infrastructure/MessageQueue/ResilientStreamConsumer`로 중앙화(while 재시도 + 지수백오프+지터, poison 메시지 격리). `GameStartRequestedConsumer`·`GameSessionReadyConsumer`·`RoomLifecycleConsumer` 이관. SocketServer.Tests 복원력 3 + 양 서버 재배포 검증 — ✅ | 높음 | 🟢
+- **9.10** 컨슈머 복원력 — `ResilientStreamConsumer` 중앙화 — ✅ | 높음 | 🟢
 
----
-
-## 🟢 세션 트랙 — 서버 도메인(이 세션) vs 🔵 GAS 세션
-
-GAS 세션(2.*·4.1.4)과 **파일·패킷 충돌 없이 병행** 가능한 서버 도메인 트랙:
-
-```
-3.1 Inventory ──→ 2.3 Progression ──→ 3.4 Wallet ──→ 4.2 DungeonResult(보상지급)
-      │                                                      │
-      └──→ 3.2 Equipment (2.4 스탯합산)            6.1 영속 ◀─┘
-(+ 부채 9.2 DungeonId · 9.1 IP · 9.3 세션만료 동반 해소)
-```
-
-**즉시 착수 후보**: **3.1 인벤토리 도메인**(3.1.1 엔티티부터). 모든 보상/장비/상점/루트의 공통 전제 — 서버 권위 영속 + Cache-Aside 쇼케이스.
-
----
-
-## 📋 작업 순서 (M1 → M6, 실행 정렬 로드맵)
-
-> 각 단계 = **서버 + 클라 + 테스트(TDD)** 3축, 끝에 **MPPM 2-client** 검증.
-> Character 아키텍처(CA)는 의존성에 맞춰 M1(합성/Driver)·M2(GAS)·M5(툴)에 통합.
-> **안 함**: ECS/DOTS·Unity Timeline 전투구동·SO를 데이터 진실원·fixed-point/롤백(Co-op)·재작성.
-
-### ✅ M1 — 인게임 진입: "던전에서 서로 움직임이 보인다" (완료) [WBS 1.6]
-선행: M0. **현 Locomotion FSM 그대로**(전투 미포함). Dungeon 씬은 그린필드 → 게임플레이 DI/스폰 신규 구성.
-- [x] 소켓 진입 흐름(구 A-1/A-2): `SocketApiClient` 등록·`DungeonLifetimeScope`·`GameSessionConnector`(OnGameSessionReady→TCP→`C_PlayerJoin`, 재시도·중복 가드), `C_Auth` 제거, Redis 검증 재작성, 포트폴리오 챕터 11
-- [x] 던전→Main 복귀(`InGameModel` MVI·`GameHud`·`GameHudController` Addressable)
-- [x] 던전 퇴장 일관성(`PlayerLeftRoomMessage` 일반화·`RemovePlayerFromRoomAsync`·멱등성) — [codemap §2.1](codemap.md)
-- [x] 원격 동기화 데이터 토대 — `ISocketPacketState.GetAllPlayers()` (※ reconciler 클래스는 제거, diff는 presenter/spawner 내부로)
-- [x] **`AddressableLoader`(Util)** 통합 — Lobby/Hud 중복 로드 일원화
-- [x] **`CharacterSpawner`(생성/삭제)** + **Character 합성 + `Driver`(LocalInput/Network)** [CA-4] — Dungeon 씬 게임플레이 DI 구성
-- [x] **GameHud HP/MP ↔ GAS 연동** — `GameplayAttribute.OnChanged`→`ASC.OnAttributeChanged`→`LocalPlayerContext`→`InGameModel`→`SliderBall`. EditMode(릴레이)·PlayMode(prefab 동적생성 렌더) 테스트 통과
-- [x] 로컬 PlayerCharacter 스폰(SpawnIndex, 결정론 Resolve) + 이동→`C_Move` 송신(`MoveSyncSender`) — PlayMode `CharacterSpawnMultiClientTests` 검증
-- [x] 원격 NetworkCharacter 스폰 + 스냅샷 보간(`RemoteDriver`) — 다중 원격·늦은 입장 동적 스폰 PlayMode 3/3 통과. 맵 비주얼=`MapLoader`(MapDefinition.visualPrefab). 저작=`MapEditorWindow`(SO→JSON bake). `monsterSpawns[]` 스키마 선반영(M3 스폰 로직 대기)
-- [x] 전원 입장 → 인게임 진입(로딩 게이트 + Fader) — 기존 `S_GameStatus(InProgress)` 재사용(새 패킷 X): `GameStatusPacketHandler`→`ISocketPacketState.OnDungeonReady`→ ① `InGameModel.IsDungeonReady` ② `GameSessionConnector`가 `LoadSceneAsync(holdUntil)`로 **전원 입장까지 Loading 유지("다른 플레이어를 기다리는 중…") → 완료 시 Fader reveal**(30s 타임아웃 가드). 흐름 로그 全 hop. **E2E `SocketE2ETests` 8/8** + EditMode 릴레이 5/5 + `GameSessionConnectorTests` 3/3
-- [x] **MPPM 2-client** "서로 보임·이동" 검증 — 선행 블로커 2건 ✅해소([mppm-testing.md](mppm-testing.md)): ① 서버 이미지 리빌드(E2E 8/8 그린) ② `MainLifetimeScope` DI 누락 수정. 데이터 선행 ✅ → **MPPM 2-창 시각 검증 완료(사람 조작, 2026-06-03)**. **M1 전체 완료.**
-
-### 🔄 M2 — 전투 코어 (Character 두 축 리팩터 동반) [WBS 2.1·2.2·2.5.1·2.6.2]
-선행: M1. 상세 기획: [effect-system.md](effect-system.md)
-
-**Effect/버프 시스템 — 1단계 (클라 단독·sync-ready, M1 중에도 착수 가능)**
-- [x] **EF-1a**: Attribute 재구조 — Resource vs Stat(`EAttributeKind`) 분리, `SetCurrent`(파생·정수 `GameplayEffectMath.Aggregate`). 즉발은 Resource만 영구 변경
-- [x] **EF-1b**: `GameplayEffectDefinition`/`ActiveGameplayEffect`/`EEffectCategory`/`EDurationPolicy`/`EStackPolicy`/`GameplayEffectCatalog`(string id 시드) — 순수 데이터, Sprite 없음
-- [x] **EF-1c**: ASC `ApplyEffect`/`RemoveEffect`/`Tick`(만료) + 추가/제거/만료 시 `RecalculateStats` → `OnActiveEffectsChanged`, `GetActiveEffectSnapshots`
-- [x] **EF-1d**: `EffectIconCatalog`(Presentation SO·표시전용·카테고리→Sprite+polarity 색) + `BuffView` DTO + `InGameState.Buffs` + `InGameModel` 중계
-- [x] **EF-1e**: `GameHud` 버프슬롯 풀 렌더 + `BattleEffectSlot.Bind`+로컬 카운트다운. EditMode 122/122 + PlayMode(슬롯 렌더·HP/MP) 통과
-- [x] **EF-1f**: `EffectIconCatalog` 에셋(`Assets/GameData/Effects/`, Addressables) — fg4_icons PSD 멀티스프라이트 + 버프/디버프 색. `DungeonLifetimeScope` Resources 폴백 자동 로드. **UI Toolkit 커스텀 인스펙터**
-
-**Effect/버프 시스템 — 2단계 (M2 합류·서버 권위)**
-- [x] **EF-2a**: `Shared.Gameplay`(netstandard2.1) 결정론 코어 — enums/`GameplayAttributeModifier`/`GameplayEffectMath.Aggregate`/`EffectTiming`. xUnit golden **9/9**(클라 EF-1 parity). sln 등록
-- [x] **EF-2c (서버)**: `S_ApplyEffect`/`S_RemoveEffect` 패킷(`Shared.Packet`, Union **1640/1641**) — StartTick+EffectId만. SocketServer.Tests **11/11**
-- [x] **EF-2b**: DLL 단일 소스 — `Shared.Gameplay.dll`을 `Client/Assets/Plugins/`에 배치, 클라 중복 순수 8개 삭제. DLL 타입을 클라와 **동일 ns**로 둬 클라 코드 수정 0. EditMode **122/122**
-- [x] **EF-2c (클라)**: 패킷 미러 — `ClientCodegen` 재생성으로 클라 반영(`Network/Socket/Packets/EffectPacket.cs`). 회귀 122 통과
-- 🔄 **EF-2d** (서버 전투 CA-1/3 선행 — 대부분 combat-gated):
-  - [x] **ASC 서버-권위 적용 시드**: `ApplyEffectAuthoritative(def, instanceId, stacks)` — 서버 InstanceId 키·멱등 재적용·`RemoveEffect(serverId)`. EditMode 124/124.
-  - [x] **서버 emit(테스트 등급)**: `CombatHandler.HandleAttack`(`C_Attack`→디버프 `S_ApplyEffect` 방 브로드캐스트). SocketServer.Tests **13/13**
-  - [x] **수신 핸들러 배선(클라)**: `SocketEffectApply`+`Effect{Apply,Remove}PacketHandler` → `EffectReceiver`(카탈로그+`AuthSession` 라우팅). EditMode **127/127**
-  - [x] **E2E 2-클라 검증**: `SocketE2ETests` — A `C_Attack`→`S_ApplyEffect`→B 수신 **1/1**
-  - [ ] **남은 정밀화**: 공유 시계(서버 tick, StartTick 정밀 만료) + 클라 예측/정정 + 원격 캐릭터 ASC 라우팅 — CA-3 합류 시
-
-**Character 리팩터 + 서버 권위 전투**
-- [x] **CA-1**: 두 축 분리 — Action을 Locomotion FSM에서 들어냄. **`CharacterAgent` 무접촉**. EditMode **129/129**.
-  - [x] **Attack (증분1)**: `AttackState`/`StateKind.Attack` 제거. 발동=`PlayerCharacterAgent.HandleAttackInput`(`ConsumeAttackPressed`→히트리셋+애니). 데미지는 기존 GAS 체인 유지. `LocomotionStateMachineTests` 추가.
-  - [x] **Interact (증분2)**: `InteractState`/`StateKind.Interact` 제거. 발동=`HandleInteractInput`(`ConsumeInteractPressed`→`InteractionDetector.CurrentInteractable.Interact(gameObject)`). 실작동 구 Character-ns 경로 유지.
-  - [x] **규칙갱신**: `.claude/rules/unity-gameplay-state.md` → "두 축 분리"로 갱신.
-  - [ ] **별도 정리(후속)**: `Game.Gameplay.Input.InteractionSystem`(휴면 중복) 제거 또는 일원화 결정. 아이템 인벤토리(3.1) 합류 시 instigator 흐름 확정.
-- [x] **CA-2**: `Shared.Gameplay`에 SkillTimeline 스키마 + 결정론 코어 — `SkillTimeline`·`SkillTimelineMath`·`HitboxMath.Overlaps`·`SkillCatalog`(`basic_swing`). 적중=`OnHitEffectIds`→GE→EF-2d `S_ApplyEffect` 재사용. xUnit **17/17**.
-- ✅ **CA-3**: BasicAttack end-to-end — 서버 권위 판정 + GE 데미지, 클라 송신/연출/HitStop (정밀화는 §197 후속)
-  - [x] **증분① 서버 권위 적중 판정**: `CombatHandler` 업그레이드 — `C_Attack`→Room 위치/yaw로 `SkillCatalog`+`HitboxMath.Overlaps` 적중 재계산(권위) → `basic_attack_dmg` `S_ApplyEffect` 브로드캐스트. SocketServer.Tests 15/15 + E2E 1/1.
-  - [x] **증분②a 클라 데미지 적용**: 클라 `GameplayEffectCatalog`에 `basic_attack_dmg`(Instant Health -10) → `EffectReceiver` 수신 시 ASC Health 즉발 감소. EditMode **130/130**.
-  - [x] **증분②b 인게임 송신+이중데미지 제거+HitStop**: 공격 시 **C_Attack 송신**(`CombatSyncSender`+`OnAttackPerformed`+`CharacterSpawner.AttachCombatSyncSender`) + 로컬 권위 데미지 제거(데미지는 서버 `S_ApplyEffect`만). **HitStop**=`HitStopController`(per-actor `Animator.speed`) → `PlayerCharacter.prefab` 루트 부착. EditMode **131/131**.
-  - [x] **증분③ 2-client 공격·피격 동기화 검증**(E2E): 신선 Docker 서버 대상 `SocketE2ETests` **8/8 그린** — combat 케이스(`RawSocket_호스트가_정면의_게스트를_공격하면_서버권위_적중_S_ApplyEffect`: 호스트 정면 1유닛의 게스트 공격 → 서버 hitbox 판정 → 게스트 `S_ApplyEffect{basic_attack_dmg}` 수신) 포함. ※MPPM 2-창 시각 검증(HitStop 연출)은 사람 조작 영역.
-  - [x] **증분④ 죽은 ability 클러스터 정리**(YAGNI): 서버 권위 이관으로 미사용·미부착이던 로컬 GAS *ability* 경로 삭제 — `CharacterHitEventReceiver`·`HitDetector`(+프리팹 `AttackPoint`)·`BasicAttackAbility`·`Ability`·`AbilityActivationContext`·`BasicAttackAbilityTests` + ASC ability 멤버. GAS *effect*(ASC.ApplyEffect·GameplayEffect·버프)는 유지. 컴파일 0 + EditMode **128/128**(ability 테스트 3개만 감소). codemap §2.7.
-
-### M3 — 몬스터 [WBS 4.1]
-선행: M2.
-
-**설계 결정**: 몬스터 HP = **서버 권위**(플레이어 HP는 기존 클라 결정론 유지 — 의도된 비대칭, 몬스터는 서버 소유 NPC). 이동 = **서버 시뮬 + 클라 보간**(`RemoteDriver` 모델, 클라엔 몬스터 AI/물리 없음). **단일 `RoomTickService`**가 전 방 순회(몬스터 상태는 `Room` 동거), AI *수식*만 순수 `MonsterAiMath`로 분리(단위테스트). 스폰/패트롤/맵경계는 **Map Editor 저작 → spawn-layouts.json → 서버 파싱**(클라 런타임은 미사용 — 받은 위치에 인스턴스+보간만).
-
-- [x] **① 패킷** — `S_SpawnMonster`(1810)/`S_MonsterState`(1811)/`S_MonsterDead`(1812) + Union + 클라 미러 재생성(codegen 자동) [4.1.1] — SocketServer.Tests 직렬화 **4/4**
-- [x] **②a 데이터모델** — `MapDefinition.bounds`(MapBounds: centerX/Z·sizeX/Z) + `MonsterSpawn.patrolPoints`(List<Vector3>) + 공유 `MapBounds`(Clamp/Contains·무경계 가드)·`MonsterSpawnDef`(Patrol) + `MapDataExporter` DTO 확장(patrol/bounds, Bake+Import 양방향). ServerAll·Game.Gameplay·Editor 빌드 0오류
-- [x] **②b 에디터** — `MonsterSpawnMarker`·`PatrolPointMarker`·`MapBoundsMarker`(저작 마커) + `MapEditorWindow` Add Monster/Patrol·Load·SaveAndExport write-back·기즈모 라벨. Game.Gameplay·Editor 빌드 0오류(※실저작은 Unity에서 사람이)
-- [x] **②c 서버 파싱** — `MapSpawnLayout`(Bounds·Monsters) 확장 + `SpawnLayoutTable.Parse(Stream)` 공개·monsters/patrol/bounds 파싱 + `dungeon_01` JSON 시드(slime+4패트롤+40×40 경계, 클라/서버 양본). SocketServer.Tests **9/9**(파싱 합성JSON·clamp·임베디드) [4.1.2]
-- [x] **③ 서버 상태/스폰** — `Server.Monster`(`MonsterState`+`MonsterPhase`·`MonsterCatalog`) + `Room` 몬스터 보유(`SpawnMonsters`/`GetAllMonsters`/`GetMonster`/`RemoveMonster`·`Bounds`) + `CreateRoom` 스폰 + `RoomJoinLeaveHandler` 입장 시 `S_SpawnMonster`×N 로스터. SocketServer.Tests **26/26** [4.1.2]
-- [x] **④ 틱+AI(이동)** — `MonsterAiMath.Step`(순수: Chase/Attack/Patrol/Idle + **매 틱 bounds.Clamp**) + `Room.TickMonsters`(락 안 step→S_MonsterState 목록) + `RoomTickService`(BackgroundService 10Hz, Program.cs 등록). SocketServer.Tests **33/33**(AI 7). ※몬스터→플레이어 공격발동(쿨다운→`S_ApplyEffect`)은 ⑤에서 합류 [4.1.3]
-- [x] **⑤ 피격/사망(플레이어→몬스터, GAS)** — `CombatEffectCatalog`(effectId→`GameplayAttributeModifier`) + `Room.DamageMonster`(`GameplayEffectMath.Aggregate`로 HP 차감·0이하 제거) + `CombatHandler.ApplyAttackToMonsters`(몬스터 hitbox 판정 → `S_MonsterState`/`S_MonsterDead`). SocketServer.Tests **38/38**(피격 5) [4.1.4]
-  - [x] **⑤b 몬스터→플레이어 공격** — `MonsterAiMath.Step`이 aggro 타깃 인덱스 반환 → `Room.TickMonsters(dt, nowMs)`가 Attack 페이즈+쿨다운(`AttackCooldownMs`) 경과 시 최근접 플레이어에 `S_ApplyEffect{monster_attack_dmg}` 발행(`RoomTickService`가 nowMs 전달). 클라 `GameplayEffectCatalog`에 `monster_attack_dmg`(Instant Health -5). SocketServer.Tests **43/43**(공격 2). ※원격 피격자 HP는 `EffectReceiver` 로컬 라우팅만(원격 ASC 라우팅은 CA-3 후속 부채)
-- [x] **⑥ 클라 렌더** — `MonsterPacketHandler` 3종(디스패처 자동매핑) + `ISocketPacketState` 몬스터 상태/이벤트 + `SocketMonsterSnapshot` + `MonsterSpawner`(IAsyncStartable, DI 등록) + `MonsterEntity`(`RemoteDriver`류 보간) + `CharacterPrefabSettings.MonsterPrefab`. Game.Network/Gameplay/VContainer/Tests.EditMode 빌드 0오류 + EditMode 릴레이 테스트 4개. ※**Unity에서 사람이**: 몬스터 프리팹(+`MonsterEntity`) 제작 → `DungeonLifetimeScope.monsterPrefab` 할당 → EditMode 실행/플레이 확인 [4.1.5]
-- [x] **⑦ E2E(작성)** — `SocketE2ETests`에 몬스터 3종 추가: 입장→`S_SpawnMonster` 로스터 수신 / 반복 공격(최신 위치 재조준)→`S_MonsterDead` / 사거리 진입→`S_ApplyEffect{monster_attack_dmg}` 수신. `SocketPacketCollector.TryGetLatest` 추가. PlayMode 빌드 0오류 + 서버(⑤b) 재배포. ※실제 실행(Unity PlayMode, Docker 대상)은 대기
-
-### ✅ M4 — 던전 루프 완성 (= DoD 달성) [WBS 2.3·4.2·6.2·7.1]
-선행: M3. **DoD 달성 완료 (2026-06-07 MPPM 2-창 수동 검증 통과).** A 트랙(클리어 루프)·B 트랙(Exp 보상+실패+UI) 코드 + 1판 루프 시각 검증 모두 닫힘.
-
-**전투 모델 결정 (2026-06-05) — 플레이어→몬스터 = 서버 권위, 트리거만 클라**
-- **모델(= 기존 M3 ⑤ 유지)**: 클라 좌클릭 → `C_Attack{skillId}` 송신(트리거) → 서버 `CombatHandler`가 시전자 위치/yaw로 hitbox 재계산(권위 판정) → `Room.DamageMonster`(서버 HP·데미지 산정) → `S_MonsterState`/`S_MonsterDead` 브로드캐스트.
-- **역할 분리**: 클라 = **트리거만**(어떤 몬스터/데미지 모름). 서버 = **판정·데미지·HP·전멸·브로드캐스트 전부 권위**.
-- **후속(M5)**: 데미지 산식을 GAS 스탯(공격력/방어력) 기반으로 승격. 현재는 `CombatEffectCatalog` 고정값.
-- **판단 기준**: 왜 서버 권위인가 = [authority-model.md](authority-model.md) 4축(치팅/일관성/반응성/결정론). **데미지 숫자 표시 = A안**(서버 응답값, 클라가 이전HP−새HP 델타로 플로팅 텍스트, 패킷 무변경 / 막타는 마지막 HP 근사). 연출만 입력 즉발.
-- **확인 필요**: 현 서버 권위 경로(`ApplyAttackToMonsters`)가 **실제 플레이에서 동작하는지**(몬스터 콜라이더/위치 추적·hitbox 튜닝). 코드는 존재(M3 ⑤) → A 트랙은 *검증·배선*이지 신규 구축 아님.
-
-**A 트랙 — 클리어 루프 골격** (보상 없이 먼저 관통 → DoD "모양"). DungeonId는 보상 산정 전제라 B로 미룸(A는 DB 스키마 변경 없이 관통).
-- [x] **전투 검증(사용자 플레이)** — 클라 공격 체인은 **코드 완성·배선 확인됨**(좌클릭→`PressAttack`→`CombatSyncSender`→`C_Attack`→서버 hitbox→`DamageMonster`; `CharacterSpawner.cs:69`서 부착). 사용자 던전 플레이로 클리어 플로우+이동 검증 완료. **검증 중 발견 버그 수정(2026-06-07)**: ① 고fps에서 이동 교착 — `CharacterMotor` 속도 램프를 `controller.velocity` → `m_speed`(직전 의도속도) 기반으로 변경(첫 프레임 변위가 `CharacterController.minMoveDistance`보다 작아 velocity가 0에 묶이던 deadlock 해소) ② `DungeonClear` 패널을 `GameHud` 프리팹에 배선(`dungeonClearView` 할당) ③ `runInBackground=true`(포커스 상실 시 시뮬레이션 멈춤 방지) ④ `InputSystemIntegrationTests` 입력맵 Enable 누락 수정
-- [x] **클리어 감지** — `Room.TryMarkCleared`(스폰됨 & 전멸 최초 1회) → `S_DungeonClear`(Union **1820**) 방 브로드캐스트 + `DungeonClearMessage{RoomId,MapId,Participants[]}` 발행(`IDungeonResultPublisher`→`DungeonResultMessageQueue`, `stream:game:dungeon:result`). `CombatHandler.ApplyAttackToMonsters`가 처치 후 발화. **SocketServer.Tests 47/47**(클리어 4 신규)
-- [x] **DungeonResultConsumer** — `ResilientStreamConsumer`(§9.10) 위임 + `DungeonClearMessageQueue`(Consumer Group) + DI. A단계는 수신·로그만(보상 자리 `TODO(B)`)
-- [x] **클라 결과→복귀** — codegen 미러(`S_DungeonClear`) → `DungeonClearPacketHandler`→`ISocketPacketState.OnDungeonCleared`→`InGameModel`→`InGameState.IsDungeonCleared`→`GameHud.dungeonClearPanel` 토글(미할당 무해)+기존 `ReturnToLobby` 재사용. **Unity 컴파일 0오류**. ※결과 패널 아트(GameHud 프리팹)는 Unity에서 사람이
-- [x] **A 트랙 E2E** — `SocketE2ETests.RawSocket_몬스터_전멸하면_양쪽_S_DungeonClear_수신`: dungeon_01 슬라임 1마리 처치(재조준 루프 재사용) → 호스트+게스트 양쪽 `S_DungeonClear{RoomId}` 수신. **Docker 리빌드·재배포 후 PlayMode 실행 → SocketE2ETests 12/12 그린**(신규 클리어 1 + 회귀 11)
-
-**B 트랙 — 보상 채우기** (Exp 전용 + 실패 경로 + UI)
-
-> **범위 확정(2026-06-06)**: 보상 = **Exp만**(인벤토리 제외). 던전→Exp 매핑은 **Shared 카탈로그(MapId 키)** — DB DungeonId/`DungeonRoom.DungeonId` 도입 **안 함**(서버 간 직접 참조 금지·정적 기획데이터, MapId가 이미 DungeonClearMessage로 흐름). 실패 트리거 = **참가자 전원 다운**(`C_PlayerDead`→서버 집계→`S_DungeonFailed`). Progression은 별도 `user_progressions`(미래 캐릭터 귀속 대비). 상세 = [[character-swap-direction]].
-
-- [x] **진행/성장(Exp) 도메인** [2.3] — `user_progressions` 테이블(users 1:1, Lv1/Exp/UpdatedAt)+엔티티 `AddExp`·`IProgressionRepository`/`Repository`(Cache-Aside+Delete, lazy get-or-create)·`IProgressionService`/`ProgressionService`·DI(UserInstaller)·RedisKeys. 단위 8 + Testcontainers 통합 6 그린. ※레벨업 산식·스탯 성장은 M5
-- [x] **던전 Exp 카탈로그(Shared)** — `MapSpawnLayout.ExpReward` + `spawn-layouts.json`(양본) `expReward:100`(dungeon_01). SocketServer.Tests 7(파싱·임베디드)
-- [x] **보상 산정·지급** — `DungeonResultConsumer`가 `SpawnLayoutTable.Get(MapId).ExpReward` → 참가자 전원 `ProgressionService.AddExp`. RoomId 멱등(Redis SET claim-first, at-most-once). `IConnectionMultiplexer`+`IServiceScopeFactory`. Testcontainers 통합 2(전원 지급·멱등) + **실 Redis Stream E2E 1**(발행→Consumer Group→DB Exp, `DungeonResultRewardE2ETests`) [4.2.3/4.2.4]
-- [x] **클리어 팝업 Exp 표시** — `S_DungeonClear.RewardExp`(SocketServer가 카탈로그값 실음) → 클라 `MarkDungeonCleared(exp)`→`InGameState.RewardExp`→`GameHud`가 `DungeonClear` 패널 표시+`SetReward`. `DungeonClear.cs` Bind/SetReward, return 버튼→ReturnToLobby [7.1]
-- [x] **실패 경로(전원 다운)** — `C_PlayerDead`(1822)/`S_DungeonFailed`(1821) 패킷 + `Room._outcome`(Interlocked, 클리어/실패 배타)+`TryMarkFailed`(전원 다운 1회) + `DungeonLifecycleHandler` + 클라 로컬HP0→`C_PlayerDead`송신·`DungeonFailed` 패널→ReturnToLobby. 단위(Room 6)+EditMode 4+E2E 1. ※클라 컴파일/PlayMode 실행·결과패널 아트는 Unity(사람)
-- [x] **완전한 Co-op 1판 루프 E2E** (MPPM 2-client) → 로비 복귀 [6.2] — E2E 코드 작성(클리어 RewardExp·전원다운 실패) + **MPPM 2-창 수동 플레이로 클리어→보상→로비 복귀 전체 1판 시각 통과 확인(사람, 2026-06-07)**. 이동 교착 버그 수정 후 이동/서로보임도 동작 확인됨. **= M4 DoD 달성, M4 전체 완료.**
-
-### 🔄 M5 — 폴리시 + PVE 맛보기 (현재 작업) [WBS 2.4·2.6·2.7·3.2~3.8·4.4~4.7·5.*·6.3~6.4·7.2~7.8·8.*]
-> **✅ 직전 완료 (2026-06-13, T1 잔여 전부 닫힘)**:
-> 1. **회복 수치 단일소스** — ✅ **완료(클라 컴파일 검증 통과 2026-06-13)**: 서버 bake JSON + 클라 `ConsumableCatalogSeeder`로 던전 회복 미러 회귀 복구 + Editor `ConsumableEffectExporter`. 교리 = [gas-architecture.md §2.5](gas-architecture.md), 상세 codemap §2.6c. **Unity 컴파일 0오류 확인 완료** — 잔여 검증 없음.
-> 2. **4.6.3 Main 획득 B-lite 서버 검증 (T1)** — ✅ **완료(플레이 검증 2026-06-13)**: 서버 374 그린 + PlayMode E2E + 플레이(슬롯 스폰→킬→`ClaimKill` 서버roll 지급→5s 재스폰, 쿨다운 파밍차단). 무한파밍 핵 차단(`GrantItem` 제거). 저작=`MapDefinition` SO→bake. 설계 = [main-spawn-claim.md](main-spawn-claim.md).
-> 3. **2.5.1 사망/리스폰** — ✅ **완료(플레이 검증 2026-06-13)**: Main 타이머 리스폰(`LocalRespawnController`)+`LocalMonster` 근접공격(사망 트리거)+다운→3s 부활. ~~다운포즈 Animator 클립=로그 대체~~ → **다운포즈 클립 배선됨(2026-07-09, PROTOFACTOR `DeathFront1hMelee`, [player-animation-setup.md](player-animation-setup.md)).** ~~⚠️ 부활 복귀 애니 미배선~~ → **해소됨(2026-07-11)**: 양성 `Revive` 트리거 신설로 Dead→로코모션 전이(위 07-11 항목 ⑥). 던전 다운잠금·서버권위 HP 기존 완료. 던전 내 부활=2.5.2(T2). **→ 2.5 전체 잔여 없음.**
->
-> **🟢 현재 트랙 (2026-06-13~): 서버 도메인 완성** — RPG 코어 서버 기능을 의존성 순서로 마무리한다. 우선순위(의존성 정렬):
-> 1. **2.3 레벨업/스탯 성장** — ✅ **완료(서버 28 + Unity 컴파일 0오류 + PlayMode E2E `ProgressionE2ETests` 2(Docker) + 전체 PlayMode 68/68, 2026-06-14)**. ① 데이터 = `LevelTableDefinition` SO(클라, 1~60) → `LevelTableExporter` bake → `Shared.Infrastructure.Progression.LevelTable`(임베디드 `level-table.json`, 거듭제곱 Exp `round(100·L^1.5)` + 레벨별 스탯 룩업). ② 도메인 = `UserProgression.AddExp(amount, ILevelCurve)` 레벨업 루프(remainder 이월·60만렙 고정), `ILevelCurve`(Domain) ↔ `LevelTableCurve`(Infra, LevelTable 위임). **DB는 Level/Exp만 영속(마이그레이션 0), 스탯은 레벨 룩업 파생=단일소스.** ③ 클라 노출 = `progression.proto` GetProgression(레벨/Exp/expToNext/스탯, userId=JWT) + `ProgressionGrpcService`(서버, LevelTable 룩업 합성) + Generated/Network 래퍼(ClientCodegen 재생성) + System `IProgressionService`(proto 은닉) + Presentation `ProgressionModel`(MVI pull, Main·Dungeon 스코프 등록). **검증: 서버 — 전체 솔루션 빌드 0오류 + 진행 테스트 28 그린(LevelTable 7·UserProgression 8·Service 3·gRPC 3·통합 7). 클라 — 생성 래퍼/인터페이스가 수기 코드와 일치 확인, 컴파일은 Inventory 동일 패턴 미러. ⚠️ Unity 클라 컴파일 최종 확인은 대기**(force refresh 후 Unity 브리지 도메인리로드 중 무응답 — 포커스 후 재시도 필요). **잔여 = 스탯창 prefab 비주얼 저작(7.3, 사용자 Unity) + Unity 컴파일 확정.**
-> 2. **2.4 스탯 산식** — 레벨/장비/버프 합산 서버 권위 재계산. 2.3 + 3.2 합류 지점.
-> 3. **3.2 장비(Equipment)** — ✅ 착용 슬롯 + 스탯 모디파이어 → 2.4 합산.
-> 4. **3.4 재화(Wallet)** — ✅ **완료 2026-06-17**. 골드=통화(서버권위 잔액), 드랍/킬 골드 → 지갑 라우팅. 상점 전제 충족.
-> 5. **3.5 상점(Shop)** — ✅ **완료 2026-06-17**. 구매/판매(서버) + 구매 UI(클라) + 골드 항상드랍 밸런스. 판매 UI 후속.
-> 6. **6.1 캐릭터 진행 영속 합류** — ✅ **완료 2026-06-17**(재접속 E2E로 레벨/exp/인벤/골드 보존 검증, 장비는 통합테스트).
-> 7. **3.7 아이템 등급/도감** — ✅ 등급 완료(보류=도감). **4.3/9.2 던전메타(`MapId`)** — ✅ **완료 2026-06-25**(던전선택 UI 포함, 헤더 참조). **서버 도메인 완성 트랙 닫힘** → 다음은 폴리시/콘텐츠(2.6 전투보조·2.5.2 부활·4.6 오픈월드·애니).
-> 8. 부채 정리: **9.6 GetRooms 페이징** — ✅ 완료 2026-08-17(위 9.6 항목 참조).
->
-> **✅ 완료(2026-06-14): 몬스터 카탈로그(SO) + Main 킬 Exp 보상** — ① 몬스터 정의를 SO 저작 카탈로그로 승격(`MonsterCatalogDefinition`→bake `monsters.json`→`Shared.Infrastructure.Monsters.MonsterCatalog`, 하드코딩 `Server.Monster.MonsterCatalog` 어댑터화). exp/스탯은 몬스터 정의에 — 스포너는 위치/슬롯만(비대 X). ② Main 처치 = **킬 즉시 exp(`ClaimMonsterExp`)** + 아이템은 줍기(`ClaimKill`) — exp/아이템 **독립 청구·독립 쿨다운**(사용자 결정: "쓰러트리면 즉시 exp, 아이템은 오브 줍기 유지"). 클라 킬 즉시 `MainMonsterSpawner`→exp 로그. **검증 완료: Shared 34·SocketServer 101·GameServer 전체 278(통합+E2E) + PlayMode `MainLootE2ETests` 통과 + 플레이 확인(킬 즉시 exp 로그, 사용자 2026-06-14).** 상세 codemap §2.24.
->
-> **✅ 완료(2026-06-14): Main 클라 스탯 반영 + 레벨/exp 로그** — Main(클라 로컬 전투)이 현재 레벨 스탯을 반영. 2.4(던전=서버권위 스탯전투)의 **Main 대응판**(클라 권위 로컬). 이전: `LocalCombat` 데미지 고정 10(레벨/AttackPower 무관) → 이제 레벨업하면 다음 스윙부터 강해짐.
->   - ① **클라 스탯 홀더** = `PlayerProgressionHolder`(`Game.System.Progression`, **Gameplay 가 Presentation 미참조라 System 에 둠** — ProgressionModel(MVI)과 별개). `GetProgression`(서버권위) 결과 캐시(`Current`: Level/Exp/ExpToNext/AttackPower/Defense). `IAsyncStartable.StartAsync`로 **Main 진입(로그인 직후) 1회** + 킬마다 `RefreshAsync`. MainLifetimeScope `RegisterEntryPoint(...).AsSelf()`(던전 미등록=서버 권위).
->   - ② **킬 후 레벨/exp 로그** = `MainMonsterSpawner.ClaimExpAsync` 성공 → `holder.RefreshAsync` → `[Progression] 현재 Lv N · Exp X/Y (다음까지 Z)`(만렙=`(만렙)`). 서버 GetProgression 이 단일 진실.
->   - ③ **LocalCombat 데미지 = AttackPower 기반** = 고정 10 → `StatCombatMath.MeleeDamage(BaseDamage 10, holder.AttackPower, 0)`(Shared 결정론, 던전과 동일 산식). 홀더 미갱신 시 AP=0 → base 그대로 폴백. LocalCombat 은 `[Inject] Construct` 메서드 주입, `CharacterSpawner.AttachLocalCombat`서 `AddComponent` 후 `_container.Inject(combat)`.
->   - **DLL 재배치 필수였음**: `StatCombatMath`(2.4 추가)가 클라 `Plugins/Shared.Gameplay.dll`(stale)에 미포함 → 컴파일 실패. `Shared.Gameplay` Release 재빌드 → `Client/Assets/Plugins/Shared.Gameplay/`에 재복사(공개 API 변경이라 필수, codemap §공유코어 단일소스 패턴).
->   - **검증**: 변경 어셈블리 dotnet build 0오류(Game.System·Game.Gameplay·Game.VContainer). ⚠️ **Unity 에디터 재임포트(새 dll meta)+플레이 확인은 사용자**. (Game.Input.csproj CS2001은 이동된 Input 파일 stale 생성참조 — 본 작업 무관.)
->   - 비고: 스탯 진실원=서버(GetProgression). 클라는 표시·로컬전투 적용만. 장비/버프(3.2) 합류 시 `GetStatsAsync` 합산이 그대로 흘러옴. 정식 ASC 어트리뷰트 연동(GAS)은 선택(지금은 홀더로 충분, YAGNI).
->   - **후속(2026-06-14): HUD exp 게이지 연결** — GameHud 에 추가된 `expSlider`+`expValue` 를 `holder.OnChanged → InGameModel(ExpChanged) → InGameState → GameHud.RenderExp` 로 배선(HP/MP·버프와 동일 MVI 경로, ProgressionModel 직접주입 X). 던전 HUD 표시 위해 홀더를 DungeonLifetimeScope 에도 등록(표시 전용). EditMode `InGameExpRelayTests` 2/2 그린. 상세 codemap §2.25b.
-- [ ] 애니메이션 — **⚠️ 2026-07-07 MotionMatching 접고 별도 프로젝트 `C:\Users\user\Github\MotionMatchingProject`로 외부화. 클라=단순 Animator(PlayerController.controller). 애니 폴리시는 추후 재개.** (아래는 외부화 전 MM 이력) (MotionMatchingSystem, 🟣 — **P0~P4+피드백 수정 라운드(2026-07-03)**: 전체 521 FBX Humanoid + DB 149클립(Loop/Start/Stop/Pivot=GASP Dense, 17,376포즈) + **수정 7건**(1프레임 팝 버그·정지 프리즈(BlockTransition+entryExhausted)·SwitchPenalty 구현·미래궤적 가감속 수렴 예측·trajW 2 등 — CSV 실측 근거, design.md §4.5). **정지 계열 완치**(Stop 소진→Idle 정착·33s 안정). **핑퐁 해소 완료(2026-07-05)**: 근본 원인 2건 — ① 전환 클립 자기강화(→ **카테고리 게이팅**: PoseFlags Loop/Start/Stop/Pivot + LocoPhase 상태머신 + 검색기 categoryMask) ② **클립 루트 회전이 모델 transform을 돌려 쿼리 좌표계 오염**(applyRootMotion=false로 안 막힘 — 진단 테스트 실측)(→ 임포터 `lockRootRotation` 전 521클립). 재Bake 후 **실게임 CSV 검증: Idle→[W]Start 과도기 1s→Walk_Loop_F 22초 단일 유지→[정지]Stop→Idle = 요구 시나리오 달성**. **DB 분산 재설계 완료(2026-07-05, 사용자 지시)**: 단일 DB 혼합이 왕복/오선택의 구조 원인 → **521클립 전부를 33개 성격별 DB로 분산 등록**(`Databases/PSD_{그룹}_{종류}s`, DatabaseSetCreator) + `MotionMatchingComponent` 다중 DB 검색(페이즈→DB 목록, `_database`=현재 재생 DB 스위칭, 검색기 per-DB, same-entry 검색 전면 차단, 후보無=-1). 추가 근본수정: Advance를 `GetTime()` 실측화·`cullingMode=AlwaysAnimate`·`updateMode=Fixed`(화면밖/백그라운드 프레임에서 본 동결→cost 오염 실측). 프리팹 재배선(9개 DB). **정적 검증 통과**(DB 무결성·schema 공유·배선·다중 DB 검색 프로브 — 정속 쿼리→Walk Loop 0.029 vs Run 1.99). **테스트 실행=사용자**(PlayMode 3건+EditMode). **완성 로드맵 = `docs/MotionMatchingSystem/fix-plan.md`** — 목표 재정의: UE5 GASP 패리티, "522클립이 실플레이에서 눈에 보이는 것"이 완성. M1 Stand 안정화(현재) → M2 Gait → M3 Arc/Strafe(락온) → M4 TurnInPlace → M5 Crouch → M6 Jump/Air → M7 Traversal → M8 AimOffset → M9 멀티/실전. 상세 진단 이력: design.md §4.5)·HUD 다듬기·스킬1~2·아이템 최소·사운드(8.*)
-  - 🔄 **ARPGWarrior 전환 진행 중 (2026-08-20)** — 결정: Sprint 4점 블렌드 / 콤보 4단 / Climb 로컬 전용. 상세·근거 = [codemap.md](codemap.md) §2.104.
-    - [x] **P0 선행 결함** — `PlayerCharacter.prefab` Animator 컨트롤러 유실(커밋 `7f5d9754`) 확인. 단순 재배선만으로는 해결 불가 판명(Generic 클립 ↔ Humanoid 아바타 → 바인딩 0.0도 + root 본 -1.06m 침몰) → P2 로 흡수.
-    - [x] **P1 클립 규격화** — `ARPGWarriorClipSetup.SetupAll()` 루프 플래그 25/25 적용(원샷은 OFF 유지). 공격 클립 `AttackHitStart/End` 이벤트는 **P4 로 이월**(히트 프레임 미실측 — 타임라인 재저작과 같이 해야 어긋나지 않음).
-    - [x] **P2 컨트롤러 + 배선** — `PlayerAnimatorControllerBuilder.BuildAndWireAll()` → `PlayerController_ARPG.controller`(파라미터 14·상태 13·전이 22), 로컬+원격 프리팹 2/2 배선. 검증: 컴파일 0오류 · **EditMode 204/204 · PlayMode 187/187**(Docker E2E 포함, 실패 0) · 플레이 모드 `ARPG_Warrior_Idle1` 루프 재생 · `foot_l` world.y −0.652→0.079(침몰 해소) · 스크린샷 기립 확인.
-    - [x] **P3 점프/착지 마무리 + 구 컨트롤러 삭제 (2026-08-20)** — Land Duration 0.533 → **0.483**(ARPG `Landing` 클립 길이 정합). 구 `PlayerController.controller` 삭제(참조 0 확인 후).
-      - ⚠️ **대상 파일 정정**: 실제 사용 에셋은 `Assets/Data/CharacterStateConfig.asset`(프리팹 `stateConfig` 가 가리키는 것). `GameResources/StateConfigs/{Player,Npc}StateConfig.asset` 2개는 **참조 0 + 스크립트 guid `c142f05d…` 가 존재하지 않는 고아**라 Unity 가 로드조차 못 한다(실측 `LoadAssetAtPath` = null). 처음에 고아 쪽을 고쳤다가 되돌리고 실사용 에셋에 적용했다.
-      - 검증: **EditMode 204/204 · PlayMode 187/187**(실패 0, 252.8s) · 에디터에서 `Kind3(Land) Duration = 0.483` 확인 · 삭제 후 두 프리팹 controller = `PlayerController_ARPG` 유지.
-      - 잔여 판단: 고아 SO 2개 삭제 여부 = 사용자 결정 대기.
-    - [x] **P4 콤보 4단 (2026-08-20)** — `Ability_ComboD`(networkId 5, dmg 35) 신설·카탈로그 등록 · `ComboSkillIds {2,3,4,5}` · 서버 `IsComboSkill` 2..5 · abilities.json 재bake(16종) · Docker 리빌드.
-      - **히트 프레임 실측** = `hand_r` 본 속도 피크(모델 로컬 기준): Combo1 299ms / Combo2 340ms / Combo3 467ms / Combo4 458ms. 이를 중심으로 **판정창 120ms** 저작 → 같은 시각에 `AttackHitStart/End` 애니 이벤트 삽입(클립 4개). 구 저작값(150/100 등)은 PROTOFACTOR 클립 기준이라 새 클립보다 100~250ms 일렀다.
-      - 타이밍: A 240/120/60 chain380 win650 · B 280/120/60 chain420 win650 · C 405/120/90 chain540 win800 · D 400/120/90 chain540 win800(불변식 chain ≤ window < 애니 유지시간 준수).
-      - 검증: 서버 **666/666**(Shared 50·SocketServer 217·GameServer 399) · 클라 **EditMode 204/204 · PlayMode 187/187**(리빌드 이미지 대상 E2E) · 플레이 프로브 = `ComboStep=3`+`Attack` → **ComboD 전이** + 애니 이벤트가 `WeaponHitbox` 를 **450ms 열고 550ms 닫음**(상태 진입이 전이 블렌드 0.05s 만큼 늦어 클립 400~520 대비 +50ms).
-      - ⚠️ **밸런스는 가정값**: ComboD 데미지 35 · 리치 2.25 · 히트박스 (0.95,1.15,1.0) 는 A10→B15→C25 증가 추세를 이은 값이다. 튜닝은 사용자 판단.
-    - [x] **P5 회피 8방향 + 피격 리액션 (2026-08-20)** — 계약에 `DodgeX`/`DodgeY`(float)·`Hit`(trigger) 추가. `DodgeDriver.Begin` 이 월드 방향을 캐릭터 로컬로 바꿔 트리거 **전에** 세팅 → 컨트롤러 `Dodge` 상태가 8방향 Evade 블렌드로 클립 선택. 피격은 `PlayerCharacterAgent` 가 HP **감소**를 관측해 1회 트리거(회복·첫 통지·사망은 제외, 사망 시 `ResetTrigger(Hit)`).
-      - ⚠️ **밟은 함정**: `AnimationTriggerType` 은 `AbilityDefinition.cueTrigger` 로 **SO 에 정수 직렬화**된다. `Hit` 을 enum 중간에 넣자 보스 슬램의 `AttackSpecial`(9) 이 `Hit` 으로 읽혀 테스트가 잡았다(`Expected: AttackSpecial But was: Hit`) → **새 값은 항상 enum 끝에 추가**. 주석으로 박제.
-      - 원격 플레이어 회피는 방향이 패킷에 없어 **정면 회피로 근사**(방향 동기는 패킷 계약 확장 = 별건).
-      - 회귀 3건 추가(`ActionRootTests`): 피격 애니 재생 / 사망 피해는 Hit 아닌 Dead / 회피 방향의 애니 파라미터 전달.
-      - 검증: **EditMode 204/204 · PlayMode 190/190**(신규 3건 포함, 252.1s) · 블렌드 트리 덤프로 8방향 클립 매핑 확인. **미실측** = 실제 플레이에서 눈으로 8방향 클립 확인(플레이 모드에선 프레임당 `Animator.Update` 가 1회만 반영돼 프로브로는 못 봄).
-    - [x] **P6 사다리(Climb) 신규 시스템 — 로컬 전용 (2026-08-20)** — Locomotion 축에 배타 모드 `StateKind.Climb` 추가(Action 아님, CA-1 준수).
-      - 구성: `Ladder`(월드, `IInteractable` — 탐지는 기존 `InteractionDetector` 재사용, 트리거 콜라이더 + Interactive 레이어) → `ClimbSensor`(플레이어, `GroundedDetector` 와 같은 '상태 보관 + 전이 규칙이 폴링' 패턴) → `ClimbState` + `GroundToClimbTransition`/`ClimbToGroundTransition`.
-      - 이동: `CharacterMotor.MoveRaw`(중력 없는 변위)·`Teleport`(CharacterController 껐다 켜기) 신설. 부착 시 사다리 정면으로 스냅, 상단 도달 시 위로 올라섬.
-      - 애니: `Climbing`(bool) + `ClimbSpeed`(float). **ClimbSpeed 를 클립 배속으로 사용** → 음수면 역재생(하강), 0이면 정지 포즈. 오르기 클립 하나로 양방향(전용 `Climb_Down` 미사용 — 간결성).
-      - 씬 배선: Main 의 `Ladder`(ARPGWarrior Ladder.fbx, y −0.36~4.45)에 컴포넌트·트리거 콜라이더·레이어 부여 후 씬 저장.
-      - 회귀 3건(`ClimbTests`): 상호작용→전이신호 one-shot / 상·하단 이탈 / 스냅 후 수직 전용 이동.
-      - 검증: **EditMode 204/204 · PlayMode 193/193**(신규 3건 포함, 248.0s). **미실측** = 실제 플레이에서 E 키로 사다리를 타는 조작 감각(입력→탐지 반경·스냅 위치 튜닝은 플레이로 확인 필요).
-      - 범위 밖(결정됨): 원격 동기 없음 → 다른 플레이어에겐 사다리 타는 모습이 안 보인다. 좌우 이동(`Climb_L/R`)·점프 이탈 미구현.
-    - [x] **P15 사다리 IK 정정 (2026-08-21)** — ① 좌우가 반대편 면에서 뒤집히던 문제: 그립을 사다리 고정 축이 아니라 **캐릭터 기준**으로. ② IK 를 항상 걸던 것을 **붙잡은 팔다리에만** — 붙잡은 팔다리는 월드에서 거의 정지, 뻗는 팔다리는 몸보다 빠르다는 속도차로 판정(커브 저작 불필요).
-    - [x] **P16 사다리 IK 최소개입 (2026-08-21)** — 팔 간격은 **클립 그대로** 두고 깊이·발판 높이만 보정. 적용도 속도비가 아니라 **닿는 거리**(0.28m)로 판정해 뻗는 중엔 클립이 그대로 보인다. 덤으로 E2E 닉네임 충돌 플레이크 수정(PlayMode 202/202).
-    - [x] **P17 던전 원격 애니 동기화 (2026-08-21)** — 방향은 위치·회전에서 **역산**(패킷 0바이트), 모드만 `AnimState` 1바이트로 전송(점프/낙하/착지/사다리). 회피 방향은 `C_Dodge/S_Dodge` 에. 서버는 불투명 릴레이(연출=클라 권위). 원격 프리팹 파라미터명 6개 누락(조용한 스킵)도 함께 수정. 검증 서버 223/223 · EditMode 219/219 · PlayMode 208/208.
-    - [x] **P18 사망 동기화 원인 해소 (2026-08-22)** — 아군 오사가 **클라 HP만** 깎아(서버 미차감) 클라가 먼저 죽고 서버는 살아 있다고 봐 `S_PlayerDead` 미발행이던 것을 실측(서버 공격 7회 vs 클라 피해 14회). Co-op 이므로 아군 오사 제거. 겸사 `Loco↔Strafe` 블렌드 중 AnyState 트리거 유실도 수정. 서버 220/220 · EditMode 219/219 · PlayMode 211/211.
-    - [x] **P19 던전 재입장 실패 해소 (2026-08-22)** — Play 정지 후 재입장이 30번 거절되던 원인은 **죽은 줄 모르는 세션의 슬롯 점유**(실측: 유휴 감지에 63초). ① 같은 UserId 재접속 **인수**(PlayerState 보존) ② 거절 사유 보관·즉시중단 분기 ③ 재시도 예산 80s(>유예 60s). 서버 224/224.
-    - [x] **P20 Walk/Run 미재생 회귀 수정 (2026-08-22)** — P18 의 `interruptionSource` 가 전이를 매 프레임 자기 자신으로 재시작시켜 8방향 트리에 도달 못 함(실측 normalizedTime 0.03 고정). 인터럽트 대신 **전이 duration 0**. 파라미터만 보던 테스트가 못 잡던 구멍을 `PlayerLocomotionAnimTests` 로 메움(고장 주입 2/2 실패 → 복구 2/2 통과 실측). EditMode 224/224 · PlayMode 215/215.
-      - 검증: 좌우 실측(양쪽 면 오른손 +0.33 · 왼손 −0.33) · **ClimbTests 8/8** · **EditMode 213/213 · PlayMode 200/200**(254.7s). **미실측** = 접지 임계(1.4)·가중치(0.8) 체감.
-    - [x] **P14 사다리 부착 방향(면 스냅) + Stop 훅 반복 억제 (2026-08-21)** — 옆에서 다가가면 측면 기둥에 옆으로 매달리던 문제. 부착 방향을 접근 방향이 아니라 **사다리 면 법선**(콜라이더 실측 두께로 판별)에 스냅.
-      - 검증: 네 방향 접근 전부 오프셋 `(0,±0.35)`·시선 `(0,∓1)` · 회귀 1건 추가 · **EditMode 213/213 · PlayMode 199/199**(257.1s).
-      - 동반: Stop 훅이 매번 컨텍스트를 주입해 빈 응답이 반복되던 문제 → 정적 리마인더 제거 + 가드 3종에 중복 억제(해시 비교). 실측: 1회차 경고 → 2회차 침묵.
-    - [x] **P13 사다리 조작·정합 폴리시 (2026-08-21)** — 실측: `Climb_Up` 클립 함축 속도 **1.00 m/s**(코드 1.80 → 1.8배 미끄러짐), 발판 간격 **0.60m**.
-      - 속도 `ClimbSpeed` 1.8→**1.2** + `ClimbClipSpeed`(1.0) 배속 보정 · **`LadderIK`**(손=기둥, 발=가장 가까운 발판, 가중치 0.7, 컨트롤러 IK Pass 활성화) · 상단 이탈 **레이캐스트로 실제 바닥 위**에 세움 · **Space = 반대쪽 0.7m 밀어내며 낙하**(상/하단보다 우선 전이) · **바닥 0.6m 안 + 아래키 → Idle 복귀**.
-      - 검증: **ClimbTests 6/6**(신규 3건) · **EditMode 213/213 · PlayMode 198/198**(253.1s). **미실측** = IK 품질(손발이 발판에 붙는 그림)·조작 체감 → 눈으로 보고 가중치/오프셋 조정.
-    - [x] **P12 사다리 트리거 콜라이더 수정 (2026-08-21)** — 사다리가 잡히지 않던 진짜 원인. 트리거가 `size (0.82, **0.06**, 4.82)` 로 만들어져 공중에 뜬 납작한 판이었다(FBX -90° 회전·스케일 100 을 무시하고 월드 크기를 로컬 size 에 넣은 실수).
-      - `Ladder.FitColliderToMesh()` 신설 — 메시 꼭짓점을 로컬 공간으로 변환해 계산, 패딩은 월드 m→로컬 환산 + 길이 축 제외. 결과 `size (2.32, 4.82, 1.56)`.
-      - 실측: 탐지=Ladder · 문구 "오르기" · ClimbSensor 부착 · Ground→Climb True · 화면에 `[E] 오르기` 표시(스크린샷). **EditMode 213/213 · PlayMode 195/195**(251.5s).
-      - 조작 유의: 몸=카메라 정면, 감지=몸 앞 1m → 사다리를 정면에 두고 접근해야 한다.
-    - [x] **P11 상호작용 안내 UI (2026-08-21)** — 사다리 앞에서 `[E] 오르기` 표시. 탐지 → `InteractionPromptNotifier`(System) → `InGameModel` → `GameHud`(레이어 규칙 준수, 획득 토스트와 동일 경로). `IInteractable.InteractionPrompt` 는 기본 구현이라 구현체 7종 무수정. HUD 프리팹 무변경(미할당 시 코드로 TMP 생성).
-      - 검증: **EditMode 213/213 · PlayMode 195/195**(252.5s) · 플레이 프로브에서 `[E] 오르기` 표시/숨김 실측. 동반 수정 = GameHud 통합 테스트 2건의 DI 등록 누락(VContainer 는 생성자 기본값을 채우지 않는다).
-    - [x] **P10 방향 전환 블렌드 감쇠 (2026-08-21, 플레이 피드백)** — 좌→우로 꺾을 때 클립이 툭 바뀌던 문제. `MoveX/MoveY` 가 입력 방향 그대로라 한 프레임에 좌표가 **4.6** 점프했다(속도 크기에만 램프가 있었고 방향엔 완충이 없었다).
-      - 해결: `CharacterAgentAnimations.SetFloat` 감쇠 오버로드(Unity 내장 damp) + `LocomotionSettings.MoveBlendDamp=0.12s`. 이동은 즉시 꺾이고 애니만 0.12s 따라붙는다.
-      - 검증(실측): 프레임당 변화량 **4.6 → 0.216** · 회귀 테스트 1건 추가 · EditMode 212/212 · PlayMode 195/195(1건 `NICKNAME_ALREADY_TAKEN` 플레이크 → 단독 재실행 통과).
-    - [x] **P9 몬스터 발 슬라이딩 보정 (2026-08-21, 절충안 C)** — 배속 상한 2.0 + 초과분은 이동 속도 하향. 클립 함축속도는 발 본 후방 이동으로 실측(creepy_demon 0.65 · axemaster 0.77 · demon_girl 1.25 · centaur 1.76 · arachnya 3.19).
-      - 속도 하향 2종(밸런스 변경): `creepy_demon` 2.20 → **1.30**, `undead_axemaster`(+elite) 2.20 → **1.54**. 나머지는 배속만으로 해결(속도 무변경).
-      - 미측정 3종은 **무보정**(gargoyle 본 이름 매칭 실패 · leviathan 촉수형 다리라 측정 신뢰 낮음 · vampire_bat 보행 클립 없음) — `walkClipSpeed=0` 이 안전 기본값.
-      - 검증: 자산 덤프 슬라이딩비 **1.00**(측정 6종) · 서버 **666/666** + Docker 리빌드 · **EditMode 212/212 · PlayMode 194/194**(254.5s). **미실측** = 실제 플레이 육안.
-    - [x] **P8 이동감 폴리시 — 8방향·발 슬라이딩·공격 루트모션 (2026-08-20, 사용자 피드백)**
-      - **8방향이 안 나오던 원인**: 회전 정책(`PlayerRotationStrategy`)은 이미 몸을 **카메라 정면**으로 돌리는데, `GroundState.DriveStrafeAnimation` 이 **락온일 때만** MoveX/MoveY 를 구동했다 → 옆·뒤로 가도 전진 클립. 이제 항상 구동(`Strafe=true`).
-      - **걸을 때도 방향 클립**: 2D 블렌드에 Run 링만 있어 걸어도 달리는 발이 나왔다 → **Idle + Walk 8 + Run 8 + Sprint = 18 자식**.
-      - **발 슬라이딩 근본 수정**: 블렌드 좌표를 0~1 정규화 → **클립 실측 속도(m/s)** 로 바꾸고 `MoveX/MoveY` 도 m/s 로 넘긴다. 실측: Walk 2.26~2.32 · Run 3.31~3.43 · Sprint **3.44**(코드 5.335 라 1.55배 미끄러졌다) → `MoveSpeed` 2.0→**2.3**, Sprint child `timeScale` **1.55**.
-      - **공격 루트모션**: 공격 클립에 0.63~1.42m 전진이 있는데 버려지고 있었다 → `RootMotionRelay`(Animator GO) + 상태 **태그 게이트**. 회피(Evade **3.6m**)·사망·기상에도 루트 이동이 있어 전역 적용은 이중 이동이 되므로 공격 상태에만 태그.
-      - 검증: **EditMode 206/206 · PlayMode 194/194**(신규 3건) + **슬라이딩비 실측 1.00**(걷기 전/좌/후·달리기 전/우·스프린트 전부. 이전 스프린트 1.55) + 주클립 선택 확인(걷기 왼쪽 → `Walk_Leftward_IPC`).
-      - **미실측**: 실제 플레이 육안(공격 파고드는 거리감·회전 반응). 원격 플레이어는 여전히 1D `Speed` 블렌드(방향 미동기).
-      - **후속 수정(플레이 피드백)**: 마지막 콤보(D) 재생 중에 다음 1타가 나가던 문제 → `combo_d.comboChainMs` 540 → **1017**(= Attack_Combo4 클립 길이), window 1167, 컨트롤러 `ComboD→Locomotion` exitTime 0.85 → **0.97**(986ms 지점). **마무리 타를 끝까지 보여준 뒤 Idle → 그 다음에 A**. 앞 단계(A~C)는 0.85 유지(체인 감 보존).
-        - 검증: 서버 **666/666** + Docker 리빌드 · 클라 **EditMode 206/206 · PlayMode 194/194**(256.9s).
-      - **버그 수정(사용자 제보: 마무리 타 중 클릭하면 Idle 된 뒤 한 대 더 나감)** — `ComboDriver.OnAttackPressed` 가 **마지막 단계 재생 중(체인 게이트 안)의 입력을 버린다.** 선입력은 "이어지는 다음 타"를 위한 장치인데 마무리 뒤엔 이어질 타가 없어 **새 콤보**가 자동 시작되던 것. 마무리가 끝난 뒤 누르면 정상적으로 A 부터.
-        - 검증: EditMode **207/207**(신규 회귀 `마무리_타_재생중_누른_입력은_버려진다` 포함) · PlayMode **194/194**(252.6s). 서버 무관(클라 입력 정책) — 재bake·리빌드 없음.
-      - **버그 수정(사용자 제보 `Animator is not playing an AnimatorController`)**: 컨트롤러 빌더가 자산을 DeleteAsset→재생성하는 탓에 **프리팹의 임포트 사본이 삭제된 옛 인스턴스를 물고** 있었다(디스크 YAML 은 정상인데 런타임 controller=null). `Wire()` 에 저장 직후 `ImportAsset(ForceUpdate|ForceSynchronousImport)` 추가.
-        - 검증: 재빌드 후 두 프리팹 모두 `controller=PlayerController_ARPG` · 플레이 실측 런타임 controller 정상 + Idle1 재생 · 경고 발생 시각 분포 = **13:21:53(수정 전) 193건뿐, 이후 0건**. **EditMode 206/206 · PlayMode 194/194**(252.0s, Docker E2E 포함) 재실행 그린.
-    - [x] **P7 문서**(codemap · player-animation-setup · plan 갱신됨)
-- [ ] 장비/루트/재화/상점/소모품 [3.2~3.8] + 관련 UI [7.2~7.8]
-- [ ] **정적 기획데이터 단일 저작 통합(아이템·장비·상점·퀘스트)** — 서버 하드코딩 카탈로그 4종을 `클라 SO 저작 → bake JSON` 파이프라인(기존 6종과 동형)으로 이관. 🔄 **서버 완료 / 클라 잔여**. 착수 이유 = 같은 itemId 목록을 서버 3곳+퀘스트+클라 SO 에 따로 저작해 `gold_pouch` 고아·`potion_mp_small` 효과 누락 등 드리프트가 실제로 발생.
-  - [x] **서버 이관 (2026-08-18)** — `GameServer.Domain` 하드코딩 4종(`ItemCatalog`·`EquipmentCatalog`·`ShopCatalog`·`QuestCatalog`)+Def/enum **12파일 삭제** → `Shared.Infrastructure/Items/`(임베디드 `items.json` + `ItemCatalogData` 리더 + 3파사드)·`Shared.Infrastructure/Quests/`(`quests.json`). 공유 enum 2종(`ItemGrade`·`ShopCategory`)은 `Shared.Gameplay/Items/` 로 승격(클라 dll 참조용; **ShopCategory 는 proto 와 정수 1:1** 로 정렬 — 구 도메인 enum 은 1 offset 이었다). 구 `Consumables/consumable-effects.json` 은 items.json 에 흡수·삭제.
-    - **Q3(서버 미사용 필드 bake 제외)**: `IconKey`(사용처 0건)·`Name`·`Grade` 제외 → 클라 SO 전용. 단 퀘스트 `Name`/`Description` 은 서버가 proto(`QuestInfo`)로 보내므로 **포함**.
-    - **동반 버그 수정**: 구 `ConsumableEffectExporter` 가 소모품 `policy`/`durationMs` 를 bake 에서 유실시켜 서버가 `Instant/0` 을 하드코딩 → 지속형 버프 소모품이 즉발이 되던 것. 이제 bake 에 포함(회귀 가드 테스트 추가).
-    - **순서 보존**: items.json 저작 순서 = `ShopCatalog.All` = **상점 진열 순서**, quests.json 순서 = 퀘스트 목록 표시 순서. 알파벳 정렬 금지.
-    - **검증(실측)**: 서버 솔루션 빌드 **오류 0** + `GameServer.Tests` **399/399** · `SocketServer.Tests` **210/210** · `Shared.Gameplay.Tests` **50/50** 전부 그린. 신규 가드 `GameServer.Tests/Catalogs/CatalogIntegrityTests` **8/8**(quests·drop-tables → items 교차 참조, 가격/분류/슬롯/스탯/스택 저작 실수).
-  - [ ] **클라 잔여** — ① 저작 SO 통합(`ItemDisplayCatalog`+`ConsumableCatalog` → 단일 아이템 SO) + `ItemCatalogExporter`(모달 없는 `BakeAll` 진입점 필수, A1 교훈) ② 중복 enum 제거(클라 `ItemGrade`·`ShopCategory`×2 → `Shared.Gameplay.Items` dll 타입) ③ SO↔bake 드리프트 감지 EditMode 테스트 ④ Docker 서버 이미지 리빌드 후 E2E.
-  - **미결정(사용자 판단 필요)**: `potion_mp_small` 회복 수치 — 상점에서 50골드에 팔리는데 **효과가 저작된 적이 없다**(구 consumable-effects.json 에도 없었음). 임의 수치를 넣지 않고 현 상태 그대로 이관했다.
-- [x] 전투 보조 — 회피✅·CC✅·**Co-op 부활✅**(2.5.2) · **타겟팅/락온✅**(2.6.3 완료 2026-06-30) [2.6·2.5.2] → **2.6 전체 완료**
-- [x] **CA-5 / AC-D3 — 어빌리티 연출 타임라인 툴** [2.7] — 사용자 요청. **기능 백로그·재분할 Phase = [ability-timeline-tool.md](ability-timeline-tool.md)**(참조 Fofanius Event Track 해부 + 채택 기능 A~F). 판정=서버 bake·연출=클라 SO(2갈래). **코드 100% 완료(P0~P8 + 개선 백로그 W1~W8), main 병합 PR #62 (2026-07-18). 잔여=사용자 에셋 배선(Phase 1b).**
-  - [x] **P0/P1 데이터+런타임** (2026-07-18, codemap §2.81) — `AbilityCueEvent`/`AbilityCuePlan`/`CueCatalog`/`AbilityCuePlayer` + 배선 3자리. `IActorView.PlayAbilityCues`. EditMode 198·컴파일0.
-  - [x] **P2 편집 창 기본 (UI Toolkit)** (2026-07-18, codemap §2.82) — 룰러/트랙4/마커 드래그/**우클릭 추가**/스크럽/인스펙터/판정창 엣지. SerializedObject(Undo). 비파괴 실구동 검증.
-  - [x] **P3 Cue id 드롭다운** (2026-07-18, codemap §2.83) — 인스펙터 id free text 유지 + ▾ 버튼이 `CueCatalog.IdsFor(kind)` 메뉴(등록 SFX/VFX id). 툴바 Cue 카탈로그 필드(1개면 자동). 발견 결함: `DeleteArrayElementAtIndex` 가 관리 리스트에서 null 만 남기던 것 → 이중삭제 가드.
-  - [x] **P4 마커 툴팁·라벨 + 판정창 바 리사이즈 수정** (2026-07-18, codemap §2.84) — 마커/바/앵커 hover 툴팁(kind·id·time·socket). **결함 수정**: 판정창 엣지 드래그가 매 프레임 `RebuildAll` 로 엣지 파괴→포인터 캡처 끊김(찔끔 이동)이던 것 → 드래그 중엔 `Layout()` 즉시 재배치(리빌드 없음)·놓을 때만 리빌드. 그립 가시화 + 바 본체 드래그=이동.
-  - [x] **P5 에디트모드 스크럽 프리뷰 + P6 윈도우 이벤트** (2026-07-18, codemap §2.85) — **P6**: `AbilityCueEvent.durationMs` 추가 → **모든 이벤트가 판정창처럼 리사이즈 클립**(본체 드래그=이동·우그립=길이·좌그립=시작). "VFX 점이라 못 늘림" 해소. 런타임 VFX 수명=durationMs. **P5**: ▶Preview 가 `EditorApplication.update` 로 스크럽 굴리며 통과 이벤트 SFX(AudioUtil)·VFX(씬 스폰) 재생 + Notify 로그. EditMode 198→199·컴파일0.
-  - [x] **Cue 직접 리소스화 + 선택 즉시반영** (2026-07-18, codemap §2.86) — Cue = 카탈로그 선택→**AudioClip/프리팹 직접 드래그**(id 폴백). 이벤트 클릭 선택 즉시 하이라이트(리빌드 전 `Layout()`)+본체 폭 확보.
-  - [x] **P7 Invoke 이벤트 종류** (2026-07-18, codemap §2.86·§2.87) — `ECueKind.Event`+`invokeMethod` 리플렉션 호출·5행 Event 트랙 · **타입 인자**(None/Float/Int/Bool/String) · **메서드 드롭다운**(Actor 프리팹 컴포넌트 나열) · **판정창→Event 헬퍼**(ActivateWindow/DeactivateWindow=Main 판정 통일 코드조각). 결함수정: AddEvent 필드 상속(ResetEvent). 잔여=애니이벤트 실제 제거·플레이검증(사용자 배선).
-  - [x] **P8 QoL** (2026-07-18, codemap §2.88) — 복제(Ctrl+D)·화살표 넛지(←/→)·다중 선택(Ctrl+클릭 → 그룹 delete/nudge/duplicate). 드래그/리사이즈는 단일. **→ CA-5 P0~P8 코드 완료.**
-  - [x] **편집 불능 버그 수정** (커밋 `459b1016`) — 인스펙터 필드가 키 입력마다 RebuildAll 로 포커스 상실 → `isDelayed`. panel.Pick 로 클릭 라우팅 정상 확인.
-  - [x] **W-A 오른쪽 상세 패널 + 전 종류 이벤트 편집 + 디자인 폴리시(.uss)** (2026-07-18, codemap §2.89) — 좌우 분할·세로 섹션 인스펙터·Cue 고급 이동·`AbilityTimelineWindow.uss`. 커밋 `34bc8e76`.
-  - [x] **W-B 트랙 동적 추가/삭제(레인 모델)** + 판정창 클릭선택 + Snap 제거(0.1ms) (2026-07-18, codemap §2.90) — 커밋 `1360cfb6` 외. **→ 사용자 지정 W-A·W-B 완료.**
-  - [x] **개선 백로그 W5·W6·W7** (2026-07-18, codemap §2.91) — 점/구간 시각 구분·트랙 mute·Anim 이벤트 실재생. W4 폐기·W8 YAGNI 보류.
-  - [x] **W1 인스펙터 정식 바인딩** (2026-07-18, codemap §2.92, 커밋 `45a75e48`) — `RebuildAll`→`RebuildTimeline`(캔버스만)+`RefreshInspector` 분리 · `BindProperty`+`TrackPropertyValue` · kind/argType 만 수동. 편집 중 필드 파괴 근본 해결(`isDelayed` 대체). 컴파일0·EditMode 199/199·비파괴 스모크.
-  - [x] **W2a 라이브 메시 프리뷰(MVP)** (2026-07-18, codemap §2.93) — **오른쪽 열** 프리뷰 패널(PreviewRenderUtility+URP SubmitRenderRequest) 액터 렌더 + `previewClip`(신규 필드·bake 안 함) PlayableGraph 스크럽 샘플 + 오빗. Actor/Clip 필드 프리뷰 패널로 이동·Actor EditorPrefs 영속·RequireComponent 안전 제거. 컴파일0·EditMode 199/199·비파괴 스모크(posed·URP magenta=0·PlayerCharacter mbLeft=0·prefs 왕복).
-  - [x] **W2b VFX 뷰포트 스폰** (2026-07-18, codemap §2.94) — VFX 를 프리뷰 씬 액터 소켓에 스폰 + `ParticleSystem.Simulate` 로 스크럽 앞뒤 동조(샘플 기반). 숨김 스폰 시스템 제거. 컴파일0·EditMode 199/199·비파괴 스모크(spawned/removed/respawned/cleanup). +드래그 리사이즈 회귀 수정(`RebuildTimelineUnlessDragging`).
-  - [x] **W2c cueTrigger 자동 클립 해석** (2026-07-18, codemap §2.95) — previewClip 미지정 시 cueTrigger→CharacterAgentAnimations 파라미터→AnimatorController State→클립 자동 추론(폴백). 컴파일0·EditMode 199/199·비파괴 스모크(CreepyDemonLocal Attack→Attack00).
-  - [x] **W3 Sections/loop 구간** (2026-07-18, codemap §2.96) — 룰러 아래 이름 구간 밴드(추가/삭제/이름변경/리사이즈/클릭점프/루프토글) + ▶Preview 루프 반복. 데이터=`AbilityDefinition.sections`(에디터 전용·bake 안 됨). 컴파일0·EditMode 199/199·비파괴 스모크.
-  - [x] **개선 백로그 전부 소진** — W1·W2a·b·c·W3·W5·W6·W7 ✅ / W4 폐기 · W8 YAGNI 보류. = [ability-timeline-tool.md](ability-timeline-tool.md) §6.
-  - [~] **Phase 1b 에셋·배선** — **파이프 관통 확인 완료(2026-08-17)**, 나머지 저작은 사용자 몫.
-    - 실측한 상태: 타임라인 툴로 찍은 `cueEvents` 는 있는데 **리소스가 전부 비어 있고**(`sfxClip: {fileID: 0}`) **`PlayerCharacter.prefab` 에 `AbilityCuePlayer` 가 미부착**이었다 → `PlayerCharacterAgent:308` 의 `_cuePlayer?.Play(...)` 가 null 조건부로 통째로 스킵. 둘 다 "없으면 아무것도 안 한다"가 정상 동작이라 **로그도 에러도 안 난다**.
-    - 최소 배선: `Ability_BasicSwing` 의 Sfx 이벤트(t=150.4ms)에 실제 클립 할당 + 프리팹에 `AbilityCuePlayer` 부착 → PlayMode `AbilityCuePlayerSmokeTests` **2/2**(프리팹 부착 고정 · 저작 SFX 가 시각에 맞춰 실제 재생).
-    - ⚠️ 쓴 클립이 **미커밋 아트 팩**(`Book of the Dead - URP`) 소속이라 그 팩을 커밋하지 않으면 GUID 가 깨진다 — 정식 SFX 로 교체 필요.
-    - 잔여(사용자): 나머지 어빌리티 이벤트에 실 SFX/VFX 할당 · 원격/몬스터 프리팹 `AbilityCuePlayer` 부착 · Event 큐용 Actor 배선.
-- [x] **AC — 몬스터·플레이어 Actor 통합 전투(GAS)** [2.6·4.1] — 설계 [actor-combat-architecture.md](actor-combat-architecture.md). 계기=몬스터 공격 모션 부재(발동 신호 경로 부재). ActorId 통합 파이프(`S_AbilityActivated`)로 플레이어·몬스터 발동·연출·조회 단일화 + 대량 몬스터 O(N) 라우팅. 증분: **[x] 1** `ActorIds`+`AbilityActivationMath`(Shared 순수, `Shared.Gameplay.Tests` 50/50) · **[x] 2** 패킷 `S_AbilityActivated`(1604)+codegen 미러(`SocketServer.Tests` 130/130·Unity 0오류) · **[x] 3** 서버 `Room.TickMonsters` 게이트(MonsterDef)+`S_AbilityActivated` broadcast+SourceId 승격(SocketServer.Tests 132/132) · **[x] 4** 클라 `ActorRegistry`+`IActorView`+`AbilityCueRouter`+`MonsterEntity.PlayAbilityCue`(**몬스터 공격 모션 해소**, EditMode 172/172·PlayMode 애니·Docker E2E 31/31) · **[x] 5** 플레이어 흡수(`CombatHandler` S_Attack→S_AbilityActivated·`RemoteDriver` IActorView·Docker E2E 31/31, 1601 타입 보존) · **[x] 6** Main `LocalMonster` 승격(인라인→`AbilityActivationMath`+`PlayAbilityCue`, Main 모션 해소, PlayMode 5/5) · **[x] 7** 스케일 = 서버 dirty-flag(Idle 몬스터 트래픽 0, SocketServer.Tests 134/134·Docker E2E 31/31). ※클라 이동 Registry 라우팅은 보류(YAGNI — fan-out 병목 아님, 실비용은 엔티티 Update). **→ AC 트랙 완료**
-- [x] **AC-A 몬스터 애니 파라미터 구동 전환** (2026-07-16) — **Walk 버그 근본 수정**: 컨트롤러는 `Speed` 파라미터 전이인데 코드는 상태이름 CrossFade + `Speed` 미세팅 → Walk 진입 즉시 `Walk→Idle[Speed<0.1]` 로 튕김. `MonsterEntity`/`LocalMonster` 를 `CharacterAgentAnimations`(플레이어와 동일 어댑터) 파라미터 구동으로 통일(Speed/Attack/Die), 상태이름 필드·attack lock 제거, 프리팹 9종 배선. PlayMode 애니 6/6(Walk 회귀 신규)·EditMode 172/172. 상세 = [codemap §2.64](codemap.md)
-- [x] **AC-B Ability SO 통합 저작** — 설계 ✅ [ability-so-authoring.md](ability-so-authoring.md) (2026-07-16). 모든 GAS 공격·스킬을 **Ability SO 한 곳에서 편집**(게임플레이 + Cue 트리거) → `abilities.json` bake 로 `skills.json`·몬스터 `attack*` 필드 대체, `ResolveSkill` 하드코딩 switch 제거, **몬스터 다중 스킬(보스)** 개방. 증분: **[x] B1**(2026-07-16) SO 2종(`AbilityDefinition`/`AbilityCatalogDefinition`)+`AbilityCatalogExporter`+서버 `Shared.Infrastructure.Abilities.AbilityCatalog`+**5스킬 SO 이관·bake**(`Assets/GameData/Ability/`, 읽기만·미사용). Cue 는 bake 제외(서버 무지). `AbilityCatalogTests` 7·SocketServer.Tests 141/141 · **[x] B2**(2026-07-16) `CombatHandler.ResolveSkill` 하드코딩 switch **제거**→`AbilityCatalog.Get(networkId)`(=**스킬 추가에 서버 코드 수정 불필요 달성**), `skills.json`+`Skills/SkillCatalog.cs`+`SkillCatalogExporter` 삭제. 동작 무변경(데미지는 B5 까지 onHit 유지). SocketServer.Tests 137/137·Docker E2E 31/31 · **[x] B3**(2026-07-16) 클라 Cue 데이터화 + **클라·서버 저작 단일화**: `AbilityCatalogProvider` 신설, `IActorView.PlayAbilityCue(trigger, comboStep)`(라우터가 카탈로그로 해석) → `RemoteDriver` 콤보 switch·`LocalCombat`/`PlayerCharacterAgent` `SkillName` switch **제거**, Skill 계열(SO 2종·Provider·5 에셋·Exporter·테스트) **전량 삭제**. EditMode 170/170·PlayMode 애니 6/6·Docker E2E 31/31 · **[x] B4**(2026-07-16) 몬스터 어빌리티화 — `MonsterDefinition.abilityIds[]`(공격 수치 4필드 제거)·`MonsterStats.AttackRange`=어빌리티 최대사거리 파생·`Room.SelectMonsterAbility`(사거리+쿨다운 만족 첫 어빌리티, 저작순=우선순위)·`MonsterState` 어빌리티별 쿨다운·몬스터 9종 Ability SO(networkId 100+, 밸런스 무변경). **→ 보스 다중 스킬 개방.** SocketServer.Tests 145/145·Docker E2E 31/31 · **[x] B5**(2026-07-16) 데미지 출처 일원화(안B 완결) — 플레이어·몬스터 모두 `ability.BaseDamage` 기준(`BuildDamageMods`), `basic_attack_dmg`/`combo_*_dmg`/`monster_attack_dmg` **폐기** → 데미지 라벨 `ability_damage` 단일(수치=서버 권위 Amount), onHit=**CC 전용**. 밸런스 무변경 이관. SocketServer 146/146·Shared 50/50·EditMode 170/170·Docker E2E 31/31 · **[x] B6**(2026-07-16) 보스 다중스킬 실증 — `leviathan.abilityIds=[leviathan_slam(강·cd6000·dmg90·stun), leviathan_attack(평타)]`, **코드 변경 0**으로 강스킬→쿨다운이면 평타 폴백. `BossMultiAbilityTests` 8·SocketServer.Tests 154/154·Docker E2E 31/31. **→ AC-B 트랙 완료**(스킬 추가 = SO 저작+Export+서버 재빌드, 코드 수정 없음).
-
-- [x] **AR — 서버 액터 모델 재편(Room 해체)** (2026-08-27) — 상세 = [codemap §2.81~2.85](codemap.md), 구조 = [socketserver.md](socketserver.md). 계기 = "ActorId 가 패킷 부호 규약일 뿐 인스턴스 정체성이 아니다"(사용자 지적).
-  - **[x] 액터 통합** — `PlayerState`/`MonsterState` 삭제 → `Actor`(신원·공간·수명) + **`GasComponent`**(HP·마나·스탯·태그·쿨다운, Shared 라 클라 공유). 방 관리 겸직은 `RoomMember` 로 분리(세션과 액터의 **수명이 다른 것**이 재접속의 근거).
-  - **[x] 다운을 태그로** — `Room._downed` HashSet 삭제 → `GameplayTags.Dead`. Add/Remove 의 bool 이 dedup·멱등 가드. **`C_PlayerDead` 자기신고 차단**(서버 HP 0 확인) — 만피로 AI 타깃에서 빠지던 구멍.
-  - **[x] 속성을 데이터로** — `AttributeSet`(`Dictionary<EGameplayAttribute,(cur,max)>`). **"0 인 스탯"과 "스탯 없음"을 구분** → `MonsterAttackPower`/`MonsterDefense`/`currentMana:0`/`blocked:false` 하드코딩 전부 제거. 스탯 추가 = enum 1줄 + Define 1줄.
-  - **[x] GAS 스레드 안전화(버그 수정)** — 틱과 핸들러가 마나를 락 없이 동시에 썼다. 경계를 `GasComponent` 안으로(저장소·태그 private). **역검증: 락 제거 시 마나 100 으로 17회 시전** → 원복 후 통과.
-  - **[x] Room 파사드 해체** — 공개 멤버가 각 핸들러에 1회씩만 쓰이던 20구 파사드(ISP 위반). `RoomSessions`·`ActorStore`·`GroundItemStore`·`DungeonProgress`·`RoomSimulation` 5개 협력자로 분해, 핸들러가 직접 호출. **`Room.cs` 865 → 291줄, 락 3개 → 협력자별 1개.**
-  - **[x] 액터가 자기 틱 소유** — `Actor.Tick` 이 `int targetIdx` → `ActorTickResult{TargetIndex, Cast}`. 몬스터가 어빌리티 선택·쿨다운 커밋까지 하고, 방은 **패킷·피해로 번역**만 한다.
-  - **보류(합의)**: 공간 분할 — 한 방 최대 액터 15라 이득 0. 착수선 = 한 방 100+ 또는 틱이 예산 20% 초과(**틱 프로파일 미실측**).
-  - **✅ 지속 Effect 만료 서버 소유 — 완료**(2026-08-27, codemap §2.86). GAS 단일화(클라 `GasComponent` → Shared `AbilitySystemComponent` 소유)까지 함께.
-  - **검증**: `SocketServer.Tests` **304/304**(231→304, 신규 73) · `Shared.Gameplay.Tests` **74/74** · `GameServer.Tests` 311/311 · 솔루션 0오류 · **PlayMode 237/237 · Docker E2E 99/99**. 동시성 테스트는 `Parallel.For` 로 실제 경합 생성(마나·쿨다운·태그·피해·클리어·부활·정원·줍기).
-  - **E2E 회귀 2건 수정** — `SocketE2ETests` 가 만피 상태 `C_PlayerDead` 로 다운을 **위조**하고 있었다(막힌 그 경로). 실제로 죽이도록 재작성: 실패=즉사 fixture(`test_arena`), 부활=기본 던전(즉사 fixture 로는 전원다운 확정돼 `TryRevive` 가 막힌다).
-  - **클라 테스트 1건 수정** — `RemoteLocomotionSyncTests.원격_부활하면…`: **프로덕션은 정상, 테스트 판정이 틀렸다.** Unity 는 전이가 끝날 때까지 current 를 옛 상태로 유지 → `!InState("Dead")` 가 "나가는 중"을 "아직 Dead"로 오독. 런타임 프로브로 `inTransition=True next=GetUp` 실측 후 `HasLeft()` 헬퍼 도입.
-
-**AC-C — 전투 진단/관측 + 동기화 무결성 (✅ 2026-07-17 전체 완료)** — 설계 [combat-diagnostics.md](combat-diagnostics.md)
-> 코드 리딩으로 **재현 조건이 명확한 결함 2건** 확인(측정 전에도 고칠 근거 충분):
-> - **D1 송신 직렬화 없음** — `Room.Broadcast` 가 fire-and-forget, `Session.SendPacketAsync` 는 큐·락 없이 부분전송 루프 → 틱 스레드와 패킷 스레드가 **동일 소켓 동시 write** → 순서 역전 + **프레임 인터리브(파싱 desync)** 위험.
-> - **D2 dirty-flag 스테일 고착** — 틱이 만든 옛 HP 패킷이 데미지 패킷보다 늦게 도착하면 되돌아가고, 다음 틱은 `StateDirty()==false` 라 정정 안 함 → **HP 가 틀린 값에 영구 고착**. 증분7 이전엔 매 틱 재전송이 자가 교정했다 → **AC 증분7이 만든 회귀**.
-- [x] **AC-C3-hotfix** (최우선·승인 불요) — **D2 봉합 완료.** 데미지 경로(`CombatHandler.ApplyAttackToMonsters`)의 `MarkStateSent()` 제거 → HP 변화는 다음 틱이 무조건 재전송해 **자가 교정**(피격당 1패킷 = 정합성의 대가). 회귀가드 2종 추가. 근본해법은 AC-C3(Seq).
-- [x] **AC-C1 전투 계측 — 2축(타임라인 + 판정/공식)**. 상관키=ActorId/InstanceId(+Seq). **스위치 Off 기본**(상시 로그 금지, Off면 호출 자체 없음).
-  - [x] **C1a 서버 `[CombatTrace]` 구조적 로그** — 판정(path·formula·base/AP/DEF·final·hp·seq) + gate 4종 + 타임라인(recv/judge/serverMs). 기본 Off. ⚠ 스위치는 **Serilog**(`Serilog__MinimumLevel__Override__CombatTrace=Debug`) — `Logging:LogLevel` 은 이 서버에서 죽은 설정이었다. 검증: 단위 4종(Off 무호출 실측) · 164/164 · **Docker 육안 64건** · 기본 Off 0건 · E2E 31/31.
-  - **축A 타임라인**: 송신→서버수신→판정→서버송신→클라수신→HP반영 **구간 delta** (체감 "느림"의 원인 구간)
-  - **축B 판정/공식**: `abilityId·path·formula·base/AP/DEF·finalDamage·HP전후·onHit·gate(거부사유)` — **"이 데미지가 왜 이 숫자인가"**. 산식 진실원=`StatCombatMath.MeleeDamage = max(1, base+AP−DEF)`. ※경로 3개가 입력이 달라(플→몹: AP O/DEF 0 · 몹→플: AP 0/DEF O · **플→플: 산식 미경유 flat**) → 트레이스가 **AC-D2 비대칭을 데이터로 노출**한다.
-  - [x] **C1b 클라 `CombatTraceRecorder`** — 링버퍼(512, 순수 C#·무할당, 기본 Off) + `CombatTraceJoin`(스윙 단위 병합·구간 delta). **단일 소스** — 창은 그 위의 뷰. ⚠ 설계 정정: 클라는 AP/DEF 를 못 받으므로 `AP-DEF = final - base` 역산(§2.4 정정). 검증: EditMode 10종 · **184/184**.
-  - [x] **C1b' `CombatTraceWindow`(에디터 창) + 배선** — `Tools/Combat/Combat Trace`(IMGUI — 매 프레임 갱신되는 진단 덤프라 즉시모드가 맞고 `MapEditorWindow` 선례와 동일). Record 토글·Clear·CSV·거부만 필터·요약 2탭(타임라인 avg/p95/max · 판정: netId별 발동수·평균뎀·게이트의심·스테일드롭수)·이벤트 목록·상세. **창=뷰, 로직 0**(병합은 `CombatTraceJoin`). 배선 4곳: `CombatSyncSender`(t_send) · `AbilityActivatedPacketHandler` · `EffectPacketHandler`(Amount≠0) · `SocketPacketState.UpdateMonster`(HP델타·스테일드롭). ⚠ **asmdef 변경(승인 2026-07-17)**: `Game.Gameplay.Editor` → `Game.Network` 참조 1줄 추가(하향, 위반 아님). 검증: 컴파일 0오류 · EditMode **186/186** · Docker E2E **31/31**(리빌드 후).
-  - [x] **C1c 측정 세션** — **완료 2026-07-17**(사용자 플레이, CSV 확보). 결과: **① 데미지 검수 통과** — `max(1,base+AP-DEF)` 역산이 콤보 3단계 모두 일관(내 AP=25 / 다른 플레이어 AP=16), 누적피해 = 스윙별 final 합 완전 일치(m8=90·m7=57·m6=35·m4=31). **② 지연** — 송신→HP 반영 avg **37ms**(max 50), RTT avg **39ms**(max 94), 발동→HP **14ms**. 체감의 대부분이 RTT → **C2b(틱레이트·예측) 착수 근거 없음**. **③ 스테일 드롭 8마리 전부 0** — C2 의 FIFO 로 생성순=도착순이 되어 역전 자체가 사라짐. C3 Seq 는 이중 안전망으로 강등. gate 거부도 0건. **④ 발견: 링버퍼 포화**(508/512, 89%가 이동 틱 노이즈) → 측정이 최근 수 초로 잘림. **⑤ 발견: 몬스터→플레이어 지연 관측 불가**(플레이어 HP 반영 시점 미기록). **⑥ 밸런스: 몬스터 피해가 1~5 로 max(1,..) 바닥**.
-- [x] **AC-C2 세션 송신 큐** — **완료**(2026-07-17). 세션당 `Channel`(Bounded 1024) + 단일 소비자 `SendLoopAsync` → FIFO·프레임 원자성. `SendPacketAsync` 는 이제 **큐잉만**(시그니처 유지 → 호출부 20곳 무변경, 단 await 가 '전선에 나갔다'를 보장하지 않음). 포화 시 그 세션만 끊는다(무한 큐 = 느린 클라 1명이 서버 메모리 잠식 = DoS 벡터). ⚠ **D1 재현은 Windows 에서 불가**(overlapped WSASend 는 버퍼 전체 소비 후 완료 → 부분전송 자체가 없음). 서버는 Linux 컨테이너라 거기선 실재. → 프레임 원자성은 **구조적 보장**(단일 소비자)이지 테스트로 증명된 게 아니다. 테스트가 지키는 것 = 순서·포화 끊김·끊긴 세션 무시. 검증: SocketServer.Tests **168/168**(+4) · 솔루션 0오류 · Docker E2E **31/31**.
-- [x] **AC-C3 상태 시퀀스** — **완료**(승인 2026-07-17). `S_MonsterState.Seq`(몬스터별 단조 증가, **스냅샷 시점** 스탬프) + 클라 `SocketPacketState.UpdateMonster` 스테일 드롭(`seq <= 반영값` → 무시). D2(HP 되돌아감) **근본 해결** — 도착 순서가 뒤집혀도 무효화. C3-hotfix 의 재전송은 이중 안전망으로 유지.
-- [x] **AC-C2b 추가 조치 — 불필요 판정(2026-07-17)**. C1c 측정 결과 송신→HP 37ms·스테일 0·gate 0 이라 틱레이트/예측을 건드릴 근거가 없다. 체감 지연의 본체는 RTT(39ms)이고 서버 처리·하행 구간(14ms)은 이미 촘촘하다. **측정이 '하지 않기로' 결론낸 사례.**
-
-**플레이 중 발견한 버그 (사용자 관측 → 즉시 수정)**
-- [x] **몬스터 사망 시 체력바가 안 비는 버그** — 2026-07-17. 서버는 `dead` 면 `S_MonsterDead` 만 보내고 죽는 순간의 `S_MonsterState{Hp=0}` 은 없는데, 클라 `MonsterEntity.HandleDead` 도 HP 를 0 으로 만들지 않아 **체력바가 치명타 직전 값에 멈춘 채 2초간 die 모션**이 재생됐다. → `HandleDead` 에서 HP 0 확정 후 트리거. 서버 추가 전송 대신 클라 유도를 택한 이유 = D1(송신 직렬화 없음) 로 Dead 가 먼저 오면 `Hp=0` 이 버려져 간헐 재발. 플레이어는 `S_ApplyEffect` 로 ASC 가 직접 차감해 이 버그 없음(비대칭). 상세 = codemap §2.77. 검증: PlayMode anim 3/3 · EditMode 189/189.
-
-**AC-C1c 가 드러낸 후속 (측정 근거 있음)**
-- [x] **트레이스 링버퍼 포화 — 해소(안ⓒ, 2026-07-17)**. ① 이동 틱(HP 델타 0)은 **링에 안 넣는다**(실측 89% 노이즈 제거) ② 용량 512→**4096**(~200KB) ③ **동기화 집계를 링에서 분리** — 몬스터당 1행 맵(`CombatTraceRecorder.MonsterSync()`)이라 링이 돌아도 유실 없고(예전엔 m3 가 49건 증발), **한 대도 안 맞은 몬스터도 계속 보인다**(필터만 했으면 사라졌을 요구사항). 검증: EditMode **192/192**(+4, 노이즈 필터·델타 보존·집계 무유실).
-- [x] **몬스터→플레이어 지연 관측 불가 — 해소(2026-08-17)**. 원인은 종점 부재였다: 몬스터 스윙은 `MonsterHpApplied`(몬스터 전용)가 안 잡혀 `activateToHpMs=-1`. → `CombatTraceKind.PlayerHpApplied`(=5) 신설 + `EffectReceiver.OnEffectApplied` 가 **ASC 적용 직후** 기록(= 체력바가 다시 그려지는 시각) + `CombatTraceJoin.Attach` 가 대상 일치로 `HpAppliedMs` 를 채운다 → 몬스터·플레이어→플레이어 스윙에서 `ActivateToHpMs`·`DamageToHpMs` 측정 가능. **창(`CombatTraceWindow`)·CSV 는 무변경** — 이미 그 필드를 그리고 있었고 값이 -1 이었을 뿐.
-  - **델타는 패킷 `Amount` 가 아니라 적용 전후 실측차**를 쓴다. Amount=0 이어도 카탈로그 고정값 효과(회복)는 HP 를 바꾸고, CC 는 Amount=0 이면서 안 바꾼다 — 관측 대상은 "실제로 변했나"다. 델타 0 은 링에 안 넣는다(이동 틱 필터와 같은 이유: 지속효과 틱이 스윙을 덮는다).
-  - 검증: EditMode `CombatTraceRecorderTests` **21/21**(신규 3 = 구간 측정·델타0 제외·대상 불일치 비귀속). ⚠️ **실측 수치는 아직 없음** — 트레이스는 기본 Off 라 사용자가 창에서 Record 켜고 플레이해야 숫자가 나온다. 상세 codemap §2.99.
-- [x] **밸런스: 몬스터 피해가 바닥(1~5)** → **AC-E 트랙으로 해결**(아래).
-
-**AC-E — 몬스터 레벨링 · 드롭 정리 (✅ 2026-07-17 완료)** — 설계 [monster-leveling.md](monster-leveling.md). C1c 측정(몬스터 피해 1~5 바닥)의 뿌리 = **몬스터에 레벨이 없어 스탯 고정**인데 플레이어만 선형 성장(DEF +2/L) → L19 부터 전 몬스터 1 데미지.
-> ⚠️ 아래 증분 기록의 **등급(Tier) 배율·`spawn.tier` 는 AC-G 로 대체됨**(변종 ID 직접 저작). 레벨 스케일(`MonsterLevelScaling`)은 그대로 유효. 최초 결정("Variant=등급 배율")은 당시 기록으로 보존한다.
-  - [x] **E1 `MonsterLevelScaling`**(순수 함수, 배선 없음) — **비례 가산** `base(L)=base₁+(2+0.2·net₁)(L-1)` 로 **역할 보존**(곱셈은 slam 폭발 L20=688, 단순가산은 전부 중간 수렴). HP=플레이어 AP 성장 추종, 등급은 **HP 크게·피해 작게**(즉사 방지). 검증: 단위 **17종** · 185/185.
-  - [x] **E2 레벨·등급 필드 + 해석 경로** — `MonsterSpawnDef.Level/Tier` · `MapSpawnLayout.MonsterLevel` · `MonsterState.Level/Tier`(스폰 시 1회 확정). 해석은 **단일 구현** `MapSpawnLayout.ResolveLevel(spawnLevel, mapLevel)`(스폰>맵>1) — 두 곳에서 재구현하면 어긋난다. **동작 보존**: 전부 선택 필드라 기존 JSON 이 L1 로 떨어지고 L1 스케일은 항등 → 스탯 무변경(테스트로 고정). ⚠ **던전 대역 저작은 E3/E5 로 분리** — 레벨 값은 기획 결정이라 이 증분에 섞지 않았다. 검증: 단위 **9종** · 194/194 · E2E 31/31.
-  - [x] **E3 피해 배선** — `Room.TickMonsters` 가 `MonsterLevelScaling.Damage(base, Level, Tier)` 로 스케일된 base 를 산식에 넣는다. `StatCombatMath` 무변경(산식은 옳았고 틀린 건 base). 트레이스도 **실제 산식 입력**(scaledBase)을 찍는다 — 저작값을 찍으면 진단이 거짓말한다. HP 는 E2 에서 이미 배선됨(스폰 시 필요). **동작 보존**(전부 L1=항등). ⚠ **증분 순서 정정**: 던전 대역 저작은 E3 이 아니라 **E5** 다 — `spawn-layouts.json` 은 `MapDataExporter` 가 굽는 **생성물**이라 직접 편집하면 다음 Export 에 덮인다. 검증: 단위 4종(스케일 우회 시 3건 실패 **실측**) · 198/198 · E2E 31/31.
-  - [x] **E4 드롭 롤의 레벨·등급 반영**(코드) — `DropTableRoll.Roll(entries, rng, chanceMultiplier, quantityMultiplier)` 순수 오버로드 + `DropTableCatalog.Roll(id, rng, level, tier)` 가 배율 계산 + `CombatHandler.SpawnDrops` 배선. **수량 배율은 가변수량(MaxQty>1, gold)에만** — 장비(1~1)에 걸면 검이 2자루 나온다. 확률은 1.0 clamp. 배율 기본값 = 기존 동작(보존). ⚠ **9마리 저작·goblin 제거는 E5** — `drop-tables.json` 도 `DropTableExporter` 가 굽는 생성물이라 직접 편집하면 덮인다. 검증: 단위 6종 · SocketServer 204/204 · Shared.Gameplay 50/50 · E2E 31/31.
-  - [x] **E5 클라 SO 저작 + Export 왕복** — **완료**.
-    - [x] SO 필드: `MapDefinition.monsterLevel` · `MonsterSpawn.level/tier`(+ 클라 미러 enum `MonsterTier` — 서버 enum 은 Shared.Infrastructure 라 클라 미참조. 계약은 JSON int)
-    - [x] `MapDataExporter` 왕복 배선(Export+**Import** 둘 다 — Import 누락 시 저작이 0 으로 지워진다)
-    - [x] **던전 대역**: `dungeon_01`=L1 · `dungeon_02`=L6 · `dungeon_e2e`=L1(픽스처 고정). **밸런스 실제 수정**(L6 순피해가 바닥 1 에서 탈출 — 테스트 고정)
-    - [x] **드롭 8마리 전수 + goblin 유령 제거**(test_brute 는 픽스처라 의도적 제외). 기존 `임베디드_goblin_데이터가_로드된다` 는 표본을 실존 몬스터(leviathan)로 교체 — 의도(저작→Export 왕복 검증)는 유지
-    - [x] 검증: SocketServer **210/210** · 솔루션 0오류 · Unity 컴파일 0 · EditMode **192/192** · Docker E2E **31/31**
-    - ⚠️ **함정 기록**: exporter 가 끝에 `EditorUtility.DisplayDialog`(모달)를 띄운다 → **MCP 호출이 그 자리에서 무기한 블록**된다(이번에 Unity 가 멈춘 원인). 자동화로 Export 할 땐 팝업 없는 경로를 쓴다.
-
-**AC-F — 데이터 전면 SO 화 + 던전 확장 (2026-07-17 완료)**
-- [x] **F1 밸런스 상수 하드코딩 제거** — `MonsterLevelScaling` 이 플레이어 곡선을 `LevelTable`(이미 SO 저작)에서 **직접 읽는다**. 식 재유도: `base(L) = net₁·HP(L)/HP(1) + DEF(L)` → **상수 0개**, 곡선이 비선형이어도 자동 추종. 이전엔 DEF 5/+2·HP비 0.2 를 복제해두고 "같이 바꿔라" 주석을 달았다(수동 동기화 함정).
-- [x] ~~**F2 등급 배율 → SO 테이블**~~ — **AC-G 에서 같은 날 폐기.** 배율 간접층(`MonsterScalingDefinition`→`monster-scaling.json`→`MonsterScalingCatalog`)은 enum 서버·클라 미러링·스폰 필드 2개·"왜 센지"를 두 테이블에서 찾기를 낳았고, 사용자 지적("ID만 처리하면 되잖아")대로 **변종 ID 직접 저작**으로 대체됐다. F1·F3 은 유효.
-- [x] **F3 던전 5개 + 진행 곡선** — L1(100) → L6(300) → L12(700) → L20(1500) → L30(3000). 등급 구성도 점층(N만 → B 1 → E 1 → E2+B1 → E3+B2). `DungeonCatalog` 5개 등록(등록 안 하면 UI 에 안 뜬다).
-- [x] **보스 등급 교정** — `leviathan`(base 40/slam 90)이 `dungeon_02` 에서 **Normal 로 스폰**되고 있었다 → Boss 로.
-- 검증: SocketServer **212/212** · 솔루션 0오류 · EditMode **192/192** · Docker E2E **31/31**.
-
-**AC-G — 등급을 Monster Table 로 · 변종은 ID 로 (2026-07-17 완료, 사용자 지시)**
-- [x] **배율 간접층 제거** — `MonsterScalingDefinition`(SO)·`monster-scaling.json`·`MonsterScalingCatalog`·`spawn.tier`·클라 `MonsterTier` 미러 enum 을 **전부 삭제**. AC-F2 에서 만든 걸 하루 만에 접었다 — 사용자 지적("ID만 처리하면 되잖아")이 옳았다.
-- [x] **등급 = `monsters.json` 의 `tier` 필드**(문자열 "Normal"/"Elite"/"Boss"). **분류일 뿐 스탯에 곱해지지 않는다** — 표시·연출 분기용.
-- [x] **변종 = 별개 ID·스탯 직접 저작** — `leviathan`(hp 500) / `leviathan_boss`(hp 3000). 스폰은 `monsterId` **하나만** 처리한다.
-- [x] 변종 4종(`undead_axemaster_elite`·`wild_centaur_elite`·`gargoyle_elite`·`leviathan_boss`) + 각자의 드롭 테이블(배율이 없으니 없으면 아무것도 안 떨군다).
-- [x] 던전 스폰이 변종 ID 를 직접 지목하도록 재배치(dungeon_02~05).
-- ⚠️ **테스트가 내 저작 실수를 잡았다**: `leviathan` base 를 65 로 착각(그건 arachnya)해 boss 를 390 으로 적었다 → **원본(500)보다 약한 보스**. `변종은_별개_ID_로_저작된다_AC_G` 가 실패시켜 실제 base 로 재저작(3000).
-- 검증: SocketServer **209/209** · 솔루션 0오류 · EditMode **192/192** · Docker E2E **31/31**.
-
-**AC-H — Main 몬스터 체력바 (2026-07-17 완료)**
-- [x] **`IMonsterHealth` 계약 도입** — 구현체가 **실제로 둘**(던전 `MonsterEntity`=서버 권위 / Main `LocalMonster`=클라 권위)이라 unity-client.md 의 인터페이스 도입 기준 충족. 체력바는 "누가 권위인가"를 알 필요가 없다.
-- [x] `MonsterHealthBar` 를 계약 기반으로 전환 → **던전·Main 공용**(컴포넌트 1개).
-- [x] `LocalMonster` 가 계약 구현 + 피격/사망 시 `HpChanged` 발행. **사망 시 HP 0 확정**(음수 노출 금지) — 던전에서 고친 그 버그의 Main 판 예방.
-- [x] `CreepyDemonLocal.prefab` 에 던전 프리팹의 HealthBar 서브트리 복제(손으로 Canvas 재구성하면 앵커·스케일이 어긋난다).
-- 검증: PlayMode **3/3**(프리팹 배선·피격 fill 감소·사망 0) · EditMode **192/192** · 컴파일 0오류.
-
-**✅ PlayMode 기존 실패 8건 — 전부 해소 (2026-08-17)**
-> Unity CLI 도입으로 **PlayMode 전체 스위트를 처음 통째로** 돌려 8건이 드러났다(그동안 `--filter` 실행만 해서 안 보였다). **내 당일 변경을 stash 로 되돌린 상태에서 같은 8건이 동일하게 실패**함을 실측(177/185 일치)해 기존 결함으로 확정한 뒤 고쳤다. **전부 테스트가 코드/데이터 변화를 못 따라간 경우로, 프로덕션 버그는 0건이었다.**
->
-> | 실패 | 원인 | 수정 |
-> |---|---|---|
-> | `CharacterSpawnMultiClientTests` 3건 | 테스트 스코프에 `ActorRegistry` 미등록 → `CharacterSpawner` resolve 실패. `CharacterSpawner` 가 AC 트랙(07-17)에 의존성을 얻었는데 테스트는 07-12 이후 미갱신 | 스코프에 `ActorRegistry` 등록(던전 스코프와 같은 Scoped) |
-> | 위 중 1건(추가로 드러남) | DI 가 풀리자 **다음 단계 실패**가 나옴 — 기대 좌표 `(2,0,0)` 하드코딩. `dungeon_01` 이 2026-07 재기획으로 Z-16 으로 이동(EditMode `SpawnResolverTests` 만 갱신됨) | 기대값을 하드코딩 대신 **같은 리졸버에서 유도** + 스냅샷(0,0,0)과 다름을 병기해 "결정론 좌표를 쓴다" 불변식은 유지 |
-> | `GameHudBuffIntegrationTests` · `GameHudIntegrationTests` | 테스트 스코프에 `ItemDisplayCatalog`·`ItemPickupNotifier` 미등록 → `InGameModel` resolve 실패(**VContainer 는 C# 기본값을 무시** — 파일 안 주석이 이미 경고하고 있었다). `InGameModel` 이 07-12 에 의존성 획득 | 두 타입 등록 |
-> | `RemoteDriverAnimTests` 원격 회피 | 판정이 `GetCurrentAnimatorStateInfo` **단독** — 블렌드 구간엔 이전 상태로 읽힌다. 같은 파일의 콤보 테스트들은 `IsEnteringOrIn`(현재+전이대상)을 쓰고 이유까지 주석에 있었는데 이 테스트만 남아 있었다 | `IsEnteringOrIn` 으로 통일 |
-> | `ActionRootTests` Rooted | **프레임레이트 의존 테스트**. `CharacterMotor.Move` 변위는 실제 `Time.deltaTime` 기반인데 테스트는 로직에만 고정 `0.02f` 를 넣고 20프레임만 돌렸다 → 에디터가 빠르면 20프레임=실시간 수 ms 라 거의 안 움직임(실측 0.0015m) | 프레임 수 대신 **실시간 예산**(`DriveFor`)으로 구동 + 상태에도 그 프레임의 실제 dt 전달 |
-> | `CharacterPersistenceE2ETests` | `exp == 20` 하드코딩. slime→creepy_demon 교체(§2.63)로 `expReward` 가 18 이 됐고 **저작 SO·bake JSON 은 서로 일치**(서버가 옳았다) | 응답 `ExpGained` 기준으로 단언 — 이 테스트의 대상은 "재접속해도 보존된다"이지 "그 값이 20"이 아니다 |
->
-> **덤으로 드러난 교차 오염 1건**: 위 8건을 고치자 `SocketSessionHeartbeatTests` 가 실패했는데, 단독 실행은 2/2 통과였다. 원인은 `UiInputCaptureBehaviourTests` 가 `PlayerInputActions.Player.Enable()` 후 `Disable()` 없이 asset 을 파괴해 **누수 assert 로그가 뒤에 실행되는 무관한 테스트에 붙는** 것(`InputSystemIntegrationTests` 가 같은 함정을 주석으로 남겨 뒀다). 3곳에 `Disable()` 추가. → 기존 8건이 이 로그를 흡수하고 있어 가려져 있었다.
->
-> **교훈**: 필터 실행만 하면 스위트 전체의 초록을 본 적이 없게 되고, DI 회귀·저작 데이터 드리프트·테스트 간 오염이 정확히 그 사각지대에서 자란다(2026-06-29 에 같은 교훈을 얻고도 재발). 실패가 실패를 가리기도 한다 — 8건을 고치자 9번째가 나왔다.
->
-> 검증: **PlayMode 187/187** · EditMode 204/204.
-
-**⚠️ 미해결 결함 (2026-08-18 커밋 정리 중 발견) — 전체 목록·우선순위 = [cleanup-backlog.md](cleanup-backlog.md)**
-- [x] **abilities.json 드리프트 (높음)** — ✅ **해소 2026-08-18**. 원인 = `7f5d9754`(CA-5 Phase 1b)에서 타임라인 툴로 SO 만 바꾸고 Export 미실행 → 서버가 옛 200/100 으로 판정하고 있었다. `AbilityCatalogExporter` 재실행 후 SO↔bake **불일치 0건**(15어빌×15필드 재대조). 검증 = 서버 빌드 0오류 + SocketServer.Tests **209/209**.
-  - bake 산출물 **6종 전부 대조 완료** — abilities 외 5종(drop-tables·consumable-effects·spawn-layouts·level-table·monsters)은 재Export 후에도 수치 변경 **0건**(개행 차이만, 되돌림).
-  - **모달 우회법(재사용)**: `unity command --project-path . eval_file --file <cs>` 로 `Exporter.BakeAll()` 직접 호출. 메뉴 경로는 `DisplayDialog` 가 에디터 메인스레드를 잡아 **이후 모든 CLI 명령까지 타임아웃**시킨다.
-  - **감지 가드**: `AbilityCatalogTests.게임플레이_수치가_현재_저작값으로_bake_돼_있다`(167/125 고정). ⚠ 밸런스 조정 시 Export 후 이 기대값도 갱신한다. 상시 대조의 테스트화는 [cleanup-backlog.md](cleanup-backlog.md) A2 잔여 제안.
-- [x] **ItemId int 전환 2단계 — DB·Redis·proto·패킷·클라 (완료 2026-08-19)** — 문자열 `ItemId` 를 **식별자에서 완전히 제거**하고 numericId(int)로 전환했다. 문자열은 카탈로그의 저작·로그용 이름으로만 남는다.
-  - **경계 전부**: 도메인 3엔티티 · EF 설정 3 + 마이그레이션(`ItemIdToInt`) · Redis Hash 파싱 3 · proto 5파일 11필드(`string`→`int32`) + 클라 Generated 재생성 · `LootPackets` · `DropEntry`/`DropResult` · `QuestReward` · 서버 서비스/테스트 · 클라 39파일.
-  - **`gold` 처리(설계 결정)**: 드랍 테이블이 `"gold"` 라는 **카탈로그에 없는 의사 아이템**을 문자열로 끼워 넣고 있었다(문자열 키의 단점이 드러난 지점). `gold` 를 **3001 로 카탈로그에 정식 등록**하고, 통화 판별을 문자열 비교 → **대역(3000~3999)** 으로 바꿨다(`Currencies.IsCurrency`). 대역 규칙이 실제 동작을 결정하게 됐다.
-  - **DB 마이그레이션**: 기존 행은 폐기(사용자 결정 — 대부분 E2E 임시 계정). Postgres 는 varchar→int 에 암시적 캐스팅이 없어 **테이블이 비어 있어도** `USING` 절을 요구하므로(42804) `AlterColumn` 대신 원시 SQL 로 작성. 운영 데이터가 생긴 뒤엔 신규 컬럼→매핑 UPDATE→PK 재구성→구 컬럼 제거의 4단계로 가야 한다(마이그레이션 주석에 기록).
-  - **GAS 효과 id 는 문자열 유지**: `effectId == itemId` 규칙상 numericId 를 `ToString()` 으로 싣는다. GAS 효과 체계는 별도라 전환 대상이 아니다.
-  - 검증: 서버 빌드 0오류 · 서버 테스트 **666/666** · Unity 컴파일 0에러 · EditMode **204/204** · **PlayMode/E2E 187/187**(Docker 리빌드 후) · DB 스키마 3테이블 `integer` 확인 · Redis flush.
-  - **E2E 가 잡은 실제 버그**: 소비 효과 id 불일치. 서버 `ItemCatalogData` 는 효과를 저작 문자열(`"potion_hp_small"`)로 등록했는데 gRPC 는 `request.ItemId.ToString()`(`"1001"`)을 보내, 포션을 써도 회복이 안 붙었다. 등록 키를 `NumericId.ToString()` 으로 통일. **단위·컴파일로는 못 잡고 E2E 만 잡는 부류**다(`.claude/rules/testing.md` 의 전체 스위트 실행 원칙이 유효함을 재확인).
-  - **Unity CLI 함정(기록)**: `console` 명령이 **낡은 컴파일 결과를 계속 반환**해 이미 고친 에러를 반복 보고했다(파일 바이트 대조로 확인). 실제 에러는 `%LOCALAPPDATA%/Unity/Editor/Editor.log` 를 `tail` 하면 정확히 읽힌다 — 앞으로 클라 컴파일 판정은 이 로그를 쓴다.
-
-- [x] **ItemId int 전환 1단계 — numericId 부여** — ✅ **2026-08-18**. `items.json`·SO 에 `numericId` 추가, **런타임 동작 변화 0**(DB·proto·패킷 무변경). 대역이 곧 분류다: **1000~1999 소모품 / 2100~2199 무기 / 2200~2299 방어구 / 2300~2399 장신구 / 3000~3999 재화·기타**. 10종 배정(1001·1002 / 2101 / 2201~2205 / 2301·2302).
-  - 이중 가드: 저작 시점 = `ItemCatalogExporter` 가 **중복·대역 위반 시 bake 거부**, 커밋 시점 = `ItemNumericIdTests` 4종(전원 배정·중복 없음·대역 일치·양방향 조회 동일).
-  - 서버 `ItemDef.NumericId` + `CatalogTables.ItemsByNumericId` 추가(2단계 진입점). **미배정(0)·중복이 있어도 서버가 죽지 않게** 방어적으로 구성 — 데이터 한 줄로 서버 전체가 내려가면 안 되고, 이 값은 아직 어떤 런타임 경로도 쓰지 않는다.
-  - 검증: Unity 컴파일 0 · 서버 빌드 0오류 · 테스트 **666/666**(Shared 50 · SocketServer 217 · GameServer 399).
-  - **2단계 남음**: DB 3테이블 마이그레이션 · Redis Hash field · proto 5파일 `string item_id`→`int32` · `LootPackets` · 클라 61파일. 문자열 id 는 그때 식별자에서 제거하고 로그용 이름만 남긴다.
-- [x] **items.json 만 Exporter 부재 → 클라·서버 아이템 카탈로그 드리프트 (높음)** — ✅ **해소 2026-08-18**. `ItemCatalogDefinition`(SO)+`ItemCatalogExporter` 신설로 다른 6종과 동일 교리 일원화(**정렬 금지** — 저작 순서 = 상점 진열 순서). 왕복 검증(json→Import→SO→Export→json) **10종 순서 동일·필드 불일치 0**, 재대조 서버 10/클라 10 **구성·순서 일치**. `gold_pouch` 제거(참조 0건 실측) · `potion_mp_small` Mana +100 Instant 부여(주석이 "과거 사고"로 적은 효과 누락이 실제로 남아 있었다) · 죽은 `ConsumableEffectExporter` 제거. 검증 = Unity 컴파일 0 · 서버 빌드 0오류 · 테스트 **659/659**. 상세 = [cleanup-backlog.md](cleanup-backlog.md) A4.
-  - **부수 발견(저장소 복구)**: `items.json`·`quests.json`(EmbeddedResource)과 `Shared.Infrastructure/{Items,Quests}/*.cs`·`Shared.Gameplay/Items/*.cs` 가 전부 **미커밋**이라 클론 시 빌드 실패 상태였다(Domain→Shared.Infrastructure 이동 리팩터가 삭제만 커밋됨). `8438d721`·`402eb438`·`99bed9b4` 로 복구.
-  - **검증 방법 교훈**: 로컬 `dotnet build` 는 미커밋 파일 때문에 **항상 통과**해 이 부류를 못 잡는다. `git archive HEAD ServerAll | tar -x` 로 **커밋본만 빌드**하는 것이 진짜 검증(전체 clone 은 .git 20GB vs 여유 20GB 로 디스크 부족 실패).
-- [x] **Editor Exporter 5종 `DisplayDialog` 메인스레드 점유 (중간)** — ✅ **해소 2026-08-18**. `EditorToolReport`(공용) 신설 — `EditorApplication.delayCall` 로 알림을 다음 프레임에 미뤄 명령이 즉시 반환된다. 5종 적용(치환 21건, 잔여 0). 검증 = `eval_file` 로 5종 연속 BakeAll 성공(합계 2.0초, 수정 전엔 첫 호출부터 5초 타임아웃) · 재bake 비공백 변경 0줄 · Unity 컴파일 0 · 서버 659/659. 이제 A2 카탈로그 대조를 CLI 로 자동 실행할 수 있다. 상세 = [cleanup-backlog.md](cleanup-backlog.md) A5.
-- [x] **RemotePlayerCharacter 머티리얼 누락** — ✅ **해소 2026-08-18**(재직렬화로 고아 블록 91줄 제거, 머티리얼NULL 0·깨진컴포넌트 0 검증). Unity 로 프리팹을 로드하면 MeshRenderer 는 `WeaponProp`(머티리얼 `M_BludgeonProp`) 하나뿐이고 정상. guid `31321ba…` 는 계층에서 도달 불가능한 **고아 YAML 블록**이라 렌더 영향 없음. ⚠ 최초의 "SkinnedMeshRenderer 가 참조·누락 렌더" 는 grep 만으로 내린 오판 — 프리팹 판정은 Unity 로드로 한다. 상세 = [cleanup-backlog.md](cleanup-backlog.md) A3.
-- [x] **디스크 포화 (환경)** — ✅ **해소 2026-08-18**. 아트 34/34 청크 커밋·푸시 완료, 여유 26G 회복. 잔여 = `.git` 20GB(GitHub 권장 5GB 초과) → Git LFS 이관은 히스토리 재작성이 필요해 별도 작업.
-
-- [ ] **`.gitignore` 가 `*.meta` 를 제외 (높음·구조적)** — 실측 결과 **추적 자산 17,075 중 8,593개(50.3%)가 `.meta` 없이 커밋**돼 있다(총 127KB). 클론 시 Unity 가 GUID 를 새로 만들어 프리팹·머티리얼 참조가 끊긴다.
-  - ⛔ **지금 메타를 커밋하면 안 된다** — 로컬에 이미 끊긴 GUID 참조가 대량 존재(Magic Pig 데모 프리팹이 미보유 Synty 팩을 전제). 그 상태를 정본으로 고정하게 된다.
-  - **① ✅ 완료 2026-08-18**: `.gitignore` 의 `*.meta` 제거(신규 유입 차단). 원인 = **VS 템플릿의 빌드 산출물 규칙**이 Unity 에셋 메타까지 삼킨 것. 노출된 메타는 1,019개로, 나머지는 다른 ignore 규칙이 잡고 있어 ②에서 함께 처리.
-  - **② 남음**: 데모 폴더 정리 → 콘솔 error 0 확인 → 기존 고아 메타 커밋. 상세 = [cleanup-backlog.md](cleanup-backlog.md) C2.
-
-**AC-D — 연출/밸런스 잔여 (AC-B에서 확장점으로 남긴 것들)**
-- [x] **AC-D1 어빌리티별 전용 애니** — ✅ 코드·데이터 완료(2026-07-20, 커밋 `f43da207`) + **배선 구멍 발견·수정(2026-08-17)**. enum `AttackSpecial`(=9, 끝에 추가라 기존 직렬화 인덱스 불변) + `CharacterAgentAnimations.m_animationAttackSpecialTrigger` + `Monster_leviathan_AC`(AttackSpecial 상태=`AttackHard` 클립, AnyState→AttackSpecial `hasExitTime=false`) + `Ability_leviathan_slam.cueTrigger=9`.
-  - ⚠️ **`MonsterVisualCatalog` 에 AC-G 변종 4종이 누락돼 있었다** — AC-G 가 던전 스폰을 변종 ID(`leviathan_boss` 등)로 재배치했는데 표시 카탈로그엔 안 넣어서 `MonsterSpawner` 가 **기본 캡슐로 폴백**했다. 등록돼 있던 `leviathan` 은 어느 던전도 더 이상 스폰하지 않아 **모든 던전에서 leviathan 모델이 안 뜨고, 프리팹에 달린 AC-D1 슬램 애니가 통째로 도달 불가**였다. 폴백이 예외가 아니라 정상 경로라 컴파일·기존 테스트로는 안 잡힌다.
-  - 수정: `undead_axemaster_elite`·`wild_centaur_elite`·`gargoyle_elite`·`leviathan_boss` → 각 원본 프리팹 매핑(변종 전용 모델은 폴리싱 단계 = AC-D4).
-  - 가드 신설: EditMode `MonsterVisualCatalogTests` 2종(저작 카탈로그 전 ID 표시 프리팹 등록 / 슬램 트리거명↔컨트롤러 파라미터 일치) — **수정 전 0/2 통과·2 실패로 회귀 포착을 실측**. PlayMode `보스_슬램_발동신호는_평타가_아닌_AttackSpecial_상태로_전이한다` = 카탈로그→프리팹→AbilityCatalog(109)→라우터→Animator 전 구간 관통.
-  - 검증: 컴파일 0 · EditMode **201/201**(199+2) · PlayMode `MonsterEntityAnimTests` **4/4**. 잔여 = MPPM 실플레이 육안 확인(사용자).
-- [ ] **AC-D2 플레이어→플레이어 데미지 스탯 스케일** — 현재 **플랫 피해**(AP·Defense 미반영). 몬스터→플레이어/플레이어→몬스터는 스탯 스케일이라 **비대칭**. 전환은 밸런스 결정이라 보류 중(B5 는 출처 일원화만 하고 동작 보존). ※ 코옵에서 friendly fire 를 유지할지 자체가 선행 결정.
-- [~] **AC-D3 VFX/SFX Cue** — **CA-5 로 합류·Phase 1a 완료**(2026-07-18, codemap §2.81): `AbilityCueEvent`/`CueCatalog`/`AbilityCuePlayer` + 배선 3자리. 잔여 = 에셋 할당(Phase 1b)·타임라인 창(Phase 2). 위 CA-5 항목 참조.
-- [ ] **AC-D4 dungeon_03~05 맵 비주얼** — `DungeonCatalog` 는 던전 5개를 **전부 선택 가능**하게 노출하는데 `dungeon_03/04/05` 의 `MapDefinition.visualPrefab` 이 비어 있다 → `MapLoader` 가 경고만 남기고 배경 없이 진행 → **씬 기본 Plane(100×100) 위 회색 평면에서 전투**. 낙사는 아님(모든 맵 bounds ≤80 이 Plane 안). `dungeon_02` 는 `dungeon_01` 비주얼을 재사용하는데 bounds 가 44→64 로 커져 **배경이 플레이 영역을 다 못 덮을 수 있음**. 에셋 작업(맵 프리팹 3종 + 02 재점검).
-- [x] **던전 메타: `DungeonRoom.MapId` 도입 + 던전 선택 UI** [4.3·9.2] — ✅ 완료 2026-06-25. 방 생성 시 결정·영속(엔티티 4곳+EF 마이그레이션+Redis Hash) + 생성 팝업 던전 드롭다운(`DungeonCatalog` SO)·`RoomInfo.map_id` 표시·expReward Export 왕복 결함 수정. 상세=4.3 항목. 콘텐츠 확장(여러 던전)은 `MapDefinition` SO 추가→Export→서버 재빌드로 데이터만 추가.
-- [ ] PVE 오픈월드 맛보기 — 월드/존·퀘스트·NPC/대화·상호작용 [4.4~4.7]
-- [ ] 소셜(핑/이모트)·설정/옵션·재접속 [5.2·6.3·6.4]
-
-### M6 — 마감 [WBS 9.8·9.9]
-- [ ] 데모 영상/gif·부하/E2E 검증·배포/포트폴리오 문서
-
----
-
-## ✅ 완료된 Phase (= WBS 1.* 상세)
-
-| Phase | 내용 |
-|-------|------|
-| 서버 인프라 | Clean Architecture, JWT 인증, DeviceId Binding, Token Rotation |
-| 던전 로비 | gRPC 방 CRUD, SubscribeRoom Streaming |
-| 게임 시작 E2E | Outbox → Redis Stream → SocketServer 방 생성 → IP:Port 알림 |
-| SocketServer | C_PlayerJoin(Redis 검증), C_Move/S_Move, Ping/Pong |
-| 채팅 | Redis Streams, Global/Room/Whisper |
-| 분산 로그 | Serilog + Graylog, TraceId 전파 |
-| DB/캐시 | PostgreSQL + Redis Cache-Aside, Testcontainers 통합 테스트 |
-| 클라이언트 OutGame | gRPC 로그인/로비 UI, VContainer DI, MVI 아키텍처 |
+> 결함·정리 대상은 WBS 노드로 만들지 않는다(이슈가 자동 생성되므로). [cleanup-backlog.md](cleanup-backlog.md) 가 관리한다.
 
 ---
 
 ## 참고 파일
 
-- **일정/이슈 트래킹**: GitHub Project [Multiplay ActionRPG Roadmap](https://github.com/users/SeoBYP/projects/2) — WBS 노드 56개가 Issue로 등록됨(필드 Status·Tier·Owner·Milestone). **plan.md = 설계·이력 진실원 / Project = 일정·진척 뷰** (역할 분리).
-- 코드맵 + 설계 결정 로그: [`docs/wiki/codemap.md`](codemap.md)
-- 패킷 규칙: [`docs/wiki/packets.md`](packets.md)
-- SocketServer 규칙: [`docs/wiki/socketserver.md`](socketserver.md)
-- 서버 흐름: [`docs/wiki/gameflow.md`](gameflow.md)
-- GAS 아키텍처(Tag·Effect·Ability·Cue·발동권위): [`docs/wiki/gas-architecture.md`](gas-architecture.md)
-- Effect/버프 시스템: [`docs/wiki/effect-system.md`](effect-system.md)
+- 결함·정리 대상: [cleanup-backlog.md](cleanup-backlog.md)
+- 코드 위치 + 설계 결정 로그: [codemap.md](codemap.md)
+- 권위 모델(클라 vs 서버): [authority-model.md](authority-model.md) · GAS: [gas-architecture.md](gas-architecture.md)
+- 패킷: [packets.md](packets.md) · SocketServer: [socketserver.md](socketserver.md) · 서버 흐름: [gameflow.md](gameflow.md)
+- 멀티플레이 테스트: [mppm-testing.md](mppm-testing.md)
+- 일정 뷰: GitHub Project [#2](https://github.com/users/SeoBYP/projects/2) (진실원은 이 파일)
