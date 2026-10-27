@@ -5,8 +5,7 @@ using MemoryPack;
 namespace Game.Network.Socket.Packets
 {
     /// <summary>
-    /// 서버 → 클라: 바닥 아이템 1개 스폰. 몬스터 사망 drop roll 결과로 발생.
-    /// 입장 시 현재 바닥 아이템 로스터 재전송에도 재사용(늦은 입장 대응).
+    /// 서버 → 클라: 바닥 아이템 1개 스폰(몬스터 사망 drop roll 결과). 입장 시 현재 로스터 재전송에도 재사용(늦은 입장).
     /// </summary>
     [MemoryPackable]
     public partial class S_SpawnGroundItem : Packet
@@ -20,7 +19,7 @@ namespace Game.Network.Socket.Packets
     }
 
     /// <summary>
-    /// 서버 → 클라: 바닥 아이템 제거(누군가 주웠거나 만료). 모든 클라가 렌더에서 제거.
+    /// 서버 → 클라: 바닥 아이템 제거(누군가 주웠거나 만료).
     /// </summary>
     [MemoryPackable]
     public partial class S_GroundItemRemoved : Packet

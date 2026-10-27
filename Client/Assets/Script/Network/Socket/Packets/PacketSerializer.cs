@@ -7,11 +7,9 @@ namespace Game.Network.Socket.Packets
 {
     public static class PacketSerializer
     {
-        // 직렬화: Packet → byte[]
         public static byte[] Serialize(Packet packet)
             => MemoryPackSerializer.Serialize<Packet>(packet);
 
-        // 역직렬화: byte[] → Packet
         public static Packet? Deserialize(byte[] data)
             => MemoryPackSerializer.Deserialize<Packet>(data);
 

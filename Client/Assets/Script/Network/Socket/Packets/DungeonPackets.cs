@@ -5,10 +5,9 @@ using MemoryPack;
 namespace Game.Network.Socket.Packets
 {
     /// <summary>
-    /// 서버 → 클라: 던전 클리어(방의 몬스터 전멸). 서버가 전멸을 1회만 감지해 방에 브로드캐스트한다.
-    /// 클라는 이 패킷을 받으면 결과 화면을 띄우고 로비 복귀 흐름으로 들어간다.
-    /// 보상 산정/지급은 별개로 GameServer가 DungeonClearMessage(Redis Stream)를 소비해 처리한다.
-    /// RewardExp = 표시용 — 지급(GameServer)과 동일 Shared 카탈로그(spawn-layouts.json expReward)에서 채운다.
+    /// 서버 → 클라: 던전 클리어(몬스터 전멸). 서버가 1회만 감지해 방에 브로드캐스트한다.
+    /// 보상 지급은 별개로 GameServer 가 DungeonClearMessage(Redis Stream)를 소비해 처리한다.
+    /// RewardExp = 표시용 — 지급과 같은 Shared 카탈로그(spawn-layouts.json expReward)에서 채운다.
     /// </summary>
     [MemoryPackable]
     public partial class S_DungeonClear : Packet
@@ -18,8 +17,8 @@ namespace Game.Network.Socket.Packets
     }
 
     /// <summary>
-    /// 서버 → 클라: 던전 실패(참가자 전원 다운). 서버가 전원 다운을 1회만 감지해 방에 브로드캐스트한다.
-    /// 클라는 실패 화면을 띄우고 로비 복귀 흐름으로 들어간다. 실패는 보상이 없다(GameServer 통지 없음).
+    /// 서버 → 클라: 던전 실패(참가자 전원 다운). 서버가 1회만 감지해 방에 브로드캐스트한다.
+    /// 실패는 보상이 없다(GameServer 통지 없음).
     /// </summary>
     [MemoryPackable]
     public partial class S_DungeonFailed : Packet
@@ -28,8 +27,8 @@ namespace Game.Network.Socket.Packets
     }
 
     /// <summary>
-    /// 클라 → 서버: 로컬 플레이어 사망(HP 0) 보고. 플레이어 HP 는 클라 권위라 서버는 이 신호로 다운을 집계한다.
-    /// 서버는 참가자 전원이 다운되면 S_DungeonFailed 를 발화한다.
+    /// 클라 → 서버: 로컬 플레이어 사망(HP 0) 보고. 플레이어 HP 는 클라 권위라 서버는 이 신호로 다운을 집계하고,
+    /// 참가자 전원이 다운되면 S_DungeonFailed 를 발화한다.
     /// </summary>
     [MemoryPackable]
     public partial class C_PlayerDead : Packet
@@ -38,8 +37,7 @@ namespace Game.Network.Socket.Packets
 
     /// <summary>
     /// 서버 → 클라: 한 플레이어의 다운(HP 0)을 방에 브로드캐스트한다(원격 다운 가시성).
-    /// 서버는 C_PlayerDead 수신 시 그 플레이어의 UserId 를 실어 전파한다. 각 클라는 해당 캐릭터를
-    /// 다운 처리(현재는 로그+Destroy, 다운 포즈는 후속)한다. 전원 다운 실패 집계(S_DungeonFailed)와는 별개.
+    /// C_PlayerDead 수신 시 그 플레이어의 UserId 를 실어 전파한다. 전원 다운 집계(S_DungeonFailed)와는 별개.
     /// </summary>
     [MemoryPackable]
     public partial class S_PlayerDead : Packet

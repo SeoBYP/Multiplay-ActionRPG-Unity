@@ -20,7 +20,7 @@ namespace Game.Network.Socket.Packets
     [MemoryPackUnion(1601,typeof(S_Attack))]
     [MemoryPackUnion(1602,typeof(C_Dodge))]
     [MemoryPackUnion(1603,typeof(S_Dodge))]
-    // 전투 - Actor 통합 어빌리티 발동 연출 신호(플레이어·몬스터 공용, actor-combat-architecture §4)
+    // 전투 - Actor 통합 어빌리티 발동 연출 신호(플레이어·몬스터 공용)
     [MemoryPackUnion(1604,typeof(S_AbilityActivated))]
     // 전투 - Effect(버프/디버프) 동기화
     [MemoryPackUnion(1640,typeof(S_ApplyEffect))]
@@ -38,7 +38,7 @@ namespace Game.Network.Socket.Packets
     [MemoryPackUnion(1821, typeof(S_DungeonFailed))]
     [MemoryPackUnion(1822, typeof(C_PlayerDead))]
     [MemoryPackUnion(1823, typeof(S_PlayerDead))]
-    // 던전 이벤트 - Co-op 부활(2.5.2)
+    // 던전 이벤트 - Co-op 부활
     [MemoryPackUnion(1824, typeof(C_Revive))]
     [MemoryPackUnion(1825, typeof(S_PlayerRevived))]
     // 던전 이벤트 - 루트/드랍(줍기)

@@ -5,8 +5,7 @@ using MemoryPack;
 namespace Game.Network.Socket.Packets
 {
     /// <summary>
-    /// 서버 → 클라: 몬스터 1마리 스폰. 입장 시 현재 몬스터 로스터 전송에도 재사용.
-    /// 몬스터는 서버 권위 NPC라 C_ 입력 패킷이 없다.
+    /// 서버 → 클라: 몬스터 1마리 스폰. 입장 시 현재 로스터 전송에도 재사용. 몬스터는 서버 권위 NPC라 C_ 패킷이 없다.
     /// </summary>
     [MemoryPackable]
     public partial class S_SpawnMonster : Packet
@@ -22,8 +21,8 @@ namespace Game.Network.Socket.Packets
     }
 
     /// <summary>
-    /// 서버 → 클라: 몬스터 주기 상태(이동/HP/페이즈). RoomTickService가 매 틱 브로드캐스트.
-    /// 클라는 이 스냅샷으로 위치를 보간만 한다(서버 시뮬 + 클라 보간 모델).
+    /// 서버 → 클라: 몬스터 주기 상태(이동/HP/페이즈). RoomTickService가 매 틱 브로드캐스트한다.
+    /// 클라는 위치를 보간만 한다(서버 시뮬 + 클라 보간).
     /// </summary>
     [MemoryPackable]
     public partial class S_MonsterState : Packet
@@ -37,14 +36,14 @@ namespace Game.Network.Socket.Packets
         public byte Phase { get; set; } // 0 Idle / 1 Patrol / 2 Chase / 3 Attack
 
         /// <summary>
-        /// 몬스터별 단조 증가 상태 버전(AC-C3). 클라는 <c>Seq &lt;= 마지막 적용값</c> 이면 **스테일로 버린다**.
+        /// 몬스터별 단조 증가 상태 버전. 클라는 <c>Seq &lt;= 마지막 적용값</c> 이면 **스테일로 버린다**.
         /// <para>
-        /// 이 패킷에는 두 생산자가 있다 — 틱(<c>Room.TickMonsters</c>)과 데미지(<c>CombatHandler</c>).
+        /// 이 패킷에는 두 생산자가 있다 — 틱(<c>Room.Tick</c>)과 데미지(<c>CombatHandler</c>).
         /// 틱은 패킷을 **만든 뒤 나중에 송신**하므로(RoomTickService) 그 사이 데미지가 끼면
         /// **옛 HP 가 새 HP 뒤에 도착**해 클라 HP 가 되돌아간다. Seq 가 그 역전을 클라에서 무효화한다.
         /// </para>
         /// <para>
-        /// ⚠️ <b>반드시 스냅샷(생성) 시점에 <c>MonsterState.NextSeq()</c> 로 찍는다.</b> 송신 시점에 찍으면
+        /// ⚠️ <b>반드시 스냅샷(생성) 시점에 <c>MonsterActor.NextSeq()</c> 로 찍는다.</b> 송신 시점에 찍으면
         /// Seq 가 도착 순서와 같아져 아무것도 거르지 못한다 — 막으려는 것이 바로 그 순서다.
         /// </para>
         /// </summary>
@@ -52,7 +51,7 @@ namespace Game.Network.Socket.Packets
     }
 
     /// <summary>
-    /// 서버 → 클라: 몬스터 사망 → 디스폰. HP 권위는 서버, 사망 판정도 서버.
+    /// 서버 → 클라: 몬스터 사망 → 디스폰. 사망 판정은 서버 권위.
     /// </summary>
     [MemoryPackable]
     public partial class S_MonsterDead : Packet
