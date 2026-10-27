@@ -13,7 +13,7 @@ namespace Game.Gameplay.Character
     ///   공격 = 발동 신호(S_AbilityActivated) → Attack(Trigger)
     ///   사망 = OnMonsterDead → Dead(Trigger, 몬스터 컨트롤러의 "Die") 후 지연 디스폰
     /// 파라미터 이름은 프리팹의 CharacterAgentAnimations 에 배선한다(미배선이면 조용히 스킵).
-    /// ※ 과거 상태이름 CrossFade 방식은 제거 — 컨트롤러의 Speed 전이와 충돌해 Walk 가 즉시 Idle 로 튕겼다.
+    /// 상태이름 CrossFade 로 구동하지 않는다 — 컨트롤러의 Speed 전이와 충돌해 Walk 가 즉시 Idle 로 튕긴다.
     /// </summary>
     public class MonsterEntity : MonoBehaviour, IActorView, IMonsterHealth, IDisposable
     {
@@ -90,13 +90,10 @@ namespace Game.Gameplay.Character
             if (instanceId != InstanceId || _dead) return;
             _dead = true;
 
-            // 사망 = HP 0. **서버는 죽는 순간의 S_MonsterState 를 보내지 않는다** — S_MonsterDead 만 온다.
-            // 그래서 여기서 0 으로 만들지 않으면 체력바가 **치명타 직전 값에 멈춘 채** die 애니가 재생된다.
-            //
-            // 왜 서버가 Hp=0 상태를 추가 전송하지 않고 클라가 유도하나:
-            //   S_MonsterDead 와 S_MonsterState 는 송신 직렬화가 없어(D1) 순서가 뒤집힐 수 있고,
-            //   Dead 가 먼저 도착하면 상태 저장소에서 몬스터가 제거돼 뒤이은 Hp=0 이 **버려진다**(간헐 재발).
-            //   "사망 = HP 0" 은 서버가 이미 내린 판정이라 클라가 유도해도 권위를 해치지 않고 순서와 무관하게 항상 맞다.
+            // 사망 = HP 0. 서버는 죽는 순간의 S_MonsterState 를 보내지 않고 S_MonsterDead 만 보낸다 —
+            // 여기서 0 으로 만들지 않으면 체력바가 치명타 직전 값에 멈춘 채 die 애니가 재생된다.
+            // 서버가 Hp=0 을 추가 전송하지 않는 이유: Dead 와 State 는 송신 직렬화가 없어 순서가 뒤집힐 수 있고,
+            // Dead 가 먼저 오면 상태 저장소에서 몬스터가 제거돼 뒤이은 Hp=0 이 버려진다. "사망 = HP 0" 은 서버 판정이라 유도해도 권위를 해치지 않는다.
             if (Hp != 0)
             {
                 Hp = 0;
@@ -143,7 +140,7 @@ namespace Game.Gameplay.Character
 
         /// <summary>
         /// 발동 연출(IActorView) — 서버 S_AbilityActivated → AbilityCueRouter 가 ActorId 로 이 뷰를 찾고
-        /// **어빌리티 카탈로그에서 해석한 Cue** 를 넘겨준다(AC-B B3). 컨트롤러의 트리거 전이가 스윙 재생·복귀를 담당.
+        /// **어빌리티 카탈로그에서 해석한 Cue** 를 넘겨준다. 컨트롤러의 트리거 전이가 스윙 재생·복귀를 담당.
         /// ComboStep 파라미터가 없는 몬스터 컨트롤러에선 SetInt 가 조용히 스킵된다(CharacterAgentAnimations 미배선 가드).
         /// </summary>
         public void PlayAbilityCue(AnimationTriggerType trigger, int comboStep)

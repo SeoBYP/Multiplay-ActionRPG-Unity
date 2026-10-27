@@ -46,7 +46,6 @@ namespace Game.Presentation.Title
         {
             try
             {
-                // 에디터 자동 로그인이 이미 완료된 경우 즉시 반영
                 if (_authService.IsAuthenticated)
                 {
                     _state.Value = _state.Value.WithAuthenticated();
@@ -56,7 +55,6 @@ namespace Game.Presentation.Title
                 var result = await _authService.TryAutoLoginAsync(ct);
                 if (result == AuthResult.Success)
                     _state.Value = _state.Value.WithAuthenticated();
-                // 실패 시: IsAuthenticated = false 유지, LoginWindow에서 수동 로그인 대기
             }
             catch (OperationCanceledException)
             {

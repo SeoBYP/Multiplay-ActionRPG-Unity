@@ -9,7 +9,7 @@ using VContainer.Unity;
 namespace Game.Gameplay.Character
 {
     /// <summary>
-    /// Main 위치 주기 보고(B7). 재접속 시 이 좌표에서 시작한다.
+    /// Main 위치 주기 보고. 재접속 시 이 좌표에서 시작한다.
     ///
     /// **고정 주기가 아니라 "움직였을 때만"** 보낸다 — 가만히 서 있는 유저가 트래픽을 만들지 않게.
     /// 두 조건을 모두 만족해야 전송한다: 마지막 전송 이후 <see cref="MinIntervalSeconds"/> 경과 &amp;&amp;

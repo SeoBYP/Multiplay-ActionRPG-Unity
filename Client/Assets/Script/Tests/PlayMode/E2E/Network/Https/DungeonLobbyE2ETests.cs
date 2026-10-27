@@ -88,7 +88,7 @@ namespace Game.Tests.PlayMode.E2E
         [UnityTest]
         public IEnumerator GetRooms_요청한_페이지_크기를_서버가_지킨다() => UniTask.ToCoroutine(async () =>
         {
-            // 9.6 회귀 고정: 예전 서버는 room_count 를 **완전히 무시**하고 전체 활성 방을 반환했다.
+            // room_count 회귀 고정: 서버가 room_count 를 무시하고 전체 활성 방을 반환하면 안 된다.
             // 방이 2개 이상인 상태에서 1개만 요청해 그 계약을 실서버로 확인한다.
             await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
             await LobbyService.CreateRoomAsync(new CreateRoomRequest
@@ -113,9 +113,8 @@ namespace Game.Tests.PlayMode.E2E
             Assert.GreaterOrEqual(page.TotalCount, 2, "전체 활성 방 수는 페이지 크기와 무관하게 알려줘야 한다");
 
             // 정렬·중복 검증은 **한 응답 안에서만** 한다.
-            // 두 번의 RPC 로 offset 0/1 을 비교하면, 그 사이 다른 클라이언트가 방을 만드는 순간
-            // 앞쪽 삽입으로 같은 방이 두 페이지에 나온다 — 그건 offset 페이징의 정상 동작이라 경합 테스트가 된다.
-            // (실측: 4290·4291 생성 → offset0=4291 → 다른 세션이 4292 생성 → offset1=4291)
+            // 두 번의 RPC 로 offset 0/1 을 비교하면, 그 사이 다른 클라이언트가 방을 만들 때
+            // 앞쪽 삽입으로 같은 방이 두 페이지에 나온다 — offset 페이징의 정상 동작이라 경합 테스트가 된다.
             // offset/limit 산술 자체는 서버 단위 테스트가 결정적으로 고정한다
             // (DungeonLobbyServiceTests.GetActiveDungeonRooms_페이지들이_겹치지_않고_전체를_덮는다).
             var twoAtOnce = await LobbyService.GetRoomsAsync(new GetRoomsRequest
@@ -520,7 +519,7 @@ namespace Game.Tests.PlayMode.E2E
         });
 
         /// <summary>
-        /// 로그 재현 시나리오:
+        /// 시나리오:
         ///   방 생성 → SubscribeRoom 구독 시작 → StartGame 요청
         ///   → UpdateEvent(Starting) 수신 → GameSessionEvent(SocketIp/Port) 수신
         ///
@@ -530,7 +529,7 @@ namespace Game.Tests.PlayMode.E2E
         [UnityTest]
         public IEnumerator StartRoom_구독중_GameSessionEvent_수신() => UniTask.ToCoroutine(async () =>
         {
-            // Arrange: 방 생성 (호스트 단독 — 로그 시나리오 그대로)
+            // 방 생성 (호스트 단독)
             await RegisterAndLoginAsync(UniqueEmail(), "Test1234!");
             var created = await LobbyService.CreateRoomAsync(new CreateRoomRequest
             {
@@ -554,7 +553,7 @@ namespace Game.Tests.PlayMode.E2E
                 },
                 cts.Token).AsTask();
 
-            // Act: StartGame 요청
+            // StartGame 요청
             var started = await LobbyService.StartRoomAsync(
                 new StartRoomRequest { RoomId = roomId }, Timeout());
             Assert.IsTrue(started.Result.Success, started.Result.Message);
@@ -564,12 +563,12 @@ namespace Game.Tests.PlayMode.E2E
             catch (OperationCanceledException) { }
             catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled) { }
 
-            // Assert: UpdateEvent(Starting) 수신 확인
+            // UpdateEvent(Starting) 수신 확인
             Assert.IsTrue(
                 received.Exists(r => r.PayloadCase == SubscribeRoomResponse.PayloadOneofCase.UpdateEvent),
                 "StartGame 후 UpdateEvent(Starting)를 수신해야 한다");
 
-            // Assert: GameSessionEvent 수신 확인
+            // GameSessionEvent 수신 확인
             var gameSessionEvent = received.Find(
                 r => r.PayloadCase == SubscribeRoomResponse.PayloadOneofCase.GameSessionEvent);
             Assert.IsNotNull(gameSessionEvent,

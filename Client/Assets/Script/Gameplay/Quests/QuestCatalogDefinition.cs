@@ -6,7 +6,7 @@ namespace Game.Gameplay.Quests
 {
     /// <summary>
     /// 퀘스트 목표 종류(저작용). 서버 <c>Shared.Infrastructure.Quests.QuestObjectiveType</c> 의 미러 —
-    /// 그쪽은 서버 전용 어셈블리라 클라가 참조할 수 없다(MonsterTierId 와 동일 선례).
+    /// 그쪽은 서버 전용 어셈블리라 클라가 참조할 수 없다.
     /// <b>계약은 JSON 의 문자열</b>("KillMonster"/"CollectItem"/"TalkToNpc")이고 proto enum 과 정수값 1:1.
     /// </summary>
     public enum QuestObjectiveId
@@ -18,11 +18,6 @@ namespace Game.Gameplay.Quests
 
     /// <summary>
     /// 퀘스트 정의 저작(authoring) 진실원. 디자이너가 이 SO 하나를 Inspector 에서 편집한다.
-    /// (ItemCatalogDefinition·MonsterCatalogDefinition 과 동일 컨벤션 — 단일 SO + List, SO 저작 → JSON bake → 서버 임베디드.)
-    ///
-    /// <para><b>왜 뒤늦게 생겼나</b>: bake 산출물 7종 중 <c>items.json</c> 과 <c>quests.json</c> 만 Exporter 가 없어
-    /// 손으로 저작해 왔다. items 는 실제로 클라 카탈로그와 갈라졌고(A4), quests 도 같은 위험을 안고 있었다.
-    /// 이 SO 가 마지막 수기 저작을 없앤다 — <b>이제 7종 전부 SO→bake 로 강제된다</b>.</para>
     ///
     /// <para><b>Name·Description 은 bake 한다</b>: 아이템 표시 필드와 달리 서버가 proto(QuestInfo)로 클라에
     /// 직접 보내므로 서버가 알아야 한다.</para>

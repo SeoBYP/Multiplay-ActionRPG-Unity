@@ -53,7 +53,7 @@ namespace Game.Tests.EditMode.Input
             base.TearDown();
         }
 
-        // ── 단일 핸들러 ─────────────────────────────────────────────
+        // ── 단일 핸들러 ──
 
         [Test]
         public void L키_누르면_ToggleLobby_라우팅된다()
@@ -110,7 +110,7 @@ namespace Game.Tests.EditMode.Input
             Assert.IsTrue(handler.WasCalled(GameInputAction.Attack));
         }
 
-        // ── Priority 정렬 ────────────────────────────────────────────
+        // ── Priority 정렬 ──
 
         [Test]
         public void 낮은_우선순위_먼저_등록해도_높은_우선순위가_먼저_호출된다()
@@ -129,7 +129,7 @@ namespace Game.Tests.EditMode.Input
             Assert.AreEqual(1, callOrder[1]); // low  (id=1) 가 나중
         }
 
-        // ── consumed 차단 ────────────────────────────────────────────
+        // ── consumed 차단 ──
 
         [Test]
         public void 높은_우선순위_핸들러가_소비하면_낮은_우선순위는_호출되지_않는다()
@@ -160,7 +160,7 @@ namespace Game.Tests.EditMode.Input
             Assert.IsTrue(second.WasCalled(GameInputAction.ToggleLobby));
         }
 
-        // ── Register / Unregister ────────────────────────────────────
+        // ── Register / Unregister ──
 
         [Test]
         public void 등록_해제된_핸들러는_호출되지_않는다()
@@ -187,7 +187,7 @@ namespace Game.Tests.EditMode.Input
                 "동일 핸들러를 두 번 등록해도 한 번만 호출돼야 한다.");
         }
 
-        // ── 내부 헬퍼 ────────────────────────────────────────────────
+        // ── 내부 헬퍼 ──
 
         /// <summary>호출 순서를 추적하는 핸들러.</summary>
         private class OrderTrackingHandler : IInputHandler

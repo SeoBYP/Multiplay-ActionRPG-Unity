@@ -7,7 +7,7 @@ namespace Game.Tests.EditMode.Gameplay
     /// 결정론적 스폰 검증(클라이언트 미러).
     ///
     /// 이 기대 벡터는 서버 SocketServer.Tests 의 SpawnLayoutTests 와 동일해야 한다(미러 drift 방지).
-    /// SpawnLayoutProvider 는 Resources/spawn-layouts.json(서버 정본의 미러)을 읽는다.
+    /// SpawnLayoutProvider 는 MapDefinition(SO)을 Addressables 로 읽는다.
     /// </summary>
     public class SpawnResolverTests
     {
@@ -24,7 +24,7 @@ namespace Game.Tests.EditMode.Gameplay
         {
             var layout = new SpawnLayoutProvider().Get("dungeon_01");
 
-            // dungeon_01 재기획(2026-07): 파티는 맵 남쪽(Z-16 부근)에서 북향(+Z)으로 진입.
+            // dungeon_01: 파티는 맵 남쪽(Z-16 부근)에서 북향(+Z)으로 진입.
             AssertPoint(SpawnResolver.Resolve(layout, 0), 0f, 0f, -16f, 0f);
             AssertPoint(SpawnResolver.Resolve(layout, 1), 2f, 0f, -16f, 0f);
             AssertPoint(SpawnResolver.Resolve(layout, 2), -2f, 0f, -16f, 0f);

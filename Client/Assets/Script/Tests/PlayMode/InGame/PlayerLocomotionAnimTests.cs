@@ -9,10 +9,10 @@ namespace Game.Tests.PlayMode.InGame
     /// <summary>
     /// 로컬 플레이어 로코모션이 <b>실제로 재생되는지</b> — 실제 PlayerCharacter 프리팹 + 생성된 컨트롤러로 확인한다.
     ///
-    /// 회귀 배경(2026-08-22): `Locomotion→StrafeLocomotion` 전이에 `interruptionSource` 를 주었더니
-    /// 조건(Strafe=true)이 계속 참이라 **전이가 매 프레임 자기 자신으로 재시작**했다. 실측으로 40프레임 뒤에도
-    /// `inTransition=True · normalizedTime 0.03` 고정 — StrafeLocomotion(8방향 Walk/Run 트리)에 영영 도달하지 못해
-    /// <b>걷기·달리기가 아예 안 나왔다</b>. 파라미터만 검사하는 기존 테스트 213개는 이걸 잡지 못했다.
+    /// 회귀 배경: `Locomotion→StrafeLocomotion` 전이에 `interruptionSource` 를 주면
+    /// 조건(Strafe=true)이 계속 참이라 **전이가 매 프레임 자기 자신으로 재시작**한다 —
+    /// StrafeLocomotion(8방향 Walk/Run 트리)에 영영 도달하지 못해 <b>걷기·달리기가 아예 안 나온다</b>.
+    /// 파라미터만 검사하는 테스트로는 이걸 잡지 못한다.
     /// → "파라미터를 넣었다"가 아니라 "그 상태에 도달했고 시간이 흐른다"를 단언한다.
     /// </summary>
     public class PlayerLocomotionAnimTests
@@ -83,11 +83,11 @@ namespace Game.Tests.PlayMode.InGame
                 $"걷기({walkTop})와 달리기({runTop})는 다른 클립이 주가 돼야 한다.");
         }
 
-        // ── 리그 ────────────────────────────────────────────────────────────
+        // ── 리그 ──
 
         /// <summary>
         /// <b>컨트롤러만</b> 단독으로 굴린다 — 프리팹을 통째로 Instantiate 하면 DI 없는 컴포넌트가 NRE 를 던지고,
-        /// 그 로그가 테스트를 실패시켜 <b>무관한 실패가 진짜 신호를 덮는다</b>(챕터27의 하네스 함정).
+        /// 그 로그가 테스트를 실패시켜 <b>무관한 실패가 진짜 신호를 덮는다</b>(하네스 함정).
         /// 여기서 보려는 것은 상태 머신의 진행이지 프리팹 배선이 아니다(그건 PlayerAnimatorContractTests 가 본다).
         /// </summary>
         private Animator Spawn()

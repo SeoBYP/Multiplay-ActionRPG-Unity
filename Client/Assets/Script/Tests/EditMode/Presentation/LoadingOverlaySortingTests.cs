@@ -9,9 +9,8 @@ namespace Game.Tests.EditMode.Presentation
     /// <summary>
     /// 로딩·페이드 화면의 **정렬 순서**.
     ///
-    /// 화면을 덮는 캔버스가 전부 `sortingOrder = 0` 이었다(GUIRoot 포함, 실측).
-    /// Screen Space - Overlay 는 동률이면 **나중에 생성된 캔버스가 위**라, 로딩 중 새 씬이 활성화되며
-    /// 만들어지는 HUD·창이 로딩 화면 위로 튀어나왔다. 그래서 로딩·페이더는 항상 게임 UI 위여야 한다.
+    /// Screen Space - Overlay 는 sortingOrder 가 동률이면 **나중에 생성된 캔버스가 위**라, 로딩 중 새 씬이 활성화되며
+    /// 만들어지는 HUD·창이 로딩 화면 위로 튀어나온다. 그래서 로딩·페이더는 항상 게임 UI 위여야 한다.
     /// </summary>
     public class LoadingOverlaySortingTests
     {

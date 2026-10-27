@@ -14,7 +14,7 @@ namespace Game.Presentation.Chat
 
     /// <summary>
     /// View 가 보는 채팅 한 줄. proto 타입(<see cref="ChatMessageInfo"/>)은 여기서 흡수한다 —
-    /// GUI 레이어에 <c>GameServer.Grpc.*</c> 를 노출하지 않기 위한 경계(unity-client.md).
+    /// GUI 레이어에 <c>GameServer.Grpc.*</c> 를 노출하지 않기 위한 경계.
     /// </summary>
     public readonly struct ChatLine
     {

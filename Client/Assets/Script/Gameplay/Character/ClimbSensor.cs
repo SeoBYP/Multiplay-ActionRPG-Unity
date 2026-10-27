@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Game.Gameplay.Character
 {
     /// <summary>
-    /// 사다리 부착 신호 보관소(P6) — 플레이어에 붙는다. <see cref="GroundedDetector"/> 와 같은 역할:
+    /// 사다리 부착 신호 보관소 — 플레이어에 붙는다. <see cref="GroundedDetector"/> 와 같은 역할:
     /// <b>상태는 여기 있고, 전이 규칙이 폴링</b>한다(FSM 이 MonoBehaviour 를 직접 알지 않게).
     ///
     /// 흐름: <see cref="Ladder.Interact"/> → <see cref="RequestAttach"/> → GroundState 의 전이 규칙이

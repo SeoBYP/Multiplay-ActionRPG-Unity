@@ -16,7 +16,7 @@ namespace Game.Tests.EditMode.Network.Fakes
         private readonly Dictionary<string, IEnumerable<object>> _streamingResponses = new();
         private readonly Dictionary<string, RpcException> _errors = new();
 
-        // ─── 응답 등록 API ──────────────────────────────────────────
+        // ── 응답 등록 API ──
 
         public void SetResponse<T>(string methodName, T response) where T : class
             => _unaryResponses[methodName] = response;
@@ -31,7 +31,7 @@ namespace Game.Tests.EditMode.Network.Fakes
         public void SetError(string methodName, StatusCode code, string message)
             => _errors[methodName] = new RpcException(new Status(code, message));
 
-        // ─── Unary ──────────────────────────────────────────────────
+        // ── Unary ──
 
         public override TResponse BlockingUnaryCall<TRequest, TResponse>(
             Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
@@ -50,7 +50,7 @@ namespace Game.Tests.EditMode.Network.Fakes
                 $"[FakeCallInvoker] '{method.Name}' 에 대한 응답이 등록되지 않았다. SetResponse() 또는 SetError()를 먼저 호출하라.");
         }
 
-        // ─── Server Streaming ───────────────────────────────────────
+        // ── Server Streaming ──
 
         public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(
             Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
@@ -72,7 +72,7 @@ namespace Game.Tests.EditMode.Network.Fakes
                 $"[FakeCallInvoker] '{method.Name}' 에 대한 스트리밍 응답이 등록되지 않았다. SetStreamResponses()를 먼저 호출하라.");
         }
 
-        // ─── Client Streaming / BiDi ─────────────────────────────────
+        // ── Client Streaming / BiDi ──
 
         public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(
             Method<TRequest, TResponse> method, string host, CallOptions options)
@@ -82,7 +82,7 @@ namespace Game.Tests.EditMode.Network.Fakes
             Method<TRequest, TResponse> method, string host, CallOptions options)
             => throw new NotSupportedException("BiDi streaming은 FakeCallInvoker에서 지원하지 않는다.");
 
-        // ─── 헬퍼 ───────────────────────────────────────────────────
+        // ── 헬퍼 ──
 
         private static AsyncUnaryCall<T> MakeSuccessUnaryCall<T>(T response)
             => new(

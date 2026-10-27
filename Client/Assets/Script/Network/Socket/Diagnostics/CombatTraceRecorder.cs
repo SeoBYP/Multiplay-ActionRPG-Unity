@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Game.Network.Socket.Diagnostics
 {
-    /// <summary>클라가 관측할 수 있는 전투 사건의 종류. 서버 판정과 달리 **클라 관점**이다(combat-diagnostics.md §2.5).</summary>
+    /// <summary>클라가 관측할 수 있는 전투 사건의 종류. 서버 판정과 달리 **클라 관점**이다.</summary>
     public enum CombatTraceKind : byte
     {
         /// <summary>C_Attack 송신(t_send).</summary>
@@ -14,18 +14,14 @@ namespace Game.Network.Socket.Diagnostics
         DamageReceived = 2,
         /// <summary>S_MonsterState 수신 → HP 반영(t_apply).</summary>
         MonsterHpApplied = 3,
-        /// <summary>Seq 로 스테일을 버림(AC-C3). 순서 역전이 실제로 일어났다는 증거.</summary>
+        /// <summary>Seq 로 스테일을 버림. 순서 역전이 실제로 일어났다는 증거.</summary>
         StaleDropped = 4,
-        /// <summary>
-        /// 플레이어 HP 반영(t_apply) — ASC 가 실제로 값을 바꾼 순간 = <b>내 체력바가 움직인 시각</b>.
-        /// <para>C1c 측정이 남긴 공백을 메운다: 몬스터 스윙은 <see cref="MonsterHpApplied"/> 가 안 잡혀
-        /// <c>activateToHpMs=-1</c> 이었다(몬스터→플레이어 지연을 아예 못 쟀다).</para>
-        /// </summary>
+        /// <summary>플레이어 HP 반영(t_apply) — ASC 가 실제로 값을 바꾼 순간 = <b>내 체력바가 움직인 시각</b>.</summary>
         PlayerHpApplied = 5,
     }
 
     /// <summary>
-    /// 전투 트레이스 1건. <b>구조체 + 사전할당 링버퍼</b>라 기록 시 할당이 없다(§2.3 오버헤드 요건).
+    /// 전투 트레이스 1건. <b>구조체 + 사전할당 링버퍼</b>라 기록 시 할당이 없다.
     /// 문자열을 담지 않는 이유도 같다 — 어빌리티 이름은 표시 시점에 <c>networkId</c> 로 카탈로그에서 찾는다.
     /// </summary>
     public struct CombatTraceEntry
@@ -47,13 +43,12 @@ namespace Game.Network.Socket.Diagnostics
         /// <summary>반영된 몬스터 HP. 해당 없으면 0.</summary>
         public int Hp;
 
-        /// <summary>S_MonsterState.Seq — 서버 로그와 조인하는 키이자 스테일 판정 근거(AC-C3).</summary>
+        /// <summary>S_MonsterState.Seq — 서버 로그와 조인하는 키이자 스테일 판정 근거.</summary>
         public int Seq;
     }
 
     /// <summary>
-    /// 클라 전투 트레이스 링버퍼(AC-C1b). **이게 단일 소스**이고 에디터 창(C1b')은 이 위의 뷰일 뿐이다.
-    /// 설계 = <c>docs/wiki/combat-diagnostics.md</c> §2.3.
+    /// 클라 전투 트레이스 링버퍼. **이게 단일 소스**이고 에디터 창은 이 위의 뷰일 뿐이다.
     ///
     /// <para><b>기본 Off.</b> <see cref="Enabled"/> 가 false 면 Record* 가 즉시 반환한다 —
     /// 링버퍼는 사전할당이고 엔트리는 구조체라 On 이어도 기록 자체에 할당이 없다.</para>
@@ -67,12 +62,8 @@ namespace Game.Network.Socket.Diagnostics
     public sealed class CombatTraceRecorder
     {
         /// <summary>
-        /// 보관 건수. 엔트리가 구조체(~48B)라 4096 이어도 ~200KB — 진단 창을 켠 동안의 상주 비용으로 무시할 만하다.
-        /// <para>
-        /// ⚠️ <b>512 였다가 올렸다(C1c 측정 근거)</b>: 실제 측정에서 링이 <b>508/512 로 포화</b>돼 앞부분이 덮였다
-        /// (m3 는 seq 234 인데 updates 185 = 49건 유실). 원인은 용량만이 아니라 <b>이동만 하는 틱까지 기록한 것</b>이라
-        /// 그 필터(<see cref="RecordMonsterHpApplied"/>)와 <b>함께</b> 고쳐야 의미가 있다 — 둘 중 하나만으론 부족하다.
-        /// </para>
+        /// 보관 건수. 엔트리가 구조체(~48B)라 4096 이어도 ~200KB.
+        /// <para>링이 포화되면 앞부분이 덮여 구간 계산이 틀어진다 — 용량은 이동 틱 필터(<see cref="RecordMonsterHpApplied"/>)와 <b>함께</b> 유지해야 의미가 있다.</para>
         /// </summary>
         public const int Capacity = 4096;
 
@@ -138,12 +129,12 @@ namespace Game.Network.Socket.Diagnostics
         /// <b>몬스터 피해는 S_ApplyEffect 로 오지 않는다</b> — 서버는 몬스터 HP 를 권위로 계산해 S_MonsterState 로만 보낸다
         /// (S_ApplyEffect 는 플레이어가 대상일 때만). 그래서 이 델타가 <b>플레이어→몬스터 스윙의 유일한 데미지 신호</b>이다.</para>
         ///
-        /// <para><b>기록처가 둘로 갈린다(C1c 측정 근거)</b>:
+        /// <para><b>기록처가 둘로 갈린다</b>:
         /// <list type="bullet">
-        /// <item>동기화 집계(맵) — <b>모든 갱신</b>. 몬스터당 1행이라 아무리 와도 폭증하지 않고,
+        /// <item>동기화 집계(맵) — <b>모든 갱신</b>. 몬스터당 1행이라 폭증하지 않고,
         /// 한 대도 안 맞은 몬스터까지 보여야 "모든 몬스터 동기화 검수"가 성립한다.</item>
-        /// <item>이벤트 링 — <b>HP 가 실제로 변한 것만</b>. 이동만 하는 틱(델타 0)은 진단 가치가 없는데
-        /// 10Hz×N마리로 쏟아져 링을 채운다(실측: 508건 중 451건=89%가 이 노이즈였고 정작 스윙이 덮였다).</item>
+        /// <item>이벤트 링 — <b>HP 가 실제로 변한 것만</b>. 이동만 하는 틱(델타 0)은 10Hz×N마리로 쏟아져
+        /// 링을 채우고 정작 스윙을 덮는다.</item>
         /// </list></para>
         /// </summary>
         public void RecordMonsterHpApplied(long timeMs, long targetId, int hp, int seq, int amount = 0)
@@ -181,7 +172,7 @@ namespace Game.Network.Socket.Diagnostics
             Write(CombatTraceKind.PlayerHpApplied, timeMs, actorId: 0, targetId, networkId: 0, amount, hp, seq: 0);
         }
 
-        /// <summary>스테일 드롭(AC-C3) — 순서 역전이 실제로 일어난 증거. 드물어서 링에도 항상 남긴다.</summary>
+        /// <summary>스테일 드롭 — 순서 역전이 실제로 일어난 증거. 드물어서 링에도 항상 남긴다.</summary>
         public void RecordStaleDropped(long timeMs, long targetId, int droppedSeq, int currentSeq)
         {
             if (!Enabled) return;
@@ -208,8 +199,7 @@ namespace Game.Network.Socket.Diagnostics
         }
 
         /// <summary>
-        /// 모든 몬스터의 동기화 집계(InstanceId 순). <b>링과 독립</b>이라 링이 돌아도 유실되지 않는다 —
-        /// 링에서 유도하던 예전 방식은 실측에서 49건을 잃었다(m3: seq 234 vs updates 185).
+        /// 모든 몬스터의 동기화 집계(InstanceId 순). <b>링과 독립</b>이라 링이 돌아도 유실되지 않는다.
         /// </summary>
         public List<MonsterSyncStat> MonsterSync()
         {

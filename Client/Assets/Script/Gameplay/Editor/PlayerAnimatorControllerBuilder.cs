@@ -6,19 +6,17 @@ using UnityEngine;
 namespace Game.Gameplay.Editor
 {
     /// <summary>
-    /// 플레이어 AnimatorController 를 <b>ARPGWarrior(Humanoid) 클립으로 코드에서 생성</b>한다(P2).
+    /// 플레이어 AnimatorController 를 <b>ARPGWarrior(Humanoid) 클립으로 코드에서 생성</b>한다.
     ///
-    /// <b>왜 코드 생성인가</b>: 상태·전이가 20개를 넘어 손으로 만들면 재현이 안 되고 리뷰도 불가능하다.
-    /// 스크립트면 diff 가 남고 언제든 같은 결과를 다시 만든다(구 컨트롤러가 모델 교체 때 조용히 깨진 전례).
+    /// 코드 생성인 이유: 상태·전이가 20개를 넘어 손으로 만들면 재현이 안 되고 리뷰도 불가능하다.
+    /// 스크립트면 diff 가 남고 언제든 같은 결과를 다시 만든다.
     ///
-    /// <b>왜 새 컨트롤러인가</b>: 구 PlayerController.controller 의 클립 22개는 전부 <b>Generic</b> 인데
-    /// 현재 플레이어 메시(HornedKnight)는 <b>Humanoid</b> 아바타다 → 바인딩이 하나도 안 붙고(실측 0.0도),
-    /// 게다가 빈 휴머노이드 포즈가 root 본을 -1.06m 로 밀어 캐릭터가 지면에 파묻힌다(실측).
-    /// ARPGWarrior 클립은 Humanoid 라 같은 아바타에 정상 리타깃된다(실측 15.5도).
+    /// 클립은 Humanoid 여야 한다: 플레이어 메시(HornedKnight)는 Humanoid 아바타라 Generic 클립은 바인딩이 안 붙고,
+    /// 빈 휴머노이드 포즈가 root 본을 밀어 캐릭터가 지면에 파묻힌다.
     ///
     /// <b>파라미터 계약</b>: <see cref="Game.Gameplay.Character.CharacterAgentAnimations"/> 가 쓰는 이름을 그대로 만든다
     /// (Speed·MoveX·MoveY·Strafe·Grounded·ComboStep·Jump·Fall·Land·Attack·Interact·Dead·Dodge·Revive
-    ///  + P5 의 DodgeX·DodgeY·Hit + P6 의 Climbing·ClimbSpeed) → 드라이버 코드는 파라미터명 문자열만 프리팹에서 채우면 된다.
+    ///  + DodgeX·DodgeY·Hit + Climbing·ClimbSpeed) → 드라이버 코드는 파라미터명 문자열만 프리팹에서 채우면 된다.
     /// </summary>
     public static class PlayerAnimatorControllerBuilder
     {
@@ -34,7 +32,6 @@ namespace Game.Gameplay.Editor
 
         // ── 블렌드 좌표 = 클립의 <b>실측</b> 이동 속도(m/s). AnimationClip.averageSpeed 로 측정했다.
         //    임계값을 실측 속도에 두어야 "블렌드된 발 속도 = 실제 이동 속도"가 되어 발 슬라이딩이 사라진다.
-        //    (예전엔 Walk 2.0/Sprint 5.335 로 코드 속도를 그대로 썼는데, 클립은 각각 2.26·3.44 라 발이 미끄러졌다.)
         private const float SpeedIdle = 0f;
         private const float SpeedWalk = 2.26f;   // Walk_Forward 실측
         private const float SpeedRun = 3.31f;    // Run_Forward 실측
@@ -76,12 +73,12 @@ namespace Game.Gameplay.Editor
             ctrl.AddParameter("Speed", AnimatorControllerParameterType.Float);
             ctrl.AddParameter("MoveX", AnimatorControllerParameterType.Float);
             ctrl.AddParameter("MoveY", AnimatorControllerParameterType.Float);
-            ctrl.AddParameter("DodgeX", AnimatorControllerParameterType.Float); // P5: 회피 방향(로컬 좌−/우+)
-            ctrl.AddParameter("DodgeY", AnimatorControllerParameterType.Float); // P5: 회피 방향(로컬 후−/전+)
-            ctrl.AddParameter("ClimbSpeed", AnimatorControllerParameterType.Float); // P6: 사다리 클립 배속(음수=역재생=하강)
+            ctrl.AddParameter("DodgeX", AnimatorControllerParameterType.Float); // 회피 방향(로컬 좌−/우+)
+            ctrl.AddParameter("DodgeY", AnimatorControllerParameterType.Float); // 회피 방향(로컬 후−/전+)
+            ctrl.AddParameter("ClimbSpeed", AnimatorControllerParameterType.Float); // 사다리 클립 배속(음수=역재생=하강)
             ctrl.AddParameter("Strafe", AnimatorControllerParameterType.Bool);
             ctrl.AddParameter("Grounded", AnimatorControllerParameterType.Bool);
-            ctrl.AddParameter("Climbing", AnimatorControllerParameterType.Bool); // P6: 사다리 부착 중
+            ctrl.AddParameter("Climbing", AnimatorControllerParameterType.Bool); // 사다리 부착 중
             ctrl.AddParameter("ComboStep", AnimatorControllerParameterType.Int);
             foreach (string t in new[] { "Jump", "Fall", "Land", "Attack", "Interact", "Dead", "Dodge", "Revive", "Hit" })
                 ctrl.AddParameter(t, AnimatorControllerParameterType.Trigger);
@@ -106,7 +103,7 @@ namespace Game.Gameplay.Editor
 
             // ── 2) 락온 스트레이프 — MoveX/MoveY 2D 8방향(+중앙 Idle)
             //     좌표 = 각 클립의 <b>실측 속도 벡터</b>(m/s). Walk 링(≈2.3) + Run 링(≈3.4) + Sprint(5.335, 배속 보정).
-            //     걷는 속도로 왼쪽을 누르면 Walk_Leftward 가, 달리면 Run_Leftward 가 나온다(예전엔 Run 링 하나뿐이라 걸어도 달리는 발).
+            //     걷는 속도로 왼쪽을 누르면 Walk_Leftward 가, 달리면 Run_Leftward 가 나온다.
             var strafe = ctrl.CreateBlendTreeInController("StrafeLocomotion", out var strafeTree, 0);
             strafeTree.blendType = BlendTreeType.FreeformCartesian2D;
             strafeTree.blendParameter = "MoveX";
@@ -140,7 +137,7 @@ namespace Game.Gameplay.Editor
             var landing = AddState(sm, "Landing", Base("Landing"), new Vector3(320f, 40f));
 
             // ── 4) 공격 콤보 — ComboStep(0~3)이 단계를 고른다.
-            //     ComboD(3)는 P4 에서 서버 skillId 확장 후 도달 가능(지금은 컨트롤러만 준비).
+            //     ComboD(3)는 서버 skillId 확장 후 도달 가능(지금은 컨트롤러만 준비).
             var comboA = AddState(sm, "ComboA", Base("Attack_Combo1"), new Vector3(-320f, -120f));
             var comboB = AddState(sm, "ComboB", Base("Attack_Combo2"), new Vector3(-320f, -40f));
             var comboC = AddState(sm, "ComboC", Base("Attack_Combo3"), new Vector3(-320f, 40f));
@@ -152,7 +149,7 @@ namespace Game.Gameplay.Editor
                 c.tag = Game.Gameplay.Character.RootMotionRelay.RootMotionTag;
 
             // ── 5) 기타 액션
-            // 회피(P5) — DodgeX/DodgeY 8방향 블렌드. 드라이버가 트리거 전에 방향을 세팅한다.
+            // 회피 — DodgeX/DodgeY 8방향 블렌드. 드라이버가 트리거 전에 방향을 세팅한다.
             var dodge = ctrl.CreateBlendTreeInController("Dodge", out var dodgeTree, 0);
             dodgeTree.blendType = BlendTreeType.FreeformDirectional2D;
             dodgeTree.blendParameter = "DodgeX";
@@ -166,13 +163,13 @@ namespace Game.Gameplay.Editor
             dodgeTree.AddChild(Base("Evade_Right"), new Vector2(1f, 0f));
             dodgeTree.AddChild(Base("Evade_Forward_Right"), new Vector2(0.7f, 0.7f));
 
-            // 사다리(P6) — 오르기 클립 하나로 양방향. ClimbSpeed 를 **배속**으로 써서 음수면 역재생(내려가기),
+            // 사다리 — 오르기 클립 하나로 양방향. ClimbSpeed 를 **배속**으로 써서 음수면 역재생(내려가기),
             // 0 이면 그 자리에 멈춘 포즈가 된다. 전용 하강 클립(Climb_Down)은 쓰지 않는다(상태 1개로 충분 — 간결성).
             var climb = AddState(sm, "Climb", Additional("Climb_Up"), new Vector3(0f, -200f));
             climb.speedParameterActive = true;
             climb.speedParameter = "ClimbSpeed";
 
-            // 피격 리액션(P5) — 연출 전용(이동잠금 없음). 연타 피격은 다시 처음부터 재생.
+            // 피격 리액션 — 연출 전용(이동잠금 없음). 연타 피격은 다시 처음부터 재생.
             var hit = AddState(sm, "Hit", Base("Hit1"), new Vector3(320f, 200f));
             var interact = AddState(sm, "Interact", Additional("Buff"), new Vector3(-320f, 280f)); // 전용 줍기 클립 없음 → 플레이스홀더
             var dead = AddState(sm, "Dead", Base("Death"), new Vector3(0f, 280f));
@@ -183,11 +180,9 @@ namespace Game.Gameplay.Editor
             // ── 전이 ──────────────────────────────────────────────────────────
             // 스트레이프 진입/해제(상태값 기반 — 트리거 아님) — <b>즉시 전환(duration 0)</b>.
             //
-            // 왜 블렌드를 없앴나: Unity 는 전이 진행 중 AnyState 전이를 평가하지 않는다. 0.15s 블렌드 안에 들어온
-            // Dodge/Attack/Jump 트리거가 조용히 삼켜졌다(실측: 원격 스폰 직후 회피 미발동, 로컬도 동일).
-            // interruptionSource 로 풀려 했더니 **전이가 매 프레임 자기 자신으로 재시작**해(조건이 계속 참)
-            // StrafeLocomotion 에 영원히 도달하지 못했다 — 실측: 40프레임 뒤에도 normalizedTime 0.03 고정,
-            // 그 결과 Walk/Run 이 아예 안 나왔다. 그래서 인터럽트 대신 **창 자체를 없앤다**.
+            // 블렌드를 두지 않는 이유: Unity 는 전이 진행 중 AnyState 전이를 평가하지 않아, 블렌드 창 안에 들어온
+            // Dodge/Attack/Jump 트리거가 조용히 삼켜진다. interruptionSource 로 풀면 조건이 계속 참이라
+            // **전이가 매 프레임 자기 자신으로 재시작**해 StrafeLocomotion 에 영원히 도달하지 못한다. 그래서 **창 자체를 없앤다**.
             //
             // 시각적으로 안전한 이유: Strafe 는 스폰 직후 한 번 켜지고 그대로 유지된다(로컬 GroundState·원격 RemoteDriver).
             // 두 트리 모두 중심이 같은 Idle 이라 그 순간의 팝이 보이지 않는다.
@@ -207,7 +202,7 @@ namespace Game.Gameplay.Editor
             AnyTransition(sm, comboC, 0.05f, Cond("Attack", AnimatorConditionMode.If), Cond("ComboStep", AnimatorConditionMode.Equals, 2f));
             AnyTransition(sm, comboD, 0.05f, Cond("Attack", AnimatorConditionMode.If), Cond("ComboStep", AnimatorConditionMode.Equals, 3f));
             // 앞 단계(A~C)는 다음 타로 이어지므로 85% 에서 빠져도 되지만, <b>마지막 타(D)는 끝까지 보여준다</b>
-            // — 마무리 모션이 잘리면 콤보가 흐지부지 끝난 느낌이 난다(사용자 피드백).
+            // — 마무리 모션이 잘리면 콤보가 흐지부지 끝난 느낌이 난다.
             foreach (var c in new[] { comboA, comboB, comboC })
                 ExitTimeTransition(c, loco, 0.85f, 0.15f);
             ExitTimeTransition(comboD, loco, 0.97f, 0.1f);
@@ -222,7 +217,7 @@ namespace Game.Gameplay.Editor
             AnyTransition(sm, interact, 0.1f, Cond("Interact", AnimatorConditionMode.If));
             ExitTimeTransition(interact, loco, 0.9f, 0.1f);
 
-            // 사다리(P6) — 상태값(bool) 기반. FSM(ClimbState)이 붙고 떼는 순간과 1:1.
+            // 사다리 — 상태값(bool) 기반. FSM(ClimbState)이 붙고 떼는 순간과 1:1.
             AnyTransition(sm, climb, 0.15f, Cond("Climbing", AnimatorConditionMode.If));
             Transition(climb, loco, 0.15f, Cond("Climbing", AnimatorConditionMode.IfNot));
 
@@ -236,7 +231,7 @@ namespace Game.Gameplay.Editor
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // 프리팹 배선 (로컬 + 원격 — 원격도 같은 Generic/Humanoid 불일치를 겪고 있었다)
+        // 프리팹 배선 (로컬 + 원격)
         // ─────────────────────────────────────────────────────────────────────
         private static string Wire(AnimatorController ctrl)
         {
@@ -252,8 +247,7 @@ namespace Game.Gameplay.Editor
                     PrefabUtility.SaveAsPrefabAsset(root, path);
 
                     // ⚠️ 필수: Build() 가 컨트롤러를 DeleteAsset→재생성하므로, 프리팹의 **임포트된 사본**이
-                    // 삭제된 옛 인스턴스를 물고 남아 런타임에 controller=null 이 된다(실측: 디스크 YAML 은 정상인데
-                    // LoadAssetAtPath 결과만 NULL → 플레이 시 "Animator is not playing an AnimatorController" 경고 폭탄).
+                    // 삭제된 이전 인스턴스를 물고 남아 런타임에 controller=null 이 된다(디스크 YAML 은 정상, LoadAssetAtPath 결과만 NULL).
                     // 저장 직후 강제 재임포트로 캐시를 갱신한다.
                     AssetDatabase.ImportAsset(path,
                         ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);

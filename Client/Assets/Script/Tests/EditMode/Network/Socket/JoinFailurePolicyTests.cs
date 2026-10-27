@@ -6,9 +6,8 @@ namespace Game.Tests.EditMode.Network.Socket
     /// <summary>
     /// 방 입장 실패 사유 분기 — <b>재시도해서 풀릴 실패</b>와 <b>기다려도 안 풀릴 실패</b>를 가른다.
     ///
-    /// 배경(실측): 예전엔 서버가 보낸 사유(<c>S_PlayerJoined.Message</c>)를 버리고 `state=Failed` 만 찍어서,
-    /// 콘솔에 경고 30줄이 쌓여도 원인을 알 수 없었다(실제로 "Room is full" 이었는데 로그로는 알 수 없었다).
-    /// 사유를 남기는 것 자체가 진단이고, 그중 회복 불가한 것은 30번 헛돌지 말고 즉시 끝내야 한다.
+    /// 서버가 보낸 사유(<c>S_PlayerJoined.Message</c>)를 남기는 것 자체가 진단이고,
+    /// 그중 회복 불가한 것은 30번 헛돌지 말고 즉시 끝내야 한다.
     /// </summary>
     public class JoinFailurePolicyTests
     {

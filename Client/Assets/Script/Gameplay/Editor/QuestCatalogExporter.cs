@@ -10,7 +10,7 @@ using UnityEngine;
 namespace Game.Gameplay.Editor
 {
     /// <summary>
-    /// QuestCatalogDefinition(SO) ↔ quests.json 툴 (ItemCatalogExporter 와 동일 컨벤션).
+    /// QuestCatalogDefinition(SO) ↔ quests.json 툴.
     ///
     /// - Export: SO 의 quests → JSON bake → 서버 임베디드 경로(서버 재빌드 시 반영).
     /// - Import(부트스트랩): 기존 quests.json → QuestCatalogDefinition 에셋 1개 생성/갱신.
@@ -29,7 +29,7 @@ namespace Game.Gameplay.Editor
         public static void Export()
         {
             var count = BakeAll();
-            if (count < 0) return; // 검증 실패 — 콘솔에 사유
+            if (count < 0) return;
             EditorToolReport.Later("Export Quest Catalog", count == 0
                 ? "QuestCatalogDefinition 에셋이 없습니다. 먼저 'Import' 로 부트스트랩하거나 SO를 생성하세요."
                 : $"퀘스트 {count}종을 서버 JSON 에 기록했습니다.\n서버 반영은 서버 재빌드가 필요합니다.");
@@ -222,7 +222,7 @@ namespace Game.Gameplay.Editor
         {
             public long exp;
             public long gold;
-            public int itemId;   // numericId. 0 = 아이템 보상 없음(문자열 시절 빈 문자열의 자리).
+            public int itemId;   // numericId. 0 = 아이템 보상 없음.
             public int itemQty;
         }
     }

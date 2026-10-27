@@ -15,8 +15,7 @@ namespace Game.Tests.PlayMode.E2E
     public class AuthFlowE2ETests : E2ETestBase
     {
         /// <summary>
-        /// 이 픽스처 전용 저장소. 예전엔 프로세스 전역 PlayerPrefs 를 프로덕션 코드와 함께 써서
-        /// 다른 곳(에디터 자동 로그인 등)이 같은 키를 덮어쓸 수 있었고, 전체 실행에서만 흔들렸다.
+        /// 이 픽스처 전용 저장소 — 프로세스 전역 PlayerPrefs 를 쓰면 다른 곳(에디터 자동 로그인 등)이 같은 키를 덮어쓸 수 있다.
         /// </summary>
         private sealed class InMemoryTokenStore : ITokenStore
         {

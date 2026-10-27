@@ -163,7 +163,7 @@ namespace Game.Tests.PlayMode.InGame
         private static object GetPrivate(object target, string field)
             => target.GetType().GetField(field, Private)?.GetValue(target);
 
-        // ── 씬 구성 ─────────────────────────────
+        // ── 씬 구성 ──
 
         private void BuildScene()
         {

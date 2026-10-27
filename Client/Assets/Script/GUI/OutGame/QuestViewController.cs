@@ -10,8 +10,7 @@ using VContainer.Unity;
 namespace Game.GUI.OutGame
 {
     /// <summary>
-    /// 퀘스트 창 생명주기 컨트롤러 (POCO). ShopViewController 동형 — 독립 토글.
-    /// InGameModel.OnToggleQuest(HUD 퀘스트버튼) 수신 → 퀘스트창 단독 토글(최초 로드 후 SetActive 반전).
+    /// 퀘스트 창 생명주기 컨트롤러 (POCO). InGameModel.OnToggleQuest 수신 → 단독 토글(최초 로드 후 SetActive 반전).
     /// </summary>
     public sealed class QuestViewController : IInitializable, IDisposable
     {

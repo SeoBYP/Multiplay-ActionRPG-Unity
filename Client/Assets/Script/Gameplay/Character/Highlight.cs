@@ -12,7 +12,6 @@ namespace Game.Gameplay.Character
 
         private void Awake()
         {
-            // Store the original materials to restore them later
             m_originalLayer = m_objectRenderer.gameObject.layer;
         }
 

@@ -17,9 +17,9 @@ namespace Game.Tests.PlayMode.InGame
 {
     /// <summary>
     /// 채팅 View. 세 가지를 본다:
-    ///   ① GameHud.prefab 안의 ChatView·말풍선 배선이 살아 있는가(끊기면 채팅이 조용히 안 보인다)
-    ///   ② 받은 줄이 실제 말풍선 행으로 그려지는가
-    ///   ③ 채널 드롭다운 항목이 방 소속 여부에 따라 바뀌는가(Main = 전체·개인 / 방 = 방·개인)
+    ///   - GameHud.prefab 안의 ChatView·말풍선 배선이 살아 있는가(끊기면 채팅이 조용히 안 보인다)
+    ///   - 받은 줄이 실제 말풍선 행으로 그려지는가
+    ///   - 채널 드롭다운 항목이 방 소속 여부에 따라 바뀌는가(Main = 전체·개인 / 방 = 방·개인)
     /// </summary>
     [TestFixture]
     public class ChatViewIntegrationTests
@@ -152,7 +152,7 @@ namespace Game.Tests.PlayMode.InGame
             Assert.AreEqual("어디야", sent.Message);
         }
 
-        // ── 헬퍼 ────────────────────────────────
+        // ── 헬퍼 ──
 
         /// <summary>프리팹 없이 ChatView + 말풍선 템플릿 + 드롭다운을 코드로 세운다.</summary>
         /// <param name="lobby">Model 이 이미 물고 있는 것과 같은 세션(테스트가 방 입장을 흉내 낼 때 쓴다).</param>

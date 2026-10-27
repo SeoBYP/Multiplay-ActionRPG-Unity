@@ -41,7 +41,7 @@ namespace Game.Tests.PlayMode.Input
             _router.Initialize();
 
             // 프로덕션에선 GlobalInputInitializer가 맵을 Enable한다(입력 전역화).
-            // InputRouter는 더 이상 Enable하지 않으므로, 그 초기화가 없는 이 테스트에서
+            // InputRouter는 Enable하지 않으므로, 그 초기화가 없는 이 테스트에서
             // 직접 활성화해야 performed 콜백이 발생한다.
             _actions.Enable();
         }
@@ -57,7 +57,7 @@ namespace Game.Tests.PlayMode.Input
             base.TearDown();
         }
 
-        // ── 키 → 핸들러 전달 (프레임 대기 포함) ─────────────────────
+        // ── 키 → 핸들러 전달 (프레임 대기 포함) ──
 
         [UnityTest]
         public IEnumerator L키_누르고_한_프레임_후_ToggleLobby_전달된다()
@@ -90,7 +90,7 @@ namespace Game.Tests.PlayMode.Input
             Assert.IsTrue(received.Contains(GameInputAction.Pause));
         }
 
-        // ── InteractionSystem 협력 테스트 ───────────────────────────
+        // ── InteractionSystem 협력 테스트 ──
 
         [UnityTest]
         public IEnumerator InteractionSystem_유효한_대상_있으면_E키를_소비한다()
@@ -133,7 +133,7 @@ namespace Game.Tests.PlayMode.Input
             interactionSystem.Dispose();
         }
 
-        // ── 동적 Register / Unregister ──────────────────────────────
+        // ── 동적 Register / Unregister ──
 
         [UnityTest]
         public IEnumerator 등록_해제_후에는_핸들러가_호출되지_않는다()
@@ -153,7 +153,7 @@ namespace Game.Tests.PlayMode.Input
             Assert.AreEqual(1, received.Count, "Unregister 후에는 핸들러가 호출되지 않아야 한다.");
         }
 
-        // ── 내부 헬퍼 ────────────────────────────────────────────────
+        // ── 내부 헬퍼 ──
 
         private class LambdaHandler : IInputHandler
         {

@@ -11,15 +11,8 @@ namespace Game.Gameplay.Input
     /// New Input System(PlayerInputActions) 의 performed 이벤트를 받아
     /// 등록된 IInputHandler 체인에 우선순위 순으로 라우팅한다.
     ///
-    /// 흐름:
-    ///   PlayerInputActions.performed 콜백
-    ///   → GameInputAction 으로 변환
-    ///   → 높은 Priority 핸들러부터 TryHandle 호출
-    ///   → true 반환 시 해당 액션 소비 (하위 핸들러 차단)
-    ///
-    /// 사용:
-    ///   Register(handler)   — 핸들러 등록 (Initialize 에서 호출)
-    ///   Unregister(handler) — 핸들러 해제 (Dispose 에서 호출)
+    /// 흐름: performed 콜백 → GameInputAction 변환 → 높은 Priority 핸들러부터 TryHandle
+    /// → true 반환 시 액션 소비(하위 핸들러 차단).
     /// </summary>
     public sealed class InputRouter : IInputRouter, IInitializable, IDisposable
     {
@@ -28,11 +21,7 @@ namespace Game.Gameplay.Input
         private readonly List<(InputAction Action, Action<InputAction.CallbackContext> Callback)> _bindings = new();
         private bool _dirty;
 
-        /// <summary>
-        /// PlayerInputActions 를 외부에서 주입받는다.
-        /// DI 컨테이너(VContainer)에서 생성된 인스턴스를 사용하므로
-        /// 테스트에서 InputTestFixture 의 가상 디바이스와 연결된 인스턴스를 주입할 수 있다.
-        /// </summary>
+        /// <summary>PlayerInputActions 는 주입받는다 — 테스트에서 InputTestFixture 가상 디바이스에 연결된 인스턴스를 넣을 수 있다.</summary>
         public InputRouter(PlayerInputActions actions)
         {
             _actions = actions;
@@ -48,7 +37,7 @@ namespace Game.Gameplay.Input
             Bind(_actions.Player.ToggleLobby, GameInputAction.ToggleLobby);
             Bind(_actions.Player.Pause,       GameInputAction.Pause);
 
-            // HUD 창 토글 — 예전엔 GameHud 가 Keyboard 를 직접 폴링했다(F13).
+            // HUD 창 토글
             Bind(_actions.Player.Inventory,   GameInputAction.ToggleInventory);
             Bind(_actions.Player.Equipment,   GameInputAction.ToggleEquipment);
             Bind(_actions.Player.Quest,       GameInputAction.ToggleQuest);
@@ -62,9 +51,8 @@ namespace Game.Gameplay.Input
         }
 
         /// <summary>
-        /// 구독을 기억해 두고 Dispose 에서 반드시 해제한다.
-        /// PlayerInputActions 는 **루트 싱글턴**이라, 씬을 오갈 때마다 새 라우터가 구독만 하고 끝나면
-        /// 죽은 라우터의 델리게이트가 계속 쌓인다(Main↔Dungeon 왕복마다 누적).
+        /// 구독을 기억해 두고 Dispose 에서 반드시 해제한다 —
+        /// PlayerInputActions 는 루트 싱글턴이라 해제하지 않으면 죽은 라우터의 델리게이트가 씬 왕복마다 쌓인다.
         /// </summary>
         private void Bind(InputAction action, GameInputAction mapped)
         {
@@ -120,7 +108,7 @@ namespace Game.Gameplay.Input
 
             foreach (var handler in _handlers)
             {
-                if (handler.TryHandle(action)) return; // consumed
+                if (handler.TryHandle(action)) return;
             }
         }
 

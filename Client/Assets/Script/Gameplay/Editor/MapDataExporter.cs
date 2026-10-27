@@ -18,21 +18,21 @@ namespace Game.Gameplay.Editor
     ///   ※ 서버는 임베디드 리소스라 export 후 서버 재빌드 시 반영된다.
     /// - Import(부트스트랩): 기존 JSON → MapDefinition 에셋 생성. 손편집 JSON을 SO 저작 체계로 1회 이관.
     ///
-    /// JSON 형식은 런타임 로더(SpawnLayoutProvider / SpawnLayoutTable)가 읽는 것과 동일하다:
+    /// JSON 형식은 서버 로더가 읽는 것과 동일하다:
     ///   { "maps": [ { "mapId": "...", "points": [ { "x":.., "y":.., "z":.., "rotY":.. } ] } ] }
     /// </summary>
     public static class MapDataExporter
     {
-        // 클라 사본은 없다 — 클라 런타임은 MapDefinition(SO)을 Addressables 로 직접 읽는다(F6).
+        // 클라 사본은 없다 — 클라 런타임은 MapDefinition(SO)을 Addressables 로 직접 읽는다.
         // JSON 은 서버 전용 교환 포맷(서버는 UnityEngine 의존 0이라 SO를 못 읽는다).
         private const string ServerJsonRelative = "ServerAll/Shared/Shared.Infrastructure/Spawn/spawn-layouts.json"; // repo 루트 기준
-        private const string MapAssetDir = "Assets/GameData/Maps"; // 런타임은 Addressables(address=asset path)로 로드. Resources 밖.
+        private const string MapAssetDir = "Assets/GameData/Maps"; // 런타임은 Addressables(address=asset path)로 로드.
 
         [MenuItem("Tools/Spawn/Export Map Data (SO → JSON)")]
         public static void Export()
         {
             var count = BakeAll();
-            if (count < 0) return; // 검증 실패 — 콘솔에 사유 출력됨
+            if (count < 0) return;
             if (count == 0)
             {
                 EditorToolReport.Later("Export Map Data",
@@ -44,7 +44,7 @@ namespace Game.Gameplay.Editor
         }
 
         /// <summary>
-        /// 모든 MapDefinition → spawn-layouts.json bake(클라+서버 동시 기록). 다이얼로그 없음.
+        /// 모든 MapDefinition → spawn-layouts.json bake(서버 JSON 기록). 다이얼로그 없음.
         /// 반환: 기록한 맵 수 / 0(에셋 없음) / -1(검증 실패, 콘솔에 사유). MapEditorWindow 등에서 재사용.
         /// </summary>
         public static int BakeAll()
@@ -82,7 +82,7 @@ namespace Game.Gameplay.Editor
                     {
                         mapId = d.mapId,
                         expReward = d.expReward,
-                        monsterLevel = d.monsterLevel, // AC-E: 던전 기본 몬스터 레벨(0=L1)
+                        monsterLevel = d.monsterLevel, // 던전 기본 몬스터 레벨(0=L1)
                         bounds = ToBoundsDto(d.bounds),
                         points = (d.playerSpawns ?? new List<MapSpawnPoint>())
                             .Select(p => new PointDto
@@ -96,7 +96,7 @@ namespace Game.Gameplay.Editor
                                 monsterId = mn.monsterId,
                                 x = mn.position.x, y = mn.position.y, z = mn.position.z, rotY = mn.rotationY,
                                 count = mn.count, wave = mn.wave,
-                                level = mn.level, // AC-E: 0=맵 기본. 등급은 monsterId 가 갖는다(AC-G)
+                                level = mn.level, // 0=맵 기본. 등급은 monsterId 가 갖는다
                                 slotId = mn.slotId, respawnCooldownMs = mn.respawnCooldownMs,
                                 patrol = (mn.patrolPoints ?? new List<Vector3>())
                                     .Select(p => new PatrolDto { x = p.x, z = p.z })
@@ -240,7 +240,7 @@ namespace Game.Gameplay.Editor
             return new BoundsDto { centerX = b.centerX, centerZ = b.centerZ, sizeX = b.sizeX, sizeZ = b.sizeZ };
         }
 
-        // ── JSON DTO (런타임 로더와 동일 형식) ──
+        // ── JSON DTO (서버 로더와 동일 형식) ──
         [Serializable] private sealed class FileDto { public List<MapDto> maps = new(); }
         [Serializable] private sealed class MapDto { public string mapId; public long expReward; public int monsterLevel; public BoundsDto bounds = new(); public List<PointDto> points = new(); public List<MonsterDto> monsters = new(); }
         [Serializable] private sealed class PointDto { public float x, y, z, rotY; }

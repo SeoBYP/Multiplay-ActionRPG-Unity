@@ -6,8 +6,8 @@ using Script.System.GamePlayAbilitySystem;
 namespace Game.Tests.EditMode.Gameplay
 {
     /// <summary>
-    /// AC 증분4: Actor 통합 발동 라우팅(actor-combat-architecture §5.3) 순수 로직 검증.
-    /// ActorRegistry(ActorId→IActorView 조회) + AbilityCueRouter(S_AbilityActivated → 해당 뷰 Cue) 배선을 못 박는다.
+    /// Actor 통합 발동 라우팅 검증:
+    /// ActorRegistry(ActorId→IActorView 조회) + AbilityCueRouter(S_AbilityActivated → 해당 뷰 Cue) 배선.
     /// </summary>
     public class ActorCombatRoutingTests
     {
@@ -122,7 +122,7 @@ namespace Game.Tests.EditMode.Gameplay
 
             var router = new AbilityCueRouter(state, reg, abilities: null);
             router.Initialize();
-            router.Dispose(); // 구독 해제
+            router.Dispose();
 
             state.NotifyAbilityActivated(actorId, 0);
 

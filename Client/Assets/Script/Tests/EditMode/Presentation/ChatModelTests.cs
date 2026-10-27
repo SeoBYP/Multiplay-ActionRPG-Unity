@@ -38,7 +38,7 @@ namespace Game.Tests.EditMode.Presentation
         [TearDown]
         public void TearDown() => _model.Dispose();
 
-        // ── 전송 ────────────────────────────────
+        // ── 전송 ──
 
         [Test]
         public void 일반_메시지는_대상없이_전송된다()
@@ -96,7 +96,7 @@ namespace Game.Tests.EditMode.Presentation
             Assert.IsEmpty(_grpc.Sent);
         }
 
-        // ── 채널(드롭다운이 읽는 값) ─────────────
+        // ── 채널(드롭다운이 읽는 값) ──
 
         [Test]
         public void 방에_속하지_않으면_일반채널은_전체다()
@@ -136,7 +136,7 @@ namespace Game.Tests.EditMode.Presentation
             Assert.AreEqual("안녕", _grpc.LastChat().Message);
         }
 
-        // ── 수신 ────────────────────────────────
+        // ── 수신 ──
 
         [Test]
         public void 수신한_채팅은_최근목록과_스트림에_모두_들어간다()
@@ -193,7 +193,7 @@ namespace Game.Tests.EditMode.Presentation
             Assert.AreEqual(42, _model.LastMessageId);
         }
 
-        // ── Fakes ───────────────────────────────
+        // ── Fakes ──
 
         private sealed class FakeTokenStore : ITokenStore
         {

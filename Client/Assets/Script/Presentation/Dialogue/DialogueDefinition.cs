@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Game.Presentation.Dialogue
 {
     /// <summary>
-    /// 한 NPC(또는 대화 단위)의 대화 그래프(ScriptableObject). 그래프 저작툴(A2)이 읽고 쓴다.
+    /// 한 NPC(또는 대화 단위)의 대화 그래프(ScriptableObject). 그래프 저작툴이 읽고 쓴다.
     /// 노드 = 본문 + 선택지[], 선택지 = 라벨 + 액션(GoTo/EndDialogue/AcceptQuest/ClaimQuest) + 노출조건.
     /// nodeId 는 안정 GUID(이름 바꿔도 엣지 안 깨짐). editorPosition 은 그래프 레이아웃 보존용(런타임 무시).
     /// </summary>
@@ -51,7 +51,7 @@ namespace Game.Presentation.Dialogue
         }
 
 #if UNITY_EDITOR
-        /// <summary>그래프 저작툴(A2) 전용 — 노드 리스트 직접 편집.</summary>
+        /// <summary>그래프 저작툴 전용 — 노드 리스트 직접 편집.</summary>
         public List<DialogueNode> EditorNodes => nodes;
 #endif
     }
@@ -75,14 +75,12 @@ namespace Game.Presentation.Dialogue
         public string label;
         public DialogueActionKind action = DialogueActionKind.GoTo;
         public string targetNodeId;             // action=GoTo 일 때 대상 노드
-        public string questId;                  // action=AcceptQuest/ClaimQuest (Phase B)
+        public string questId;                  // action=AcceptQuest/ClaimQuest
 
-        // 노출 조건(Phase B) — A1 은 Always 만 평가.
         public DialogueShowCondition showIf = DialogueShowCondition.Always;
         public string conditionQuestId;         // showIf=QuestStatus* 일 때 대상 퀘스트
     }
 
-    /// <summary>선택지 액션. A1 = GoTo/EndDialogue. AcceptQuest/ClaimQuest 는 Phase B 에서 동작.</summary>
     public enum DialogueActionKind
     {
         GoTo,
@@ -91,7 +89,6 @@ namespace Game.Presentation.Dialogue
         ClaimQuest,
     }
 
-    /// <summary>선택지 노출 조건. A1 = Always. 나머지는 Phase B(퀘스트 상태 기반).</summary>
     public enum DialogueShowCondition
     {
         Always,

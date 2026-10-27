@@ -53,7 +53,7 @@ namespace Game.Tests.PlayMode.InGame
             state.NotifyPlayerDodged(remoteId);
 
             // 같은 파일의 콤보 테스트와 동일하게 InState 로 판정한다 — 현재 상태만 보면 블렌드 구간에서
-            // 계속 이전 상태로 읽혀 "전이했는데 실패"가 난다(이 테스트만 그 함정에 남아 있었다).
+            // 계속 이전 상태로 읽혀 "전이했는데 실패"가 난다.
             bool enteredDodge = false;
             for (int i = 0; i < 30 && !enteredDodge; i++)
             {
@@ -68,7 +68,7 @@ namespace Game.Tests.PlayMode.InGame
         [UnityTest]
         public IEnumerator 원격_콤보_A에서_B_C로_체인_전이한다()
         {
-            // #7 원격 콤보: S_Attack{SkillId 2→3→4} 순서대로 수신 → RemoteDriver 가 ComboStep 0→1→2 + Attack.
+            // 원격 콤보: S_Attack{SkillId 2→3→4} 순서대로 수신 → RemoteDriver 가 ComboStep 0→1→2 + Attack.
             // 컨트롤러 [Attack] 서브SM 은 **이전 공격에서 이어서** 체인한다(AnyState 진입은 ComboA 뿐,
             // ComboA→ComboB→ComboC 는 상태→상태 전이 exitTime 0.35). 로컬·원격 동일 컨트롤러라 이 테스트가 체인 자체를 고정한다.
             GameObject prefab = null;
@@ -88,7 +88,7 @@ namespace Game.Tests.PlayMode.InGame
             driver.Initialize(remoteId, state);
             for (int i = 0; i < 2; i++) yield return null;
 
-            // A: AnyState(Attack && ComboStep==0) → ComboA. AC 통합: 발동 Cue 는 IActorView.PlayAbilityCue 로 들어온다
+            // A: AnyState(Attack && ComboStep==0) → ComboA. 발동 Cue 는 IActorView.PlayAbilityCue 로 들어온다
             // (런타임엔 S_AbilityActivated → AbilityCueRouter → ActorRegistry → 이 driver. 여기선 그 종단 호출을 직접 검증).
             driver.PlayAbilityCue(AnimationTriggerType.Attack, 0); // combo_a (cueComboStep=0)
             bool inA = false;

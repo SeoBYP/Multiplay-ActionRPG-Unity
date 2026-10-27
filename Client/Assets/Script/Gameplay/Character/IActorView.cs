@@ -8,10 +8,8 @@ namespace Game.Gameplay.Character
     /// 구현체: <see cref="MonsterEntity"/>(던전 몬스터) · <see cref="RemoteDriver"/>(원격 플레이어) · <see cref="LocalMonster"/>(Main 몬스터).
     ///
     /// <b>뷰는 어빌리티 카탈로그를 모른다</b> — networkId→Cue 해석은 호출자(AbilityCueRouter / LocalMonster AI)가 하고,
-    /// 뷰는 "이 트리거를 이 콤보단계로 재생하라"만 받는다(AC-B B3). 실제 Animator 파라미터 *이름* 은
-    /// 프리팹의 CharacterAgentAnimations 가 갖는다 → 컨트롤러가 제각각인 몬스터도 같은 어빌리티를 공유(codemap §2.64).
-    ///
-    /// 지금은 애니 트리거만. VFX/SFX 는 이 뒤에 plug-in (확장점).
+    /// 뷰는 "이 트리거를 이 콤보단계로 재생하라"만 받는다. 실제 Animator 파라미터 *이름* 은
+    /// 프리팹의 CharacterAgentAnimations 가 갖는다 → 컨트롤러가 제각각인 몬스터도 같은 어빌리티를 공유.
     /// </summary>
     public interface IActorView
     {
@@ -19,7 +17,7 @@ namespace Game.Gameplay.Character
         void PlayAbilityCue(AnimationTriggerType trigger, int comboStep);
 
         /// <summary>
-        /// 어빌리티의 연출 타임라인(SFX/VFX = <see cref="AbilityDefinition.cueEvents"/>)을 발동 기준 ms 오프셋에 재생(CA-5 Phase 1).
+        /// 어빌리티의 연출 타임라인(SFX/VFX = <see cref="AbilityDefinition.cueEvents"/>)을 발동 기준 ms 오프셋에 재생.
         /// 주 애니(t=0)는 <see cref="PlayAbilityCue"/> 가 담당 — 이건 그 위에 얹는 소리·이펙트. <b>연출 전용·네트워크 0.</b>
         /// ability=null 이거나 AbilityCuePlayer 미부착이면 조용히 무시.
         /// </summary>

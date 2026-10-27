@@ -10,7 +10,6 @@ namespace Game.GUI.Shop
         [SerializeField] private Image status_Icon;
         [SerializeField] private TextMeshProUGUI status_Amount;
 
-        /// <summary>스탯 한 줄 텍스트 표시(아이콘 매핑은 추후 — 지금은 텍스트만).</summary>
         public void Bind(string label)
         {
             if (status_Amount != null)

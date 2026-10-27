@@ -5,9 +5,8 @@ using UnityEngine;
 namespace Game.Network.Socket
 {
     /// <summary>
-    /// 2.5.1 ⓔ-2: 개별 다운(원격 가시성). 서버가 C_PlayerDead 수신 시 S_PlayerDead{UserId} 를 방에
-    /// 브로드캐스트하면, 그 신호(OnPlayerDead)를 발행한다. CharacterSpawner 가 해당 캐릭터를
-    /// 다운 처리한다(현재 로그+Destroy, 다운 포즈는 후속).
+    /// 개별 다운(원격 가시성). 서버가 C_PlayerDead 수신 시 S_PlayerDead{UserId} 를 방에
+    /// 브로드캐스트하면, 그 신호(OnPlayerDead)를 발행한다. CharacterSpawner 가 해당 캐릭터를 다운 처리한다.
     /// </summary>
     public class PlayerDeadPacketHandler : PacketHandlerBase<S_PlayerDead>
     {

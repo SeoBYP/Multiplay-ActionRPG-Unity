@@ -26,13 +26,11 @@ namespace Game.Presentation.Editor
                 "버프/디버프 HUD 표시 매핑(표시 전용). 같은 카테고리는 같은 아이콘을 쓰고, 색은 버프/디버프(polarity)로 구분합니다.",
                 HelpBoxMessageType.Info));
 
-            // ── 색상 ──────────────────────────────
             var colorSection = MakeSection("색상 (Polarity)");
             colorSection.Add(new PropertyField(so.FindProperty("buffColor"), "버프 색 (증가)"));
             colorSection.Add(new PropertyField(so.FindProperty("debuffColor"), "디버프 색 (감소)"));
             root.Add(colorSection);
 
-            // ── 아이콘 매핑 ────────────────────────
             var iconSection = MakeSection("아이콘 (카테고리 → Sprite)");
             var listContainer = new VisualElement();
             iconSection.Add(listContainer);

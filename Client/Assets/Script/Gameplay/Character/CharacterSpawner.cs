@@ -115,8 +115,7 @@ namespace Game.Gameplay.Character
             else
                 Debug.LogError("[CharacterSpawner] 로컬 프리팹에 GasComponent가 없습니다.");
 
-            // 서버 권위 레벨 MaxHealth 를 ASC 에 정렬(prefab 100 ↔ 서버 레벨값 desync 해소). Main·던전 공통.
-            // 홀더가 스코프에 있으면 연결(Main/던전), 없으면(미등록 테스트 하네스) 생략 — 스폰은 정상 진행.
+            // 서버 권위 레벨 MaxHealth 를 ASC 에 정렬(prefab 100 ↔ 서버 레벨값 desync 해소). 홀더 미등록(테스트 하네스)이면 생략.
             var statApplier = go.AddComponent<PlayerStatApplier>();
             if (_container.TryResolve(typeof(Game.System.Progression.PlayerProgressionHolder), out var holderObj))
                 statApplier.Bind((Game.System.Progression.PlayerProgressionHolder)holderObj);
@@ -127,12 +126,12 @@ namespace Game.Gameplay.Character
         /// <summary>
         /// Dungeon: MapId 레이아웃 + 내 SpawnIndex 로 스폰 포즈를 결정론 계산(서버와 동일 결과).
         ///          self S_PlayerJoined 수신까지 대기해 SpawnIndex/MapId 를 확보한 뒤 계산.
-        /// Main:    원점(PVE 배치는 추후 씬 SpawnPoint로 개선).
+        /// Main:    저장된 마지막 위치 복원, 없으면 원점.
         /// </summary>
         private async UniTask<(Vector3 pos, Quaternion rot)> ResolveLocalSpawnPoseAsync(CancellationToken ct)
         {
             if (_socketSession.State != SocketSessionState.Joined)
-                return await ResolveMainSpawnPoseAsync(ct);   // Main — 마지막 위치 복원(B7)
+                return await ResolveMainSpawnPoseAsync(ct);
 
             if (!await WaitForSelfSnapshotAsync(ct)
                 || !_packetState.TryGetPlayer(_authSession.UserId, out var self))
@@ -147,8 +146,7 @@ namespace Game.Gameplay.Character
         }
 
         /// <summary>
-        /// Main 스폰 위치(B7). 서버에 저장된 마지막 위치가 있으면 거기서, 없으면 기존 동작(원점)으로.
-        ///
+        /// Main 스폰 위치. 저장된 마지막 위치가 있으면 거기서, 없으면 원점.
         /// 복원 좌표는 **지면에 스냅**한다 — 서버는 맵 경계만 검증하므로 벽 안·공중일 수 있고,
         /// 내비메시는 클라 자산이라 서버가 볼 수 없다. 스냅에 실패하면 원점으로 폴백한다.
         /// </summary>
@@ -159,7 +157,7 @@ namespace Game.Gameplay.Character
 
             var saved = await _playerPositions.GetLastAsync(ct);
             if (saved is not { } p)
-                return (Vector3.zero, Quaternion.identity);   // 저장된 위치 없음 — 기존 동작
+                return (Vector3.zero, Quaternion.identity);   // 저장된 위치 없음
 
             var raw = new Vector3(p.X, p.Y, p.Z);
             var rot = Quaternion.Euler(0f, p.RotY, 0f);
@@ -262,10 +260,8 @@ namespace Game.Gameplay.Character
 
         /// <summary>
         /// 한 플레이어의 다운(S_PlayerDead) 처리.
-        /// 로컬: 자기 캐릭터는 destroy 하지 않는다 — State.Dead 게이트(2.5.1 ⓔ-1)로 입력이 정지됐고,
-        ///       자기 GO 를 지우면 카메라 타깃/HUD 가 깨진다. 로그만(다운 포즈 도입 시 교체).
-        /// 원격(2.5.2 변경): **Destroy 하지 않고 다운 보존** — DownedAllyMarker 를 부착해 부활 대상으로 남긴다.
-        ///       (기존엔 DespawnRemote 였으나 부활하려면 다운 아군이 상호작용 대상으로 살아 있어야 함.)
+        /// 로컬: destroy 하지 않는다 — State.Dead 게이트가 입력을 멈췄고, GO 를 지우면 카메라 타깃/HUD 가 깨진다.
+        /// 원격: **Destroy 하지 않고 다운 보존** — DownedAllyMarker 를 부착해 부활 상호작용 대상으로 남긴다.
         /// </summary>
         private void HandlePlayerDead(long userId)
         {
@@ -288,7 +284,7 @@ namespace Game.Gameplay.Character
         }
 
         /// <summary>
-        /// Co-op 부활(2.5.2) 확정(S_PlayerRevived) 처리.
+        /// Co-op 부활 확정(S_PlayerRevived) 처리.
         /// 로컬: PlayerCharacterAgent.ReviveInPlace(hp) — State.Dead 해제 + 서버 권위 HP, 제자리(텔레포트 X).
         /// 원격: DownedAllyMarker 제거 → 정상 캐릭터로 복귀(부활 대상에서 빠짐).
         /// </summary>
@@ -335,7 +331,7 @@ namespace Game.Gameplay.Character
 
             driver.Initialize(snapshot.UserId, _packetState);
             _remotes[snapshot.UserId] = driver;
-            // AC: ActorId(=UserId, 양수)로 레지스트리 등록 → S_AbilityActivated 발동 신호가 이 원격 플레이어의 스윙 Cue 로 라우팅됨(몬스터와 동일 파이프).
+            // ActorId(=UserId, 양수)로 등록 → S_AbilityActivated 가 이 원격 플레이어의 스윙 Cue 로 라우팅된다(몬스터와 동일 파이프).
             _actors.Register(ActorIds.FromPlayer(snapshot.UserId), driver);
 
             // 파티 HP HUD 용 원격 ASC 등록(S_ApplyEffect 를 TargetId 로 라우팅해 HP 추적).

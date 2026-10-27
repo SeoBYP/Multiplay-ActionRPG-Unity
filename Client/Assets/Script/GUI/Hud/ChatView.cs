@@ -12,21 +12,16 @@ using VContainer;
 namespace Game.GUI.OutGame
 {
     /// <summary>
-    /// HUD 채팅 View. **로그와 입력줄 모두 항상 보인다.**
-    ///
-    /// 입력줄을 Enter 로만 여는 방식이었다가 바꿨다 — 그러면 Enter 라우팅이 한 번이라도 막히는 순간
-    /// **입력 수단 자체가 화면에 없어** "채팅이 안 된다"가 된다. 항상 띄워 두면 클릭해서도 칠 수 있다.
-    ///
-    /// MVI 규칙: <see cref="ChatModel"/> 하나만 주입받는다(서버·proto 타입을 모른다).
+    /// HUD 채팅 View. 로그와 입력줄이 항상 보인다 — Enter 로만 열면 라우팅이 막힐 때 입력 수단 자체가 사라진다.
+    /// <see cref="ChatModel"/> 하나만 주입받는다.
     ///
     /// 입력 흐름 — 같은 Enter 가 상태에 따라 다른 입력 맵에서 처리된다:
     ///   비입력: Player 맵 → InputRouter → TryHandle(Chat) → 입력줄 포커스 + UI 점유(Player 맵 OFF)
     ///   입력중: UI 맵 → InputField.onSubmit → 전송 → 포커스 해제 + 점유 해제
     /// 클릭으로 직접 포커스한 경우도 <c>onSelect</c> 가 같은 점유를 건다(안 그러면 WASD 가 캐릭터를 움직인다).
     ///
-    /// 채널 드롭다운은 **상황에 따라 항목이 바뀐다** — Main(방 미소속) = 전체·개인 / 방·던전 = 방·개인.
-    /// 서버가 "방에 속했으면 Room, 아니면 Global" 로 정하므로, 고를 수 없는 항목은 아예 보여주지 않는다
-    /// (고르게 해 놓고 서버가 무시하면 그게 거짓말이다).
+    /// 채널 드롭다운 항목은 방 소속 여부에 따라 바뀐다 — Main = 전체·개인 / 방·던전 = 방·개인.
+    /// 서버가 소속에 따라 Room/Global 을 정하므로 고를 수 없는 항목은 보여주지 않는다.
     /// </summary>
     public sealed class ChatView : MonoBehaviour, IInputHandler
     {
@@ -62,11 +57,11 @@ namespace Game.GUI.OutGame
 
         private void Start()
         {
-            // 라우터 등록은 Start 에서 — [Inject] 필드 주입이 OnEnable 보다 늦을 수 있다(unity-client.md).
+            // 라우터 등록은 Start 에서 — [Inject] 필드 주입이 OnEnable 보다 늦을 수 있다.
             _inputRouter?.Register(this);
 
             if (bubbleTemplate != null)
-                bubbleTemplate.Hide(); // 원본은 항상 숨김 — 복제본만 보인다
+                bubbleTemplate.Hide();
 
             if (inputField != null)
             {

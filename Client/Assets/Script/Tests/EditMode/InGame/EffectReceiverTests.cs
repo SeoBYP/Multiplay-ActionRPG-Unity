@@ -15,7 +15,7 @@ using Object = UnityEngine.Object;
 namespace Game.Tests.EditMode.InGame
 {
     /// <summary>
-    /// EF-2d 클라 수신 경로: ISocketPacketState effect 이벤트 → EffectReceiver → 대상 ASC 적용/제거.
+    /// 클라 수신 경로: ISocketPacketState effect 이벤트 → EffectReceiver → 대상 ASC 적용/제거.
     /// 타겟 라우팅(내 UserId만 로컬 적용) 검증.
     /// </summary>
     public class EffectReceiverTests
@@ -90,7 +90,7 @@ namespace Game.Tests.EditMode.InGame
             localPlayer.Set(asc);
             _receiver = Build(state, localPlayer);
 
-            // CA-3 + AC-B: 서버가 적중 판정 후 보낸 ability_damage 적용 → HP 감소.
+            // 서버가 적중 판정 후 보낸 ability_damage 적용 → HP 감소.
             // 수치는 effect 카탈로그가 아니라 **서버 권위 Amount**(=ability.baseDamage 산출) — healthOverride 로 적용된다.
             state.ApplyEffect(new SocketEffectApply("ability_damage", instanceId: 1, targetId: LocalUserId, sourceId: 200, startTick: 0, stacks: 1, amount: -10));
 
@@ -118,7 +118,7 @@ namespace Game.Tests.EditMode.InGame
             Assert.AreEqual(100, localAsc.Current(EGameplayAttribute.Health), "원격 대상 효과가 로컬 ASC 에 새면 안 된다.");
         }
 
-        // ── 헬퍼 ────────────────────────────────────────
+        // ── 헬퍼 ──
 
         private EffectReceiver Build(SocketPacketState state, LocalPlayerContext localPlayer, PartyAscRegistry registry = null)
         {

@@ -7,11 +7,10 @@ namespace Game.Gameplay.Abilities
 {
     /// <summary>
     /// 연출 리소스 카탈로그(SO) — Cue <c>id</c> → 실제 AudioClip / VFX 프리팹.
-    /// <b>클라 전용, bake 없음</b>(서버는 연출을 모른다 — gas-architecture §2). AC-D3.
+    /// <b>클라 전용, bake 없음</b>.
     ///
     /// <see cref="AbilityCuePlayer"/> 가 <see cref="AbilityCueEvent.id"/> 로 여기서 리소스를 찾아 재생한다.
-    /// id 를 데이터로 두는 이유: 어빌리티 SO 는 "언제 무엇을"(타이밍)만 저작하고, "그 무엇의 실체"(클립·프리팹)는
-    /// 여기 한 곳에서 교체·재사용 → 같은 스윙음을 여러 어빌리티가 공유하고, 리소스 교체가 어빌리티 저작과 분리된다.
+    /// 어빌리티 SO 는 "언제 무엇을"(타이밍)만 저작하고 실체(클립·프리팹)는 여기서 교체·공유한다.
     ///
     /// 인스펙터 직렬화를 위해 Dictionary 대신 리스트 + 런타임 1회 인덱싱(<see cref="BuildIndex"/>).
     /// </summary>
@@ -71,7 +70,7 @@ namespace Game.Gameplay.Abilities
             return !string.IsNullOrEmpty(id) && _vfxIndex.TryGetValue(id, out entry) && entry.prefab != null;
         }
 
-        /// <summary>해당 종류에 등록된 Cue id 목록(타임라인 툴 P3 드롭다운용). Anim 은 카탈로그 대상 아님 → 빈 목록.</summary>
+        /// <summary>해당 종류에 등록된 Cue id 목록(타임라인 툴 드롭다운용). Anim 은 카탈로그 대상 아님 → 빈 목록.</summary>
         public IEnumerable<string> IdsFor(ECueKind kind)
         {
             var src = kind switch

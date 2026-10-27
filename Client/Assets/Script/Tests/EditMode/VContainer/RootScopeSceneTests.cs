@@ -10,7 +10,7 @@ namespace Game.Tests.EditMode.VContainerWiring
     /// 루트 스코프는 <see cref="VContainerSettings.RootLifetimeScope"/> 가 자동 생성한다. 씬에 같은 스코프를 또 두면
     /// 그 인스턴스는 루트가 아니라 <b>루트의 자식</b>이 되어 모든 인스톨러를 한 번 더 등록한다.
     /// VContainer 는 <c>IEnumerable&lt;T&gt;</c> 를 부모 스코프 등록까지 모아 주입하므로
-    /// 2026-09-30 Title 씬에서 <c>Duplicate packet handler: S_PlayerJoined</c> 로 터졌다(싱글톤·엔트리포인트도 전부 이중 생성).
+    /// <c>Duplicate packet handler: S_PlayerJoined</c> 로 터진다(싱글톤·엔트리포인트도 전부 이중 생성).
     /// </summary>
     public class RootScopeSceneTests
     {

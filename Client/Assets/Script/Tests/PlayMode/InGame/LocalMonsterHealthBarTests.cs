@@ -9,7 +9,7 @@ using Object = UnityEngine.Object;
 namespace Game.Tests.PlayMode.InGame
 {
     /// <summary>
-    /// Main(B-lite) 몬스터 체력바 — 실제 프리팹으로 검증한다.
+    /// Main 몬스터 체력바 — 실제 프리팹으로 검증한다.
     ///
     /// 던전(MonsterEntity)과 Main(LocalMonster)은 **HP 권위가 다르다**(서버 vs 클라). 체력바는 그 차이를
     /// 몰라도 되게 <see cref="IMonsterHealth"/> 계약만 본다 — 이 테스트가 그 계약이 Main 에서 실제로

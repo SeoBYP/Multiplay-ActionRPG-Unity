@@ -11,8 +11,8 @@ using VContainer;
 namespace Game.GUI.Dialogue
 {
     /// <summary>
-    /// 대화 창 View(MVI). DialogueModel 만 주입받아 State 구독·렌더 + Intent 발행(System/proto 비노출).
-    /// 선택지 버튼은 choiceTemplate(첫 자식)을 복제하는 동적 풀(Quest 목록과 동일 패턴). 본문/화자 표시 + 닫기.
+    /// 대화 창 View(MVI). DialogueModel 만 주입받아 State 구독·렌더 + Intent 발행.
+    /// 선택지 버튼은 choiceTemplate 을 복제하는 동적 풀.
     /// </summary>
     public class DialogueView : MonoBehaviour
     {

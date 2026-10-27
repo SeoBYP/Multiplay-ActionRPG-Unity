@@ -4,27 +4,27 @@ using Game.Gameplay.Abilities;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
-using UnityEngine.Playables;   // W2 프리뷰: PlayableExtensions(SetTime/SetSourcePlayable) 확장 메서드
+using UnityEngine.Playables;   // 프리뷰: PlayableExtensions(SetTime/SetSourcePlayable) 확장 메서드
 using UnityEngine.UIElements;
 
 namespace Game.Gameplay.Editor
 {
     /// <summary>
-    /// 어빌리티 연출 타임라인 편집 창(CA-5 Phase 2, <b>UI Toolkit</b>). 한 <see cref="AbilityDefinition"/> 의 시간축을 보며
+    /// 어빌리티 연출 타임라인 편집 창(<b>UI Toolkit</b>). 한 <see cref="AbilityDefinition"/> 의 시간축을 보며
     /// 언제 SFX/VFX 를 낼지, 판정창(startup/active)이 언제 열리는지를 드래그로 편집한다.
     ///
-    /// 두 갈래를 한 화면에서 편집하되 데이터는 갈라진다(gas-architecture §2.5):
+    /// 두 갈래를 한 화면에서 편집하되 데이터는 갈라진다:
     ///   · <b>판정창(게임플레이)</b> startup/active — 서버가 읽는다 → 편집 후 <b>Export(재bake)·서버 재빌드</b> 필요(창이 경고).
     ///   · <b>연출(SFX/VFX/Anim)</b> cueEvents — 클라 로컬, bake 안 됨 → 편집 즉시 유효.
     ///
     /// <b>이벤트 추가 = 트랙 빈 곳 우클릭</b>("뭘 쓸지 아직 모름" → id 는 미정으로 생성, 인스펙터에서 나중에 채운다).
-    /// 편집은 SerializedObject 경유 → Undo·dirty 자동. 라이브 3D 프리뷰는 Phase 2.5 확장점.
+    /// 편집은 SerializedObject 경유 → Undo·dirty 자동.
     /// </summary>
     public sealed class AbilityTimelineWindow : EditorWindow
     {
         private const float LeftPad = 8f;
         private const float RulerH = 22f;
-        private const float SectionsH = 16f; // W3: 룰러 아래 이름 구간 밴드 높이
+        private const float SectionsH = 16f; // 룰러 아래 이름 구간 밴드 높이
         private const float RowH = 30f;
         private const float RowGap = 2f;
         private const float HeaderW = 108f; // 왼쪽 트랙 헤더 열 폭(이름 + ＋/×)
@@ -40,51 +40,51 @@ namespace Game.Gameplay.Editor
         private static readonly Color ColSel = new(1f, 1f, 1f);
 
         private static readonly Color ColEvent = new(0.85f, 0.75f, 0.30f); // Event(메서드 호출) = 노란
-        // W-B: 행은 (kind, lane) 조합으로 동적. kind 인덱스 = ECueKind 값(Sfx0/Vfx1/Anim2/Event3), 판정창=-1.
+        // 행은 (kind, lane) 조합으로 동적. kind 인덱스 = ECueKind 값(Sfx0/Vfx1/Anim2/Event3), 판정창=-1.
         private const int KHitbox = -1;
 
 
         [SerializeField] private AbilityDefinition _target;
         [SerializeField] private CueCatalog _catalog;      // (선택) id 폴백 소스
-        [SerializeField] private GameObject _actorPrefab;  // P7: Event 메서드 드롭다운 소스(액터 프리팹)
+        [SerializeField] private GameObject _actorPrefab;  // Event 메서드 드롭다운 소스(액터 프리팹)
         private SerializedObject _so;
         private float _pxPerMs = 0.6f;
         private float _scrubMs;
         private int _selected = -1;                     // primary(인스펙터·드래그·리사이즈 대상)
-        private readonly HashSet<int> _selection = new(); // P8 다중 선택(그룹 delete/nudge/duplicate). primary 포함.
+        private readonly HashSet<int> _selection = new(); // 다중 선택(그룹 delete/nudge/duplicate). primary 포함.
         private bool _hitboxSelected;                     // 판정창 바가 선택됨(이벤트 선택과 배타)
-        private readonly global::System.Collections.Generic.HashSet<(int kind, int lane)> _mutedLanes = new(); // W6: 프리뷰 음소거 레인
+        private readonly global::System.Collections.Generic.HashSet<(int kind, int lane)> _mutedLanes = new(); // 프리뷰 음소거 레인
 
         private VisualElement _content;   // 스크롤 내부, width = 타임라인 길이
         private ScrollView _timelineScroll; // 가운데 가로 스크롤(남은 폭 채움 → 프리뷰 오른쪽 도킹, 타임라인은 그 폭까지 확장)
         private float _lastViewportW = -1f; // 마지막 뷰포트 폭(리사이즈 재구성 루프 방지)
         private VisualElement _headerColumn; // 왼쪽 고정 트랙 헤더 열(이름·＋/×)
         private VisualElement _scrub;
-        private int _renamingSection = -1; // W3: 인라인 이름변경 중인 구간(-1=없음)
+        private int _renamingSection = -1; // 인라인 이름변경 중인 구간(-1=없음)
         [SerializeField] private int[] _laneCount = { 1, 1, 1, 1 };        // kind별 저작 레인 수(Sfx/Vfx/Anim/Event)
         private readonly global::System.Collections.Generic.List<(int kind, int lane)> _rows = new();
         private VisualElement[] _rowTracks = global::System.Array.Empty<VisualElement>();
         private VisualElement _inspectorBody;
         private ToolbarButton _previewButton;
 
-        // P5 에디트모드 프리뷰
+        // 에디트모드 프리뷰
         private bool _previewing;
         private bool _previewNotify = true;
         private double _previewLastTime;
         private float _previewPrevMs;
-        private readonly global::System.Collections.Generic.Dictionary<int, GameObject> _vfxInstances = new(); // W2b: cue 인덱스 → 프리뷰 씬 VFX 인스턴스
+        private readonly global::System.Collections.Generic.Dictionary<int, GameObject> _vfxInstances = new(); // cue 인덱스 → 프리뷰 씬 VFX 인스턴스
 
-        // W2 라이브 메시 프리뷰 — 격리 PreviewScene 렌더 + previewClip 을 PlayableGraph 로 스크럽 샘플(휴머노이드/제네릭 공용, 전역 AnimationMode 부작용 없음)
+        // 라이브 메시 프리뷰 — 격리 PreviewScene 렌더 + previewClip 을 PlayableGraph 로 스크럽 샘플(휴머노이드/제네릭 공용, 전역 AnimationMode 부작용 없음)
         private VisualElement _viewport;
         private IMGUIContainer _viewportGui;
         private Button _viewFoldButton;
-        private ObjectField _actorField;                // 오른쪽 프리뷰 패널의 Actor 필드(툴바에서 이동)
+        private ObjectField _actorField;                // 오른쪽 프리뷰 패널의 Actor 필드
         private ObjectField _previewClipField;          // 오른쪽 프리뷰 패널의 Clip 필드(타겟별 재바인딩)
         [SerializeField] private bool _viewportOpen = true;
         private const string ActorPrefKey = "AbilityTimeline.ActorGuid"; // Actor 프리팹 GUID 영속(에디터 재시작에도 유지)
         private UnityEditor.PreviewRenderUtility _pru;
         private GameObject _actorInstance;              // 프리뷰 씬 인스턴스(HideAndDontSave, 게임 스크립트 제거)
-        private GameObject _sampledActorPrefab;         // 현재 인스턴스의 원본(툴바 Actor 변경 감지)
+        private GameObject _sampledActorPrefab;         // 현재 인스턴스의 원본(Actor 변경 감지)
         private float _lastSampledMs = float.NaN;
         private Vector2 _viewOrbit = new(130f, 12f);    // yaw, pitch(도)
         private float _viewDist;                        // 카메라 거리(오토프레임 후 휠로 조절)
@@ -94,7 +94,7 @@ namespace Game.Gameplay.Editor
         private UnityEngine.Animations.AnimationClipPlayable _clipPlayable;
         private bool _graphValid;
         private AnimationClip _graphClip;
-        private AnimationClip _autoClip;                                  // W2c: cueTrigger 자동 해석 결과 캐시
+        private AnimationClip _autoClip;                                  // cueTrigger 자동 해석 결과 캐시
         private GameObject _autoClipActor;                                // 어느 액터로 해석했나(캐시 키)
         private Game.Gameplay.Character.AnimationTriggerType _autoClipTrigger; // 어느 트리거로(캐시 키)
         private RenderTexture _rt;                       // URP 렌더 타겟(빌트인 BeginPreview 경로는 URP 셰이더가 마젠타)
@@ -109,7 +109,7 @@ namespace Game.Gameplay.Editor
             root.Clear();
             root.style.flexDirection = FlexDirection.Column;
             LoadStyleSheet(root); // 디자인 폴리시(.uss)
-            LoadActorFromPrefs(); // 저장된 Actor 프리팹 복원(요청 ②)
+            LoadActorFromPrefs(); // 저장된 Actor 프리팹 복원
 
             BuildToolbar(root);
 
@@ -136,7 +136,7 @@ namespace Game.Gameplay.Editor
             // 반응형: 뷰포트 폭 변화(창 리사이즈)에 맞춰 타임라인을 그 폭까지 재확장
             scroll.contentViewport.RegisterCallback<GeometryChangedEvent>(_ => OnViewportResized());
 
-            // 오른쪽 열 = [프리뷰 패널(위) | 인스펙터(아래)]. 타임라인과 배경색으로 구분(요청 ③).
+            // 오른쪽 열 = [프리뷰 패널(위) | 인스펙터(아래)]. 타임라인과 배경색으로 구분.
             var rightColumn = new VisualElement { name = "atl-rightcol" };
             rightColumn.style.width = 340; rightColumn.style.flexShrink = 0;
             rightColumn.style.flexDirection = FlexDirection.Column;
@@ -144,7 +144,7 @@ namespace Game.Gameplay.Editor
             rightColumn.style.borderLeftWidth = 1; rightColumn.style.borderLeftColor = new Color(0, 0, 0, 0.4f);
             body.Add(rightColumn);
 
-            BuildPreviewPanel(rightColumn); // W2: Actor+Clip 필드 + 라이브 프리뷰 뷰포트(요청 ①)
+            BuildPreviewPanel(rightColumn); // Actor+Clip 필드 + 라이브 프리뷰 뷰포트
 
             var detailsScroll = new ScrollView(ScrollViewMode.Vertical) { name = "atl-details-scroll" };
             detailsScroll.style.flexGrow = 1;
@@ -153,7 +153,7 @@ namespace Game.Gameplay.Editor
             detailsScroll.Add(_inspectorBody);
             rightColumn.Add(detailsScroll);
 
-            // P8 단축키: Delete=삭제 · ←/→=넛지 · Ctrl+D=복제 (선택 집합 전체)
+            // 단축키: Delete=삭제 · ←/→=넛지 · Ctrl+D=복제 (선택 집합 전체)
             root.RegisterCallback<KeyDownEvent>(e =>
             {
                 if (_selection.Count == 0) return;
@@ -187,7 +187,7 @@ namespace Game.Gameplay.Editor
             if (sheet != null && !root.styleSheets.Contains(sheet)) root.styleSheets.Add(sheet);
         }
 
-        // ── 상세 패널(W-A) 폴리시 헬퍼 ──
+        // ── 상세 패널 폴리시 헬퍼 ──
         private VisualElement Section(string title)
         {
             var sec = new VisualElement();
@@ -245,7 +245,6 @@ namespace Game.Gameplay.Editor
             zoom.RegisterValueChangedCallback(e => { _pxPerMs = e.newValue; RebuildTimeline(); });
             bar.Add(new Label("Zoom") { style = { unityTextAlign = TextAnchor.MiddleCenter } });
             bar.Add(zoom);
-            // ※ Snap/FPS 격자는 제거됨 — 편집은 항상 0.1ms 단위(판정창 int 만 1ms).
 
             bar.Add(new ToolbarSpacer());
             _previewButton = new ToolbarButton(TogglePreview) { text = "▶ Preview" };
@@ -254,7 +253,6 @@ namespace Game.Gameplay.Editor
             notify.RegisterValueChangedCallback(e => _previewNotify = e.newValue);
             bar.Add(notify);
 
-            // ※ Cue 카탈로그·Actor 필드는 오른쪽 프리뷰 패널로 이동(직접 리소스·프리뷰가 기본이므로).
             bar.Add(new ToolbarSpacer());
             var hint = new Label("트랙 빈 곳 우클릭=추가 · Ctrl+클릭=다중선택 · ←/→ 넛지 · Ctrl+D 복제 · Del 삭제");
             hint.style.marginLeft = 10;
@@ -291,7 +289,7 @@ namespace Game.Gameplay.Editor
             return m;
         }
 
-        private float MaxSectionMs() // W3: 구간이 타임라인 끝을 넘어도 룰러/밴드가 덮도록
+        private float MaxSectionMs() // 구간이 타임라인 끝을 넘어도 룰러/밴드가 덮도록
         {
             float m = 0;
             if (_target != null)
@@ -314,11 +312,11 @@ namespace Game.Gameplay.Editor
 
         private float XForTime(float ms) => LeftPad + ms * _pxPerMs;
         private float TimeForX(float x) => Mathf.Max(0f, (x - LeftPad) / _pxPerMs);
-        // 편집 격자 = 항상 0.1ms(Snap/FPS 제거됨). 판정창 startup/active 는 int 계약이라 최종 1ms.
+        // 편집 격자 = 항상 0.1ms. 판정창 startup/active 는 int 계약이라 최종 1ms.
         private static float Snap(float ms) => Mathf.Round(ms * 10f) / 10f;
-        private float RowTop(int row) => RulerH + SectionsH + row * (RowH + RowGap); // W3: 구간 밴드만큼 하향
+        private float RowTop(int row) => RulerH + SectionsH + row * (RowH + RowGap); // 구간 밴드만큼 하향
 
-        // ── W-B 레인 행 레이아웃 ──
+        // ── 레인 행 레이아웃 ──
         private int EffLanes(int kind)
         {
             int n = Mathf.Max(1, _laneCount[kind]);
@@ -351,10 +349,10 @@ namespace Game.Gameplay.Editor
         // ─────────────────────── 재구성 ───────────────────────
 
         /// <summary>타임라인 + 인스펙터 전체 재구성. 구조 변경(추가·삭제·복제·레인·타겟 교체)에만 쓴다.
-        /// 인스펙터 필드 <b>값</b> 편집에는 쓰지 않는다 — 편집 중 필드가 파괴돼 포커스를 잃기 때문(W1). 그 경우 <see cref="RebuildTimeline"/> 만.</summary>
+        /// 인스펙터 필드 <b>값</b> 편집에는 쓰지 않는다 — 편집 중 필드가 파괴돼 포커스를 잃기 때문. 그 경우 <see cref="RebuildTimeline"/> 만.</summary>
         private void RebuildAll() { RebuildTimeline(); RefreshInspector(); }
 
-        /// <summary>드래그(클립·그립·판정창 리사이즈/이동) 중엔 타임라인 재구성을 건너뛴다 — 재구성이 드래그 중인 그립을 파괴해 포인터 캡처를 끊기 때문(W1 회귀 수정).
+        /// <summary>드래그(클립·그립·판정창 리사이즈/이동) 중엔 타임라인 재구성을 건너뛴다 — 재구성이 드래그 중인 그립을 파괴해 포인터 캡처를 끊기 때문.
         /// 선택된 이벤트의 인스펙터 bound 필드가 <see cref="RebuildTimeline"/> 대신 이걸 호출: TrackPropertyValue 가 드래그의 SO 쓰기에 반응해도 무시.
         /// 드래그 중엔 각 드래그 핸들러의 <c>layout()</c> 가 라이브 갱신을 담당하고, PointerUp 이 최종 재구성한다.</summary>
         /// <summary>뷰포트(가운데 스크롤) 폭이 창 리사이즈로 바뀌면 타임라인을 그 폭까지 재확장. 폭 변화 없으면 무시(재구성 루프 방지).</summary>
@@ -374,7 +372,7 @@ namespace Game.Gameplay.Editor
         }
 
         /// <summary>왼쪽 헤더 열 + 타임라인 캔버스(룰러·클립·판정창)만 재구성. 오른쪽 인스펙터(_inspectorBody)는 건드리지 않는다.
-        /// 지오메트리 편집(시각·길이·레인·startup·active)·드래그·줌은 이것만 호출 → 바인딩된 인스펙터 필드가 살아남아 포커스 유지(W1).</summary>
+        /// 지오메트리 편집(시각·길이·레인·startup·active)·드래그·줌은 이것만 호출 → 바인딩된 인스펙터 필드가 살아남아 포커스 유지.</summary>
         private void RebuildTimeline()
         {
             if (_content == null) return;
@@ -406,7 +404,7 @@ namespace Game.Gameplay.Editor
 
             BuildHeaderCorner();
             BuildRuler(contentW);
-            BuildSectionsBand(contentW); // W3 이름 구간 밴드
+            BuildSectionsBand(contentW); // 이름 구간 밴드
             for (int r = 0; r < _rows.Count; r++) { BuildTrackHeader(r); BuildTrackLane(r, contentW); }
 
             BuildAnimAnchor();
@@ -422,7 +420,7 @@ namespace Game.Gameplay.Editor
             if (_headerColumn == null) return;
             var corner = new VisualElement();
             corner.style.position = Position.Absolute;
-            corner.style.left = 0; corner.style.top = 0; corner.style.width = HeaderW; corner.style.height = RulerH + SectionsH; // W3: 룰러+구간밴드 커버
+            corner.style.left = 0; corner.style.top = 0; corner.style.width = HeaderW; corner.style.height = RulerH + SectionsH; // 룰러+구간밴드 커버
             corner.style.backgroundColor = ColRuler;
             var cornerLbl = new Label("구간") { style = { position = Position.Absolute, left = 5, top = RulerH, fontSize = 9, color = new Color(0.6f, 0.6f, 0.6f) } };
             corner.Add(cornerLbl);
@@ -459,7 +457,7 @@ namespace Game.Gameplay.Editor
             {
                 int capKind = kind, capLane = lane;
                 bool muted = _mutedLanes.Contains((kind, lane));
-                if (muted) name.style.color = new Color(0.5f, 0.5f, 0.5f); // W6: 음소거 레인 흐리게
+                if (muted) name.style.color = new Color(0.5f, 0.5f, 0.5f); // 음소거 레인 흐리게
 
                 var mute = new Button(() =>
                 {
@@ -513,7 +511,6 @@ namespace Game.Gameplay.Editor
                 ruler.Add(lbl);
             }
 
-            // 룰러 클릭 = 스크럽 이동
             ruler.RegisterCallback<PointerDownEvent>(e =>
             {
                 _scrubMs = Snap(TimeForX(ruler.WorldToLocal(e.position).x));
@@ -522,7 +519,7 @@ namespace Game.Gameplay.Editor
             });
         }
 
-        // ─────────────────────── W3 이름 구간(Sections) 밴드 ───────────────────────
+        // ─────────────────────── 이름 구간(Sections) 밴드 ───────────────────────
 
         private static readonly Color[] SectionColors =
         {
@@ -576,7 +573,6 @@ namespace Game.Gameplay.Editor
                 }
                 Layout();
 
-                // 인라인 이름변경 중이면 TextField, 아니면 라벨
                 if (_renamingSection == index)
                 {
                     var tf = new TextField { value = s.name }; tf.style.flexGrow = 1; tf.style.marginLeft = 2; tf.style.marginTop = -1;
@@ -591,7 +587,6 @@ namespace Game.Gameplay.Editor
                 }
                 else seg.Add(lbl);
 
-                // 본체 클릭 = 플레이헤드 그 구간 start 로 점프
                 seg.RegisterCallback<PointerDownEvent>(e =>
                 {
                     if (e.button != 0 || _renamingSection == index) return;
@@ -674,7 +669,7 @@ namespace Game.Gameplay.Editor
             RebuildTimeline();
         }
 
-        /// <summary>첫 유효 루프 구간(있으면 ▶Preview 가 그 [start,end) 를 반복). W3.</summary>
+        /// <summary>첫 유효 루프 구간(있으면 ▶Preview 가 그 [start,end) 를 반복).</summary>
         private AbilitySection FindLoopSection()
         {
             if (_target == null) return null;
@@ -691,7 +686,7 @@ namespace Game.Gameplay.Editor
             track.style.left = 0; track.style.top = RowTop(r);
             track.style.width = w; track.style.height = RowH;
             track.style.backgroundColor = RowTint(kind, lane); // 종류별 색조(헤더와 동일)
-            if (kind != KHitbox && _mutedLanes.Contains((kind, lane))) track.style.opacity = 0.45f; // W6: 음소거 레인 흐리게(클립 포함)
+            if (kind != KHitbox && _mutedLanes.Contains((kind, lane))) track.style.opacity = 0.45f; // 음소거 레인 흐리게(클립 포함)
             _content.Add(track);
             _rowTracks[r] = track;
 
@@ -828,7 +823,7 @@ namespace Game.Gameplay.Editor
             grip.RegisterCallback<PointerUpEvent>(e => { if (grip.HasPointerCapture(e.pointerId)) { grip.ReleasePointer(e.pointerId); RebuildTimeline(); } });
         }
 
-        // 모든 이벤트(VFX/SFX/Anim)를 판정창처럼 **리사이즈 가능한 클립**으로 그린다(P6).
+        // 모든 이벤트(VFX/SFX/Anim)를 판정창처럼 **리사이즈 가능한 클립**으로 그린다.
         // 본체 드래그=이동 · 우 그립=길이(durationMs) 늘리기 · 좌 그립=시작(끝 고정). duration 0 = 즉발(점처럼 얇게).
         private void BuildEventClips()
         {
@@ -863,7 +858,7 @@ namespace Game.Gameplay.Editor
                     var e2 = index < _target.cueEvents.Count ? _target.cueEvents[index] : null;
                     if (e2 == null) return;
                     float x0 = XForTime(e2.timeMs);
-                    // W5: 즉발(길이 0)=둥근 점 · 지속(길이>0)=바 로 시각 구분.
+                    // 즉발(길이 0)=둥근 점 · 지속(길이>0)=바 로 시각 구분.
                     bool isPoint = e2.durationMs <= 0.5f;
                     float w = isPoint ? 14f : Mathf.Max(20, e2.durationMs * _pxPerMs);
                     clip.style.left = x0; clip.style.width = w;
@@ -875,7 +870,7 @@ namespace Game.Gameplay.Editor
                     lbl.text = string.IsNullOrEmpty(e2.id) ? "(id 미정)" : e2.id;
                     clip.tooltip = $"{e2.kind} · {(string.IsNullOrEmpty(e2.id) ? "(id 미정)" : e2.id)} · {Mathf.RoundToInt(e2.timeMs)}~{Mathf.RoundToInt(e2.timeMs + e2.durationMs)}ms"
                                  + (e2.kind == ECueKind.Vfx && !string.IsNullOrEmpty(e2.socket) ? $" @ {e2.socket}" : "");
-                    bool selc = _selection.Contains(index); // P8: 다중 선택 전부 하이라이트
+                    bool selc = _selection.Contains(index); // 다중 선택 전부 하이라이트
                     float bw = selc ? 2 : 1;
                     var bc = selc ? ColSel : Darken(col, 0.42f); // 평상시엔 어두운 테두리로 입체, 선택 시 흰색
                     clip.style.borderTopWidth = clip.style.borderBottomWidth = clip.style.borderLeftWidth = clip.style.borderRightWidth = bw;
@@ -888,7 +883,7 @@ namespace Game.Gameplay.Editor
                 clip.RegisterCallback<PointerDownEvent>(e =>
                 {
                     if (e.button != 0) return;
-                    if (e.ctrlKey || e.commandKey) ToggleSelect(index); else SelectSingle(index); // P8: Ctrl+클릭=다중
+                    if (e.ctrlKey || e.commandKey) ToggleSelect(index); else SelectSingle(index); // Ctrl+클릭=다중
                     Layout(); RefreshInspector(); // Layout()=이 클립 즉시 하이라이트(나머지는 PointerUp RebuildAll)
                     grab = TimeForX(track.WorldToLocal(e.position).x) - _target.cueEvents[index].timeMs;
                     clip.CapturePointer(e.pointerId); e.StopPropagation();
@@ -962,13 +957,13 @@ namespace Game.Gameplay.Editor
             var dim = new VisualElement { pickingMode = PickingMode.Ignore };
             dim.style.position = Position.Absolute;
             dim.style.left = endX; dim.style.top = 0; dim.style.width = contentW - endX; dim.style.height = contentH;
-            dim.style.backgroundColor = new Color(0f, 0f, 0f, 0.32f); // 범위 밖 = 어둡게
+            dim.style.backgroundColor = new Color(0f, 0f, 0f, 0.32f);
             _content.Add(dim);
 
             var line = new VisualElement { pickingMode = PickingMode.Ignore };
             line.style.position = Position.Absolute;
             line.style.left = endX; line.style.top = 0; line.style.width = 1; line.style.height = contentH;
-            line.style.backgroundColor = new Color(1f, 1f, 1f, 0.16f); // 경계선
+            line.style.backgroundColor = new Color(1f, 1f, 1f, 0.16f);
             _content.Add(line);
         }
 
@@ -1004,7 +999,7 @@ namespace Game.Gameplay.Editor
         private void PositionScrub()
         {
             if (_scrub != null) _scrub.style.left = XForTime(_scrubMs);
-            _viewportGui?.MarkDirtyRepaint(); // W2: 스크럽 이동 → 뷰포트 재샘플·재렌더
+            _viewportGui?.MarkDirtyRepaint(); // 스크럽 이동 → 뷰포트 재샘플·재렌더
         }
 
         // ─────────────────────── 인스펙터 ───────────────────────
@@ -1030,7 +1025,7 @@ namespace Game.Gameplay.Editor
                 return;
             }
 
-            // ── 선택 이벤트 (W-A: 어느 kind 든 오른쪽에서 전 필드 편집) ──
+            // ── 선택 이벤트 (어느 kind 든 오른쪽에서 전 필드 편집) ──
             if (ValidSel())
             {
                 var el = _so.FindProperty("cueEvents").GetArrayElementAtIndex(_selected);
@@ -1112,7 +1107,7 @@ namespace Game.Gameplay.Editor
             return v;
         }
 
-        // 세로 상세 패널용 — .atl-field 로 라벨 폭·간격을 .uss 가 통제(W-A). BindProperty 로 SerializedProperty 양방향 바인딩(자동 동기화·Undo, W1).
+        // 세로 상세 패널용 — .atl-field 로 라벨 폭·간격을 .uss 가 통제. BindProperty 로 SerializedProperty 양방향 바인딩(자동 동기화·Undo).
         // onChanged 는 지오메트리(시각·길이·레인·startup·active)에만 넘긴다 → TrackPropertyValue 가 값이 실제로 바뀐 뒤(=SO 갱신 후) 호출 → 타임라인만 리빌드(인스펙터 필드는 살려 포커스 유지).
         // 종류(kind)·인자타입(argType)처럼 인스펙터 레이아웃 자체를 바꾸는 enum 은 여기서 바인딩하지 않는다(리빌드로 즉시 파괴되므로 수동 콜백이 맞다).
         private VisualElement BoundField(EnumField f, SerializedProperty p, global::System.Action onChanged)
@@ -1172,7 +1167,7 @@ namespace Game.Gameplay.Editor
             return f;
         }
 
-        // ─────────────────────── P7 Event 인스펙터(메서드 + 타입 인자) ───────────────────────
+        // ─────────────────────── Event 인스펙터(메서드 + 타입 인자) ───────────────────────
 
         private void BuildEventInspector(SerializedProperty el, VisualElement sec)
         {
@@ -1182,7 +1177,7 @@ namespace Game.Gameplay.Editor
             { tooltip = "액터 컴포넌트의 public 메서드(예: WeaponHitbox.ActivateWindow → ActivateWindow). ▾ 로 목록 선택." };
             methodField.AddToClassList("atl-field"); methodField.style.flexGrow = 1;
             methodField.isDelayed = true;
-            methodField.BindProperty(imProp); // 메서드명은 타임라인 라벨에 안 쓰임 → 리빌드 없이 바인딩만(W1)
+            methodField.BindProperty(imProp); // 메서드명은 타임라인 라벨에 안 쓰임 → 리빌드 없이 바인딩만
             mrow.Add(methodField);
 
             var mpick = new Button(() => ShowMethodMenu(el)) { text = "▾" };
@@ -1192,7 +1187,7 @@ namespace Game.Gameplay.Editor
             mrow.Add(mpick);
             sec.Add(mrow);
 
-            // 타입 인자(참조 R5): None/Float/Int/Bool/String.
+            // 타입 인자: None/Float/Int/Bool/String.
             var atProp = el.FindPropertyRelative("argType");
             var argType = (EInvokeArgType)atProp.enumValueIndex;
             var at = new EnumField("인자", argType); at.AddToClassList("atl-field");
@@ -1207,7 +1202,7 @@ namespace Game.Gameplay.Editor
             }
         }
 
-        /// <summary>Actor 프리팹의 컴포넌트에서 호출 가능(void · 0/1 지원-타입 인자) public 메서드를 나열(참조 R4). 선택 시 메서드+인자타입 세팅.</summary>
+        /// <summary>Actor 프리팹의 컴포넌트에서 호출 가능(void · 0/1 지원-타입 인자) public 메서드를 나열. 선택 시 메서드+인자타입 세팅.</summary>
         private void ShowMethodMenu(SerializedProperty el)
         {
             if (_actorPrefab == null) return;
@@ -1262,7 +1257,7 @@ namespace Game.Gameplay.Editor
             arr.arraySize++;
             var e = arr.GetArrayElementAtIndex(i);
             ResetEvent(e, kind, timeMs); // 새 요소는 이전 값을 상속 → 전 필드 초기화
-            e.FindPropertyRelative("lane").intValue = lane; // W-B: 추가한 레인
+            e.FindPropertyRelative("lane").intValue = lane; // 추가한 레인
             _so.ApplyModifiedProperties();
             SelectSingle(i);
             RebuildAll();
@@ -1296,7 +1291,7 @@ namespace Game.Gameplay.Editor
             e.FindPropertyRelative("argString").stringValue = "";
         }
 
-        /// <summary>판정창(startup/active)을 Event 2개로 굽는다 — Main WeaponHitbox 를 타임라인이 개폐(옛 Phase 3).
+        /// <summary>판정창(startup/active)을 Event 2개로 굽는다 — Main WeaponHitbox 를 타임라인이 개폐.
         /// 이후 애니이벤트 제거·Actor 프리팹의 WeaponHitbox 존재는 사용자 배선.</summary>
         private void GenerateHitWindowEvents()
         {
@@ -1324,7 +1319,7 @@ namespace Game.Gameplay.Editor
             if (arr.arraySize == before) arr.DeleteArrayElementAtIndex(index);
         }
 
-        // ─────────────────────── P8 선택 집합 + 그룹 연산 ───────────────────────
+        // ─────────────────────── 선택 집합 + 그룹 연산 ───────────────────────
 
         private void SelectSingle(int i) { _hitboxSelected = false; _selection.Clear(); _selection.Add(i); _selected = i; }
 
@@ -1406,7 +1401,7 @@ namespace Game.Gameplay.Editor
             }
         }
 
-        // ─────────────────────── P5 프리뷰(에디트모드) ───────────────────────
+        // ─────────────────────── 프리뷰(에디트모드) ───────────────────────
 
         private void OnDisable() { StopPreview(); CleanupViewport(); } // 창 닫힘/도메인 리로드 시 update 해제 + 스폰/뷰포트 정리
 
@@ -1434,7 +1429,7 @@ namespace Game.Gameplay.Editor
             // VFX 는 SampleVfx 가 현재 스크럽 시각 기준으로 관리 → 정지해도 그 프레임 상태 유지(뷰포트가 계속 그 시각을 보여줌). 정리는 CleanupViewport.
         }
 
-        /// <summary>실시간으로 스크럽을 굴리며, 이 프레임에 지나간 이벤트를 발화한다(참조 R7 = TriggerInEditMode).</summary>
+        /// <summary>실시간으로 스크럽을 굴리며, 이 프레임에 지나간 이벤트를 발화한다.</summary>
         private void PreviewTick()
         {
             if (!_previewing || _target == null) { StopPreview(); return; }
@@ -1443,7 +1438,7 @@ namespace Game.Gameplay.Editor
             _scrubMs += (float)((now - _previewLastTime) * 1000.0);
             _previewLastTime = now;
 
-            // W3: 루프 구간이 있으면 그 [start,end) 안에서 반복(scrubMs 랩 + 이벤트 재발화)
+            // 루프 구간이 있으면 그 [start,end) 안에서 반복(scrubMs 랩 + 이벤트 재발화)
             var loopSec = FindLoopSection();
             if (loopSec != null && _scrubMs >= loopSec.endMs)
             {
@@ -1464,12 +1459,12 @@ namespace Game.Gameplay.Editor
 
         private void PreviewFire(AbilityCueEvent ev)
         {
-            if (_mutedLanes.Contains(((int)ev.kind, Mathf.Max(0, ev.lane)))) return; // W6: 음소거 레인은 프리뷰 제외
+            if (_mutedLanes.Contains(((int)ev.kind, Mathf.Max(0, ev.lane)))) return; // 음소거 레인은 프리뷰 제외
 
             if (_previewNotify)
                 Debug.Log($"[TimelinePreview] {Mathf.RoundToInt(ev.timeMs)}ms · {ev.kind} · '{(string.IsNullOrEmpty(ev.id) ? "(id 미정)" : ev.id)}'");
 
-            // SFX 만 실시간 발화(스크럽마다 소리 스팸 방지). VFX 는 SampleVfx(스크럽·재생 공용, 뷰포트 스폰)가 담당 — W2b.
+            // SFX 만 실시간 발화(스크럽마다 소리 스팸 방지). VFX 는 SampleVfx(스크럽·재생 공용, 뷰포트 스폰)가 담당.
             if (ev.kind == ECueKind.Sfx)
             {
                 var clip = ev.sfxClip != null ? ev.sfxClip
@@ -1491,7 +1486,7 @@ namespace Game.Gameplay.Editor
             catch { /* 프리뷰 오디오 실패는 무해 — Notify 로그로 충분 */ }
         }
 
-        // ─────────────────────── W2b VFX 뷰포트 스폰(스크럽 동조) ───────────────────────
+        // ─────────────────────── VFX 뷰포트 스폰(스크럽 동조) ───────────────────────
 
         private const float DefaultVfxLifeMs = 1500f; // 길이 0(즉발) VFX 의 기본 프리뷰 노출 시간
 
@@ -1556,7 +1551,7 @@ namespace Game.Gameplay.Editor
             _vfxInstances.Clear();
         }
 
-        // ─────────────────────── W2 라이브 메시 프리뷰 뷰포트 ───────────────────────
+        // ─────────────────────── 라이브 메시 프리뷰 뷰포트 ───────────────────────
 
         /// <summary>오른쪽 열 상단 프리뷰 패널 — Actor(영속) + Clip(타겟별) 필드 + 라이브 뷰포트(IMGUIContainer→URP 렌더). 접힘 토글.</summary>
         private void BuildPreviewPanel(VisualElement parent)
@@ -1619,7 +1614,7 @@ namespace Game.Gameplay.Editor
             _previewClipField.SetEnabled(_so != null);
         }
 
-        /// <summary>저장된 Actor 프리팹 GUID → 로드(요청 ②, 에디터 재시작에도 유지). 이미 있으면(도메인 리로드 생존) 스킵.</summary>
+        /// <summary>저장된 Actor 프리팹 GUID → 로드(에디터 재시작에도 유지). 이미 있으면(도메인 리로드 생존) 스킵.</summary>
         private void LoadActorFromPrefs()
         {
             if (_actorPrefab != null) return;
@@ -1679,7 +1674,7 @@ namespace Game.Gameplay.Editor
             }
         }
 
-        /// <summary>PreviewRenderUtility 준비 + 툴바 Actor 가 바뀌었으면 인스턴스 재생성.</summary>
+        /// <summary>PreviewRenderUtility 준비 + Actor 가 바뀌었으면 인스턴스 재생성.</summary>
         private void EnsurePreviewScene()
         {
             if (_pru == null) _pru = new UnityEditor.PreviewRenderUtility();
@@ -1688,7 +1683,7 @@ namespace Game.Gameplay.Editor
 
         private void RecreateActor()
         {
-            ClearVfx(); // 옛 액터에 붙은 VFX 인스턴스 정리(액터와 함께 파괴되나 맵을 비워 재조정)
+            ClearVfx(); // 이전 액터에 붙은 VFX 인스턴스 정리(액터와 함께 파괴되나 맵을 비워 재조정)
             DestroyGraph();
             if (_actorInstance != null) { UnityEngine.Object.DestroyImmediate(_actorInstance); _actorInstance = null; }
             _sampledActorPrefab = _actorPrefab;
@@ -1797,9 +1792,9 @@ namespace Game.Gameplay.Editor
             _graphValid = false; _graphClip = null;
         }
 
-        // ─────────────────────── W2c cueTrigger 자동 클립 해석 ───────────────────────
+        // ─────────────────────── cueTrigger 자동 클립 해석 ───────────────────────
 
-        /// <summary>샘플할 클립 = previewClip(수동 지정 우선) → 없으면 cueTrigger 로 액터 AnimatorController 에서 자동 해석(캐시). AC-5 W2c.</summary>
+        /// <summary>샘플할 클립 = previewClip(수동 지정 우선) → 없으면 cueTrigger 로 액터 AnimatorController 에서 자동 해석(캐시).</summary>
         private AnimationClip ResolvePreviewClip()
         {
             if (_target == null) return null;
@@ -1835,7 +1830,7 @@ namespace Game.Gameplay.Editor
             return clip;
         }
 
-        /// <summary>enum → CharacterAgentAnimations 직렬화 필드(Animator 파라미터 이름). 컨트롤러마다 파라미터명이 달라도 이 매핑이 흡수(codemap §2.64).</summary>
+        /// <summary>enum → CharacterAgentAnimations 직렬화 필드(Animator 파라미터 이름). 컨트롤러마다 파라미터명이 달라도 이 매핑이 흡수.</summary>
         private static string TriggerParamName(Game.Gameplay.Character.CharacterAgentAnimations ca, Game.Gameplay.Character.AnimationTriggerType trigger)
         {
             string field = trigger == Game.Gameplay.Character.AnimationTriggerType.Attack ? "m_animationAttackTrigger"
@@ -1908,7 +1903,7 @@ namespace Game.Gameplay.Editor
         }
 
         /// <summary>프리뷰 카메라를 <b>URP 파이프라인</b>으로 RT 에 렌더한다. 빌트인 경로(BeginPreview/Render)는 URP 셰이더가 마젠타로 나오므로
-        /// <c>RenderPipeline.SubmitRenderRequest</c> 를 쓴다. 미지원(빌트인 프로젝트)이면 예전 경로로 폴백.</summary>
+        /// <c>RenderPipeline.SubmitRenderRequest</c> 를 쓴다. 미지원(빌트인 프로젝트)이면 빌트인 경로로 폴백.</summary>
         private Texture RenderActor(Rect r)
         {
             int w = Mathf.Max(8, (int)r.width), h = Mathf.Max(8, (int)r.height);
@@ -1990,16 +1985,15 @@ namespace Game.Gameplay.Editor
             return c;
         }
 
-        // ── W-B 레인 추가/삭제 ──
+        // ── 레인 추가/삭제 ──
         private void AddLane(int kind)
         {
-            _laneCount[kind] = EffLanes(kind) + 1; // 맨 아래 빈 레인 하나 추가
+            _laneCount[kind] = EffLanes(kind) + 1;
             RebuildAll();
         }
 
         private void RemoveLane(int kind, int lane)
         {
-            // 이 레인에 이벤트가 있으면 삭제 불가
             foreach (var e in _target.cueEvents)
                 if (e != null && (int)e.kind == kind && Mathf.Max(0, e.lane) == lane)
                 {
@@ -2007,7 +2001,6 @@ namespace Game.Gameplay.Editor
                     return;
                 }
             if (EffLanes(kind) <= 1) return; // 마지막 하나는 유지
-            // 상위 레인 이벤트를 한 칸 내림
             _so.Update();
             var arr = _so.FindProperty("cueEvents");
             for (int i = 0; i < arr.arraySize; i++)

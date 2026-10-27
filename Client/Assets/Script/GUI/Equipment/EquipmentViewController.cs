@@ -11,14 +11,8 @@ using VContainer.Unity;
 namespace Game.GUI.OutGame
 {
     /// <summary>
-    /// 장비 창 생명주기 컨트롤러 (POCO).
-    ///
-    /// 역할:
-    ///   ① InGameModel.OnToggleEquipment(K키) 수신 → 장비창 단독 토글.
-    ///   ② InventoryViewController 가 "쌍 토글"(I키)에서 Show/Hide 로 함께 여닫는다.
-    ///
-    /// 창 자체의 X(Close) 버튼은 View(Equipment) 가 자기 SetActive(false) 로 독립 처리 →
-    /// 인벤토리와 따로 닫힐 수 있다(요구사항: 하나만 X로 닫으면 독립).
+    /// 장비 창 생명주기 컨트롤러 (POCO). K키(InGameModel.OnToggleEquipment)로 단독 토글하고,
+    /// InventoryViewController 의 쌍 토글(I키)이 Show/Hide 로 함께 여닫는다. X 버튼은 View 가 독립 처리한다.
     /// </summary>
     public sealed class EquipmentViewController : IInitializable, IDisposable
     {
@@ -72,7 +66,6 @@ namespace Game.GUI.OutGame
                 _inst.GameObject.SetActive(false);
         }
 
-        // K키 단독 토글: 로드돼 있으면 활성 반전, 아니면 로드(활성).
         private async UniTaskVoid ToggleAsync()
         {
             if (_inst != null)

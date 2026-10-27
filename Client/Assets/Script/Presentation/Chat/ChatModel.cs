@@ -22,8 +22,8 @@ namespace Game.Presentation.Chat
     /// 채널(전체/방/귓속말)은 **서버가 정한다** — 방에 속해 있으면 방, 아니면 전체.
     /// 클라가 보내는 것은 본문과 (귓속말일 때만) 대상 닉네임뿐이다.
     ///
-    /// System 서비스 계층을 따로 두지 않은 이유: 채팅의 소비자는 이 화면 하나뿐이라
-    /// 감쌀 대상이 없다(unity-client.md "불필요한 추상화 금지"). 비UI 소비자가 생기면 그때 분리한다.
+    /// System 서비스 계층을 두지 않은 이유: 소비자가 이 화면 하나뿐이라 감쌀 대상이 없다.
+    /// 비UI 소비자가 생기면 그때 분리한다.
     /// </summary>
     public sealed class ChatModel : IAsyncStartable, IDisposable
     {

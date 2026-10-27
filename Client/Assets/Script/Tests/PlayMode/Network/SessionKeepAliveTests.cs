@@ -10,7 +10,7 @@ namespace Game.Tests.PlayMode.Network
 {
     /// <summary>
     /// 토큰 keep-alive 단위 테스트 — Docker 불필요(Fake 인증 서비스), 60분 대기 불필요(짧은 만료 주입).
-    /// 두 가지를 고정한다: ① 만료 전에 스스로 갱신한다 ② 갱신이 실패하면 조용히 멈춘다.
+    /// 두 가지를 고정한다: (1) 만료 전에 스스로 갱신한다 (2) 갱신이 실패하면 조용히 멈춘다.
     /// </summary>
     [TestFixture]
     public class SessionKeepAliveTests

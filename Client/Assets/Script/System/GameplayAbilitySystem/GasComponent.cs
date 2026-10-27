@@ -8,10 +8,9 @@ namespace Script.System.GamePlayAbilitySystem
     /// GAS 의 <b>Unity 경계 어댑터</b>. 게임 로직은 하나도 갖지 않고 Shared
     /// <see cref="AbilitySystemComponent"/> 를 <b>소유</b>해 위임한다.
     ///
-    /// <para><b>왜 갈랐나</b>: 예전엔 이 MonoBehaviour 가 활성 Effect 목록·스택 정책·만료·태그 합산·스탯 재계산을
-    /// 전부 직접 들고 있었고, 서버는 그것을 <b>다시 한 번</b> 구현했다. 두 구현은 이미 갈라져 있었다 —
-    /// 같은 <c>EStackPolicy.None</c> 효과를 두 번 걸면 한쪽은 1개, 다른 쪽은 2개가 됐다.
-    /// 이제 산식은 한 곳(Shared)에만 있고, 여기 남은 것은 <b>엔진이 있어야만 할 수 있는 일</b>뿐이다:
+    /// <para><b>왜 갈랐나</b>: 활성 Effect 목록·스택 정책·만료·태그 합산·스탯 재계산을 클라와 서버가 각자 구현하면 두 구현이 갈라진다 —
+    /// 같은 <c>EStackPolicy.None</c> 효과를 두 번 걸면 한쪽은 1개, 다른 쪽은 2개가 된다.
+    /// 그래서 산식은 한 곳(Shared)에만 두고, 여기엔 <b>엔진이 있어야만 할 수 있는 일</b>만 남긴다:
     /// 프리팹 직렬화(<see cref="Attributes"/>) · <c>Update</c> 시계 · C# 이벤트 재발행.</para>
     /// </summary>
     public class GasComponent : MonoBehaviour
@@ -74,10 +73,7 @@ namespace Script.System.GamePlayAbilitySystem
         }
 
         // ── 속성 접근 (값만 오간다 — 속성 객체를 밖으로 내주지 않는다) ──
-        //
-        // 예전엔 GetAttribute() 가 GameplayAttribute 를 통째로 내줬고, 호출부가 거기 대고 SetCurrent/ApplyModifier
-        // 를 직접 불렀다. 그래서 "값이 변했다"를 이 컴포넌트가 놓치는 경로가 생겼다(이벤트 미발행).
-        // 이제 모든 변경이 여기를 지나므로 이벤트가 새지 않는다.
+        // 모든 변경이 여기를 지나야 "값이 변했다"는 이벤트가 새지 않는다.
 
         /// <summary>현재값. 미보유 속성은 0.</summary>
         public int Current(EGameplayAttribute attributeType)
@@ -146,7 +142,7 @@ namespace Script.System.GamePlayAbilitySystem
         }
 
         /// <summary>
-        /// 서버 권위 적용(EF-2d): 서버가 부여한 InstanceId를 그대로 키로 사용한다(클라가 id 생성 안 함).
+        /// 서버 권위 적용: 서버가 부여한 InstanceId를 그대로 키로 사용한다(클라가 id 생성 안 함).
         /// 같은 InstanceId 재수신 시 갱신(멱등). 제거는 서버 S_RemoveEffect → RemoveEffect(instanceId)가 권위.
         ///
         /// 시작 시각은 로컬 clock(_clockMs)을 쓴다 — 공유 시계(서버 tick) 도입 전까지 만료 타이밍의

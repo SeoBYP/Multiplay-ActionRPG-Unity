@@ -63,8 +63,7 @@ namespace Game.Presentation.InGame
         private readonly Subject<Unit> _toggleAbility = new Subject<Unit>();
         public Observable<Unit> OnToggleAbility => _toggleAbility;
 
-        // 아이템 획득 토스트 신호(ShopToastMessage 패턴 — 타입 메시지). GameHud가 구독해 하단 토스트 표시.
-        // 줍기 애니를 없애고(전용 클립 없음) 이 토스트로 피드백 대체(사용자 결정). 진실원 = 서버 S_ItemPickedUp.
+        // 아이템 획득 토스트 신호. GameHud가 구독해 하단 토스트 표시. 진실원 = 서버 S_ItemPickedUp.
         private readonly Subject<ItemToastMessage> _itemPickup = new Subject<ItemToastMessage>();
         public Observable<ItemToastMessage> OnItemPickup => _itemPickup;
 
@@ -72,7 +71,7 @@ namespace Game.Presentation.InGame
         private readonly Subject<string> _interactionPrompt = new Subject<string>();
         public Observable<string> OnInteractionPrompt => _interactionPrompt;
 
-        // 비정상 연결 끊김 1회 신호(OnToast 동형 side-channel). GameHud가 구독해 끊김 팝업 표시.
+        // 비정상 연결 끊김 1회 신호. GameHud가 구독해 끊김 팝업 표시.
         private readonly Subject<Unit> _connectionLost = new Subject<Unit>();
         public Observable<Unit> OnConnectionLost => _connectionLost;
         private bool _connectionLostHandled;
@@ -183,10 +182,10 @@ namespace Game.Presentation.InGame
             Dispatch(InGameResult.DungeonFailed.Instance);
         }
 
-        /// <summary>서버 권위 획득 확정(S_ItemPickedUp) → 획득 토스트 메시지 발행. 이름은 표시 카탈로그, 없으면 itemId.</summary>
         /// <summary>상호작용 대상 변경 통지를 그대로 View 로 재발행(문구 가공은 HUD 담당).</summary>
         private void OnInteractionPromptChanged(string prompt) => _interactionPrompt.OnNext(prompt);
 
+        /// <summary>서버 권위 획득 확정(S_ItemPickedUp) → 획득 토스트 메시지 발행. 이름은 표시 카탈로그, 없으면 itemId.</summary>
         private void OnItemPickedUp(int itemId, int qty)
         {
             string name = _itemDisplay?.Get(itemId)?.displayName;
@@ -236,9 +235,8 @@ namespace Game.Presentation.InGame
                     break;
             }
         }
-        // 사망 보고(C_PlayerDead 송신)는 제거됨 — 플레이어 HP 서버 권위 승격(authority-model §4).
-        // 서버 `Room.TickMonsters`가 자기 HP≤0 을 직접 감지해 S_PlayerDead 를 발행한다(클라 보고 불필요).
-        // 로컬 다운 연출/입력 게이트는 PlayerCharacterAgent 가 HP≤0 예측으로 즉발 처리(즉발 손맛).
+        // 사망은 클라가 보고하지 않는다 — 서버가 자기 HP≤0 을 직접 감지해 S_PlayerDead 를 발행한다.
+        // 로컬 다운 연출/입력 게이트는 PlayerCharacterAgent 가 HP≤0 예측으로 즉발 처리한다.
 
         // ── 활성 버프/디버프 → BuffView 중계 ───────────
 
@@ -343,16 +341,14 @@ namespace Game.Presentation.InGame
             Dispatch(InGameResult.Returning.Instance);
             try
             {
-                // 1. TCP 방 퇴장 패킷 전송 (다른 플레이어에게 S_PlayerLeft 브로드캐스트)
+                // 방 퇴장 패킷 전송 (다른 플레이어에게 S_PlayerLeft 브로드캐스트)
                 Debug.Log("[InGameModel] C_PlayerLeave 전송 중...");
                 await _socketSession.LeaveRoomAsync(_cts.Token);
 
-                // 2. TCP 소켓 연결 해제
                 Debug.Log("[InGameModel] 소켓 연결 해제 중...");
                 await _socketSession.DisconnectAsync(_cts.Token);
                 Debug.Log("[InGameModel] 소켓 연결 해제 완료");
 
-                // 3. Main 씬으로 복귀
                 Debug.Log("[InGameModel] Main 씬으로 복귀");
                 await SceneManager.LoadSceneAsync("Main");
             }

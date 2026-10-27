@@ -29,13 +29,9 @@ namespace Game.Presentation.GameScene
 
         /// <summary>
         /// 로딩·페이드는 **모든 게임 UI보다 위**에 있어야 한다.
-        ///
-        /// 화면 전체를 덮는 캔버스들이 전부 `sortingOrder = 0` 이었다(GUIRoot 포함, 실측).
-        /// Screen Space - Overlay 는 동률이면 **나중에 생성된 캔버스가 위**라, 로딩 중에 새 씬이 활성화되며
-        /// 만들어지는 HUD·창이 로딩 화면 위로 튀어나왔다. 그래서 정렬값을 코드가 정한다.
-        ///
-        /// 프리팹에도 같은 값을 넣어 뒀지만 **런타임에서 다시 덮어쓴다** — 프리팹은 사람이 열어 저장하면
-        /// 값이 되돌아갈 수 있고, 그때 조용히 증상만 재발하기 때문이다(진실원 = 이 상수).
+        /// Screen Space - Overlay 는 sortingOrder 가 같으면 **나중에 생성된 캔버스가 위**라, 기본값(0)이면
+        /// 로딩 중 새 씬에서 만들어지는 HUD·창이 로딩 화면 위로 튀어나온다.
+        /// 프리팹 값은 저장 때 되돌아갈 수 있어 **런타임에서 다시 덮어쓴다**(진실원 = 이 상수).
         /// </summary>
         public const int LoadingSortingOrder = 1000;
 
@@ -53,19 +49,16 @@ namespace Game.Presentation.GameScene
 
             try
             {
-                // ── 1. 진입 Fader 생성 + FadeIn — 현재 씬을 검게 덮는다 ─────────
                 enterFader = await LoadOverlayAsync(FaderKey, FaderSortingOrder, ct);
                 if (enterFader.GameObject.GetComponent<IFader>() is { } fadeIn)
                     await fadeIn.FadeInAsync(ct);
 
-                // ── 2. Loading 캔버스를 Fader 위에 생성 — 로딩바 표시 ──────────
                 loading = await LoadOverlayAsync(LoadingKey, LoadingSortingOrder, ct);
                 var loadingView = loading.GameObject.GetComponent<ILoadingView>();
 
-                // 로딩 화면이 보이기 시작한 시점. 최소 노출 시간 기준으로 사용한다.
                 var loadingStartTime = Time.realtimeSinceStartup;
 
-                // ── 3. 씬 비동기 로드 (allowSceneActivation=false → 0.9에서 멈춤) ──
+                // allowSceneActivation=false → 로드 진행률이 0.9에서 멈춘다.
                 var loadOp = SceneManager.LoadSceneAsync(sceneName);
                 loadOp.allowSceneActivation = false;
 
@@ -90,8 +83,7 @@ namespace Game.Presentation.GameScene
                 loadOp.allowSceneActivation = true;
                 await UniTask.WaitUntil(() => loadOp.isDone, cancellationToken: ct);
 
-                // ── 3.5. holdUntil 대기 — 새 씬은 활성화됐지만 Loading 으로 덮은 채 ────
-                // (예: 던전 "전원 입장"까지 로딩 유지. 그동안 씬은 Loading 뒤에서 스폰 등 준비.)
+                // holdUntil 대기 — 새 씬은 활성화됐지만 Loading 으로 덮은 채(예: 던전 "전원 입장"까지).
                 if (holdUntil != null)
                 {
                     loadingView?.SetProgress(100f);
@@ -101,17 +93,15 @@ namespace Game.Presentation.GameScene
                     Debug.Log($"[GameSceneManager] '{sceneName}' holdUntil 완료 — Fader로 화면 전환 시작");
                 }
 
-                // ── 4. 진출 Fader를 로딩 위에 생성 + FadeIn — 로딩을 검게 덮는다 ──
                 exitFader = await LoadOverlayAsync(FaderKey, FaderSortingOrder, ct);
                 var fadeOut = exitFader.GameObject.GetComponent<IFader>();
                 if (fadeOut != null)
                     await fadeOut.FadeInAsync(ct);
 
-                // ── 5. 검은 막 뒤에서 로딩과 진입 Fader 제거 ───────────────────
+                // 검은 막 뒤에서 로딩과 진입 Fader 제거.
                 loading.Dispose();    loading    = default;
                 enterFader.Dispose(); enterFader = default;
 
-                // ── 6. FadeOut — 새 씬(던전)을 부드럽게 드러낸다 ───────────────
                 if (fadeOut != null)
                     await fadeOut.FadeOutAsync(ct);
             }

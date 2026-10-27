@@ -4,8 +4,8 @@ using NUnit.Framework;
 namespace Game.Tests.EditMode.Gameplay
 {
     /// <summary>
-    /// 발 슬라이딩 보정 배속(절충안 C). 상한을 두는 게 핵심 — 몬스터 클립은 편차가 커서
-    /// 무제한 배속이면 다리가 우스꽝스러워진다(실측 최대 3.4배 필요). 초과분은 이동 속도로 해소한다.
+    /// 발 슬라이딩 보정 배속. 상한을 두는 게 핵심 — 몬스터 클립은 편차가 커서
+    /// 무제한 배속이면 다리가 우스꽝스러워진다. 초과분은 이동 속도로 해소한다.
     /// </summary>
     public class LocomotionSpeedMatchTests
     {

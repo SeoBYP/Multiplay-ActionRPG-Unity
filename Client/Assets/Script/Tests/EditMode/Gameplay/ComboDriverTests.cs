@@ -4,7 +4,7 @@ using NUnit.Framework;
 namespace Game.Tests.EditMode.Gameplay
 {
     /// <summary>
-    /// #7 근접 콤보 진행기 — 선입력(버퍼링) + <b>타이밍은 스킬 데이터가 진실원</b>.
+    /// 근접 콤보 진행기 — 선입력(버퍼링) + <b>타이밍은 스킬 데이터가 진실원</b>.
     /// 체인 지점/창은 skillId 별로 다를 수 있고(SkillTimeline.ComboChainMs/ComboWindowMs), 서버 cadence 도 같은 값을 쓴다.
     /// skillId 규약: 2=combo_a, 3=combo_b, 4=combo_c.
     /// </summary>
@@ -95,8 +95,7 @@ namespace Game.Tests.EditMode.Gameplay
         [Test]
         public void 마무리_타_재생중_누른_입력은_버려진다()
         {
-            // 회귀: 마무리(C) 재생 도중 클릭이 버퍼돼 있다가, 애니가 끝나 Idle 이 된 순간
-            // 손을 뗐는데도 한 대가 더 나가던 문제(사용자 피드백).
+            // 마무리(C) 재생 도중 버퍼된 클릭은 애니가 끝나 Idle 이 된 뒤에도 발동되면 안 된다.
             var combo = New();
             Press(combo, 0f, out _, out _);    // A
             Press(combo, 0.8f, out _, out _);  // B

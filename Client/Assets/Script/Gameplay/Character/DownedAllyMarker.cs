@@ -4,12 +4,9 @@ using UnityEngine;
 namespace Game.Gameplay.Character
 {
     /// <summary>
-    /// 던전(서버 권위)에서 <b>다운된 원격 아군</b>을 표시하는 마커(Co-op 2.5.2 부활 대상).
-    ///
-    /// 기존 2.5.1 에선 원격 다운 = 캐릭터 Destroy 였지만, 부활하려면 다운 아군이 상호작용 대상으로
-    /// 남아 있어야 한다 → `CharacterSpawner.HandlePlayerDead` 가 Destroy 대신 이 마커를 부착(다운 보존),
-    /// `S_PlayerRevived`/퇴장 시 제거한다. 시전자의 <see cref="ReviveInteractor"/> 가 정적 레지스트리에서
-    /// 최근접 다운 아군을 찾는다(물리 레이어 의존 없이). 시각 다운 포즈(Animator)는 클라 발전 시.
+    /// 던전(서버 권위)에서 <b>다운된 원격 아군</b>을 표시하는 마커(Co-op 부활 대상).
+    /// 부활하려면 다운 아군이 상호작용 대상으로 남아 있어야 하므로 `CharacterSpawner.HandlePlayerDead` 가 Destroy 대신 이 마커를 부착하고,
+    /// `S_PlayerRevived`/퇴장 시 제거한다. <see cref="ReviveInteractor"/> 가 정적 레지스트리에서 최근접 다운 아군을 찾는다(물리 레이어 의존 없이).
     /// </summary>
     public sealed class DownedAllyMarker : MonoBehaviour
     {

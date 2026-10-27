@@ -28,7 +28,7 @@ namespace Game.System.Quest
         }
     }
 
-    /// <summary>퀘스트 보상(System DTO). ItemId 빈 문자열이면 아이템 없음.</summary>
+    /// <summary>퀘스트 보상(System DTO). ItemId 0 이면 아이템 없음.</summary>
     public readonly struct QuestRewardData
     {
         public readonly long Exp;

@@ -10,9 +10,7 @@ namespace Game.Tests.EditMode.Gameplay
     /// <summary>
     /// 저작 카탈로그(스탯) ↔ 표시 카탈로그(프리팹) 사이가 끊기지 않았는지 지키는 가드.
     ///
-    /// <para>실제로 새어나간 적이 있다: AC-G 가 변종을 별개 ID(<c>leviathan_boss</c> 등)로 만들고 던전 스폰을
-    /// 그 ID 로 재배치했는데 <see cref="MonsterVisualCatalog"/> 에는 안 넣어서, 스포너가 조용히 기본 캡슐로
-    /// 폴백했다. 모델이 안 뜨니 그 프리팹에 달린 AC-D1 전용 애니(보스 슬램)도 통째로 도달 불가였다.
+    /// <para>저작에만 있고 <see cref="MonsterVisualCatalog"/> 에 없는 ID 는 스포너가 조용히 기본 캡슐로 폴백한다.
     /// 폴백이 예외가 아니라 정상 경로라 컴파일·기존 테스트로는 잡히지 않는다 → 데이터 대조로 잡는다.</para>
     /// </summary>
     public class MonsterVisualCatalogTests

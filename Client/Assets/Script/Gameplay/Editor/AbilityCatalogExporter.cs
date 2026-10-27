@@ -9,10 +9,10 @@ using UnityEngine;
 namespace Game.Gameplay.Editor
 {
     /// <summary>
-    /// AbilityCatalogDefinition(SO) → abilities.json bake 툴 (SkillCatalogExporter 와 동일 컨벤션, AC-B).
-    /// SO 저작 진실원 → Export → 서버 임베디드 abilities.json → 서버 재빌드 시 반영(gas-architecture §2.5).
+    /// AbilityCatalogDefinition(SO) → abilities.json bake 툴.
+    /// SO 저작 진실원 → Export → 서버 임베디드 abilities.json → 서버 재빌드 시 반영.
     ///
-    /// <b>Cue(cueTrigger/cueComboStep)는 bake 하지 않는다</b> — 서버는 연출을 하나도 모른다(gas §2 원칙).
+    /// <b>Cue(cueTrigger/cueComboStep)는 bake 하지 않는다</b> — 서버는 연출을 모른다.
     /// 클라는 SO 를 직접 조회하므로 JSON 에 Cue 가 없어도 된다.
     ///
     /// JSON 형식(서버 Shared.Infrastructure.Abilities.AbilityCatalog.Parse 와 동일):
@@ -26,7 +26,7 @@ namespace Game.Gameplay.Editor
         public static void Export()
         {
             var count = BakeAll();
-            if (count < 0) return; // 검증 실패 — 콘솔 사유
+            if (count < 0) return;
             EditorUtility.DisplayDialog("Export Ability Catalog",
                 count == 0
                     ? "AbilityCatalogDefinition 에셋이 없습니다. 먼저 생성하고 AbilityDefinition 을 등록하세요."
@@ -70,7 +70,7 @@ namespace Game.Gameplay.Editor
                     Debug.LogError($"[AbilityCatalogExporter] networkId 중복: {a.networkId} ('{a.id}') — 패킷 SkillId 가 겹치면 안 된다.");
                     return -1;
                 }
-                // 불변식 검증(저작 실수 조기 차단): 체인 ≤ 창.
+                // 불변식: 체인 ≤ 창.
                 if (a.comboChainMs > 0 && a.comboWindowMs > 0 && a.comboChainMs > a.comboWindowMs)
                 {
                     Debug.LogError($"[AbilityCatalogExporter] '{a.id}': comboChainMs({a.comboChainMs}) > comboWindowMs({a.comboWindowMs}) — 체인 지점이 창보다 늦으면 콤보가 절대 이어지지 않는다.");
@@ -90,7 +90,7 @@ namespace Game.Gameplay.Editor
                     activationRange = a.activationRange,
                     onHitEffectIds = new List<string>(a.onHitEffectIds ?? new List<string>()),
                     comboChainMs = a.comboChainMs, comboWindowMs = a.comboWindowMs,
-                    // ※ cueTrigger/cueComboStep/cueEvents(SFX·VFX 타임라인)은 의도적으로 제외 — 서버는 연출을 모른다.
+                    // cueTrigger/cueComboStep/cueEvents 는 의도적으로 제외.
                 });
             }
 

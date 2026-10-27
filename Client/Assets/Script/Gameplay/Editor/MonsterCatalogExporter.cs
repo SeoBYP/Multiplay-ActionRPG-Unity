@@ -9,7 +9,7 @@ using UnityEngine;
 namespace Game.Gameplay.Editor
 {
     /// <summary>
-    /// MonsterCatalogDefinition(SO) ↔ monsters.json 툴 (DropTableExporter 와 동일 컨벤션).
+    /// MonsterCatalogDefinition(SO) ↔ monsters.json 툴.
     ///
     /// - Export: SO 의 monsters → JSON bake → 서버 임베디드 경로(서버 재빌드 시 반영).
     /// - Import(부트스트랩): 기존 monsters.json → MonsterCatalogDefinition 에셋 1개 생성/갱신.
@@ -20,14 +20,14 @@ namespace Game.Gameplay.Editor
     public static class MonsterCatalogExporter
     {
         private const string ServerJsonRelative = "ServerAll/Shared/Shared.Infrastructure/Monsters/monsters.json"; // repo 루트 기준
-        private const string AssetDir = "Assets/GameData/Monster"; // 저작 전용 SO(런타임 미로드, JSON bake만). Resources 밖.
+        private const string AssetDir = "Assets/GameData/Monster"; // 저작 전용 SO(런타임 미로드, JSON bake만)
         private const string AssetName = "MonsterCatalogDefinition";
 
         [MenuItem("Tools/Monster/Export Monster Catalog (SO → JSON)")]
         public static void Export()
         {
             var count = BakeAll();
-            if (count < 0) return; // 검증 실패 — 콘솔에 사유
+            if (count < 0) return;
             if (count == 0)
             {
                 EditorToolReport.Later("Export Monster Catalog",
@@ -86,7 +86,7 @@ namespace Game.Gameplay.Editor
                         aggroRange = m.aggroRange,
                         abilityIds = new List<string>(m.abilityIds ?? new List<string>()),
                         expReward = m.expReward,
-                        tier = m.tier.ToString(), // AC-G: 문자열 계약 — JSON 을 사람이 읽을 때 2 보다 "Boss" 가 낫다
+                        tier = m.tier.ToString(), // 문자열 계약 — JSON 을 사람이 읽을 때 2 보다 "Boss" 가 낫다
                     })
                     .ToList()
             };

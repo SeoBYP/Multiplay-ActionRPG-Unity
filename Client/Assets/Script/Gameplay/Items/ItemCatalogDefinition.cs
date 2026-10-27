@@ -9,14 +9,9 @@ namespace Game.Gameplay.Items
 {
     /// <summary>
     /// 아이템 정의 저작(authoring) 진실원. 디자이너가 이 SO 하나를 Inspector 에서 편집한다.
-    /// (MonsterCatalogDefinition·DropTableDefinition 과 동일 컨벤션 — 단일 SO + List, SO 저작 → JSON bake → 서버 임베디드.)
     ///
     /// 서버(UnityEngine 의존 0)는 SO 를 못 읽으므로 Export 툴(Tools/Item/Export)이 items.json 으로 bake →
     /// <c>Shared.Infrastructure.Items.ItemCatalogData</c> 가 읽어 Item/Equipment/Shop/Consumable 4개 테이블로 분해한다.
-    ///
-    /// <para><b>왜 이 SO 가 뒤늦게 생겼나</b>: bake 산출물 7종 중 items.json 만 Exporter 가 없어
-    /// 서버 JSON 과 클라 <c>ItemDisplayCatalog</c> 를 각각 손으로 저작했고, 실제로 갈라졌다
-    /// (gold_pouch 가 클라에만 존재 · 진열 순서 어긋남, 2026-08-18 실측). 이 SO 가 그 이중 저작을 없앤다.</para>
     ///
     /// <para><b>표시 데이터는 여기 없다</b>: 이름·아이콘·설명·등급은 서버가 쓰지 않으므로 bake 대상이 아니고
     /// <c>ItemDisplayCatalog</c>(Presentation) 가 계속 소유한다. 이 SO = "무엇인가"(스택·장비스탯·상점가·소비효과).</para>

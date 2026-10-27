@@ -19,8 +19,8 @@ namespace Game.Installers.Scenes
 {
     public class MainLifetimeScope : LifetimeScope
     {
-        // 게임 데이터 SO를 Addressables(로컬 번들)에서 동기 로드. Resources 폐기 — 빌드 항상포함 회피.
-        // 씬 수명 카탈로그라 핸들 의도적 보존. 미등록 주소면 null → 호출부가 빈 SO 폴백.
+        // 게임 데이터 SO를 Addressables(로컬 번들)에서 동기 로드. 씬 수명 카탈로그라 핸들은 의도적으로 보존.
+        // 미등록 주소면 null → 호출부가 빈 SO 폴백.
         private static T LoadData<T>(string address) where T : Object
             => Addressables.LoadAssetAsync<T>(address).WaitForCompletion();
 
@@ -47,25 +47,22 @@ namespace Game.Installers.Scenes
             builder.Register<IStateMachineBuilder, StateMachineBuilder>(Lifetime.Scoped);
 
             // CharacterSpawner 의존성 — Dungeon 스코프와 동일하게 등록해야 생성에 성공한다.
-            // Main 씬은 네트워크 미연결(SocketState != Joined)이라 SpawnLayoutProvider는
-            // 생성자 충족용으로만 필요하고 런타임에 Get()이 호출되지는 않는다.
             builder.Register<LocalPlayerContext>(Lifetime.Scoped).AsSelf();
             // CharacterSpawner 가 로컬 ASC 를 등록하므로 레지스트리도 필요(Main 은 파티 HUD 미표시 — 소비자 없음).
             builder.Register<PartyAscRegistry>(Lifetime.Scoped).AsSelf();
-            // AC: CharacterSpawner 생성자 충족용. Main 은 솔로(원격 없음)라 등록 대상이 없고 라우터도 없다(빈 레지스트리).
+            // CharacterSpawner 생성자 충족용. Main 은 솔로(원격 없음)라 등록 대상이 없고 라우터도 없다(빈 레지스트리).
             builder.Register<Game.Gameplay.Character.ActorRegistry>(Lifetime.Scoped).AsSelf();
             // Main 로컬 줍기(LocalGroundItem) → InGameModel 획득 토스트 통지 허브.
             builder.Register<ItemPickupNotifier>(Lifetime.Scoped).AsSelf();
             builder.Register<InteractionPromptNotifier>(Lifetime.Scoped).AsSelf(); // 상호작용 안내(HUD)
             builder.Register<SpawnLayoutProvider>(Lifetime.Scoped).AsSelf();
 
-            // Main 위치 지속화(B7) — 주기 보고 + 재접속 복원.
+            // Main 위치 지속화 — 주기 보고 + 재접속 복원.
             builder.Register<Game.System.Player.IPlayerPositionService, Game.System.Player.PlayerPositionService>(Lifetime.Scoped);
             builder.RegisterEntryPoint<MainPositionReporter>(Lifetime.Scoped);
 
             // GameHud(HP/MP/버프)를 Main 씬에서도 표시. 던전 구성과 동일하되,
             // EffectReceiver(서버 권위 수신)는 던전 전용이라 제외(Main은 미연결).
-            // EffectIconCatalog는 Addressables 로드(인스펙터 할당 불요).
             builder.Register<GameplayEffectCatalog>(Lifetime.Scoped).AsSelf();
             builder.RegisterInstance(LoadData<EffectIconCatalog>(AddressKeys.Data.EffectIconCatalog)
                                      ?? ScriptableObject.CreateInstance<EffectIconCatalog>());
@@ -73,40 +70,39 @@ namespace Game.Installers.Scenes
             builder.RegisterEntryPoint<GameHudController>(Lifetime.Scoped);
 
             // 인벤토리 MVI — Main(로비)에서도 인벤토리 창 사용(I키·HUD 버튼). 던전 구성과 동일.
-            // ItemDisplayCatalog는 Resources 기본본 폴백(인스펙터 할당 불요).
             builder.RegisterInstance(LoadData<ItemDisplayCatalog>(AddressKeys.Data.ItemDisplayCatalog)
                                      ?? ScriptableObject.CreateInstance<ItemDisplayCatalog>());
-            // 등급 배경 스프라이트 카탈로그(3.7) — 인벤/상점/장비 슬롯 공유. Addressables(미등록이면 빈 SO=배경 없음).
+            // 등급 배경 스프라이트 카탈로그 — 인벤/상점/장비 슬롯 공유. 미등록이면 빈 SO=배경 없음.
             builder.RegisterInstance(LoadData<GradeSpriteCatalog>(AddressKeys.Data.GradeSpriteCatalog)
                                      ?? ScriptableObject.CreateInstance<GradeSpriteCatalog>());
             builder.Register<InventoryModel>(Lifetime.Scoped).AsSelf();
             builder.RegisterEntryPoint<InventoryViewController>(Lifetime.Scoped);
 
-            // 장비 MVI(3.2/7.2) — 던전과 동일. EquipmentViewController는 InventoryViewController가 쌍 토글로 참조.
+            // 장비 MVI — 던전과 동일. EquipmentViewController는 InventoryViewController가 쌍 토글로 참조.
             builder.Register<Game.Presentation.Equipment.EquipmentModel>(Lifetime.Scoped).AsSelf();
             builder.RegisterEntryPoint<Game.GUI.OutGame.EquipmentViewController>(Lifetime.Scoped).AsSelf();
 
-            // 상점 MVI(3.5/7.6) — S키/HUD 상점버튼 단독 토글. Main 전용(던전 미등록 = 던전에선 S키 무반응).
+            // 상점 MVI — S키/HUD 상점버튼 단독 토글. Main 전용(던전 미등록 = 던전에선 S키 무반응).
             builder.Register<Game.Presentation.Shop.ShopModel>(Lifetime.Scoped).AsSelf();
             builder.RegisterEntryPoint<Game.GUI.Shop.ShopViewController>(Lifetime.Scoped).AsSelf();
 
-            // 퀘스트 MVI(4.4) — HUD 퀘스트버튼 단독 토글. 진행 저널(목록). 수주/보상은 NPC 대화로 일원화.
+            // 퀘스트 MVI — HUD 퀘스트버튼 단독 토글. 진행 저널(목록). 수주/보상은 NPC 대화로 일원화.
             // QuestNotifier=수락/완료/보상 알림 단일 소스(QuestModel·DialogueModel 공유) → Presenter 가 AlertPopup 표시.
             builder.Register<Game.Presentation.Quest.QuestNotifier>(Lifetime.Scoped).AsSelf();
             builder.Register<Game.Presentation.Quest.QuestModel>(Lifetime.Scoped).AsSelf();
             builder.RegisterEntryPoint<Game.GUI.OutGame.QuestViewController>(Lifetime.Scoped).AsSelf();
             builder.RegisterEntryPoint<Game.GUI.Quest.QuestNotificationPresenter>(Lifetime.Scoped);
 
-            // 캐릭터 정보/스탯창(7.3) — HUD Ability버튼·G키 단독 토글. 서버 권위 GetProgression pull.
+            // 캐릭터 정보/스탯창 — HUD Ability버튼·G키 단독 토글. 서버 권위 GetProgression pull.
             builder.Register<Game.Presentation.Progression.ProgressionModel>(Lifetime.Scoped).AsSelf();
             builder.RegisterEntryPoint<Game.GUI.Stat.StatViewController>(Lifetime.Scoped).AsSelf();
 
-            // 대화/NPC(4.5 A1) — NPC(IInteractable) E 상호작용 → IDialogueLauncher.Open(npcId) → 대화창.
-            // 콘텐츠=DialogueCatalog(SO, Resources 폴백). DialogueViewController=IDialogueLauncher 구현(창 로드+Start).
-            // NPCDialogueBinder=씬 NPC 일괄 바인딩. 서버 0(A1).
+            // 대화/NPC — NPC(IInteractable) E 상호작용 → IDialogueLauncher.Open(npcId) → 대화창.
+            // 콘텐츠=DialogueCatalog(SO). DialogueViewController=IDialogueLauncher 구현(창 로드+Start).
+            // NPCDialogueBinder=씬 NPC 일괄 바인딩. 서버 연동 없음.
             builder.RegisterInstance(LoadData<Game.Presentation.Dialogue.DialogueCatalog>(AddressKeys.Data.DialogueCatalog)
                                      ?? ScriptableObject.CreateInstance<Game.Presentation.Dialogue.DialogueCatalog>());
-            // 대화 카메라(A3) — 씬의 DialogueCameraController(전용 vcam Priority 승격)를 IDialogueCamera 로 노출.
+            // 대화 카메라 — 씬의 DialogueCameraController(전용 vcam Priority 승격)를 IDialogueCamera 로 노출.
             // 씬에 컨트롤러가 있어야 DialogueModel/NPCBinder 의 IDialogueCamera 가 해소됨(없으면 주입 실패).
             builder.RegisterComponentInHierarchy<Game.Gameplay.Camera.DialogueCameraController>()
                    .As<Game.System.Dialogue.IDialogueCamera>();
@@ -115,45 +111,43 @@ namespace Game.Installers.Scenes
             builder.RegisterEntryPoint<Game.GUI.Dialogue.DialogueViewController>(Lifetime.Scoped);
             builder.RegisterEntryPoint<Game.Gameplay.Character.NPCDialogueBinder>(Lifetime.Scoped);
 
-            // 진행/스탯창(7.3) MVI — 서버 권위 pull(GetProgression). View(스탯창)는 Model만 주입받는다.
+            // 진행/스탯창 MVI — 서버 권위 pull(GetProgression). View(스탯창)는 Model만 주입받는다.
             builder.Register<ProgressionModel>(Lifetime.Scoped).AsSelf();
 
             // Main 클라 스탯 홀더 — GetProgression 캐시(로그인 시 StartAsync, 킬 시 MainMonsterSpawner 가 Refresh).
             // LocalCombat(데미지=AttackPower)·킬 후 레벨/Exp 로그가 동기 읽기. 진실원=서버. 던전 미등록(서버 권위).
             builder.RegisterEntryPoint<PlayerProgressionHolder>(Lifetime.Scoped).AsSelf();
 
-            // 소모품(3.8) — 효과 데이터(클라 SO) + Side Effect 핸들러(OnConsumableUsed→GAS). 미존재 시 빈 SO 폴백.
+            // 소모품 효과 데이터(클라 SO) + Side Effect 핸들러(OnConsumableUsed→GAS). 미존재 시 빈 SO 폴백.
             builder.RegisterInstance(LoadData<ConsumableCatalog>(AddressKeys.Data.ConsumableCatalog)
                                      ?? ScriptableObject.CreateInstance<ConsumableCatalog>());
-            // 소모품 회복 effect 를 GameplayEffectCatalog 에 등록(SO→카탈로그, 교리 gas-architecture §2.5).
+            // 소모품 회복 effect 를 GameplayEffectCatalog 에 등록(SO→카탈로그).
             builder.RegisterEntryPoint<ConsumableCatalogSeeder>(Lifetime.Scoped);
             builder.RegisterEntryPoint<ConsumableEffectHandler>(Lifetime.Scoped);
 
-            // 어빌리티 데이터(AC-B) — AbilityDefinition SO 카탈로그 → AbilityCatalogProvider(id/networkId→타임라인·Cue).
-            // LocalCombat(Main hitbox)이 사용. 서버는 같은 데이터를 bake skills.json 으로 읽음(데이터 진실원=SO, §2.5).
+            // 어빌리티 데이터 — AbilityDefinition SO 카탈로그 → AbilityCatalogProvider(id/networkId→타임라인·Cue).
+            // LocalCombat(Main hitbox)이 사용. 서버는 같은 데이터를 bake 한 abilities.json 으로 읽는다.
             builder.RegisterInstance(new Game.Gameplay.Abilities.AbilityCatalogProvider(
                 LoadData<Game.Gameplay.Abilities.AbilityCatalogDefinition>(AddressKeys.Data.AbilityCatalog)
                 ?? ScriptableObject.CreateInstance<Game.Gameplay.Abilities.AbilityCatalogDefinition>()));
 
-            // Main 씬은 로컬 플레이어만 스폰. RemotePlayerPrefab 없음.
             builder.RegisterInstance(new CharacterPrefabSettings(localPlayerPrefab));
             builder.RegisterEntryPoint<CharacterSpawner>(Lifetime.Scoped);
 
             // 3인칭 카메라 Follow 런타임 바인딩 — 씬의 GameplayCameraRig 가 LocalPlayerContext.OnSet 구독 →
-            // 스폰된 로컬 플레이어 CameraFollowTarget 으로 vcam.Follow 세팅. 씬에 컴포넌트가 있어야 주입 해소됨.
+            // 스폰된 로컬 플레이어 CameraFollowTarget 으로 vcam.Follow 세팅. 씬에 컴포넌트가 있어야 한다.
             builder.RegisterComponentInHierarchy<Game.Gameplay.Camera.GameplayCameraRig>();
 
-            // Main 로컬 몬스터(B-lite) — 슬롯 기반 클라 스폰·렌더. 드랍 roll·정원·쿨다운은 서버(ClaimKill).
-            // 스폰 위치/슬롯은 SpawnLayoutProvider(spawn-layouts.json mainMapId 맵)에서 읽는다. 프리팹 미할당이면 무해.
+            // Main 로컬 몬스터 — 슬롯 기반 클라 스폰·렌더. 드랍 roll·정원·쿨다운은 서버(ClaimKill).
+            // 스폰 위치/슬롯은 SpawnLayoutProvider(mainMapId 맵)에서 읽는다. 프리팹 미할당이면 무해.
             builder.RegisterInstance(new MainMonsterSettings(localMonsterPrefab, mainMapId, localGroundItemPrefab));
             builder.RegisterEntryPoint<MainMonsterSpawner>(Lifetime.Scoped);
 
-            // Main 타이머 리스폰(2.5.1) — Main 전용. 던전은 미등록 → 다운잠금 유지(의도된 비대칭).
+            // Main 타이머 리스폰 — Main 전용. 던전은 미등록 → 다운잠금 유지(의도된 비대칭).
             builder.RegisterEntryPoint<LocalRespawnController>(Lifetime.Scoped);
 
             builder.Install(new OutgameInstaller());
 
-            // 입력 맵 활성화는 루트 GlobalInputInitializer가 전역 1회 담당(씬별 초기화 제거).
             builder.RegisterEntryPoint<MainSceneStartup>(Lifetime.Scoped);
         }
     }

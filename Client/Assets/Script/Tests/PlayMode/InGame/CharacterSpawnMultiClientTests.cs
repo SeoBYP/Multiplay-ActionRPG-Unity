@@ -57,7 +57,7 @@ namespace Game.Tests.PlayMode.InGame
             _templates.Clear();
         }
 
-        // ── 테스트 ───────────────────────────────────────────────────
+        // ── 테스트 ──
 
         [UnityTest]
         public IEnumerator 다중클라_로컬1_원격2가_각자_위치에_스폰된다() => UniTask.ToCoroutine(async () =>
@@ -78,7 +78,6 @@ namespace Game.Tests.PlayMode.InGame
                 .Select(c => c.gameObject));
             Assert.AreEqual(1, locals.Count, "로컬 캐릭터는 1개여야 한다");
             // 기대 좌표를 하드코딩하지 않는다 — 스폰 포인트는 저작 데이터(spawn-layouts)라 맵을 재기획하면 바뀐다.
-            // (실제로 dungeon_01 이 2026-07 에 Z-16 으로 옮겨졌는데 이 테스트만 옛 (2,0,0) 을 들고 있어 깨져 있었다.)
             // 프로덕션과 같은 리졸버에서 유도하되, 스냅샷(0,0,0)과 다름을 함께 단언해 "결정론 좌표를 쓴다"를 지킨다.
             var expected = SpawnResolver.Resolve(new SpawnLayoutProvider().Get(MapId), 1);
             Assert.AreNotEqual(Vector3.zero, new Vector3(expected.X, expected.Y, expected.Z),
@@ -156,7 +155,7 @@ namespace Game.Tests.PlayMode.InGame
             Assert.IsNotNull(GameObject.Find("Plane(Clone)"), "MapDefinition.visualPrefab(Plane)이 인스턴스화돼야 한다");
         });
 
-        // ── 빌드 헬퍼 ─────────────────────────────────────────────────
+        // ── 빌드 헬퍼 ──
 
         private CharacterSpawner BuildSpawner(ISocketPacketState state, bool remoteHasAsc = false)
         {
@@ -187,11 +186,10 @@ namespace Game.Tests.PlayMode.InGame
             builder.Register<LocalPlayerContext>(Lifetime.Scoped).AsSelf();
             // CharacterSpawner 가 로컬/원격 ASC 를 파티 레지스트리에 등록하므로 필수 의존.
             builder.Register<PartyAscRegistry>(Lifetime.Scoped).AsSelf();
-            // AC 트랙(2026-07-17)에서 CharacterSpawner 가 얻은 의존 — 스폰한 액터를 ActorId 로 등록해
-            // AbilityCueRouter 가 발동 신호를 라우팅한다. DungeonLifetimeScope 와 같은 Scoped 로 맞춘다.
+            // CharacterSpawner 가 스폰한 액터를 ActorId 로 등록해 AbilityCueRouter 가 발동 신호를 라우팅한다. DungeonLifetimeScope 와 같은 Scoped 로 맞춘다.
             builder.Register<ActorRegistry>(Lifetime.Scoped).AsSelf();
             builder.Register<SpawnLayoutProvider>(Lifetime.Scoped).AsSelf();
-            // CharacterSpawner 의존 충족 — 이 테스트는 소켓 Joined(던전) 경로라 위치 복원을 타지 않는다(B7).
+            // CharacterSpawner 의존 충족 — 이 테스트는 소켓 Joined(던전) 경로라 위치 복원을 타지 않는다.
             builder.RegisterInstance<Game.System.Player.IPlayerPositionService>(new NoopPlayerPositionService());
             return builder;
         }
@@ -205,7 +203,7 @@ namespace Game.Tests.PlayMode.InGame
             return go;
         }
 
-        // ── 유틸 ─────────────────────────────────────────────────────
+        // ── 유틸 ──
 
         private List<GameObject> NonTemplate(IEnumerable<GameObject> gos)
             => gos.Where(g => !_templates.Contains(g)).ToList();

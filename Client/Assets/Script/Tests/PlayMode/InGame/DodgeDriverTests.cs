@@ -9,7 +9,7 @@ using UnityEngine.TestTools;
 namespace Game.Tests.PlayMode.InGame
 {
     /// <summary>
-    /// 2.6.1 회피(Dodge) 드라이버 — 무적 태그 수명·쿨다운·종료를 결정론 dt 로 격리 검증.
+    /// 회피(Dodge) 드라이버 — 무적 태그 수명·쿨다운·종료를 결정론 dt 로 격리 검증.
     /// 무적창/쿨다운 수치 = Shared <see cref="DodgeConfig"/>(서버와 동일 단일 소스).
     /// </summary>
     public class DodgeDriverTests

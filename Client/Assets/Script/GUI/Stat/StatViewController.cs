@@ -10,8 +10,8 @@ using VContainer.Unity;
 namespace Game.GUI.Stat
 {
     /// <summary>
-    /// 캐릭터 정보/스탯창(7.3) 생명주기 컨트롤러 (POCO). QuestViewController 동형 — 독립 토글.
-    /// InGameModel.OnToggleAbility(HUD Ability버튼·G키) 수신 → 스탯창 단독 토글(최초 로드 후 SetActive 반전).
+    /// 캐릭터 정보/스탯창 생명주기 컨트롤러 (POCO). InGameModel.OnToggleAbility(HUD Ability버튼·G키) 수신 →
+    /// 단독 토글(최초 로드 후 SetActive 반전).
     /// </summary>
     public sealed class StatViewController : IInitializable, IDisposable
     {

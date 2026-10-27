@@ -67,7 +67,7 @@ namespace Game.Tests.EditMode.InGame
             Assert.AreEqual(_icons.GetColor(false), buffs[0].Tint, "방어력 감소는 디버프 색이어야 한다.");
         }
 
-        // ── 헬퍼 ────────────────────────────────────────
+        // ── 헬퍼 ──
 
         private LocalPlayerContext BuildModel(GameplayEffectCatalog catalog, params (EEffectCategory cat, Sprite sprite)[] icons)
         {

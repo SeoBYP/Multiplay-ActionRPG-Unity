@@ -23,7 +23,7 @@ namespace Game.Tests.EditMode.Network
             _service = new UserGrpcService(new FakeGrpcChannelProvider(_invoker));
         }
 
-        // ─── SetNickNameAsync ────────────────────────────────────────
+        // ── SetNickNameAsync ──
 
         [Test]
         public async Task SetNickNameAsync_성공응답_반환()
@@ -73,7 +73,7 @@ namespace Game.Tests.EditMode.Network
             Assert.AreEqual(StatusCode.Unavailable, ex.StatusCode);
         }
 
-        // ─── 헬퍼 ───────────────────────────────────────────────────
+        // ── 헬퍼 ──
 
         private static async Task<T> Throws<T>(Func<Task> action) where T : Exception
         {

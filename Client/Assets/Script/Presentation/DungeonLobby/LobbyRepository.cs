@@ -20,7 +20,7 @@ namespace Game.Presentation.DungeonLobby
             _service = service;
         }
 
-        /// <summary>방 목록 한 페이지(9.6). <c>TotalCount</c> = 전체 활성 방 수(페이저용).</summary>
+        /// <summary>방 목록 한 페이지. <c>TotalCount</c> = 전체 활성 방 수(페이저용).</summary>
         public async UniTask<(bool IsSuccess, IReadOnlyList<RoomInfo> Rooms, int TotalCount, string Error)>
             GetRoomsAsync(int offset = 0, int limit = DungeonLobbyPaging.DefaultPageSize, CancellationToken ct = default)
         {

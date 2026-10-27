@@ -113,7 +113,7 @@ namespace Game.Tests.EditMode.InGame
         [Test]
         public void 아이템_획득시_OnItemPickup_토스트_메시지가_발행된다()
         {
-            // 줍기 애니 대체: 서버 S_ItemPickedUp → InGameModel.OnItemPickup(메시지) → GameHud 토스트.
+            // 서버 S_ItemPickedUp → InGameModel.OnItemPickup(메시지) → GameHud 토스트.
             var fake = new FakeSocketSession();
             var state = new SocketPacketState();
             var model = new InGameModel(fake, new LocalPlayerContext(), packetState: state);

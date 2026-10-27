@@ -6,10 +6,9 @@ namespace Game.Gameplay.Progression
 {
     /// <summary>
     /// 레벨별 진행 데이터 저작(authoring) 진실원. 디자이너가 이 SO를 Inspector 에서 편집한다.
-    /// (DropTableDefinition·MapDefinition 과 동일 컨벤션 — SO 저작 → JSON bake → 서버 임베디드.)
     ///
     /// 한 행 = 레벨 L 의 { 다음 레벨까지 Exp + 스탯 }. 스탯은 레벨에서 결정론 룩업 —
-    /// DB 에는 Level/Exp 만 영속하고 스탯은 항상 이 테이블에서 파생한다(단일소스, 2.4 스탯합산의 base).
+    /// DB 에는 Level/Exp 만 영속하고 스탯은 항상 이 테이블에서 파생한다(스탯 합산의 base).
     ///
     /// - **저작 전용 SO**(런타임 미로드). 클라·서버 모두 bake된 level-table.json(Shared.Infrastructure.Progression.LevelTable)을 읽는다.
     ///   → 이 SO는 Resources 밖(Assets/GameData/Progression)이며 빌드에 포함되지 않는다.

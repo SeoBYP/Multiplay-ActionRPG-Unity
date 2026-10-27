@@ -8,9 +8,9 @@ using UnityEngine.TestTools;
 namespace Game.Tests.PlayMode.E2E
 {
     /// <summary>
-    /// 장비 gRPC E2E (Docker 서버 대상, 3.2). 실제 클라 gRPC 채널 → EquipmentService 계약/인증/검증 경로를 관통한다.
+    /// 장비 gRPC E2E (Docker 서버 대상). 실제 클라 gRPC 채널 → EquipmentService 계약/인증/검증 경로를 관통한다.
     ///
-    /// ※ 장착 happy-path(보유 장비 착용)는 공개 API 로 장비를 소유시킬 경로가 없어(GrantItem 제거·드랍 테이블에 장비 없음)
+    /// ※ 장착 happy-path(보유 장비 착용)는 공개 API 로 장비를 소유시킬 경로가 없어(드랍 테이블에 장비 없음)
     ///    서버 단위 EquipmentGrpcServiceTests 가 담당. 여기선 미보유/미지정/빈조회/인증 게이트 = 클라→Docker 관통.
     /// </summary>
     [TestFixture]

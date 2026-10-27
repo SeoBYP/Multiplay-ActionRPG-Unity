@@ -12,7 +12,7 @@ using UnityEngine;
 namespace Game.Gameplay.Editor
 {
     /// <summary>
-    /// ItemCatalogDefinition(SO) ↔ items.json 툴 (MonsterCatalogExporter 와 동일 컨벤션).
+    /// ItemCatalogDefinition(SO) ↔ items.json 툴.
     ///
     /// - Export: SO 의 items → JSON bake → 서버 임베디드 경로(서버 재빌드 시 반영).
     /// - Import(부트스트랩): 기존 items.json → ItemCatalogDefinition 에셋 1개 생성/갱신.
@@ -27,14 +27,14 @@ namespace Game.Gameplay.Editor
     public static class ItemCatalogExporter
     {
         private const string ServerJsonRelative = "ServerAll/Shared/Shared.Infrastructure/Items/items.json"; // repo 루트 기준
-        private const string AssetDir = "Assets/GameData/Item"; // 저작 전용 SO(런타임 미로드, JSON bake만). Resources 밖.
+        private const string AssetDir = "Assets/GameData/Item"; // 저작 전용 SO(런타임 미로드, JSON bake만)
         private const string AssetName = "ItemCatalogDefinition";
 
         [MenuItem("Tools/Item/Export Item Catalog (SO → JSON)")]
         public static void Export()
         {
             var count = BakeAll();
-            if (count < 0) return; // 검증 실패 — 콘솔에 사유
+            if (count < 0) return;
             EditorToolReport.Later("Export Item Catalog", count == 0
                 ? "ItemCatalogDefinition 에셋이 없습니다. 먼저 'Import' 로 부트스트랩하거나 SO를 생성하세요."
                 : $"아이템 {count}종을 서버 JSON 에 기록했습니다.\n서버 반영은 서버 재빌드가 필요합니다.");
@@ -118,7 +118,7 @@ namespace Game.Gameplay.Editor
         public static void Import()
         {
             var count = ImportAll();
-            if (count < 0) return; // 실패 사유는 콘솔
+            if (count < 0) return;
             EditorToolReport.Later("Import Item Catalog", $"아이템 {count}종을 SO 로 가져왔습니다.\n{AssetDir}/{AssetName}.asset");
         }
 
@@ -160,7 +160,7 @@ namespace Game.Gameplay.Editor
 
         /// <summary>
         /// 분류별 numericId 대역. <b>대역이 곧 분류</b>라 로그·DB 만 보고도 무엇인지 안다.
-        /// 문자열 id 를 걷어낸 뒤(2단계) 사람이 읽는 단서는 이 대역뿐이므로 규칙을 코드로 강제한다.
+        /// 사람이 읽는 단서가 이 대역뿐이므로 규칙을 코드로 강제한다.
         /// </summary>
         private static (int lo, int hi) ExpectedBand(ShopCategory c) => c switch
         {

@@ -1,7 +1,7 @@
 namespace Game.System.DungeonLobby
 {
     /// <summary>
-    /// 방 목록 요청의 클라 기본값(9.6).
+    /// 방 목록 요청의 클라 기본값.
     ///
     /// <para><b>권위는 서버다.</b> 여기 값은 "안 지정하면 이만큼 달라"는 요청 기본값일 뿐이고,
     /// 실제 상한(50)·정렬(RoomId 내림차순)은 서버 <c>DungeonLobbyPaging</c> 가 강제한다 —

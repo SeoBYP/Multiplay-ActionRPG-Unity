@@ -59,7 +59,7 @@ namespace Game.Tests.EditMode.InGame
             Assert.AreEqual(0, state.ExpToNext);
         }
 
-        // ── 헬퍼 ────────────────────────────────────────
+        // ── 헬퍼 ──
 
         private sealed class FakeProgressionService : IProgressionService
         {

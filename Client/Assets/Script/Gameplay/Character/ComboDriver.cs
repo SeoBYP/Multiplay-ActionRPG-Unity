@@ -3,7 +3,7 @@ using System;
 namespace Game.Gameplay.Character
 {
     /// <summary>
-    /// 근접 공격 콤보(A→B→C) 진행기 = Action 축(FSM 아님, CA-1). 순수 로직 — 시각만 보고 "언제 어느 단계를 낼지" 정한다.
+    /// 근접 공격 콤보(A→B→C) 진행기 = Action 축(FSM 아님). 순수 로직 — 시각만 보고 "언제 어느 단계를 낼지" 정한다.
     ///
     /// <b>타이밍의 진실원 = 스킬 데이터</b>(`SkillTimeline.ComboChainMs/ComboWindowMs`, SO 저작→bake→skills.json).
     /// 같은 값을 <b>서버도</b> cadence 권위 게이트에 쓰므로 서버 권위와 애니가 어긋나지 않는다.
@@ -16,7 +16,7 @@ namespace Game.Gameplay.Character
     ///   - 직전 스윙 후 <b>ComboWindowMs</b> 까지 입력이 없으면 콤보가 끊겨 A 부터 다시.
     ///
     /// <b>왜 타이밍을 애니메이터가 아니라 데이터/코드가 갖는가</b>: 컨트롤러 체인 전이에 `hasExitTime` 을 걸면
-    /// Unity 가 Attack <b>트리거를 소실</b>해 전이를 놓친다(실측). 그래서 체인 전이는 `hasExitTime=false` 로 두고
+    /// Unity 가 Attack <b>트리거를 소실</b>해 전이를 놓친다. 그래서 체인 전이는 `hasExitTime=false` 로 두고
     /// (= 코드가 트리거를 쏘는 순간 전이) <b>언제 쏠지</b>를 스킬 데이터가 정한다. 덕분에 데미지·네트워크 송신도
     /// 애니 체인과 같은 시점에 나가 어긋나지 않는다.
     ///
@@ -51,7 +51,7 @@ namespace Game.Gameplay.Character
         ///
         /// <b>예외: 마무리 타 재생 중의 입력은 버린다.</b> 선입력은 "이어지는 다음 타"를 위한 장치인데,
         /// 마지막 단계 뒤엔 이어질 타가 없어 <b>새 콤보</b>가 시작된다. 그대로 버퍼하면 마무리 애니가 끝나는 순간
-        /// 플레이어가 손을 뗐는데도 한 대가 더 나간다(사용자 피드백: "Idle 됐는데 한 번 더 공격한다").
+        /// 플레이어가 손을 뗐는데도 한 대가 더 나간다.
         /// </summary>
         public void OnAttackPressed(float now)
         {
@@ -61,7 +61,6 @@ namespace Game.Gameplay.Character
             if (_hasSwung && _index == 0 && since < _lastChainSec)
                 return;
 
-            // 이미 창이 끊겼으면 새 콤보(A)로 시작한다.
             if (_hasSwung && since > _lastWindowSec)
                 _index = 0;
 
@@ -88,7 +87,6 @@ namespace Game.Gameplay.Character
                 if (since < _lastChainSec)
                     return false;
 
-                // 창이 끊겼으면 A 부터.
                 if (since > _lastWindowSec)
                     _index = 0;
             }
@@ -103,7 +101,7 @@ namespace Game.Gameplay.Character
 
             _lastSwingTime = now;
             _hasSwung = true;
-            _index = (step + 1) % _skillIds.Length; // A→B→C→A 순환
+            _index = (step + 1) % _skillIds.Length;
             _buffered = false;
             return true;
         }

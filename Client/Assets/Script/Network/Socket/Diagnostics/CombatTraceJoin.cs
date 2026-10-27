@@ -64,21 +64,14 @@ namespace Game.Network.Socket.Diagnostics
         public int LastHp;
         public int LastSeq;
         public int Updates;         // 반영된 S_MonsterState 수
-        public int StaleDrops;      // Seq 로 버린 수(AC-C3 가 막아낸 순서 역전)
+        public int StaleDrops;      // Seq 로 버린 수(순서 역전 차단)
         public int TotalDamage;     // 누적 HP 감소량 — 서버 데미지 합과 대조(데미지 검수)
     }
 
     /// <summary>
-    /// 링버퍼의 원시 엔트리를 "스윙 단위"로 병합한다(AC-C1b). <b>순수 함수</b> — EditMode 로 검증한다.
-    ///
-    /// <para><b>모든 액터를 낸다</b>: 레코드의 시작점은 로컬이면 <c>AttackSent</c>, 원격 플레이어·몬스터면
-    /// <c>AbilityActivated</c> 다(그들이 언제 눌렀는지는 클라가 알 방법이 없다 — 서버 통지가 첫 관측이다).
-    /// 초기 구현은 <c>AttackSent</c> 만 시작점으로 봐서 **내 스윙만 보였다**.</para>
-    ///
-    /// <para><b>왜 클라가 산식 입력을 못 채우나(설계 정정)</b>: §2.4 상세 패널 초안은 <c>AP=시전자 AttackPower</c> 를
-    /// 그렸지만, 그건 **서버 권위 스탯이라 클라에 오지 않는다**. §2.5 가 "서버 로그를 창으로 끌어오지 않는다"고
-    /// 못박았으므로 둘은 동시에 성립할 수 없다. → 클라는 아는 것만 쓴다:
-    /// <c>base</c>(AbilityDefinition SO) + <c>final</c>(S_ApplyEffect.Amount) 로 <b><c>AP-DEF = final - base</c> 를 역산</b>한다.</para>
+    /// 링버퍼의 원시 엔트리를 "스윙 단위"로 병합한다. <b>순수 함수</b> — EditMode 로 검증한다.
+    /// 시작점은 로컬이면 <c>AttackSent</c>, 원격 플레이어·몬스터면 <c>AbilityActivated</c> 다(그들의 입력 시각은 클라가 알 수 없다).
+    /// 서버 권위 스탯(AP)은 클라에 오지 않으므로 <c>AP-DEF = final - base</c> 로 역산한다(base = AbilityDefinition SO, final = S_ApplyEffect.Amount).
     /// </summary>
     public static class CombatTraceJoin
     {
@@ -222,13 +215,11 @@ namespace Game.Network.Socket.Diagnostics
             }
         }
 
-        // ※ BuildMonsterSync 는 제거됐다(C1c 측정 근거). 링에서 유도하면 링이 도는 순간 집계가 **조용히 유실**된다
-        //   (실측: m3 가 seq 234 인데 updates 185 = 49건 증발). 집계는 몬스터당 1행이라 링에 둘 이유가 없다
-        //   → CombatTraceRecorder.MonsterSync() 가 링과 독립인 맵으로 들고 있다.
+        // 몬스터 동기화 집계는 링이 아니라 CombatTraceRecorder.MonsterSync() 의 독립 맵이 든다 — 링에서 유도하면 링이 돌 때 집계가 조용히 유실된다.
 
         /// <summary>
         /// 서버가 쓴 산식의 스탯 기여분을 역산한다: <c>final - base = AP - DEF</c>.
-        /// 클라는 base(SO 저작)와 final(서버 권위)만 아므로 여기까지가 한계 — 분해는 서버 로그와 조인.
+        /// 클라는 base(SO 저작)와 final(서버 권위)만 알므로 여기까지가 한계 — 분해는 서버 로그와 조인.
         /// </summary>
         public static int InferStatContribution(int finalDamage, int baseDamage) => finalDamage - baseDamage;
     }

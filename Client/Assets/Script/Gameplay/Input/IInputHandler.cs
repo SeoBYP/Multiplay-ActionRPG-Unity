@@ -7,7 +7,7 @@ namespace Game.Gameplay.Input
     /// 같은 프레임 나머지 핸들러는 해당 액션을 받지 못한다.
     ///
     /// 예: UI(100) > 인터랙션(50) > 전투(10)
-    /// UI가 열려있으면 F키를 UI가 소비하고 월드 인터랙션은 무시됨.
+    /// UI가 열려 있으면 UI가 키를 소비하고 월드 인터랙션은 무시됨.
     /// </summary>
     public interface IInputHandler
     {

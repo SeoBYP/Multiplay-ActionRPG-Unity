@@ -9,15 +9,14 @@ using UnityEngine;
 namespace Game.Gameplay.Editor
 {
     /// <summary>
-    /// 전투 트레이스 뷰어(AC-C1b'). 설계 = <c>docs/wiki/combat-diagnostics.md</c> §2.4.
+    /// 전투 트레이스 뷰어.
     ///
     /// <para><b>로직 없음</b> — <see cref="CombatTraceRecorder.Shared"/>(단일 소스)를 읽어 그리기만 한다.
     /// 병합·구간 계산은 <see cref="CombatTraceJoin"/>(순수 함수, EditMode 테스트 대상)에 있다.
     /// 그래서 이 창 자체엔 테스트가 없다 — 검증 가치가 있는 건 전부 Recorder/Join 쪽이다.</para>
     ///
-    /// <para><b>왜 IMGUI 인가</b>: §2.4 초안은 UI Toolkit <c>MultiColumnListView</c> 를 적었지만,
-    /// 이 창은 <b>플레이 중 매 초 갱신되는 진단 덤프</b>다. IMGUI 는 즉시모드라 갱신이 곧 그리기이고,
-    /// 상주 UI 트리·바인딩을 유지할 이유가 없다. 선례(<c>MapEditorWindow</c>)도 IMGUI 다.</para>
+    /// <para><b>왜 IMGUI 인가</b>: 이 창은 <b>플레이 중 매 초 갱신되는 진단 덤프</b>다. IMGUI 는 즉시모드라
+    /// 갱신이 곧 그리기이고, 상주 UI 트리·바인딩을 유지할 이유가 없다.</para>
     /// </summary>
     public class CombatTraceWindow : EditorWindow
     {
@@ -108,7 +107,7 @@ namespace Game.Gameplay.Editor
                 if (e.Kind == CombatTraceKind.AttackSent) { localActor = e.ActorId; break; }
 
             var all = CombatTraceJoin.Build(_entries, localActor);
-            _monsters = rec.MonsterSync(); // 링과 독립 — 링이 돌아도 집계가 유실되지 않는다(C1c 근거)
+            _monsters = rec.MonsterSync(); // 링과 독립 — 링이 돌아도 집계가 유실되지 않는다
 
             IEnumerable<CombatTraceRecord> q = all;
             switch (_originFilter)
@@ -219,7 +218,7 @@ namespace Game.Gameplay.Editor
             Row("몬스터(actor)", "HP", "seq", "갱신/스테일", header: true);
             foreach (var m in _monsters)
             {
-                // 스테일 드롭 = AC-C3 가 막아낸 순서 역전 횟수. 0 이 아니면 경합이 실재한다는 뜻.
+                // 스테일 드롭 = 순서 역전으로 버려진 횟수. 0 이 아니면 경합이 실재한다는 뜻.
                 string stale = m.StaleDrops > 0 ? $"{m.Updates}/{m.StaleDrops} ⚠" : $"{m.Updates}/0";
                 Row($"#{m.InstanceId} ({m.ActorId})", $"{m.LastHp}  누적-{m.TotalDamage}", m.LastSeq.ToString(), stale);
             }
@@ -272,7 +271,7 @@ namespace Game.Gameplay.Editor
                 if (r.FinalDamage > 0)
                 {
                     // 클라는 base(SO)를 모르는 채로 이 창을 띄울 수 있으므로 final 만 확정으로 쓰고,
-                    // base 를 알면 AP-DEF 를 역산해 보여준다(§2.4 정정 — AP/DEF 분해는 서버 로그와 조인).
+                    // base 를 알면 AP-DEF 를 역산해 보여준다(AP/DEF 분해는 서버 로그와 조인).
                     EditorGUILayout.LabelField($"  final    {r.FinalDamage}   ← 서버 권위 결과");
                     EditorGUILayout.LabelField($"  HP 반영  → {r.HpAfter}");
                     EditorGUILayout.HelpBox(

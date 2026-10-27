@@ -13,9 +13,6 @@ namespace Game.Network.Socket
     {
         private readonly Dictionary<Type, IPacketHandler> _handlers;
 
-        /// <summary>
-        /// DI로 전달된 핸들러 목록을 패킷 타입별 사전으로 구성한다.
-        /// </summary>
         public SocketPacketDispatcher(IEnumerable<IPacketHandler> handlers)
         {
             _handlers = new Dictionary<Type, IPacketHandler>();
@@ -30,9 +27,6 @@ namespace Game.Network.Socket
             }
         }
 
-        /// <summary>
-        /// 입력 패킷의 실제 타입에 맞는 핸들러를 찾아 실행한다.
-        /// </summary>
         public UniTask DispatchAsync(Packet packet, CancellationToken ct = default)
         {
             if (packet == null)

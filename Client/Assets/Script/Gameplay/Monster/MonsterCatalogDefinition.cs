@@ -18,13 +18,12 @@ namespace Game.Gameplay.Monster
 
     /// <summary>
     /// 몬스터 타입별 정의 저작(authoring) 진실원. 디자이너가 이 SO 하나를 Inspector 에서 편집한다.
-    /// (DropTableDefinition·LevelTableDefinition 과 동일 컨벤션 — 단일 SO + List, SO 저작 → JSON bake → 서버 임베디드.)
     ///
     /// "몬스터가 무엇인가"(스탯·exp·등급) = 여기. "몬스터가 어디에 스폰되나"(위치·레벨) = MapDefinition 의 스폰 데이터.
     /// 서버(UnityEngine 의존 0)는 못 읽으므로 Export 툴(Tools/Monster/Export)이 monsters.json 으로 bake →
     /// `Shared.Infrastructure.Monsters.MonsterCatalog` 가 읽는다(던전 시뮬 스탯 + Main 킬 exp).
     ///
-    /// <para><b>변종 = 별개 행</b>(AC-G). <c>leviathan</c> 과 <c>leviathan_boss</c> 는 각자 ID·스탯을 갖는다 —
+    /// <para><b>변종 = 별개 행</b>. <c>leviathan</c> 과 <c>leviathan_boss</c> 는 각자 ID·스탯을 갖는다 —
     /// 배율 테이블로 곱하지 않는다. 스폰은 <b>monsterId 하나만</b> 처리하면 된다.</para>
     /// </summary>
     [CreateAssetMenu(fileName = "MonsterCatalogDefinition", menuName = "Game/Monster Catalog Definition", order = 4)]

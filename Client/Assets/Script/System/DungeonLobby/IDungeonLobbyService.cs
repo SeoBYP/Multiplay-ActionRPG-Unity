@@ -24,7 +24,7 @@ namespace Game.System.DungeonLobby
         event Action<string, int, long> OnGameSessionReady;
 
         /// <summary>
-        /// 활성 방 목록을 한 페이지 조회한다(9.6). <paramref name="limit"/> 상한·정렬(최신 먼저)은 서버가 강제한다.
+        /// 활성 방 목록을 한 페이지 조회한다. <paramref name="limit"/> 상한·정렬(최신 먼저)은 서버가 강제한다.
         /// </summary>
         /// <returns>결과 · 해당 페이지 방 목록 · <b>전체</b> 활성 방 수(페이저용).</returns>
         UniTask<(DungeonLobbyResult, IReadOnlyList<RoomInfo>, int TotalCount)> GetRoomsAsync(

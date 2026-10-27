@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Game.Gameplay.Character
 {
     /// <summary>
-    /// 락온(2.6.3) 가능한 대상 마커. 던전 <see cref="MonsterEntity"/>(서버 권위 보간)·Main
+    /// 락온 가능한 대상 마커. 던전 <see cref="MonsterEntity"/>(서버 권위 보간)·Main
     /// <see cref="LocalMonster"/>(클라 권위)는 서로 다른 클래스지만, 이 마커 하나를 프리팹에 부착해
     /// 정적 레지스트리로 통일한다(물리 레이어 의존 없이 — <see cref="DownedAllyMarker"/> 와 동일 패턴).
     ///

@@ -7,7 +7,7 @@ namespace Game.Presentation.Inventory
     /// <summary>
     /// 소모품 회복 effect 를 클라 DI `GameplayEffectCatalog` 에 등록한다(`ConsumableCatalog` SO → 카탈로그).
     ///
-    /// 데이터 진실원 교리(gas-architecture §2.5): 소모품 수치 저작 = 클라 SO. 서버는 그 SO 를 bake 한 JSON 을 읽고,
+    /// 소모품 수치 저작 = 클라 SO. 서버는 그 SO 를 bake 한 JSON 을 읽고,
     /// 클라는 이 Seeder 로 같은 SO 를 런타임 카탈로그에 흡수한다 → effectId(==itemId) 단일 조회로 양쪽 일치.
     ///
     /// 왜 필요: 전투 effect 만 코드 시드라 GameplayEffectCatalog 에 potion_* 이 없다. 이 Seeder 가 없으면

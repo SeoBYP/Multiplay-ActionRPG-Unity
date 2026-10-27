@@ -14,9 +14,6 @@ namespace Game.Network.Socket
         UniTask HandleAsync(Packet packet);
     }
 
-    /// <summary>
-    /// 특정 패킷 타입을 강타입으로 처리하는 제네릭 핸들러 인터페이스.
-    /// </summary>
     public interface IPacketHandler<TPacket> : IPacketHandler
         where TPacket : Packet
     {

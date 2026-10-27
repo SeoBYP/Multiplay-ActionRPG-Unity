@@ -22,8 +22,7 @@ public class LoginWindow : MonoBehaviour
         loginButton.onClick.AddListener(OnLogin);
         registerButton.onClick.AddListener(OpenRegister);
 
-        // 자동 로그인·로그인·회원가입 성공 시 State가 IsAuthenticated = true로 변경 → 씬 전환.
-        // RegisterWindow 는 이 창에서만 열리므로(이 구독이 먼저 살아 있다) 씬 전환은 여기 한 곳만 담당한다.
+        // 자동 로그인·로그인·회원가입 성공 시 IsAuthenticated = true → 씬 전환. RegisterWindow 는 이 창에서만 열리므로 씬 전환은 여기 한 곳만 담당한다.
         _model.State
             .Subscribe(OnStateChanged)
             .AddTo(destroyCancellationToken);

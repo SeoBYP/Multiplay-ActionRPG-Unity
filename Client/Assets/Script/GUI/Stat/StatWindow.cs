@@ -10,10 +10,8 @@ using VContainer;
 namespace Game.GUI.Stat
 {
     /// <summary>
-    /// 캐릭터 정보/스탯창 (MVI View). ProgressionModel 만 주입받는다(IProgressionService·proto 비노출).
-    /// State.Lines(라벨:값 목록) → 행 템플릿 복제로 렌더. 열기/재오픈 때 Refresh(서버 권위 최신값).
-    /// 색상은 프리팹의 라벨/값 TMP 에 지정(라벨=흐림, 값=밝게). 닫기 버튼은 자기 SetActive(false).
-    /// 창 활성 동안 UiInputCaptureBehaviour 로 게임플레이 입력 점유(인벤/퀘스트 동일 — 이동 차단).
+    /// 캐릭터 정보/스탯창 (MVI View). ProgressionModel 만 주입받는다. State.Lines(라벨:값) → 행 템플릿 복제로 렌더,
+    /// 열기/재오픈 때 Refresh. 색상은 프리팹의 라벨/값 TMP 에 지정한다. 활성 동안 게임플레이 입력을 점유한다.
     /// </summary>
     public class StatWindow : MonoBehaviour
     {

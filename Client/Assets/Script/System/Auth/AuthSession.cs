@@ -37,9 +37,6 @@ namespace Game.System.Auth
         /// </summary>
         public UniTask AuthenticatedAsync() => _authenticatedTcs.Task;
 
-        /// <summary>
-        /// 서버에서 받은 최신 토큰 세트를 메모리와 영속 저장소에 반영한다.
-        /// </summary>
         public void Update(string accessToken, string refreshToken, long expiresAt)
         {
             AccessToken = accessToken;
@@ -70,15 +67,9 @@ namespace Game.System.Auth
             catch { return 0; }
         }
 
-        /// <summary>
-        /// 영속 저장소에 남아 있는 토큰을 읽는다(콜드스타트 복구용).
-        /// </summary>
         public bool TryLoadPersisted(out string accessToken, out string refreshToken, out long expiresAt)
             => _tokenStore.TryLoad(out accessToken, out refreshToken, out expiresAt);
 
-        /// <summary>
-        /// 메모리 세션과 저장된 토큰을 모두 제거한다.
-        /// </summary>
         public void Clear()
         {
             AccessToken = null;

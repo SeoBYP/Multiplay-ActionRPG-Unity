@@ -11,12 +11,12 @@ using UnityEngine;
 namespace Game.Presentation.Dialogue
 {
     /// <summary>
-    /// 대화 화면 MVI Model. View는 Accept(Intent)만, Model은 State만 발행(ShopModel 동형).
-    /// 노드 순회(GoTo)·종료(EndDialogue) + 카메라 구도(A3) + **퀘스트 연동(Phase B)**:
-    ///   선택지 action AcceptQuest/ClaimQuest → IQuestService(서버 권위) 재사용,
-    ///   선택지 showIf(QuestStatus) → 퀘스트 상태로 노출 조건부(수락/보상받기 선택지 분기).
+    /// 대화 화면 MVI Model. View는 Accept(Intent)만, Model은 State만 발행.
+    /// 노드 순회(GoTo)·종료(EndDialogue)·카메라 구도 + 퀘스트 연동:
+    ///   선택지 action AcceptQuest/ClaimQuest → IQuestService(서버 권위),
+    ///   선택지 showIf(QuestStatus) → 퀘스트 상태로 노출 조건 분기.
     /// 퀘스트 상태는 대화 진입·수락/수령 직후 GetQuests 로 캐시(노드 렌더는 캐시로 동기 평가).
-    /// GUI(DialogueView)는 이 Model만 주입받는다. IDialogueLauncher 구현(NPC→Open).
+    /// IDialogueLauncher 구현(NPC→Open).
     /// </summary>
     public sealed class DialogueModel : IDialogueLauncher, IDisposable
     {
@@ -31,7 +31,7 @@ namespace Game.Presentation.Dialogue
 
         private readonly Dictionary<string, QuestProgressState> _questStates = new();
 
-        // TalkToNpc 목표만 추린 캐시 — "이 NPC 에게 보고할 게 있는가" 판단용(F5 클라 게이트).
+        // TalkToNpc 목표만 추린 캐시 — "이 NPC 에게 보고할 게 있는가" 판단용.
         private readonly List<(string NpcId, QuestProgressState Status)> _talkTargets = new();
 
         private DialogueDefinition _current;
@@ -70,14 +70,11 @@ namespace Game.Presentation.Dialogue
         }
 
         /// <summary>
-        /// 대화 진입. 퀘스트 서버 통신은 **필요할 때만** 한다(F5).
+        /// 대화 진입. 퀘스트 서버 통신은 **필요할 때만** 한다.
         ///
         ///   ① hasQuest=false(잡담 NPC)         → 통신 0회
         ///   ② 상태 갱신 → 이 NPC 대상 TalkToNpc 가 Accepted 인가?
         ///   ③ 아니면 ReportTalk 생략 / 맞으면 보고 후 진행이 있었으면 상태 재갱신
-        ///
-        /// 예전에는 대화창을 열 때마다 무조건 ReportTalk 을 불렀다 — 서버는 그 요청이 정상인지 알 수 없었고,
-        /// 잡담 NPC 도 매번 왕복을 만들었다.
         /// </summary>
         private async UniTaskVoid StartAsync(DialogueDefinition def, string npcId, bool hasQuest, CancellationToken ct)
         {

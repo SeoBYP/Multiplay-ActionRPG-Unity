@@ -17,9 +17,8 @@ using VContainer;
 namespace Game.GUI.Shop
 {
     /// <summary>
-    /// 상점 창 View(MVI). ShopModel 만 주입받아 State 구독·렌더 + Intent 발행(System/proto 비노출).
-    /// 리스트/스탯 슬롯은 Addressable prefab(Shop_Item / Status_Slot)로 동적 생성(개수 무관).
-    /// 열린 동안 UiInputCaptureBehaviour 가 캐릭터 이동을 차단(ShopModel.Begin/EndUiCapture).
+    /// 상점 창 View(MVI). ShopModel 만 주입받아 State 구독·렌더 + Intent 발행.
+    /// 리스트/스탯 슬롯은 Addressable prefab(Shop_Item / Status_Slot)로 동적 생성. 열린 동안 캐릭터 이동을 차단한다.
     /// </summary>
     public class Shop : MonoBehaviour
     {
@@ -73,8 +72,7 @@ namespace Game.GUI.Shop
 
         [Inject] private ShopModel _model;
 
-        // 동적 슬롯 prefab(Addressable). 인스펙터 할당 불요 — 인벤토리와 동일 패턴.
-        // 리스트 슬롯 = 공통 ItemContentsSlot(인벤토리와 통합) — icon+name+등급배경.
+        // 동적 슬롯 prefab(Addressable) — 인스펙터 할당 불요. 리스트 슬롯은 공통 ItemContentsSlot.
         private ItemContentsSlot _itemPrefab;
         private ShopItemStatusSlot _statusPrefab;
         private AsyncOperationHandle<GameObject> _itemHandle;
@@ -102,7 +100,6 @@ namespace Game.GUI.Shop
             if (toastText != null)
                 toastText.gameObject.SetActive(false); // 토스트는 구매 시에만 표시
 
-            // 열린 동안 게임플레이(Player) 입력 점유 → 캐릭터 이동 차단(인벤/장비와 동일 패턴).
             gameObject.AddComponent<UiInputCaptureBehaviour>()
                       .Bind(_model.BeginUiCapture, _model.EndUiCapture);
 
@@ -149,7 +146,7 @@ namespace Game.GUI.Shop
             if (_statusPrefab == null)
                 Debug.LogError("[Shop] Status_Slot prefab 로드 실패/컴포넌트 없음 (Addressable 주소 확인)");
 
-            // 프리팹에 미리 박힌 슬롯은 정리(동적 생성과 중복 방지) — 인벤토리 BuildSlots 와 동일.
+            // 프리팹에 미리 박힌 슬롯은 정리(동적 생성과 중복 방지).
             if (shopItemListContent != null)
                 foreach (var existing in shopItemListContent.GetComponentsInChildren<ItemContentsSlot>(true))
                     Destroy(existing.gameObject);
@@ -177,7 +174,7 @@ namespace Game.GUI.Shop
             if (_statusHandle.IsValid()) Addressables.Release(_statusHandle);
         }
 
-        /// <summary>버튼/탭 리스너는 1회만 연결(Render 마다 재연결 금지). prefab 불요라 Start 즉시 가능.</summary>
+        /// <summary>버튼/탭 리스너는 1회만 연결(Render 마다 재연결 금지).</summary>
         private void WireOnce()
         {
             if (_wired) return;
@@ -215,8 +212,7 @@ namespace Game.GUI.Shop
         private void Close() => gameObject.SetActive(false);
 
         /// <summary>
-        /// 구매 결과 피드백. 실패=AlertPopup(명시적·prefab 자체로드라 필드배선 불요), 성공=인-윈도우 토스트(초록).
-        /// 토스트는 toastText 미할당 시 안 보이는 한계가 있어, 사용자가 놓치면 안 되는 실패는 팝업으로 띄운다.
+        /// 구매 결과 피드백. 성공=인-윈도우 토스트, 실패=AlertPopup — toastText 미할당 시 토스트가 안 보이므로 놓치면 안 되는 실패는 팝업으로 띄운다.
         /// </summary>
         private void ShowToast(ShopToastMessage toast)
         {
@@ -242,7 +238,6 @@ namespace Game.GUI.Shop
             HideToastAfterDelay(_toastCts.Token).Forget();
         }
 
-        /// <summary>상점 실패 알림 = AlertPopup(QuestNotificationPresenter·LobbyViewController 와 동일 로드 패턴).</summary>
         private async UniTaskVoid ShowFailPopupAsync(string message)
         {
             if (GUIRoot.Instance == null)
@@ -282,7 +277,7 @@ namespace Game.GUI.Shop
             if (!_prefabsLoaded)
                 return;
 
-            // 리스트 — 선택 탭 카테고리로 필터(없으면 전체). 부족하면 동적 생성, 남으면 비활성.
+            // 선택 탭 카테고리로 필터(없으면 전체).
             var filtered = state.Items
                 .Where(i => state.SelectedCategory == null || i.Category == state.SelectedCategory)
                 .ToList();
@@ -319,13 +314,12 @@ namespace Game.GUI.Shop
             if (!hasSel) return;
 
             if (SelectedShopItemName != null) SelectedShopItemName.text = sel.DisplayName;
-            if (SelectedShopItemDesc != null) SelectedShopItemDesc.text = sel.Description; // ItemDisplayCatalog.description
+            if (SelectedShopItemDesc != null) SelectedShopItemDesc.text = sel.Description;
             if (SelectedShopItemIcon != null)
             {
                 SelectedShopItemIcon.sprite = sel.Icon;
                 SelectedShopItemIcon.enabled = sel.Icon != null;
             }
-            // 선택 아이템 등급 배경(슬롯 프레임) — 리스트 슬롯과 동일한 등급 스프라이트.
             if (SelectedShopItemGradeBackground != null)
             {
                 SelectedShopItemGradeBackground.sprite = sel.GradeBackground;

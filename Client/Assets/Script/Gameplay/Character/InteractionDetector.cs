@@ -68,7 +68,6 @@ namespace Game.Gameplay.Character
 
         private void OnDrawGizmosSelected()
         {
-            // Draw the starting point of the sphere cast
             Gizmos.color = Color.blue;
             if (CurrentInteractable != null)
             {

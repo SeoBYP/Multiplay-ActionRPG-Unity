@@ -6,9 +6,7 @@ namespace Game.Gameplay.Spawn
     /// <summary>
     /// 맵별 스폰 레이아웃을 제공한다. 출처는 **MapDefinition(SO)** — 저작 진실원을 그대로 읽는다.
     ///
-    /// 예전에는 bake 산출물(Resources/spawn-layouts.json)을 읽었다. Addressables 전환의 목적이
-    /// "Resources = 빌드에 항상 포함" 회피였는데 맵이 늘수록 커지는 이 데이터가 마지막까지 남아 있었다(F6).
-    /// 이제 `MapLoader`(배경 프리팹)와 **같은 주소 체계**로 on-demand 로드한다.
+    /// `MapLoader`(배경 프리팹)와 **같은 주소 체계**로 on-demand 로드한다.
     ///
     /// ⚠ 서버는 여전히 bake(spawn-layouts.json)를 읽는다. 즉 **Export 를 잊으면 클라와 서버의 스폰이 갈린다.**
     /// 그 사고는 `SpawnLayoutSourceTests.MapDefinition_저작값이_서버_bake_와_일치한다` 가 잡는다.

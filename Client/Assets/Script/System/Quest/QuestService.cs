@@ -11,7 +11,7 @@ using GrpcStatus = GameServer.Grpc.Quest.QuestProgressStatus;
 
 namespace Game.System.Quest
 {
-    /// <summary>퀘스트 서비스. gRPC 호출 → 도메인 DTO 변환. WalletService 동형(에러 catch → Failed).</summary>
+    /// <summary>퀘스트 서비스. gRPC 호출 → 도메인 DTO 변환. 에러는 catch → Failed.</summary>
     public sealed class QuestService : IQuestService
     {
         private readonly IQuestGrpcService _grpc;
@@ -26,7 +26,6 @@ namespace Game.System.Quest
         /// <summary>
         /// 인증 완료까지 대기(로그인 전 호출 방지). 자동 로그인은 async라 토큰이 채워지기 전
         /// GetQuests 등이 먼저 발사되면 "Authorization header is missing" 401 이 난다.
-        /// PlayerProgressionHolder·LobbyModel 과 동일 패턴.
         /// </summary>
         private async UniTask WaitAuthAsync(CancellationToken ct)
         {

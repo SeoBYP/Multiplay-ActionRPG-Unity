@@ -24,8 +24,7 @@ namespace Game.Tests.PlayMode.InGame
     ///
     /// 이 창들은 `GUIRoot`(DontDestroyOnLoad) 아래에 만들어진다 — 즉 **씬 전환이 치워 주지 않는다.**
     /// 누가 파괴하는지 필드 하나(`_lobbyInst`)에 달려 있는데, 로드가 프레임을 넘기는 동안 요청이 겹치면
-    /// 인스턴스가 두 개 생기고 필드는 마지막 것만 가리켜 **앞의 것이 미아**로 남는다
-    /// (실측: 던전에 들어가도 방 목록이 화면에 남아 있었다).
+    /// 인스턴스가 두 개 생기고 필드는 마지막 것만 가리켜 **앞의 것이 미아**로 남는다.
     /// </summary>
     [TestFixture]
     public class LobbyWindowLifetimeTests
@@ -81,7 +80,7 @@ namespace Game.Tests.PlayMode.InGame
         [UnityTest]
         public IEnumerator 열기_요청이_겹쳐도_방목록_인스턴스는_하나다() => UniTask.ToCoroutine(async () =>
         {
-            // 같은 프레임에 두 번(연타·중복 신호) — 로드가 끝나기 전이라 예전엔 두 개가 만들어졌다.
+            // 같은 프레임에 두 번(연타·중복 신호) — 로드가 끝나기 전이라 두 개가 만들어질 수 있다.
             _controller.TryHandle(GameInputAction.ToggleLobby);
             _controller.TryHandle(GameInputAction.ToggleLobby);
 
@@ -118,7 +117,7 @@ namespace Game.Tests.PlayMode.InGame
             Assert.AreEqual(0, CountLobbyViews(), "로드 도중 닫힌 창은 완료 시점에 스스로 파괴돼야 한다.");
         });
 
-        // ── 헬퍼 ────────────────────────────────
+        // ── 헬퍼 ──
 
         private static int CountLobbyViews()
             => Object.FindObjectsByType<DungeonRoomLobbyView>(FindObjectsInactive.Include).Length;
@@ -132,7 +131,7 @@ namespace Game.Tests.PlayMode.InGame
                 await UniTask.NextFrame();
         }
 
-        // ── Fakes ───────────────────────────────
+        // ── Fakes ──
 
         private sealed class FakeDungeonLobbyService : IDungeonLobbyService
         {

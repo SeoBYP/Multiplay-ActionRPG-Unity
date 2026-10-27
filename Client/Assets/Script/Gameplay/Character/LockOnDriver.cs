@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Game.Gameplay.Character
 {
     /// <summary>
-    /// 락온(2.6.3) — 순수 클라 조준 보조(DodgeDriver/KnockbackDriver 형제, Action 축 보조).
+    /// 락온 — 순수 클라 조준 보조(DodgeDriver/KnockbackDriver 형제, Action 축 보조).
     /// 토글 입력 시 화면 중앙 최근접 <see cref="LockOnTarget"/> 를 획득하고, 락 동안 매 프레임:
     ///   ① <see cref="CharacterMotor.FacingOverride"/> 로 플레이어가 타겟을 바라보게 강제(이동은 카메라기준 스트레이프 유지),
     ///   ② <see cref="CharacterCameraFollow.LockTarget"/> 로 카메라가 타겟을 프레이밍.
@@ -66,9 +66,8 @@ namespace Game.Gameplay.Character
         /// <summary>락 동안 매 프레임 호출 — 유효성 검사 후 facing 강제 + 카메라 추적. 정상 흐름(생존·비스턴)에서만.</summary>
         public void Tick()
         {
-            // 진짜 락 안 한 상태(C# null)면 아무것도 안 함. 단 "락했는데 대상이 파괴됨"(Unity fake-null,
-            // ReferenceEquals 로 구분)은 아래 유효성 검사로 내려가 카메라/facing 을 정리해야 한다 —
-            // 단순 `_target == null` 조기 반환이면 죽은 몬스터에 카메라가 영원히 잠긴다.
+            // ReferenceEquals 로 "락 안 함"(C# null)과 "락했는데 대상이 파괴됨"(Unity fake-null)을 구분한다 —
+            // `_target == null` 조기 반환이면 죽은 몬스터에 카메라가 영원히 잠긴다.
             if (ReferenceEquals(_target, null)) return;
 
             if (!IsTargetValid())

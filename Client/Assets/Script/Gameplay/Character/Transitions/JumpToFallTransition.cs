@@ -7,8 +7,7 @@ namespace Game.Gameplay.Character
         public StateKind NextState => StateKind.Fall;
 
         private CharacterMotor m_motor;
-        //Delay to let the JumpSate call Move() on the m_mover so that we don't immediately
-        //exit from Jump to Fall state
+        // JumpState 가 Move() 를 한 번 호출할 시간을 줘 Jump 에서 즉시 Fall 로 빠지지 않게 한다
         private float m_checkDelay;
 
         public JumpToFallTransition(CharacterMotor motor, float checkDelay)

@@ -102,7 +102,7 @@ namespace Game.Tests.EditMode.InGame
             Assert.IsTrue(_model.State.CurrentValue.IsDungeonReady, "전원 입장 신호 후 준비 완료");
         }
 
-        // ── 헬퍼 ────────────────────────────────────────
+        // ── 헬퍼 ──
 
         private LocalPlayerContext BuildModel()
         {

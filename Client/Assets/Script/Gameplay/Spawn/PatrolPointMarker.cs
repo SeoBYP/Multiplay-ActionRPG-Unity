@@ -5,7 +5,7 @@ namespace Game.Gameplay.Spawn
     /// <summary>
     /// 몬스터 패트롤 경로의 한 지점 마커. **저작 전용**(런타임 미사용).
     /// <see cref="MonsterSpawnMarker"/> 의 자식으로 두며 sibling 순서가 순회 순서다.
-    /// 경로를 시각화하려고 이전 지점(또는 스폰 지점)으로 선을 그린다. (M3 증분②b)
+    /// 경로를 시각화하려고 이전 지점(또는 스폰 지점)으로 선을 그린다.
     /// </summary>
     public sealed class PatrolPointMarker : MonoBehaviour
     {

@@ -6,7 +6,6 @@ namespace Game.Presentation.Dialogue
 {
     /// <summary>
     /// npcId → DialogueDefinition 매핑(ScriptableObject). NPC 는 npcId(문자열)만 들고, 대화 내용은 이 카탈로그가 소유.
-    /// ItemDisplayCatalog·DropTable 과 동일한 클라 콘텐츠 저작 컨벤션.
     /// </summary>
     [CreateAssetMenu(menuName = "Game/Dialogue/Dialogue Catalog", fileName = "DialogueCatalog")]
     public sealed class DialogueCatalog : ScriptableObject

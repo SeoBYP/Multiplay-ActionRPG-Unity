@@ -10,7 +10,7 @@ using UnityEngine.TestTools;
 namespace Game.Tests.PlayMode.InGame
 {
     /// <summary>
-    /// 2.6.3 락온(타겟팅) 드라이버 — 순수 클라 조준 보조. 화면중앙 타겟 선정·토글·facing/카메라 잠금·
+    /// 락온(타겟팅) 드라이버 — 순수 클라 조준 보조. 화면중앙 타겟 선정·토글·facing/카메라 잠금·
     /// 사거리/소실 시 자동 해제를 격리 검증한다. 패킷/서버 무관(facing → C_Move 로 서버 hitbox 정렬).
     /// </summary>
     public class LockOnDriverTests

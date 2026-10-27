@@ -9,9 +9,8 @@ using VContainer.Unity;
 namespace Game.GUI.Quest
 {
     /// <summary>
-    /// 퀘스트 알림(수락/완료/보상) → AlertPopup 표시. QuestNotifier.OnNotice 구독.
-    /// 보상받기 버튼 폐지 후 유일한 퀘스트 피드백 경로(LobbyViewController 의 AlertPopup 로드 패턴 재사용).
-    /// GUI 는 QuestNotifier(Presentation)만 알고, 알림 종류→glow 매핑은 여기(GUI)에서.
+    /// 퀘스트 알림(수락/완료/보상) → AlertPopup 표시. QuestNotifier.OnNotice 구독 — 유일한 퀘스트 피드백 경로.
+    /// 알림 종류→glow 매핑은 GUI 에서 한다.
     /// </summary>
     public sealed class QuestNotificationPresenter : IInitializable, IDisposable
     {

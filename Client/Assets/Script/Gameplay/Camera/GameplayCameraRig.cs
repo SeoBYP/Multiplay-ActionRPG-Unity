@@ -10,11 +10,9 @@ namespace Game.Gameplay.Camera
     /// <summary>
     /// 게임플레이 3인칭 Cinemachine 카메라의 Follow 를 <b>런타임 스폰되는 로컬 플레이어</b>에 연결한다.
     ///
-    /// 플레이어는 씬에 미리 없고 <see cref="CharacterSpawner"/> 가 동적으로 스폰하므로, vcam 의 Follow 가
-    /// NULL 로 남아 3인칭이 동작하지 않았다. 이 컴포넌트는 <see cref="LocalPlayerContext.OnSet"/> 랑데부를
-    /// 구독해 스폰 직후 Follow(+LookAt)를 플레이어의 CameraFollowTarget(마우스 Look 회전 피벗)으로 세팅한다.
-    ///
-    /// 씬 컴포넌트 + 런타임 Follow 세팅 패턴은 <see cref="DialogueCameraController"/> 와 동일.
+    /// 플레이어는 씬에 미리 없고 <see cref="CharacterSpawner"/> 가 동적으로 스폰하므로,
+    /// <see cref="LocalPlayerContext.OnSet"/> 을 구독해 스폰 직후 Follow(+LookAt)를
+    /// 플레이어의 CameraFollowTarget(마우스 Look 회전 피벗)으로 세팅한다.
     /// Main/Dungeon 두 씬 모두 동일 vcam 구성을 쓰므로 양 LifetimeScope 에서 RegisterComponentInHierarchy 한다.
     /// </summary>
     public sealed class GameplayCameraRig : MonoBehaviour
@@ -50,7 +48,6 @@ namespace Game.Gameplay.Camera
                 _localPlayer.OnSet -= Bind;
         }
 
-        /// <summary>로컬 플레이어 ASC 준비 시 vcam Follow/LookAt 을 CameraFollowTarget 으로 연결.</summary>
         private void Bind(GasComponent abilitySystem)
         {
             if (gameplayCamera == null)

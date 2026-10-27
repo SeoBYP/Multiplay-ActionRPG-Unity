@@ -6,8 +6,7 @@ namespace Game.Gameplay.Character
 {
     /// <summary>
     /// 로컬 플레이어 ASC 의 Health 를 서버 권위 레벨 스탯(PlayerProgressionHolder.Stats.MaxHealth)으로 정렬한다.
-    /// 클라 prefab HP(100)와 서버 레벨 MaxHealth(120/140…) 불일치로 로컬 사망 예측이 서버보다 먼저 떨어지던
-    /// 문제(=다운 후에도 몬스터가 계속 때림)를 해소한다. Main·던전 공통(로컬 캐릭터 스폰 시 부착).
+    /// 클라 prefab HP(100)와 서버 레벨 MaxHealth 불일치로 로컬 사망 예측이 서버보다 먼저 떨어지는 문제를 막는다. Main·던전 공통(로컬 캐릭터 스폰 시 부착).
     ///
     /// 스폰 시 풀피로 설정. 레벨업으로 MaxHealth 가 늘면 새 Max + 풀회복. holder 는 킬마다 OnChanged 를
     /// 쏘므로(레벨 변화 없어도) MaxHealth 가 실제로 바뀐 경우만 반영(킬마다 풀힐 방지).
@@ -55,7 +54,7 @@ namespace Game.Gameplay.Character
             if (!_asc.Has(EGameplayAttribute.Health)) return;
 
             _asc.SetMax(EGameplayAttribute.Health, maxHealth);
-            _asc.SetCurrent(EGameplayAttribute.Health, maxHealth); // 스폰=풀피 / 레벨업=풀회복(흔한 RPG 처리)
+            _asc.SetCurrent(EGameplayAttribute.Health, maxHealth); // 스폰=풀피 / 레벨업=풀회복
             _appliedMaxHealth = maxHealth;
         }
     }

@@ -24,7 +24,6 @@ namespace Game.Gameplay
 
         private bool GroundedCheck(float groundedOffset)
         {
-            // set sphere position, with offset
             Vector3 spherePosition = new Vector3(transform.position.x, transform.position.y + groundedOffset,
                 transform.position.z);
             return Physics.CheckSphere(spherePosition, m_groundedRadius, m_groundLayers,
@@ -39,7 +38,6 @@ namespace Game.Gameplay
             if (Grounded) Gizmos.color = transparentGreen;
             else Gizmos.color = transparentRed;
 
-            // when selected, draw a gizmo in the position of, and matching radius of, the grounded collider
             Gizmos.DrawSphere(
                 new Vector3(transform.position.x, transform.position.y + m_groundedOffset, transform.position.z),
                 m_groundedRadius);

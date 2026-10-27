@@ -9,10 +9,10 @@ using UnityEngine.TestTools;
 namespace Game.Tests.PlayMode.InGame
 {
     /// <summary>
-    /// 사다리 오르기(P6, 로컬 전용). 세 갈래를 고정한다:
-    ///   ① 상호작용 → 부착 요청(one-shot) → Ground→Climb 전이 신호
-    ///   ② 상/하단 도달 → Climb→Ground 이탈 신호
-    ///   ③ ClimbState 는 사다리에 스냅하고 <b>수직으로만</b> 움직인다(중력·수평 이동 없음)
+    /// 사다리 오르기(로컬 전용). 세 갈래를 고정한다:
+    ///   - 상호작용 → 부착 요청(one-shot) → Ground→Climb 전이 신호
+    ///   - 상/하단 도달 → Climb→Ground 이탈 신호
+    ///   - ClimbState 는 사다리에 스냅하고 <b>수직으로만</b> 움직인다(중력·수평 이동 없음)
     /// </summary>
     public class ClimbTests
     {
@@ -175,7 +175,7 @@ namespace Game.Tests.PlayMode.InGame
         public IEnumerator 옆에서_다가와도_사다리_정면에_붙는다()
         {
             // 회귀: 부착 방향을 '접근한 방향' 그대로 쓰면 옆(폭 방향)에서 오면 측면 기둥에 옆으로 매달린다
-            // (실제로 그런 자세가 나왔다). 면 법선에 스냅해 어느 쪽에서 와도 정면으로 마주보게 한다.
+            // 면 법선에 스냅해 어느 쪽에서 와도 정면으로 마주보게 한다.
             var ladder = BuildLadder(Vector3.zero, height: 4f);
             yield return null;
 
@@ -202,7 +202,7 @@ namespace Game.Tests.PlayMode.InGame
         public IEnumerator 그립_좌우는_캐릭터_기준이라_반대편_면에서도_안_뒤집힌다()
         {
             // 회귀: 그립을 사다리 고정 축으로 계산하면 반대편 면에 붙었을 때 좌우가 통째로 뒤집혀
-            // "한쪽 손은 맞고 한쪽은 반대"가 된다(사용자 피드백).
+            // "한쪽 손은 맞고 한쪽은 반대"가 된다.
             var ladder = BuildLadder(Vector3.zero, height: 4f);
             yield return null;
 
@@ -225,7 +225,7 @@ namespace Game.Tests.PlayMode.InGame
         [UnityTest]
         public IEnumerator IK는_팔_간격을_유지하고_깊이와_발판_높이만_보정한다()
         {
-            // 사용자 피드백: 손 사이 간격을 고정 기둥 위치로 덮어쓰면 애니의 팔 간격이 무너진다.
+            // 손 사이 간격을 고정 기둥 위치로 덮어쓰면 애니의 팔 간격이 무너진다.
             // → 좌우는 클립 값을 그대로 두고, 어긋나는 축(깊이·발판 높이)만 고친다.
             var ladder = BuildLadder(Vector3.zero, height: 4f);
             yield return null;
@@ -260,7 +260,7 @@ namespace Game.Tests.PlayMode.InGame
             Assert.AreEqual(1f, LadderIK.ContactWeight(0f, 0.28f), 0.001f, "정확히 닿으면 최대.");
         }
 
-        // ── 리그 ────────────────────────────────────────────────────────────
+        // ── 리그 ──
         private Ladder BuildLadder(Vector3 basePos, float height)
         {
             var go = new GameObject("Ladder");

@@ -7,11 +7,9 @@ namespace Game.Gameplay.Spawn
     /// <summary>
     /// 맵 1개의 저작(authoring) 진실원. 디자이너가 이 SO를 편집한다.
     ///
-    /// 런타임은 이 SO를 직접 읽지 않는다. Export 툴(Tools/Spawn/Export Map Data)이
-    /// 이 SO들을 모아 spawn-layouts.json 으로 bake → 클라/서버 양쪽 런타임이 그 JSON을 읽는다.
-    /// (서버는 UnityEngine 의존이 0이라 SO를 못 읽으므로, JSON 이 유일한 교환 포맷이다.)
-    ///
-    /// 확장 여지: monsterSpawns[], visualPrefab, cellSize 등은 추후 필드 추가만으로 합류.
+    /// 서버는 UnityEngine 의존이 0이라 SO를 못 읽으므로, Export 툴(Tools/Spawn/Export Map Data)이
+    /// 이 SO들을 spawn-layouts.json 으로 bake → 서버가 그 JSON을 읽는다.
+    /// 클라는 SO 를 Addressables 로 직접 읽는다(`SpawnLayoutProvider`·`MapLoader`).
     /// </summary>
     [CreateAssetMenu(fileName = "MapDefinition", menuName = "Game/Map Definition", order = 0)]
     public sealed class MapDefinition : ScriptableObject
@@ -57,7 +55,7 @@ namespace Game.Gameplay.Spawn
         public float rotationY;
     }
 
-    /// <summary>몬스터 스폰 정의(저작). 실제 스폰/AI 는 M3에서 서버 권위로 구동된다.</summary>
+    /// <summary>몬스터 스폰 정의(저작). 실제 스폰/AI 는 서버 권위로 구동된다.</summary>
     [Serializable]
     public sealed class MonsterSpawn
     {

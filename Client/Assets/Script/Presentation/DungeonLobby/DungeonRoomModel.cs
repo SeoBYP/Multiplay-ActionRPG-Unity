@@ -14,10 +14,8 @@ namespace Game.Presentation.DungeonLobby
     /// </summary>
     public sealed class DungeonRoomModel
     {
-        /// <summary>OutGame 레이어 내부용. Game.GUI에서 직접 접근 금지.</summary>
+        /// <summary>Presentation 내부용. Game.GUI에서 직접 접근 금지.</summary>
         public readonly RoomInfo Info;
-
-        // ── GUI 레이어에서 사용하는 도메인 프로퍼티 ──────
 
         public long   RoomId     => Info.RoomId;
         public string RoomName   => Info.RoomName;

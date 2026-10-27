@@ -10,7 +10,7 @@ using ProtoShopCategory = GameServer.Grpc.Shop.ShopCategory;
 namespace Game.System.Shop
 {
     /// <summary>
-    /// 상점 서비스. gRPC(ShopService.GetShop/Buy) 호출 → 도메인 DTO 변환. InventoryService 와 동형.
+    /// 상점 서비스. gRPC(ShopService.GetShop/Buy/Sell) 호출 → 도메인 DTO 변환.
     /// </summary>
     public sealed class ShopService : IShopService
     {

@@ -10,7 +10,7 @@ using UnityEngine;
 namespace Game.Tests.EditMode.Gameplay
 {
     /// <summary>
-    /// 스폰 데이터의 **출처** 계약 (F6).
+    /// 스폰 데이터의 **출처** 계약.
     ///
     /// 클라는 MapDefinition(SO)을 Addressables 로 직접 읽는다 — Resources 사본은 없다.
     /// 대신 서버는 여전히 bake(spawn-layouts.json)를 읽으므로, **Export 를 잊으면 클라와 서버의

@@ -14,8 +14,8 @@ namespace Game.Tests.PlayMode.Network.Socket
     /// 입장 거절 사유 전달 — Docker 불필요(Fake 커넥터).
     ///
     /// 서버는 거절할 때마다 사유를 <c>S_PlayerJoined.Message</c> 에 담아 보낸다("Room is full" 등 5종).
-    /// 예전엔 세션이 <c>Success</c> 만 보고 상태만 Failed 로 바꾼 뒤 사유를 <b>버렸다</b> —
-    /// 그래서 실제로 방이 가득 찼는데도 콘솔에는 `state=Failed` 만 30줄 남고 원인을 알 수 없었다(실측).
+    /// 세션이 <c>Success</c> 만 보고 사유를 <b>버리면</b> 방이 가득 찼을 때도 `state=Failed` 만 남고 원인을 알 수 없다 —
+    /// 사유가 보존되는지 고정한다.
     /// </summary>
     [TestFixture]
     public class SocketSessionJoinFailureTests

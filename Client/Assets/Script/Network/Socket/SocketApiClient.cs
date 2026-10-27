@@ -11,49 +11,43 @@ namespace Game.Network.Socket
     /// </summary>
     public class SocketApiClient : IInstaller
     {
-        /// <summary>
-        /// 패킷 상태 저장소, 핸들러, 디스패처, 커넥터, 세션을 한 번에 구성한다.
-        /// </summary>
         public void Install(IContainerBuilder builder)
         {
-            // 소켓에서 받은 플레이어 상태를 메모리에 유지한다.
             builder.Register<ISocketPacketState, SocketPacketState>(Lifetime.Singleton);
 
-            // 패킷 타입별 후처리 로직 등록.
             builder.Register<IPacketHandler, PlayerJoinedPacketHandler>(Lifetime.Singleton);
             builder.Register<IPacketHandler, PlayerLeftPacketHandler>(Lifetime.Singleton);
             builder.Register<IPacketHandler, MovePacketHandler>(Lifetime.Singleton);
-            // EF-2d: 서버 권위 Effect(버프/디버프) 수신.
+            // 서버 권위 Effect(버프/디버프) 수신.
             builder.Register<IPacketHandler, EffectApplyPacketHandler>(Lifetime.Singleton);
             builder.Register<IPacketHandler, EffectRemovePacketHandler>(Lifetime.Singleton);
             // 마나 동기화(서버 권위 정정, owner-only).
             builder.Register<IPacketHandler, ManaPacketHandler>(Lifetime.Singleton);
-            // M3 ⑥: 서버 권위 몬스터 스폰/상태/사망 수신.
+            // 서버 권위 몬스터 스폰/상태/사망 수신.
             builder.Register<IPacketHandler, SpawnMonsterPacketHandler>(Lifetime.Singleton);
             builder.Register<IPacketHandler, MonsterStatePacketHandler>(Lifetime.Singleton);
             builder.Register<IPacketHandler, MonsterDeadPacketHandler>(Lifetime.Singleton);
             // 전원 입장(S_GameStatus InProgress) → 던전 준비 완료.
             builder.Register<IPacketHandler, GameStatusPacketHandler>(Lifetime.Singleton);
-            // M4 ③: 몬스터 전멸 → 던전 클리어.
+            // 몬스터 전멸 → 던전 클리어.
             builder.Register<IPacketHandler, DungeonClearPacketHandler>(Lifetime.Singleton);
-            // M4 B: 참가자 전원 다운 → 던전 실패.
+            // 참가자 전원 다운 → 던전 실패.
             builder.Register<IPacketHandler, DungeonFailedPacketHandler>(Lifetime.Singleton);
-            // 2.5.1 ⓔ-2: 개별 다운(원격 가시성) → 해당 캐릭터 다운 처리.
+            // 개별 다운(원격 가시성) → 해당 캐릭터 다운 처리.
             builder.Register<IPacketHandler, PlayerDeadPacketHandler>(Lifetime.Singleton);
-            // 2.5.2 Co-op 부활: 서버 권위 S_PlayerRevived 수신.
+            // Co-op 부활: 서버 권위 S_PlayerRevived 수신.
             builder.Register<IPacketHandler, RevivePacketHandler>(Lifetime.Singleton);
             // 원격 공격 연출: S_Attack 브로드캐스트 → RemoteDriver 스윙 애니(적중은 서버 권위).
             builder.Register<IPacketHandler, AttackPacketHandler>(Lifetime.Singleton);
-            // AC: Actor 통합 발동 연출 — S_AbilityActivated 브로드캐스트 → AbilityCueRouter 가 ActorRegistry 로 대상 Cue 재생(몬스터 공격 등).
+            // Actor 통합 발동 연출 — S_AbilityActivated 브로드캐스트 → AbilityCueRouter 가 ActorRegistry 로 대상 Cue 재생(몬스터 공격 등).
             builder.Register<IPacketHandler, AbilityActivatedPacketHandler>(Lifetime.Singleton);
             // 원격 회피 연출: S_Dodge 브로드캐스트 → RemoteDriver 구르기 애니(무적은 서버 권위).
             builder.Register<IPacketHandler, DodgePacketHandler>(Lifetime.Singleton);
-            // 3.3 루트/드랍: 바닥 아이템 스폰/제거 + 줍기 토스트.
+            // 루트/드랍: 바닥 아이템 스폰/제거 + 줍기 토스트.
             builder.Register<IPacketHandler, SpawnGroundItemPacketHandler>(Lifetime.Singleton);
             builder.Register<IPacketHandler, GroundItemRemovedPacketHandler>(Lifetime.Singleton);
             builder.Register<IPacketHandler, ItemPickedUpPacketHandler>(Lifetime.Singleton);
 
-            // 송수신 파이프라인 등록.
             builder.Register<ISocketPacketDispatcher, SocketPacketDispatcher>(Lifetime.Singleton);
             builder.Register<ISocketConnector, SocketConnector>(Lifetime.Singleton);
             builder.Register<ISocketSession, SocketSession>(Lifetime.Singleton);
@@ -84,7 +78,7 @@ namespace Game.Network.Socket
         /// <summary>기존 플레이어 transform 갱신 시 발행. RemoteDriver가 보간 대상으로 사용한다.</summary>
         event Action<SocketPlayerSnapshot> OnPlayerMoved;
 
-        // ── EF-2d: 서버 권위 Effect 수신 (핸들러가 기록 → EffectReceiver가 ASC에 적용) ──
+        // ── 서버 권위 Effect 수신 (핸들러가 기록 → EffectReceiver가 ASC에 적용) ──
         /// <summary>S_ApplyEffect 수신 시 발행.</summary>
         event Action<SocketEffectApply> OnEffectApplied;
         /// <summary>S_RemoveEffect 수신 시 발행 (instanceId).</summary>
@@ -113,7 +107,7 @@ namespace Game.Network.Socket
         void MarkDungeonFailed();
 
         // ── 개별 다운(원격 가시성 S_PlayerDead) ──
-        /// <summary>S_PlayerDead 수신 시 발행(userId). CharacterSpawner가 해당 캐릭터를 다운 처리(현재 로그+Destroy)한다.</summary>
+        /// <summary>S_PlayerDead 수신 시 발행(userId). CharacterSpawner가 해당 캐릭터를 다운 처리한다.</summary>
         event Action<long> OnPlayerDead;
         void NotifyPlayerDead(long userId);
 
@@ -128,8 +122,7 @@ namespace Game.Network.Socket
         void NotifyAbilityActivated(long actorId, int skillId);
 
         // ── 원격 회피 연출(S_Dodge 브로드캐스트) ──
-        /// <summary>S_Dodge 수신 시 발행(userId). RemoteDriver 가 회피(구르기) 애니만 재생한다(무적=서버 권위).</summary>
-        /// <summary>S_Dodge 수신 시 발행(userId, 캐릭터 기준 방향 X=우+/Y=전+). 방향은 연출 전용.</summary>
+        /// <summary>S_Dodge 수신 시 발행(userId, 캐릭터 기준 방향 X=우+/Y=전+). 방향은 연출 전용 — RemoteDriver 가 회피 애니만 재생한다(무적=서버 권위).</summary>
         event Action<long, float, float> OnPlayerDodged;
         void NotifyPlayerDodged(long userId, float dirX = 0f, float dirY = 1f);
 
@@ -138,7 +131,7 @@ namespace Game.Network.Socket
         event Action<long, int> OnPlayerRevived;
         void NotifyPlayerRevived(long userId, int hp);
 
-        // ── M3 ⑥: 서버 권위 몬스터(클라는 보간만) ──
+        // ── 서버 권위 몬스터(클라는 보간만) ──
         /// <summary>S_SpawnMonster 수신 시 발행. MonsterSpawner가 몬스터 엔티티를 스폰한다.</summary>
         event Action<SocketMonsterSnapshot> OnMonsterSpawned;
         /// <summary>S_MonsterState 수신(이동/HP/페이즈) 시 발행. MonsterEntity가 보간 대상으로 사용.</summary>
@@ -146,7 +139,7 @@ namespace Game.Network.Socket
         /// <summary>S_MonsterDead 수신 시 발행(instanceId). MonsterSpawner가 디스폰한다.</summary>
         event Action<int> OnMonsterDead;
         void AddMonster(SocketMonsterSnapshot snapshot);
-        /// <summary>몬스터 상태 반영. <paramref name="seq"/> 가 이미 반영한 값 이하면 **스테일이라 무시**한다(AC-C3).</summary>
+        /// <summary>몬스터 상태 반영. <paramref name="seq"/> 가 이미 반영한 값 이하면 **스테일이라 무시**한다.</summary>
         void UpdateMonster(int instanceId, float posX, float posY, float posZ, float rotY, int hp, byte phase, int seq);
         void RemoveMonster(int instanceId);
         bool TryGetMonster(int instanceId, out SocketMonsterSnapshot snapshot);
@@ -168,7 +161,7 @@ namespace Game.Network.Socket
     }
 
     /// <summary>
-    /// 최근 인증 결과와 플레이어 스냅샷을 스레드 안전하게 저장하는 구현체.
+    /// 소켓 수신 상태(플레이어·몬스터·바닥 아이템 스냅샷)를 스레드 안전하게 저장하고 변경 이벤트를 발행하는 구현체.
     /// </summary>
     public sealed class SocketPacketState : ISocketPacketState
     {
@@ -285,7 +278,7 @@ namespace Game.Network.Socket
             }
         }
 
-        // ── M3 ⑥: 몬스터(서버 권위, 클라는 보간만) ──
+        // ── 몬스터(서버 권위, 클라는 보간만) ──
 
         public void AddMonster(SocketMonsterSnapshot snapshot)
         {
@@ -302,12 +295,12 @@ namespace Game.Network.Socket
             {
                 if (_monsters.TryGetValue(instanceId, out var existing))
                 {
-                    // AC-C3 스테일 드롭: 서버는 상태를 **만든 순서대로** Seq 를 찍지만 송신은 그 순서가 아닐 수 있다
+                    // 스테일 드롭: 서버는 상태를 **만든 순서대로** Seq 를 찍지만 송신은 그 순서가 아닐 수 있다
                     // (틱이 먼저 만든 패킷을 나중에 보냄 → 데미지 패킷이 먼저 도착). 이미 더 새 상태를 반영했다면 버린다.
                     // 버리지 않으면 HP 가 옛 값으로 되돌아가고, 서버는 그 되돌림을 모른다 → 체감상 HP 고착/튐.
                     if (seq <= existing.Seq)
                     {
-                        // 진단(AC-C1b): 버린 사건 자체가 "순서 역전이 실재했다"는 증거 — C1c 에서 빈도를 본다.
+                        // 진단: 버린 사건 자체가 "순서 역전이 실재했다"는 증거.
                         Diagnostics.CombatTraceRecorder.Shared.RecordStaleDropped(
                             Diagnostics.CombatTraceRecorder.NowMs, -(long)instanceId, seq, existing.Seq);
                         return;
@@ -329,7 +322,7 @@ namespace Game.Network.Socket
 
             if (updated != null)
             {
-                // 진단은 lock 밖에서 — 기록이 상태 저장소 잠금을 잡고 있을 이유가 없다(§2.3 무할당·저간섭).
+                // 진단은 lock 밖에서 — 기록이 상태 저장소 잠금을 잡고 있을 이유가 없다.
                 Diagnostics.CombatTraceRecorder.Shared.RecordMonsterHpApplied(
                     Diagnostics.CombatTraceRecorder.NowMs, -(long)instanceId, hp, seq, hpDelta);
                 OnMonsterMoved?.Invoke(updated);
@@ -435,7 +428,7 @@ namespace Game.Network.Socket
         public byte Phase { get; }
 
         /// <summary>
-        /// 반영한 상태의 서버 버전(AC-C3, <see cref="Packets.S_MonsterState.Seq"/>). 이보다 작거나 같은 상태는 스테일이라 버린다.
+        /// 반영한 상태의 서버 버전(<see cref="Packets.S_MonsterState.Seq"/>). 이보다 작거나 같은 상태는 스테일이라 버린다.
         /// 스폰 시점 baseline 은 0 — 서버 첫 발급이 1 이라 첫 상태는 항상 통과한다.
         /// </summary>
         public int Seq { get; }
@@ -500,17 +493,12 @@ namespace Game.Network.Socket
             AnimState = animState;
         }
 
-        /// <summary>
-        /// 플레이어 식별 정보(SpawnIndex·HP 기준선 포함)는 유지하고 transform 정보만 갱신한 새 스냅샷을 만든다.
-        /// </summary>
+        /// <summary>식별 정보(SpawnIndex·HP 기준선 포함)는 유지하고 transform 정보만 갱신한 새 스냅샷을 만든다.</summary>
         public SocketPlayerSnapshot WithTransform(float posX, float posY, float posZ, float rotY, long timeStamp, byte animState = 0)
         {
             return new SocketPlayerSnapshot(UserId, Nickname, SpawnIndex, posX, posY, posZ, rotY, timeStamp, Hp, MaxHp, animState);
         }
 
-        /// <summary>
-        /// 외부 노출용 복사본을 만든다.
-        /// </summary>
         public SocketPlayerSnapshot Clone()
         {
             return new SocketPlayerSnapshot(UserId, Nickname, SpawnIndex, PosX, PosY, PosZ, RotY, TimeStamp, Hp, MaxHp, AnimState);

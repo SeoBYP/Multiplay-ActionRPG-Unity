@@ -9,11 +9,9 @@ using VContainer;
 namespace Game.GUI.Hud
 {
     /// <summary>
-    /// HUD 퀘스트 추적기 — 진행 중(Accepted/Completed) 퀘스트의 이름+조건을 HUD에 표시.
-    ///
-    /// QuestModel 은 Main 전용 스코프 등록(던전 미등록 + ctor 가 QuestNotifier(Main 전용) 요구)이라
-    /// 하드 [Inject] 시 던전 GameHud 가 깨진다 → IObjectResolver.TryResolve 로 선택 주입(없으면 추적기 숨김).
-    /// 갱신: 바인드 시 Refresh 1회 + State 구독(수락/보상 시 QuestModel 자동 refresh 로 반영).
+    /// HUD 퀘스트 추적기 — 진행 중(Accepted/Completed) 퀘스트의 이름+조건 표시.
+    /// QuestModel 은 Main 전용 스코프 등록이라 하드 [Inject] 하면 던전 GameHud 가 깨진다
+    /// → IObjectResolver.TryResolve 로 선택 주입(없으면 추적기 숨김).
     /// </summary>
     public sealed class QuestTrackerView : MonoBehaviour
     {
@@ -38,8 +36,8 @@ namespace Game.GUI.Hud
                 _model = model;
                 _sub = _model.State.Subscribe(Render);
 
-                // 수락/완료/보상은 NPC 대화(DialogueModel)가 IQuestService 를 직접 호출 → QuestModel.State 미갱신.
-                // 두 경로의 단일 알림 소스 QuestNotifier 를 구독해 알림마다 QuestModel 재조회 → 트래커 즉시 반영.
+                // NPC 대화(DialogueModel)가 IQuestService 를 직접 호출하면 QuestModel.State 가 갱신되지 않는다
+                // → 두 경로의 단일 알림 소스 QuestNotifier 를 구독해 재조회한다.
                 if (_resolver.TryResolve(typeof(QuestNotifier), out var n) && n is QuestNotifier notifier)
                     _noticeSub = notifier.OnNotice.Subscribe(_ => _model.Accept(QuestIntent.Refresh.Instance));
 
@@ -59,7 +57,7 @@ namespace Game.GUI.Hud
 
         /// <summary>
         /// 진행 중(Accepted/Completed) 퀘스트만 추린다 — 테스트용 순수 함수.
-        /// GUI 는 System 타입(QuestProgressState) 비참조 → bool 헬퍼로 판정: 미수주(CanAccept)·수령완료(IsClaimed) 제외 = 진행중.
+        /// GUI 는 QuestProgressState 를 몰라 bool 로 판정: 미수주(CanAccept)·수령완료(IsClaimed) 제외 = 진행중.
         /// </summary>
         public static List<QuestEntryModel> InProgress(IReadOnlyList<QuestEntryModel> quests)
         {

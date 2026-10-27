@@ -9,8 +9,7 @@ namespace Game.Gameplay.Character
     /// <summary>
     /// Dungeon 씬 로컬 캐릭터 전용 회피 송신. CharacterSpawner가 Joined 시 동적 AddComponent.
     /// `PlayerCharacterAgent.OnDodgePerformed` → `C_Dodge` 송신 → 서버가 무적 창(DodgeConfig.IframeMs)을
-    /// 권위 부여(쿨다운 검증으로 영구 무적 치팅 차단). 대시 이동/위치는 기존 MoveSyncSender(C_Move)가 동기화.
-    /// (CombatSyncSender 와 동일 패턴)
+    /// 권위 부여(쿨다운 검증으로 영구 무적 치팅 차단). 대시 이동/위치는 MoveSyncSender(C_Move)가 동기화.
     /// </summary>
     public class DodgeSyncSender : MonoBehaviour
     {

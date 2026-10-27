@@ -14,7 +14,7 @@ namespace Game.Network.Socket
     /// </summary>
     public class SocketConnector : ISocketConnector
     {
-        private const int MaxPacketSize = 4 * 1024 * 1024; // 4MB
+        private const int MaxPacketSize = 4 * 1024 * 1024;
 
         private TcpClient _client;
         private NetworkStream _stream;
@@ -23,14 +23,10 @@ namespace Game.Network.Socket
 
         public bool IsConnected => _client is { Connected: true } && _stream != null;
 
-        /// <summary>
-        /// 서버와 TCP 연결을 만들고 네트워크 스트림을 준비한다.
-        /// </summary>
         public async UniTask ConnectAsync(string host, int port, CancellationToken ct)
         {
             try
             {
-                // 이미 연결되어 있으면 재연결하지 않는다.
                 if (IsConnected)
                     return;
 
@@ -48,12 +44,9 @@ namespace Game.Network.Socket
             }
         }
 
-        /// <summary>
-        /// 패킷을 직렬화해 길이 프리픽스와 함께 전송한다.
-        /// </summary>
         public async UniTask SendAsync(Packet packet, CancellationToken ct)
         {
-            // 연결이 없으면 호출은 무시한다.
+            // 연결이 없으면 조용히 무시한다.
             if (!IsConnected)
                 return;
 
@@ -65,18 +58,17 @@ namespace Game.Network.Socket
 
             try
             {
-                // 락 대기 중 DisconnectAsync 가 _stream 을 null 로 정리했을 수 있다(송신↔종료 레이스).
-                // IsConnected 를 통과(위)했어도 여기서 끊길 수 있으므로 로컬로 캡처해 널·이후 교체에 안전하게.
+                // 락 대기 중 DisconnectAsync 가 _stream 을 null 로 만들 수 있다(송신↔종료 레이스) — 로컬로 캡처해 방어.
                 var stream = _stream;
                 if (stream == null)
-                    return; // 끊김은 정상 경로 — 조용히 무시
+                    return; // 끊김은 정상 경로
 
                 await stream.WriteAsync(lengthBytes, 0, 4, ct);
                 await stream.WriteAsync(payload, 0, payload.Length, ct);
             }
             catch (Exception e) when (IsExpectedDisconnect(e, ct))
             {
-                // 송신 중 연결이 끊기거나 스트림이 해제된 경우 — 예상 종료로 간주(로그·throw 안 함).
+                // 예상 종료 — 로그·throw 안 함.
             }
             catch (Exception e)
             {
@@ -89,9 +81,6 @@ namespace Game.Network.Socket
             }
         }
 
-        /// <summary>
-        /// 연결이 유지되는 동안 패킷을 계속 읽어 상위 콜백으로 전달한다.
-        /// </summary>
         public async UniTask StartReceiveLoopAsync(Func<Packet, UniTask> onPacket, CancellationToken ct)
         {
             if (!IsConnected)
@@ -130,13 +119,9 @@ namespace Game.Network.Socket
             }
         }
 
-        /// <summary>
-        /// 길이 프리픽스 기반으로 패킷 하나를 읽고 역직렬화한다.
-        /// </summary>
         private async UniTask<Packet> ReadPacketAsync(CancellationToken ct)
         {
             var lengthBuffer = new byte[4];
-            // 패킷 길이 4바이트를 먼저 모두 읽는다.
             var read = await ReadExactlyAsync(lengthBuffer, 4, ct);
 
             if (read == 0)
@@ -165,10 +150,7 @@ namespace Game.Network.Socket
             return packet;
         }
 
-        /// <summary>
-        /// 네트워크 스트림에서 요청한 바이트 수만큼 정확히 읽어 올 때까지 반복한다.
-        /// EOF가 중간에 발생하면 불완전한 패킷으로 간주한다.
-        /// </summary>
+        /// <summary>정확히 size 바이트를 읽는다. 중간 EOF 는 불완전한 패킷으로 간주한다.</summary>
         private async UniTask<int> ReadExactlyAsync(byte[] buffer, int size, CancellationToken ct)
         {
             var offset = 0;
@@ -196,9 +178,6 @@ namespace Game.Network.Socket
             return offset;
         }
 
-        /// <summary>
-        /// 연결 해제 과정에서 흔히 발생하는 예외인지 판별한다.
-        /// </summary>
         private bool IsExpectedDisconnect(Exception exception, CancellationToken ct)
         {
             if (ct.IsCancellationRequested || !IsConnected)
@@ -219,9 +198,6 @@ namespace Game.Network.Socket
             return false;
         }
 
-        /// <summary>
-        /// 정상 종료 시 자주 관찰되는 소켓 에러 코드를 필터링한다.
-        /// </summary>
         private static bool IsExpectedSocketError(SocketError socketError)
         {
             return socketError == SocketError.OperationAborted
@@ -231,9 +207,6 @@ namespace Game.Network.Socket
                    || socketError == SocketError.Shutdown;
         }
 
-        /// <summary>
-        /// 수신 루프를 중단하고 네트워크 자원을 해제한다.
-        /// </summary>
         public UniTask DisconnectAsync(CancellationToken ct)
         {
             _receiveCts?.Cancel();
@@ -249,9 +222,6 @@ namespace Game.Network.Socket
             return UniTask.CompletedTask;
         }
 
-        /// <summary>
-        /// 비동기 해제 시 소켓 연결과 송신 락을 모두 정리한다.
-        /// </summary>
         public async ValueTask DisposeAsync()
         {
             await DisconnectAsync(CancellationToken.None);

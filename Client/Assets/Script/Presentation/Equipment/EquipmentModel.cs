@@ -35,7 +35,7 @@ namespace Game.Presentation.Equipment
             _service.OnChanged += OnServiceChanged;
         }
 
-        // 창이 열린 동안 게임플레이(Player) 입력 점유 — View의 UiInputCaptureBehaviour가 호출(InventoryModel과 동일).
+        // 창이 열린 동안 게임플레이(Player) 입력 점유 — View의 UiInputCaptureBehaviour가 호출.
         public void BeginUiCapture() => _inputContext?.EnterUi();
         public void EndUiCapture() => _inputContext?.ExitUi();
 

@@ -8,8 +8,8 @@ namespace Script.System.GamePlayAbilitySystem
     /// 속성의 <b>저작(authoring) 값</b>. Inspector/프리팹에 직렬화되는 시작값일 뿐, 런타임 상태가 아니다.
     ///
     /// <para><b>왜 값이 여기 살지 않는가</b>: 런타임 속성은 Shared <see cref="AbilitySystemComponent"/> 가 소유한다.
-    /// 예전에는 여기(클라)와 서버가 각자 상태를 들고 각자 산식을 돌려서, 같은 Effect 를 걸어도
-    /// 스택 처리·만료 시점이 갈릴 수 있었다. 저작은 엔진의 일이고 계산은 공유의 일이라 그렇게 갈랐다.</para>
+    /// 여기(클라)와 서버가 각자 상태를 들고 각자 산식을 돌리면, 같은 Effect 를 걸어도
+    /// 스택 처리·만료 시점이 갈릴 수 있다. 저작은 엔진의 일이고 계산은 공유의 일이라 갈랐다.</para>
     ///
     /// <para>필드 이름을 바꾸지 말 것 — 프리팹 YAML 이 이 이름으로 바인딩된다
     /// (PlayerCharacter·RemotePlayerCharacter 등에 이미 저작된 값이 있다).</para>

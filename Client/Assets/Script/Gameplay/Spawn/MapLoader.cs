@@ -12,8 +12,7 @@ namespace Game.Gameplay.Spawn
     /// Dungeon 진입 시 서버가 지정한 mapId 의 MapDefinition.visualPrefab(배경 모델)을 인스턴스화한다.
     ///
     /// 스폰 좌표(JSON, 서버 공용)와 달리 비주얼 프리팹은 클라 전용이라 SO(MapDefinition)에서 직접 읽는다.
-    /// MapDefinition 은 Assets/GameData/Maps/{mapId}.asset 에 위치, **Addressables**(address=에셋 경로)로 로드.
-    /// (Resources 폐기 — 맵이 늘어도 빌드에 전부 포함되지 않도록 on-demand 번들.)
+    /// MapDefinition 은 Assets/GameData/Maps/{mapId}.asset 에 위치, **Addressables**(address=에셋 경로)로 on-demand 로드.
     /// </summary>
     public sealed class MapLoader : IAsyncStartable
     {
@@ -31,7 +30,7 @@ namespace Game.Gameplay.Spawn
         public async UniTask StartAsync(CancellationToken ct)
         {
             if (_socketSession.State != SocketSessionState.Joined)
-                return; // Main 씬 등 — 던전 맵 비주얼 로드 안 함
+                return; // Main 씬 등 — 던전이 아니면 로드 안 함
 
             var mapId = await WaitForMapIdAsync(ct);
             if (string.IsNullOrEmpty(mapId))

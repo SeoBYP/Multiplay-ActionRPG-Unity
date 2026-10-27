@@ -7,7 +7,7 @@ namespace Game.Gameplay.Character
     /// <summary>
     /// 씬에 배치된 모든 NPCDialogueInteractable 에 IDialogueLauncher 를 꽂는다(엔트리 포인트).
     /// 개별 NPC 마다 DI(InjectGameObject)를 돌리지 않고 한 번에 바인딩 — 씬 NPC N개 대응.
-    /// (런타임 스폰 NPC 는 스폰 시점에 별도 Bind 필요 — A1 은 씬 배치 NPC 대상.)
+    /// (런타임 스폰 NPC 는 스폰 시점에 별도 Bind 필요.)
     /// </summary>
     public sealed class NPCDialogueBinder : IInitializable
     {

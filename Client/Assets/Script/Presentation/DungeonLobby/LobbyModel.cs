@@ -68,7 +68,6 @@ namespace Game.Presentation.DungeonLobby
             _lobbyService.OnGameSessionReady += HandleGameSessionReady;
         }
 
-        // ── UI 입력 점유 (모달 열림/닫힘 시 View가 호출) ───────────────
         // 모달이 떠 있는 동안 게임플레이(Player) 입력을 끈다. 실제 토글은 IInputContext가 담당.
 
         /// <summary>모달 열림 — 게임플레이 입력 점유 시작.</summary>
@@ -88,8 +87,7 @@ namespace Game.Presentation.DungeonLobby
 
         public void Initialize()
         {
-            // 방 목록 로드는 로비 뷰가 실제로 열릴 때 트리거된다.
-            // (LobbyViewController.OpenLobbyAsync 에서 Accept(LoadRooms) 호출)
+            // 방 목록 로드는 로비 뷰가 열릴 때 Accept(LoadRooms) 로 트리거된다.
         }
 
         /// <summary>
@@ -186,7 +184,7 @@ namespace Game.Presentation.DungeonLobby
             Dispatch(LobbyResult.Loading.Instance);
             try
             {
-                // 9.6: 첫 페이지만 받는다(서버가 크기 상한·최신순 정렬을 강제). 페이저 UI 는 아직 없어
+                // 첫 페이지만 받는다(서버가 크기 상한·최신순 정렬을 강제). 페이저 UI 는 아직 없어
                 // offset 은 항상 0 — 목록이 서버 페이지 크기를 넘으면 그때 UI 를 붙인다(YAGNI).
                 var res = await _repository.GetRoomsAsync(ct: _cts.Token);
                 Dispatch(res.IsSuccess

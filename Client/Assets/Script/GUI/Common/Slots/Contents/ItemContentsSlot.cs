@@ -6,11 +6,8 @@ using UnityEngine.UI;
 namespace Game.GUI.Common
 {
     /// <summary>
-    /// 공통 아이템 슬롯 — 인벤토리/상점이 동일 컴포넌트로 사용(통합). 표시 전용(도메인/모델 비참조).
-    /// 아이콘 + (수량|이름) + 등급 배경 + 클릭 버튼. 프리팹마다 쓰는 필드만 할당하면 된다
-    /// (그리드=icon+count / 리스트=icon+name). 미할당 필드는 무시한다.
-    ///   - 수량(count) 1 이하 → 숨김(스택 표기 관례), 이름(displayName) null → 숨김.
-    ///   - 등급 배경(gradeBackground sprite)을 넘기면 background Image 에 스프라이트로 적용(색 아님 — 호출자가 해석).
+    /// 공통 아이템 슬롯(인벤토리·상점 공용). 표시 전용 — 도메인/모델 비참조.
+    /// 프리팹마다 쓰는 필드만 할당하고 미할당 필드는 무시한다(그리드=icon+count / 리스트=icon+name).
     /// </summary>
     public class ItemContentsSlot : MonoBehaviour
     {

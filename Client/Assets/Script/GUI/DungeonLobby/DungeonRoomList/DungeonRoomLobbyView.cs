@@ -10,12 +10,7 @@ using VContainer;
 namespace Game.GUI.OutGame.Lobby
 {
     /// <summary>
-    /// 던전 로비 목록 화면 View.
-    ///
-    /// MVI 규칙:
-    ///   - State를 받아 UI를 렌더링한다.
-    ///   - 사용자 입력을 Intent로 변환해 Model에 전달한다.
-    ///   - Service / Repository 직접 호출 없음.
+    /// 던전 로비 목록 화면 View(MVI). State 렌더 + 사용자 입력을 Intent 로 Model 에 전달. Service/Repository 직접 호출 없음.
     /// </summary>
     public sealed class DungeonRoomLobbyView : MonoBehaviour
     {
@@ -46,7 +41,6 @@ namespace Game.GUI.OutGame.Lobby
 
         private void Start()
         {
-            // roomListParent 아래에 미리 배치된 DungeonRoomItemView 를 풀로 수거
             foreach (Transform child in roomListParent)
             {
                 var existing = child.GetComponent<DungeonRoomItemView>();
@@ -70,15 +64,12 @@ namespace Game.GUI.OutGame.Lobby
 
             joinRoomButton.onClick.AddListener(OnJoinClicked);
 
-            // 이 오브젝트가 활성인 동안 게임플레이 입력 점유. btn_close는 이 GameObject를
-            // SetActive(false)로 끄므로 → OnDisable에서 자동 해제(버튼 리스너에 의존하지 않음).
+            // 활성인 동안 게임플레이 입력 점유. btn_close 가 SetActive(false)로 끄므로 OnDisable 에서 자동 해제된다.
             gameObject.AddComponent<UiInputCaptureBehaviour>()
                       .Bind(_model.BeginUiCapture, _model.EndUiCapture);
 
             detailPanel.SetActive(false);
         }
-
-        // ── Render: State → UI ───────────────────────
 
         private void Render(LobbyState state)
         {
@@ -107,7 +98,6 @@ namespace Game.GUI.OutGame.Lobby
             joinRoomButton.interactable = canJoin;
         }
 
-        /// <summary>State.SelectedRoom 기반으로 각 아이템의 선택 하이라이트를 갱신한다.</summary>
         private void RefreshSelectedHighlight(long? selectedRoomId)
         {
             foreach (var kv in _itemMap)
@@ -125,8 +115,6 @@ namespace Game.GUI.OutGame.Lobby
             Debug.Log($"[DungeonRoomLobbyView] JoinRoom 클릭 — roomId={selected.RoomId} roomName={selected.RoomName}");
             _model.Accept(new LobbyIntent.JoinRoom(selected.RoomId));
         }
-
-        // ── CreateRoomPopup ─────────────────────────
 
         private async UniTaskVoid OpenCreateRoomPopupAsync()
         {
@@ -148,8 +136,6 @@ namespace Game.GUI.OutGame.Lobby
             _popupInst = null;
         }
 
-        // ── 방 목록 Diff 갱신 ───────────────────────
-
         private void SyncRoomList(IReadOnlyList<DungeonRoomModel> rooms)
         {
             Debug.Log($"[DungeonRoomLobbyView] SyncRoomList — 방 {rooms?.Count ?? 0}개");
@@ -157,7 +143,6 @@ namespace Game.GUI.OutGame.Lobby
             var nextIds = new HashSet<long>();
             foreach (var room in rooms) nextIds.Add(room.RoomId);
 
-            // 사라진 방 → 풀로 반환 (Destroy 대신 재사용)
             var toRemove = new List<long>();
             foreach (var id in _itemMap.Keys)
                 if (!nextIds.Contains(id)) toRemove.Add(id);
@@ -170,7 +155,6 @@ namespace Game.GUI.OutGame.Lobby
                 _itemMap.Remove(id);
             }
 
-            // 새 방 → 풀 우선 사용, 없으면 Instantiate
             foreach (var room in rooms)
             {
                 if (!_itemMap.TryGetValue(room.RoomId, out var item))
@@ -192,8 +176,6 @@ namespace Game.GUI.OutGame.Lobby
                 Debug.Log($"[DungeonRoomLobbyView]   └ roomId={room.RoomId} name={room.RoomName} ({room.PlayerCount}/{room.MaxPlayers}) {room.Status}");
             }
         }
-
-        // ── 파생값 계산 (View 책임) ───────────────────
 
         private static string ToStatusText(RoomStatus status)
         {

@@ -120,14 +120,14 @@ namespace Game.Tests.PlayMode.Dialogue
             model.Dispose();
         });
 
-        // ── Phase B: 퀘스트 연동 ──
+        // ── 퀘스트 연동 ──
 
         private sealed class FakeQuestService : IQuestService
         {
             public QuestProgressState State = QuestProgressState.NotAccepted;
             public string Accepted, Claimed;
 
-            /// <summary>대화 목표 퀘스트 시드(F5 클라 게이트 검증용). null 이면 대화 목표 없음.</summary>
+            /// <summary>대화 목표 퀘스트 시드(클라 게이트 검증용). null 이면 대화 목표 없음.</summary>
             public string TalkNpcId;
             public QuestProgressState TalkState = QuestProgressState.Accepted;
 
@@ -233,13 +233,8 @@ namespace Game.Tests.PlayMode.Dialogue
             model.Dispose();
         });
 
-        // ── Phase C: TalkToNpc 보고 ──
-
-        // ── F5: 필요할 때만 서버와 통신한다 ──
-        //
-        // 예전엔 대화창을 열 때마다 무조건 ReportTalk 을 불렀다. 서버는 그 요청이 정상인지 알 수 없었고
-        // 잡담 NPC 도 매번 왕복을 만들었다. 이제 판단은 클라가 한다:
-        //   hasQuest(저작 플래그) → 조기 차단 / 수주 상태 → 실제 보고 여부
+        // ── TalkToNpc 보고: 필요할 때만 서버와 통신한다 ──
+        // 판단은 클라가 한다: hasQuest(저작 플래그) → 조기 차단 / 수주 상태 → 실제 보고 여부
 
         [UnityTest]
         public IEnumerator 수주중인_대화퀘스트가_있으면_보고한다() => UniTask.ToCoroutine(async () =>
@@ -304,7 +299,7 @@ namespace Game.Tests.PlayMode.Dialogue
             model.Dispose();
         });
 
-        // ── 카메라(A3)/입력점유 배선 ──
+        // ── 카메라/입력점유 배선 ──
 
         private sealed class FakeDialogueCamera : Game.System.Dialogue.IDialogueCamera
         {

@@ -9,7 +9,6 @@ namespace Game.Presentation.Inventory
     /// 소모품 효과 데이터(클라 저작 SO). itemId → 적용할 스탯 효과들.
     ///
     /// 회복 효과 *수치/대상 스탯*은 데이터(여기), *적용*은 GAS(ConsumableEffectHandler가 GameplayEffectDefinition 빌드).
-    /// 서버는 회복을 적용하지 않으므로(플레이어 HP=클라 권위) 이 데이터는 클라 전용 — 서버와 공유하지 않는다.
     /// 새 소모품은 코드 없이 이 SO 에 항목만 추가하면 된다(heal/mana/buff 모두 스탯 modifier).
     /// </summary>
     [CreateAssetMenu(fileName = "ConsumableCatalog", menuName = "Game/Consumable Catalog", order = 2)]

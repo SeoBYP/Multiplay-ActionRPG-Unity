@@ -63,7 +63,6 @@ namespace Game.Gameplay.Character
                 AnimState = animState,
             }, destroyCancellationToken).Forget();
 
-            // 1초 간격으로만 로그 출력
             _logTimer += Time.fixedDeltaTime;
             if (_logTimer >= 1f)
             {

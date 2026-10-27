@@ -7,7 +7,7 @@ namespace Game.Tests.EditMode.Network
     [TestFixture]
     public class GrpcChannelProviderTests
     {
-        // ─── Construction Validation ────────────────────────────────
+        // ── Construction Validation ──
 
         [Test]
         public void null_address_ArgumentException_발생()
@@ -27,7 +27,7 @@ namespace Game.Tests.EditMode.Network
             Assert.Throws<ArgumentException>(() => new GrpcChannelProvider("   "));
         }
 
-        // ─── Properties ─────────────────────────────────────────────
+        // ── Properties ──
 
         [Test]
         public void 유효한_address로_생성시_Address_프로퍼티_일치()
@@ -61,7 +61,7 @@ namespace Game.Tests.EditMode.Network
             Assert.AreNotSame(invoker1, invoker2);
         }
 
-        // ─── Dispose ────────────────────────────────────────────────
+        // ── Dispose ──
 
         [Test]
         public void Dispose_예외없이_종료()
@@ -78,7 +78,7 @@ namespace Game.Tests.EditMode.Network
             Assert.DoesNotThrow(() => provider.Dispose());
         }
 
-        // ─── Multiple Instances ──────────────────────────────────────
+        // ── Multiple Instances ──
 
         [Test]
         public void 서로_다른_address로_생성한_두_인스턴스는_다른_객체()

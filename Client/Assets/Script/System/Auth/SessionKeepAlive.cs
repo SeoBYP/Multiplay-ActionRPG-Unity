@@ -12,13 +12,12 @@ namespace Game.System.Auth
     /// </summary>
     /// <remarks>
     /// 두 가지를 동시에 해결한다.
-    /// ① <b>버그</b> — 갱신은 콜드스타트(<see cref="IAuthService.TryAutoLoginAsync"/>)에서만 일어났다.
-    ///    액세스 토큰 수명(서버 설정 60분)을 넘겨 플레이하면 그 뒤 모든 gRPC 가 Unauthenticated 로 죽었다.
+    /// ① 갱신이 콜드스타트(<see cref="IAuthService.TryAutoLoginAsync"/>)에서만 일어나면, 액세스 토큰 수명(서버 설정 60분)을 넘겨 플레이할 때
+    ///    그 뒤 모든 gRPC 가 Unauthenticated 로 죽는다.
     /// ② <b>생존 신호</b> — 서버는 인증된 RPC 를 받을 때만 세션을 살아 있다고 표시한다.
-    ///    로비에 가만히 있는 클라이언트는 아무 RPC 도 보내지 않아 "조용한" 것으로 보이고,
-    ///    유령 방 리퍼가 그 방을 정리해 버릴 수 있었다.
+    ///    로비에 가만히 있는 클라이언트는 RPC 를 안 보내 "조용한" 것으로 보이고, 유령 방 리퍼가 그 방을 정리할 수 있다.
     ///
-    /// 전용 하트비트 RPC 를 새로 만들지 않은 이유 = 갱신 자체가 이미 인증된 왕복이라
+    /// 전용 하트비트 RPC 를 만들지 않은 이유 = 갱신 자체가 이미 인증된 왕복이라
     /// 공개 계약(proto)을 건드리지 않고 같은 목적을 달성한다.
     /// </remarks>
     public sealed class SessionKeepAlive : IAsyncStartable, IDisposable

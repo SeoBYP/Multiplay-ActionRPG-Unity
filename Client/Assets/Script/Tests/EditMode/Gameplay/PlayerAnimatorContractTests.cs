@@ -25,7 +25,7 @@ namespace Game.Tests.EditMode.Gameplay
         [Test]
         public void 루트모션_태그는_공격_상태에만_붙어있다()
         {
-            // 회피(Evade 3.6m)·사망(0.84m)·기상(0.79m) 클립에도 루트 이동이 있지만 드라이버가 이동을 전담한다.
+            // 회피·사망·기상 클립에도 루트 이동이 있지만 드라이버가 이동을 전담한다.
             // 태그가 번지면 대시 + 루트모션이 겹쳐 두 배로 날아간다.
             foreach (var st in Load().layers[0].stateMachine.states)
             {
@@ -39,10 +39,10 @@ namespace Game.Tests.EditMode.Gameplay
         [Test]
         public void 스트레이프_전이는_즉시여야_한다()
         {
-            // 회귀(2026-08-22): 이 전이에 블렌드 시간이 있으면 두 가지가 동시에 깨진다.
+            // 이 전이에 블렌드 시간이 있으면 두 가지가 동시에 깨진다.
             //  ① 블렌드 창 동안 AnyState 트리거(Dodge/Attack/Jump)가 삼켜진다.
             //  ② 그걸 interruptionSource 로 풀면 조건이 계속 참이라 전이가 매 프레임 자기 자신으로 재시작해
-            //     StrafeLocomotion 에 영영 도달하지 못한다(실측: Walk/Run 이 아예 안 나왔다).
+            //     StrafeLocomotion 에 영영 도달하지 못한다.
             // Strafe 는 스폰 직후 한 번 켜지고 유지되므로 즉시 전환이 안전하다.
             var sm = Load().layers[0].stateMachine;
             var loco = Array.Find(sm.states, s => s.state.name == "Locomotion").state;

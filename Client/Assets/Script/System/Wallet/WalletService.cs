@@ -9,7 +9,7 @@ namespace Game.System.Wallet
 {
     /// <summary>
     /// 재화 서비스. gRPC(WalletService.GetWallet) 호출 → 도메인 값(long Gold) 변환.
-    /// InventoryService 와 동형(에러 catch → Failed, 0).
+    /// 에러는 catch → (Failed, 0).
     /// </summary>
     public sealed class WalletService : IWalletService
     {

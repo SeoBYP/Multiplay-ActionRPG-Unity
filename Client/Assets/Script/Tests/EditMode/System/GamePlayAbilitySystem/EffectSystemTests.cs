@@ -145,7 +145,7 @@ namespace Game.Tests.EditMode.GamePlayAbilitySystem
             Assert.AreEqual(70, asc.Current(EGameplayAttribute.Health)); // 하위호환
         }
 
-        // ── 헬퍼 ────────────────────────────────────────
+        // ── 헬퍼 ──
 
         private GasComponent CreateAsc()
         {

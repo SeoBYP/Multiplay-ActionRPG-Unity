@@ -5,21 +5,21 @@ using UnityEngine;
 namespace Game.Gameplay.Abilities
 {
     /// <summary>
-    /// 어빌리티 연출 이벤트의 종류. <b>연출 전용</b> — 서버는 이 값을 절대 보지 않는다(gas-architecture §2.5).
+    /// 어빌리티 연출 이벤트의 종류. <b>연출 전용</b> — 서버는 이 값을 절대 보지 않는다.
     /// </summary>
     public enum ECueKind
     {
-        /// <summary>효과음 1발(CueCatalog 의 AudioClip). </summary>
+        /// <summary>효과음 1발(CueCatalog 의 AudioClip).</summary>
         Sfx = 0,
         /// <summary>파티클/이펙트 프리팹 스폰(CueCatalog 의 프리팹, socket 에 부착).</summary>
         Vfx = 1,
         /// <summary>추가 애니 트리거(t=0 주 트리거는 cueTrigger 가 담당 — 이건 지연 발화용 예약).</summary>
         Anim = 2,
-        /// <summary>액터(자신)의 컴포넌트 메서드를 시각 T 에 호출(P7, 참조 R3~R6 의 우리 판 — 대상=self, 클라 전용).</summary>
+        /// <summary>액터(자신)의 컴포넌트 메서드를 시각 T 에 호출(대상=self, 클라 전용).</summary>
         Event = 3,
     }
 
-    /// <summary>Event 이벤트가 호출할 메서드의 인자 타입(P7). 대상=self 라 참조 8종 대신 실용 스칼라/문자열만(YAGNI).</summary>
+    /// <summary>Event 이벤트가 호출할 메서드의 인자 타입. 스칼라/문자열만 지원.</summary>
     public enum EInvokeArgType
     {
         None = 0, Float = 1, Int = 2, Bool = 3, String = 4,
@@ -29,10 +29,9 @@ namespace Game.Gameplay.Abilities
     /// 어빌리티 타임라인 위의 <b>연출 이벤트 한 점</b> — 발동(t=0) 기준 <see cref="timeMs"/> 오프셋에 재생된다.
     ///
     /// <b>클라 로컬 재생, 네트워크 0</b>. `AbilityDefinition.cueEvents` 로만 저작되고 <b>bake 되지 않는다</b>
-    /// (서버는 hitbox·데미지만 abilities.json 으로 읽는다 — "서버는 Cue 를 모른다" 보존).
+    /// (서버는 hitbox·데미지만 abilities.json 으로 읽는다).
     ///
     /// 시계 = 발동 순간부터의 ms. 던전(서버 발동 신호)·Main(로컬 발동) 어디서 발동하든 같은 오프셋으로 재생된다.
-    /// UnityEngine 비의존(순수) — 플래너/테스트가 엔진 없이 검증한다.
     /// </summary>
     [Serializable]
     public sealed class AbilityCueEvent
@@ -44,7 +43,7 @@ namespace Game.Gameplay.Abilities
         /// SFX/Anim 은 즉발이라 길이는 편집·표시용(타임라인 클립 폭). 음수는 플래너가 0 으로 클램프.</summary>
         public float durationMs;
 
-        /// <summary>같은 종류(kind) 안에서 어느 <b>레인(행)</b>에 놓일지(W-B). 0=첫 레인. <b>편집 전용</b> — 런타임 재생은 무시.</summary>
+        /// <summary>같은 종류(kind) 안에서 어느 <b>레인(행)</b>에 놓일지. 0=첫 레인. <b>편집 전용</b> — 런타임 재생은 무시.</summary>
         public int lane;
 
         /// <summary>재생 종류(SFX/VFX/추가 Anim).</summary>
@@ -63,13 +62,13 @@ namespace Game.Gameplay.Abilities
         /// <summary>VFX 부착 소켓(자식 Transform 이름, 예: hand_r). 빈 문자열=루트. SFX 는 무시.</summary>
         public string socket;
 
-        /// <summary>Anim 종류일 때 발동할 애니 트리거(주 cueTrigger 는 t=0, 이건 지연 발화 — W7). 액터 CharacterAgentAnimations 로 전달.</summary>
+        /// <summary>Anim 종류일 때 발동할 애니 트리거(주 cueTrigger 는 t=0, 이건 지연 발화). 액터 CharacterAgentAnimations 로 전달.</summary>
         public AnimationTriggerType animTrigger;
 
-        /// <summary>Event 종류일 때 호출할 <b>액터 컴포넌트의 public 메서드 이름</b>(예: ActivateWindow). P7.</summary>
+        /// <summary>Event 종류일 때 호출할 <b>액터 컴포넌트의 public 메서드 이름</b>(예: ActivateWindow).</summary>
         public string invokeMethod;
 
-        /// <summary>Event 메서드에 넘길 인자 타입(None=0-인자). 참조 R5 의 우리 판.</summary>
+        /// <summary>Event 메서드에 넘길 인자 타입(None=0-인자).</summary>
         public EInvokeArgType argType;
         public float argFloat;
         public int argInt;

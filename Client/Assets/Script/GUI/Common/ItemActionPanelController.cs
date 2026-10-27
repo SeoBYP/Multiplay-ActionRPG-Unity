@@ -8,11 +8,8 @@ using UnityEngine.AddressableAssets;
 namespace Game.GUI
 {
     /// <summary>
-    /// 슬롯 클릭 → ItemActionPanel(Addressable)을 슬롯 오른쪽에 Canvas 직속으로 띄우고, 뒤 백드롭으로 닫는 공용 컨트롤러.
-    /// Inventory·Equipment 양쪽이 동일 동작을 공유한다(중복 제거). 한 번에 하나만 연다.
-    ///
-    /// 패널의 버튼 구성은 호출처가 <paramref name="configure"/> 콜백에서 panel.Bind(...)로 주입한다
-    /// (인벤토리=use/equip, 장비창=unequip). 컨트롤러는 로드/배치/닫기만 담당한다.
+    /// 슬롯 클릭 → ItemActionPanel 을 슬롯 오른쪽에 Canvas 직속으로 띄우고 뒤 백드롭으로 닫는 공용 컨트롤러(Inventory·Equipment 공유). 한 번에 하나만 연다.
+    /// 버튼 구성은 호출처가 <paramref name="configure"/> 에서 주입한다 — 컨트롤러는 로드/배치/닫기만 담당.
     /// </summary>
     public sealed class ItemActionPanelController
     {
@@ -21,7 +18,7 @@ namespace Game.GUI
 
         public async UniTask OpenAsync(Canvas canvas, RectTransform slotRect, Action<ItemActionPanel> configure)
         {
-            Close(); // 기존 열린 팝업 정리(한 번에 하나)
+            Close();
 
             if (canvas == null)
             {

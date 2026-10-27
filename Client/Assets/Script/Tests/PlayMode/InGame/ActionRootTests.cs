@@ -91,7 +91,7 @@ namespace Game.Tests.PlayMode.InGame
 
             // ⚠️ 고정 프레임 수로 돌리면 안 된다: `CharacterMotor.Move` 의 변위는 실제 `Time.deltaTime` 기반인데
             // 테스트가 로직에만 고정 dt 를 넣으면, 에디터가 빠르게 렌더링할 때 20프레임 = 실시간 수 ms 라
-            // 거의 안 움직여 "Rooted 가 아닌데 이동 없음"으로 오판한다(실측 0.0015m 로 이 테스트가 깨져 있었다).
+            // 거의 안 움직여 "Rooted 가 아닌데 이동 없음"으로 오판한다.
             // → 실시간 예산으로 돌리고, 상태에도 그 프레임의 실제 dt 를 넘겨 두 계층의 시간축을 일치시킨다.
             var start = go.transform.position;
             yield return DriveFor(state, 0.5f);
@@ -278,7 +278,7 @@ namespace Game.Tests.PlayMode.InGame
         public IEnumerator 방향을_꺾어도_8방향_파라미터가_한번에_튀지_않는다()
         {
             // 회귀: 방향 파라미터를 감쇠 없이 꽂으면 좌→우 전환 때 좌표가 한 프레임에 4.6(=2.3×2) 점프해
-            // 블렌드가 좌측 클립 → 우측 클립으로 툭 바뀐다(사용자 피드백: "좌로 걷다 우로 바꿀 때 블렌딩이 안 된다").
+            // 블렌드가 좌측 클립 → 우측 클립으로 툭 바뀐다.
             var rig = BuildAnimRig(
                 ("m_animationSpeedFloat", "Speed"),
                 ("m_animationMoveXFloat", "MoveX"),
@@ -354,7 +354,7 @@ namespace Game.Tests.PlayMode.InGame
             return (go, animator, asc, caa);
         }
 
-        // ── 리그 (CcGateTests 와 동일 구조) ──────────────
+        // ── 리그 (CcGateTests 와 동일 구조) ──
 
         private (TestableAgent agent, FakeInput input, GasComponent asc) BuildAgent(bool withDetector = false)
         {

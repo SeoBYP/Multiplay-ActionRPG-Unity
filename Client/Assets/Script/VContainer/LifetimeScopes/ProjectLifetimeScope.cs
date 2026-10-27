@@ -10,15 +10,7 @@ namespace Game.Installers
     /// <summary>
     /// 전역(씬 공통) DI 스코프.
     ///
-    /// 각 도메인의 등록 책임은 전용 Installer에 위임한다.
-    /// 이 파일은 Installer 조합만 담당한다.
-    ///
-    /// ┌─────────────────────────────────────┐
-    /// │  NetworkInstaller     — gRPC + TCP  │
-    /// │  AuthInstaller        — 인증 서비스  │
-    /// │  DungeonLobbyInstaller — 로비 서비스 │
-    /// │  GameSessionInstaller — 세션 서비스  │
-    /// └─────────────────────────────────────┘
+    /// 각 도메인의 등록 책임은 전용 Installer에 위임하고, 이 파일은 Installer 조합만 담당한다.
     /// </summary>
     public class ProjectLifetimeScope : LifetimeScope
     {
@@ -27,9 +19,7 @@ namespace Game.Installers
         /// <summary>
         /// 루트 컨테이너의 **전체** 등록. `Configure` 와 DI 배선 테스트가 이 하나를 공유한다.
         ///
-        /// 왜 static 으로 뽑았나: 테스트가 이 목록을 손으로 베끼면 여기에 등록이 추가될 때마다
-        /// 사본이 조용히 어긋난다(실제로 `IGameSceneManager` 누락으로 그렇게 됐다).
-        /// 미러링 대신 같은 함수를 부르게 해서 드리프트를 구조적으로 없앤다.
+        /// static 인 이유: 테스트가 목록을 베끼면 등록이 추가될 때 사본이 조용히 어긋나므로, 같은 함수를 부르게 해 드리프트를 없앤다.
         ///
         /// 여기 있는 것은 전부 POCO 라 씬 없이도 해석된다 — MonoBehaviour/씬 의존 등록은 자식 스코프 몫이다.
         /// </summary>

@@ -53,8 +53,6 @@ namespace Game.GUI.OutGame.Lobby
             RefreshButtons();
         }
 
-        // ── Intent 발행 ──────────────────────────────
-
         private void OnConfirmClicked()
         {
             var roomName = roomNameInput.text.Trim();
@@ -63,8 +61,6 @@ namespace Game.GUI.OutGame.Lobby
             _model.Accept(new LobbyIntent.CreateRoom(roomName, _maxPlayers, SelectedMapId()));
             Close();
         }
-
-        // ── 던전 선택 ────────────────────────────────
 
         /// <summary>카탈로그의 표시이름으로 드롭다운을 채운다. 카탈로그/드롭다운 미할당이면 아무것도 안 함(기본 맵).</summary>
         private void PopulateDungeonDropdown()
@@ -93,8 +89,6 @@ namespace Game.GUI.OutGame.Lobby
 
         private void Close() => _onClose?.Invoke();
 
-        // ── 인원 수 +/- ────────────────────────────
-
         private void OnPlusClicked()
         {
             if (_maxPlayers >= MaxPlayers) return;
@@ -116,7 +110,6 @@ namespace Game.GUI.OutGame.Lobby
             maxPlayersInput.text = _maxPlayers.ToString();
         }
 
-        /// <summary>경계값에서 버튼 비활성화.</summary>
         private void RefreshButtons()
         {
             plusPlayerButton.interactable  = _maxPlayers < MaxPlayers;

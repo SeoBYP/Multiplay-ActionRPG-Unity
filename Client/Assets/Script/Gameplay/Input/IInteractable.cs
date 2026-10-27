@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Game.Gameplay.Input
 {
     /// <summary>
-    /// 플레이어가 F키로 상호작용할 수 있는 월드 오브젝트 계약.
+    /// 플레이어가 상호작용할 수 있는 월드 오브젝트 계약.
     ///
     /// 구현 예:
     ///   DoorInteractable  → "F: 문 열기"

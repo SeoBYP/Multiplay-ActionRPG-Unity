@@ -29,7 +29,7 @@ namespace Game.GUI
             public const string QUEST_CONDITION_SLOT_KEY = "Assets/Prefabs/GUI/Quest/Quest_Condition_Slot.prefab";
             public const string QUEST_REWARD_SLOT_KEY = "Assets/Prefabs/GUI/Quest/Quest_Reward_Slot.prefab";
             
-            // 인벤토리 슬롯(동적 생성용 prefab — Addressable 로드).
+            // 공용 슬롯(동적 생성용 prefab — Addressable 로드).
             public const string UniversalSlot    = "Assets/Prefabs/GUI/Common/Slot/UniversalSlot.prefab";
             public const string ItemContentsSlot = "Assets/Prefabs/GUI/Common/Slot/Contents/ItemContentsSlot.prefab";
 
@@ -39,7 +39,7 @@ namespace Game.GUI
         }
 
         /// <summary>
-        /// 게임 데이터 SO Addressable 주소(= 에셋 경로). Resources 폐기 후 Addressables 로드용.
+        /// 게임 데이터 SO Addressable 주소(= 에셋 경로).
         /// LifetimeScope 가 동기 등록 시 LoadAssetAsync(...).WaitForCompletion() 으로 읽는다(로컬 번들).
         /// </summary>
         public static class Data

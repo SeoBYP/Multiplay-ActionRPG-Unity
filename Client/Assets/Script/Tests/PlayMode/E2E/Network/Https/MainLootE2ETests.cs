@@ -9,13 +9,12 @@ using UnityEngine.TestTools;
 namespace Game.Tests.PlayMode.E2E
 {
     /// <summary>
-    /// Main(싱글) 획득 경로 E2E (Docker 서버 대상) — B-lite 서버 검증. 던전 풀 E2E(SocketE2ETests)의 Main 대응판.
+    /// Main(싱글) 획득 경로 E2E (Docker 서버 대상). 던전 풀 E2E(SocketE2ETests)의 Main 대응판.
     ///
     /// 검증: 클라는 (mapId, slotId)만 보고(ClaimKill) → **서버가 슬롯 검증 + 권위 roll + 지급**.
     ///   - 유효 슬롯 처치 → slime 보장 드랍(potion_hp_small)이 인벤토리에 반영.
     ///   - 무한 스폰·재청구(쿨다운 내) → 보상 없음 = 무한 파밍 차단(핵 직접 증명).
     ///   - 위조 슬롯 → 거부.
-    /// 정본 = docs/wiki/main-spawn-claim.md / authority-model §4b.
     /// (MonoBehaviour 글루 — LocalMonster/LocalGroundItem 입력·콜라이더 — 는 플레이 검증 영역.)
     /// </summary>
     [TestFixture]

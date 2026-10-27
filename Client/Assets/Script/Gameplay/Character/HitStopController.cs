@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Game.Gameplay.Character
 {
     /// <summary>
-    /// 피격 타격감용 per-actor HitStop — 잠깐 Animator.speed=0 (전역 Time.timeScale 금지, 설계문서 §5).
+    /// 피격 타격감용 per-actor HitStop — 잠깐 Animator.speed=0 (전역 Time.timeScale 금지).
     /// 자신 HP 감소(피격) 시 자동 트리거 + 공격자측에서 Begin() 직접 호출(연출 예측).
     /// </summary>
     public class HitStopController : MonoBehaviour

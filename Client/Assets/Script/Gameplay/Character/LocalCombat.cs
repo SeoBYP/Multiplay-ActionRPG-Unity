@@ -10,16 +10,16 @@ namespace Game.Gameplay.Character
 {
     /// <summary>
     /// Main(싱글) 전용 로컬 전투. 던전의 CombatSyncSender(C_Attack→서버 권위)와 달리,
-    /// 클라가 직접 적중을 판정한다(loot-drop.md §1.5). 싱글이라 치팅 일관성 문제가 없어 클라 권위 수용.
+    /// 클라가 직접 적중을 판정한다. 싱글이라 치팅 일관성 문제가 없어 클라 권위 수용.
     ///
     /// PlayerCharacterAgent.OnAttackPerformed → 근처 LocalMonster 를 Physics.OverlapSphere 로 모은 뒤,
     /// 서버와 동일한 HitboxMath.Overlaps(AbilityCatalogProvider 의 SkillTimeline)로 정밀 판정 → TakeDamage.
-    /// 판정 로직(HitboxMath)은 Shared.Gameplay DLL 공유 — 던전(서버)과 같은 함수. (구 SkillCatalog 는 AC-B 에서 폐기)
+    /// 판정 로직(HitboxMath)은 Shared.Gameplay DLL 공유 — 던전(서버)과 같은 함수.
     /// CharacterSpawner 가 Main 브랜치에서 로컬 캐릭터에 동적 부착.
     /// </summary>
     public sealed class LocalCombat : MonoBehaviour
     {
-        private const int BaseDamage = 10;      // Main 폴백 기본값(어빌리티 미조회 시). 던전은 ability.baseDamage(서버 권위) — AC-B
+        private const int BaseDamage = 10;      // Main 폴백 기본값(어빌리티 미조회 시). 던전은 ability.baseDamage(서버 권위)
         private const float QueryRadius = 3f;   // 광역 1차 수집 반경(정밀 판정은 HitboxMath)
 
         private PlayerCharacterAgent _agent;
@@ -75,7 +75,7 @@ namespace Game.Gameplay.Character
 
         private void PerformHit(int skillId)
         {
-            var skill = _skills?.GetTimeline(skillId); // networkId 조회(데이터 주도 — 하드코딩 매핑 제거)
+            var skill = _skills?.GetTimeline(skillId);
             if (skill == null) return; // 데이터 미로드 — 판정 스킵
 
             // 데미지 = 던전(서버 권위)과 동일 산식. 스킬 기준 데미지는 OnHitEffect(콤보 단계별 상승)에서 읽는다.
@@ -91,7 +91,7 @@ namespace Game.Gameplay.Character
                 return;
             }
 
-            // 폴백(무기 미부착): 기존 입력순간 OverlapSphere + HitboxMath 즉발 판정.
+            // 폴백(무기 미부착): 입력순간 OverlapSphere + HitboxMath 즉발 판정.
             var hitbox = skill.Hitbox; // 스킬별 hitbox(basic=정면 박스 / heavy=넓은 박스)
             var pos = transform.position;
             float yaw = transform.eulerAngles.y;

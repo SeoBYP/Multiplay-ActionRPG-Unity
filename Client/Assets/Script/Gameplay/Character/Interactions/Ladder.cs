@@ -3,14 +3,14 @@ using UnityEngine;
 namespace Game.Gameplay.Character
 {
     /// <summary>
-    /// 사다리(P6) — <b>대상이 행동을 소유</b>하는 상호작용물. 플레이어가 상호작용하면 자기 자신을
+    /// 사다리 — <b>대상이 행동을 소유</b>하는 상호작용물. 플레이어가 상호작용하면 자기 자신을
     /// <see cref="ClimbSensor"/> 에 넘겨 "이 사다리에 붙어라"라고 요청한다.
     ///
     /// <b>왜 IInteractable 인가</b>: 프로젝트 교리상 탐지는 <see cref="InteractionDetector"/> 가 전담하고
     /// 입력→대상 위임은 <see cref="IInteractable"/> 로 흐른다(`if (E) Climb()` 직결 금지).
     /// 덕분에 사다리는 트리거 볼륨·입력 처리를 스스로 갖지 않아도 된다.
     ///
-    /// <b>권위</b>: 완전 로컬(P6 결정). 네트워크 동기 없음 — 원격에는 사다리 오르는 모습이 보이지 않는다.
+    /// <b>권위</b>: 완전 로컬. 네트워크 동기 없음 — 원격에는 사다리 오르는 모습이 보이지 않는다.
     /// </summary>
     [RequireComponent(typeof(Collider))]
     public sealed class Ladder : MonoBehaviour, IInteractable
@@ -115,7 +115,7 @@ namespace Game.Gameplay.Character
 
         /// <summary>
         /// 플레이어가 있는 <b>면 쪽</b>(앞/뒤) 방향. 접근 방향을 그대로 쓰지 않고 면 법선에 <b>스냅</b>한다 —
-        /// 옆에서 다가오면 측면 기둥에 옆으로 매달리는 자세가 나오기 때문(실제로 그렇게 보였다).
+        /// 옆에서 다가오면 측면 기둥에 옆으로 매달리는 자세가 나오기 때문.
         /// </summary>
         public Vector3 GetApproachSide(Vector3 playerPosition)
         {
@@ -161,13 +161,12 @@ namespace Game.Gameplay.Character
             return first + index * spacing;
         }
 
-        /// <summary>손이 잡는 지점(월드) — 사다리 좌/우 기둥. <paramref name="right"/>=true 면 오른손 쪽.</summary>
+        /// <summary>손이 잡는 지점(월드) — 사다리 좌/우 기둥. <paramref name="rightLimb"/>=true 면 오른손 쪽.</summary>
         public Vector3 GetGripPoint(float worldY, Vector3 characterRight, bool rightLimb)
         {
             GetFaceAxes(out _, out Vector3 sideAxis);
 
-            // ⚠️ 좌우는 <b>캐릭터 기준</b>이어야 한다. 사다리 고정 축을 그대로 쓰면 반대편 면에 붙었을 때
-            //    좌우가 통째로 뒤집혀 "한쪽 손은 맞고 한쪽은 반대"가 된다(실제 증상).
+            // ⚠️ 좌우는 <b>캐릭터 기준</b>이어야 한다. 사다리 고정 축을 쓰면 반대편 면에 붙었을 때 좌우가 통째로 뒤집힌다.
             characterRight.y = 0f;
             if (characterRight.sqrMagnitude > 0.0001f)
             {
@@ -181,8 +180,7 @@ namespace Game.Gameplay.Character
 
         /// <summary>
         /// 트리거 콜라이더를 메시에 맞춘다(에디터 전용). <b>로컬 공간</b>에서 계산하는 게 핵심 —
-        /// 사다리 FBX 는 -90° 회전으로 들어와서, 월드 바운즈 크기를 그대로 로컬 size 에 넣으면 축이 뒤바뀐다
-        /// (실제로 높이 4.8m 사다리가 <b>두께 0.06m 짜리 납작한 판</b>이 돼 감지가 아예 안 됐다).
+        /// 사다리 FBX 는 -90° 회전으로 들어와서, 월드 바운즈 크기를 그대로 로컬 size 에 넣으면 축이 뒤바뀐다.
         /// </summary>
         [ContextMenu("콜라이더를 메시에 맞추기")]
         public void FitColliderToMesh()
@@ -214,9 +212,8 @@ namespace Game.Gameplay.Character
 
             box.center = local.center;
 
-            // 패딩은 <b>월드 m 단위</b>로 준다 → 로컬 크기로 환산해야 한다(사다리 FBX 는 스케일이 100 이라
-            // 그냥 더하면 0.5m 가 50m 가 된다 — 실제로 밟은 실수).
-            // 또 어느 로컬 축이 "사다리 길이"인지는 회전에 달렸으므로, 월드 up 에 가장 가까운 축을 찾아 그 축만 제외한다.
+            // 패딩은 <b>월드 m 단위</b>라 로컬 크기로 환산해야 한다(FBX 스케일이 100 이라 그냥 더하면 0.5m 가 50m 가 된다).
+            // 어느 로컬 축이 "사다리 길이"인지는 회전에 달렸으므로, 월드 up 에 가장 가까운 축을 찾아 그 축만 제외한다.
             Vector3[] axes = { transform.right, transform.up, transform.forward };
             int lengthAxis = 0;
             float best = -1f;

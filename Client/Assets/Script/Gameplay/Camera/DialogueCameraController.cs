@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Game.Gameplay.Camera
 {
     /// <summary>
-    /// 대화 카메라(A3). 전용 Cinemachine vcam 의 Priority 를 승격해 대화 중 카메라로 전환(Brain 블렌딩, 게임 vcam 무수정).
+    /// 대화 카메라. 전용 Cinemachine vcam 의 Priority 를 승격해 대화 중 카메라로 전환(Brain 블렌딩, 게임 vcam 무수정).
     /// 노드별 구도(DialogueShot)에 따라 vcam 의 LookAt/Follow 타깃을 바꾼다. 씬에 1개 배치 + DI 로 IDialogueCamera 노출.
     ///   Closeup      : LookAt=NPC, Follow=NPC
     ///   OverShoulder : LookAt=NPC, Follow=Player
@@ -26,7 +26,7 @@ namespace Game.Gameplay.Camera
 
         private void Awake()
         {
-            if (dialogueCam != null) dialogueCam.Priority = idlePriority; // 시작은 비활성 우선순위
+            if (dialogueCam != null) dialogueCam.Priority = idlePriority;
         }
 
         public void Enter(Transform npc, Transform player)
@@ -71,7 +71,7 @@ namespace Game.Gameplay.Camera
 
         public void Exit()
         {
-            if (dialogueCam != null) dialogueCam.Priority = idlePriority; // 게임 카메라로 복귀
+            if (dialogueCam != null) dialogueCam.Priority = idlePriority;
             _npc = null;
             _player = null;
         }

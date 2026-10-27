@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Game.Gameplay.Character
 {
     /// <summary>
-    /// 회피(Dodge) = Action 축 임펄스(FSM 상태 아님 — CA-1). 발동 시 고정 월드 방향으로 대시하고,
+    /// 회피(Dodge) = Action 축 임펄스(FSM 상태 아님). 발동 시 고정 월드 방향으로 대시하고,
     /// 무적 태그(<see cref="GameplayTags.Invulnerable"/>)를 i-frame 동안 세운다.
     ///
     /// 권위:
@@ -47,14 +47,14 @@ namespace Game.Gameplay.Character
         /// <summary>쿨다운이 지나 다시 회피할 수 있는가. now = Time.time.</summary>
         public bool CanBegin(float now) => now - _lastDodgeTime >= CooldownSec;
 
-        /// <summary>
-        /// 회피 시작 — 방향 락 + 무적 태그 + 애니 트리거. 방향은 호출부가 결정(입력 방향/정면).
-        /// 방향은 <b>캐릭터 로컬</b>로 변환해 DodgeX/DodgeY 로 넘긴다 — 컨트롤러의 8방향 Evade 블렌드가 이 값으로 클립을 고른다.
-        /// 트리거보다 <b>먼저</b> 세팅해야 전이 시점에 올바른 클립이 선택된다(ComboStep 과 동일 규약).
-        /// </summary>
         /// <summary>직전 <see cref="Begin"/> 의 캐릭터 기준 방향(우+/전+). 던전에서 C_Dodge 로 실어 원격도 같은 방향으로 구른다.</summary>
         public Vector2 LastLocalDirection { get; private set; } = Vector2.up;
 
+        /// <summary>
+        /// 회피 시작 — 방향 락 + 무적 태그 + 애니 트리거. 방향은 호출부가 결정(입력 방향/정면).
+        /// 방향은 <b>캐릭터 로컬</b>로 변환해 DodgeX/DodgeY 로 넘긴다 — 8방향 Evade 블렌드가 이 값으로 클립을 고른다.
+        /// 트리거보다 <b>먼저</b> 세팅해야 전이 시점에 올바른 클립이 선택된다(ComboStep 과 동일 규약).
+        /// </summary>
         public void Begin(Vector3 worldDir, float now)
         {
             _active = true;

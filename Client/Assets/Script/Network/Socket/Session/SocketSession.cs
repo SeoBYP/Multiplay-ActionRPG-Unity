@@ -45,9 +45,6 @@ namespace Game.Network.Socket
             _dispatcher = dispatcher;
         }
 
-        /// <summary>
-        /// 서버에 연결하고 수신 루프를 시작한다.
-        /// </summary>
         public async UniTask ConnectAsync(SocketConnectionInfo connectionInfo, CancellationToken ct)
         {
             if (State != SocketSessionState.Idle &&
@@ -60,7 +57,6 @@ namespace Game.Network.Socket
             try
             {
                 _connectionInfo = connectionInfo;
-                // 이전 세션 취소 토큰이 남아 있으면 정리 후 새 세션 토큰을 만든다.
                 CancelAndDisposeSessionToken();
                 _sessionCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
@@ -71,7 +67,6 @@ namespace Game.Network.Socket
 
                 State = SocketSessionState.Connected;
 
-                // 백그라운드 수신 루프는 세션 수명 동안 계속 패킷을 처리한다.
                 RunReceiveLoopAsync().Forget(ex =>
                 {
                     if (!IsExpectedDisconnectException(ex))
@@ -98,9 +93,6 @@ namespace Game.Network.Socket
             }
         }
 
-        /// <summary>
-        /// 패킷 수신 루프를 실행하고 종료 원인에 따라 세션 상태를 정리한다.
-        /// </summary>
         private async UniTask RunReceiveLoopAsync()
         {
             try
@@ -122,7 +114,6 @@ namespace Game.Network.Socket
                     State = SocketSessionState.Disconnected;
                 }
             }
-            // 그 외 예외는 세션 실패로 전환한다.
             catch (Exception e)
             {
                 State = SocketSessionState.Failed;
@@ -130,7 +121,6 @@ namespace Game.Network.Socket
             }
             finally
             {
-                // 수신 루프 종료 시 커넥터와 세션 토큰을 모두 정리한다.
                 await _connector.DisconnectAsync(CancellationToken.None);
                 CancelAndDisposeSessionToken();
 
@@ -167,23 +157,18 @@ namespace Game.Network.Socket
             catch (Exception) { /* 끊김 중 송신 실패 — 수신 루프가 끊김을 처리하므로 무시 */ }
         }
 
-        /// <summary>
-        /// 수신된 패킷을 세션 상태에 반영한 뒤 등록된 핸들러에 전달한다.
-        /// </summary>
+        /// <summary>세션 상태에 먼저 반영한 뒤 핸들러에 전달한다(순서 의존).</summary>
         private async UniTask HandlePacketAsync(Packet packet)
         {
             UpdateStateFromPacket(packet);
             await _dispatcher.DispatchAsync(packet);
         }
 
-        /// <summary>
-        /// 특정 서버 패킷에 따라 세션 상태 머신을 전이시킨다.
-        /// </summary>
         private void UpdateStateFromPacket(Packet packet)
         {
             if (packet is S_PlayerJoined joined)
             {
-                // 거절 사유를 남긴다 — 버리면 재시도 로그만 쌓이고 원인을 알 수 없다(실측: "Room is full" 을 못 봤다).
+                // 거절 사유를 남긴다 — 버리면 재시도 로그만 쌓이고 원인을 알 수 없다.
                 LastJoinFailureReason = joined.Success ? null : joined.Message;
                 State = joined.Success
                     ? SocketSessionState.Joined
@@ -191,9 +176,6 @@ namespace Game.Network.Socket
             }
         }
 
-        /// <summary>
-        /// 세션 수명 토큰과 외부 토큰을 묶은 linked token을 만든다.
-        /// </summary>
         private CancellationTokenSource CreateLinkedToken(CancellationToken ct)
         {
             if (_sessionCts == null)
@@ -226,9 +208,7 @@ namespace Game.Network.Socket
             await _connector.SendAsync(packet, linkedCts.Token);
         }
 
-        /// <summary>
-        /// 방 퇴장 패킷을 전송한다. Joined 상태에서만 유효하며, DisconnectAsync 전에 호출한다.
-        /// </summary>
+        /// <summary>Joined 상태에서만 C_PlayerLeave 를 보낸다. DisconnectAsync 전에 호출한다.</summary>
         public async UniTask LeaveRoomAsync(CancellationToken ct)
         {
             if (State != SocketSessionState.Joined)
@@ -242,9 +222,7 @@ namespace Game.Network.Socket
             Debug.Log("[SocketSession] C_PlayerLeave 전송 완료");
         }
 
-        /// <summary>
-        /// Joined 상태에서만 이동 패킷을 전송한다.
-        /// </summary>
+        /// <summary>Joined 상태에서만 이동 패킷을 전송한다(아니면 throw).</summary>
         public async UniTask SendMoveAsync(C_Move packet, CancellationToken ct)
         {
             if (State != SocketSessionState.Joined)
@@ -256,9 +234,6 @@ namespace Game.Network.Socket
             await _connector.SendAsync(packet, linkedCts.Token);
         }
 
-        /// <summary>
-        /// 임의 패킷을 Joined 상태에서 전송한다. (C_Attack 등 게임플레이 패킷)
-        /// </summary>
         public async UniTask SendAsync(Packet packet, CancellationToken ct)
         {
             if (State != SocketSessionState.Joined)
@@ -270,9 +245,6 @@ namespace Game.Network.Socket
             await _connector.SendAsync(packet, linkedCts.Token);
         }
 
-        /// <summary>
-        /// 세션을 종료하고 연결 리소스를 정리한다.
-        /// </summary>
         public async UniTask DisconnectAsync(CancellationToken ct)
         {
             _intentionalDisconnect = true; // 의도적 종료 — 수신 루프 종료가 OnDisconnected 를 발화하지 않게 한다.
@@ -286,9 +258,6 @@ namespace Game.Network.Socket
             State = SocketSessionState.Disconnected;
         }
 
-        /// <summary>
-        /// 현재 연결에 연결된 토큰과 네트워크 리소스를 일괄 정리한다.
-        /// </summary>
         private async UniTask CleanupConnectionAsync(CancellationToken ct)
         {
             CancelSessionToken();
@@ -296,17 +265,11 @@ namespace Game.Network.Socket
             CancelAndDisposeSessionToken();
         }
 
-        /// <summary>
-        /// 세션 전용 취소 토큰에 취소를 전달한다.
-        /// </summary>
         private void CancelSessionToken()
         {
             _sessionCts?.Cancel();
         }
 
-        /// <summary>
-        /// 세션 토큰을 취소 후 해제하고 null로 비운다.
-        /// </summary>
         private void CancelAndDisposeSessionToken()
         {
             _sessionCts?.Cancel();
@@ -314,9 +277,6 @@ namespace Game.Network.Socket
             _sessionCts = null;
         }
 
-        /// <summary>
-        /// 연결 종료 과정에서 예상 가능한 예외인지 판별한다.
-        /// </summary>
         private static bool IsExpectedDisconnectException(Exception exception)
         {
             if (exception is OperationCanceledException)

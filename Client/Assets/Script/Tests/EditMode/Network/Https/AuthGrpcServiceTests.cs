@@ -23,7 +23,7 @@ namespace Game.Tests.EditMode.Network
             _service = new AuthGrpcService(new FakeGrpcChannelProvider(_invoker));
         }
 
-        // ─── RegisterAsync ──────────────────────────────────────────
+        // ── RegisterAsync ──
 
         [Test]
         public async Task RegisterAsync_성공응답_반환()
@@ -51,7 +51,7 @@ namespace Game.Tests.EditMode.Network
             Assert.AreEqual(StatusCode.AlreadyExists, ex.StatusCode);
         }
 
-        // ─── LoginAsync ─────────────────────────────────────────────
+        // ── LoginAsync ──
 
         [Test]
         public async Task LoginAsync_성공응답_AccessToken_반환()
@@ -105,7 +105,7 @@ namespace Game.Tests.EditMode.Network
             Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
         }
 
-        // ─── LogoutAsync ────────────────────────────────────────────
+        // ── LogoutAsync ──
 
         [Test]
         public async Task LogoutAsync_성공응답_반환()
@@ -132,7 +132,7 @@ namespace Game.Tests.EditMode.Network
             Assert.AreEqual(StatusCode.Unauthenticated, ex.StatusCode);
         }
 
-        // ─── RefreshAsync ────────────────────────────────────────────
+        // ── RefreshAsync ──
 
         [Test]
         public async Task RefreshAsync_성공응답_새_AccessToken_반환()
@@ -186,7 +186,7 @@ namespace Game.Tests.EditMode.Network
             Assert.AreEqual(StatusCode.PermissionDenied, ex.StatusCode);
         }
 
-        // ─── 헬퍼 ───────────────────────────────────────────────────
+        // ── 헬퍼 ──
 
         private static async Task<T> Throws<T>(Func<Task> action) where T : Exception
         {

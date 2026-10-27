@@ -44,7 +44,7 @@ namespace Game.Gameplay.Character
             if (_session == null || _session.State != SocketSessionState.Joined)
                 return;
 
-            // 진단(AC-C1b): t_send. 이 시각이 스윙의 기준점이라 **송신 직전**에 찍는다.
+            // 진단 t_send — 스윙의 기준점이라 **송신 직전**에 찍는다.
             Game.Network.Socket.Diagnostics.CombatTraceRecorder.Shared.RecordAttackSent(
                 Game.Network.Socket.Diagnostics.CombatTraceRecorder.NowMs,
                 _authSession?.UserId ?? 0, // 플레이어 ActorId = +UserId (ActorIds 규약)

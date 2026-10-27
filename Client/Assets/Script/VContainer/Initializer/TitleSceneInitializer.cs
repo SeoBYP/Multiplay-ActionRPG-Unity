@@ -18,7 +18,6 @@ namespace Game.Installers
         /// </summary>
         public void Initialize()
         {
-            // Title 시작 직후 자동 로그인 비동기 흐름을 시작한다.
             var res = _authService.TryAutoLoginAsync(CancellationToken.None);
         }
     }

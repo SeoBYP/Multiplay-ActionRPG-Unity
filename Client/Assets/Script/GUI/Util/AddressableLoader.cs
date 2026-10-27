@@ -43,8 +43,7 @@ namespace Game.GUI
                 return null;
             }
 
-            // 키 미등록/주소 불일치 시 일부 Addressables 버전은 예외를 throw하지 않고
-            // Result=null 로 완료된다 → Instantiate(null) 폭발 방지(키 오타를 null 반환으로 흡수).
+            // 키 미등록/주소 불일치 시 일부 Addressables 버전은 예외 없이 Result=null 로 완료된다 → Instantiate(null) 방지.
             if (handle.Result == null)
             {
                 Debug.LogError($"[AddressableLoader] 로드 결과 없음 — 키가 등록되지 않았거나 주소 불일치. key={key}");

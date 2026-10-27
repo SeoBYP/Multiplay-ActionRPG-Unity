@@ -50,7 +50,6 @@ namespace Game.System.Auth
         /// </summary>
         public async UniTask<AuthResult> TryAutoLoginAsync(CancellationToken ct)
         {
-            // 저장된 토큰이 없으면 즉시 로그인 UI로 보낸다.
             if (!_authSession.TryLoadPersisted(out var accessToken, out var refreshToken, out var expirationTime))
             {
                 Debug.Log("Token is not exist");
@@ -61,14 +60,12 @@ namespace Game.System.Auth
             _authSession.Update(accessToken, refreshToken, expirationTime);
 
             var nowUnixSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            // access token이 아직 유효하면 서버 호출 없이 바로 인증 완료로 본다.
             if (expirationTime > nowUnixSeconds)
             {
                 Debug.Log("Token is valid");
                 return AuthResult.Success;
             }
 
-            // 만료된 경우 refresh token으로 세션 갱신을 시도한다.
             var refreshResult = await RefreshTokenAsync(ct);
             if (refreshResult == AuthResult.Success)
             {
@@ -87,7 +84,6 @@ namespace Game.System.Auth
         public async UniTask<AuthResult> LoginOrRegisterAsync(string email, string password, CancellationToken ct)
         {
             var loginResult = await TryLoginAsync(email, password, ct);
-            // 기존 계정 로그인 성공.
             if (loginResult.Result.Success)
             {
                 ApplyLogin(loginResult);
@@ -102,7 +98,6 @@ namespace Game.System.Auth
                 return AuthResult.Failed;
             }
 
-            // 계정이 없는 경우에만 회원가입 후 로그인 흐름으로 진입한다.
             return await RegisterAsync(email, password, ct);
         }
 
@@ -123,7 +118,6 @@ namespace Game.System.Auth
                 return AuthResult.Failed;
             }
 
-            // 회원가입 직후 다시 로그인해서 access/refresh token을 발급받는다.
             var loginResult = await TryLoginAsync(email, password, ct);
             if (!loginResult.Result.Success)
             {
@@ -135,9 +129,6 @@ namespace Game.System.Auth
             return AuthResult.Success;
         }
 
-        /// <summary>
-        /// 서버 로그인 API를 호출해 계정 인증을 수행한다.
-        /// </summary>
         private async UniTask<LoginResponse> TryLoginAsync(string email, string password, CancellationToken ct)
         {
             var loginRes = await _authGrpcClient.LoginAsync(new LoginRequest
@@ -170,9 +161,6 @@ namespace Game.System.Auth
             _authSession.Update(loginRes.AccessToken, loginRes.RefreshToken, loginRes.ExpiresAt);
         }
 
-        /// <summary>
-        /// 로컬 세션을 종료하고 서버 로그아웃을 비동기로 요청한다.
-        /// </summary>
         public void Logout()
         {
             // 로그아웃 RPC가 Authorization 헤더를 만들 수 있도록 현재 토큰을 먼저 유지한 채 요청을 보낸다.
@@ -185,12 +173,8 @@ namespace Game.System.Auth
             Debug.Log("Logout");
         }
 
-        /// <summary>
-        /// 현재 세션의 refresh token으로 새 토큰 세트를 발급받는다.
-        /// </summary>
         public async UniTask<AuthResult> RefreshTokenAsync(CancellationToken ct)
         {
-            // 메모리 세션이 없으면 refresh 자체를 시도할 수 없다.
             if (!_authSession.IsAuthenticated || string.IsNullOrWhiteSpace(_authSession.RefreshToken))
             {
                 return AuthResult.NeedLogin;
@@ -209,7 +193,6 @@ namespace Game.System.Auth
                 return AuthResult.Failed;
             }
 
-            // 서버가 회전시킨 토큰 세트를 현재 세션에 반영한다.
             _authSession.Update(res.AccessToken, res.RefreshToken, res.ExpiresAt);
             return AuthResult.Success;
         }

@@ -8,7 +8,6 @@ namespace Game.Gameplay.Character.Rotation
         private GameObject m_mainCamera;
         private void Awake()
         {
-            // get a reference to our main camera
             if (m_mainCamera == null)
             {
                 m_mainCamera = GameObject.FindGameObjectWithTag("MainCamera");

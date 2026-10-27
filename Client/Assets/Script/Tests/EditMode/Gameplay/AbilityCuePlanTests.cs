@@ -5,9 +5,8 @@ using NUnit.Framework;
 namespace Game.Tests.EditMode.Gameplay
 {
     /// <summary>
-    /// CA-5 Phase 1: 어빌리티 연출 타임라인 플래너(<see cref="AbilityCuePlan"/>) 순수 로직 검증.
-    /// 재생기(<see cref="Game.Gameplay.Character.AbilityCuePlayer"/>)가 "정렬된 유효 리스트"만 신뢰하도록,
-    /// 정규화 규칙(빈 id 제거·음수 클램프·시간 정렬·동시각 저작순 보존)을 여기서 못 박는다.
+    /// <see cref="AbilityCuePlan"/> 정규화 규칙(빈 id 제거·음수 클램프·시간 정렬·동시각 저작순 보존) 검증.
+    /// 재생기(<see cref="Game.Gameplay.Character.AbilityCuePlayer"/>)는 "정렬된 유효 리스트"만 신뢰한다.
     /// </summary>
     public class AbilityCuePlanTests
     {
@@ -75,7 +74,7 @@ namespace Game.Tests.EditMode.Gameplay
         [Test]
         public void 길이는_보존되고_음수는_0으로_클램프된다()
         {
-            // durationMs = 윈도우 이벤트(P6). 재생기(VFX 수명)가 신뢰하도록 플래너가 정규화.
+            // durationMs = 윈도우 이벤트. 재생기(VFX 수명)가 신뢰하도록 플래너가 정규화.
             var plan = AbilityCuePlan.Build(new List<AbilityCueEvent>
             {
                 new AbilityCueEvent { timeMs = 100, durationMs = 250, kind = ECueKind.Vfx, id = "beam" },

@@ -9,7 +9,7 @@ using UnityEngine;
 namespace Game.Gameplay.Editor
 {
     /// <summary>
-    /// LevelTableDefinition(SO) ↔ level-table.json 툴 (DropTableExporter 와 동일 컨벤션).
+    /// LevelTableDefinition(SO) ↔ level-table.json 툴.
     ///
     /// - Generate Default Curve: 비어있는/덮어쓸 SO 를 거듭제곱 Exp(round(100·L^1.5)) + 선형 스탯으로 1~60 시드.
     /// - Export: SO 의 rows → JSON 으로 bake → 서버 임베디드 경로 기록(서버 재빌드 시 반영).
@@ -21,7 +21,7 @@ namespace Game.Gameplay.Editor
     public static class LevelTableExporter
     {
         private const string ServerJsonRelative = "ServerAll/Shared/Shared.Infrastructure/Progression/level-table.json"; // repo 루트 기준
-        private const string AssetDir = "Assets/GameData/Progression"; // 저작 전용 SO(런타임 미로드, JSON bake만). Resources 밖.
+        private const string AssetDir = "Assets/GameData/Progression"; // 저작 전용 SO(런타임 미로드, JSON bake만)
         private const string AssetName = "LevelTableDefinition";
         private const int MaxLevel = 60;
 
@@ -72,7 +72,7 @@ namespace Game.Gameplay.Editor
         public static void Export()
         {
             var count = BakeAll();
-            if (count < 0) return; // 검증 실패 — 콘솔에 사유
+            if (count < 0) return;
             if (count == 0)
             {
                 EditorToolReport.Later("Export Level Table",

@@ -14,7 +14,7 @@ namespace Game.Gameplay.Editor
     ///   1) New Editor Scene (선택) → 깨끗한 작업 씬(Camera+Light)
     ///   2) MapDefinition 선택 → Load to Scene (visualPrefab + 기존 스폰 마커 생성)
     ///   3) 마커를 드래그로 배치 / Add Spawn Point
-    ///   4) Save to SO & Export JSON → SO 갱신 + 클라/서버 spawn-layouts.json bake
+    ///   4) Save to SO & Export JSON → SO 갱신 + 서버 spawn-layouts.json bake
     ///
     /// 'Spawns' 부모 아래 마커 sibling 순서 = SpawnIndex(0,1,2…).
     /// </summary>

@@ -4,13 +4,10 @@ using VContainer.Unity;
 namespace Game.Gameplay.Input
 {
     /// <summary>
-    /// 플레이어 주변의 IInteractable을 추적하고 F키 입력을 처리하는 시스템.
+    /// 플레이어 주변의 IInteractable을 추적하고 Interact 입력을 처리하는 시스템.
     ///
-    /// 우선순위(Priority = 50): UI(100)보다 낮아서
-    /// UI가 열려 있으면 F키를 UI가 먼저 소비하고 이 시스템은 동작하지 않는다.
-    ///
-    /// InteractionDetector(MonoBehaviour, 플레이어에 부착)가
-    /// SetCurrent()로 가장 가까운 IInteractable을 설정한다.
+    /// Priority = 50: UI(100)보다 낮아서 UI가 열려 있으면 UI가 먼저 소비한다.
+    /// InteractionDetector(플레이어에 부착)가 SetCurrent()로 최적 후보를 설정한다.
     /// </summary>
     public sealed class InteractionSystem : IInputHandler, IInitializable, IDisposable
     {
@@ -52,7 +49,7 @@ namespace Game.Gameplay.Input
             if (_current == null || !_current.CanInteract) return false;
 
             _current.Interact();
-            return true; // consumed
+            return true;
         }
     }
 }

@@ -32,7 +32,7 @@ namespace Game.Tests.EditMode.Network
             _service = new DungeonLobbyGrpcService(new FakeGrpcChannelProvider(_invoker));
         }
 
-        // ─── CreateRoomAsync ─────────────────────────────────────────
+        // ── CreateRoomAsync ──
 
         [Test]
         public async Task CreateRoomAsync_성공응답_방_정보_반환()
@@ -66,7 +66,7 @@ namespace Game.Tests.EditMode.Network
             Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
         }
 
-        // ─── GetRoomAsync ────────────────────────────────────────────
+        // ── GetRoomAsync ──
 
         [Test]
         public async Task GetRoomAsync_성공응답_방_정보_반환()
@@ -95,7 +95,7 @@ namespace Game.Tests.EditMode.Network
             Assert.AreEqual(StatusCode.NotFound, ex.StatusCode);
         }
 
-        // ─── GetRoomsAsync ───────────────────────────────────────────
+        // ── GetRoomsAsync ──
 
         [Test]
         public async Task GetRoomsAsync_성공응답_방_목록_반환()
@@ -138,7 +138,7 @@ namespace Game.Tests.EditMode.Network
             Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
         }
 
-        // ─── JoinRoomAsync ───────────────────────────────────────────
+        // ── JoinRoomAsync ──
 
         [Test]
         public async Task JoinRoomAsync_성공응답_반환()
@@ -167,7 +167,7 @@ namespace Game.Tests.EditMode.Network
             Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
         }
 
-        // ─── LeaveRoomAsync ──────────────────────────────────────────
+        // ── LeaveRoomAsync ──
 
         [Test]
         public async Task LeaveRoomAsync_성공응답_반환()
@@ -194,7 +194,7 @@ namespace Game.Tests.EditMode.Network
             Assert.AreEqual(StatusCode.NotFound, ex.StatusCode);
         }
 
-        // ─── UpdateRoomAsync ─────────────────────────────────────────
+        // ── UpdateRoomAsync ──
 
         [Test]
         public async Task UpdateRoomAsync_성공응답_반환()
@@ -228,7 +228,7 @@ namespace Game.Tests.EditMode.Network
             Assert.AreEqual(StatusCode.PermissionDenied, ex.StatusCode);
         }
 
-        // ─── StartRoomAsync ──────────────────────────────────────────
+        // ── StartRoomAsync ──
 
         [Test]
         public async Task StartRoomAsync_성공응답_반환()
@@ -256,7 +256,7 @@ namespace Game.Tests.EditMode.Network
             Assert.AreEqual(StatusCode.FailedPrecondition, ex.StatusCode);
         }
 
-        // ─── SubscribeRoomAsync (ServerStreaming) ────────────────────
+        // ── SubscribeRoomAsync (ServerStreaming) ──
 
         [Test]
         public async Task SubscribeRoomAsync_메시지_수신됨()
@@ -341,7 +341,7 @@ namespace Game.Tests.EditMode.Network
                     cts.Token).AsTask());
         }
 
-        // ─── 헬퍼 ───────────────────────────────────────────────────
+        // ── 헬퍼 ──
 
         private static async Task<T> Throws<T>(Func<Task> action) where T : Exception
         {

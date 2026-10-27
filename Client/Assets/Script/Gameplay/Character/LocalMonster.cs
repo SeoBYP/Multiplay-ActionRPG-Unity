@@ -11,7 +11,7 @@ namespace Game.Gameplay.Character
 {
     /// <summary>
     /// Main(싱글) 전용 클라 권위 몬스터. 던전의 MonsterEntity(서버 권위·보간 전용)와 달리
-    /// HP·간단 AI·사망 판정을 클라가 로컬로 소유한다(loot-drop.md §1.5). 싱글이라 동기화·경쟁이 없어 가능.
+    /// HP·간단 AI·사망 판정을 클라가 로컬로 소유한다. 싱글이라 동기화·경쟁이 없어 가능.
     ///
     /// - AI: LocalPlayerContext 의 플레이어가 chaseRange 안이면 추격, 밖이면 제자리(Idle). (간단 — Patrol/Attack 없음)
     /// - 전투: LocalCombat 가 HitboxMath 로 적중 판정 후 TakeDamage 호출 → HP≤0 → Die.
@@ -66,8 +66,7 @@ namespace Game.Gameplay.Character
         [Inject] private readonly LocalPlayerContext _localPlayer = null;
         // CC 효과 정의 조회(Main 클라 권위). 던전은 서버 S_ApplyEffect 경로. 미주입 시 CC 미적용(데미지만).
         [Inject] private readonly GameplayEffectCatalog _effectCatalog = null;
-        // Main 클라 스탯 캐시(서버 권위 GetProgression). 플레이어 Defense 를 공격 데미지에서 차감하는 데 쓴다.
-        // 던전(서버권위)의 Room.TickMonsters Defense 반영과 동일 산식의 Main(클라권위) 대응판. 미주입 시 Defense=0 폴백.
+        // Main 클라 스탯 캐시. 플레이어 Defense 를 공격 데미지에서 차감(던전 Room.TickMonsters 와 동일 산식). 미주입 시 Defense=0.
         [Inject] private readonly PlayerProgressionHolder _progression = null;
 
         private int _hp;
@@ -85,7 +84,7 @@ namespace Game.Gameplay.Character
         private AbilityCuePlayer _cuePlayer;
         private float _animSpeed;
 
-        /// <summary>사망 시 발행(자기 자신 전달). MainMonsterSpawner 가 디스폰·드랍(B-lite 클레임)에 사용.</summary>
+        /// <summary>사망 시 발행(자기 자신 전달). MainMonsterSpawner 가 디스폰·드랍(ClaimKill)에 사용.</summary>
         public event Action<LocalMonster> OnDied;
 
         public string MonsterId => monsterId;
@@ -95,7 +94,7 @@ namespace Game.Gameplay.Character
         /// <summary>이 몬스터 공격의 GameplayAbility id. 인스펙터 미설정 시 '{monsterId}_attack' 규약.</summary>
         private string AttackAbilityId => string.IsNullOrEmpty(attackAbilityId) ? $"{monsterId}_attack" : attackAbilityId;
 
-        /// <summary>스폰 레이아웃 슬롯(B-lite). 줍기 시 이 슬롯으로 ClaimKill → 서버 검증·roll. 0=미설정.</summary>
+        /// <summary>스폰 레이아웃 슬롯. 줍기 시 이 슬롯으로 ClaimKill → 서버 검증·roll. 0=미설정.</summary>
         public int SlotId { get; private set; }
 
         /// <summary>이 몬스터가 속한 맵 id(ClaimKill 키). MainMonsterSpawner 가 슬롯 스폰 시 주입.</summary>
@@ -169,13 +168,13 @@ namespace Game.Gameplay.Character
                 return;
             _lastAttackMs = nowMs;
 
-            // AC: 발동 = 스윙 애니(헛스윙 포함). i-frame 판정보다 먼저 재생한다(던전 MonsterEntity 와 동일).
-            // 몬스터 주공격은 아직 카탈로그 밖(어빌리티화 = B4) → 기본 공격 Cue 고정.
+            // 발동 = 스윙 애니(헛스윙 포함). i-frame 판정보다 먼저 재생한다(던전 MonsterEntity 와 동일).
+            // 주공격은 카탈로그 밖이라 기본 공격 Cue 고정.
             PlayAbilityCue(AnimationTriggerType.Attack, comboStep: 0);
             if (attackAbility != null) PlayAbilityCues(attackAbility); // SFX/VFX 타임라인(지정 시). Main 은 라우터 없어 AI 가 직접.
 
             // 회피 무적(i-frame): 무적 중이면 이 공격은 빗나간다(쿨다운은 소모 = 헛스윙). Main 클라 권위 게이트.
-            // 던전(서버 권위)은 서버 TickMonsters 가 동일하게 막는다(authority-model 정합).
+            // 던전(서버 권위)은 서버 TickMonsters 가 동일하게 막는다.
             if (target.HasTag(GameplayTags.Invulnerable)) return;
 
             // 데미지 = attackDamage − 플레이어 Defense (던전 Room.TickMonsters 와 동일 Shared 산식, 최소1).
@@ -190,7 +189,7 @@ namespace Game.Gameplay.Character
                 if (cc != null) target.ApplyEffect(cc);
             }
 
-            // 넉백(테스트 배선) — 플레이어를 몬스터 반대 방향으로 밀어낸다. 추후 Ability 가 ApplyKnockback 으로 대체.
+            // 넉백(테스트 배선) — 플레이어를 몬스터 반대 방향으로 밀어낸다.
             if (knockbackOnHit)
             {
                 var agent = target.GetComponent<PlayerCharacterAgent>();
@@ -240,7 +239,6 @@ namespace Game.Gameplay.Character
         /// <summary>
         /// 발동 연출(IActorView) — 로컬 권위. AI 의 TryAttack 이 발동 시 직접 호출한다(Main 은 네트워크·라우터 없음).
         /// 컨트롤러의 트리거 전이가 스윙 재생·복귀를 담당한다. 사망/미배선이면 조용히 무시.
-        /// ※ 몬스터 어빌리티가 카탈로그에 오르면(B4) TryAttack 이 카탈로그에서 Cue 를 해석해 넘긴다 — 지금은 주공격 고정.
         /// </summary>
         public void PlayAbilityCue(AnimationTriggerType trigger, int comboStep)
         {

@@ -91,7 +91,7 @@ namespace Game.Gameplay.Character
 
             entity.Initialize(snapshot.InstanceId, _packetState);
             _monsters[snapshot.InstanceId] = entity;
-            // AC: ActorId(-instanceId)로 레지스트리 등록 → S_AbilityActivated 발동 신호가 이 몬스터의 공격 Cue 로 라우팅됨.
+            // ActorId(-instanceId)로 등록 → S_AbilityActivated 가 이 몬스터의 공격 Cue 로 라우팅된다.
             _actors.Register(ActorIds.FromMonster(snapshot.InstanceId), entity);
 
             Debug.Log($"[MonsterSpawner] 몬스터 스폰 — InstanceId={snapshot.InstanceId} MonsterId={snapshot.MonsterId}");

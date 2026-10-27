@@ -13,7 +13,6 @@ namespace Game.Gameplay.Character
     /// 조건 = <b>사거리(<see cref="ReviveConfig.RangeMeters"/>) 안 다운 아군 + Interact(E)</b> → C_Revive 송신.
     /// 서버가 거리·상태를 재검증(권위) → S_PlayerRevived 브로드캐스트. 입력은 같은 GO 컴포넌트
     /// (`CharacterInputBuffer`, <see cref="ICharacterInputSource"/>)에서 GetComponent — 에이전트와 동일(DI 아님).
-    /// (홀드 채널은 우선 제거 — 범위+E 즉시. 추후 시전바 폴리시로 재도입 가능.)
     /// </summary>
     [DefaultExecutionOrder(-10)] // PlayerCharacterAgent(0)보다 먼저 Interact 소비(다운 아군 근처면 부활 우선)
     public sealed class ReviveInteractor : MonoBehaviour

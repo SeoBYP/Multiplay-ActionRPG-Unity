@@ -4,9 +4,8 @@ using UnityEngine;
 namespace Game.Gameplay.Abilities
 {
     /// <summary>
-    /// 어빌리티 자산(<see cref="AbilityDefinition"/>) 묶음 — 플레이어 스킬·몬스터 공격 **전부** 여기 등록한다(AC-B).
-    /// 단일 진입점 — 런타임(클라 조회)·Export bake 가 모두 이 목록을 본다(드리프트 방지).
-    /// (SkillCatalogDefinition 컨벤션 계승 — B2 에서 스킬 이관 후 SkillCatalogDefinition 은 폐기.)
+    /// 어빌리티 자산(<see cref="AbilityDefinition"/>) 묶음 — 플레이어 스킬·몬스터 공격 전부 여기 등록한다.
+    /// 런타임(클라 조회)·Export bake 가 모두 이 목록을 보므로 드리프트가 없다.
     /// </summary>
     [CreateAssetMenu(fileName = "AbilityCatalogDefinition", menuName = "Game/Ability Catalog Definition", order = 6)]
     public sealed class AbilityCatalogDefinition : ScriptableObject

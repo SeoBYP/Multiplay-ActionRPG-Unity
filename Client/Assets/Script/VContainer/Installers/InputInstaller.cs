@@ -14,7 +14,6 @@ namespace Game.Installers
     {
         public void Install(IContainerBuilder builder)
         {
-            // InputRouter: New Input System 콜백 기반, Initialize/Dispose로 수명 관리(구독 해제 포함).
             builder.RegisterEntryPoint<InputRouter>(Lifetime.Scoped)
                 .AsImplementedInterfaces()
                 .AsSelf();

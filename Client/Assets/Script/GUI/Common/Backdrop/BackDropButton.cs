@@ -6,9 +6,8 @@ using UnityEngine.UI;
 namespace Game.GUI.Common
 {
     /// <summary>
-    /// 화면 전체를 덮는 투명 클릭 캐처. 팝업(ItemActionPanel 등) 뒤에 깔아, 팝업 바깥(=뒤 화면) 클릭 시
-    /// Clicked 를 발행해 팝업을 닫게 한다. 팝업보다 sibling 아래(=뒤)에 두고 팝업을 그 위에 올린다.
-    /// 런타임 생성용 — Create(parent)로 RectTransform(stretch)+투명 Image(raycastTarget)를 갖춘 GO를 만든다.
+    /// 화면 전체를 덮는 투명 클릭 캐처. 팝업 뒤(sibling 아래)에 깔아, 팝업 바깥 클릭 시 Clicked 를 발행한다.
+    /// 런타임 생성용 — Create(parent).
     /// </summary>
     public sealed class BackDropButton : UIBehaviour, IPointerClickHandler
     {
@@ -17,7 +16,6 @@ namespace Game.GUI.Common
 
         public void OnPointerClick(PointerEventData eventData) => Clicked?.Invoke();
 
-        /// <summary>parent(보통 Canvas) 아래에 풀스크린 투명 백드롭을 생성한다.</summary>
         public static BackDropButton Create(Transform parent)
         {
             var go = new GameObject("BackDropButton", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(BackDropButton));

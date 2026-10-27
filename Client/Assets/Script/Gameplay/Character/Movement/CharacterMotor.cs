@@ -18,7 +18,7 @@ namespace Game.Gameplay.Character
         public Vector3 DesiredFacingDirection { get; private set; }
 
         /// <summary>
-        /// 락온(2.6.3) 등 외부가 바라볼 방향을 강제할 때 세팅하는 facing 오버라이드(평면 월드 방향).
+        /// 락온 등 외부가 바라볼 방향을 강제할 때 세팅하는 facing 오버라이드(평면 월드 방향).
         /// 값이 있으면 회전 전략(카메라 기준) 대신 이 방향으로 바라본다. null 이면 기존 전략 사용.
         /// 이동(DesiredMoveDirection)은 영향받지 않는다 — 락온 중에도 이동은 카메라 기준(스트레이프).
         /// </summary>
@@ -33,7 +33,6 @@ namespace Game.Gameplay.Character
         private void Awake()
         {
             m_controller = GetComponent<CharacterController>();
-            // get a reference to our main camera
             if (m_rotationStrategy == null)
             {
                 m_rotationStrategy = GetComponent<AgentRotationStrategy>();
@@ -61,7 +60,6 @@ namespace Game.Gameplay.Character
 
             CurrentVelocity = targetDirection * horizontalInput.normalized.magnitude * (m_speed * Time.deltaTime) +
                               new Vector3(0.0f, input.y, 0.0f) * Time.deltaTime;
-            //move the character controller
             m_controller.Move(CurrentVelocity);
         }
 
@@ -127,25 +125,20 @@ namespace Game.Gameplay.Character
             if (horizontalInput == Vector2.zero)
                 targetSpeed = 0.0f;
 
-            // a reference to the players current horizontal velocity
             float currentHorizontalSpeed =
                 new Vector3(m_controller.velocity.x, 0.0f, m_controller.velocity.z).magnitude;
 
             float speedOffset = 0.1f;
             float inputMagnitude = horizontalInput.magnitude;
 
-            // accelerate or decelerate to target speed
             if (currentHorizontalSpeed < targetSpeed - speedOffset ||
                 currentHorizontalSpeed > targetSpeed + speedOffset)
             {
-                // 램프 시작점을 '실제 controller.velocity'가 아니라 'm_speed(직전 의도 속도)'로 둔다.
-                // 이유: velocity 기반이면 고fps에서 첫 프레임 변위가 CharacterController.minMoveDistance(0.001)보다
-                //       작아 컨트롤러가 이동을 무시 → velocity가 0에 머물러 램프가 0에서 못 벗어나는 교착이 생긴다.
-                //       m_speed 기반이면 실제 이동 여부와 무관하게 매 프레임 가속해 변위가 곧 임계를 넘어 정상 이동.
+                // 램프 시작점은 controller.velocity 가 아니라 m_speed(직전 의도 속도) — velocity 기반이면 고fps 에서
+                // 첫 프레임 변위가 minMoveDistance(0.001)보다 작아 이동이 무시되고, velocity 가 0 에 머물러 램프가 못 벗어나는 교착이 생긴다.
                 m_speed = Mathf.Lerp(m_speed, targetSpeed * inputMagnitude,
                     Time.deltaTime * _settings.SpeedChangeRate);
 
-                // round speed to 3 decimal places
                 m_speed = Mathf.Round(m_speed * 1000f) / 1000f;
             }
             else

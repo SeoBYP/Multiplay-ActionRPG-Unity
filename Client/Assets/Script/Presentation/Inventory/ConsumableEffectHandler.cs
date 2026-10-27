@@ -12,8 +12,7 @@ namespace Game.Presentation.Inventory
     /// Side Effect 핸들러 — InventoryModel.OnConsumableUsed(차감 성공 신호) 구독 →
     /// ConsumableCatalog 데이터로 GameplayEffectDefinition 빌드 → 로컬 ASC.ApplyEffect.
     ///
-    /// 회복 적용 = 클라 권위(플레이어 HP). 적용은 GAS funnel 로 — ASC.OnAttributeChanged → HUD 자동 갱신.
-    /// (LobbyModel.NavigateToRoom 을 View 가 구독해 화면전환하는 것과 동일 구도 — Model 은 신호만, 구독자가 효과)
+    /// 적용은 GAS funnel 로 — ASC.OnAttributeChanged → HUD 자동 갱신. Model 은 신호만 내고 구독자가 효과를 적용한다.
     /// </summary>
     public sealed class ConsumableEffectHandler : IInitializable, IDisposable
     {

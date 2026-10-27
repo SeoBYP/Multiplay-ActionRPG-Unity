@@ -31,7 +31,7 @@ namespace Game.Tests.PlayMode.InGame
     [TestFixture]
     public class GameSessionConnectorTests
     {
-        // ── Fake ──────────────────────────────────────────────────────
+        // ── Fake ──
 
         private sealed class FakeGameSceneManager : IGameSceneManager
         {
@@ -115,7 +115,7 @@ namespace Game.Tests.PlayMode.InGame
                 => UniTask.FromResult(DungeonLobbyResult.Success);
         }
 
-        // ── 헬퍼 ─────────────────────────────────────────────────────
+        // ── 헬퍼 ──
 
         private static AuthSession MakeAuthSession()
         {
@@ -142,12 +142,11 @@ namespace Game.Tests.PlayMode.InGame
             }
         }
 
-        // ── 테스트 ───────────────────────────────────────────────────
+        // ── 테스트 ──
 
         [UnityTest]
         public IEnumerator JoinRoomAsync_대기_중_Disconnected_상태면_재시도한다() => UniTask.ToCoroutine(async () =>
         {
-            // Arrange
             // 1차 → Disconnected (연결 끊김), 2차 → Joined (성공)
             var session = new FakeSocketSession()
                 .QueueState(SocketSessionState.Disconnected)
@@ -157,14 +156,13 @@ namespace Game.Tests.PlayMode.InGame
             var connector    = new Game.System.InGame.GameSessionConnector(lobbyService, session, MakeAuthSession(), new FakeGameSceneManager(), new SocketPacketState());
             connector.Initialize();
 
-            // Act
             lobbyService.FireGameSessionReady("127.0.0.1", 7777, 1);
 
             // 재시도 사이에 JoinRetryDelay(500ms)가 있으므로 고정 프레임 대기로는 2차 시도를 못 본다.
             // 2회 시도가 일어날 때까지 대기하되, 무한 대기 방지를 위해 타임아웃으로 묶는다.
             await WaitForConnectAttemptsAsync(session, 2);
 
-            // Assert — Disconnected(1차) + Joined(2차) = 2번 시도
+            // Disconnected(1차) + Joined(2차) = 2번 시도
             Assert.AreEqual(2, session.ConnectCallCount, "Disconnected 상태 시 재시도해야 한다");
             Assert.AreEqual(2, session.JoinCallCount);
 

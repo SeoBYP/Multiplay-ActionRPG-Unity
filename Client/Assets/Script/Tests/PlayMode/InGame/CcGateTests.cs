@@ -10,7 +10,7 @@ using UnityEngine.TestTools;
 namespace Game.Tests.PlayMode.InGame
 {
     /// <summary>
-    /// 2.6.2 상태이상(CC) 입력 게이트(PlayMode): State.Stun 동안 PlayerCharacterAgent 가 공격 입력을 억제하고,
+    /// 상태이상(CC) 입력 게이트(PlayMode): State.Stun 동안 PlayerCharacterAgent 가 공격 입력을 억제하고,
     /// Duration 효과가 ASC.Tick 으로 만료되면 자동 해제돼 다시 입력이 통한다(사망 게이트와 달리 자동 복구).
     ///
     /// 격리 방식은 PlayerDeathGateTests 와 동일: TestableAgent 가 FSM Start 를 건너뛰어 게이트만 구동.
@@ -56,7 +56,7 @@ namespace Game.Tests.PlayMode.InGame
             yield break;
         }
 
-        // ── 리그 (PlayerDeathGateTests 와 동일 구조) ──────────────
+        // ── 리그 (PlayerDeathGateTests 와 동일 구조) ──
 
         private (TestableAgent agent, FakeInput input, GasComponent asc) BuildAgent()
         {

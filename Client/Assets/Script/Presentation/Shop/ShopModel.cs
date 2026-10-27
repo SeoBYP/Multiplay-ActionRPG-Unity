@@ -12,7 +12,7 @@ using SystemShopCategory = Game.System.Shop.ShopCategory;
 namespace Game.Presentation.Shop
 {
     /// <summary>
-    /// 상점 화면의 MVI Model. View는 Accept(Intent)만 호출하고 Model은 State만 발행한다(InventoryModel 동형).
+    /// 상점 화면의 MVI Model. View는 Accept(Intent)만 호출하고 Model은 State만 발행한다.
     /// 구매=서버 권위(IShopService.BuyAsync) → 성공 시 골드/토스트 갱신. 가격·검증은 서버.
     /// GUI(Shop View)는 이 Model만 주입받는다(IShopService·IWalletService·proto 비노출).
     /// </summary>
@@ -43,7 +43,7 @@ namespace Game.Presentation.Shop
             _gradeCatalog = gradeCatalog;
         }
 
-        // 창이 열린 동안 게임플레이 입력 점유(InventoryModel 과 동일 — IInputContext refcount).
+        // 창이 열린 동안 게임플레이 입력 점유(IInputContext refcount).
         public void BeginUiCapture() => _inputContext?.EnterUi();
         public void EndUiCapture() => _inputContext?.ExitUi();
 

@@ -7,11 +7,8 @@ using UnityEngine.InputSystem;
 namespace Game.Tests.EditMode.Input
 {
     /// <summary>
-    /// HUD 창 토글 키의 정식 라우팅 (F13).
-    ///
-    /// 예전에는 GameHud 가 `Keyboard.current` 를 직접 폴링했다 — 같은 프로젝트 안에서
-    /// 락온(정식 경로)과 창 토글(임시 폴링)이 서로 다른 방식으로 굴러가고 있었다.
-    /// 이제 i·k·q·g 가 전부 `.inputactions` → 생성 래퍼 → InputRouter → GameInputAction 으로 흐른다.
+    /// HUD 창 토글 키(i·k·q·g)의 라우팅.
+    /// 전부 `.inputactions` → 생성 래퍼 → InputRouter → GameInputAction 으로 흐른다(`Keyboard.current` 직접 폴링 금지).
     /// </summary>
     [TestFixture]
     public class HudToggleRoutingTests : InputTestFixture

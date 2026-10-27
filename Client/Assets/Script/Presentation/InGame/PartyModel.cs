@@ -26,7 +26,7 @@ namespace Game.Presentation.InGame
     /// <summary>
     /// 파티 HP HUD 의 Model — <see cref="PartyAscRegistry"/>(로컬+원격 ASC) + 로스터(닉네임) + 각 ASC Health 를
     /// 집계해 파티원 리스트로 노출한다. 구성/HP 변경 시 <see cref="Changed"/> 발행 → View(PartyHpPanel)가 재렌더.
-    /// 신규 패킷 없이 기존 GAS(S_ApplyEffect 방 브로드캐스트)만 사용 — EffectReceiver 가 원격 ASC 로 라우팅.
+    /// 전용 패킷 없이 S_ApplyEffect 방 브로드캐스트만 쓴다 — EffectReceiver 가 원격 ASC 로 라우팅.
     /// </summary>
     public sealed class PartyModel : IInitializable, IDisposable
     {

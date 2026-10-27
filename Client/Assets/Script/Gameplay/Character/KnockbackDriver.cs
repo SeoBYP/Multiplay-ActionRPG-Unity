@@ -8,8 +8,6 @@ namespace Game.Gameplay.Character
     ///
     /// 소유: <see cref="PlayerCharacterAgent"/> 가 <c>ApplyKnockback</c> 에서 Begin, 활성 동안 Tick 으로 구동하며
     /// 그동안 입력/Locomotion 을 게이트한다(스턴보다 우선 — 맞아 밀려나는 중엔 임펄스가 이동을 전담).
-    ///
-    /// 지금은 테스트/몬스터 배선용. 추후 GameplayEffect/Ability 가 ApplyKnockback 으로 융합한다(방향·세기 데이터화).
     /// </summary>
     public sealed class KnockbackDriver
     {

@@ -11,10 +11,8 @@ using VContainer.Unity;
 namespace Game.GUI.Dialogue
 {
     /// <summary>
-    /// 대화 창 생명주기 컨트롤러(상태 구동). DialogueModel.State.IsOpen 을 구독해 창을 열고 닫는다.
-    /// 대화 시작 자체는 NPC(Gameplay)→IDialogueLauncher(=DialogueModel) 경로 — 여기선 창 로드/표시만 담당.
-    /// (GUI는 System 을 직접 참조하지 못하므로 다리 구현은 DialogueModel(Presentation)에 있다.)
-    /// ShopViewController 동형(Addressable 1회 로드 후 SetActive 토글).
+    /// 대화 창 생명주기 컨트롤러. DialogueModel.State.IsOpen 을 구독해 창을 열고 닫는다(Addressable 1회 로드 후 SetActive 토글).
+    /// 대화 시작은 NPC(Gameplay)→IDialogueLauncher(=DialogueModel) 경로 — 여기선 로드/표시만 담당.
     /// </summary>
     public sealed class DialogueViewController : IInitializable, IDisposable
     {

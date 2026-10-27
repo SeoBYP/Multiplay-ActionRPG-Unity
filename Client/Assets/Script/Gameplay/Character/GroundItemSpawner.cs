@@ -59,7 +59,6 @@ namespace Game.Gameplay.Character
 
         private void HandlePickedUp(int itemId, int qty)
         {
-            // 진단 로그만. 화면 획득 토스트는 InGameModel.OnItemPickup → GameHud(MVI, 이름 표시 포함).
             Debug.Log($"[GroundItemSpawner] 아이템 획득 — ItemId={itemId} x{qty}");
         }
 

@@ -10,7 +10,7 @@ using UnityEngine.TestTools;
 namespace Game.Tests.PlayMode.InGame
 {
     /// <summary>
-    /// ⓔ-1 사망 입력 게이트(PlayMode): HP 0 → State.Dead → PlayerCharacterAgent 가 공격 입력을 억제한다.
+    /// 사망 입력 게이트(PlayMode): HP 0 → State.Dead → PlayerCharacterAgent 가 공격 입력을 억제한다.
     ///
     /// FSM/Motor 리그 없이 **게이트 자체를 격리 검증**한다:
     ///   - TestableAgent 가 Start(FSM 초기화)를 건너뜀 → CurrentState=null → base.Update() 는 no-op.
@@ -67,7 +67,7 @@ namespace Game.Tests.PlayMode.InGame
             yield break;
         }
 
-        // ── 리그 ──────────────────────────────────────────────
+        // ── 리그 ──
 
         private (TestableAgent agent, FakeInput input, GasComponent asc) BuildAgent()
         {

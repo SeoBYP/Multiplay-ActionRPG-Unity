@@ -11,7 +11,7 @@ using UnityEngine.TestTools;
 namespace Game.Tests.PlayMode.E2E
 {
     /// <summary>
-    /// 6.1 캐릭터 진행 영속 합류 — 로그아웃→재로그인(새 토큰/세션) 후에도 진행 상태가 보존되는지 검증(Docker 서버).
+    /// 캐릭터 진행 영속 — 로그아웃→재로그인(새 토큰/세션) 후에도 진행 상태가 보존되는지 검증(Docker 서버).
     ///
     /// 각 도메인은 cache-aside(Redis MISS → DB)라 새 세션도 DB에서 복원된다. 여기선 **재접속 전체 흐름**으로
     /// 진행(Exp)·인벤토리·지갑(골드)이 동일하게 남는지 확인한다(셋 다 게임플레이로 결정적 변동 가능).
@@ -46,9 +46,8 @@ namespace Game.Tests.PlayMode.E2E
             var walletBefore = await WalletService.GetWalletAsync(new GetWalletRequest(), Timeout());
 
             int potionBefore = invBefore.Items.FirstOrDefault(i => i.ItemId == Potion)?.Quantity ?? 0;
-            // 보상 수치를 하드코딩하지 않는다 — expReward 는 저작 데이터(MonsterCatalogDefinition→monsters.json)라
-            // 몬스터를 교체·리밸런스하면 바뀐다. (실제로 slime→creepy_demon 교체로 20→18 이 되면서 이 단언이 깨져 있었다.)
-            // 이 테스트가 지켜야 할 것은 "재접속해도 값이 보존된다"이지 "그 값이 20이다"가 아니다.
+            // 보상 수치를 하드코딩하지 않는다 — expReward 는 저작 데이터(monsters.json)라 몬스터 교체·리밸런스로 바뀐다.
+            // 지킬 것은 "재접속해도 값이 보존된다"이지 특정 값이 아니다.
             Assert.Greater(exp.ExpGained, 0, "사전 조건: ClaimMonsterExp 가 실제로 exp 를 지급해야 한다");
             Assert.AreEqual(exp.ExpGained, progBefore.Exp, "사전 조건: 지급된 exp 가 진행 상태에 반영돼야 한다");
             Assert.GreaterOrEqual(potionBefore, 1, "사전 조건: potion 보장 드랍");

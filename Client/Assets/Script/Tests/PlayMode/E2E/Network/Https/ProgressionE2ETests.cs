@@ -8,7 +8,7 @@ using UnityEngine.TestTools;
 namespace Game.Tests.PlayMode.E2E
 {
     /// <summary>
-    /// 진행/스탯 gRPC E2E (Docker 서버 대상). 클라 GetProgression → 서버 progression+LevelTable 합성 전 경로 검증(2.3).
+    /// 진행/스탯 gRPC E2E (Docker 서버 대상). 클라 GetProgression → 서버 progression+LevelTable 합성 전 경로 검증.
     /// 신규 유저는 적립 이력이 없어 기본 Lv1/Exp0 + Lv1 테이블 스탯을 받아야 한다.
     /// 레벨업(Exp 적립) 자체는 서버 던전보상 경로(GameServer DungeonResultRewardE2ETests)가 검증한다.
     /// </summary>

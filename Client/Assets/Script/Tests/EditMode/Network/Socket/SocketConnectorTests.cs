@@ -7,12 +7,10 @@ using NUnit.Framework;
 namespace Game.Tests.EditMode.Socket
 {
     /// <summary>
-    /// 저수준 커넥터의 송신↔종료 예외 안전성. 실게임에서 던전 이탈/소켓 드롭 순간 `MoveSyncSender` 가
-    /// C_Move 를 마지막으로 한 번 더 쏘면서 `SendAsync` 가 끊긴 스트림을 만나 NRE 를 던지던 회귀를 막는다.
-    /// (SocketConnector.SendAsync: IsConnected 통과 후 _sendLock 대기 중 DisconnectAsync 가 _stream=null →
-    ///  로컬 캡처 + 널체크 + IsExpectedDisconnect 로 조용히 무시.)
+    /// 저수준 커넥터의 송신↔종료 예외 안전성. 던전 이탈/소켓 드롭 순간 `MoveSyncSender` 의 마지막 C_Move 가
+    /// 끊긴 스트림을 만나도 `SendAsync` 는 NRE 가 아니라 조용히 무시해야 한다(IsExpectedDisconnect).
     ///
-    /// 정확한 "락 대기 중 널 교체" 타이밍 레이스는 결정론적 단위재현이 어렵다 → 관찰 가능한 계약
+    /// "락 대기 중 널 교체" 타이밍 레이스는 결정론적 재현이 어렵다 → 관찰 가능한 계약
     /// (미연결/끊김 상태 송신은 예외를 던지지 않는다)을 잠근다. 연결 생명주기 전반은 SocketE2ETests(Docker).
     /// </summary>
     public class SocketConnectorTests

@@ -15,12 +15,7 @@ using VContainer;
 namespace Game.GUI.OutGame
 {
     /// <summary>
-    /// 인게임 HUD View.
-    ///
-    /// MVI 규칙:
-    ///   - State를 받아 UI를 렌더링한다.
-    ///   - 사용자 입력을 Intent로 변환해 Model에 전달한다.
-    ///   - Service / Repository 직접 호출 없음.
+    /// 인게임 HUD View(MVI). State 렌더 + 사용자 입력을 Intent 로 Model 에 전달. Service/Repository 직접 호출 없음.
     /// </summary>
     public class GameHud : MonoBehaviour, IInputHandler
     {
@@ -111,21 +106,18 @@ namespace Game.GUI.OutGame
             expSlider = this.FindChildComponentByName<Slider>("expSlider");
             expValue = this.FindChildComponentByName<TextMeshProUGUI>("expValue");
 
-            // 획득 토스트 TMP(있으면 사용, 없으면 런타임에 코드로 생성). Shop 의 ToastText 배선과 동형.
             itemToastText = this.FindChildComponentByName<TextMeshProUGUI>("ItemToastText");
         }
         
         private void Start()
         {
-            // 라우터 등록은 Start 에서 한다 — [Inject] 필드 주입이 OnEnable 보다 늦을 수 있다(unity-client.md).
+            // 라우터 등록은 Start 에서 한다 — [Inject] 필드 주입이 OnEnable 보다 늦을 수 있다.
             _inputRouter?.Register(this);
 
-            // 결과 패널의 자체 return 버튼도 같은 복귀 흐름으로 연결.
             if (dungeonClearView != null) dungeonClearView.Bind(OnClickReturnToLobby);
             if (dungeonFailedView != null) dungeonFailedView.Bind(OnClickReturnToLobby);
 
-            // 사이드버튼 배선 — 현재는 Inventory만 연동(나머지 Ability/Shop 등은 후속).
-            // 버튼 클릭 → InGameModel 토글 신호 → InventoryViewController가 창 로드/토글(I키와 동일 funnel).
+            // 버튼 클릭 → InGameModel 토글 신호 → 각 ViewController 가 창 로드/토글(키 입력과 동일 funnel).
             BindSideButton(SideButtonType.Inventory, () => _model.Accept(InGameIntent.ToggleInventory.Instance));
             BindSideButton(SideButtonType.Shop, () => _model.Accept(InGameIntent.ToggleShop.Instance));
             BindSideButton(SideButtonType.Quest, () => _model.Accept(InGameIntent.ToggleQuest.Instance));
@@ -137,25 +129,22 @@ namespace Game.GUI.OutGame
                 .Subscribe(Render)
                 .AddTo(destroyCancellationToken);
 
-            // 비정상 연결 끊김 → 끊김 팝업(확인 시 로비 복귀).
             _model.OnConnectionLost
                 .Subscribe(_ => ShowDisconnectPopupAsync().Forget())
                 .AddTo(destroyCancellationToken);
 
-            // 아이템 획득(서버 S_ItemPickedUp) → 하단 중앙 토스트(줍기 애니 대체).
+            // 서버 S_ItemPickedUp → 하단 중앙 토스트(줍기 애니 대체).
             _model.OnItemPickup
                 .Subscribe(ShowPickupToast)
                 .AddTo(destroyCancellationToken);
 
-            // 상호작용 안내 — 가까운 대상이 생기면 "[E] 오르기", 없으면 숨김.
             _model.OnInteractionPrompt
                 .Subscribe(RenderInteractionPrompt)
                 .AddTo(destroyCancellationToken);
         }
 
         /// <summary>
-        /// 서버 획득 확정 시 뜨는 획득 토스트(ShopToastMessage 패턴). Shop 은 미할당 시 로그 폴백이지만,
-        /// 획득은 놓치면 안 되는 피드백이라 미할당 시 코드로 TMP 를 생성해 항상 보이게 한다(프리팹 무변경).
+        /// 서버 획득 확정 시 뜨는 토스트. 놓치면 안 되는 피드백이라 TMP 미할당이어도 코드로 생성해 항상 보이게 한다.
         /// </summary>
         private void ShowPickupToast(ItemToastMessage toast)
         {
@@ -174,7 +163,7 @@ namespace Game.GUI.OutGame
 
         /// <summary>
         /// 상호작용 안내 표시. 대상이 없으면(null) 숨긴다.
-        /// 문구 조립(키 라벨 + 행동 이름)은 <b>여기서</b> 한다 — Gameplay 는 키 배치를 몰라야 한다(레이어 규칙).
+        /// 문구 조립(키 라벨 + 행동 이름)은 여기서 한다 — Gameplay 는 키 배치를 몰라야 한다.
         /// </summary>
         private void RenderInteractionPrompt(string prompt)
         {
@@ -309,7 +298,6 @@ namespace Game.GUI.OutGame
                 OnClickReturnToLobby, PopupGlowType.Danger);
         }
 
-        /// <summary>sideButtons 배열에서 해당 타입의 버튼을 찾아 클릭 핸들러를 연결한다.</summary>
         private void BindSideButton(SideButtonType type, global::System.Action onClick)
         {
             if (sideButtons == null) return;
@@ -325,8 +313,7 @@ namespace Game.GUI.OutGame
 
         private void Render(InGameState state)
         {
-            // 던전 클리어(몬스터 전멸) → 결과 패널을 '지연' 표시(그 사이 막타 드랍 줍기 가능, 입력은 안 막음).
-            // 상태(IsDungeonCleared)는 즉시 true지만 패널 SetActive만 dungeonClearPanelDelaySeconds 만큼 늦춘다.
+            // IsDungeonCleared 는 즉시 true 지만 패널 SetActive 만 dungeonClearPanelDelaySeconds 만큼 늦춘다(막타 드랍 줍기).
             if (dungeonClearView != null)
             {
                 if (state.IsDungeonCleared)
@@ -345,11 +332,9 @@ namespace Game.GUI.OutGame
                 }
             }
 
-            // 던전 실패(참가자 전원 다운) → 실패 패널 표시.
             if (dungeonFailedView != null && dungeonFailedView.gameObject.activeSelf != state.IsDungeonFailed)
                 dungeonFailedView.gameObject.SetActive(state.IsDungeonFailed);
 
-            // 로컬 플레이어 스탯 → 게이지 (GAS Attribute에서 중계된 값)
             if (hpSlider != null)
                 hpSlider.SetValue(state.Hp, state.MaxHp);
             if (mpSlider != null)
@@ -360,9 +345,7 @@ namespace Game.GUI.OutGame
         }
 
         /// <summary>
-        /// 클리어 결과 패널을 dungeonClearPanelDelaySeconds 뒤에 표시한다.
-        /// 지연 동안 플레이어는 막타로 떨어진 드랍을 줍고 자유롭게 이동할 수 있다(패널은 모달이 아님).
-        /// 지연 중 상태가 클리어 해제(복귀 등)되면 _clearShowScheduled가 false로 풀려 표시를 건너뛴다.
+        /// 클리어 결과 패널을 지연 표시한다(모달 아님). 지연 중 클리어가 해제되면 _clearShowScheduled 가 풀려 표시를 건너뛴다.
         /// </summary>
         private async UniTaskVoid ShowDungeonClearAfterDelay(long rewardExp)
         {
@@ -390,8 +373,7 @@ namespace Game.GUI.OutGame
             bool isMax = state.ExpToNext <= 0;
             if (expSlider != null)
             {
-                // 표시 전용 게이지 — SetValueWithoutNotify 로 onValueChanged 발동을 막는다.
-                // (값을 받아 텍스트를 쓰는 용도라 콜백 불필요. 프리팹에 잘못 연결된 리스너가 있어도 안전.)
+                // 표시 전용 — SetValueWithoutNotify 로 프리팹에 잘못 연결된 onValueChanged 리스너를 막는다.
                 float fill = isMax ? 1f : Mathf.Clamp01((float)((double)state.Exp / state.ExpToNext));
                 expSlider.SetValueWithoutNotify(fill);
             }
@@ -399,7 +381,6 @@ namespace Game.GUI.OutGame
                 expValue.text = isMax ? "MAX" : $"{state.Exp}/{state.ExpToNext}";
         }
 
-        /// <summary>활성 버프 목록을 슬롯 풀에 바인딩. 부족하면 prefab으로 확장, 남으면 숨김.</summary>
         private void RenderBuffs(IReadOnlyList<BuffView> buffs)
         {
             if (buffSlotContainer == null)

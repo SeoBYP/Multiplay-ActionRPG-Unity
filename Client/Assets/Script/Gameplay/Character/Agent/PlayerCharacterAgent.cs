@@ -12,9 +12,9 @@ namespace Game.Gameplay.Character
 {
     public class PlayerCharacterAgent : CharacterAgent
     {
-        // 사망 상태 태그(GAS). HP 0 시 세우고, 입력/이동 게이트가 폴링한다. 던전=다운-잠금(씬 복귀 전까지 유지).
+        // 사망 태그(GAS). HP 0 시 세우고 입력/이동 게이트가 폴링한다. 던전=다운-잠금(씬 복귀 전까지 유지).
         private static readonly GameplayTag DeadTag = GameplayTags.Dead;
-        // 스턴(CC) 태그. Duration 효과가 부여→자동 만료. 켜진 동안 입력/이동 정지(사망과 달리 시간 후 자동 해제).
+        // 스턴(CC) 태그. Duration 효과가 부여→자동 만료. 켜진 동안 입력/이동 정지.
         private static readonly GameplayTag StunTag = GameplayTags.Stun;
 
         [Header("락온(2.6.3)")]
@@ -34,18 +34,18 @@ namespace Game.Gameplay.Character
         private LockOnDriver _lockOn;
         private ComboDriver _combo;
 
-        // 스킬 데이터(쿨다운·마나) 조회 — 클라 예측용. DI 미주입(테스트) 시 null → 게이트 없음.
+        // 쿨다운·마나 예측용 스킬 데이터. DI 미주입(테스트) 시 null → 게이트 없음.
         private AbilityCatalogProvider _skills;
         private AbilityCuePlayer _cuePlayer; // 로컬 플레이어 발동 시 SFX/VFX 즉발(RTT 없이). 라우터는 원격만 담당.
         private readonly Dictionary<int, float> _lastCastTime = new();
 
-        // 마나 리젠 소수부 누적(프레임 dt 비례 회복을 정수 Mana 로 환산). 서버 _manaRegenAccum 과 동일 방식.
+        // 마나 리젠 소수부 누적(dt 비례 회복을 정수 Mana 로 환산). 서버 _manaRegenAccum 과 동일 방식.
         private float _manaRegenAccum;
 
         [Inject]
         public void ConstructAbilities(AbilityCatalogProvider skills) => _skills = skills;
 
-        // 상호작용 안내(HUD) 채널 — 탐지 결과를 밀어 넣기만 한다. 표시 방식은 GUI 가 소유(레이어 규칙).
+        // 상호작용 안내(HUD) 채널 — 탐지 결과를 밀어 넣기만 하고 표시는 GUI 가 소유.
         private Game.System.Player.InteractionPromptNotifier _interactionPrompt;
 
         [Inject]
@@ -56,7 +56,6 @@ namespace Game.Gameplay.Character
         /// 던전 `CombatSyncSender`가 C_Attack{SkillId} 송신, Main `LocalCombat`가 그 스킬 hitbox 로 판정.</summary>
         public event Action<int> OnAttackPerformed;
 
-        /// <summary>회피가 발동될 때 발행. 던전 전용 `DodgeSyncSender`가 구독해 C_Dodge(서버 무적창)를 송신한다.</summary>
         /// <summary>회피 발동(캐릭터 기준 방향 우+/전+). 던전 DodgeSyncSender 가 C_Dodge 로 실어 원격 연출을 맞춘다.</summary>
         public event Action<Vector2> OnDodgePerformed;
 
@@ -70,9 +69,9 @@ namespace Game.Gameplay.Character
         {
             base.Awake();
             _interactionDetector = this.GetAroundComponent<InteractionDetector>();
-            _cuePlayer = GetComponent<AbilityCuePlayer>(); // 로컬 플레이어 연출(SFX/VFX). 미부착이면 null → 무시.
+            _cuePlayer = GetComponent<AbilityCuePlayer>(); // 미부착이면 null → 무시
 
-            // 자기 HP 를 관찰해 0 이하가 되면 State.Dead 를 세운다(클라 결정론 HP 기준).
+            // 자기 HP 를 관찰해 0 이하가 되면 State.Dead 를 세운다.
             if (AbilitySystem != null)
                 AbilitySystem.OnAttributeChanged += OnAttributeChanged;
 
@@ -84,23 +83,21 @@ namespace Game.Gameplay.Character
                 InputSource          = InputSource,
                 AbilitySystem        = AbilitySystem,
                 LocomotionSettings   = settings,
-                ClimbSensor          = this.GetAroundComponent<ClimbSensor>(), // P6: 없으면 Climb 전이 미생성
+                ClimbSensor          = this.GetAroundComponent<ClimbSensor>(), // 없으면 Climb 전이 미생성
             };
 
             _dodge = new DodgeDriver(Motor, AbilitySystem, AgentAnimations, settings);
             _knockback = new KnockbackDriver(Motor);
-            // 콤보 타이밍은 스킬 데이터(SkillTimeline)가 진실원 — 서버 cadence 게이트와 같은 값을 본다.
+            // 콤보 타이밍 진실원 = SkillTimeline — 서버 cadence 게이트와 같은 값
             _combo = new ComboDriver(ComboSkillIds, ResolveComboTiming);
 
-            // 락온 = 순수 클라 조준 보조. 카메라 Follow(피벗 회전 소유)와 Motor(facing) 에 매 프레임 push.
+            // 락온 = 순수 클라 조준 보조. 카메라 Follow(피벗 회전 소유)와 Motor(facing) 에 매 프레임 push
             var cameraFollow = this.GetAroundComponent<CharacterCameraFollow>();
             _lockOn = new LockOnDriver(transform, Motor, cameraFollow, lockOnRange);
         }
 
         /// <summary>
-        /// 외부(몬스터 공격·스킬/Ability)가 호출하는 넉백 임펄스 진입점.
-        /// 방향 = 공격자→피격자(밀려나는 방향), 거리/시간 동안 Motor 로 강제 변위(회전 없음).
-        /// 지금은 테스트/몬스터 배선용 — 추후 GameplayEffect/Ability 가 이 API 로 융합한다.
+        /// 외부(몬스터 공격·스킬)가 호출하는 넉백 임펄스 진입점. 방향 = 공격자→피격자, 거리/시간 동안 Motor 로 강제 변위(회전 없음).
         /// </summary>
         public void ApplyKnockback(Vector3 sourcePosition, float distance, float duration)
         {
@@ -117,15 +114,14 @@ namespace Game.Gameplay.Character
 
         protected override void Update()
         {
-            // Action 이동잠금(Rooted) 만료 — 공격/줍기 지속 경과 시 자동 해제(사망/스턴 게이트보다 먼저 처리해 확실히 만료).
+            // Rooted 만료 — 사망/스턴 게이트보다 먼저 처리해 확실히 해제
             if (_rootedUntil > 0f && Time.time >= _rootedUntil)
             {
                 AbilitySystem?.RemoveTag(ActionTags.Rooted);
                 _rootedUntil = 0f;
             }
 
-            // 사망(다운) 시 두 축 모두 게이트: Action(공격/상호작용) 무시 + base.Update() 미호출로
-            // Locomotion(이동) 정지. 던전 내 부활(2.5.2) 또는 씬 복귀 전까지 다운-잠금 유지.
+            // 사망(다운) 시 두 축 모두 게이트: Action 무시 + base.Update() 미호출로 Locomotion 정지. 부활 또는 씬 복귀 전까지 유지.
             if (IsDead)
             {
                 _lockOn?.ForceUnlock(); // 다운되면 락 해제(facing/카메라 원복)
@@ -133,28 +129,26 @@ namespace Game.Gameplay.Character
                 return;
             }
 
-            // 마나 자연 회복(클라 예측). 서버 RegenMana 와 동일 rate → 만마에서 수렴. 스턴/회피 중에도 진행.
+            // 마나 자연 회복(클라 예측). 서버 RegenMana 와 동일 rate. 스턴/회피 중에도 진행.
             RegenMana(Time.deltaTime);
 
-            // 넉백(강제 변위): 스턴보다 우선 — 맞아서 밀려나는 중엔 stun 이어도 임펄스가 이동을 전담한다.
+            // 넉백은 스턴보다 우선 — 밀려나는 중엔 임펄스가 이동을 전담
             if (_knockback.IsActive)
             {
                 _knockback.Tick(Time.deltaTime);
                 return;
             }
 
-            // 스턴(CC): 입력/이동 정지. 사망과 달리 Duration 효과가 ASC.Tick 으로 자동 만료→해제.
-            // 진행 중이던 회피는 끊는다(무적 태그도 정리) — 스턴에 맞아 회피가 깨진 것.
+            // 스턴: 입력/이동 정지. 진행 중이던 회피는 끊는다(무적 태그도 정리).
             if (IsStunned)
             {
                 if (_dodge.IsActive) _dodge.Cancel();
-                // base.Update() 미호출로 Motor 이동은 이미 멈춤. 애니 캐릭터의 걷기 클립/루트모션도 정지시킨다.
+                // base.Update() 미호출로 Motor 는 이미 멈춤 — 걷기 클립/루트모션도 정지
                 AgentAnimations?.SetFloat(AnimationFloatType.Speed, 0f);
                 return;
             }
 
-            // 회피 중에는 두 축을 게이트 — 대시가 이동을 전담하고 Action(공격/상호작용)·Locomotion FSM 은 멈춘다.
-            // (회피 자체는 FSM 상태가 아니라 Action 축 임펄스 — CA-1.)
+            // 회피 중엔 두 축 게이트 — 대시가 이동을 전담. 회피는 FSM 상태가 아니라 Action 축 임펄스.
             if (_dodge.IsActive)
             {
                 _dodge.Tick(Time.deltaTime);
@@ -162,27 +156,25 @@ namespace Game.Gameplay.Character
             }
 
             _interactionDetector?.DetectInteractable();
-            // 탐지된 대상의 행동 이름을 안내 채널로(대상 없으면 null → HUD 숨김). 변할 때만 발행된다.
+            // 대상 없으면 null → HUD 숨김. 변할 때만 발행된다.
             _interactionPrompt?.Set(_interactionDetector?.CurrentInteractable?.InteractionPrompt);
-            if (HandleDodgeInput()) // 회피 시작 프레임엔 다른 Action/Locomotion 을 스킵(대시가 전담).
+            if (HandleDodgeInput()) // 회피 시작 프레임엔 다른 Action/Locomotion 스킵
                 return;
             HandleLockOnInput();
             HandleAttackInput();
             HandleHeavyAttackInput();
             HandleInteractInput();
-            // facing 강제(타겟 향하기)를 base.Update()→Motor.Move 전에 적용. 유효성 이탈 시 자동 해제.
+            // facing 강제는 base.Update()→Motor.Move 전에 적용
             _lockOn?.Tick();
             base.Update();
         }
 
-        // 직전 프레임의 HP — "줄었는가"(피격) 판정용. -1 = 아직 관측 전(첫 통지는 피격으로 보지 않는다).
+        // 피격(HP 감소) 판정용 직전 HP. -1 = 관측 전(첫 통지는 피격 아님).
         private int _lastObservedHealth = -1;
 
         /// <summary>
-        /// HP 변화 반응. 두 가지를 한다:
-        ///   ① HP 가 <b>줄었고 아직 살아 있으면</b> 피격 리액션(P5) 1회 — 연출 전용(이동잠금 없음. 경직은 CC 태그가 담당).
-        ///   ② HP 가 0 이하가 되면 State.Dead 를 1회 세우고 다운 포즈를 재생한다.
-        /// 회복(증가)·첫 통지·사망 순간은 피격으로 보지 않는다.
+        /// HP 변화 반응. ① HP 가 <b>줄었고 살아 있으면</b> 피격 리액션 1회(연출 전용, 경직은 CC 태그 담당)
+        /// ② HP 0 이하면 State.Dead 를 1회 세우고 다운 포즈 재생. 회복·첫 통지·사망 순간은 피격으로 보지 않는다.
         /// </summary>
         private void OnAttributeChanged(EGameplayAttribute type, int current, int max)
         {
@@ -198,31 +190,31 @@ namespace Game.Gameplay.Character
             if (type == EGameplayAttribute.Health && current <= 0 && AbilitySystem != null && !IsDead)
             {
                 AbilitySystem.AddTag(DeadTag);
-                _combo?.Reset(); // 콤보 진행 초기화(부활 후 stale 단계 방지)
-                AgentAnimations?.ResetTrigger(AnimationTriggerType.Revive); // 이전 부활 트리거 잔재 제거(즉시 Dead 탈출 방지)
-                AgentAnimations?.ResetTrigger(AnimationTriggerType.Hit);     // 치명타로 죽는 순간 남은 피격 트리거가 Dead 를 빠져나가지 못하게
-                AgentAnimations?.SetTrigger(AnimationTriggerType.Dead); // 다운 포즈(Animator "Dead" 클립 배선은 클라 발전 시).
+                _combo?.Reset(); // 부활 후 stale 단계 방지
+                AgentAnimations?.ResetTrigger(AnimationTriggerType.Revive); // 잔재 트리거로 즉시 Dead 탈출 방지
+                AgentAnimations?.ResetTrigger(AnimationTriggerType.Hit);     // 남은 피격 트리거가 Dead 를 빠져나가지 못하게
+                AgentAnimations?.SetTrigger(AnimationTriggerType.Dead);
                 Debug.Log("[PlayerCharacterAgent] 로컬 다운 — HP≤0 → State.Dead (입력 게이트). ※다운 애니는 미배선(로그 대체)");
             }
         }
 
         /// <summary>
         /// 로컬 부활(Main 타이머 리스폰 전용 — 던전은 다운잠금이라 호출되지 않는다).
-        /// State.Dead 해제 + HP 만피 복구 + 다운 트리거 리셋 + 스폰 지점 텔레포트. 게이트가 풀려 이동·Action 재개.
+        /// State.Dead 해제 + HP 만피 + 다운 트리거 리셋 + 스폰 지점 텔레포트.
         /// </summary>
         public void Revive(Vector3 spawnPos)
         {
             if (AbilitySystem == null) return;
 
-            _dodge?.Cancel(); // 진행 중이던 회피 무적/대시 정리
+            _dodge?.Cancel();
             _knockback?.Cancel();
             AbilitySystem.RemoveTag(DeadTag);
             AbilitySystem.SetCurrent(EGameplayAttribute.Health, AbilitySystem.Max(EGameplayAttribute.Health));
 
             AgentAnimations?.ResetTrigger(AnimationTriggerType.Dead);
-            AgentAnimations?.SetTrigger(AnimationTriggerType.Revive); // Dead 포즈 → 로코모션 복귀(양성 신호)
+            AgentAnimations?.SetTrigger(AnimationTriggerType.Revive); // Dead 포즈 → 로코모션 복귀
 
-            // CharacterController 텔레포트 — 비활성화 후 위치 설정해야 내부 위치와 어긋나지 않는다.
+            // CharacterController 는 비활성화 후 위치를 설정해야 내부 위치와 어긋나지 않는다.
             var cc = GetComponent<CharacterController>();
             if (cc != null)
             {
@@ -239,8 +231,7 @@ namespace Game.Gameplay.Character
         }
 
         /// <summary>
-        /// Co-op 부활(2.5.2, 던전) — 다른 플레이어가 살려줄 때 서버 S_PlayerRevived 로 호출.
-        /// State.Dead 해제 + 서버 권위 HP 적용(부분복구) + 다운 트리거 리셋. <b>텔레포트 없음</b>(제자리 부활).
+        /// Co-op 부활(던전) — 서버 S_PlayerRevived 로 호출. State.Dead 해제 + 서버 권위 HP 적용 + 다운 트리거 리셋. <b>텔레포트 없음</b>(제자리).
         /// </summary>
         public void ReviveInPlace(int hp)
         {
@@ -251,7 +242,7 @@ namespace Game.Gameplay.Character
             AbilitySystem.RemoveTag(DeadTag);
             AbilitySystem.SetCurrent(EGameplayAttribute.Health, hp);
             AgentAnimations?.ResetTrigger(AnimationTriggerType.Dead);
-            AgentAnimations?.SetTrigger(AnimationTriggerType.Revive); // Dead 포즈 → 로코모션 복귀(양성 신호)
+            AgentAnimations?.SetTrigger(AnimationTriggerType.Revive);
 
             Debug.Log($"[PlayerCharacterAgent] Co-op 부활 — State.Dead 해제, HP={hp} (제자리). ※부활 애니 미배선(로그)");
         }
@@ -263,18 +254,12 @@ namespace Game.Gameplay.Character
         }
 
         /// <summary>
-        /// 공격 = Action 축. 입력→스윙 애니 + OnAttackPerformed 발행.
-        /// 적중 판정·데미지는 **서버 권위**(CombatSyncSender가 C_Attack 송신 → 서버 HitboxMath → S_ApplyEffect).
-        /// 로컬은 연출만(피격 HitStop은 HitStopController가 HP 감소로 자동 트리거).
-        /// </summary>
-        /// <summary>
-        /// 콤보 단계 skillId → (체인 지점 초, 콤보 창 초). <b>진실원 = 스킬 데이터</b>(skills.json, SO 저작).
-        /// 서버 `CombatHandler` 의 cadence 게이트가 같은 `ComboChainMs` 를 쓰므로 서버 권위와 애니가 어긋나지 않는다.
-        /// 데이터 미로드(테스트 하네스 등)면 폴백 상수.
+        /// 콤보 단계 skillId → (체인 지점 초, 콤보 창 초). <b>진실원 = 스킬 데이터</b>(skills.json) —
+        /// 서버 `CombatHandler` cadence 게이트가 같은 `ComboChainMs` 를 쓰므로 애니와 서버 권위가 어긋나지 않는다. 데이터 미로드면 폴백 상수.
         /// </summary>
         private (float chainSec, float windowSec) ResolveComboTiming(int skillId)
         {
-            var skill = _skills?.GetTimeline(skillId); // networkId 조회(데이터 주도 — 하드코딩 매핑 제거)
+            var skill = _skills?.GetTimeline(skillId);
             if (skill == null)
                 return (FallbackComboChainSec, FallbackComboWindowSec);
 
@@ -284,14 +269,14 @@ namespace Game.Gameplay.Character
         }
 
         /// <summary>
-        /// 기본공격 반복 = 콤보 A→B→C(선입력 버퍼링). 입력은 콤보기에 접수만 하고,
-        /// 실제 발동은 매 프레임 <see cref="ComboDriver.TryFire"/> 가 "지금 나갈 시점"을 알려줄 때 한다.
-        /// → 스윙 도중 미리 누른 입력도 버려지지 않고 체인 지점에 자동으로 이어진다(애니가 즉시 잘리지 않음).
+        /// 공격 = Action 축. 기본공격 반복 = 콤보 A→B→C(선입력 버퍼링). 입력은 콤보기에 접수만 하고,
+        /// 실제 발동은 <see cref="ComboDriver.TryFire"/> 가 "지금 나갈 시점"을 알릴 때 한다(스윙 중 선입력이 체인 지점에 이어진다).
+        /// 적중 판정·데미지는 <b>서버 권위</b>(CombatSyncSender → C_Attack), 로컬은 연출만.
         /// </summary>
         private void HandleAttackInput()
         {
             if (InputSource != null && InputSource.ConsumeAttackPressed())
-                _combo.OnAttackPressed(Time.time); // 접수(선입력 포함)
+                _combo.OnAttackPressed(Time.time);
 
             if (_combo.TryFire(Time.time, out int skillId, out int step))
                 FireSkill(skillId, step);
@@ -310,39 +295,38 @@ namespace Game.Gameplay.Character
         {
             if (InputSource == null || !InputSource.ConsumeHeavyAttackPressed())
                 return;
-            FireSkill(1); // 강공격(heavy_swing)
+            FireSkill(1);
         }
 
         /// <summary>스킬 발동 — 클라 마나+쿨다운 예측 게이트 통과 시 애니+OnAttackPerformed. 서버 게이트가 최종 권위.
         /// comboStep: 콤보 단계(0=A/1=B/2=C). 음수 = 비콤보(강공격 등)로 A 애니 재생.</summary>
         private void FireSkill(int skillId, int comboStep = -1)
         {
-            var skill = _skills?.GetTimeline(skillId); // networkId 조회(데이터 주도 — 하드코딩 매핑 제거)
+            var skill = _skills?.GetTimeline(skillId);
             int manaCost = skill?.ManaCost ?? 0;
-            if (!HasMana(manaCost))            // 마나 부족 → 발동/송신 안 함(서버도 동일 거부)
+            if (!HasMana(manaCost))            // 마나는 쿨다운보다 먼저 — 거부될 발동이 쿨다운을 커밋하지 않게
                 return;
-            if (!SkillCooldownReady(skillId))  // 쿨다운(통과 시 발동시각 커밋)
+            if (!SkillCooldownReady(skillId))  // 통과 시 발동시각 커밋
                 return;
             SpendMana(manaCost);               // 예측 차감 — 서버가 S_PlayerMana 로 정정
 
-            // 발동한 GameplayAbility(스킬) 식별 로그 — "지금 어떤 어빌리티로 공격하는가".
             string abilityId = skill?.Id ?? $"(unknown networkId {skillId})";
             Debug.Log($"[GameplayAbility] 발동: '{abilityId}' (mana {manaCost}, cd {skill?.CooldownMs ?? 0}ms)");
 
-            // 콤보 단계를 애니 파라미터로 → 컨트롤러가 A/B/C 상태 선택. 비콤보(강공격)는 0(A) 재생.
+            // 콤보 단계 파라미터로 컨트롤러가 A/B/C 선택
             AgentAnimations?.SetInt(AnimationIntType.ComboStep, comboStep < 0 ? 0 : comboStep);
             AgentAnimations?.SetTrigger(AnimationTriggerType.Attack);
             OnAttackPerformed?.Invoke(skillId);
-            _cuePlayer?.Play(_skills?.Get(skillId)); // SFX/VFX 타임라인 즉발(로컬 권위 연출). 라우터는 원격만.
+            _cuePlayer?.Play(_skills?.Get(skillId)); // 로컬 즉발(RTT 없이). 라우터는 원격만 담당
 
-            // 공격 발동 = Action 이동잠금. 스킬 타임라인(startup+active+recovery) 동안 수평 이동 금지(GroundState 폴링).
+            // 스킬 타임라인(startup+active+recovery) 동안 수평 이동 금지(GroundState 폴링)
             float attackRootSec = skill != null ? (skill.StartupMs + skill.ActiveMs + skill.RecoveryMs) / 1000f : 0.4f;
             ApplyRoot(attackRootSec);
         }
 
-        // 공격/상호작용 이동잠금(Rooted) 만료 시각(Time.time 기준). 0 = 잠금 없음.
+        // Rooted 만료 시각(Time.time 기준). 0 = 잠금 없음.
         private float _rootedUntil;
-        // 상호작용(줍기 등) 이동잠금 지속(초). 스킬과 달리 데이터 타임라인이 없어 고정값(튜닝 대상).
+        // 상호작용 이동잠금 지속(초). 스킬과 달리 데이터 타임라인이 없어 고정값.
         private const float InteractRootSeconds = 0.6f;
 
         /// <summary>Action(공격·상호작용) 발동 시 <see cref="ActionTags.Rooted"/> 를 지속시간만큼 부여. Update 가 만료 시 해제.</summary>
@@ -358,7 +342,7 @@ namespace Game.Gameplay.Character
         {
             if (cost <= 0) return true;
             if (AbilitySystem == null || !AbilitySystem.Has(EGameplayAttribute.Mana))
-                return true; // 마나 속성이 없는 캐릭터/테스트는 무료
+                return true;
             return AbilitySystem.Current(EGameplayAttribute.Mana) >= cost;
         }
 
@@ -397,7 +381,7 @@ namespace Game.Gameplay.Character
         /// <summary>스킬 쿨다운 경과 여부(클라 예측). 통과 시 마지막 발동시각 갱신. 데이터 미주입(테스트)이면 항상 true.</summary>
         private bool SkillCooldownReady(int skillId)
         {
-            var skill = _skills?.GetTimeline(skillId); // networkId 조회(데이터 주도 — 하드코딩 매핑 제거)
+            var skill = _skills?.GetTimeline(skillId);
             if (skill == null)
                 return true;
 
@@ -411,8 +395,7 @@ namespace Game.Gameplay.Character
         }
 
         /// <summary>
-        /// 회피 = Action 축. 입력 소비 + 쿨다운 통과 시 DodgeDriver.Begin(대시+무적 태그+애니).
-        /// 방향: 이동 입력이 있으면 그 방향(카메라 기준 월드), 없으면 정면 구르기(transform.forward).
+        /// 회피 = Action 축. 방향: 이동 입력이 있으면 그 방향(카메라 기준 월드), 없으면 정면 구르기.
         /// 던전 무적은 OnDodgePerformed → DodgeSyncSender → C_Dodge 로 서버가 권위 강제(쿨다운 검증).
         /// </summary>
         private bool HandleDodgeInput()
@@ -421,7 +404,7 @@ namespace Game.Gameplay.Character
                 return false;
             if (!_dodge.CanBegin(Time.time))
                 return false;
-            if (!HasMana(DodgeConfig.ManaCost)) // 마나 부족 → 회피 발동/송신 안 함(서버도 동일 거부)
+            if (!HasMana(DodgeConfig.ManaCost)) // 서버도 동일 거부
                 return false;
 
             Vector3 dir = Motor != null ? Motor.ResolveWorldMoveDirection(InputSource.Current.Move) : Vector3.zero;
@@ -430,14 +413,12 @@ namespace Game.Gameplay.Character
 
             SpendMana(DodgeConfig.ManaCost); // 예측 차감 — 서버가 S_PlayerMana 로 정정
             _dodge.Begin(dir, Time.time);
-            OnDodgePerformed?.Invoke(_dodge.LastLocalDirection); // Begin 이 계산한 로컬 방향 재사용(중복 계산 금지)
+            OnDodgePerformed?.Invoke(_dodge.LastLocalDirection); // Begin 이 계산한 방향 재사용
             return true;
         }
 
         /// <summary>
-        /// 상호작용 = Action 축. FSM 상태(구 InteractState)가 아니라 입력→탐지된 대상에게 위임.
-        /// 대상(문/아이템/NPC)이 IInteractable.Interact(interactor)로 행동을 소유한다(instigator 전달).
-        /// ※ 이동 제약/캐스트 타이밍이 필요해지면 GameplayEffect/태그로(전이 아님), 정식화는 후속.
+        /// 상호작용 = Action 축. 입력→탐지된 대상에게 위임, 대상이 IInteractable.Interact(interactor)로 행동을 소유한다.
         /// </summary>
         private void HandleInteractInput()
         {
@@ -448,9 +429,8 @@ namespace Game.Gameplay.Character
             if (target == null)
                 return;
 
-            // 상호작용 애니는 재생하지 않는다 — 전용 클립이 없고(플레이스홀더 DrawWeapon뿐),
-            // 아이템 줍기 피드백은 애니 대신 GameHud 획득 토스트(InGameModel.OnItemPickup)로 대체(사용자 결정).
-            // 이동잠금은 위임 **전에** 건다 — 대상의 Interact 가 조기반환/예외여도 잠금은 걸려야 한다(Action 축, 전이 아님).
+            // 상호작용 애니는 재생하지 않는다 — 줍기 피드백은 GameHud 획득 토스트(InGameModel.OnItemPickup).
+            // 이동잠금은 위임 **전에** 건다 — 대상의 Interact 가 조기반환/예외여도 잠금은 걸려야 한다.
             ApplyRoot(InteractRootSeconds);
             target.Interact(gameObject);
         }

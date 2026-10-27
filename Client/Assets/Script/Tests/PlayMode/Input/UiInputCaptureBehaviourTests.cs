@@ -12,7 +12,7 @@ namespace Game.Tests.PlayMode.Input
     ///
     /// 핵심 회귀: 로비 X 버튼(btn_close)은 뷰 GameObject를 SetActive(false)로 숨긴다.
     /// 점유 해제가 OnDisable에 묶여 있어야 X로 닫을 때 입력이 풀려 플레이어가 다시 움직인다.
-    /// (이전엔 버튼 onClick 리스너에 의존해, SetActive가 onClick 도중 계층을 끄면 해제가 누락돼 프리즈했다.)
+    /// (버튼 onClick 리스너에 의존하면 SetActive가 onClick 도중 계층을 끌 때 해제가 누락돼 프리즈한다.)
     /// </summary>
     [TestFixture]
     public class UiInputCaptureBehaviourTests

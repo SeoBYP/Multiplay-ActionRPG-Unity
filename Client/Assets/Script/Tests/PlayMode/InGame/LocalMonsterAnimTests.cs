@@ -8,7 +8,7 @@ using Object = UnityEngine.Object;
 namespace Game.Tests.PlayMode.InGame
 {
     /// <summary>
-    /// AC 증분6: Main(솔로·클라 권위) 몬스터 공격 발동 연출 검증 — <b>실제 CreepyDemonLocal 프리팹</b>을 로드해
+    /// Main(솔로·클라 권위) 몬스터 공격 발동 연출 검증 — <b>실제 CreepyDemonLocal 프리팹</b>을 로드해
     /// LocalMonster.PlayAbilityCue(발동)가 Animator 를 "Attack" 상태로 전이하는지 확인한다.
     /// 프리팹의 LocalMonster.attackState="Attack" 배선을 고정한다(비면 조용히 스킵돼 Main 몬스터 공격 애니가 안 보이는 회귀).
     /// 던전 MonsterEntity 와 동일한 재생 로직 — Main 은 로컬 AI 가 직접 호출(네트워크·라우터 없음).

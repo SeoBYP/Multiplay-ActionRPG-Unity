@@ -29,7 +29,7 @@ namespace Game.Tests.PlayMode.E2E
     [TestFixture]
     public class GameSessionConnectorE2ETests : E2ETestBase
     {
-        // ── 재연결 헬퍼 ─────────────────────────────────────────────
+        // ── 재연결 헬퍼 ──
 
         /// <summary>
         /// GameSessionConnector.ConnectAndLoadDungeonAsync 재시도 루프와 동일한 패턴.
@@ -89,7 +89,7 @@ namespace Game.Tests.PlayMode.E2E
             return false;
         }
 
-        // ── 테스트 ───────────────────────────────────────────────────
+        // ── 테스트 ──
 
         /// <summary>
         /// Disconnected 상태 발생 후 WaitUntil 루프가 무한 대기에 빠지지 않고
@@ -97,13 +97,13 @@ namespace Game.Tests.PlayMode.E2E
         ///
         /// 시나리오:
         ///   1차 시도: JoinRoomAsync 후 즉시 DisconnectAsync → Disconnected
-        ///   → WaitUntil 탈출 (수정 전에는 여기서 무한 대기)
+        ///   → WaitUntil 탈출
         ///   2차 시도: 정상 입장 → Joined
         /// </summary>
         [UnityTest]
         public IEnumerator Disconnected_상태에서_무한대기_없이_재시도해_Joined_도달() => UniTask.ToCoroutine(async () =>
         {
-            // Arrange: 2-player 방 (게스트가 방 유지)
+            // 2-player 방 (게스트가 방 유지)
             var provider = new GrpcChannelProvider(ServerConfig.GameServerGrpcAddress);
             var auth     = new AuthGrpcService(provider);
             var user     = new UserGrpcService(provider);
@@ -111,7 +111,6 @@ namespace Game.Tests.PlayMode.E2E
 
             try
             {
-                // 호스트 계정
                 var hostEmail = E2ETestBase.UniqueEmail();
                 await auth.RegisterAsync(new RegisterRequest { Email = hostEmail, Password = "Test1234!" }, Timeout());
                 var hostLogin = await auth.LoginAsync(new LoginRequest { Email = hostEmail, Password = "Test1234!", DeviceId = "gc-e2e-host" }, Timeout());
@@ -122,7 +121,6 @@ namespace Game.Tests.PlayMode.E2E
                 var created = await lobby.CreateRoomAsync(new CreateRoomRequest { RoomName = "GC E2E", MaxPlayers = 2 }, Timeout());
                 Assert.IsTrue(created.Result.Success);
 
-                // 게스트 계정
                 var guestEmail = E2ETestBase.UniqueEmail();
                 await auth.RegisterAsync(new RegisterRequest { Email = guestEmail, Password = "Test1234!" }, Timeout());
                 var guestLogin = await auth.LoginAsync(new LoginRequest { Email = guestEmail, Password = "Test1234!", DeviceId = "gc-e2e-guest" }, Timeout());
@@ -133,7 +131,6 @@ namespace Game.Tests.PlayMode.E2E
                 // 호스트를 뺀 전원이 준비해야 StartRoom 이 통과한다(준비 게이트, 서버 권위).
                 await lobby.SetReadyAsync(new SetReadyRequest { RoomId = created.RoomInfo.RoomId, IsReady = true }, Timeout());
 
-                // 게임 시작 (호스트)
                 provider.AccessTokenProvider = () => hostLogin.AccessToken;
                 var started = await lobby.StartRoomAsync(new StartRoomRequest { RoomId = created.RoomInfo.RoomId }, Timeout());
                 Assert.IsTrue(started.Result.Success);
@@ -198,7 +195,6 @@ namespace Game.Tests.PlayMode.E2E
 
             try
             {
-                // 호스트
                 var hostEmail = E2ETestBase.UniqueEmail();
                 await auth.RegisterAsync(new RegisterRequest { Email = hostEmail, Password = "Test1234!" }, Timeout());
                 var hostLogin = await auth.LoginAsync(new LoginRequest { Email = hostEmail, Password = "Test1234!", DeviceId = "crash-host" }, Timeout());
@@ -207,7 +203,6 @@ namespace Game.Tests.PlayMode.E2E
                 var hostUserId = ExtractUserId(hostLogin.AccessToken);
                 var created = await lobby.CreateRoomAsync(new CreateRoomRequest { RoomName = "Crash E2E", MaxPlayers = 2 }, Timeout());
 
-                // 게스트
                 var guestEmail = E2ETestBase.UniqueEmail();
                 await auth.RegisterAsync(new RegisterRequest { Email = guestEmail, Password = "Test1234!" }, Timeout());
                 var guestLogin = await auth.LoginAsync(new LoginRequest { Email = guestEmail, Password = "Test1234!", DeviceId = "crash-guest" }, Timeout());
@@ -225,7 +220,6 @@ namespace Game.Tests.PlayMode.E2E
                 var guestCollector = await ConnectAndJoinCollectorAsyncHelper(
                     created.RoomInfo.RoomId, guestUserId, Timeout());
 
-                // 호스트 첫 번째 입장
                 var hostCollector = await ConnectAndJoinCollectorAsyncHelper(
                     created.RoomInfo.RoomId, hostUserId, Timeout());
 
@@ -258,7 +252,7 @@ namespace Game.Tests.PlayMode.E2E
             }
         });
 
-        // ── 헬퍼 ─────────────────────────────────────────────────────
+        // ── 헬퍼 ──
 
         private static async UniTask<SocketPacketCollector> ConnectAndJoinCollectorAsyncHelper(
             long roomId, long userId, CancellationToken ct)

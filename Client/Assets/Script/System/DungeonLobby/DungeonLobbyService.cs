@@ -176,7 +176,6 @@ namespace Game.System.DungeonLobby
             SubscribeLoopAsync(roomId, _subscriptionCts.Token).Forget();
         }
 
-        /// <summary>현재 스트림 구독을 취소한다.</summary>
         private void StopSubscription()
         {
             if (_subscriptionCts == null) return;

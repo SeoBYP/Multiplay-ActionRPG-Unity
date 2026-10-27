@@ -14,7 +14,7 @@ namespace Game.Tests.PlayMode.InGame
 {
     /// <summary>
     /// 파티 HP HUD Model 검증 — PartyAscRegistry(로컬+원격 ASC) 집계 + ASC HP 변경 시 Changed 발행.
-    /// HP 진실원 = 서버 권위(GAS). 이 Model 은 신규 패킷 없이 기존 ASC 만 집계한다.
+    /// HP 진실원 = 서버 권위(GAS). 이 Model 은 패킷 없이 ASC 만 집계한다.
     /// </summary>
     public class PartyModelTests
     {
@@ -89,7 +89,7 @@ namespace Game.Tests.PlayMode.InGame
             Assert.AreEqual(1, _model.GetParty().Count, "디스폰한 원격은 파티 목록에서 빠져야 한다.");
         }
 
-        // ── 헬퍼 ────────────────────────────────────────
+        // ── 헬퍼 ──
 
         private GasComponent MakeAsc(int hp)
         {

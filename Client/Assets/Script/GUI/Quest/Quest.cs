@@ -12,9 +12,8 @@ using VContainer;
 namespace Game.GUI.Quest
 {
     /// <summary>
-    /// 퀘스트 창 View(MVI). QuestModel 만 주입받아 State 구독·렌더 + Intent 발행(System/proto 비노출).
-    /// 마스터-디테일: 좌측 목록(QuestSlot 동적 풀) 선택 → 우측 정보/조건/보상 + 수주/보상받기 버튼.
-    /// 목록 슬롯은 prefab 의 첫 슬롯을 템플릿으로 부족분만 복제(Shop.EnsureItemRows 와 동일 풀 패턴). 열린 동안 캐릭터 이동 차단.
+    /// 퀘스트 창 View(MVI). QuestModel 만 주입받아 State 구독·렌더 + Intent 발행.
+    /// 마스터-디테일: 좌측 목록(QuestSlot 동적 풀) 선택 → 우측 정보/조건/보상. 열린 동안 캐릭터 이동 차단.
     /// </summary>
     public class Quest : MonoBehaviour
     {
@@ -102,8 +101,7 @@ namespace Game.GUI.Quest
             if (btn_close != null) btn_close.onClick.AddListener(() => gameObject.SetActive(false));
             if (btn_Decline != null) btn_Decline.gameObject.SetActive(false); // 포기(abandon) 서버 미지원
 
-            // 수락·보상 버튼 폐지 — 수주/보상 수령은 NPC 대화로만. 창은 저널(목록+진행) 전용.
-            // 피드백(수락/완료/보상)은 QuestNotifier→AlertPopup 으로 표시.
+            // 수주/보상 수령은 NPC 대화로만 — 창은 저널 전용이라 버튼을 영구 숨긴다. 피드백은 QuestNotifier→AlertPopup.
             if (btn_Accept != null) btn_Accept.gameObject.SetActive(false);
             if (btn_Complete != null) btn_Complete.gameObject.SetActive(false);
         }
@@ -113,11 +111,9 @@ namespace Game.GUI.Quest
             _latestState = state;
             var quests = state.Quests;
 
-            // 선택 유지(없거나 사라졌으면 첫 항목).
             if (_selectedQuestId == null || quests.All(q => q.QuestId != _selectedQuestId))
                 _selectedQuestId = quests.Count > 0 ? quests[0].QuestId : null;
 
-            // 목록 — 부족분 동적 확장 후 바인딩, 남는 슬롯 숨김.
             if (questSlots != null)
             {
                 EnsureQuestSlots(quests.Count);
@@ -148,7 +144,6 @@ namespace Game.GUI.Quest
             RenderDetail();
         }
 
-        /// <summary>목록 풀이 needed 개에 못 미치면 템플릿을 복제해 채운다(Shop.EnsureItemRows 동일 패턴).</summary>
         private void EnsureQuestSlots(int needed)
         {
             if (_slotTemplate == null || _slotParent == null) return;
@@ -182,7 +177,6 @@ namespace Game.GUI.Quest
                     else c.gameObject.SetActive(false);
                 }
 
-            // 보상 — 항목별 슬롯, 남는 슬롯 숨김.
             if (questRewardSlots != null)
             {
                 var lines = hasSel ? sel.RewardLines : null;
@@ -198,8 +192,6 @@ namespace Game.GUI.Quest
                     else r.gameObject.SetActive(false);
                 }
             }
-
-            // 수락·보상 버튼 폐지(NPC 대화로 일원화) — 여기서 다시 켜지 않는다(WireOnce 에서 영구 숨김).
         }
 
         private void ShowToast(string message) => Debug.Log($"[Quest] {message}");

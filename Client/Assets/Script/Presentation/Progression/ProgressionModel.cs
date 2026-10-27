@@ -8,7 +8,7 @@ using R3;
 namespace Game.Presentation.Progression
 {
     /// <summary>
-    /// 스탯창(7.3)의 MVI Model. View 는 Refresh 만 호출하고 State 를 구독한다.
+    /// 스탯창의 MVI Model. View 는 Refresh 만 호출하고 State 를 구독한다.
     /// GUI(스탯창 View)는 이 Model 만 주입받는다(IProgressionService·proto 비노출).
     /// 진행/스탯은 서버 권위 pull(GetProgression) — 창을 열 때마다 최신값을 가져온다.
     /// </summary>
@@ -27,7 +27,7 @@ namespace Game.Presentation.Progression
             _inputContext = inputContext;
         }
 
-        // 창 활성 동안 게임플레이 입력 점유(인벤/퀘스트 동일, refcount). StatWindow 가 UiInputCaptureBehaviour 로 바인드.
+        // 창 활성 동안 게임플레이 입력 점유(refcount). StatWindow 가 UiInputCaptureBehaviour 로 바인드.
         public void BeginUiCapture() => _inputContext?.EnterUi();
         public void EndUiCapture() => _inputContext?.ExitUi();
 

@@ -11,7 +11,7 @@ using R3;
 namespace Game.Presentation.Quest
 {
     /// <summary>
-    /// 퀘스트 화면 MVI Model. View는 Accept(Intent)만, Model은 State만 발행(ShopModel 동형).
+    /// 퀘스트 화면 MVI Model. View는 Accept(Intent)만, Model은 State만 발행.
     /// 수주/보상 = 서버 권위(IQuestService) → 성공 시 목록 재조회 + 토스트. GUI는 이 Model만 주입받는다.
     /// </summary>
     public sealed class QuestModel : IDisposable

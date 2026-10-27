@@ -39,8 +39,7 @@ namespace Game.Presentation.Inventory
 
         /// <summary>
         /// numericId 로 표시 정보를 찾는다. 서버·DB·패킷이 전부 int 키를 쓰므로 조회도 int 다.
-        /// <para>문자열 <c>itemId</c> 는 저작·로그용으로 남겨두되 <b>조회 키가 아니다</b> — 키가 둘이면
-        /// 다시 갈라진다(items.json 이 Exporter 없이 이중 저작되며 갈라졌던 A4 의 재발 방지).</para>
+        /// <para>문자열 <c>itemId</c> 는 저작·로그용으로 남겨두되 <b>조회 키가 아니다</b> — 키가 둘이면 다시 갈라진다.</para>
         /// </summary>
         public Entry Get(int numericId)
         {

@@ -7,7 +7,7 @@ namespace Game.Tests.EditMode.Network
     [TestFixture]
     public class AnonymousObserverTests
     {
-        // ─── Construction ───────────────────────────────────────────
+        // ── Construction ──
 
         [Test]
         public void null_onNext_ArgumentNullException_발생()
@@ -27,7 +27,7 @@ namespace Game.Tests.EditMode.Network
             Assert.DoesNotThrow(() => new AnonymousObserver<int>(_ => { }, onCompleted: null));
         }
 
-        // ─── OnNext ─────────────────────────────────────────────────
+        // ── OnNext ──
 
         [Test]
         public void OnNext_등록된_액션이_호출됨()
@@ -76,7 +76,7 @@ namespace Game.Tests.EditMode.Network
             Assert.AreSame(expected, received);
         }
 
-        // ─── OnError ────────────────────────────────────────────────
+        // ── OnError ──
 
         [Test]
         public void OnError_등록된_핸들러가_호출됨()
@@ -110,7 +110,7 @@ namespace Game.Tests.EditMode.Network
             Assert.AreSame(expected, received);
         }
 
-        // ─── OnCompleted ────────────────────────────────────────────
+        // ── OnCompleted ──
 
         [Test]
         public void OnCompleted_등록된_액션이_호출됨()

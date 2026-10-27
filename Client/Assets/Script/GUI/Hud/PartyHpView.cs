@@ -8,12 +8,9 @@ using VContainer.Unity;
 namespace Game.GUI.OutGame
 {
     /// <summary>
-    /// 던전 파티원 HP HUD(화면 좌상단). MVI View — 오직 <see cref="PartyModel"/> 하나만 주입받는다.
-    ///
-    /// GameHud(로컬 전용, InGameModel)와 분리한 이유: MVI "뷰=모델 1개" 규칙 위반을 피하고,
-    /// 프리팹 수술 없이 코드로 자체 Canvas·행 풀을 구성해 어느 씬에서든 생성/해제 가능(생명주기 원칙 3).
-    ///
-    /// 데이터: PartyModel.Changed 발행 시 GetParty() 재조회 → 행 풀 재바인딩. HP 진실원은 서버 권위(GAS).
+    /// 던전 파티원 HP HUD(화면 좌상단). <see cref="PartyModel"/> 하나만 주입받는 MVI View.
+    /// GameHud(InGameModel)와 분리해 코드로 자체 Canvas·행 풀을 구성하므로 어느 씬에서든 생성/해제할 수 있다.
+    /// PartyModel.Changed 마다 GetParty() 재조회 → 행 재바인딩. HP 진실원은 서버.
     /// </summary>
     public sealed class PartyHpView : IStartable, System.IDisposable
     {
@@ -43,7 +40,6 @@ namespace Game.GUI.OutGame
             if (_panel != null) Object.Destroy(_panel.gameObject.transform.root.gameObject);
         }
 
-        /// <summary>화면 좌상단에 자체 Overlay Canvas + 세로 레이아웃 컨테이너를 코드로 만든다(비상호작용).</summary>
         private void BuildCanvas()
         {
             var canvasGo = new GameObject("PartyHpCanvas");
@@ -113,11 +109,9 @@ namespace Game.GUI.OutGame
                 le.preferredWidth = RowWidth;
                 le.preferredHeight = RowHeight;
 
-                // 배경(어두운 반투명)
                 var bg = _go.AddComponent<Image>();
                 bg.color = new Color(0f, 0f, 0f, 0.55f);
 
-                // HP 채움바(가로 Filled)
                 var fillGo = new GameObject("Fill", typeof(RectTransform));
                 var frt = (RectTransform)fillGo.transform;
                 frt.SetParent(rt, false);
@@ -128,7 +122,6 @@ namespace Game.GUI.OutGame
                 _fill.fillOrigin = (int)Image.OriginHorizontal.Left;
                 _fill.color = AllyColor;
 
-                // 라벨(닉네임 + 수치)
                 var labelGo = new GameObject("Label", typeof(RectTransform));
                 var lrt = (RectTransform)labelGo.transform;
                 lrt.SetParent(rt, false);

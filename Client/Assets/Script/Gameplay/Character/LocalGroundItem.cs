@@ -9,10 +9,9 @@ using VContainer;
 namespace Game.Gameplay.Character
 {
     /// <summary>
-    /// Main(싱글) 바닥 아이템 + 줍기 — B-lite 서버 검증. 오브 자체는 "이 킬에 전리품 있음"만 표시하고,
+    /// Main(싱글) 바닥 아이템 + 줍기 — 서버 검증. 오브 자체는 "이 킬에 전리품 있음"만 표시하고,
     /// **보상 내용·정원·쿨다운은 서버가 결정**한다(클라가 itemId/qty 지정하던 무한파밍 핵 차단).
     /// 줍기 = `ClaimKill(mapId, slotId)` gRPC → 서버가 슬롯 검증 + 쿨다운 + 권위 roll → 지급분(granted) 반환.
-    /// 정본 = docs/wiki/main-spawn-claim.md.
     ///
     /// IInteractable 이라 InteractionDetector 가 근처에서 최근접 선택 → 로컬 드라이버가 E키로 Interact 호출.
     /// 진실원 = 서버 DB. 프리팹에는 InteractionDetector 감지 레이어의 Collider 가 있어야 한다.

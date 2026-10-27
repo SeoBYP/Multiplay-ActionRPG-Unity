@@ -7,7 +7,7 @@ namespace Game.Tests.EditMode.InGame
 {
     /// <summary>
     /// 기본 EffectIconCatalog 에셋이 Addressables에서 로드되고 카테고리→Sprite가 실제로 매핑됐는지 검증.
-    /// (Resources 폐기 — 주소 = 에셋 경로. PSD 멀티스프라이트 서브에셋 참조가 깨지면 여기서 잡힌다)
+    /// (주소 = 에셋 경로. PSD 멀티스프라이트 서브에셋 참조가 깨지면 여기서 잡힌다)
     /// </summary>
     public class EffectIconCatalogAssetTests
     {

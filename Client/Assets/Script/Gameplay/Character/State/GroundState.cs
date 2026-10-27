@@ -49,7 +49,7 @@ namespace Game.Gameplay.Character
                 : _verticalVelocity + _settings.Gravity * deltaTime;
 
             // Action 이동잠금(Rooted): 공격/상호작용 발동 중엔 수평 이동을 막는다(중력·회전·락온 facing 은 유지).
-            // FSM 전이가 아니라 태그 기반 이동 제약(CA-1). 기존 Slow 태그 게이트와 동일 폴링 패턴.
+            // FSM 전이가 아니라 태그 기반 이동 제약(Slow 태그 게이트와 동일 폴링 패턴).
             if (_abilitySystem != null && _abilitySystem.HasTag(ActionTags.Rooted))
             {
                 _currentMoveSpeed = 0f;
@@ -103,9 +103,8 @@ namespace Game.Gameplay.Character
         /// <summary>
         /// 8방향 이동 애니 구동 — <b>항상</b>(락온 여부 무관). 플레이어의 몸은 <see cref="Rotation.PlayerRotationStrategy"/>
         /// 때문에 늘 <b>카메라 정면</b>을 향하므로(락온이면 타겟), 왼쪽 입력은 실제로 "왼쪽으로 게걸음"이다.
-        /// 예전엔 락온일 때만 2D 블렌드를 구동해서 옆/뒤로 가도 전진 클립이 나왔다.
         ///
-        /// <b>단위는 m/s</b>(0~1 정규화 아님) — 컨트롤러의 2D 블렌드가 각 클립의 <b>실측 이동 속도</b> 좌표에 놓여 있어
+        /// <b>단위는 m/s</b>(0~1 정규화 아님) — 컨트롤러의 2D 블렌드가 각 클립의 <b>이동 속도</b> 좌표에 놓여 있어
         /// (Walk ≈2.3 · Run ≈3.4 · Sprint 5.335), 같은 단위로 넣어야 블렌드 결과의 발 속도 = 실제 이동 속도가 된다(발 슬라이딩 제거).
         /// </summary>
         private void DriveStrafeAnimation(float deltaTime)
@@ -124,7 +123,7 @@ namespace Game.Gameplay.Character
             // 실제 이동 속도(m/s)를 facing 프레임으로 분해 → 클립 속도 좌표계와 같은 단위.
             Vector3 velocity = worldMove * _currentMoveSpeed;
 
-            // 감쇠 적용 — 입력 방향은 한 프레임에 꺾이므로(W→A 는 좌표가 3.25 만큼 점프) 그대로 넣으면 클립이 툭 바뀐다.
+            // 감쇠 적용 — 입력 방향은 한 프레임에 꺾이므로(W→A 는 좌표가 크게 점프) 그대로 넣으면 클립이 툭 바뀐다.
             // 이동 자체는 즉시 꺾이고 애니만 짧게 따라붙는다(그 사이 발/지면 오차는 감쇠 시간만큼만).
             _animations.SetFloat(AnimationFloatType.MoveX, Vector3.Dot(velocity, right),
                 _settings.MoveBlendDamp, deltaTime);

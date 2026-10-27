@@ -8,13 +8,11 @@ namespace Game.Gameplay.Abilities
 {
     /// <summary>
     /// 어빌리티(공격·스킬) 1종의 <b>단일 저작 자산</b> — 게임플레이 + 연출(Cue)을 기획자가 여기 하나에서 편집한다.
-    /// 플레이어 스킬·몬스터 공격 공용(AC-B). 설계 = ability-so-authoring.md.
+    /// 플레이어 스킬·몬스터 공격 공용.
     ///
-    /// 교리(gas-architecture §2.5): SO 저작 진실원 → `AbilityCatalogExporter` bake → 서버 임베디드 abilities.json.
-    ///   · 서버: <b>게임플레이 필드만</b> bake 되어 넘어간다(Cue 는 JSON 에 아예 없음 — "서버는 Cue 를 모른다" 보존).
+    /// SO 저작 진실원 → `AbilityCatalogExporter` bake → 서버 임베디드 abilities.json.
+    ///   · 서버: <b>게임플레이 필드만</b> bake 된다(Cue 는 JSON 에 없음).
     ///   · 클라: 이 SO 를 런타임에 직접 조회(`AbilityCatalogProvider`) → 게임플레이 + Cue 둘 다 사용.
-    ///
-    /// ※ 기존 <see cref="SkillDefinition"/> 의 상위 호환(= 이관 대상). B2 에서 스킬이 옮겨오면 SkillDefinition 은 폐기.
     /// </summary>
     [CreateAssetMenu(fileName = "Ability_", menuName = "Game/Ability Definition", order = 5)]
     public sealed class AbilityDefinition : ScriptableObject
@@ -89,7 +87,7 @@ namespace Game.Gameplay.Abilities
             onHitEffectIds, manaCost, comboChainMs, comboWindowMs);
     }
 
-    /// <summary>타임라인 저작·프리뷰용 이름 구간(CA-5 W3). 에디터 전용 — bake 되지 않고 런타임도 사용 안 함(콤보 타이밍은 <see cref="AbilityDefinition.comboChainMs"/>).</summary>
+    /// <summary>타임라인 저작·프리뷰용 이름 구간. 에디터 전용 — bake 되지 않고 런타임도 사용 안 함(콤보 타이밍은 <see cref="AbilityDefinition.comboChainMs"/>).</summary>
     [global::System.Serializable]
     public class AbilitySection
     {

@@ -11,11 +11,7 @@ using VContainer;
 namespace Game.GUI.OutGame.Lobby
 {
     /// <summary>
-    /// 방 생성/입장 후 표시되는 대기실 View.
-    ///
-    /// MVI 규칙:
-    ///   - State를 받아 UI를 렌더링한다.
-    ///   - 버튼 입력을 Intent로 변환해 Model에 전달한다.
+    /// 방 생성/입장 후 표시되는 대기실 View(MVI). State 렌더 + 버튼 입력을 Intent 로 Model 에 전달.
     /// </summary>
     public class DungeonRoomDetailView : MonoBehaviour
     {
@@ -60,7 +56,6 @@ namespace Game.GUI.OutGame.Lobby
 
         private void Start()
         {
-            // m_playerCharacterSlotParent 아래 기존 슬롯을 풀로 수거
             foreach (Transform child in m_playerCharacterSlotParent)
             {
                 var existing = child.GetComponent<DungeonRoomPlayerCharacterSlot>();
@@ -70,10 +65,7 @@ namespace Game.GUI.OutGame.Lobby
                     _freePool.Enqueue(existing);
                 }
             }
-            // ⚠️ 구독보다 먼저 배선을 끝낸다.
-            // State 는 ReactiveProperty 라 Subscribe 하는 순간 현재 값이 동기로 흘러 Render 가 즉시 실행된다.
-            // 라벨을 구독 뒤에 찾으면 그 첫 Render 가 라벨을 못 써서, 다음 State 변경(= 버튼 누름)까지
-            // 프리팹 기본 텍스트가 그대로 남는다.
+            // 구독보다 먼저 배선한다 — Subscribe 즉시 Render 가 동기로 돌므로, 라벨을 나중에 찾으면 첫 Render 가 라벨을 못 쓴다.
             ResolvePlayButtonLabel();
 
             m_playButton.onClick.AddListener(OnPlayButtonClicked);
@@ -85,10 +77,7 @@ namespace Game.GUI.OutGame.Lobby
             m_backButton.onClick.AddListener(() => ShowLeaveConfirmAsync().Forget());
         }
 
-        /// <summary>
-        /// 버튼이 두 가지 뜻을 가지므로 클릭 시점의 State 로 어떤 Intent 인지 정한다.
-        /// (State 는 Render 에서 캐시해 둔다 — Model 을 다시 읽지 않는다)
-        /// </summary>
+        /// <summary>버튼이 두 뜻을 가지므로 Render 에서 캐시한 State 로 Intent 를 정한다(Model 을 다시 읽지 않는다).</summary>
         private void OnPlayButtonClicked()
         {
             if (_isHost)
@@ -160,7 +149,6 @@ namespace Game.GUI.OutGame.Lobby
 
         private void SyncSlots(IReadOnlyList<RoomPlayerInfo> players)
         {
-            // 떠난 플레이어 슬롯 → 풀로 반환
             var nextIds = new HashSet<string>();
             foreach (var p in players) nextIds.Add(p.PublicId);
 
@@ -176,7 +164,6 @@ namespace Game.GUI.OutGame.Lobby
                 _slotMap.Remove(id);
             }
 
-            // 새 플레이어 → 풀 우선, 없으면 Instantiate
             foreach (var player in players)
             {
                 if (!_slotMap.TryGetValue(player.PublicId, out var slot))

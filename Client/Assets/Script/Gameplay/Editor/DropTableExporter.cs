@@ -9,10 +9,9 @@ using UnityEngine;
 namespace Game.Gameplay.Editor
 {
     /// <summary>
-    /// DropTableDefinition(SO) ↔ drop-tables.json 양방향 툴 (MapDataExporter 와 동일 컨벤션).
+    /// DropTableDefinition(SO) ↔ drop-tables.json 양방향 툴.
     ///
     /// - Export: 모든 DropTableDefinition 의 tables 를 모아 JSON 으로 bake → 서버 임베디드 경로 기록.
-    ///   (클라 Main 은 SO를 직접 읽으므로 클라 JSON 미러는 불필요 — SO가 클라의 단일 소스.)
     ///   ※ 서버는 임베디드 리소스라 export 후 서버 재빌드 시 반영된다.
     /// - Import(부트스트랩): 기존 drop-tables.json → DropTableDefinition 에셋 1개 생성/갱신.
     ///
@@ -22,14 +21,14 @@ namespace Game.Gameplay.Editor
     public static class DropTableExporter
     {
         private const string ServerJsonRelative = "ServerAll/Shared/Shared.Infrastructure/Loot/drop-tables.json"; // repo 루트 기준
-        private const string AssetDir = "Assets/GameData/Loot"; // 저작 전용 SO(런타임 미로드, JSON bake만). Resources 밖.
+        private const string AssetDir = "Assets/GameData/Loot"; // 저작 전용 SO(런타임 미로드, JSON bake만)
         private const string AssetName = "DropTableDefinition";
 
         [MenuItem("Tools/Loot/Export Drop Tables (SO → JSON)")]
         public static void Export()
         {
             var count = BakeAll();
-            if (count < 0) return; // 검증 실패 — 콘솔에 사유
+            if (count < 0) return;
             if (count == 0)
             {
                 EditorToolReport.Later("Export Drop Tables",

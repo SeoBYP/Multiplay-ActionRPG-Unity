@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Game.Tests.EditMode.GamePlayAbilitySystem
 {
     /// <summary>
-    /// ⓒ/ⓔ-1: ASC GameplayTag 글루 — 직접 태그(사망 State.Dead) + 활성 Effect.GrantedTags 합산.
+    /// ASC GameplayTag 글루 — 직접 태그(사망 State.Dead) + 활성 Effect.GrantedTags 합산.
     /// 사망 입력 게이트(PlayerCharacterAgent)가 폴링하는 HasTag 의 계약을 박제한다.
     /// </summary>
     public class AbilitySystemTagTests

@@ -11,11 +11,8 @@ using VContainer.Unity;
 namespace Game.GUI.Shop
 {
     /// <summary>
-    /// 상점 창 생명주기 컨트롤러 (POCO). EquipmentViewController 와 동형 — 독립 토글.
-    ///
-    /// 역할: InGameModel.OnToggleShop(S키 / HUD 상점버튼) 수신 → 상점창 단독 토글(최초 로드 후 SetActive 반전).
-    /// 창의 X(Close)는 View(Shop) 가 자기 SetActive(false) 로 처리. 입력 점유(이동 차단)는 View 의
-    /// UiInputCaptureBehaviour 가 OnEnable/OnDisable 로 ShopModel.BeginUiCapture/EndUiCapture 호출.
+    /// 상점 창 생명주기 컨트롤러 (POCO). InGameModel.OnToggleShop(HUD 상점버튼) 수신 → 단독 토글(최초 로드 후 SetActive 반전).
+    /// X 닫기와 입력 점유(이동 차단)는 View(Shop) 쪽 책임.
     /// </summary>
     public sealed class ShopViewController : IInitializable, IDisposable
     {
@@ -48,7 +45,6 @@ namespace Game.GUI.Shop
             _inst = null;
         }
 
-        // S키/버튼 단독 토글: 로드돼 있으면 활성 반전, 아니면 로드(활성).
         private async UniTaskVoid ToggleAsync()
         {
             if (_inst != null)

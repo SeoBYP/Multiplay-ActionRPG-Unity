@@ -30,7 +30,7 @@ namespace Game.Tests.EditMode.Input
             _system.Dispose();
         }
 
-        // ── Initialize / Dispose ─────────────────────────────────────
+        // ── Initialize / Dispose ──
 
         [Test]
         public void 초기화하면_라우터에_등록된다()
@@ -45,7 +45,7 @@ namespace Game.Tests.EditMode.Input
             Assert.IsFalse(_router.Registered.Contains(_system));
         }
 
-        // ── TryHandle — 기본 동작 ────────────────────────────────────
+        // ── TryHandle — 기본 동작 ──
 
         [Test]
         public void 현재_대상이_없으면_Interact_처리시_false_반환한다()
@@ -86,7 +86,7 @@ namespace Game.Tests.EditMode.Input
             Assert.IsTrue(fake.InteractCalled);
         }
 
-        // ── SetCurrent ───────────────────────────────────────────────
+        // ── SetCurrent ──
 
         [Test]
         public void SetCurrent_호출하면_OnInteractableChanged_이벤트가_발생한다()
@@ -128,7 +128,7 @@ namespace Game.Tests.EditMode.Input
             Assert.IsNull(_system.Current);
         }
 
-        // ── Priority ─────────────────────────────────────────────────
+        // ── Priority ──
 
         [Test]
         public void 우선순위는_50이다()

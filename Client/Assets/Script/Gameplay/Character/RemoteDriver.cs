@@ -58,8 +58,7 @@ namespace Game.Gameplay.Character
             _state.OnPlayerDead     += HandlePlayerDead;
             _state.OnPlayerRevived  += HandlePlayerRevived;
             _state.OnPlayerDodged   += HandlePlayerDodged;
-            // 공격 연출은 Actor 통합 파이프로 흡수 — S_AbilityActivated → AbilityCueRouter → ActorRegistry → PlayAbilityCue.
-            // (CharacterSpawner 가 이 RemoteDriver 를 ActorId(=UserId)로 레지스트리에 등록한다.)
+            // 공격 연출 = S_AbilityActivated → AbilityCueRouter → ActorRegistry → PlayAbilityCue (CharacterSpawner 가 ActorId(=UserId)로 등록).
 
             _animations?.SetBool(AnimationBoolType.Grounded, true);
             // 로컬과 동일하게 8방향 블렌드를 쓴다. 끄면 1D 트리라 옆걸음·뒷걸음이 전부 전진 클립으로 보인다.
@@ -128,8 +127,7 @@ namespace Game.Gameplay.Character
         }
 
         /// <summary>원격 공격 스윙(연출 전용, IActorView). 적중·데미지는 서버 권위 — 여기선 애니만 재생한다.
-        /// AbilityCueRouter 가 ActorId 로 이 뷰를 찾고 **어빌리티 카탈로그에서 Cue 를 해석해** 넘긴다 —
-        /// 과거의 하드코딩 콤보 switch(3→B/4→C)는 제거됐다(AC-B B3: 연출은 Ability SO 저작).</summary>
+        /// AbilityCueRouter 가 ActorId 로 이 뷰를 찾고 **어빌리티 카탈로그에서 Cue 를 해석해** 넘긴다(연출은 Ability SO 저작).</summary>
         public void PlayAbilityCue(AnimationTriggerType trigger, int comboStep)
         {
             _animations?.SetInt(AnimationIntType.ComboStep, comboStep);

@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace Game.Tests.EditMode.Socket
 {
     /// <summary>
-    /// AC-C1b: 클라 전투 트레이스 링버퍼. 설계 = combat-diagnostics.md §2.3/§5.
+    /// 클라 전투 트레이스 링버퍼.
     /// 검증 4축: ① 기본 Off ② 링 회전(최신 N 유지) ③ 구간 계산 ④ 판정(서버 결과) 병합.
     /// </summary>
     [TestFixture]
@@ -135,7 +135,7 @@ namespace Game.Tests.EditMode.Socket
         {
             // ⚠ 실제 서버 동작: 몬스터 피해는 S_ApplyEffect 로 오지 않는다(그건 플레이어가 대상일 때만).
             //   서버가 몬스터 HP 를 권위로 깎아 S_MonsterState 로만 보낸다 → HP 델타가 유일한 데미지 신호.
-            //   이게 던전의 주 시나리오(= "몬스터 HP 동기화가 느리다"는 원 관측)이므로 반드시 병합돼야 한다.
+            //   이게 던전의 주 시나리오이므로 반드시 병합돼야 한다.
             var r = new CombatTraceRecorder { Enabled = true };
             r.RecordAttackSent(1000, Actor, NetId);
             r.RecordAbilityActivated(1014, Actor, NetId);
@@ -185,7 +185,7 @@ namespace Game.Tests.EditMode.Socket
         [Test]
         public void 스테일_드롭이_기록된다_AC_C3_관측()
         {
-            // Seq 로 버린 사건 자체가 "순서 역전이 실재했다"는 증거 — C1c 측정에서 빈도를 본다.
+            // Seq 로 버린 사건 자체가 "순서 역전이 실재했다"는 증거다.
             var r = new CombatTraceRecorder { Enabled = true };
             r.RecordStaleDropped(1020, Monster, droppedSeq: 40, currentSeq: 41);
 
@@ -199,7 +199,7 @@ namespace Game.Tests.EditMode.Socket
         [Test]
         public void 다른_플레이어의_스윙도_기록된다()
         {
-            // 회귀: 초기 Join 은 AttackSent(=내 캐릭터만 남긴다)에서만 레코드를 만들어 **내 스윙만 보였다**.
+            // 레코드를 AttackSent(=내 캐릭터만 남긴다)에서만 만들면 **내 스윙만 보인다**.
             // 다른 플레이어의 입력 시각은 알 수 없지만, 서버 발동 통지부터는 관측 가능하다.
             const long Other = 200;
             var r = new CombatTraceRecorder { Enabled = true };
@@ -242,8 +242,8 @@ namespace Game.Tests.EditMode.Socket
         [Test]
         public void 몬스터_스윙도_플레이어_HP_반영까지_구간이_측정된다()
         {
-            // C1c 가 남긴 공백: 몬스터 스윙은 종점(내 체력바가 움직인 시각)을 아무도 안 기록해
-            // activateToHpMs 가 항상 -1 이었다. EffectReceiver 가 ASC 적용 직후 기록하면서 메워진다.
+            // 몬스터 스윙의 종점(내 체력바가 움직인 시각)은 EffectReceiver 가 ASC 적용 직후 기록한다.
+            // 안 기록하면 activateToHpMs 가 항상 -1.
             var r = new CombatTraceRecorder { Enabled = true };
             r.RecordAbilityActivated(2000, Monster, networkId: 101);
             r.RecordDamageReceived(2018, Monster, targetId: Actor, amount: -9);
@@ -312,7 +312,7 @@ namespace Game.Tests.EditMode.Socket
         [Test]
         public void 이동만_하는_틱은_링을_채우지_않는다_C1c()
         {
-            // C1c 측정에서 링 508건 중 451건(89%)이 이동 틱이라 정작 볼 스윙이 덮였다.
+            // 이동 틱이 링을 채우면 정작 볼 스윙이 덮인다.
             // 이동 틱은 진단 가치가 없으므로 **링에는 넣지 않는다**(집계 맵에는 그대로 반영).
             var r = new CombatTraceRecorder { Enabled = true };
 
@@ -341,8 +341,7 @@ namespace Game.Tests.EditMode.Socket
         [Test]
         public void 집계는_링이_돌아도_유실되지_않는다_C1c()
         {
-            // 예전엔 집계를 링에서 유도해, 링이 도는 순간 앞부분이 조용히 사라졌다
-            // (실측: m3 가 seq 234 인데 updates 185 = 49건 증발). 이제 집계는 링과 독립이다.
+            // 집계는 링과 독립이다 — 링에서 유도하면 링이 도는 순간 앞부분이 조용히 사라진다.
             var r = new CombatTraceRecorder { Enabled = true };
 
             int over = CombatTraceRecorder.Capacity + 50;

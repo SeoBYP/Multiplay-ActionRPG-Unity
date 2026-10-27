@@ -8,8 +8,7 @@ using UnityEngine;
 namespace Game.Tests.EditMode.Gameplay
 {
     /// <summary>
-    /// CA-1 회귀: Action 축(Attack/Interact)을 들어낸 뒤에도 Locomotion FSM이
-    /// 정상적으로 상태를 생성하는지. (StateKind.Attack 제거가 컴파일·생성 경로를 깨지 않음)
+    /// Locomotion FSM(Ground/Jump/Fall/Land)이 빌더로 정상 생성되는지 회귀 검증.
     /// </summary>
     public class LocomotionStateMachineTests
     {

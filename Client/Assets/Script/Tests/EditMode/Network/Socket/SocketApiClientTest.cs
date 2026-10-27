@@ -74,7 +74,7 @@ namespace Game.Tests.EditMode.Socket
             await dispatcher.DispatchAsync(new S_Dodge { UserId = 888, DirX = -1f, DirY = 0f });
 
             Assert.AreEqual(888, gotUser, "S_Dodge.UserId 가 OnPlayerDodged 로 그대로 전달돼야 한다.");
-            // 방향까지 전달돼야 원격이 8방향 구르기를 재생한다(예전엔 늘 정면으로 근사했다).
+            // 방향까지 전달돼야 원격이 8방향 구르기를 재생한다.
             Assert.AreEqual(-1f, gotX, 0.001f, "회피 방향 X 가 전달돼야 한다.");
             Assert.AreEqual(0f, gotY, 0.001f, "회피 방향 Y 가 전달돼야 한다.");
         }
@@ -246,8 +246,8 @@ namespace Game.Tests.EditMode.Socket
             });
 
             Assert.IsTrue(state.TryGetMonster(7, out var m));
-            Assert.AreEqual("creepy_demon", m.MonsterId); // 식별정보 유지
-            Assert.AreEqual(30, m.MaxHp);          // 유지
+            Assert.AreEqual("creepy_demon", m.MonsterId);
+            Assert.AreEqual(30, m.MaxHp);
             Assert.AreEqual(9f, m.PosX);
             Assert.AreEqual(18, m.Hp);
             Assert.AreEqual((byte)2, m.Phase);
@@ -257,7 +257,7 @@ namespace Game.Tests.EditMode.Socket
         [Test]
         public async Task 뒤늦게_도착한_옛_상태는_Seq로_버려진다_AC_C3()
         {
-            // D2 재현: 서버 틱이 HP30 패킷을 **먼저 만들고**(Seq=1) 데미지가 HP18 패킷을 나중에 만든다(Seq=2).
+            // 서버 틱이 HP30 패킷을 **먼저 만들고**(Seq=1) 데미지가 HP18 패킷을 나중에 만든다(Seq=2).
             // 송신은 데미지가 먼저 → 옛 HP30(Seq=1)이 **나중에 도착**. 버리지 않으면 HP 가 되돌아간다.
             var dispatcher = _container.Resolve<ISocketPacketDispatcher>();
             var state = _container.Resolve<ISocketPacketState>();
@@ -267,7 +267,7 @@ namespace Game.Tests.EditMode.Socket
             await dispatcher.DispatchAsync(new S_MonsterState { InstanceId = 7, Hp = 30, Phase = 2, Seq = 1 }); // 틱(스테일) — 뒤늦게 도착
 
             Assert.IsTrue(state.TryGetMonster(7, out var m));
-            Assert.AreEqual(18, m.Hp);            // HP 가 30 으로 되돌아가면 D2 재발
+            Assert.AreEqual(18, m.Hp);            // HP 가 30 으로 되돌아가면 안 된다
             Assert.AreEqual((byte)3, m.Phase);    // 페이즈도 함께 스테일이면 안 된다
             Assert.AreEqual(2, m.Seq);
         }

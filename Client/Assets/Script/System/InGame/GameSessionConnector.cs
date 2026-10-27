@@ -11,7 +11,7 @@ using VContainer.Unity;
 namespace Game.System.InGame
 {
     /// <summary>
-    /// SocketServer 준비 신호를 수신해 TCP 연결 → 인증 → 방 입장 → Dungeon 씬 로드 흐름을 주관한다.
+    /// SocketServer 준비 신호를 수신해 TCP 연결 → 방 입장(C_PlayerJoin) → Dungeon 씬 로드 흐름을 주관한다.
     /// </summary>
     public class GameSessionConnector : IInitializable, IDisposable
     {
@@ -68,8 +68,7 @@ namespace Game.System.InGame
         // SocketServer가 방을 생성하는 시점과 클라 접속 사이에 레이스가 있다.
         // 퇴장 후 재입장 시 auto-retrigger → Outbox → SocketServer 방 재생성까지 최대 10초 소요.
         // 방이 아직 없거나 연결이 끊겨도 재시도 루프가 커버한다.
-        // 재시도 예산은 <b>서버 재접속 유예(Room.ReconnectGraceMs = 60s)보다 길어야</b> 한다.
-        // 예전엔 30회×0.5s(≈30s)라 유예가 풀리기 전에 항상 먼저 포기했다(실측: 유예 만료 15:41:37 vs 포기 15:40:31).
+        // 재시도 예산은 서버 재접속 유예(Room.ReconnectGraceMs = 60s)보다 길어야 한다 — 유예가 풀리기 전에 포기하면 안 된다.
         // 40회×2s ≈ 80s — 서버가 옛 세션을 정리할 시간을 주고도 남는다.
         private const int MaxJoinAttempts = 40;
         private static readonly TimeSpan JoinRetryDelay = TimeSpan.FromSeconds(2);

@@ -10,7 +10,7 @@ using UnityEngine.UIElements;
 namespace Game.Gameplay.Editor.Dialogue
 {
     /// <summary>
-    /// 대화 그래프 저작 윈도우(A2). DialogueDefinition 에셋을 노드 그래프로 편집한다.
+    /// 대화 그래프 저작 윈도우. DialogueDefinition 에셋을 노드 그래프로 편집한다.
     /// 열기: 에셋 더블클릭 / 메뉴 Tools ▸ Dialogue ▸ Graph Editor. [Save]로 SO에 직렬화.
     /// </summary>
     public sealed class DialogueGraphWindow : EditorWindow
@@ -84,7 +84,7 @@ namespace Game.Gameplay.Editor.Dialogue
                 return;
             }
             _target.hideObjects = ParseHideObjects(_hideField != null ? _hideField.value : null);
-            _graph.SaveTo(_target);   // SetDirty + SaveAssets (hideObjects 포함 저장)
+            _graph.SaveTo(_target);
         }
 
         private static string HideObjectsToText(DialogueDefinition def)

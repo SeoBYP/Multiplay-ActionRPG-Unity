@@ -9,10 +9,10 @@ using Object = UnityEngine.Object;
 namespace Game.Tests.PlayMode.InGame
 {
     /// <summary>
-    /// CA-5 Phase 1b 스모크 — 툴로 저작한 Cue 이벤트가 <b>실제 리소스를 물고 소리까지 나는지</b> 한 번 관통시킨다.
+    /// Cue 스모크 — 툴로 저작한 Cue 이벤트가 <b>실제 리소스를 물고 소리까지 나는지</b> 한 번 관통시킨다.
     ///
-    /// <para>Phase 1a(코드)는 끝났지만 파이프는 <b>두 곳이 비어 조용히 죽어 있었다</b>:
-    /// ① 이벤트의 <c>sfxClip</c> 이 전부 <c>None</c> ② <c>PlayerCharacter.prefab</c> 에 <see cref="AbilityCuePlayer"/> 미부착.
+    /// <para>파이프는 <b>두 곳이 비면 조용히 죽는다</b>:
+    /// (1) 이벤트의 <c>sfxClip</c> 이 전부 <c>None</c> (2) <c>PlayerCharacter.prefab</c> 에 <see cref="AbilityCuePlayer"/> 미부착.
     /// 둘 다 "없으면 아무것도 안 한다"가 정상 동작이라 로그도 에러도 안 난다 — 그래서 테스트로 고정한다.</para>
     /// </summary>
     public class AbilityCuePlayerSmokeTests

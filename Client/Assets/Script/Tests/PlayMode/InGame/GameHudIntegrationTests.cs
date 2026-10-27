@@ -81,7 +81,7 @@ namespace Game.Tests.PlayMode.InGame
             Assert.AreEqual(0.4f, hp.FillAmount, 0.01f, "데미지 후 HP 게이지가 40/100으로 갱신되지 않았다.");
         }
 
-        // ── 헬퍼 ────────────────────────────────────────
+        // ── 헬퍼 ──
 
         private LocalPlayerContext BuildContainer()
         {
@@ -98,7 +98,7 @@ namespace Game.Tests.PlayMode.InGame
             // InGameModel ctor의 IInputContext(C# 기본값이지만 VContainer가 무시) — no-op 으로 충족.
             builder.RegisterInstance<Game.System.Input.IInputContext>(new NoopInputContext());
             builder.RegisterInstance<Game.Gameplay.Input.IInputRouter>(new NoopInputRouter());
-            // 아이템 획득 토스트 의존(2026-07-12 추가). 역시 C# 기본값이지만 VContainer 가 무시하므로 등록 필요.
+            // 아이템 획득 토스트 의존. 역시 C# 기본값이지만 VContainer 가 무시하므로 등록 필요.
             builder.RegisterInstance(ScriptableObject.CreateInstance<Game.Presentation.Inventory.ItemDisplayCatalog>());
             builder.RegisterInstance(new Game.System.Player.ItemPickupNotifier());
             builder.RegisterInstance(new Game.System.Player.InteractionPromptNotifier()); // 상호작용 안내 채널

@@ -18,8 +18,8 @@ namespace Game.Gameplay.Camera
         [SerializeField] private float lockOnTurnSpeed = 12f;
 
         /// <summary>
-        /// 락온(2.6.3) 대상. 세팅되면 마우스 Look 대신 이 대상을 향하도록 카메라 피벗을 회전시킨다.
-        /// null 이면 기존 마우스 조작. <see cref="LockOnDriver"/> 가 매 프레임 세팅/해제한다.
+        /// 락온 대상. 세팅되면 마우스 Look 대신 이 대상을 향하도록 카메라 피벗을 회전시킨다.
+        /// null 이면 마우스 조작. <see cref="LockOnDriver"/> 가 매 프레임 세팅/해제한다.
         /// 락온 중에도 yaw/pitch 캐시를 갱신해 두므로 해제 시 마우스가 현재 각도에서 자연스럽게 이어진다.
         /// </summary>
         public Transform LockTarget { get; set; }
@@ -31,7 +31,6 @@ namespace Game.Gameplay.Camera
         
         private void Awake()
         {
-            // get a reference to our main camera
             if (_mainCamera == null)
             {
                 _mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
@@ -51,19 +50,16 @@ namespace Game.Gameplay.Camera
                 LockOnRotation();
             else if (_inputSource.Current.Look.sqrMagnitude >= _cameraRotationThreshold)
             {
-                // if there is an input and camera position is not fixed
-                //Don't multiply mouse input by Time.deltaTime;
+                // 마우스 입력에는 Time.deltaTime 을 곱하지 않는다.
                 float deltaTimeMultiplier = 1.0f;
 
                 _cinemachineTargetYaw += _inputSource.Current.Look.x * deltaTimeMultiplier;
                 _cinemachineTargetPitch += _inputSource.Current.Look.y * deltaTimeMultiplier;
             }
 
-            // clamp our rotations so our values are limited 360 degrees
             _cinemachineTargetYaw = ClampAngle(_cinemachineTargetYaw, float.MinValue, float.MaxValue);
             _cinemachineTargetPitch = ClampAngle(_cinemachineTargetPitch, BottomCameraLimit, TopCameraLimit);
 
-            // Cinemachine will follow this target
             CinemachineCameraTarget.transform.rotation = Quaternion.Euler(_cinemachineTargetPitch,
                 _cinemachineTargetYaw, 0.0f);
         }

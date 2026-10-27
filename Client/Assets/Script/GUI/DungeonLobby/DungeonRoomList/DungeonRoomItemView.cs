@@ -34,24 +34,17 @@ namespace Game.GUI.OutGame.Lobby
             selectButton.onClick.AddListener(OnSelectClicked);
         }
 
-        /// <summary>
-        /// 이 방이 선택됐는지 여부를 외부(LobbyView)에서 State 기반으로 갱신한다.
-        /// MVI 규칙 — Item이 직접 판단하지 않음.
-        /// </summary>
+        /// <summary>선택 여부는 LobbyView가 State 기반으로 갱신한다 — Item이 직접 판단하지 않는다.</summary>
         public void SetSelected(bool isSelected)
         {
             if (selected != null)
                 selected.SetActive(isSelected);
         }
 
-        // ── Intent 발행 ──────────────────────────────
-
         private void OnSelectClicked()
         {
             _model.Accept(new LobbyIntent.SelectRoom(_roomId));
         }
-
-        // ── 파생값 계산 (View 책임) ───────────────────
 
         private static string ToStatusText(RoomStatus status)
         {

@@ -11,7 +11,6 @@ namespace Game.System.Progression
     /// LocalCombat(데미지=AttackPower)·킬 후 레벨/Exp 로그가 동기적으로 읽는다.
     ///
     /// 진실원 = 서버(GetProgression). 홀더는 마지막 pull 값을 캐시할 뿐 — 권위 계산을 하지 않는다.
-    /// (장비/버프(3.2) 합류 시 서버 GetStatsAsync 합산이 그대로 이 stats 로 흘러온다.)
     /// 갱신 시점: Main 진입(로그인 직후) 1회(StartAsync) + 킬마다(레벨업 가능, MainMonsterSpawner 가 RefreshAsync).
     /// Presentation ProgressionModel(스탯창 MVI)과 별개 — Gameplay 는 Presentation 을 참조하지 않으므로 System 에 둔다.
     /// </summary>

@@ -5,14 +5,9 @@ namespace Game.GUI
 {
     /// <summary>
     /// 붙은 GameObject가 활성인 동안 게임플레이 입력 점유를 잡는다.
-    ///
-    /// 핵심: 점유 해제를 <c>OnDisable</c>에 묶는다 → SetActive(false)로 숨기든(예: 로비 X 버튼),
-    /// Destroy로 닫든 항상 해제된다. 버튼 onClick 리스너에 의존하지 않아 안전하다
-    /// (X 버튼의 SetActive가 onClick 도중 계층을 끄면 뒤에 등록한 리스너가 잘릴 수 있음).
-    ///
-    /// 캡처는 Action 쌍(begin/end)으로 주입 — IInputContext(System)를 직접 참조하지 않아
-    /// GUI 레이어에서 사용 가능하고, 테스트에서 카운터/가짜로 교체하기 쉽다.
-    /// 호출처는 보통 Presentation Model의 BeginUiCapture/EndUiCapture를 넘긴다.
+    /// 해제를 <c>OnDisable</c>에 묶어 SetActive(false)·Destroy 어느 쪽이든 해제된다 — 버튼 onClick 리스너에 의존하지 않는다
+    /// (onClick 도중 계층을 끄면 뒤에 등록한 리스너가 잘릴 수 있다).
+    /// begin/end 를 Action 쌍으로 주입하므로 GUI 레이어가 IInputContext(System)를 참조하지 않는다(보통 Presentation Model 의 BeginUiCapture/EndUiCapture).
     /// </summary>
     public sealed class UiInputCaptureBehaviour : MonoBehaviour
     {

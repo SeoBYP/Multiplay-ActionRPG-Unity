@@ -12,11 +12,8 @@ using VContainer;
 namespace Game.GUI.Equipment
 {
     /// <summary>
-    /// 장비 창 (MVI View). EquipmentModel만 주입받는다(proto·System 비참조).
-    /// State.Equipped(착용분) → 슬롯 타입별 아이콘 렌더. 슬롯 타입은 공통 EquipmentType(서버 공유).
-    ///   - 미착용 슬롯: Icon·Button GameObject 비활성(클릭 불가)
-    ///   - 착용 슬롯:   Icon·Button 활성 → 버튼 클릭 시 ItemActionPanel(해제) 팝업(인벤토리와 동일 컨트롤러)
-    /// X(Close) 버튼은 자기 SetActive(false) 로 독립 닫힘(인벤토리와 따로 닫힐 수 있음).
+    /// 장비 창 (MVI View). EquipmentModel만 주입받는다. State.Equipped → 슬롯 타입(EquipmentType, 서버 공유)별 아이콘 렌더.
+    /// 미착용 슬롯은 Icon·Button 비활성, 착용 슬롯 클릭 시 해제용 ItemActionPanel. 인벤토리와 독립적으로 닫힌다.
     /// </summary>
     public class Equipment : MonoBehaviour
     {
@@ -49,8 +46,7 @@ namespace Game.GUI.Equipment
             if (btn_close != null)
                 btn_close.onClick.AddListener(Close);
 
-            // 슬롯 버튼 클릭 → 해당 슬롯의 액션 패널(해제). 슬롯은 고정이므로 1회 배선.
-            // 동시에 슬롯 기본 배경 스프라이트를 캐시(등급 배경 적용 후 해제 시 복원용).
+            // 슬롯은 고정이므로 버튼 1회 배선 + 기본 배경 스프라이트 캐시.
             if (_equipmentSlots != null)
             {
                 foreach (var slotView in _equipmentSlots)
@@ -66,7 +62,7 @@ namespace Game.GUI.Equipment
 
             if (_model != null)
             {
-                // 창 활성 동안 게임플레이 입력 점유(인벤토리와 동일, refcount). OnDisable에서 자동 해제.
+                // 창 활성 동안 게임플레이 입력 점유(refcount). OnDisable에서 자동 해제.
                 gameObject.AddComponent<Game.GUI.UiInputCaptureBehaviour>()
                           .Bind(_model.BeginUiCapture, _model.EndUiCapture);
 
@@ -107,7 +103,6 @@ namespace Game.GUI.Equipment
                 var equipped = FindEquipped(state, slotView.type);
                 bool isEquipped = equipped != null;
 
-                // 미착용: Icon·Button GameObject 비활성 / 착용: 활성 + 아이콘 세팅.
                 if (slotView.Icon != null)
                 {
                     if (isEquipped && equipped.Icon != null)
@@ -128,7 +123,7 @@ namespace Game.GUI.Equipment
             }
         }
 
-        // 착용 슬롯 클릭 → 슬롯 오른쪽에 해제 패널. 빈 슬롯(버튼 비활성이라 보통 안 옴)은 무시.
+        // 빈 슬롯은 버튼이 비활성이라 보통 오지 않지만 방어적으로 무시.
         private void OnSlotClicked(EquipmentSlotView slotView)
         {
             var equipped = FindEquipped(_latestState, slotView.type);

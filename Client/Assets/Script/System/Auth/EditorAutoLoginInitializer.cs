@@ -19,8 +19,6 @@ namespace Game.System.Auth
     ///
     /// MultiplayerPlayMode 가상 플레이어는 PlayerTag(Player_1, Player_2 등)로
     /// 계정을 분리한다. 같은 머신에서 여러 인스턴스를 실행해도 계정이 충돌하지 않는다.
-    ///
-    /// 빌드에는 포함되지 않는다(#if UNITY_EDITOR).
     /// </summary>
     public class EditorAutoLoginInitializer : IAsyncStartable
     {
@@ -72,7 +70,6 @@ namespace Game.System.Auth
                 return $"guest_{hash}_{tag}@editor.test";
             }
 
-            // 메인 에디터: 기기 해시만 사용
             return $"guest_{hash}@editor.test";
         }
     }

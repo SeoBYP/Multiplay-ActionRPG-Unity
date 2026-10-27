@@ -8,10 +8,9 @@ using VContainer.Unity;
 namespace Game.Gameplay.Character
 {
     /// <summary>
-    /// Main(싱글) 타이머 리스폰 — **Main 스코프에만 등록**(던전은 미등록 → 다운잠금 유지). 2.5.1.
-    ///
+    /// Main(싱글) 타이머 리스폰 — **Main 스코프에만 등록**(던전은 미등록 → 다운잠금 유지).
     /// 로컬 플레이어가 다운(State.Dead)하면 일정 시간 후 부활시킨다. 의도된 비대칭(권위 다름):
-    /// 던전=서버권위 다운잠금(클리어/실패까지), Main=클라 로컬 리스폰. death-respawn-2-5-1-direction.
+    /// 던전=서버권위 다운잠금(클리어/실패까지), Main=클라 로컬 리스폰.
     ///
     /// 부활 = PlayerCharacterAgent.Revive(스폰지점) — Dead 태그 해제 + HP 복구 + 다운 애니 리셋 + 텔레포트.
     /// 스폰 지점 = 해당 맵 레이아웃의 첫 플레이어 스폰 포인트(없으면 원점).

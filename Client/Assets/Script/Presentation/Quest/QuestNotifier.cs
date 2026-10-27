@@ -28,7 +28,7 @@ namespace Game.Presentation.Quest
     /// NPC 대화에서 수락/수령 성공 시 <see cref="NotifyAccepted"/>/<see cref="NotifyClaimed"/> 호출
     /// → GUI(QuestNotificationPresenter)가 OnNotice 를 구독해 팝업 표시.
     /// 완료 알림은 상태가 Completed 로 "전이"할 때만 1회(매 조회마다 반복 금지 = 스팸 방지).
-    /// 보상받기 버튼 폐지 → 보상 수령은 NPC 대화 경로(DialogueModel)만.
+    /// 보상 수령은 NPC 대화 경로(DialogueModel)만.
     /// </summary>
     public sealed class QuestNotifier : IDisposable
     {

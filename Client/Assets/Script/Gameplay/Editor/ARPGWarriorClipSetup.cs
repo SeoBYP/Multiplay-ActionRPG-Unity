@@ -5,11 +5,10 @@ using UnityEngine;
 namespace Game.Gameplay.Editor
 {
     /// <summary>
-    /// ARPGWarrior 팩 클립 규격화(P1) — <b>루프 플래그 일괄 설정</b>.
+    /// ARPGWarrior 팩 클립 규격화 — <b>루프 플래그 일괄 설정</b>.
     ///
-    /// <b>왜 필요한가</b>: 팩이 FBX 에서 추출해 넣어 준 `.anim` 자산은 임포터 루프 설정을 승계하지 못해
-    /// <b>전부 <c>m_LoopTime = 0</c></b> 이다(실측). 그대로 쓰면 Idle/Walk/Run 이 한 번 재생 후 멈칫한다.
-    /// 275개를 손으로 켜는 건 비재현·실수 위험이라 대상 목록을 코드에 두고 일괄 적용한다.
+    /// 팩의 `.anim` 자산은 임포터 루프 설정을 승계하지 못해 <b>전부 <c>m_LoopTime = 0</c></b> 이다.
+    /// 그대로 쓰면 Idle/Walk/Run 이 한 번 재생 후 멈칫하므로 대상 목록을 코드에 두고 일괄 적용한다.
     ///
     /// <b>대상 선정 기준</b>: 순환 재생되는 것만(정지/이동/공중 유지/사다리 오르내림).
     /// 원샷(Jump·Landing·Attack·Dodge·Death·Getup·Climb_*_Start/To_Idle)은 <b>끈 채로 둔다</b>.
@@ -40,14 +39,14 @@ namespace Game.Gameplay.Editor
 
         private static readonly string[] LoopClipsAdditional =
         {
-            // 사다리(P6 예정) — 오르내리는 동안 순환
+            // 사다리 — 오르내리는 동안 순환
             "Climb_Up", "Climb_Down", "Climb_Down_Fast", "Climb_L", "Climb_R",
         };
 
         [MenuItem("Tools/ARPGWarrior/클립 규격화 (루프 플래그)")]
         public static void SetupAllMenu() => Debug.Log(SetupAll());
 
-        /// <summary>모달 없는 진입점 — CI/CLI 에서 직접 호출한다(A1 교훈: 메뉴는 모달로 메인스레드를 잡는다).</summary>
+        /// <summary>모달 없는 진입점 — CI/CLI 에서 직접 호출한다(메뉴는 모달로 메인스레드를 잡는다).</summary>
         public static string SetupAll()
         {
             int changed = 0, already = 0;

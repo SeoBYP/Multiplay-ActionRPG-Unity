@@ -29,7 +29,6 @@ namespace Game.Gameplay.Editor.Dialogue
             Insert(0, grid);
             grid.StretchToParentSize();
 
-            // 빈 캔버스 우클릭 → 노드 추가.
             this.AddManipulator(new ContextualMenuManipulator(evt =>
             {
                 var local = contentViewContainer.WorldToLocal(evt.mousePosition);
@@ -84,7 +83,6 @@ namespace Game.Gameplay.Editor.Dialogue
                 viewById[n.id] = view;
             }
 
-            // 엣지 연결: 각 선택지의 targetNodeId → 대상 노드 입력.
             foreach (var n in def.Nodes)
             {
                 if (n == null || !viewById.TryGetValue(n.id, out var view)) continue;

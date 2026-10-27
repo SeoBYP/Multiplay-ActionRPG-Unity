@@ -11,13 +11,8 @@ using VContainer.Unity;
 namespace Game.GUI.OutGame
 {
     /// <summary>
-    /// 인벤토리 창 생명주기 컨트롤러 (POCO).
-    ///
-    /// 역할:
-    ///   InGameModel.OnToggleInventory(HUD 버튼·I키 공용 신호) 수신 → Inventory.prefab 로드(최초 1회)·Inject 후 토글.
-    ///
-    /// I키 = InputRouter→GameInputAction.ToggleInventory→InGameModel.Accept(ToggleInventory) 경로.
-    /// HUD 버튼도 같은 신호를 발행한다(단일 funnel). 2026-08-25 배선 완료(F13).
+    /// 인벤토리 창 생명주기 컨트롤러 (POCO). InGameModel.OnToggleInventory(I키·HUD 버튼 공용 신호) 수신 →
+    /// Inventory.prefab 로드(최초 1회)·Inject 후 토글.
     /// </summary>
     public sealed class InventoryViewController : IInitializable, IDisposable
     {
@@ -53,10 +48,8 @@ namespace Game.GUI.OutGame
         }
 
         /// <summary>
-        /// I키/HUD 버튼 = 인벤토리+장비 "쌍 토글". 인벤토리 상태 기준:
-        ///   열려 있으면 → 둘 다 닫기, 닫혀 있으면 → 둘 다 열기.
-        /// 각 창의 X(Close)로 따로 닫는 건 View가 독립 처리 → 한쪽만 닫힌 뒤 I키를 누르면 인벤토리는 다시 열린다
-        /// (장비가 이미 열려 있으면 ShowAsync가 그대로 유지).
+        /// 인벤토리+장비 "쌍 토글". 인벤토리 상태 기준으로 열려 있으면 둘 다 닫고, 닫혀 있으면 둘 다 연다.
+        /// X 로 한쪽만 닫힌 뒤에도 같은 기준이라 인벤토리만 다시 열린다(이미 열린 장비는 그대로 유지).
         /// </summary>
         private async UniTaskVoid ToggleAsync()
         {
@@ -76,7 +69,7 @@ namespace Game.GUI.OutGame
 
         private async UniTask ShowInventoryAsync()
         {
-            // 이미 로드된 경우 활성화(켜질 때 Inventory.OnEnable이 Refresh).
+            // 켜질 때 Inventory.OnEnable 이 Refresh.
             if (_inst != null)
             {
                 _inst.GameObject.SetActive(true);
@@ -87,7 +80,7 @@ namespace Game.GUI.OutGame
             _loading = true;
             try
             {
-                // GUIRoot이 없을 수도 있다(예: 던전 씬 직접 Play). GameHudController처럼 null 가드 — 없으면 부모 없이 생성.
+                // GUIRoot 이 없을 수도 있다(예: 던전 씬 직접 Play) — 없으면 부모 없이 생성.
                 var parent = GUIRoot.Instance != null ? GUIRoot.Instance.transform : null;
                 _inst = await AddressableLoader.LoadAndInstantiateAsync(
                     AddressKeys.UI.Inventory, parent, _cts.Token);

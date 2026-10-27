@@ -10,10 +10,8 @@ namespace Game.Gameplay.Editor
     /// <summary>
     /// 서버 임베디드 bake 산출물 <b>7종을 한 번에</b> 굽는다.
     ///
-    /// <para><b>왜 필요한가</b>: 저작(SO)과 bake(JSON)가 갈라지는 사고는 "Export 를 돌렸나?"를 사람이
-    /// 기억하는 구조에서 나온다. 실제로 <c>abilities.json</c> 이 그렇게 어긋났고(CA-5 에서 SO 만 바꾸고
-    /// Export 미실행 → 서버가 옛 판정 창으로 검증), <c>items.json</c> 은 아예 Exporter 가 없어 클라
-    /// 카탈로그와 갈라졌다(A4). 메뉴 하나로 전부 굽고 <b>결과를 한 화면에 보여주면</b> 빠뜨릴 자리가 없다.</para>
+    /// <para>저작(SO)과 bake(JSON)가 갈라지는 사고는 "Export 를 돌렸나?"를 사람이 기억하는 구조에서 나온다.
+    /// 메뉴 하나로 전부 굽고 <b>결과를 한 화면에 보여주면</b> 빠뜨릴 자리가 없다.</para>
     ///
     /// <para><b>자동화</b>: <see cref="BakeAll"/> 는 다이얼로그가 없어 Unity CLI 로 호출할 수 있다 —
     /// <c>unity command --project-path . eval "Game.Gameplay.Editor.BakeAllExporter.BakeAll()"</c>.

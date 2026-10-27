@@ -99,7 +99,7 @@ namespace Game.Tests.PlayMode.E2E
             }
         });
 
-        // ── 헬퍼 ────────────────────────────────
+        // ── 헬퍼 ──
 
         /// <summary>화면이 쓰는 것과 같은 Model. 입력 점유·소켓은 이 테스트의 관심사가 아니라 널.</summary>
         private static ChatModel CreateModel(

@@ -6,7 +6,6 @@ namespace Game.Gameplay.Loot
 {
     /// <summary>
     /// 드랍 테이블 저작(authoring) 진실원. 디자이너가 이 SO를 Inspector 에서 편집한다.
-    /// (실무는 Excel, 개인 프로젝트는 SO로 간편화 — MapDefinition 과 동일 컨벤션.)
     ///
     /// - **저작 전용 SO**(런타임 미로드). 클라·서버 모두 bake된 drop-tables.json(Shared.Infrastructure.DropTableCatalog)을 읽는다.
     ///   → 이 SO는 Resources 밖(Assets/GameData/Loot)이며 빌드에 포함되지 않는다.

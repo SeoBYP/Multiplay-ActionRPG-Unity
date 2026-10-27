@@ -6,7 +6,6 @@ namespace Game.Installers
 {
     /// <summary>
     /// 던전 로비 서비스 등록.
-    /// DungeonLobbySession + IDungeonLobbyService
     /// </summary>
     public sealed class DungeonLobbyInstaller : IInstaller
     {

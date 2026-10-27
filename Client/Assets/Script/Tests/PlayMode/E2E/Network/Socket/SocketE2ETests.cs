@@ -130,20 +130,15 @@ namespace Game.Tests.PlayMode.E2E
         [UnityTest]
         public IEnumerator RawSocket_정면의_아군을_공격해도_피해가_들어가지_않는다() => UniTask.ToCoroutine(async () =>
         {
-            // Co-op PvE — 아군 오사 없음(2026-08-22 결정).
-            //
-            // 예전엔 아군을 hitbox 로 맞혀 S_ApplyEffect(피해)를 브로드캐스트했다. 그런데 그 경로는
-            // **클라 HP 만 깎고 서버 PlayerState.Hp 는 건드리지 않아서**, 파티가 붙어 싸우면 클라가 서버보다
-            // 먼저 0 에 도달했다 → 클라는 죽었는데 서버는 살아 있다고 봐 S_PlayerDead 가 영영 안 나갔다
-            // (실측: 몬스터 공격 7회 vs 클라 피해 적용 14회, 사망 애니가 남에게 안 보임).
-            // 아군 오사를 없애면 클라만 깎는 HP 경로 자체가 사라져 두 값이 항상 일치한다.
+            // Co-op PvE — 아군 오사 없음. 클라 HP 만 깎고 서버 PlayerState.Hp 는 건드리지 않는 경로가 있으면
+            // 클라는 죽었는데 서버는 살아 있어 S_PlayerDead 가 안 나간다 — 아군 오사를 없애 두 값을 항상 일치시킨다.
             var room = await CreateStartedTwoPlayerRoomAsync();
             var hostCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
             var guestCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
 
             try
             {
-                // 위치 세팅: 게스트를 호스트 정면 1유닛 — 예전 규칙이었다면 확실히 맞는 자리.
+                // 게스트를 호스트 정면 1유닛에 둔다 — 아군 오사가 있었다면 확실히 맞는 자리.
                 await hostCollector.SendAsync(new C_Move { PosX = 0, PosY = 0, PosZ = 0, RotY = 0 }, Timeout());
                 await guestCollector.SendAsync(new C_Move { PosX = 0, PosY = 0, PosZ = 1, RotY = 0 }, Timeout());
                 await UniTask.Delay(TimeSpan.FromMilliseconds(400));
@@ -175,9 +170,9 @@ namespace Game.Tests.PlayMode.E2E
         [UnityTest]
         public IEnumerator RawSocket_콤보A_공격하면_S_AbilityActivated_skillId2를_수신한다() => UniTask.ToCoroutine(async () =>
         {
-            // #7 콤보 + AC: 클라 ComboDriver 가 단계별 skillId(2/3/4)를 송신 → 서버 ResolveSkill(combo_a) →
+            // 콤보: 클라 ComboDriver 가 단계별 skillId(2/3/4)를 송신 → 서버 ResolveSkill(combo_a) →
             //   S_AbilityActivated{ActorId=시전자, SkillId=2} 브로드캐스트(플레이어=양수 ActorId).
-            // ※ 아군 피해 단언은 제거됐다 — Co-op PvE 라 플레이어는 아군을 때리지 않는다(2026-08-22).
+            // 아군 피해는 단언하지 않는다(Co-op PvE).
             //   데미지 라벨/수치 계약은 몬스터 경로(RawSocket_몬스터_사거리_안이면_..., MonsterDamageTests)가 지킨다.
             var room = await CreateStartedTwoPlayerRoomAsync();
             var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
@@ -207,7 +202,7 @@ namespace Game.Tests.PlayMode.E2E
             }
         });
 
-        // ── M3 몬스터(서버 권위 스폰/이동/전투) ────────────────────────
+        // ── 몬스터(서버 권위 스폰/이동/전투) ──
 
         [UnityTest]
         public IEnumerator RawSocket_입장하면_몬스터_스폰_로스터_수신() => UniTask.ToCoroutine(async () =>
@@ -233,7 +228,7 @@ namespace Game.Tests.PlayMode.E2E
         [UnityTest]
         public IEnumerator RawSocket_몬스터를_반복_공격하면_S_MonsterDead_수신() => UniTask.ToCoroutine(async () =>
         {
-            // 플레이어→몬스터: basic_swing 적중마다 서버 권위로 HP -10(ability.baseDamage=10, AC-B). 30→0 = 3타 이상.
+            // 플레이어→몬스터: basic_swing 적중마다 서버 권위로 HP -10(ability.baseDamage=10). 30→0 = 3타 이상.
             // 슬라임이 패트롤/추격으로 움직이므로 최신 S_MonsterState 위치로 재조준해 정면(−Z 1유닛)에서 타격.
             // dungeon_e2e = 외딴 슬라임 1마리 픽스처(shipped dungeon_01 은 다수 몬스터라 크라우딩으로 불안정).
             var room = await CreateStartedTwoPlayerRoomAsync("dungeon_e2e");
@@ -275,7 +270,7 @@ namespace Game.Tests.PlayMode.E2E
         [UnityTest]
         public IEnumerator RawSocket_공격하면_S_AbilityActivated_연출_브로드캐스트를_수신한다() => UniTask.ToCoroutine(async () =>
         {
-            // 원격 공격 애니(AC 통합): 서버 게이트(마나·쿨다운)를 통과한 스윙만 S_AbilityActivated{ActorId,SkillId} 를 방에 브로드캐스트.
+            // 원격 공격 애니: 서버 게이트(마나·쿨다운)를 통과한 스윙만 S_AbilityActivated{ActorId,SkillId} 를 방에 브로드캐스트.
             // 플레이어 ActorId = 양수 UserId. room.Broadcast 는 방 전원 발신 → AbilityCueRouter 가 ActorId 로 그 원격 플레이어의 스윙 애니 재생.
             // 적중·데미지는 별도(S_ApplyEffect/S_MonsterState, 서버 권위) — 이 패킷은 연출 전용이라 여기서 판정하지 않는다.
             var room = await CreateStartedTwoPlayerRoomAsync();
@@ -352,7 +347,7 @@ namespace Game.Tests.PlayMode.E2E
         [UnityTest]
         public IEnumerator RawSocket_몬스터_공격하면_S_AbilityActivated_발동신호를_수신한다() => UniTask.ToCoroutine(async () =>
         {
-            // AC: 몬스터 공격 시 데미지(S_ApplyEffect)와 별개로 Actor 통합 발동 연출 신호(S_AbilityActivated)를 방에 브로드캐스트한다.
+            // 몬스터 공격 시 데미지(S_ApplyEffect)와 별개로 Actor 통합 발동 연출 신호(S_AbilityActivated)를 방에 브로드캐스트한다.
             // ActorId 는 몬스터라 음수(-instanceId) — 클라 AbilityCueRouter 가 이 신호로 해당 몬스터의 공격 애니를 재생한다.
             var room = await CreateStartedTwoPlayerRoomAsync();
             var host = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
@@ -375,7 +370,7 @@ namespace Game.Tests.PlayMode.E2E
         [UnityTest]
         public IEnumerator RawSocket_몬스터_공격은_슬로우_CC도_함께_브로드캐스트한다() => UniTask.ToCoroutine(async () =>
         {
-            // 2.6.2 던전 CC: arachnya(monsters.json onHitEffectId=slow_3s) 공격 시 서버 TickMonsters 가
+            // 던전 CC: arachnya(monsters.json onHitEffectId=slow_3s) 공격 시 서버 TickMonsters 가
             // 데미지(ability_damage)와 함께 CC(slow_3s, Amount=0) S_ApplyEffect 를 브로드캐스트 →
             // 클라 EffectReceiver 가 적용 → GrantedTags(State.Slow) 게이트. (서버 권위 CC 경로 검증)
             // creepy_demon 은 CC 가 없어 slow_3s 를 내는 arachnya(dungeon_01 (4,10))로 검증.
@@ -402,7 +397,7 @@ namespace Game.Tests.PlayMode.E2E
             }
         });
 
-        // ── 2.2 마나(서버 권위 검증·차감·동기화) ───────────────────────
+        // ── 마나(서버 권위 검증·차감·동기화) ──
 
         [UnityTest]
         public IEnumerator RawSocket_입장하면_초기_마나_S_PlayerMana_수신() => UniTask.ToCoroutine(async () =>
@@ -463,7 +458,7 @@ namespace Game.Tests.PlayMode.E2E
         [UnityTest]
         public IEnumerator RawSocket_몬스터_전멸하면_양쪽_S_DungeonClear_수신() => UniTask.ToCoroutine(async () =>
         {
-            // M4 A 트랙 ③: dungeon_e2e 시드 = 슬라임 1마리. 그 1마리를 처치하면 전멸 →
+            // 던전 클리어: dungeon_e2e 시드 = 슬라임 1마리. 그 1마리를 처치하면 전멸 →
             // 서버 Room.TryMarkCleared(최초 1회) → S_DungeonClear 를 방에 브로드캐스트.
             // 시전자(호스트) + 같은 방 게스트 둘 다 수신해야 한다.
             // ※ shipped dungeon_01(8마리)은 전멸이 비현실적이라 전용 픽스처 맵으로 검증.
@@ -514,16 +509,16 @@ namespace Game.Tests.PlayMode.E2E
             }
         });
 
-        // ── 3.3.7 루트 풀 E2E (사냥 → 드랍 → 줍기 → 인벤토리 지급) ──────────
+        // ── 루트 풀 E2E (사냥 → 드랍 → 줍기 → 인벤토리 지급) ──
 
         [UnityTest]
         public IEnumerator RawSocket_슬라임_처치_드랍_줍기하면_GameServer_인벤토리에_지급된다() => UniTask.ToCoroutine(async () =>
         {
-            // 던전 루트 경로 풀 체인 검증(loot-drop.md §3):
-            //   ① 슬라임 처치(서버 권위) → DropTable.Roll → S_SpawnGroundItem 브로드캐스트
-            //   ② C_PickupItem → 서버 TryPickup(경쟁 중재·거리) → S_ItemPickedUp + Redis Stream 발행
-            //   ③ GameServer LootGrantConsumer → GrantItemAsync → DB inventory_items(영속)
-            //   ④ 클라 GetInventory(pull)로 지급 확인
+            // 던전 루트 경로 풀 체인 검증:
+            //   - 슬라임 처치(서버 권위) → DropTable.Roll → S_SpawnGroundItem 브로드캐스트
+            //   - C_PickupItem → 서버 TryPickup(경쟁 중재·거리) → S_ItemPickedUp + Redis Stream 발행
+            //   - GameServer LootGrantConsumer → GrantItemAsync → DB inventory_items(영속)
+            //   - 클라 GetInventory(pull)로 지급 확인
             // dungeon_e2e 슬라임은 potion_hp_small 을 보장 드랍(DropTable Chance 1.0) → 결정적.
             // (드랍은 monsterId=slime 에 종속, 맵 무관. 외딴 1마리 픽스처라 크라우딩 없이 안정.)
             var room = await CreateStartedTwoPlayerRoomAsync("dungeon_e2e");
@@ -534,7 +529,7 @@ namespace Game.Tests.PlayMode.E2E
                 var spawn = await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "creepy_demon", Timeout());
                 int slimeId = spawn.InstanceId;
 
-                // ① 움직이는 슬라임을 최신 위치로 재조준하며 처치 → 보장 드랍(S_SpawnGroundItem) 관측.
+                // 움직이는 슬라임을 최신 위치로 재조준하며 처치 → 보장 드랍(S_SpawnGroundItem) 관측.
                 S_SpawnGroundItem ground = null;
                 var killDeadline = DateTime.UtcNow.AddSeconds(ServerConfig.TimeoutSeconds);
                 while (ground == null && DateTime.UtcNow < killDeadline)
@@ -559,7 +554,7 @@ namespace Game.Tests.PlayMode.E2E
                 Assert.AreEqual(1001, ground.ItemId);
                 Assert.GreaterOrEqual(ground.Qty, 1);
 
-                // ② 드랍 위치로 이동(서버측 거리 검증 통과 = 거리 0) 후 줍기.
+                // 드랍 위치로 이동(서버측 거리 검증 통과 = 거리 0) 후 줍기.
                 await host.SendAsync(new C_Move { PosX = ground.PosX, PosY = 0, PosZ = ground.PosZ, RotY = 0 }, Timeout());
                 await UniTask.Delay(TimeSpan.FromMilliseconds(200));
                 await host.SendAsync(new C_PickupItem { GroundId = ground.GroundId }, Timeout());
@@ -569,7 +564,7 @@ namespace Game.Tests.PlayMode.E2E
                 Assert.AreEqual(ground.Qty, picked.Qty, "줍은 수량은 바닥 아이템 수량과 일치해야 한다");
                 await host.WaitForPacketAsync<S_GroundItemRemoved>(p => p.GroundId == ground.GroundId, Timeout());
 
-                // ③④ GameServer 인벤토리 지급은 Redis Stream 비동기 → GetInventory 폴링(호스트 토큰 인증).
+                // GameServer 인벤토리 지급은 Redis Stream 비동기 → GetInventory 폴링(호스트 토큰 인증).
                 AccessToken = room.HostAccessToken;
                 int grantedQty = 0;
                 var grantDeadline = DateTime.UtcNow.AddSeconds(ServerConfig.TimeoutSeconds);
@@ -595,7 +590,7 @@ namespace Game.Tests.PlayMode.E2E
         [UnityTest]
         public IEnumerator RawSocket_던전에서_포션_소비하면_서버가_회복_S_ApplyEffect를_브로드캐스트한다() => UniTask.ToCoroutine(async () =>
         {
-            // 플레이어 HP 서버 권위 증분2(authority-model §4): 던전 회복 = 크로스-서버.
+            // 플레이어 HP 서버 권위: 던전 회복 = 크로스-서버.
             //   클라 ConsumeItem(GameServer 검증·차감) → PlayerConsumedMessage(Redis stream:game:player:consumed)
             //   → SocketServer PlayerConsumedConsumer → Room.ApplyPlayerEffect(+heal) + S_ApplyEffect(potion_hp_small) 브로드캐스트.
             // 호스트가 던전 방에서 그 회복 브로드캐스트를 받으면 전 경로 통과(차감은 GameServer 권위 = 무한힐 불가).
@@ -607,7 +602,7 @@ namespace Game.Tests.PlayMode.E2E
                 await host.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "creepy_demon", Timeout()); // 던전 준비 동기화
 
                 // 호스트 토큰으로 포션 시드(ClaimKill = Main 슬롯 처치, slime 보장 드랍 potion) 후 소비(gRPC).
-                // 회복 수치는 클램프(만피)라도 브로드캐스트는 발생. ※ GrantItem 은 무한파밍 핵으로 제거됨(ClaimKill 대체).
+                // 회복 수치는 클램프(만피)라도 브로드캐스트는 발생.
                 AccessToken = room.HostAccessToken;
                 var grant = await InventoryService.ClaimKillAsync(
                     new ClaimKillRequest { MapId = "main_field_01", SlotId = 1 }, Timeout());
@@ -634,7 +629,7 @@ namespace Game.Tests.PlayMode.E2E
         [UnityTest]
         public IEnumerator RawSocket_몬스터에게_죽으면_서버가_C_PlayerDead_없이_S_PlayerDead를_브로드캐스트한다() => UniTask.ToCoroutine(async () =>
         {
-            // 플레이어 HP 서버 권위 증분1: 가만히 맞으면 서버가 자기 HP≤0 을 **직접 감지**(클라 C_PlayerDead 미송신)
+            // 플레이어 HP 서버 권위: 가만히 맞으면 서버가 자기 HP≤0 을 **직접 감지**(클라 C_PlayerDead 미송신)
             //   → S_PlayerDead{호스트} 브로드캐스트(죽은 본인도 수신). 불사 핵 차단의 직접 증명.
             // test_arena 맵 = 강한 fixture 몬스터 test_brute(사거리·aggro 무한, 쿨다운 50ms) → 호스트가 가만히 있어도
             //   ~2초에 사망. 게스트는 멀리 보내 호스트를 최근접 타깃으로 만든다. C_Attack/C_PlayerDead 는 절대 안 보냄.
@@ -671,8 +666,7 @@ namespace Game.Tests.PlayMode.E2E
         {
             // 참가자 전원이 **실제로 죽으면** 서버가 실패를 최초 1회 claim → S_DungeonFailed 를 방에 브로드캐스트.
             //
-            // 예전엔 만피 상태에서 C_PlayerDead 를 보내 다운을 위조했다. 이제 서버가 그 자기신고를 거부한다
-            // (다운도 서버 권위 — 만피인 채로 다운을 주장해 AI 타깃에서 빠지는 구멍을 막았다).
+            // 서버가 C_PlayerDead 자기신고를 거부한다(다운도 서버 권위 — 만피로 다운을 주장해 AI 타깃에서 빠지는 것 차단).
             // 그래서 진짜로 죽여야 한다: test_arena 의 fixture 몬스터 test_brute 는 즉사기(baseDamage 9999,
             // 쿨다운 50ms, 사거리 1000)라 두 참가자가 입장하는 즉시 차례로 쓰러진다.
             //
@@ -753,7 +747,7 @@ namespace Game.Tests.PlayMode.E2E
             {
                 await guest.WaitForPacketAsync<S_SpawnMonster>(p => p.MonsterId == "creepy_demon", Timeout());
 
-                // ① 게스트를 데몬 사거리 안으로. 호스트는 스폰 자리(aggro 밖)에서 keep-alive 만.
+                // 게스트를 데몬 사거리 안으로. 호스트는 스폰 자리(aggro 밖)에서 keep-alive 만.
                 bool guestDown = false;
                 var deadline = DateTime.UtcNow.AddSeconds(60);
                 while (!guestDown && DateTime.UtcNow < deadline)
@@ -769,12 +763,12 @@ namespace Game.Tests.PlayMode.E2E
                     host.TryGetLatest<S_DungeonFailed>(p => p.RoomId == room.RoomId, out _),
                     "호스트는 살아 있어야 한다 — 전원 다운이면 부활이 막힌다");
 
-                // ② 호스트가 쓰러진 게스트 곁(2.5m 안)으로 이동 후 부활 시전.
+                // 호스트가 쓰러진 게스트 곁(2.5m 안)으로 이동 후 부활 시전.
                 await host.SendAsync(new C_Move { PosX = -4, PosY = 0, PosZ = 3, RotY = 0 }, Timeout());
                 await UniTask.Delay(TimeSpan.FromMilliseconds(300), ignoreTimeScale: true); // 서버 위치 갱신 대기
                 await host.SendAsync(new C_Revive { TargetUserId = room.GuestUserId }, Timeout());
 
-                // ③ 양쪽 모두 부활 브로드캐스트 수신(원격 가시성). HP 부분복구(>0).
+                // 양쪽 모두 부활 브로드캐스트 수신(원격 가시성). HP 부분복구(>0).
                 var guestRevived = await guest.WaitForPacketAsync<S_PlayerRevived>(
                     p => p.UserId == room.GuestUserId, Timeout());
                 Assert.AreEqual(room.GuestUserId, guestRevived.UserId);
@@ -791,7 +785,7 @@ namespace Game.Tests.PlayMode.E2E
             }
         });
 
-        // ── 재연결 / Disconnected 상태 시나리오 ────────────────────────
+        // ── 재연결 / Disconnected 상태 시나리오 ──
 
         /// <summary>
         /// C_PlayerLeave 없이 강제 연결 종료(게임 크래시 시뮬레이션) 후
@@ -807,7 +801,6 @@ namespace Game.Tests.PlayMode.E2E
 
             // 게스트 먼저 입장 (방 유지 앵커)
             var guestCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.GuestUserId, Timeout());
-            // 호스트 첫 번째 입장
             var hostCollector = await ConnectAndJoinCollectorAsync(room.RoomId, room.HostUserId, Timeout());
 
             try
@@ -920,7 +913,7 @@ namespace Game.Tests.PlayMode.E2E
             }
         });
 
-        // ── 6.4 재접속 유예 창(grace) — 복귀 플로우 Green/Red ───────────────
+        // ── 재접속 유예 창(grace) — 복귀 플로우 Green/Red ──
         //
         // 두 퇴장 경로:
         //   크래시/끊김(graceful)  → PlayerState 를 ReconnectGraceMs(60s) 보존 → 유예 내 재접속 = 복귀(GREEN)
@@ -928,7 +921,6 @@ namespace Game.Tests.PlayMode.E2E
         // 경계:
         //   유예 만료(>60s)        → 스윕이 상태 제거                          → 재접속 거부(RED, slow)
         //   전원 끊김(방 빔)        → 방 즉시 소멸                              → 재접속 거부(RED, Room not found)
-        // 상세 = docs/wiki/codemap.md §2.17.
 
         /// <summary>[GREEN] 크래시(graceful) 후 유예 내 재접속 시, 스폰이 아니라 끊기기 직전 위치로 복귀한다.</summary>
         [UnityTest]
@@ -1085,9 +1077,7 @@ namespace Game.Tests.PlayMode.E2E
             }
         });
 
-        // ─────────────────────────────────────────────────────────────
-        // 연결 생존성/거부 (liveness) — 하트비트·유휴 타임아웃·세션 검증
-        // ─────────────────────────────────────────────────────────────
+        // ── 연결 생존성/거부 (liveness) — 하트비트·유휴 타임아웃·세션 검증 ──
 
         [UnityTest]
         public IEnumerator 세션배정_없는_UserId로_입장하면_거부된다() => UniTask.ToCoroutine(async () =>

@@ -29,13 +29,13 @@ namespace Game.Gameplay.Character
     }
 
     /// <summary>
-    /// Main(싱글) 로컬 몬스터 스포너 — B-lite. 던전 MonsterSpawner(서버 권위)의 자매.
+    /// Main(싱글) 로컬 몬스터 스포너. 던전 MonsterSpawner(서버 권위)의 자매.
     /// 스폰 위치·식별자는 서버와 같은 spawn-layouts(`SpawnLayoutProvider`)의 **몬스터 슬롯**에서 읽는다
     /// (서버가 ClaimKill 검증의 기준으로 보유 = 무한파밍 차단). 클라는 스폰·렌더·예측만.
     ///
     /// - 네트워크 미연결(Main)에서만 동작. Joined(던전)면 스폰 안 함(서버 스폰).
     /// - LocalMonster.OnDied → 사망 위치에 LocalGroundItem(슬롯) 스폰. **드랍 roll 은 클라가 안 함** —
-    ///   줍기 시 서버 ClaimKill 이 슬롯 검증 후 권위 roll 로 지급한다. 정본 = main-spawn-claim.md.
+    ///   줍기 시 서버 ClaimKill 이 슬롯 검증 후 권위 roll 로 지급한다.
     /// </summary>
     public sealed class MainMonsterSpawner : IAsyncStartable, IDisposable
     {

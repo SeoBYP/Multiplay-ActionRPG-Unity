@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Game.Gameplay.Character
 {
     /// <summary>
-    /// 사다리 오르내리기(P6) = <b>Locomotion 축의 배타적 이동 모드</b>(CA-1 — Action 이 아니다).
+    /// 사다리 오르내리기 = <b>Locomotion 축의 배타적 이동 모드</b>(Action 이 아니다).
     /// 중력·수평 이동을 끄고 사다리 축(수직)으로만 움직인다.
     ///
     /// 진입: <see cref="GroundToClimbTransition"/>(사다리 상호작용) / 이탈: <see cref="ClimbToGroundTransition"/>(상·하단 도달).
@@ -50,7 +50,7 @@ namespace Game.Gameplay.Character
 
         protected override void StateUpdate(float deltaTime)
         {
-            // 전/후 입력만 쓴다(좌우는 무시 — 옆으로 타는 이동은 이번 범위 밖).
+            // 전/후 입력만 쓴다(좌우는 무시).
             float axis = _inputSource?.Current.Move.y ?? 0f;
 
             // 점프(Space) = 사다리를 밀어내며 이탈. 전이는 ClimbToFallTransition 이, 밀어내기는 Exit 가 한다.
@@ -66,7 +66,7 @@ namespace Game.Gameplay.Character
                 _motor?.MoveRaw(Vector3.up * (axis * _settings.ClimbSpeed * deltaTime));
 
             // 클립 배속 = 입력 축 × (실제 속도 / 클립이 상정한 속도).
-            // 실측: Climb_Up 은 1.00m/s 를 상정한다 — 그냥 축(±1)만 넣으면 몸만 빨라져 손발이 발판에서 미끄러진다.
+            // Climb_Up 은 1.00m/s 를 상정한다 — 그냥 축(±1)만 넣으면 몸만 빨라져 손발이 발판에서 미끄러진다.
             float speedMul = _settings.ClimbClipSpeed > 0.01f
                 ? _settings.ClimbSpeed / _settings.ClimbClipSpeed
                 : 1f;

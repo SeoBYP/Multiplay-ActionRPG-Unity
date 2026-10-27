@@ -15,9 +15,9 @@ namespace Game.Tests.PlayMode.InGame
     /// 뒤로 걷든 다른 사람 화면에는 <b>전부 전진</b>으로 보였다 — 8방향 블렌드를 만들어 놓고 원격만 못 쓰던 상태.
     ///
     /// 검증 축 셋:
-    ///   ① 방향 — 보간 속도 + RotY 로 MoveX/MoveY 복원(패킷 추가 없음)
-    ///   ② 모드 — S_Move.AnimState(점프/낙하/사다리)로 애니 상태 전이
-    ///   ③ 회피 방향 — S_Dodge.DirX/DirY
+    ///   - 방향 — 보간 속도 + RotY 로 MoveX/MoveY 복원(패킷 추가 없음)
+    ///   - 모드 — S_Move.AnimState(점프/낙하/사다리)로 애니 상태 전이
+    ///   - 회피 방향 — S_Dodge.DirX/DirY
     /// </summary>
     public class RemoteLocomotionSyncTests
     {
@@ -181,7 +181,6 @@ namespace Game.Tests.PlayMode.InGame
             // "빠져나왔다"는 <b>전이 방향</b>으로 본다 — current 로 보면 안 된다.
             // Unity 는 전이가 끝날 때까지 GetCurrentAnimatorStateInfo 를 **옛 상태(Dead)** 로 유지하므로,
             // 부활 전이가 이미 시작(next=GetUp)됐는데도 current 만 보면 영원히 Dead 로 읽힌다.
-            // (실측: Revive 직후 f+0 부터 inTransition=True, next=GetUp)
             bool recovered = false;
             for (int i = 0; i < 120 && !recovered; i++)
             {
@@ -199,7 +198,7 @@ namespace Game.Tests.PlayMode.InGame
             Assert.IsTrue(jumped, "부활 후에는 다시 점프 등 로코모션 상태가 반영돼야 한다.");
         }
 
-        // ── 리그 ────────────────────────────────────────────────────────────
+        // ── 리그 ──
 
         private IEnumerator Spawn()
         {
