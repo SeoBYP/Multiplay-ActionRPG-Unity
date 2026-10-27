@@ -3,8 +3,8 @@ namespace GameServer.Domain.Entities.Wallet;
 /// <summary>
 /// 유저 재화(골드) 잔액(영속 엔티티). UserId 단일키 → 단일 잔액(스택형 아이템 아님).
 ///
-/// 키 = user_id (지금). 미래 캐릭터 교체 시 character_id 로 이관(Progression·Inventory 와 동일). [[character-swap-direction]]
-/// 골드는 통화 — 인벤토리 아이템(InventoryItem)이 아니라 별도 잔액으로 관리(3.4). 드랍/킬 보상·상점이 증감.
+/// 키 = user_id (지금). 캐릭터 교체 시 character_id 로 이관(Progression·Inventory 와 동일).
+/// 골드는 통화 — 인벤토리 아이템이 아니라 별도 잔액으로 관리. 드랍/킬 보상·상점이 증감.
 /// </summary>
 public class UserWallet
 {

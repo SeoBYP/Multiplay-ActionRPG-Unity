@@ -6,12 +6,7 @@ namespace Script.System.GamePlayAbilitySystem
     /// 한 액터가 <b>실제로 보유한</b> 속성만 담는 집합(current/max 쌍).
     ///
     /// <para><b>왜 필드가 아니라 집합인가</b>: "이 액터에 그 속성이 없다"를 <b>데이터로</b> 표현하기 위해서다.
-    /// 필드로 두면 몬스터에 없는 AttackPower/Defense/Mana 를 호출부가 리터럴 0 으로 위장하게 되고
-    /// (실제로 <c>const int MonsterAttackPower = 0</c>·<c>const int MonsterDefense = 0</c> 이 그렇게 생겼다),
-    /// 산식은 그 위장을 진짜 값으로 착각한다. 여기서는 <see cref="Has"/> 로 유무를 묻는다.</para>
-    ///
-    /// <para>스탯이 늘어도 <see cref="EGameplayAttribute"/> 에 값 하나만 추가하면 된다 —
-    /// 저장소·적용 경로는 그대로다.</para>
+    /// 필드로 두면 없는 속성을 호출부가 리터럴 0 으로 위장하고 산식이 그걸 진짜 값으로 착각한다. 유무는 <see cref="Has"/> 로 묻는다.</para>
     /// </summary>
     public sealed class AttributeSet
     {
@@ -38,7 +33,6 @@ namespace Script.System.GamePlayAbilitySystem
 
         /// <summary>
         /// 현재값 접근. 읽기는 미보유 시 0, 쓰기는 미보유 시 무동작.
-        /// <b>속성별 프로퍼티를 만들지 않는다</b> — 스탯이 늘 때 <see cref="EGameplayAttribute"/> 에만 값을 추가하면 되도록.
         /// </summary>
         public int this[EGameplayAttribute attribute]
         {
@@ -49,7 +43,7 @@ namespace Script.System.GamePlayAbilitySystem
         /// <summary>이 액터가 그 속성을 보유하는가. <b>false = 0 이 아니라 "없음"</b>.</summary>
         public bool Has(EGameplayAttribute attribute) => _map.ContainsKey(attribute);
 
-        /// <summary>보유 속성 목록(적용 대상 판별·디버그용).</summary>
+        /// <summary>보유 속성 목록.</summary>
         public IEnumerable<EGameplayAttribute> Defined => _map.Keys;
 
         /// <summary>

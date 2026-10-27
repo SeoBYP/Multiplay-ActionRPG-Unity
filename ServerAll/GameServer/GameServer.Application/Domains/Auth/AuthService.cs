@@ -77,7 +77,7 @@ public class AuthService(
 
         credential.SetRefreshToken(hashedRefreshToken, refreshTokenExpiry);
         await userCredentialRepository.UpdateAsync(credential, ct);
-        // 새 로그인은 새 체인이다. 옛 세대 기록을 남겨 두면 오래된 토큰 하나로 갓 만든 세션이 끊길 수 있다.
+        // 새 로그인은 새 체인 — 옛 세대 기록이 남으면 오래된 토큰 하나로 갓 만든 세션이 끊길 수 있다
         await userCredentialRepository.ClearPreviousRefreshTokenAsync(user.UserId, ct);
 
         logger.LogInformation("Login succeeded for user {UserId} with session {SessionId}", user.UserId, userSession.SessionId);
@@ -105,7 +105,7 @@ public class AuthService(
             await userCredentialRepository.ClearPreviousRefreshTokenAsync(userSession.UserId, ct);
             logger.LogInformation("Cleared refresh token during logout for user {UserId}", userSession.UserId);
 
-            // Main 이탈 — 휘발(Redis) 위치를 DB 로 확정한다(B7). 실패해도 로그아웃을 막지 않는다.
+            // Main 이탈 — 휘발(Redis) 위치를 DB 로 확정한다. 실패해도 로그아웃을 막지 않는다
             try
             {
                 await userPositionService.FlushAsync(userSession.UserId, ct);
@@ -163,8 +163,8 @@ public class AuthService(
             return Result<LoginResult>.Failure(ErrorCodes.InvalidRequest, ErrorMessages.InvalidRequest);
         }
 
-        // 소유 증명이 먼저다. 이 검사를 통과하지 못한 요청으로는 아무것도 파괴하지 않는다.
-        // (검사보다 파괴가 앞서면, 유출된 accessToken 하나로 아무 문자열이나 던져 세션을 끊는 DoS 가 된다.)
+        // 소유 증명이 먼저 — 통과하지 못한 요청으로는 아무것도 파괴하지 않는다
+        // (파괴가 앞서면 유출된 accessToken 하나로 임의 문자열을 던져 세션을 끊는 DoS 가 된다)
         var hashedInputToken = HashRefreshToken(refreshToken, deviceId);
         var matchesCurrent = FixedTimeEqualsHex(credential.RefreshToken, hashedInputToken);
 
@@ -218,8 +218,8 @@ public class AuthService(
         credential.SetRefreshToken(hashedNewRefreshToken, refreshTokenExpiry);
         await userCredentialRepository.UpdateAsync(credential, ct);
 
-        // 물러난 토큰을 재사용 탐지용으로 남긴다. 재시도로 들어온 경우에는 갱신하지 않는다 —
-        // 갱신하면 같은 토큰을 유예 안에서 계속 되밀어 탐지를 무한히 미룰 수 있다.
+        // 물러난 토큰을 재사용 탐지용으로 남긴다. 재시도 경로에서는 갱신하지 않는다 —
+        // 갱신하면 같은 토큰을 유예 안에서 계속 되밀어 탐지를 무한히 미룰 수 있다
         if (matchesCurrent)
         {
             await userCredentialRepository.SetPreviousRefreshTokenAsync(
@@ -285,8 +285,7 @@ public class AuthService(
             return false;
         }
 
-        // 인증된 활동 = 생존 신호. 리퍼가 "아직 사람이 있다"를 판단할 유일한 근거라
-        // 검증 성공 지점에서 갱신한다(저장소가 스로틀하므로 요청마다 쓰지는 않는다).
+        // 인증된 활동 = 생존 신호(리퍼가 "아직 사람이 있다"를 판단하는 유일한 근거). 저장소가 스로틀한다
         await userSessionRepository.TouchSessionAsync(sessionId.Value, ct);
 
         logger.LogDebug("ValidateToken succeeded for session {SessionId}", sessionId.Value);

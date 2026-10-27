@@ -2,13 +2,13 @@ namespace Shared.Infrastructure.Quests;
 
 /// <summary>
 /// 퀘스트 목표 종류. proto enum `gameserver.quest.v1.QuestObjective` 와 **정수값 1:1**.
-/// MVP=KillMonster 만 진행 훅 존재. 나머지는 확장 여지(정의/표시 가능, 진행 훅은 후속).
+/// KillMonster 만 진행 훅이 있다. 나머지는 정의/표시만 가능.
 /// </summary>
 public enum QuestObjectiveType
 {
     KillMonster = 0,  // TargetId = monsterId, 킬 클레임(ClaimExpAsync)에서 +1
-    CollectItem = 1,  // TargetId = itemId (진행 훅 후속 — GrantItemAsync 합류 시)
-    TalkToNpc = 2,    // TargetId = npcId (4.5 NPC 합류 시)
+    CollectItem = 1,  // TargetId = itemId
+    TalkToNpc = 2,    // TargetId = npcId
 }
 
 /// <summary>

@@ -6,7 +6,7 @@ using Shared.Infrastructure.Spawn;
 namespace Server.Tests.Monster;
 
 /// <summary>
-/// M3 증분④: MonsterAiMath 순수 이동 수식. Chase/Attack/Patrol/Idle 분기 + 경계 clamp.
+/// MonsterAiMath 순수 이동 수식. Chase/Attack/Patrol/Idle 분기 + 경계 clamp.
 /// </summary>
 public class MonsterAiMathTests
 {

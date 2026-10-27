@@ -4,7 +4,7 @@ using GameServer.Domain.Entities.User;
 namespace GameServer.Tests.Infrastructure.Fakes.Services;
 
 /// <summary>
-/// Main 위치 지속화(B7) no-op. 인증·로비 테스트의 관심사가 아니라 의존만 채운다.
+/// Main 위치 지속화 no-op. 인증·로비 테스트의 관심사가 아니라 의존만 채운다.
 /// Flush 호출 여부는 <see cref="FlushedUserIds"/> 로 관측할 수 있다.
 /// </summary>
 public sealed class FakeUserPositionService : IUserPositionService

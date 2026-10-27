@@ -4,7 +4,7 @@ using Script.System.GamePlayAbilitySystem;
 namespace Shared.Gameplay.Tests;
 
 /// <summary>
-/// CA-2: SkillTimeline 페이즈 진행(startup→active→recovery→done) 결정론 검증.
+/// SkillTimeline 페이즈 진행(startup→active→recovery→done) 결정론 검증.
 /// active window는 서버가 애니 없이 적중을 평가하는 구간 — 데이터로만 결정된다.
 /// </summary>
 public class SkillTimelineTests

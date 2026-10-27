@@ -8,9 +8,7 @@ namespace Server.Tests.Actors;
 /// <summary>
 /// 몬스터가 <b>자기 틱을 온전히 소유한다</b> — 이동·페이즈 결정, 어빌리티 선택, 쿨다운 커밋까지.
 ///
-/// <para>예전에는 <c>Tick</c> 이 <c>int targetIdx</c> 만 돌려주고 어빌리티 선택·쿨다운 커밋은
-/// 방(RoomSimulation)이 다시 판단했다 — 결정이 두 곳에 쪼개져 있었다.
-/// 이제 방은 결과(<see cref="ActorTickResult"/>)를 <b>패킷·피해로 번역</b>만 한다.</para>
+/// <para>방은 결과(<see cref="ActorTickResult"/>)를 <b>패킷·피해로 번역</b>만 한다.</para>
 ///
 /// <para>여기서 고정하는 경계: <b>Tick 은 패킷도 피해도 만들지 않는다.</b>
 /// 대상의 방어력을 읽어야 하는 데미지 산정이 액터로 들어오면 액터가 다른 액터를 뒤지기 시작한다.</para>
@@ -103,7 +101,7 @@ public class MonsterActorTickTests
     [Fact]
     public void 스턴_태그가_붙으면_발동이_막힌다()
     {
-        // 발동 게이트가 액터의 태그를 실제로 읽는다는 증거(예전엔 blocked:false 하드코딩).
+        // 발동 게이트가 액터의 태그를 실제로 읽는다는 증거.
         var m = NewDemon();
         m.Gas.AddTag(GameplayTags.Stun);
 

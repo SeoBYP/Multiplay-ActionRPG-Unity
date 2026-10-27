@@ -8,11 +8,7 @@ namespace Shared.Infrastructure.Items;
 
 /// <summary>
 /// items.json(임베디드 리소스)을 1회 로드해 아이템/장비/상점/소모품 정의를 제공하는 **단일 저작 소스**.
-/// MonsterCatalog·DropTableCatalog·LevelTable 과 동일 교리: 클라 SO 저작 → bake → 서버 임베디드 로드.
-///
-/// 이전에는 `GameServer.Domain` 안에 `ItemCatalog`/`EquipmentCatalog`/`ShopCatalog` 3개가 **하드코딩 Dictionary**
-/// 로 흩어져 있어, 같은 itemId 목록을 4곳(+클라 SO)에서 따로 저작했다. 서버 코드를 고칠 때마다 클라와 갈라졌고
-/// 실제로 `gold_pouch` 고아·`potion_mp_small` 효과 누락이 발생했다. 이 파일이 그 4곳을 하나로 합친다.
+/// 클라 SO 저작 → bake → 서버 임베디드 로드. 아이템 정의를 서버 코드에 따로 저작하면 클라와 갈라지므로 이 파일이 유일한 소스다.
 ///
 /// **순서 보존**: 파일 순서 = 저작 순서 = 상점 진열 순서(ShopCatalog.All). 알파벳 정렬하지 않는다.
 /// </summary>
@@ -78,11 +74,9 @@ public static class ItemCatalogData
             if (dto.ConsumeEffects.Count > 0)
             {
                 // effectId == itemId 규칙: 소비 통지(PlayerConsumedMessage.EffectId)가 곧 itemId 라 별도 매핑 불필요.
-                // ⚠ id 는 **numericId 의 문자열**이다 — ItemId 가 int 로 바뀐 뒤 gRPC 가 보내는 값이
-                //   request.ItemId.ToString() 이므로 등록 키도 같아야 조회가 맞는다. 저작 문자열
-                //   ("potion_hp_small")로 등록하면 소비해도 효과가 안 붙는다(E2E 가 이 불일치를 잡았다).
-                // policy/durationMs 를 그대로 싣는다 — 구 ConsumableEffectExporter 는 이 둘을 bake 에서 누락시켰고
-                // 서버가 Instant/0 으로 하드코딩해, 지속형 버프 물약을 저작해도 서버에선 즉발이 되는 버그가 있었다.
+                // ⚠ id 는 **numericId 의 문자열**이다 — gRPC 가 request.ItemId.ToString() 을 보내므로 등록 키도 같아야 한다.
+                //   저작 문자열("potion_hp_small")로 등록하면 소비해도 효과가 안 붙는다.
+                // policy/durationMs 를 그대로 싣는다 — Instant/0 으로 하드코딩하면 지속형 버프 물약이 즉발이 된다.
                 var first = dto.ConsumeEffects[0];
                 var mods = dto.ConsumeEffects
                     .Select(e => GameplayAttributeModifier.Create(
@@ -115,10 +109,8 @@ public static class ItemCatalogData
             Shop = shop;
             Consumables = consumables;
             ItemsById = items.ToDictionary(i => i.ItemId, StringComparer.Ordinal);
-            // numericId 는 전환 중인 키다. 미배정(0)·중복이 있어도 **서버를 죽이지 않는다** —
-            // 로드 실패는 데이터 한 줄 때문에 서버 전체를 내리는 결과가 되고, 이 값은 아직
-            // 아무 런타임 경로도 쓰지 않는다(1단계). 불변식은 저작(ItemCatalogExporter 가 bake 거부)과
-            // 테스트(ItemNumericIdTests)가 지킨다.
+            // 미배정(0)·중복 numericId 가 있어도 **서버를 죽이지 않는다**(데이터 한 줄에 서버 전체가 내려간다).
+            // 불변식은 저작(ItemCatalogExporter 가 bake 거부)과 테스트(ItemNumericIdTests)가 지킨다.
             var byNumeric = new Dictionary<int, ItemDef>();
             foreach (var i in items)
                 if (i.NumericId > 0)
@@ -127,7 +119,7 @@ public static class ItemCatalogData
             EquipmentById = equipment.ToDictionary(e => e.ItemId, StringComparer.Ordinal);
             ShopById = shop.ToDictionary(s => s.ItemId, StringComparer.Ordinal);
 
-            // numericId 키 — ItemsByNumericId 와 같은 방어 규칙(미배정 0·중복은 건너뛴다).
+            // ItemsByNumericId 와 같은 방어 규칙(미배정 0·중복은 건너뛴다).
             var eqByNum = new Dictionary<int, EquipmentDef>();
             foreach (var e in equipment) if (e.NumericId > 0) eqByNum.TryAdd(e.NumericId, e);
             EquipmentByNumericId = eqByNum;
@@ -143,7 +135,7 @@ public static class ItemCatalogData
 
         public IReadOnlyDictionary<string, ItemDef> ItemsById { get; }
 
-        /// <summary>숫자 ID 조회. ItemId 를 int 로 옮기는 전환(2단계)의 진입점.</summary>
+        /// <summary>숫자 ID 조회(서버 내부 키).</summary>
         public IReadOnlyDictionary<int, ItemDef> ItemsByNumericId { get; }
         public IReadOnlyDictionary<int, EquipmentDef> EquipmentByNumericId { get; }
         public IReadOnlyDictionary<int, ShopItemDef> ShopByNumericId { get; }

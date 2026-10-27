@@ -11,12 +11,8 @@ public readonly record struct RewardGrantRequest(
     long Amount);
 
 /// <summary>
-/// 보상을 **정확히 한 번만** 지급한다(exactly-once).
-///
-/// 지급 동작과 "지급했음" 기록을 같은 트랜잭션에 묶는 것이 핵심이다. 그래야
-///   - 재시도가 안전하고(이미 준 건 UNIQUE 로 걸린다)
-///   - 부분 실패도 나머지만 마저 줄 수 있다(참가자별로 키가 갈리므로)
-/// 두 가지가 동시에 성립한다. Redis 키만으로는 지급과 기록이 다른 저장소라 둘 중 하나를 포기해야 했다.
+/// 보상을 정확히 한 번만 지급한다(exactly-once). 지급과 "지급했음" 기록을 같은 트랜잭션에 묶어
+/// 재시도가 안전하고(GrantKey UNIQUE) 부분 실패 시 나머지만 마저 줄 수 있다(참가자별 키).
 /// </summary>
 public interface IRewardLedger
 {

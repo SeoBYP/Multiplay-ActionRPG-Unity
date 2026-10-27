@@ -18,7 +18,7 @@ using Moq;
 namespace GameServer.Tests.Infrastructure.Integrations;
 
 /// <summary>
-/// F1(던전 입장 원자성)의 <b>경합 자체</b>를 실제 Redis·PostgreSQL 로 재현한다.
+/// 던전 입장 원자성의 <b>경합 자체</b>를 실제 Redis·PostgreSQL 로 재현한다.
 ///
 /// 단위 테스트는 <c>NoOpDistributedLock</c> 을 쓰므로 상호배제를 검증하지 못한다.
 /// 여기서는 진짜 <see cref="RedisDistributedLock"/> 과 진짜 UNIQUE 제약을 걸고
@@ -144,7 +144,7 @@ public class DungeonRoomJoinConcurrencyTests(RepositoryTestFixture fixture)
             joinerSessionIds.Add(session!.SessionId);
         }
 
-        // Act — 동시에 밀어 넣는다.
+        // 동시에 밀어 넣는다.
         var results = await Task.WhenAll(joinerSessionIds.Select(async sessionId =>
         {
             var (service, context) = CreateRequestScope(sessions);
@@ -158,7 +158,7 @@ public class DungeonRoomJoinConcurrencyTests(RepositoryTestFixture fixture)
             }
         }));
 
-        // Assert — 방장 1명 + 성공 인원 = 정원. 초과분은 RoomFull 로 거부.
+        // 방장 1명 + 성공 인원 = 정원. 초과분은 RoomFull 로 거부.
         var succeeded = results.Count(r => r.IsSuccess);
         Assert.Equal(maxPlayers - 1, succeeded);
 
@@ -181,8 +181,8 @@ public class DungeonRoomJoinConcurrencyTests(RepositoryTestFixture fixture)
     /// 두 번째 INSERT 가 DB 제약에 그대로 부딪히므로, 서비스 계층의 check-then-act 가
     /// 우연히 먼저 이기는 일이 없다.
     ///
-    /// ⚠️ 아래 동시성 테스트만으로는 부족하다 — 실측(고장 주입)에서 <c>.IsUnique()</c> 를 떼도
-    /// 두 요청이 충분히 겹치지 않아 사전 검사가 먼저 걸러 통과해 버렸다.
+    /// ⚠️ 아래 동시성 테스트만으로는 부족하다 — <c>.IsUnique()</c> 를 떼도 두 요청이 충분히 겹치지 않으면
+    /// 사전 검사가 먼저 걸러 통과한다.
     /// "제약이 살아 있는가"는 이 테스트가 책임진다.
     /// </summary>
     [Fact]
@@ -243,8 +243,7 @@ public class DungeonRoomJoinConcurrencyTests(RepositoryTestFixture fixture)
         var sessions = new FakeUserSessionRepository();
         var session = await sessions.CreateSessionAsync(joiner.UserId);
 
-        // Act — 서로 다른 방이라 락 키가 달라 상호배제가 걸리지 않는다.
-        //       막는 것은 dungeon_room_players.UserId UNIQUE 제약뿐이다.
+        // 서로 다른 방이라 락 키가 달라 상호배제가 걸리지 않는다 — 막는 것은 dungeon_room_players.UserId UNIQUE 제약뿐이다.
         var results = await Task.WhenAll(
             new[] { roomA.RoomId, roomB.RoomId }.Select(async roomId =>
             {

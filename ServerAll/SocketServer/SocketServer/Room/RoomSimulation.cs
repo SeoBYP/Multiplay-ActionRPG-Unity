@@ -133,7 +133,7 @@ public sealed class RoomSimulation
             return;
 
         // 데미지 = 어빌리티 BaseDamage(레벨 스케일) − 대상 Defense. 플레이어→몬스터와 동일 산식.
-        // 스탯은 액터의 GAS 가 갖는다 — 호출부에 const 0 을 두지 않는다.
+        // 스탯은 액터의 GAS 가 갖는다.
         int scaledBase = MonsterLevelScaling.Damage(chosen.BaseDamage, monster.Level);
         int attackPower = monster.Gas[EGameplayAttribute.AttackPower];
         int defense = target.Actor.Gas[EGameplayAttribute.Defense];
@@ -167,9 +167,8 @@ public sealed class RoomSimulation
         // CC(상태이상): 어빌리티의 OnHitEffectIds(태그/CC 전용)를 데미지와 함께 부여한다.
         // Amount=0 = HP 변경 없는 상태태그(Duration+GrantedTags) → 클라 EffectReceiver 가 적용 → 입력/이동 게이트.
         //
-        // **서버도 자기에게 건다.** 예전엔 브로드캐스트만 하고 서버 액터에는 아무 흔적이 없어서,
-        // 서버의 IsActivationBlocked 는 항상 false 였고 만료 시각도 클라만 알았다 — CC 권위가 통째로 클라에 있었다.
-        // 이제 서버가 활성 Effect 를 들고 만료를 틱에서 소유한다(S_RemoveEffect 는 그 결과의 통지일 뿐).
+        // **서버도 자기에게 건다** — 서버 액터가 활성 Effect 를 들고 만료를 틱에서 소유한다
+        // (IsActivationBlocked 가 실제로 동작하고, S_RemoveEffect 는 그 결과의 통지일 뿐).
         foreach (var ccId in chosen.Timeline.OnHitEffectIds)
         {
             if (string.IsNullOrEmpty(ccId)) continue;
@@ -178,7 +177,7 @@ public sealed class RoomSimulation
             var def = CombatEffectCatalog.Get(ccId);
             if (def is null)
             {
-                // 카탈로그에 없는 id 를 조용히 흘려보내면 클라만 CC 를 알고 서버는 모르는 옛 상태로 되돌아간다.
+                // 미등록 id 를 조용히 흘리면 클라만 CC 를 알고 서버는 모르게 된다.
                 _logger.LogWarning("[GameplayEffect] 미등록 effectId '{EffectId}' — 어빌리티 '{AbilityId}' 의 CC 를 건너뛴다", ccId, chosen.Id);
                 continue;
             }
@@ -215,7 +214,7 @@ public sealed class RoomSimulation
         Hp = hp,
         Phase = (byte)monster.Phase,
         // 틱이 **먼저 만들어 둔 옛 HP 패킷**보다 이 패킷이 새 상태임을 클라에 알린다.
-        // 도착 순서가 뒤집혀도 클라가 Seq 로 스테일을 버린다(근본 해법).
+        // 도착 순서가 뒤집혀도 클라가 Seq 로 스테일을 버린다.
         Seq = seq,
     };
 }

@@ -168,7 +168,7 @@ public class QuestServiceTests
         Assert.Contains(inv, i => i.ItemId == 1001 && i.Quantity == 2);
     }
 
-    // ── ReportTalk 신뢰 경계 (F5) ────────────────────────────────────
+    // ── ReportTalk 신뢰 경계 ────────────────────────────────────
     //
     // 근접 검증은 이 구조에서 불가능하다(서버는 NPC 위치도, Main 플레이어 위치도 모른다).
     // 서버가 보는 것은 "이 요청을 정상적으로 처리할 수 있는가" 뿐이다.

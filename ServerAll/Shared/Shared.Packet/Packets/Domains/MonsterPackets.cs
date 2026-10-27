@@ -3,8 +3,7 @@ using MemoryPack;
 namespace Shared.Packet.Packets;
 
 /// <summary>
-/// 서버 → 클라: 몬스터 1마리 스폰. 입장 시 현재 몬스터 로스터 전송에도 재사용.
-/// 몬스터는 서버 권위 NPC라 C_ 입력 패킷이 없다.
+/// 서버 → 클라: 몬스터 1마리 스폰. 입장 시 현재 로스터 전송에도 재사용. 몬스터는 서버 권위 NPC라 C_ 패킷이 없다.
 /// </summary>
 [MemoryPackable]
 public partial class S_SpawnMonster : Packet
@@ -20,8 +19,8 @@ public partial class S_SpawnMonster : Packet
 }
 
 /// <summary>
-/// 서버 → 클라: 몬스터 주기 상태(이동/HP/페이즈). RoomTickService가 매 틱 브로드캐스트.
-/// 클라는 이 스냅샷으로 위치를 보간만 한다(서버 시뮬 + 클라 보간 모델).
+/// 서버 → 클라: 몬스터 주기 상태(이동/HP/페이즈). RoomTickService가 매 틱 브로드캐스트한다.
+/// 클라는 위치를 보간만 한다(서버 시뮬 + 클라 보간).
 /// </summary>
 [MemoryPackable]
 public partial class S_MonsterState : Packet
@@ -35,7 +34,7 @@ public partial class S_MonsterState : Packet
     public byte Phase { get; set; } // 0 Idle / 1 Patrol / 2 Chase / 3 Attack
 
     /// <summary>
-    /// 몬스터별 단조 증가 상태 버전(AC-C3). 클라는 <c>Seq &lt;= 마지막 적용값</c> 이면 **스테일로 버린다**.
+    /// 몬스터별 단조 증가 상태 버전. 클라는 <c>Seq &lt;= 마지막 적용값</c> 이면 **스테일로 버린다**.
     /// <para>
     /// 이 패킷에는 두 생산자가 있다 — 틱(<c>Room.Tick</c>)과 데미지(<c>CombatHandler</c>).
     /// 틱은 패킷을 **만든 뒤 나중에 송신**하므로(RoomTickService) 그 사이 데미지가 끼면
@@ -50,7 +49,7 @@ public partial class S_MonsterState : Packet
 }
 
 /// <summary>
-/// 서버 → 클라: 몬스터 사망 → 디스폰. HP 권위는 서버, 사망 판정도 서버.
+/// 서버 → 클라: 몬스터 사망 → 디스폰. 사망 판정은 서버 권위.
 /// </summary>
 [MemoryPackable]
 public partial class S_MonsterDead : Packet

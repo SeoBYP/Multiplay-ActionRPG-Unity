@@ -21,7 +21,7 @@ namespace GameServer.Tests.E2E;
 ///
 /// 실제 RoomLifecycleConsumer(BackgroundService)를 띄우고 InMemoryMessageQueue로 메시지를 흘려
 /// "발행 → 소비 → RemovePlayerFromRoomAsync → DB 상태" 끝단까지 검증한다.
-/// (원래 버그의 본질인 "consumer 미배선/타입 불일치"를 잡는 계층)
+/// (consumer 미배선/타입 불일치를 잡는 계층)
 /// </summary>
 public class RoomLifecycleConsumerIntegrationTests
 {
@@ -56,9 +56,9 @@ public class RoomLifecycleConsumerIntegrationTests
         services.AddSingleton<IMessageQueue<PlayerLeftRoomMessage>>(queue);
         services.AddSingleton<IProgressionRepository>(new FakeProgressionRepository());
         services.AddScoped<IProgressionService, ProgressionService>();
-        // Main 위치 지속화(B7) — 이 테스트의 관심사가 아니라 no-op.
+        // Main 위치 지속화 — 이 테스트의 관심사가 아니라 no-op.
         services.AddScoped<GameServer.Application.Domains.User.Interfaces.IUserPositionService, GameServer.Tests.Infrastructure.Fakes.Services.FakeUserPositionService>();
-        // 장비 합산(3.2) 의존 — 이 테스트는 장비 무관이라 스텁(0 modifier) 등록.
+        // 장비 합산 의존 — 이 테스트는 장비 무관이라 스텁(0 modifier) 등록.
         services.AddScoped<GameServer.Application.Domains.Equipment.Interfaces.IEquipmentService, Infrastructure.Fakes.Services.FakeEquipmentService>();
         services.AddScoped<IDungeonLobbyService, DungeonLobbyService>();
         services.AddSingleton<RoomLifecycleConsumer>();

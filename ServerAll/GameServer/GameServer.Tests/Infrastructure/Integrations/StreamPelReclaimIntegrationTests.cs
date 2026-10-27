@@ -9,7 +9,7 @@ using StackExchange.Redis;
 namespace GameServer.Tests.Infrastructure.Integrations;
 
 /// <summary>
-/// Consumer Group PEL(Pending Entry List) 자동 회수 검증 (F4).
+/// Consumer Group PEL(Pending Entry List) 자동 회수 검증.
 ///
 /// ACK 전에 컨슈머가 죽으면 그 메시지는 그 컨슈머의 PEL 에 남는다. 회수 주체가 없으면 **영구 잔류**한다 —
 /// 특히 컨슈머 이름이 매 기동 바뀌면 자기 PEL 재읽기("0")도 소용이 없다.

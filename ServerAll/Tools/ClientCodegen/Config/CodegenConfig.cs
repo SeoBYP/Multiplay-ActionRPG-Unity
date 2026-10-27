@@ -14,7 +14,6 @@ public class CodegenConfig
 
     public static CodegenConfig Load(string[] args)
     {
-        // 환경변수 or args로 받기
         var repoRoot = args.Length > 0
             ? args[0]
             : Environment.GetEnvironmentVariable("REPO_ROOT")

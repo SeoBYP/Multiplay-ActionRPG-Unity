@@ -301,7 +301,7 @@ public class DungeonLobbyServiceTests
         Assert.Equal(2, result.Value!.TotalCount);
     }
 
-    // ── GetActiveDungeonRooms 페이징 (9.6) ─────────────────────────
+    // ── GetActiveDungeonRooms 페이징 ─────────────────────────
 
     [Fact]
     public async Task GetActiveDungeonRooms_요청한_페이지_크기만큼만_반환하고_전체수는_따로_준다()
@@ -778,24 +778,19 @@ public class DungeonLobbyServiceTests
         Assert.Equal(ErrorCodes.RoomNotFound, result.InternalErrorCode); // INTERNAL_SERVER_ERROR 아님
     }
 
-    // ── StartGame 캐시 무효화 회귀 테스트 ─────────────────────────────
-    // 버그: AddWithRoomUpdateAsync가 DB는 Starting으로 업데이트하지만 Redis 캐시를 무효화하지 않아
-    // GameSessionReadyConsumer가 stale Waiting 상태를 읽고 MarkGameSessionReady()를 스킵,
-    // 결과적으로 GameSessionEvent가 전송되지 않아 씬 전환이 안 됨.
-    // 수정: StartGameAsync 이후 InvalidateCacheAsync를 반드시 호출해야 한다.
+    // ── StartGame 캐시 무효화 ─────────────────────────────
+    // StartGameAsync 이후 InvalidateCacheAsync 를 반드시 호출해야 한다 — 안 하면 GameSessionReadyConsumer 가
+    // stale Waiting 을 읽어 MarkGameSessionReady() 를 스킵하고 GameSessionEvent 가 전송되지 않는다.
 
     [Fact]
     public async Task StartGame_성공_시_캐시_무효화가_반드시_호출된다()
     {
-        // Arrange
         var hostSession = await _sessionRepository.CreateSessionAsync(1);
         var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4);
         var roomId = created.Value!.RoomId;
 
-        // Act
         var result = await _service.StartGameAsync(hostSession.SessionId, roomId, "trace");
 
-        // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(1, _roomRepository.InvalidateCacheCallCount); // 캐시 무효화 1회 호출 필수
     }
@@ -803,24 +798,22 @@ public class DungeonLobbyServiceTests
     [Fact]
     public async Task StartGame_이미_Starting_상태에서_재시도_시_캐시_무효화가_호출된다()
     {
-        // Arrange: 방을 Starting 상태로 만들기
         var hostSession = await _sessionRepository.CreateSessionAsync(1);
         var created = await _service.CreateDungeonRoomAsync(hostSession!.SessionId, "Room", 4);
         var roomId = created.Value!.RoomId;
         await _service.StartGameAsync(hostSession.SessionId, roomId, "trace-first");
         var callCountAfterFirst = _roomRepository.InvalidateCacheCallCount;
 
-        // Act: 이미 Starting인 방에 StartGame 재호출 (OutboxMessage 재발행 경로)
+        // 이미 Starting인 방에 StartGame 재호출 (OutboxMessage 재발행 경로)
         var result = await _service.StartGameAsync(hostSession.SessionId, roomId, "trace-retry");
 
-        // Assert
         Assert.True(result.IsSuccess);
         Assert.True(_roomRepository.InvalidateCacheCallCount > callCountAfterFirst); // 재시도에서도 캐시 무효화
     }
 
-    // ── 스탯 전파(2.4): StartGame 메시지에 참가자의 레벨 스탯이 실린다 ──
+    // ── 스탯 전파: StartGame 메시지에 참가자의 레벨 스탯이 실린다 ──
     // GameServer 가 progression+레벨테이블로 합산한 스탯을 GameStartRequestedMessage 에 적재해야
-    // SocketServer 가 DB 접근 없이 그 값으로 전투한다(authority-model §4c).
+    // SocketServer 가 DB 접근 없이 그 값으로 전투한다.
 
     [Fact]
     public async Task StartGame_메시지에_참가자의_레벨업된_스탯이_실린다()
@@ -849,7 +842,7 @@ public class DungeonLobbyServiceTests
         Assert.Equal(7, host.Defense);      // Lv2: 5  + 1*2
     }
 
-    // ── 던전 메타(4.3): 방에 영속된 MapId 가 게임 시작 메시지에 실린다 ──
+    // ── 던전 메타: 방에 영속된 MapId 가 게임 시작 메시지에 실린다 ──
     // 명시 mapId 없이 StartGame 하면 방의 MapId(생성 시 결정)가 진실의 원천으로 쓰여야 한다.
 
     [Fact]
@@ -865,7 +858,6 @@ public class DungeonLobbyServiceTests
             .Callback<DungeonRoom, OutboxMessage, CancellationToken>((_, m, _) => captured = m)
             .Returns(Task.CompletedTask);
 
-        // mapId 인자를 비워도 방의 MapId 가 메시지에 실려야 한다.
         var result = await _service.StartGameAsync(hostSession.SessionId, roomId, "trace");
 
         Assert.True(result.IsSuccess);

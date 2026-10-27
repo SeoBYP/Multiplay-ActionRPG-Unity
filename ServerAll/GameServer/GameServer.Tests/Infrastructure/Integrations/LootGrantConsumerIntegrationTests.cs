@@ -53,7 +53,7 @@ public class LootGrantConsumerIntegrationTests
         services.AddDbContext<GameServerDbContext>(o => o.UseNpgsql(_fixture.DbConnectionString));
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IInventoryService, InventoryService>();
-        // 도감(3.7): InventoryService 가 GrantItemAsync 에서 ICodexService 의존 → 미등록 시 consumer DI 해소 실패.
+        // 도감: InventoryService 가 GrantItemAsync 에서 ICodexService 의존 → 미등록 시 consumer DI 해소 실패.
         services.AddScoped<GameServer.Application.Domains.Codex.Interfaces.ICodexRepository, GameServer.Infrastructure.Domains.Codex.CodexRepository>();
         services.AddScoped<GameServer.Application.Domains.Codex.Interfaces.ICodexService, GameServer.Application.Domains.Codex.CodexService>();
         services.AddScoped<IWalletRepository, WalletRepository>();
@@ -141,7 +141,7 @@ public class LootGrantConsumerIntegrationTests
         var msg = new ItemPickedUpMessage
         {
             UserId = userId,
-            ItemId = 3001, // 통화 → WalletService 로 라우팅(3.4)
+            ItemId = 3001, // 통화 → WalletService 로 라우팅
             Qty = 2,
             PickupId = "9101:1",
         };
@@ -230,7 +230,7 @@ public class LootGrantConsumerIntegrationTests
         await h.Queue.EnqueueAsync(msg);
         await WaitUntilAsync(async () => await GetQuantityAsync(userId, 1001) == 1, cts.Token);
 
-        // 예전 Redis 집합은 TTL 로 통째 만료될 수 있었다. 원장 행에는 TTL 이 없다.
+        // 원장 행에는 TTL 이 없다(Redis 집합은 TTL 로 통째 만료될 수 있다).
         await h.Queue.EnqueueAsync(msg);
         await Task.Delay(400, cts.Token);
 

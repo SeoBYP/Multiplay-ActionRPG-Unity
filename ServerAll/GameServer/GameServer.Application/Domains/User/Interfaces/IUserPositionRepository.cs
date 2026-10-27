@@ -3,12 +3,8 @@ using GameServer.Domain.Entities.User;
 namespace GameServer.Application.Domains.User.Interfaces;
 
 /// <summary>
-/// Main 위치 저장소.
-///
-/// ⚠ **이 도메인만 cache-aside 교리의 예외다.** 다른 저장소는 "DB 저장 → 캐시 DEL" 인데,
-/// 위치는 쓰기가 매우 잦고(주기 보고) 유실이 허용되는 유일한 데이터라 **Redis 를 1차 저장소**로 쓴다.
-/// 확정(DB)은 이탈 시점에만 한 번. 그래서 유실 폭이 "마지막 확정 이후"로 한정되고 명시적이다.
-/// 이 예외를 다른 도메인에 복사하지 말 것 — networking.md 에 사유와 함께 적어 두었다.
+/// Main 위치 저장소. 이 도메인만 cache-aside 의 예외다 — 쓰기가 잦고 유실이 허용되므로 Redis 가 1차 저장소이고,
+/// DB 확정은 이탈 시점에 한 번이다(유실 폭 = 마지막 확정 이후). 다른 도메인에 복사하지 말 것.
 /// </summary>
 public interface IUserPositionRepository
 {

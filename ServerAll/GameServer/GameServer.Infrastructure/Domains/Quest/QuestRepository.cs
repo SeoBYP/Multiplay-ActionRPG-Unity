@@ -7,9 +7,9 @@ using Microsoft.Extensions.Logging;
 namespace GameServer.Infrastructure.Domains.Quest;
 
 /// <summary>
-/// 퀘스트 수주/진행 저장소. DB 전용(Redis 캐시 없음) — read-rare/write-heavy(킬마다 진행)라 캐시 부적합(plan §4.4).
-///   Get  : DB(AsNoTracking) — long-lived DbContext stale 방지(networking.md). 반환 엔티티는 detached.
-///   Upsert : 키로 tracked 조회 → 있으면 값 복사(update), 없으면 insert. detached 입력을 안전 반영.
+/// 퀘스트 수주/진행 저장소. DB 전용(Redis 캐시 없음) — 킬마다 진행되는 write-heavy 라 캐시 부적합.
+///   Get  : AsNoTracking(stale 방지). 반환 엔티티는 detached.
+///   Upsert : 키로 tracked 조회 → 있으면 값 복사, 없으면 insert. detached 입력을 안전 반영.
 /// </summary>
 public class QuestRepository(
     GameServerDbContext context,

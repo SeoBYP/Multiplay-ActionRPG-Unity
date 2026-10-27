@@ -8,10 +8,7 @@ using StackExchange.Redis;
 namespace GameServer.Infrastructure.Domains.Wallet;
 
 /// <summary>
-/// 재화(골드) 잔액 저장소. Cache-Aside + Delete (networking.md).
-///   GetBalance : Redis String HIT 즉시 반환 / MISS → DB(AsNoTracking) → 캐시 SET(TTL)
-///   Add/Spend  : DB 갱신(없으면 lazy create) → SaveChanges → 캐시 DEL
-///
+/// 재화(골드) 잔액 저장소. Cache-Aside + Delete.
 /// 캐시 = 유저당 String 1키(잔액 정수). 지갑이 없거나 잔액 0 도 캐시한다(인벤 Hash 와 달리
 /// String "0" 은 MISS 와 구분 가능 → 폴백 트래픽 절감). 음수 잔액은 도메인이 막는다.
 /// </summary>
@@ -30,7 +27,7 @@ public class WalletRepository(
             if (cached.HasValue && long.TryParse(cached.ToString(), out var bal))
                 return bal;
 
-            // cache-aside 읽기 전용 → AsNoTracking (long-lived DbContext stale 방지)
+            // AsNoTracking: 오래 유지되는 DbContext 의 stale 방지
             var wallet = await context.UserWallets
                 .AsNoTracking()
                 .SingleOrDefaultAsync(w => w.UserId == userId, ct);
@@ -50,7 +47,6 @@ public class WalletRepository(
     {
         try
         {
-            // 쓰기 경로 — 추적 쿼리로 로드(없으면 lazy create) 후 누적.
             var wallet = await context.UserWallets
                 .SingleOrDefaultAsync(w => w.UserId == userId, ct);
 
@@ -66,7 +62,7 @@ public class WalletRepository(
 
             await context.SaveChangesAsync(ct);
 
-            // Update 는 캐시를 덮어쓰지 않고 DEL (stale·부분갱신 위험 회피).
+            // 캐시는 덮어쓰지 않고 DEL (stale·부분갱신 방지)
             await DeleteCacheAsync(userId);
 
             return wallet.Balance;
@@ -88,7 +84,6 @@ public class WalletRepository(
             var wallet = await context.UserWallets
                 .SingleOrDefaultAsync(w => w.UserId == userId, ct);
 
-            // 지갑 없음 또는 잔액 부족 → 실패(변화 없음).
             if (wallet is null || !wallet.TrySpend(amount))
                 return null;
 

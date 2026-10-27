@@ -9,8 +9,7 @@ using CodexGrpc = GameServer.Grpc.Codex.CodexService;
 namespace GameServer.API.Services;
 
 /// <summary>
-/// 도감 gRPC — 조회 전용. 발견 기록(진실원=서버)은 아이템 지급 funnel 에서만 일어나며
-/// 클라가 임의 발견을 요청하는 RPC 는 두지 않는다(치팅 차단). 3.7 도감.
+/// 조회 전용. 발견 기록은 아이템 지급 funnel 에서만 일어나며 클라가 발견을 요청하는 RPC 는 두지 않는다(치팅 차단).
 /// </summary>
 public class CodexGrpcService(
     ICodexService codexService,

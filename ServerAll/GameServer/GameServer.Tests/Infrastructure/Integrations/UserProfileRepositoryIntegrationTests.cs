@@ -17,7 +17,6 @@ public class UserProfileRepositoryIntegrationTests
     [Fact]
     public async Task Create_ShouldInsertIntoDbAndSetCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var user = await userRepo.CreateAsync();
@@ -28,10 +27,8 @@ public class UserProfileRepositoryIntegrationTests
         long userId = user.UserId;
         string nickName = "Player1";
 
-        // Act
         var profile = await repository.CreateAsync(userId, nickName);
 
-        // Assert
         // 1. DB Insert 확인
         var dbProfile = await context.UserProfiles.FindAsync(userId);
         Assert.NotNull(dbProfile);
@@ -49,7 +46,6 @@ public class UserProfileRepositoryIntegrationTests
     [Fact]
     public async Task Read_Hit_ShouldReturnFromCacheWithoutDbAccess()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var user = await userRepo.CreateAsync();
@@ -62,10 +58,8 @@ public class UserProfileRepositoryIntegrationTests
         context.UserProfiles.Remove(profile);
         await context.SaveChangesAsync();
 
-        // Act
         var found = await repository.GetByIdAsync(user.UserId);
 
-        // Assert
         Assert.NotNull(found);
         Assert.Equal("Player2", found.NickName);
     }
@@ -73,7 +67,6 @@ public class UserProfileRepositoryIntegrationTests
     [Fact]
     public async Task Read_Miss_ShouldReturnFromDbAndSetCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var user = await userRepo.CreateAsync();
@@ -87,10 +80,8 @@ public class UserProfileRepositoryIntegrationTests
         // Redis 캐시 삭제
         await db.KeyDeleteAsync(cacheKey);
 
-        // Act
         var found = await repository.GetByIdAsync(user.UserId);
 
-        // Assert
         Assert.NotNull(found);
         Assert.Equal("Player3", found.NickName);
 
@@ -101,7 +92,6 @@ public class UserProfileRepositoryIntegrationTests
     [Fact]
     public async Task Update_ShouldUpdateDbAndClearCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var user = await userRepo.CreateAsync();
@@ -112,10 +102,8 @@ public class UserProfileRepositoryIntegrationTests
         var profile = await repository.CreateAsync(user.UserId, "OldNick");
         profile.SetNickName("NewNick");
 
-        // Act
         await repository.UpdateAsync(profile);
 
-        // Assert
         // 1. DB 확인 (새 context 사용)
         using var assertContext = _fixture.CreateDbContext();
         var dbProfile = await assertContext.UserProfiles.FindAsync(user.UserId);
@@ -128,7 +116,6 @@ public class UserProfileRepositoryIntegrationTests
     [Fact]
     public async Task Delete_ShouldRemoveFromDbAndClearCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var user = await userRepo.CreateAsync();
@@ -138,10 +125,8 @@ public class UserProfileRepositoryIntegrationTests
 
         await repository.CreateAsync(user.UserId, "DeleteMe");
 
-        // Act
         await repository.RemoveAsync(user.UserId);
 
-        // Assert
         var dbProfile = await context.UserProfiles.FindAsync(user.UserId);
         Assert.Null(dbProfile);
 
@@ -151,7 +136,6 @@ public class UserProfileRepositoryIntegrationTests
     [Fact]
     public async Task TTL_ShouldBeSetOnCacheKeys()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var user = await userRepo.CreateAsync();
@@ -162,7 +146,6 @@ public class UserProfileRepositoryIntegrationTests
         await repository.CreateAsync(user.UserId, "TTLPlayer");
         var cacheKey = RedisKeys.UserProfile(user.UserId);
 
-        // Assert
         var ttl = await db.KeyTimeToLiveAsync(cacheKey);
 
         Assert.NotNull(ttl);

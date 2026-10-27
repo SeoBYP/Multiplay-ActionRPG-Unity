@@ -3,7 +3,7 @@ namespace GameServer.Domain.Entities.Quest;
 /// <summary>
 /// 퀘스트 *수주/진행*(영속 엔티티). (UserId, QuestId) 복합키. 행 존재 = 수주함(없으면 미수주).
 ///
-/// 키 = user_id (지금). 미래 캐릭터 교체 시 character_id 로 이관(다른 도메인과 동일). [[character-swap-direction]]
+/// 키 = user_id (지금). 캐릭터 교체 시 character_id 로 이관(다른 도메인과 동일).
 /// 완료 여부(Progress≥Required)는 RequiredCount(카탈로그) 기준이라 서비스가 판정 — 엔티티는 Status·Progress 만 관리.
 /// </summary>
 public class UserQuest

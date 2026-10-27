@@ -12,8 +12,7 @@ public sealed class PlayerActor(long userId) : Actor(ActorIds.FromPlayer(userId)
     public override ActorKind Kind => ActorKind.Player;
 
     // ── 회피(Dodge) 무적 ──────────────────────────────────────────────
-    // 태그(State.Invulnerable)가 아니라 만료 시각으로 둔다: 태그로 하면 만료를 틱이 돌려야 하는데
-    // 지금 서버는 Effect 만료를 소유하지 않는다. 시각 비교는 틱 없이 정확하다.
+    // 태그(State.Invulnerable)가 아니라 만료 시각 — 시각 비교는 틱 주기와 무관하게 정확하다.
 
     /// <summary>이 시각(Unix ms)까지 피해를 무시한다. 0 = 무적 아님.</summary>
     public long InvulnerableUntilMs { get; set; }

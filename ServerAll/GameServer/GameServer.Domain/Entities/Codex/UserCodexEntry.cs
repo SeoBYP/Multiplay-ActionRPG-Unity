@@ -4,7 +4,7 @@ namespace GameServer.Domain.Entities.Codex;
 /// 도감 발견 기록(영속 엔티티). (UserId, ItemId) 복합키 → 한 번이라도 *획득*한 아이템.
 /// 행이 존재하면 "발견함"(append-only). 수량·소유 여부와 무관 — 소유는 InventoryItem.
 ///
-/// 키 = user_id (지금). 미래 캐릭터 교체 시 character_id 로 이관(Inventory·Progression 과 동일). [[character-swap-direction]]
+/// 키 = user_id (지금). 캐릭터 교체 시 character_id 로 이관(Inventory·Progression 과 동일).
 /// 정의(이름·등급·아이콘)는 ItemCatalog(서버)·ItemDisplayCatalog(클라)가 소유 — 이 엔티티는 발견 사실만 기록.
 /// </summary>
 public class UserCodexEntry

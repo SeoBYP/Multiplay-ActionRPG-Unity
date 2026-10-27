@@ -4,8 +4,6 @@ namespace Shared.Gameplay.Tests;
 
 /// <summary>
 /// AttributeSet — <b>"없는 속성"과 "0 인 속성"의 구분</b>이 이 타입의 존재 이유다.
-/// 필드로 두던 시절엔 그 구분이 불가능해 호출부가 리터럴 0 으로 위장했다
-/// (<c>const int MonsterAttackPower = 0</c> · <c>const int MonsterDefense = 0</c> · <c>currentMana: 0</c>).
 /// </summary>
 public class AttributeSetTests
 {

@@ -8,7 +8,7 @@ using Shared.Infrastructure.Spawn;
 namespace Server.Tests.Room;
 
 /// <summary>
-/// M3 증분③: Room 의 서버 권위 몬스터 스폰. CreateRoom 이 맵 레이아웃의 몬스터를 스폰하고,
+/// Room 의 서버 권위 몬스터 스폰. CreateRoom 이 맵 레이아웃의 몬스터를 스폰하고,
 /// SpawnMonsters 가 count 만큼 고유 InstanceId 로 생성하며 경계를 보관하는지 검증.
 /// </summary>
 public class MonsterRoomTests

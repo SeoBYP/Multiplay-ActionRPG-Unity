@@ -7,7 +7,7 @@ using Shared.Infrastructure.Spawn;
 namespace Server.Tests.Monster;
 
 /// <summary>
-/// M3 증분⑤: 서버 권위 몬스터 피격/사망(GAS). Room.DamageMonster 가 GameplayEffectMath 로 HP 를 깎고,
+/// 서버 권위 몬스터 피격/사망(GAS). Room.DamageMonster 가 GameplayEffectMath 로 HP 를 깎고,
 /// 0 이하면 방에서 제거한다. CombatEffectCatalog 가 effectId 를 Health 모디파이어로 해석한다.
 /// </summary>
 public class MonsterDamageTests
@@ -25,7 +25,7 @@ public class MonsterDamageTests
         return room;
     }
 
-    /// <summary>basic_swing(baseDamage=10) 의 데미지 모디파이어 — 구 basic_attack_dmg(-10)와 동일 값.</summary>
+    /// <summary>basic_swing(baseDamage=10) 의 데미지 모디파이어.</summary>
     private static System.Collections.Generic.List<GameplayAttributeModifier> DamageMods10()
         => global::Server.PacketHandler.Handler.CombatHandler.BuildDamageMods(
             global::Server.PacketHandler.Handler.CombatHandler.ResolveAbility(0)!, attackPower: 0, defense: 0);
@@ -33,7 +33,7 @@ public class MonsterDamageTests
     [Fact]
     public void 어빌리티_데미지는_Health_모디파이어로_만들어진다()
     {
-        // AC-B 안B: 데미지 출처 = ability.baseDamage(폐기된 basic_attack_dmg effect 아님).
+        // 데미지 출처 = ability.baseDamage.
         var ability = global::Server.PacketHandler.Handler.CombatHandler.ResolveAbility(0)!;
         var mods = global::Server.PacketHandler.Handler.CombatHandler.BuildDamageMods(ability, attackPower: 0, defense: 0);
 
@@ -52,8 +52,7 @@ public class MonsterDamageTests
     [Fact]
     public void CombatEffectCatalog는_Shared_단일소스를_위임한다()
     {
-        // 수치 진실원은 Shared GameplayEffectCatalog 하나. 서버 접근자는 그 정의를 그대로 꺼낸다.
-        // (예전 자체 Dictionary 이중정의 → 단일소스 위임 회귀 가드). CC 효과로 검증 — 데미지 effect 는 AC-B B5 에서 폐기됨.
+        // 수치 진실원은 Shared GameplayEffectCatalog 하나. 서버 접근자는 그 정의를 그대로 꺼낸다(이중정의 회귀 가드). CC 효과로 검증.
         var server = CombatEffectCatalog.Resolve("slow_3s");
         var shared = new GameplayEffectCatalog().Get("slow_3s")!.Modifiers;
 

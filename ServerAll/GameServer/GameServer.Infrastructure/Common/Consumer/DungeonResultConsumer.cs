@@ -10,17 +10,11 @@ using Shared.Infrastructure.Spawn;
 namespace GameServer.Infrastructure.Common.Consumer;
 
 /// <summary>
-/// SocketServer가 발행한 던전 클리어 이벤트를 소비해 참가자 전원에게 Exp 보상을 지급한다.
+/// SocketServer가 발행한 던전 클리어 이벤트를 소비해 참가자 전원에게 Exp 만 지급한다(인벤토리 제외).
+/// 보상 값은 Shared 카탈로그(spawn-layouts.json 의 expReward)를 MapId 로 조회 — SocketServer 표시값과 같은 소스.
 ///
-/// 던전별 보상은 Shared 카탈로그(spawn-layouts.json 의 expReward)에서 MapId 로 조회한다 —
-/// SocketServer(S_DungeonClear 표시)와 동일 소스라 표시·지급 값이 일치한다.
-/// 보상은 Exp 만(인벤토리 제외, 2026-06-06 범위 확정).
-///
-/// 멱등은 **참가자 단위 원장**(<see cref="IRewardLedger"/>, GrantKey = "dungeon:{roomId}:{userId}")이 담당한다.
-/// 예전에는 메시지 단위 Redis claim-first 였는데, 그러면
-///   - 참가자별 지급이 각자 트랜잭션이라 3번째에서 실패하면 1·2 만 지급된 채 끝났고
-///   - claim 이 이미 잡혀 재배달돼도 "이미 처리됨" 으로 막혀 **영구 미지급**이었다.
-/// 원장은 지급과 같은 트랜잭션이라, 재시도가 이미 준 사람은 건너뛰고 **못 받은 사람만 마저** 준다.
+/// 멱등은 참가자 단위 원장(<see cref="IRewardLedger"/>, GrantKey = "dungeon:{roomId}:{userId}")이 담당한다.
+/// 원장 INSERT 가 지급과 같은 트랜잭션이라, 재배달 시 이미 받은 사람은 건너뛰고 못 받은 사람만 마저 받는다.
 /// </summary>
 public sealed class DungeonResultConsumer(
     IMessageQueue<DungeonClearMessage> dungeonClearQueue,

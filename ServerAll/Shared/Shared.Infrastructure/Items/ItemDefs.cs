@@ -20,7 +20,7 @@ public sealed record ItemDef(
 
 /// <summary>
 /// 장비 한 점이 더하는 **가산 스탯 모디파이어**(서버 권위). PlayerStats 의 합산 가능한 항목과 1:1.
-/// 합산은 GetStatsAsync 단일 권위에서 base(레벨 룩업) 위에 Σ 한다(authority-model §4c). 기본값 0 = 영향 없음.
+/// 합산은 GetStatsAsync 단일 권위에서 base(레벨 룩업) 위에 Σ 한다. 기본값 0 = 영향 없음.
 /// </summary>
 public readonly record struct EquipmentStatModifier(
     int MaxHealth = 0,

@@ -4,7 +4,7 @@ using Server.Diagnostics;
 namespace Server.Tests.Diagnostics;
 
 /// <summary>
-/// AC-C1a: 전투 트레이스. 핵심 계약 2가지 —
+/// 전투 트레이스. 핵심 계약 2가지 —
 /// ① **기본 Off**(상시 로그 금지): 꺼져 있으면 로그 호출이 아예 없어야 한다(인자 박싱·문자열 조립 0).
 /// ② 켜면 판정 근거(경로·산식·base/AP/DEF·final)가 **구조적 필드**로 남아야 한다.
 /// </summary>
@@ -83,8 +83,8 @@ public class CombatTraceTests
         Assert.Contains("ap=5", msg);
         Assert.Contains("final=15", msg);
         Assert.Contains("hp=30->15", msg);
-        Assert.Contains("seq=4", msg);   // 클라 로그와 조인하는 상관키(AC-C3)
-        Assert.Contains("serverMs=3", msg); // judge - recv = 서버 처리 구간(타임라인 축 A)
+        Assert.Contains("seq=4", msg);   // 클라 로그와 조인하는 상관키
+        Assert.Contains("serverMs=3", msg); // judge - recv = 서버 처리 구간
     }
 
     [Fact]

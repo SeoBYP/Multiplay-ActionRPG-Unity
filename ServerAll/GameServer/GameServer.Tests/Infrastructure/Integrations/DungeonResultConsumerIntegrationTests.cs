@@ -76,10 +76,10 @@ public class DungeonResultConsumerIntegrationTests
         services.AddDbContext<GameServerDbContext>(o => o.UseNpgsql(_fixture.DbConnectionString));
         services.AddScoped<IProgressionRepository, ProgressionRepository>();
         services.AddScoped<IProgressionService, ProgressionService>();
-        // ProgressionService.GetStatsAsync 가 장비 합산(3.2)을 위임 → 생성자 의존 체인 등록(보상=AddExp 만 쓰지만 DI 해석 필요).
+        // ProgressionService.GetStatsAsync 가 장비 합산을 위임 → 생성자 의존 체인 등록(보상=AddExp 만 쓰지만 DI 해석 필요).
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IInventoryService, InventoryService>();
-        // 도감(3.7): InventoryService.GrantItemAsync 가 ICodexService 의존 → DI 해석 위해 등록.
+        // 도감: InventoryService.GrantItemAsync 가 ICodexService 의존 → DI 해석 위해 등록.
         services.AddScoped<GameServer.Application.Domains.Codex.Interfaces.ICodexRepository, GameServer.Infrastructure.Domains.Codex.CodexRepository>();
         services.AddScoped<GameServer.Application.Domains.Codex.Interfaces.ICodexService, GameServer.Application.Domains.Codex.CodexService>();
         services.AddScoped<IEquipmentRepository, EquipmentRepository>();
@@ -143,7 +143,7 @@ public class DungeonResultConsumerIntegrationTests
 
         await WaitUntilAsync(async () => (await GetProgAsync(u1))?.Level == 2 && (await GetProgAsync(u2))?.Level == 2, cts.Token);
 
-        // 던전 보상 Exp 가 실제 레벨업으로 이어져 DB 에 영속됨(경험치→레벨업, 던전 경로).
+        // 던전 보상 Exp 가 실제 레벨업으로 이어져 DB 에 영속됨.
         Assert.Equal((2, 0L), await GetProgAsync(u1));
         Assert.Equal((2, 0L), await GetProgAsync(u2));
 
@@ -223,8 +223,7 @@ public class DungeonResultConsumerIntegrationTests
         await h.Queue.EnqueueAsync(msg);
         await WaitUntilAsync(async () => (await GetProgAsync(u1))?.Level == 2, cts.Token);
 
-        // 예전 Redis 집합은 TTL 이 있어 "무이벤트 24h → 기록 전멸 → 재배달 시 이중지급" 이 가능했다.
-        // 원장 행에는 TTL 이 없다 — 시간이 얼마가 지나든 같은 GrantKey 는 다시 지급되지 않는다.
+        // 원장 행에는 TTL 이 없다 — 시간이 얼마가 지나든 같은 GrantKey 는 다시 지급되지 않는다(Redis 집합이었다면 TTL 만료로 이중지급 가능).
         await h.Queue.EnqueueAsync(msg);
         await Task.Delay(400, cts.Token);
 

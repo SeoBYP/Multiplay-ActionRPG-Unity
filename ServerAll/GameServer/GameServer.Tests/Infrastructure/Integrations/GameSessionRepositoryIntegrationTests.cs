@@ -17,7 +17,6 @@ public class GameSessionRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task Create_ShouldSaveToDbAndCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var host = await userRepo.CreateAsync();
@@ -30,10 +29,8 @@ public class GameSessionRepositoryIntegrationTests(RepositoryTestFixture fixture
         string socketIp = "127.0.0.1";
         int socketPort = 7777;
 
-        // Act
         var session = await repository.CreateAsync(roomId, socketIp, socketPort);
 
-        // Assert
         Assert.NotNull(session);
         Assert.True(session.GameSessionId > 0);
 
@@ -54,7 +51,6 @@ public class GameSessionRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task Read_HIT_ShouldReturnFromCacheWithoutDbQuery()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var host = await userRepo.CreateAsync();
@@ -65,13 +61,11 @@ public class GameSessionRepositoryIntegrationTests(RepositoryTestFixture fixture
         var repository = new GameSessionRepository(_fixture.RedisConnection, context, NullLogger<GameSessionRepository>.Instance);
         var session = await repository.CreateAsync(room.RoomId, "127.0.0.1", 7778);
 
-        // Act
         context.GameSessions.Remove(session);
         await context.SaveChangesAsync();
 
         var cachedSession = await repository.GetAsync(session.GameSessionId);
 
-        // Assert
         Assert.NotNull(cachedSession);
         Assert.Equal(room.RoomId, cachedSession.RoomId);
     }
@@ -79,7 +73,6 @@ public class GameSessionRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task Read_MISS_ShouldLoadFromDbAndReCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var host = await userRepo.CreateAsync();
@@ -90,12 +83,10 @@ public class GameSessionRepositoryIntegrationTests(RepositoryTestFixture fixture
         var repository = new GameSessionRepository(_fixture.RedisConnection, context, NullLogger<GameSessionRepository>.Instance);
         var session = await repository.CreateAsync(room.RoomId, "127.0.0.1", 7779);
 
-        // Act
         await _fixture.RedisConnection.GetDatabase().KeyDeleteAsync(RedisKeys.GameSession(session.GameSessionId));
 
         var dbSession = await repository.GetAsync(session.GameSessionId);
 
-        // Assert
         Assert.NotNull(dbSession);
         Assert.Equal(room.RoomId, dbSession.RoomId);
 
@@ -107,7 +98,6 @@ public class GameSessionRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task Update_ShouldUpdateDbAndInvalidateCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var host = await userRepo.CreateAsync();
@@ -118,11 +108,9 @@ public class GameSessionRepositoryIntegrationTests(RepositoryTestFixture fixture
         var repository = new GameSessionRepository(_fixture.RedisConnection, context, NullLogger<GameSessionRepository>.Instance);
         var session = await repository.CreateAsync(room.RoomId, "127.0.0.1", 7780);
 
-        // Act
         session.End();
         await repository.UpdateAsync(session);
 
-        // Assert
         // DB 확인 (새 context 사용)
         using var assertContext = _fixture.CreateDbContext();
         var dbSession = await assertContext.GameSessions.AsNoTracking().FirstOrDefaultAsync(s => s.GameSessionId == session.GameSessionId);
@@ -135,7 +123,6 @@ public class GameSessionRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task Delete_ShouldRemoveFromDbAndCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var host = await userRepo.CreateAsync();
@@ -146,10 +133,8 @@ public class GameSessionRepositoryIntegrationTests(RepositoryTestFixture fixture
         var repository = new GameSessionRepository(_fixture.RedisConnection, context, NullLogger<GameSessionRepository>.Instance);
         var session = await repository.CreateAsync(room.RoomId, "127.0.0.1", 7781);
 
-        // Act
         await repository.RemoveAsync(session.GameSessionId);
 
-        // Assert
         var dbSession = await context.GameSessions.FindAsync(session.GameSessionId);
         Assert.Null(dbSession);
 
@@ -163,7 +148,6 @@ public class GameSessionRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task TTL_ShouldBeSetOnCacheKeys()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var host = await userRepo.CreateAsync();
@@ -174,10 +158,8 @@ public class GameSessionRepositoryIntegrationTests(RepositoryTestFixture fixture
         var repository = new GameSessionRepository(_fixture.RedisConnection, context, NullLogger<GameSessionRepository>.Instance);
         var session = await repository.CreateAsync(room.RoomId, "127.0.0.1", 7782);
 
-        // Act
         var ttl = await _fixture.RedisConnection.GetDatabase().KeyTimeToLiveAsync(RedisKeys.GameSession(session.GameSessionId));
 
-        // Assert
         Assert.NotNull(ttl);
         Assert.True(ttl.Value.TotalMinutes > 0);
     }

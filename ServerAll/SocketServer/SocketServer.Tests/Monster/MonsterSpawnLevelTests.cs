@@ -8,10 +8,10 @@ using Shared.Infrastructure.Spawn;
 namespace Server.Tests.Monster;
 
 /// <summary>
-/// AC-E2: 몬스터 레벨·등급 저작과 스폰 시 확정. 설계 = docs/wiki/monster-leveling.md §4.1.
+/// 몬스터 레벨·등급 저작과 스폰 시 확정.
 ///
-/// 이 증분은 **동작 보존**이어야 한다 — 레벨을 저작하지 않은 기존 데이터는 전부 L1 로 떨어지고,
-/// L1 스케일은 항등이라 스탯이 하나도 바뀌지 않는다(codemap §2.66: 증분 경계 교훈).
+/// **동작 보존** — 레벨을 저작하지 않은 기존 데이터는 전부 L1 로 떨어지고,
+/// L1 스케일은 항등이라 스탯이 하나도 바뀌지 않는다.
 /// </summary>
 public class MonsterSpawnLevelTests
 {
@@ -121,7 +121,7 @@ public class MonsterSpawnLevelTests
     [Fact]
     public void 등급은_카탈로그에서_온다_스폰이_정하지_않는다_AC_G()
     {
-        // AC-G: 등급을 스폰 필드에서 **몬스터 테이블**로 옮겼다 — monsterId 가 곧 변종이다.
+        // 등급은 **몬스터 테이블**에 저작된다 — monsterId 가 곧 변종이다.
         // creepy_demon 은 Normal 로 저작돼 있으므로 스폰이 무엇을 하든 Normal 이다.
         var room = NewRoom();
         room.SpawnMonsters(new List<MonsterSpawnDef> { Def() }, Bounds, mapMonsterLevel: 4);
@@ -135,7 +135,7 @@ public class MonsterSpawnLevelTests
     [Fact]
     public void 등급은_스탯에_곱해지지_않는다_AC_G()
     {
-        // 배율을 없앴다 — 변종은 각자 ID·스탯을 직접 저작한다.
+        // 배율은 없다 — 변종은 각자 ID·스탯을 직접 저작한다.
         // 따라서 같은 base·레벨이면 등급과 무관하게 HP 가 같다(등급은 표시·연출 분류일 뿐).
         int hp = MonsterLevelScaling.Hp(MonsterCatalog.Get("creepy_demon").MaxHp, 6);
         var room = NewRoom();
@@ -147,7 +147,7 @@ public class MonsterSpawnLevelTests
     [Fact]
     public void 변종은_별개_ID_로_저작된다_AC_G()
     {
-        // AC-G 의 핵심: 등급 배율 대신 **변종이 자기 ID·스탯을 직접 갖는다**.
+        // 등급 배율 대신 **변종이 자기 ID·스탯을 직접 갖는다**.
         var normal = MonsterCatalog.Get("leviathan");
         var boss = MonsterCatalog.Get("leviathan_boss");
 
@@ -163,7 +163,7 @@ public class MonsterSpawnLevelTests
     [Fact]
     public void 변종도_자기_ID_의_드롭테이블을_갖는다_AC_G()
     {
-        // 등급 확률 배율을 없앴으므로, 변종에 테이블이 없으면 **아무것도 안 떨군다**.
+        // 등급 확률 배율이 없으므로, 변종에 테이블이 없으면 **아무것도 안 떨군다**.
         foreach (var id in new[] { "leviathan_boss", "undead_axemaster_elite", "wild_centaur_elite", "gargoyle_elite" })
             Assert.NotEmpty(Shared.Infrastructure.Loot.DropTableCatalog.Get(id));
     }
@@ -222,7 +222,7 @@ public class MonsterSpawnLevelTests
         Assert.Equal(baseHp, hp1);                 // L1 = 항등
         Assert.True(hp6 > hp1 * 2, $"L6 HP({hp6})가 L1({hp1})의 2배 이상이어야 한다");
 
-        // C1c 에서 본 증상: L6 플레이어(DEF 15) 앞에서 creepy_demon 피해가 1.
+        // L6 플레이어(DEF 15) 앞에서 creepy_demon 피해가 1 로 바닥나면 안 된다.
         int baseDmg = AbilityCatalog.Get("creepy_demon_attack")!.BaseDamage;
         int dmg6 = MonsterLevelScaling.Damage(baseDmg, 6);
         Assert.True(dmg6 - 15 > 5, $"L6 순피해가 {dmg6 - 15} — 바닥(1)에서 벗어나야 밸런스가 고쳐진 것");

@@ -4,7 +4,7 @@ using Shared.Packet.Packets;
 namespace Server.Tests.Packets;
 
 /// <summary>
-/// EF-2c: Effect 동기화 패킷(S_ApplyEffect / S_RemoveEffect) 직렬화 계약 검증.
+/// Effect 동기화 패킷(S_ApplyEffect / S_RemoveEffect) 직렬화 계약 검증.
 /// 남은시간은 보내지 않는다 — 권위 StartTick + 공유 카탈로그 EffectId로 양측이 duration을 산출한다.
 /// </summary>
 public class EffectPacketSerializationTests

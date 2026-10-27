@@ -10,7 +10,7 @@ namespace Server.Tests.Packets;
 /// 8방향(MoveX/MoveY)은 속도와 RotY 로 역산되지만, 점프·낙하·사다리는 모두 y 가 오르내려 구분이 불가능하다.
 /// 그래서 로컬 FSM 의 상태를 1바이트로 실어 보낸다.
 ///
-/// <b>서버는 이 값을 해석하지 않는다</b> — 릴레이만 한다(연출은 클라 권위, authority-model).
+/// <b>서버는 이 값을 해석하지 않는다</b> — 릴레이만 한다(연출은 클라 권위).
 /// 그래서 서버에는 enum 을 두지 않고 <b>불투명 byte</b> 로 다룬다. 값의 의미(진실원)는 클라
 /// <c>Game.Gameplay.Character.StateKind</c> 이고, 매핑은 클라 EditMode 테스트가 고정한다.
 /// Union ID 는 그대로(1500/1501) — 필드 추가만이므로 새 패킷이 아니다.
@@ -101,7 +101,7 @@ public class MovementPacketSerializationTests
     [Fact]
     public void 서버는_AnimState를_해석하지_않고_그대로_릴레이한다()
     {
-        // 연출은 클라 권위(authority-model) — 서버가 상태를 판정·보정하면 클라 FSM 과 두 진실원이 생긴다.
+        // 연출은 클라 권위 — 서버가 상태를 판정·보정하면 클라 FSM 과 두 진실원이 생긴다.
         var incoming = new C_Move
         {
             PosX = 5f, PosY = 0.2f, PosZ = -1f, RotY = 180f,

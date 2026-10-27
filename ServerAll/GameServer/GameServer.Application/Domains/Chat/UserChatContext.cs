@@ -9,16 +9,16 @@ public class UserChatContext(long userId, string nickname, long roomId, int capa
 {
     public long UserId { get; } = userId;
     public string Nickname { get; } = nickname;
-    public long CurrentRoomId { get; set; } = roomId; // 0 = none
+    public long CurrentRoomId { get; set; } = roomId; // 0 = 없음
 
     public Channel<ChatMessage> Outbound { get; } = Channel.CreateBounded<ChatMessage>(new BoundedChannelOptions(capacity)
     {
         SingleReader = true,
         SingleWriter = false,
         FullMode = BoundedChannelFullMode.DropOldest
-    }); // gRPC 스트림 버퍼 → 여전히 필요
+    });
 
-    public CancellationTokenSource Cts { get; } = new(); // 연결 종료 제어 → 여전히 필요
+    public CancellationTokenSource Cts { get; } = new();
     
     public CancellationTokenSource ReadLoopCts { get; set; } = new();
     

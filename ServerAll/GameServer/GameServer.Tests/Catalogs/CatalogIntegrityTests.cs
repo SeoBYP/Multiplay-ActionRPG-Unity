@@ -8,13 +8,9 @@ namespace GameServer.Tests.Catalogs;
 /// <summary>
 /// 정적 기획데이터 **교차 정합성** 가드.
 ///
-/// 왜 필요한가: 예전에는 같은 itemId 목록을 `ItemCatalog`/`EquipmentCatalog`/`ShopCatalog`/`QuestCatalog`
-/// 4곳(+클라 SO)에 따로 하드코딩했고, 서버 코드를 한 번 고칠 때마다 조용히 갈라졌다.
-/// 실제로 `gold_pouch` 고아·`potion_mp_small` 효과 누락이 발생했다.
-/// 지금은 items.json 하나가 아이템/장비/상점/소모품을 모두 소유해 그 부류의 드리프트는 구조적으로 불가능하다.
-///
+/// items.json 하나가 아이템/장비/상점/소모품을 모두 소유하므로 그 부류의 드리프트는 구조적으로 불가능하다.
 /// 여기서 막는 것은 **다른 파일과의** 참조 드리프트(quests.json·drop-tables.json → items.json)와
-/// 저작 실수(가격 0인 상품, 슬롯 없는 장비 등)다. 사람이 "export 했나?"를 기억하는 구조에 의존하지 않는다.
+/// 저작 실수(가격 0인 상품, 슬롯 없는 장비 등)다.
 /// </summary>
 public class CatalogIntegrityTests
 {

@@ -9,12 +9,11 @@ using Testcontainers.Redis;
 namespace Server.Tests.MessageQueue;
 
 /// <summary>
-/// SocketServer 가 게임 시작 요청을 소비하는 Consumer Group 의 **PEL 자동 회수** 검증 (F4).
+/// SocketServer 가 게임 시작 요청을 소비하는 Consumer Group 의 **PEL 자동 회수** 검증.
 ///
 /// 이 큐가 막히면 던전 입장 자체가 안 된다 — ACK 전에 SocketServer 가 죽으면 그 요청은
 /// 그 컨슈머의 PEL 에 남고, 회수 주체가 없으면 방이 영원히 Starting 에 머문다.
-/// 회수 로직은 Shared 베이스에 있지만 **SocketServer 그룹으로도 실제로 도는지**를 여기서 고정한다
-/// (연결 처리 커버리지 정책 — .claude/rules/testing.md).
+/// 회수 로직은 Shared 베이스에 있지만 **SocketServer 그룹으로도 실제로 도는지**를 여기서 고정한다.
 /// </summary>
 public class GameStartRequestedPelReclaimTests : IAsyncLifetime
 {

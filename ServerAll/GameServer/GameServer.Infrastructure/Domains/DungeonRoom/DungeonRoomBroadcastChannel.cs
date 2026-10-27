@@ -16,16 +16,14 @@ public class DungeonRoomBroadcastChannel(IConnectionMultiplexer redis)
     public override async IAsyncEnumerable<(string messageId, long message)> ReadAsync(string channel, 
         string lastMessageId, CancellationToken ct = default)
     {
-        // 파라미터를 로컬 복사
         var currentId = lastMessageId;
 
         while (!ct.IsCancellationRequested) 
         {
-            // XREAD
             var entries = await Database.StreamReadAsync(channel, currentId, count: 100);
             if (entries.Length == 0)
             {
-                await Task.Delay(100, ct);  // 폴링 or XREAD BLOCK으로 대기
+                await Task.Delay(100, ct);
                 continue;
             }
             foreach (var entry in entries)

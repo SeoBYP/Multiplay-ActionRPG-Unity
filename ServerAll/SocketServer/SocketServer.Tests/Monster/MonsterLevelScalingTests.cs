@@ -3,7 +3,7 @@ using Shared.Infrastructure.Monsters;
 namespace Server.Tests.Monster;
 
 /// <summary>
-/// AC-E1: 몬스터 레벨·등급 스케일. 설계 = docs/wiki/monster-leveling.md §2.
+/// 몬스터 레벨·등급 스케일.
 ///
 /// 이 공식이 존재하는 이유는 <b>역할 보존</b>이다 — 레벨이 올라도 bat 은 긁는 피해, slam 은 치명타여야 한다.
 /// 곱셈 스케일은 slam 을 폭발시키고, 단순 가산은 전부 중간으로 수렴시킨다. 그 둘이 아님을 여기서 고정한다.
@@ -42,7 +42,7 @@ public class MonsterLevelScalingTests
     [InlineData(90)]
     public void 어떤_레벨에서도_피해가_바닥에_눌리지_않는다(int base1)
     {
-        // 원래 버그: base 고정 + DEF +2/L → L19 부터 전부 max(1,..) 바닥.
+        // base 고정 + DEF +2/L 이면 L19 부터 전부 max(1,..) 바닥이 된다.
         // 증가폭 하한이 DEF 성장(2)이라 구조적으로 재발할 수 없다.
         for (int lv = 1; lv <= 60; lv++)
         {
@@ -57,7 +57,7 @@ public class MonsterLevelScalingTests
     [Fact]
     public void 설계표의_검산값과_일치한다()
     {
-        // monster-leveling.md §2 검산표를 그대로 고정 — 문서와 코드가 어긋나면 여기서 터진다.
+        // 검산표 값을 그대로 고정 — 문서와 코드가 어긋나면 여기서 터진다.
         Assert.Equal(21, MonsterLevelScaling.Damage(8, 6));   // bat:      8 + 2.6×5  = 21
         Assert.Equal(33, MonsterLevelScaling.Damage(14, 6));  // arachnya: 14 + 3.8×5 = 33
         Assert.Equal(185, MonsterLevelScaling.Damage(90, 6)); // slam:     90 + 19×5  = 185
@@ -100,7 +100,7 @@ public class MonsterLevelScalingTests
     [Fact]
     public void 드롭_수량은_레벨에_비례한다()
     {
-        // 등급 확률 배율은 없앴다(AC-G) — 변종이 자기 ID 의 드롭 테이블을 갖는다.
+        // 등급 확률 배율은 없다 — 변종이 자기 ID 의 드롭 테이블을 갖는다.
         Assert.Equal(1f, MonsterLevelScaling.DropQuantityMultiplier(1));
         Assert.Equal(2f, MonsterLevelScaling.DropQuantityMultiplier(6));   // HP(6)/HP(1) = 200/100
     }

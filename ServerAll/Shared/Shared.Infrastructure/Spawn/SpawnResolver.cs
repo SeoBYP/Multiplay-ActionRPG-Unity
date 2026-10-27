@@ -20,10 +20,9 @@ public sealed record MapSpawnLayout(
     int MonsterLevel = 0)
 {
     /// <summary>
-    /// 이 스폰의 <b>유효 레벨</b>(AC-E2). <c>spawn.Level</c> 이 있으면 그것, 없으면 맵 기본, 둘 다 없으면 <b>1</b>.
+    /// 이 스폰의 <b>유효 레벨</b>. <c>spawn.Level</c> 이 있으면 그것, 없으면 맵 기본, 둘 다 없으면 <b>1</b>.
     ///
-    /// <para>규칙을 여기 <b>한 곳</b>에 둔다 — 서버 스폰과 (나중의) 클라 표시가 각자 구현하면 조용히 어긋난다.
-    /// 0 = "미저작"이라 기존 JSON 이 그대로 L1 로 떨어진다(= 레벨 도입 전과 동일 동작).</para>
+    /// <para>규칙을 여기 <b>한 곳</b>에 둔다 — 서버 스폰과 클라 표시가 각자 구현하면 조용히 어긋난다. 0 = "미저작".</para>
     /// </summary>
     public int ResolveLevel(MonsterSpawnDef def) => ResolveLevel(def.Level, MonsterLevel);
 
@@ -35,7 +34,7 @@ public sealed record MapSpawnLayout(
     {
         if (spawnLevel > 0) return spawnLevel;  // 스폰별 override — 같은 맵의 엘리트/보스를 올릴 때
         if (mapLevel > 0) return mapLevel;      // 던전 기본 — 한 줄로 전체 대역 조절
-        return 1;                               // 미저작 = 레벨 도입 전과 동일(항등)
+        return 1;                               // 미저작 = L1
     }
 }
 

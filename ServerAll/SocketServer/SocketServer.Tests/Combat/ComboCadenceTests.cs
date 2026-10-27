@@ -4,7 +4,7 @@ using Server.Actors;
 namespace Server.Tests.Combat;
 
 /// <summary>
-/// #7 콤보 서버 권위 cadence — <b>타이밍 진실원 = 어빌리티 데이터</b>(SkillTimeline.ComboChainMs, abilities.json — AC-B).
+/// 콤보 서버 권위 cadence — <b>타이밍 진실원 = 어빌리티 데이터</b>(SkillTimeline.ComboChainMs, abilities.json).
 ///
 /// 콤보는 단계마다 skillId 가 다르다(2=combo_a·3=combo_b·4=combo_c). 따라서 **단계별 개별 쿨다운만으로는
 /// A→B→C 즉시 3연타를 못 막는다**(각자 첫 발동이라 쿨다운이 비어 있음) → 합산 폭딜(10+15+25) 치팅.

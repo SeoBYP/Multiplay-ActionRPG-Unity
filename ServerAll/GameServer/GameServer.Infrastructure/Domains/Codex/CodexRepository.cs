@@ -7,7 +7,7 @@ namespace GameServer.Infrastructure.Domains.Codex;
 
 /// <summary>
 /// 도감 발견 기록 저장소. DB 전용(Redis 캐시 없음) — write-once·read-rare(도감 열 때만)라 캐시 이득 낮음.
-///   Get : DB(AsNoTracking) — long-lived DbContext stale 방지(networking.md).
+///   Get : AsNoTracking(stale 방지).
 ///   Add : INSERT ... ON CONFLICT DO NOTHING (멱등). 동시 첫 획득 경합에도 안전(복합 PK).
 /// </summary>
 public class CodexRepository(

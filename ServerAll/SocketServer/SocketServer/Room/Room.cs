@@ -16,14 +16,11 @@ using Shared.Packet.Packets;
 /// <summary>
 /// 던전 방 1개. <b>방 관리</b>(입장·퇴장·재접속 유예·진행 판정)를 맡고, 캐릭터·전투는 <see cref="Actor"/> 에 위임한다.
 ///
-/// <para><b>액터·참가자 저장소는 <see cref="ActorStore"/> 가 소유한다</b>(키=ActorId). 예전엔 플레이어와
-/// 몬스터가 서로 다른 딕셔너리·서로 다른 락에 있어서 몬스터가 플레이어를 때리는 한 번의 흐름이
-/// 락 3중 중첩(<c>_monsters → _playerStates → _downed</c>)을 만들었다. 액터를 합치고 다운을 태그로
-/// 옮기면서 그 중첩이 <b>사라졌다</b> — 전투·진행 판정이 모두 <c>Actors.SyncRoot</c> 하나만 잡는다.</para>
+/// <para><b>액터·참가자 저장소는 <see cref="ActorStore"/> 가 소유한다</b>(키=ActorId).
+/// 전투·진행 판정이 모두 <c>Actors.SyncRoot</c> 하나만 잡으므로 락 중첩이 없다.</para>
 ///
-/// <para><b>다운은 별도 집합이 아니라 액터의 태그다</b>(<c>GameplayTags.Dead</c>).
-/// 예전 <c>_downed</c> HashSet 은 "죽었나"의 두 번째 진실원이었고, 클라가 <c>C_PlayerDead</c> 를
-/// 자기신고하면 서버 HP 와 무관하게 그 집합에 들어갔다 — 만피인 채로 AI 타깃에서 빠지는 구멍이었다.</para>
+/// <para><b>다운은 별도 집합이 아니라 액터의 태그다</b>(<c>GameplayTags.Dead</c>) —
+/// "죽었나"의 진실원이 하나라 클라 자기신고가 서버 HP 와 어긋난 다운을 만들 수 없다.</para>
 /// </summary>
 public class Room
 {
@@ -53,8 +50,7 @@ public class Room
     private MapBounds _bounds = MapBounds.Unbounded;
 
     /// <summary>
-    /// 바닥 아이템(드랍/줍기). <b>자기 락을 자기가 소유</b>하는 별도 저장소다 —
-    /// 방의 다른 상태와 공유하는 것이 없어서 Room 에 둘 이유가 없었다.
+    /// 바닥 아이템(드랍/줍기). 방의 다른 상태와 공유하는 것이 없는 별도 저장소(자기 락 소유).
     /// </summary>
     public GroundItemStore Loot { get; } = new();
 
@@ -67,7 +63,7 @@ public class Room
     public const long ReconnectGraceMs = 60_000;
 
 
-    /// <summary>플레이어 기본 최대 HP(서버 권위). 후속에 Progression/스탯에서 주입. 클라 prefab ASC(100)와 정렬.</summary>
+    /// <summary>플레이어 기본 최대 HP 폴백(서버 권위). 클라 prefab ASC(100)와 정렬.</summary>
     public const int DefaultMaxHp = 100;
 
     /// <summary>스탯 미설정(테스트/레거시) 시 마나 상한 폴백. 클라 prefab Mana(100) 기준선과 정렬.</summary>
@@ -214,9 +210,8 @@ public class Room
     /// <summary>
     /// 맵 레이아웃의 몬스터 정의로 스폰(wave 0). InstanceId 는 방 단위 순차 발급.
     ///
-    /// **서버 스폰의 단일 진입점(불변식)** — 모든 스폰 *원인*(현재=던전 시작/`RoomManager`,
-    /// 미래=웨이브·퀘스트·존·서버 리스폰)은 저장소에 직접 추가하지 말고 반드시 이 메서드를 경유한다.
-    /// 설계·승격 트리거 = docs/wiki/spawn-system-evolution.md.
+    /// **서버 스폰의 단일 진입점(불변식)** — 모든 스폰 원인(던전 시작, 이후 웨이브·리스폰 등)은
+    /// 저장소에 직접 추가하지 말고 반드시 이 메서드를 경유한다.
     /// </summary>
     /// <param name="mapMonsterLevel">던전 기본 몬스터 레벨. 0 = 미저작 → 스폰별 Level 도 없으면 L1.</param>
     public void SpawnMonsters(IReadOnlyList<MonsterSpawnDef> defs, MapBounds bounds, int mapMonsterLevel = 0)
@@ -250,8 +245,7 @@ public class Room
                         Patrol = def.Patrol,
                         PatrolIndex = 0,
                     };
-                    // 몬스터는 Health 만 보유한다 — 공격력·방어력·마나는 **아예 없다**(0 이 아니라 미보유).
-                    // 예전엔 그 부재를 산식 호출부의 const 0 이 위장했다. 스탯이 생기면 여기서 Define 하면 된다.
+                    // 몬스터는 Health 만 보유한다 — 공격력·방어력·마나는 0 이 아니라 미보유. 스탯이 생기면 여기서 Define.
                     monster.Gas.DefineResource(EGameplayAttribute.Health, maxHp);
 
                     Actors.Add(monster);

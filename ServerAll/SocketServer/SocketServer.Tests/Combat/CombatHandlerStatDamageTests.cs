@@ -5,8 +5,8 @@ using Server.PacketHandler.Handler;
 namespace Server.Tests.Combat;
 
 /// <summary>
-/// 스탯 기반 데미지(2.4 + AC-B 안B) — `CombatHandler.BuildDamageMods` 가 **어빌리티 baseDamage** 를
-/// AttackPower/Defense 로 재계산한다(구 ScaleDamageByStats 의 effect-카탈로그 경로 대체).
+/// 스탯 기반 데미지 — `CombatHandler.BuildDamageMods` 가 **어빌리티 baseDamage** 를
+/// AttackPower/Defense 로 재계산한다.
 /// 산식 자체는 Shared.Gameplay.Tests.StatCombatMathTests 가 검증 — 여기선 어빌리티 연동·스케일만 본다.
 /// </summary>
 public class CombatHandlerStatDamageTests
@@ -32,8 +32,7 @@ public class CombatHandlerStatDamageTests
 
         int baseDmg = HealthDamage(CombatHandler.BuildDamageMods(ability, attackPower: 0, defense: 0));
 
-        // AC-B 안B: 데미지 출처 = ability.baseDamage(effect 카탈로그 수치가 아니라).
-        // AttackPower 미설정(0) = 저작한 base 그대로 — 이관 시 밸런스 무변경의 근거.
+        // 데미지 출처 = ability.baseDamage. AttackPower 미설정(0) = 저작한 base 그대로.
         Assert.Equal(ability.BaseDamage, baseDmg);
         Assert.True(baseDmg > 0);
     }
@@ -52,7 +51,7 @@ public class CombatHandlerStatDamageTests
     [Fact]
     public void 데미지는_어빌리티마다_저작값을_따른다()
     {
-        // 콤보 A(10) < B(15) < C(25) — 수치가 Ability SO 단일 저작임을 고정(effect 카탈로그 아님).
+        // 콤보 A(10) < B(15) < C(25) — 수치가 Ability SO 단일 저작임을 고정.
         int a = HealthDamage(CombatHandler.BuildDamageMods(CombatHandler.ResolveAbility(2)!, 0, 0));
         int b = HealthDamage(CombatHandler.BuildDamageMods(CombatHandler.ResolveAbility(3)!, 0, 0));
         int c = HealthDamage(CombatHandler.BuildDamageMods(CombatHandler.ResolveAbility(4)!, 0, 0));

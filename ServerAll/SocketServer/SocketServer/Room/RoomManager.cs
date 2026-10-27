@@ -58,7 +58,7 @@ public class RoomManager
         }
 
         // 몬스터 초기 스폰(서버 권위) — 맵 경계도 함께 보관(이동 clamp 기준).
-        room.SpawnMonsters(layout.Monsters, layout.Bounds, layout.MonsterLevel); // AC-E2: 던전 기본 레벨(0=미저작→L1)
+        room.SpawnMonsters(layout.Monsters, layout.Bounds, layout.MonsterLevel); // MonsterLevel 0 = 미저작 → L1
 
         _logger.LogInformation("Room {RoomId} created with {MaxPlayers} players", msgRoomId, msgPlayerIds.Count);
         return room;
@@ -104,9 +104,8 @@ public class RoomManager
     /// <summary>
     /// 같은 UserId 의 옛 세션이 방에 남아 있으면 자리를 비운다(<b>재접속 인수</b>).
     ///
-    /// <b>왜</b>: 에디터 Play 정지·강제 종료처럼 FIN 없이 끊기면 서버는 그 세션을 바로 죽었다고 못 본다.
-    /// 유휴 타임아웃까지(실측 63초) 세션이 방에 남아 2/2 방은 <b>본인조차</b> "Room is full" 로 거절됐다
-    /// — 재접속 유예(60s)는 그 뒤에야 시작되므로 유예가 있어도 돌아올 방법이 없었다.
+    /// <b>왜</b>: FIN 없이 끊기면(에디터 Play 정지·강제 종료) 서버는 유휴 타임아웃까지 그 세션을 죽었다고 못 본다.
+    /// 그동안 만원 방은 본인조차 "Room is full" 로 거절되고, 재접속 유예는 그 뒤에야 시작되므로 돌아올 방법이 없다.
     ///
     /// <b>graceful: true</b> 로 비운다 — 세션만 교체하고 액터(위치·HP)는 보존해야 원래 자리로 복귀한다.
     /// 자리를 넘겨받는 것은 <b>같은 UserId</b> 뿐이다(남의 자리를 뺏지 않는다).
@@ -260,7 +259,7 @@ public class RoomManager
     /// <summary>
     /// 던전 클리어(몬스터 전멸)를 GameServer에 발행한다. 현재 방 참가자(UserId)와 MapId를 담는다.
     /// 클라 브로드캐스트(S_DungeonClear)는 호출자(CombatHandler)가 별도로 한다 — 여기선 서버 간 통지만.
-    /// 전멸 1회 보장은 Room.TryMarkCleared 책임이므로 호출자가 true 일 때만 부른다.
+    /// 전멸 1회 보장은 DungeonProgress.TryMarkCleared 책임이므로 호출자가 true 일 때만 부른다.
     /// </summary>
     public void PublishDungeonClear(Room room)
     {
@@ -277,7 +276,7 @@ public class RoomManager
     }
 
     /// <summary>
-    /// 줍기 확정을 GameServer 에 발행한다(인벤토리 영속 지급). 줍기 1회 보장은 Room.TryPickup(경쟁 중재)
+    /// 줍기 확정을 GameServer 에 발행한다(인벤토리 영속 지급). 줍기 1회 보장은 GroundItemStore.TryPickup(경쟁 중재)
     /// 책임이므로 호출자가 성공(non-null GroundItem)일 때만 부른다.
     /// PickupId = "{RoomId}:{GroundId}" — GroundId 는 방 내 고유·픽업당 1회 제거라 멱등 키로 충분
     /// (GameServer 가 Redis SET claim 으로 중복 메시지에도 1회만 지급).

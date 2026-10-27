@@ -6,7 +6,7 @@ namespace Server.Tests.Monster;
 
 /// <summary>
 /// monsters.json(임베디드) 로드 + 조회/폴백 검증. 몬스터 정의 단일 소스("무엇인가" + exp + 어빌리티 목록).
-/// AC-B B4: 공격 수치(쿨다운·사거리·데미지·CC)는 여기 없다 — abilities.json 의 어빌리티가 갖는다.
+/// 공격 수치(쿨다운·사거리·데미지·CC)는 여기 없다 — abilities.json 의 어빌리티가 갖는다.
 /// SocketServer Server.Monster.MonsterCatalog 는 이 위에서 시뮬 스탯(+어빌리티 해석)을 매핑하는 어댑터.
 /// </summary>
 public class MonsterCatalogTests
@@ -49,7 +49,7 @@ public class MonsterCatalogTests
         Assert.Equal(def.MoveSpeed, stats.MoveSpeed);
         Assert.Equal(def.AggroRange, stats.AggroRange);
 
-        // AttackRange = 이 몬스터 어빌리티들의 최대 ActivationRange(파생) — MonsterDef 에는 더 이상 없다.
+        // AttackRange = 이 몬스터 어빌리티들의 최대 ActivationRange(파생) — MonsterDef 에는 없다.
         var abilities = global::Server.Monster.MonsterCatalog.GetAbilities("creepy_demon");
         Assert.NotEmpty(abilities);
         Assert.Equal(abilities.Max(a => a.ActivationRange), stats.AttackRange);
@@ -62,7 +62,7 @@ public class MonsterCatalogTests
 
         var attack = Assert.Single(abilities);
         Assert.Equal("arachnya_attack", attack.Id);
-        Assert.Equal(14, attack.BaseDamage);                          // 이관 값(밸런스 무변경)
+        Assert.Equal(14, attack.BaseDamage);
         Assert.Equal(1600, attack.Timeline.CooldownMs);
         Assert.Contains("slow_3s", attack.Timeline.OnHitEffectIds);   // CC 는 어빌리티가 소유
     }

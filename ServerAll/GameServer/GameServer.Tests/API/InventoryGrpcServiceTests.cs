@@ -15,9 +15,8 @@ using AppGrantedItem = GameServer.Application.Domains.Inventory.GrantedItem;
 namespace GameServer.Tests.API;
 
 /// <summary>
-/// InventoryService gRPC 진입점 검증 — ClaimKill(Main 획득 B-lite, 서버가 검증·roll·지급) + ConsumeItem(소모품 차감).
-/// ClaimKill 의 슬롯/쿨다운/roll 로직 자체는 <see cref="MainSpawnClaimServiceTests"/> 가 검증한다.
-/// 여기서는 gRPC 레이어(인증 + 결과 매핑)만 본다 → IMainSpawnClaimService 는 fake.
+/// InventoryService gRPC 진입점 검증 — ClaimKill(서버가 검증·roll·지급) + ConsumeItem(소모품 차감).
+/// ClaimKill 의 슬롯/쿨다운/roll 로직은 <see cref="MainSpawnClaimServiceTests"/> 가 검증 — 여기선 IMainSpawnClaimService 를 fake 로 두고 gRPC 레이어(인증 + 결과 매핑)만 본다.
 /// </summary>
 public class InventoryGrpcServiceTests
 {
@@ -33,7 +32,7 @@ public class InventoryGrpcServiceTests
         _service = new InventoryGrpcService(_inventory, _claim, _consumeQueue, NullLogger<InventoryGrpcService>.Instance);
     }
 
-    // ── ClaimKill (Main 획득 B-lite — gRPC 레이어: 인증 + 매핑) ──
+    // ── ClaimKill ──
 
     [Fact]
     public async Task ClaimKill_성공시_서버가_roll한_보상을_매핑해_반환한다()
@@ -101,7 +100,7 @@ public class InventoryGrpcServiceTests
         Assert.Null(_claim.LastCall); // 인증 게이트에서 차단 — 클레임 로직 미진입
     }
 
-    // ── ConsumeItem (3.8 소모품 — 서버 권위 차감) ──
+    // ── ConsumeItem ──
 
     [Fact]
     public async Task 보유한_소모품_사용은_성공하고_남은수량을_반환한다()

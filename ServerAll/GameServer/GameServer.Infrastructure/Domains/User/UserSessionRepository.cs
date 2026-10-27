@@ -129,12 +129,7 @@ public class UserSessionRepository(
         }
     }
 
-    /// <summary>
-    /// Redis 활성 기록이 없을 때의 폴백. DB 의 마지막 활동 시각 + AccessToken 수명으로 환산한다.
-    /// </summary>
-    /// <remarks>
-    /// 이게 없으면 Redis 를 비우는 순간 살아 있는 세션이 전부 "조용하다"로 보여 리퍼가 오탐한다.
-    /// </remarks>
+    // Redis 활성 기록이 없을 때의 폴백(마지막 활동 + AccessToken 수명). 없으면 Redis 가 비는 순간 리퍼가 살아 있는 세션을 오탐한다.
     private async Task<DateTime?> ActiveUntilFromDatabaseAsync(long userId, CancellationToken ct)
     {
         var session = await context.UserSessions.AsNoTracking()
@@ -261,8 +256,7 @@ public class UserSessionRepository(
     {
         try
         {
-            // 인증된 RPC 마다 불린다. 남은 수명이 절반 이상이면 아무것도 쓰지 않는다 —
-            // 안 그러면 요청 하나당 DB UPDATE + Redis 쓰기가 붙는다.
+            // 인증된 RPC 마다 불린다. 남은 수명이 절반 이상이면 쓰지 않는다 — 요청당 DB UPDATE + Redis 쓰기 방지.
             var score = await _database.SortedSetScoreAsync(RedisKeys.UserSessionActive(), sessionId);
             if (score is not null)
             {
@@ -278,7 +272,6 @@ public class UserSessionRepository(
             session.Touch();
             await context.SaveChangesAsync(ct);
 
-            // 캐시·활성집합·매핑을 한꺼번에 새 수명으로 다시 찍는다.
             await SetSessionCacheAsync(session);
         }
         catch (Exception e)

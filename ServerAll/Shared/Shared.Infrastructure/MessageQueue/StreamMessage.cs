@@ -7,8 +7,7 @@ namespace Shared.Infrastructure.MessageQueue;
 /// 큐 스스로는 처리 성공 여부를 알 수 없다. 봉투를 받은 쪽이 **성공했을 때만** ACK 하면
 /// 실패한 메시지는 PEL 에 남아 재배달된다(at-least-once).
 ///
-/// 반대로 큐가 읽자마자 ACK 하면(at-most-once) 핸들러가 던지는 순간 메시지가 영구 소실된다 —
-/// DB 순단 한 번이 곧 데이터 유실이었다.
+/// 반대로 큐가 읽자마자 ACK 하면(at-most-once) 핸들러가 던지는 순간 메시지가 영구 소실된다.
 /// </summary>
 public sealed class StreamMessage<T>(T payload, Func<Task>? acknowledge = null)
 {

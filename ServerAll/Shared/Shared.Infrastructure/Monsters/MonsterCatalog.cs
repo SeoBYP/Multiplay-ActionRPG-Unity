@@ -78,15 +78,14 @@ public static class MonsterCatalog
 }
 
 /// <summary>
-/// 한 몬스터 타입의 정의 — "무엇인가"(체력·이동·시야) + 보상 + **어빌리티 목록**(AC-B B4).
+/// 한 몬스터 타입의 정의 — "무엇인가"(체력·이동·시야) + 보상 + **어빌리티 목록**.
 /// 공격 사거리·쿨다운·데미지·CC 는 전부 <see cref="Shared.Infrastructure.Abilities.AbilityCatalog"/> 의 어빌리티가 갖는다.
 /// 스폰 위치는 MonsterSpawnDef 가 따로 가짐.
 /// </summary>
 /// <param name="AbilityIds">쓸 수 있는 어빌리티 id. **우선순위 = 순서**(서버 AI 가 사거리·쿨다운 만족 첫 어빌리티 발동).</param>
 /// <param name="Tier">
-/// 등급 <b>분류</b>(AC-G). <b>배율이 아니다</b> — 변종은 각자 ID·스탯을 직접 저작한다
-/// (<c>leviathan_boss</c> 는 maxHp 를 그대로 적는다). 이 필드는 표시·연출 분기용이고
-/// 스탯 계산에 곱해지지 않는다.
+/// 등급 <b>분류</b>. <b>배율이 아니다</b> — 변종은 각자 ID·스탯을 직접 저작한다
+/// (<c>leviathan_boss</c> 는 maxHp 를 그대로 적는다). 표시·연출 분기용이고 스탯 계산에 곱해지지 않는다.
 /// </param>
 public sealed record MonsterDef(
     string MonsterId,

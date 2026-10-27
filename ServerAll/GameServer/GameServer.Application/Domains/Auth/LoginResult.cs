@@ -8,5 +8,5 @@ public class LoginResult(User user, UserSession session, string accessToken, str
     public UserSession Session { get; } = session;
     public string AccessToken { get; } = accessToken;
     public string RefreshToken { get; } = refreshToken;
-    public DateTime ExpiresAt { get; } = expiresAt; // ← 추가
+    public DateTime ExpiresAt { get; } = expiresAt;
 }

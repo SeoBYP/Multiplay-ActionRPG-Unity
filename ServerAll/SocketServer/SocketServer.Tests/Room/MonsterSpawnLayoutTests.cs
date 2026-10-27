@@ -5,7 +5,7 @@ using Shared.Infrastructure.Spawn;
 namespace Server.Tests.Room;
 
 /// <summary>
-/// M3 증분②c: spawn-layouts.json 의 monsters/patrol/bounds 파싱 + MapBounds clamp 계약.
+/// spawn-layouts.json 의 monsters/patrol/bounds 파싱 + MapBounds clamp 계약.
 /// 파싱 테스트는 합성 JSON 으로 검증해 shipped 데이터 재저작에 영향받지 않는다.
 /// </summary>
 public class MonsterSpawnLayoutTests

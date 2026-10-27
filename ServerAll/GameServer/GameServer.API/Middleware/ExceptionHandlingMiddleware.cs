@@ -13,18 +13,15 @@ public class ExceptionHandlingMiddleware(
     {
         try
         {
-            // 다음 미들웨어 실행
             await next(context);
         }
         catch (Exception ex)
         {
-            // 예외 로깅
             logger.LogError(ex, 
                 "Unhandled exception occurred. Path: {Path}, Method: {Method}", 
                 context.Request.Path, 
                 context.Request.Method);
 
-            // 에러 응답 반환
             await HandleExceptionAsync(context, ex);
         }
     }

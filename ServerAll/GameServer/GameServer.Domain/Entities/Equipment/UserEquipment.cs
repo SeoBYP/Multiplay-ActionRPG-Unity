@@ -5,7 +5,7 @@ namespace GameServer.Domain.Entities.Equipment;
 /// <summary>
 /// 한 유저의 *착용 상태*(영속 엔티티). (UserId, Slot) 복합키 → ItemId.
 /// 한 슬롯에 하나만 착용(교체형). 정의(슬롯·스탯)는 EquipmentCatalog 가 소유 — 이 엔티티는 "무엇을 어디에 꼈는지"만.
-/// 키 = user_id(미래 character_id 이관, Inventory/Progression 과 동일). [[character-swap-direction]]
+/// 키 = user_id(캐릭터 교체 시 character_id 이관, Inventory/Progression 과 동일).
 /// </summary>
 public class UserEquipment
 {

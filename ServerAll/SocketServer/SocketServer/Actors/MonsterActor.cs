@@ -101,14 +101,14 @@ public sealed class MonsterActor(int instanceId) : Actor(ActorIds.FromMonster(in
         foreach (var ability in Server.Monster.MonsterCatalog.GetAbilities(MonsterId))
         {
             if (distSq > ability.ActivationRange * ability.ActivationRange)
-                continue; // 이 스킬 사거리 밖
+                continue;
 
             if (!AbilityActivationMath.CanActivate(
                     nowMs, Gas.LastCast(ability.Id), ability.Timeline.CooldownMs,
                     manaCost: 0,
                     currentMana: Gas[EGameplayAttribute.Mana],
                     blocked: Gas.IsActivationBlocked))
-                continue; // 쿨다운/차단
+                continue;
             return ability;
         }
         return null;

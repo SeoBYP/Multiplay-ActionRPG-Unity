@@ -21,7 +21,7 @@ public class DungeonRoomConfiguration : IEntityTypeConfiguration<DungeonRoom>
             .IsRequired();
         builder.Property(dr => dr.MaxPlayers)
             .IsRequired();
-        // 던전 식별자(spawn-layouts.json 키). 기존 행은 마이그레이션 시 기본 맵으로 백필.
+        // 던전 식별자(spawn-layouts.json 키)
         builder.Property(dr => dr.MapId)
             .IsRequired()
             .HasMaxLength(64)

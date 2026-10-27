@@ -4,7 +4,7 @@ using Server.Actors;
 namespace Server.Tests.Combat;
 
 /// <summary>
-/// 2.2 마나 서버 권위 서브시스템 — PlayerActor 의 검증·차감·리젠·회피 게이트 단위.
+/// 마나 서버 권위 서브시스템 — PlayerActor 의 검증·차감·리젠·회피 게이트 단위.
 /// (스킬/회피 발동 코스트 = SkillTimeline.ManaCost·DodgeConfig.ManaCost. 클라는 같은 수치로 예측.)
 /// </summary>
 public class PlayerManaTests

@@ -13,8 +13,7 @@ using QuestGrpc = GameServer.Grpc.Quest.QuestService;
 namespace GameServer.API.Services;
 
 /// <summary>
-/// 퀘스트 gRPC(4.4). 조회/수주/보상수령. 진행(ReportKill)은 서버 내부(킬 클레임)에서만 — 클라 RPC 없음(치팅 차단).
-/// 도메인 ↔ proto 매핑만 담당, 로직은 IQuestService.
+/// 진행(ReportKill)은 서버 내부(킬 클레임)에서만 일어나며 클라 RPC 는 없다(치팅 차단).
 /// </summary>
 public class QuestGrpcService(
     IQuestService questService,

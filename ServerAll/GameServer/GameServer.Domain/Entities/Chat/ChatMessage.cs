@@ -10,16 +10,12 @@ public class ChatMessage
     public string Message { get; init; } = "";
     public DateTime SentAt { get; init; }
 
-    // Optional fields
     public long? RoomId { get; init; }
     public string? TargetUserNickName { get; init; }
 
     public ChatMessage() { }
 
-    /// <summary>
-    /// 신규 메시지 생성 (ID는 Repository가 먼저 채번해서 전달)
-    /// - 검증 + 욕설 필터 + SentAt(UtcNow) 포함
-    /// </summary>
+    /// <summary>신규 메시지 생성 — 검증 + SentAt(UtcNow). Identity 컬럼이라 messageId 는 DB 가 채번(호출자는 0 전달).</summary>
     public static ChatMessage CreateNew(
         long messageId,
         string senderUserName,
@@ -42,9 +38,7 @@ public class ChatMessage
         };
     }
 
-    /// <summary>
-    /// Redis에서 복원 (히스토리용) - 저장된 값 그대로 복원
-    /// </summary>
+    /// <summary>Redis에서 복원 — 저장된 값 그대로(SentAt 포함).</summary>
     public static ChatMessage FromRedis(
         long messageId,
         string senderUserName,
@@ -66,9 +60,6 @@ public class ChatMessage
         };
     }
 
-    /// <summary>
-    /// 검증 로직 (도메인 규칙)
-    /// </summary>
     public static void Validate(
         string senderUserName,
         ChatType chatType,

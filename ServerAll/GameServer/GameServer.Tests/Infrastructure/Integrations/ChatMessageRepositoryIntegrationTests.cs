@@ -14,16 +14,14 @@ public class ChatMessageRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task Create_ShouldInsertToDbAndCacheInRedis()
     {
-        // Arrange
         var repository = CreateRepository();
         string sender = "TestUser";
         string messageContent = "Hello, World!";
         ChatType chatType = ChatType.Global;
 
-        // Act
         var created = await repository.CreateAsync(sender, chatType, messageContent, null, null);
 
-        // Assert - DB
+        // DB
         using (var context = _fixture.CreateDbContext())
         {
             var dbMessage = await context.ChatMessages.FindAsync(created.MessageId);
@@ -32,7 +30,7 @@ public class ChatMessageRepositoryIntegrationTests(RepositoryTestFixture fixture
             Assert.Equal(messageContent, dbMessage.Message);
         }
 
-        // Assert - Redis (Hash)
+        // Redis (Hash)
         var redis = _fixture.RedisConnection.GetDatabase();
         var hashEntries = await redis.HashGetAllAsync(RedisKeys.ChatMessage(created.MessageId));
         Assert.NotEmpty(hashEntries);
@@ -40,7 +38,7 @@ public class ChatMessageRepositoryIntegrationTests(RepositoryTestFixture fixture
         Assert.Equal(sender, dict["SenderName"]);
         Assert.Equal(messageContent, dict["Message"]);
 
-        // Assert - Redis (SortedSet Index)
+        // Redis (SortedSet Index)
         var allMessages = await redis.SortedSetRangeByScoreAsync(RedisKeys.ChatAllMessages());
         Assert.Contains(created.MessageId, allMessages.Select(v => (long)v));
     }
@@ -48,7 +46,6 @@ public class ChatMessageRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task Read_Hit_ShouldReturnFromCacheWithoutDb()
     {
-        // Arrange
         var repository = CreateRepository();
         var created = await repository.CreateAsync("User1", ChatType.Global, "Msg1", null, null);
 
@@ -60,10 +57,8 @@ public class ChatMessageRepositoryIntegrationTests(RepositoryTestFixture fixture
             await context.SaveChangesAsync();
         }
 
-        // Act
         var result = await repository.GetMessageByIdAsync(created.MessageId);
 
-        // Assert
         Assert.NotNull(result);
         Assert.Equal(created.MessageId, result.MessageId);
         Assert.Equal("Msg1", result.Message);
@@ -72,7 +67,6 @@ public class ChatMessageRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task Read_Miss_ShouldFetchFromDbAndRecache()
     {
-        // Arrange
         var repository = CreateRepository();
         var created = await repository.CreateAsync("User2", ChatType.Global, "Msg2", null, null);
         var redis = _fixture.RedisConnection.GetDatabase();
@@ -80,10 +74,8 @@ public class ChatMessageRepositoryIntegrationTests(RepositoryTestFixture fixture
         // 캐시 삭제
         await redis.KeyDeleteAsync(RedisKeys.ChatMessage(created.MessageId));
 
-        // Act
         var result = await repository.GetMessageByIdAsync(created.MessageId);
 
-        // Assert
         Assert.NotNull(result);
         Assert.Equal("Msg2", result.Message);
 
@@ -95,15 +87,12 @@ public class ChatMessageRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task Delete_ShouldRemoveFromDbAndRedis()
     {
-        // Arrange
         var repository = CreateRepository();
         var created = await repository.CreateAsync("User3", ChatType.Global, "Msg3", null, null);
         var redis = _fixture.RedisConnection.GetDatabase();
 
-        // Act
         var success = await repository.DeleteAsync(created.MessageId);
 
-        // Assert
         Assert.True(success);
 
         // DB 확인
@@ -124,15 +113,12 @@ public class ChatMessageRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task TTL_ShouldBeSetInRedis()
     {
-        // Arrange
         var repository = CreateRepository();
         var created = await repository.CreateAsync("User4", ChatType.Global, "Msg4", null, null);
         var redis = _fixture.RedisConnection.GetDatabase();
 
-        // Act
         var ttl = await redis.KeyTimeToLiveAsync(RedisKeys.ChatMessage(created.MessageId));
 
-        // Assert
         Assert.NotNull(ttl);
         Assert.True(ttl > TimeSpan.Zero);
         Assert.True(ttl <= RedisSettings.RedisCacheTtl);
@@ -141,7 +127,6 @@ public class ChatMessageRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task GetMessagesAfterAsync_ShouldHandleCacheAndFallback()
     {
-        // Arrange
         var repository = CreateRepository();
         var msg1 = await repository.CreateAsync("User1", ChatType.Global, "First", null, null);
         var msg2 = await repository.CreateAsync("User1", ChatType.Global, "Second", null, null);

@@ -3,7 +3,7 @@ using Script.System.GamePlayAbilitySystem;
 namespace Shared.Gameplay.Tests;
 
 /// <summary>
-/// ActorId 부호 규약 검증(actor-combat-architecture §2.1). 플레이어=양수 / 몬스터=음수 / 환경=0.
+/// ActorId 부호 규약 검증. 플레이어=양수 / 몬스터=음수 / 환경=0.
 /// 이 규약이 깨지면 전투 통합 파이프의 라우팅·권위 소유가 전부 어긋나므로 왕복·판별을 못 박는다.
 /// </summary>
 public class ActorIdsTests

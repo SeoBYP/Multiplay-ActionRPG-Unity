@@ -40,10 +40,8 @@ public class UserGrpcService(
         return new SetNicknameResponse { Result = result.ToGrpcResult() };
     }
     /// <summary>
-    /// Main 위치 보고(B7). 주기 호출 경로라 Redis 에만 쓴다 — 확정(DB)은 이탈 시점에 서버가 한다.
-    ///
-    /// ⚠ 좌표는 클라가 만든 값이다. 서버는 맵 경계만 검증하고 밖이면 저작 스폰으로 스냅한다.
-    /// 근접·궤적 검증은 하지 않는다(cleanup-backlog B7 — 클라가 보고한 좌표로 클라를 검증하는 것은 순환).
+    /// 주기 호출 경로라 Redis 에만 쓴다 — DB 확정은 이탈 시점에 서버가 한다.
+    /// ⚠ 좌표는 클라가 만든 값이다. 맵 경계만 검증하고 밖이면 저작 스폰으로 스냅하며, 근접·궤적 검증은 하지 않는다.
     /// </summary>
     public override async Task<SavePositionResponse> SavePosition(SavePositionRequest request, ServerCallContext context)
     {

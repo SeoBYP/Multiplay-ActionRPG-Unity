@@ -10,8 +10,7 @@ using ProgressionGrpc = GameServer.Grpc.Progression.ProgressionService;
 namespace GameServer.API.Services;
 
 /// <summary>
-/// 진행(레벨/경험치) + 레벨 파생 스탯 조회 gRPC. 스탯창(7.3) pull 진입점.
-/// userId 는 JWT 에서 추출(AuthInterceptor). 스탯은 DB 가 아니라 LevelTable 룩업으로 합성(단일소스).
+/// 레벨/경험치 + 레벨 파생 스탯 조회. 스탯은 DB 가 아니라 LevelTable 룩업으로 합성한다(단일 소스).
 /// </summary>
 public class ProgressionGrpcService(
     IProgressionService progressionService,
@@ -35,7 +34,7 @@ public class ProgressionGrpcService(
             Result = Result.Success().ToGrpcResult(),
             Level = progression.Level,
             Exp = progression.Exp,
-            ExpToNext = atMax ? 0 : LevelTable.ExpToNext(progression.Level), // 만렙 = 0(다음 없음)
+            ExpToNext = atMax ? 0 : LevelTable.ExpToNext(progression.Level), // 만렙이면 0
             MaxLevel = LevelTable.MaxLevel,
             Stats = new StatBlock
             {

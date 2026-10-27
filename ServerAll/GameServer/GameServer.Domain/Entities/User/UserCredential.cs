@@ -2,36 +2,18 @@
 
 namespace GameServer.Domain.Entities.User;
 
-/// <summary>
-/// 사용자(계정) 인증 식별자 정보 Entity
-/// </summary>
 public class UserCredential
 {
-    /// <summary>
-    /// UserID (DB PK)
-    /// </summary>
     public long UserId { get; private set; }
     
-    /// <summary>
-    /// 사용자 이메일 주소(사용자 계정)
-    /// </summary>
     public string Email { get; private set; } = string.Empty;
     
-    /// <summary>
-    /// 비밀번호의 해시값
-    /// </summary>
     public string PasswordHash { get; private set; } = string.Empty;
     
-    /// <summary>
-    /// 사용자 인증을 위한 갱신 토큰
-    /// </summary>
     public string? RefreshToken { get; private set; }
 
     public int RefreshTokenVersion { get; private set; } = 0;
     
-    /// <summary>
-    /// 리프레시 토큰의 만료 시간을 나타냅니다.
-    /// </summary>
     public DateTime? RefreshTokenExpiresAt { get; private set; }
 
     private UserCredential()
@@ -81,9 +63,6 @@ public class UserCredential
         };
     }
 
-    /// <summary>
-    /// 이메일 주소의 유효성을 검사합니다.
-    /// </summary>
     private static bool IsValidateEmail(string email)
     {
         if (string.IsNullOrWhiteSpace(email))

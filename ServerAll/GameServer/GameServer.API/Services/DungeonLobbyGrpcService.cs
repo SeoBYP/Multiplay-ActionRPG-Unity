@@ -96,8 +96,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         logger.LogInformation("GetRooms request received for session {SessionId} (offset {Offset}, count {Count})",
             sessionId, request.Offset, request.RoomCount);
 
-        // 페이징(9.6): 이전엔 request.RoomCount 를 무시하고 전체 활성 방을 반환했다.
-        // 크기·오프셋 clamp 는 서비스가 한다(서버가 진실원 — 클라 값 그대로 신뢰 금지).
+        // 크기·오프셋 clamp 는 서비스가 한다 — 클라 값을 그대로 신뢰하지 않는다.
         var result = await dungeonLobbyService.GetActiveDungeonRoomsAsync(
             request.Offset, request.RoomCount, context.CancellationToken);
 
@@ -113,7 +112,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         var rooms = page.Rooms;
         response.TotalCount = page.TotalCount;
 
-        // N+1 회피: 방마다 (플레이어+유저) 2왕복하던 것을 → 플레이어 1쿼리 + 유저 1쿼리로 배치.
+        // N+1 회피: 플레이어 1쿼리 + 유저 1쿼리로 배치.
         var roomIds = rooms.Select(r => r.RoomId).ToList();
         var allPlayers = await dungeonRoomPlayerRepository.GetPlayersByRoomIdsAsync(roomIds, context.CancellationToken);
         var allUserIds = allPlayers.Select(p => p.UserId).Distinct().ToList();
@@ -124,8 +123,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
             .GroupBy(p => p.RoomId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        // 준비 상태도 함께 싣는다. 목록에서 고른 방이 그대로 대기실 State 로 들어가므로,
-        // 여기서 비우면 대기실이 열린 직후 전원 미준비로 잘못 그려진다(방마다 왕복하지 않도록 배치 조회).
+        // 목록에서 고른 방이 그대로 대기실로 들어가므로 준비 상태도 함께 싣는다(배치 조회).
         var readyByRoom = await roomReadyStore.GetReadyUserIdsAsync(roomIds, context.CancellationToken);
 
         foreach (var dungeonRoom in rooms)
@@ -289,9 +287,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
 
         var ctx = await subscriptionService.SubscribeAsync(validation.Value, request.RoomId, ct);
 
-        // 방이 Waiting이 아닌 상태(Starting/Playing)로 구독을 시작하는 경우
-        // Redis stream에 이벤트가 없어도 현재 상태를 즉시 클라이언트에 전달한다.
-        // (서버 재시작 후 재접속, gRPC 끊김 후 복구 등 edge case 처리)
+        // Waiting 이 아닌 방은 스트림에 이벤트가 없어도 현재 상태를 즉시 전달한다(재시작·끊김 복구).
         var currentRoom = await dungeonLobbyService.GetDungeonRoomAsync(request.RoomId, ct);
         if (currentRoom.IsSuccess && currentRoom.Value?.Status != RoomStatus.Waiting)
         {
@@ -299,9 +295,8 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
             logger.LogInformation("SubscribeRoom initial kick for room {RoomId} status {Status}",
                 request.RoomId, currentRoom.Value?.Status);
 
-            // Starting 또는 Playing 상태로 재접속한 경우 호스트가 게임 시작 흐름을 자동으로 재트리거한다.
-            // - Starting: 이전 GameStartRequestedMessage가 유실됐을 수 있음
-            // - Playing: 서버 재시작으로 Redis player key가 소실됐을 수 있음 (StartGameAsync가 idempotent)
+            // Starting/Playing 으로 재접속한 호스트는 게임 시작 흐름을 자동 재트리거한다(StartGameAsync 는 멱등).
+            // - Starting: GameStartRequestedMessage 유실 가능 / Playing: 재시작으로 Redis player key 소실 가능
             if ((currentRoom.Value?.Status == RoomStatus.Starting ||
                  currentRoom.Value?.Status == RoomStatus.Playing) &&
                 currentRoom.Value.HostUserId == validation.Value)
@@ -391,10 +386,7 @@ public class DungeonLobbyGrpcService(IDungeonLobbyService dungeonLobbyService,
         logger.LogInformation("[SendLoop] user={UserId} room={RoomId} — 루프 종료", ctx.UserId, ctx.RoomId);
     }
 
-    /// <summary>
-    /// Redis player key가 존재하지 않으면 DB에서 조회해 복구한다.
-    /// 서버 재시작 후 Playing 방에 재접속할 때 SocketServer 검증에 필요한 키를 보장한다.
-    /// </summary>
+    /// <summary>Redis player key 가 없으면 DB 로 복구한다 — 재시작 후 Playing 방 재접속 시 SocketServer 검증에 필요.</summary>
     private async Task EnsurePlayerDataInRedisAsync(long roomId, long gameSessionId, CancellationToken ct)
     {
         var redis = connectionMultiplexer.GetDatabase();

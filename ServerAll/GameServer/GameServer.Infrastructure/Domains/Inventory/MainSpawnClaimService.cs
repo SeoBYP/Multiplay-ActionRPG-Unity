@@ -12,7 +12,7 @@ using Shared.Infrastructure.Spawn;
 namespace GameServer.Infrastructure.Domains.Inventory;
 
 /// <summary>
-/// Main 획득 서버 검증(B-lite) 구현. 정본 = docs/wiki/main-spawn-claim.md.
+/// Main 획득 서버 검증 구현.
 ///
 /// - 슬롯 검증: `SpawnLayoutTable`(서버가 보유한 map 스폰 데이터)에 (mapId, slotId)가 존재해야 한다.
 /// - 쿨다운: Redis `SET NX PX` 한 줄로 원자 처리 — 키 없으면 클레임 성공+TTL 생성, 있으면 쿨다운 중(재청구 차단).
@@ -63,12 +63,12 @@ public sealed class MainSpawnClaimService : IMainSpawnClaimService
             return MainClaimResult.OnCooldown();
         }
 
-        // 서버 권위 roll(클라 roll 불신, 던전·Main 공유) → 아이템 지급.
+        // 서버 권위 roll(클라 roll 불신, 던전·Main 공유)
         var drops = DropTableCatalog.Roll(slot.MonsterId, Random.Shared);
         var granted = new List<GrantedItem>();
         foreach (var d in drops)
         {
-            // 골드는 통화 — 지갑 잔액으로 적립(NewQuantity = 잔액). 그 외는 인벤토리 지급(3.4).
+            // 골드는 통화 — 지갑 잔액으로 적립(NewQuantity = 잔액). 그 외는 인벤토리 지급.
             if (Currencies.IsCurrency(d.ItemId))
             {
                 var balance = await _wallet.AddAsync(userId, d.Qty, ct);
@@ -106,7 +106,7 @@ public sealed class MainSpawnClaimService : IMainSpawnClaimService
         if (expReward > 0)
             await _progression.AddExpAsync(userId, expReward, ct);
 
-        // 퀘스트 진행(4.4) — 쿨다운 통과 = 진짜 킬 1회. KillMonster 퀘스트 서버 권위 +1(위조 불가).
+        // 쿨다운 통과 = 진짜 킬 1회 → KillMonster 퀘스트 +1(서버 권위, 위조 불가).
         await _quest.ReportKillAsync(userId, slot.MonsterId, ct);
 
         _logger.LogInformation("ClaimMonsterExp +{Exp} exp: user {User} map {Map} slot {Slot} monster {Monster}",

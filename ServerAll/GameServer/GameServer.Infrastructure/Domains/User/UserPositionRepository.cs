@@ -11,7 +11,7 @@ namespace GameServer.Infrastructure.Domains.User;
 /// <summary>
 /// Main 위치 저장소 — **Redis 가 1차, DB 가 확정**.
 ///
-/// ⚠ 이 도메인만 cache-aside 교리의 예외다(networking.md 에 사유 기재).
+/// 이 도메인만 cache-aside 의 예외다.
 /// 다른 저장소는 "DB 저장 → 캐시 DEL" 인데, 위치는 주기 보고라 쓰기가 매우 잦고 유실이 허용된다.
 /// 그래서 주기 쓰기는 Redis 로만 가고, 이탈 시점(로그아웃·던전 입장)에 한 번 DB 로 확정한다.
 /// 유실 폭 = "마지막 확정 이후" 로 한정되고, 그때는 마지막 정상 이탈 위치로 되돌아간다.
@@ -49,7 +49,7 @@ public sealed class UserPositionRepository(
         if (cached is not null)
             return cached;
 
-        // 캐시 미스 → DB. 읽기 전용이므로 추적 불필요(AsNoTracking — stale 엔티티 반환 방지).
+        // 캐시 미스 → DB. AsNoTracking: stale 엔티티 반환 방지.
         return await context.UserPositions
             .AsNoTracking()
             .SingleOrDefaultAsync(p => p.UserId == userId, ct);
@@ -59,7 +59,7 @@ public sealed class UserPositionRepository(
     {
         var latest = await ReadVolatileAsync(userId);
         if (latest is null)
-            return; // 이번 세션에 보고가 없었다 — 기존 확정값을 그대로 둔다.
+            return; // 이번 세션에 보고가 없었다 — 기존 확정값 유지
 
         var row = await context.UserPositions.SingleOrDefaultAsync(p => p.UserId == userId, ct);
         if (row is null)

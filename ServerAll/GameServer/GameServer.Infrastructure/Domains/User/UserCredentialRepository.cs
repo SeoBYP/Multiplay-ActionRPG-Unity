@@ -28,10 +28,8 @@ public class UserCredentialRepository(
             }
             catch
             {
-                // 실패한 Insert 를 Added 로 남기면, 호출자의 롤백(SaveChanges)이 그것을 다시 커밋하려다
-                // 같은 예외를 던진다 — 원인이 뭉개지고 롤백이 끝나지 못해 고아 레코드가 남는다.
-                // (DbContext 전역에 같은 정책을 걸었다가 리퍼처럼 한 스코프를 오래 쓰는 호출자에서
-                //  변경 추적기가 깨지는 것을 실측하고 이 자리로 좁혔다.)
+                // 실패한 Insert 를 Added 로 남기면 호출자의 롤백(SaveChanges)이 같은 예외를 다시 던져
+                // 원인이 뭉개지고 고아 레코드가 남는다. DbContext 전역이 아니라 이 자리에서만 Detach 한다.
                 userCredentialEntry.State = EntityState.Detached;
                 throw;
             }

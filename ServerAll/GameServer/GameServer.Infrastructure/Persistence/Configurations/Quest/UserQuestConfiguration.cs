@@ -20,7 +20,7 @@ public class UserQuestConfiguration : IEntityTypeConfiguration<UserQuest>
             .IsRequired();
 
         builder.Property(q => q.Status)
-            .HasConversion<int>() // enum → int 영속
+            .HasConversion<int>()
             .IsRequired();
 
         builder.Property(q => q.Progress)

@@ -3,7 +3,7 @@ using Shared.Gameplay;
 namespace Server.Tests.Monster;
 
 /// <summary>
-/// AC-E4: 드롭 롤의 레벨·등급 반영. 설계 = docs/wiki/monster-leveling.md §4.3.
+/// 드롭 롤의 레벨·등급 반영.
 ///
 /// 배율은 <b>인자로 들어온다</b> — <c>DropTableRoll</c> 은 Shared.Gameplay(순수)라 플레이어 곡선을 모른다.
 /// 여기선 그 순수 계약을 고정한다(배율 계산 자체는 MonsterLevelScalingTests).
@@ -46,7 +46,7 @@ public class DropLevelTierTests
     [Fact]
     public void 배율_기본값은_기존_동작과_같다()
     {
-        // E4 는 동작 보존이어야 한다 — 배율을 안 주면 예전 결과 그대로.
+        // 동작 보존 — 배율을 안 주면 결과가 그대로여야 한다.
         var rng = new FixedRng(0.0);
 
         var legacy = DropTableRoll.Roll(new[] { Gold, Sword }, rng);
@@ -68,7 +68,6 @@ public class DropLevelTierTests
     [Fact]
     public void 로스터_전원이_드롭테이블을_갖는다_E5()
     {
-        // E5 이전엔 9마리 중 creepy_demon 만 있었다(7마리가 아무것도 안 떨굼).
         // test_brute 는 테스트 픽스처라 의도적 제외 — 드롭이 붙으면 E2E 기대값이 오염된다.
         string[] roster =
         {
@@ -85,7 +84,7 @@ public class DropLevelTierTests
     [Fact]
     public void 유령_테이블_goblin_이_제거됐다_E5()
     {
-        // goblin 은 monsters.json 에 없어 스폰될 수 없는데 drop-tables.json 에만 남아 있던 유령이었다.
+        // goblin 은 monsters.json 에 없어 스폰될 수 없으므로 drop-tables.json 에도 있으면 안 된다(유령 엔트리).
         Assert.Empty(Shared.Infrastructure.Loot.DropTableCatalog.Get("goblin"));
     }
 

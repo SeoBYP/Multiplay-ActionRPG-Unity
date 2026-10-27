@@ -6,7 +6,7 @@ namespace Server.Tests.Room;
 /// <summary>
 /// 소비 통지(PlayerConsumed) 중복 차단.
 ///
-/// 전달 의미가 at-least-once 가 되면서 같은 통지가 다시 올 수 있게 됐다.
+/// 전달 의미가 at-least-once 라 같은 통지가 다시 올 수 있다.
 /// 회복 적용(`ApplyPlayerEffect(+heal)`)은 비멱등이라, 막지 않으면 **포션 하나로 두 번 회복**된다.
 /// 차단 수명은 방에 묶는다 — 회복 대상이 방의 인메모리 상태라 방이 사라지면 중복 걱정도 사라진다.
 /// </summary>

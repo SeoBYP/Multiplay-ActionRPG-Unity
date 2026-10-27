@@ -7,7 +7,7 @@ using Shared.Packet.Packets;
 namespace Server.Tests.Room;
 
 /// <summary>
-/// 플레이어 HP 서버 권위(authority-model §4, 2026-06-11). 서버가 데미지/회복을 자기 HP 에 누적하고
+/// 플레이어 HP 서버 권위. 서버가 데미지/회복을 자기 HP 에 누적하고
 /// HP≤0 을 **클라 C_PlayerDead 없이 직접 감지**해 S_PlayerDead 를 발행한다(불사 핵 차단).
 /// </summary>
 public class PlayerHpServerAuthorityTests

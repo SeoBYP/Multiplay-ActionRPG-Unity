@@ -33,9 +33,7 @@ public class DropTableCatalogTests
     public void 임베디드_보스_데이터가_로드된다()
     {
         // SO(DropTableDefinition) 저작 → Tools/Loot/Export 로 추가된 데이터가 임베디드 JSON 에 반영됐는지 검증.
-        //
-        // 표본이 goblin 이었는데 **monsters.json 에 없는 유령**이라 AC-E5 에서 제거했다(스폰될 수 없으니 롤도 안 일어난다).
-        // 이 테스트의 의도는 "저작→Export 왕복이 서버까지 닿는가"이므로 표본만 **실존 몬스터**로 바꾼다.
+        // 표본은 monsters.json 에 **실존하는 몬스터**여야 한다(스폰될 수 없으면 롤도 안 일어난다).
         var entries = DropTableCatalog.Get("leviathan");
 
         Assert.NotEmpty(entries);

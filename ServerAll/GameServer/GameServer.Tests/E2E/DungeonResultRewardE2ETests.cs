@@ -51,10 +51,10 @@ public class DungeonResultRewardE2ETests
         services.AddDbContext<GameServerDbContext>(o => o.UseNpgsql(_fixture.DbConnectionString));
         services.AddScoped<IProgressionRepository, ProgressionRepository>();
         services.AddScoped<IProgressionService, ProgressionService>();
-        // ProgressionService 가 GetStatsAsync 로 장비 합산(3.2)을 위임 → 생성자 의존 체인 등록.
+        // ProgressionService 가 GetStatsAsync 로 장비 합산을 위임 → 생성자 의존 체인 등록.
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IInventoryService, InventoryService>();
-        // 도감(3.7): InventoryService.GrantItemAsync 가 ICodexService 의존 → DI 해석 위해 등록.
+        // 도감: InventoryService.GrantItemAsync 가 ICodexService 의존 → DI 해석 위해 등록.
         services.AddScoped<GameServer.Application.Domains.Codex.Interfaces.ICodexRepository, GameServer.Infrastructure.Domains.Codex.CodexRepository>();
         services.AddScoped<GameServer.Application.Domains.Codex.Interfaces.ICodexService, GameServer.Application.Domains.Codex.CodexService>();
         services.AddScoped<IEquipmentRepository, EquipmentRepository>();
@@ -92,7 +92,7 @@ public class DungeonResultRewardE2ETests
     [Fact]
     public async Task 클리어_이벤트를_Redis스트림으로_발행하면_참가자_전원_Exp지급_및_레벨업이_DB에_영속된다()
     {
-        // dungeon_01 expReward=100 = Lv1 임계 정확 → 신규 유저는 Lv2/Exp0 으로 레벨업(경험치→레벨업, 던전 보상 경로).
+        // dungeon_01 expReward=100 = Lv1 임계 정확 → 신규 유저는 Lv2/Exp0 으로 레벨업.
         long u1 = 7201, u2 = 7202;
         var consumer = BuildConsumer();
 

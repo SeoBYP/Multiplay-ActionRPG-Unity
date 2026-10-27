@@ -3,7 +3,6 @@ namespace Shared.Infrastructure.Items;
 /// <summary>
 /// 장비 정의 카탈로그 — items.json(bake) 중 `isEquipment` 항목의 파사드.
 /// 착용 상태(UserId,Slot→ItemId)만 DB(user_equipments)에 영속한다.
-/// 공개 API 는 구 `GameServer.Domain.Entities.Equipment.EquipmentCatalog` 와 동일하다(호출부 무변경).
 /// </summary>
 public static class EquipmentCatalog
 {

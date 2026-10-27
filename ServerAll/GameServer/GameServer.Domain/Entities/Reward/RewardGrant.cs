@@ -4,15 +4,11 @@ namespace GameServer.Domain.Entities.Reward;
 /// 보상 지급 원장 — "이 지급은 이미 했다"의 **단일 진실**.
 ///
 /// 왜 DB 인가: 지급(Exp 적립·인벤토리 증가·지갑 적립)과 "지급했음" 기록이 **같은 트랜잭션**에 있어야
-/// exactly-once 가 성립한다. Redis 키로 잠그면 키와 지급이 서로 다른 저장소라
-/// "지급됐는데 기록이 없다" 또는 "기록됐는데 지급이 없다" 창이 항상 남는다.
-/// (실제로 참가자별 개별 트랜잭션이라, 4인 파티 3번째에서 실패하면 1·2 는 이미 커밋돼 있다.)
+/// exactly-once 가 성립한다. Redis 키는 지급과 다른 저장소라 불일치 창이 항상 남는다.
 ///
 /// <see cref="GrantKey"/> 하나에 UNIQUE 를 걸어 멱등 범위를 표현한다:
 ///   던전 Exp  = "dungeon:{roomId}:{userId}"   (참가자 1명 = 1건 → 부분 재시도가 안전)
 ///   줍기 지급 = "pickup:{pickupId}"           (줍기 1건 = 1건)
-///
-/// 부수 효과로 지급 이력이 남아 CS 대응·정산 추적이 가능해진다.
 /// </summary>
 public class RewardGrant
 {

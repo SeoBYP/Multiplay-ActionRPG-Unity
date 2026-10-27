@@ -6,8 +6,6 @@ namespace GameServer.Application.Common.Interfaces;
 /// </summary>
 public interface IDistributedLock
 {
-    /// <summary>
-    /// 락 획득. await using으로 사용하면 자동 해제.
-    /// </summary>
+    /// <summary>락 획득. await using 으로 쓰면 자동 해제.</summary>
     Task<IAsyncDisposable> AcquireAsync(string lockKey, CancellationToken ct = default);
 }

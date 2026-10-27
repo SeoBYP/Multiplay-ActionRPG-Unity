@@ -17,15 +17,12 @@ public class UserRepositoryIntegrationTests
     [Fact]
     public async Task Create_ShouldInsertIntoDbAndSetCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var repository = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var db = _fixture.RedisConnection.GetDatabase();
 
-        // Act
         var user = await repository.CreateAsync();
 
-        // Assert
         // 1. DB Insert 확인
         var dbUser = await context.Users.FindAsync(user.UserId);
         Assert.NotNull(dbUser);
@@ -48,7 +45,6 @@ public class UserRepositoryIntegrationTests
     [Fact]
     public async Task Read_Hit_ShouldReturnFromCacheWithoutDbAccess()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var repository = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var db = _fixture.RedisConnection.GetDatabase();
@@ -60,10 +56,8 @@ public class UserRepositoryIntegrationTests
         context.Users.Remove(user);
         await context.SaveChangesAsync();
 
-        // Act
         var foundUser = await repository.GetByIdAsync(user.UserId);
 
-        // Assert
         Assert.NotNull(foundUser);
         Assert.Equal(user.PublicId, foundUser.PublicId);
     }
@@ -71,7 +65,6 @@ public class UserRepositoryIntegrationTests
     [Fact]
     public async Task Read_Miss_ShouldReturnFromDbAndSetCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var repository = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var db = _fixture.RedisConnection.GetDatabase();
@@ -84,10 +77,8 @@ public class UserRepositoryIntegrationTests
         await db.KeyDeleteAsync(cacheKey);
         await db.KeyDeleteAsync(mappingKey);
 
-        // Act
         var foundUser = await repository.GetByIdAsync(user.UserId);
 
-        // Assert
         Assert.NotNull(foundUser);
         Assert.Equal(user.UserId, foundUser.UserId);
 
@@ -99,7 +90,6 @@ public class UserRepositoryIntegrationTests
     [Fact]
     public async Task Update_ShouldUpdateDbAndClearCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var repository = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var db = _fixture.RedisConnection.GetDatabase();
@@ -108,11 +98,9 @@ public class UserRepositoryIntegrationTests
         var oldPublicId = user.PublicId;
         var newPublicId = Guid.NewGuid().ToString()[..10];
 
-        // Act
         user.GetType().GetProperty("PublicId")?.SetValue(user, newPublicId);
         await repository.UpdateAsync(user);
 
-        // Assert
         // 1. DB 확인 (새 context 사용으로 Change Tracker 우회)
         using var assertContext = _fixture.CreateDbContext();
         var updatedDbUser = await assertContext.Users.FindAsync(user.UserId);
@@ -127,7 +115,6 @@ public class UserRepositoryIntegrationTests
     [Fact]
     public async Task Delete_ShouldRemoveFromDbAndClearCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var repository = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var db = _fixture.RedisConnection.GetDatabase();
@@ -136,10 +123,8 @@ public class UserRepositoryIntegrationTests
         var cacheKey = RedisKeys.User(user.UserId);
         var mappingKey = RedisKeys.UserPublicIdMapping(user.PublicId);
 
-        // Act
         await repository.RemoveAsync(user.UserId);
 
-        // Assert
         // 1. DB 삭제 확인
         var dbUser = await context.Users.FindAsync(user.UserId);
         Assert.Null(dbUser);
@@ -152,17 +137,14 @@ public class UserRepositoryIntegrationTests
     [Fact]
     public async Task TTL_ShouldBeSetOnCacheKeys()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var repository = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var db = _fixture.RedisConnection.GetDatabase();
 
-        // Act
         var user = await repository.CreateAsync();
         var cacheKey = RedisKeys.User(user.UserId);
         var mappingKey = RedisKeys.UserPublicIdMapping(user.PublicId);
 
-        // Assert
         var ttlUser = await db.KeyTimeToLiveAsync(cacheKey);
         var ttlMapping = await db.KeyTimeToLiveAsync(mappingKey);
 

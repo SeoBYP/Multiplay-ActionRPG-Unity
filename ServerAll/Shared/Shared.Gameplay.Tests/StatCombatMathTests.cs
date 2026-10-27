@@ -3,7 +3,7 @@ using Script.System.GamePlayAbilitySystem;
 namespace Shared.Gameplay.Tests;
 
 /// <summary>
-/// 스탯 기반 데미지 산식(2.4) — max(1, baseDamage + attackPower - defense). 결정론·클라 미러.
+/// 스탯 기반 데미지 산식 — max(1, baseDamage + attackPower - defense). 결정론·클라 미러.
 /// </summary>
 public class StatCombatMathTests
 {

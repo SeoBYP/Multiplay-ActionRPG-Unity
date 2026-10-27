@@ -1,11 +1,7 @@
 ﻿namespace Shared.Infrastructure.MessageQueue;
 
-/// <summary>
-/// 메시지 큐의 인터페이스 정의
-/// </summary>
 public interface IMessageQueue<T>
 {
-    /// <summary>메시지 큐에 메시지 추가</summary>
     Task EnqueueAsync(T message);
 
     /// <summary>

@@ -6,7 +6,6 @@ using Shared.Packet.Packets;
 
 Console.WriteLine("Dummy Client Start");
 
-// MemoryPack 테스트
 var testPacket = new C_Ping
 {
     IsHealthy = true
@@ -21,7 +20,6 @@ Console.WriteLine($"Deserialized IsHealthy: {val?.IsHealthy}");
 string ipAddress = "127.0.0.1";
 int port = 7777;
 
-// Ping 설정
 TimeSpan pingInterval = TimeSpan.FromSeconds(3);
 TimeSpan pongTimeout = TimeSpan.FromSeconds(10);
 

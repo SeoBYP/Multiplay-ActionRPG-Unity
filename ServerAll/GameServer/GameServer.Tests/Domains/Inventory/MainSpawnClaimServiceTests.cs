@@ -9,9 +9,9 @@ using AppWalletService = GameServer.Application.Domains.Wallet.WalletService;
 namespace GameServer.Tests.Domains.Inventory;
 
 /// <summary>
-/// Main 획득 서버 검증(B-lite) 핵심 로직 — 슬롯 검증·쿨다운 재청구 차단·서버 권위 roll·지급.
+/// Main 획득 서버 검증 핵심 로직 — 슬롯 검증·쿨다운 재청구 차단·서버 권위 roll·지급.
 /// 실제 임베디드 데이터 사용: SpawnLayoutTable("main_field_01" 슬롯 1~3 = slime) + DropTableCatalog(slime→potion 보장).
-/// Redis 만 fake 로 교체(IClaimCooldownStore) → 무한파밍 차단(쿨다운)을 Redis 없이 검증. main-spawn-claim.md.
+/// Redis 만 fake 로 교체(IClaimCooldownStore) → 무한파밍 차단(쿨다운)을 Redis 없이 검증.
 /// </summary>
 public class MainSpawnClaimServiceTests
 {

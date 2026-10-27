@@ -2,7 +2,6 @@ namespace Shared.Infrastructure.Items;
 
 /// <summary>
 /// 아이템 정의 카탈로그 — items.json(bake) 파사드. 소유 수량만 DB(InventoryItem)에 영속한다.
-/// 공개 API 는 구 `GameServer.Domain.Entities.Inventory.ItemCatalog` 와 동일하다(호출부 무변경).
 /// </summary>
 public static class ItemCatalog
 {

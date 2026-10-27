@@ -5,8 +5,7 @@ namespace Server.Tests.Loot;
 /// <summary>
 /// 바닥 아이템 저장소 — 스폰·조회·<b>줍기 경쟁 중재</b>.
 ///
-/// <para>예전엔 이 셋이 Room 안에 있어서 줍기 한 줄을 검증하려면 방·세션·플레이어를 다 세워야 했다.
-/// 저장소가 위치를 <b>인자로</b> 받게 되면서 방 없이 직접 칠 수 있다.</para>
+/// <para>저장소가 위치를 <b>인자로</b> 받으므로 방 없이 직접 칠 수 있다.</para>
 /// </summary>
 public class GroundItemStoreTests
 {

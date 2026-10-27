@@ -45,7 +45,7 @@ public sealed class DungeonRoomReaper(
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
-            // 정상 종료.
+            // 정상 종료
         }
         catch (Exception e)
         {

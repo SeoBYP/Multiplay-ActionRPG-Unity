@@ -10,9 +10,8 @@ using Server.PacketHandler.Handler;
 namespace Server.Tests.Monster;
 
 /// <summary>
-/// AC-B B4: 몬스터 어빌리티 선택. 저작 순서(MonsterDefinition.abilityIds) = 우선순위 →
+/// 몬스터 어빌리티 선택. 저작 순서(MonsterDefinition.abilityIds) = 우선순위 →
 /// **사거리 안 + 쿨다운 경과인 첫 어빌리티**를 발동한다. 쿨다운은 어빌리티 단위로 추적(보스 다중 스킬 전제).
-/// 설계 = ability-so-authoring.md §5.
 /// </summary>
 public class MonsterAbilitySelectionTests
 {
@@ -45,7 +44,7 @@ public class MonsterAbilitySelectionTests
     [Fact]
     public void 쿨다운은_어빌리티_데이터의_값을_따른다()
     {
-        // creepy_demon_attack cooldownMs=1400(어빌리티 저작값). MonsterDef 엔 더 이상 쿨다운이 없다.
+        // creepy_demon_attack cooldownMs=1400(어빌리티 저작값). MonsterDef 엔 쿨다운이 없다.
         var room = NewRoom();
         room.AddPlayer(100, "A", 0, 0.5f, 0f, 0f, 0f); // 사거리 안
         room.MarkJoined(100);

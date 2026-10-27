@@ -4,7 +4,7 @@ using Script.System.GamePlayAbilitySystem;
 namespace Shared.Gameplay.Tests;
 
 /// <summary>
-/// GAS 태그 인프라(ⓒ) — GameplayTag 값 동등성 + GameplayTagContainer 집합 동작 + Effect.GrantedTags.
+/// GAS 태그 인프라 — GameplayTag 값 동등성 + GameplayTagContainer 집합 동작 + Effect.GrantedTags.
 /// 상태 표현(예: State.Dead)·Cue 트리거의 토대. 정확 일치만(계층 매칭은 후속).
 /// </summary>
 public class GameplayTagTests

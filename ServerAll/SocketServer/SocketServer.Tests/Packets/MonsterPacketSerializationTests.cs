@@ -4,7 +4,7 @@ using Shared.Packet.Packets;
 namespace Server.Tests.Packets;
 
 /// <summary>
-/// M3 증분①: 몬스터 패킷(S_SpawnMonster / S_MonsterState / S_MonsterDead) 직렬화 계약 검증.
+/// 몬스터 패킷(S_SpawnMonster / S_MonsterState / S_MonsterDead) 직렬화 계약 검증.
 /// 전부 서버→클라 단방향. 몬스터는 서버 권위 NPC라 C_ 입력 패킷이 없다.
 /// </summary>
 public class MonsterPacketSerializationTests
@@ -64,7 +64,7 @@ public class MonsterPacketSerializationTests
         Assert.Equal(45f, decoded.RotY);
         Assert.Equal(18, decoded.Hp);
         Assert.Equal((byte)2, decoded.Phase);
-        Assert.Equal(42, decoded.Seq); // AC-C3: 스테일 드롭의 근거 — 유실되면 클라가 순서 역전을 못 거른다.
+        Assert.Equal(42, decoded.Seq); // 스테일 드롭의 근거 — 유실되면 클라가 순서 역전을 못 거른다.
     }
 
     [Fact]

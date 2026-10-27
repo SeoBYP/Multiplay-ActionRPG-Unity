@@ -18,7 +18,6 @@ public class UserCredentialRepositoryIntegrationTests
     [Fact]
     public async Task Create_ShouldInsertIntoDbAndSetCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var user = await userRepo.CreateAsync();
@@ -30,10 +29,8 @@ public class UserCredentialRepositoryIntegrationTests
         string email = "test1@example.com";
         string passwordHash = "hash123";
 
-        // Act
         var credential = await repository.CreateAsync(userId, email, passwordHash);
 
-        // Assert
         // 1. DB Insert 확인
         var dbCredential = await context.UserCredentials.FindAsync(userId);
         Assert.NotNull(dbCredential);
@@ -56,7 +53,6 @@ public class UserCredentialRepositoryIntegrationTests
     [Fact]
     public async Task Read_Hit_ShouldReturnFromCacheWithoutDbAccess()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var user = await userRepo.CreateAsync();
@@ -69,10 +65,8 @@ public class UserCredentialRepositoryIntegrationTests
         context.UserCredentials.Remove(credential);
         await context.SaveChangesAsync();
 
-        // Act
         var found = await repository.FindByIdAsync(user.UserId);
 
-        // Assert
         Assert.NotNull(found);
         Assert.Equal("test2@example.com", found.Email);
     }
@@ -80,7 +74,6 @@ public class UserCredentialRepositoryIntegrationTests
     [Fact]
     public async Task Read_Miss_ShouldReturnFromDbAndSetCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var user = await userRepo.CreateAsync();
@@ -96,10 +89,8 @@ public class UserCredentialRepositoryIntegrationTests
         await db.KeyDeleteAsync(cacheKey);
         await db.KeyDeleteAsync(mappingKey);
 
-        // Act
         var found = await repository.FindByIdAsync(user.UserId);
 
-        // Assert
         Assert.NotNull(found);
         Assert.Equal("test3@example.com", found.Email);
 
@@ -111,7 +102,6 @@ public class UserCredentialRepositoryIntegrationTests
     [Fact]
     public async Task Update_ShouldUpdateDbAndClearCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var user = await userRepo.CreateAsync();
@@ -122,10 +112,8 @@ public class UserCredentialRepositoryIntegrationTests
         var credential = await repository.CreateAsync(user.UserId, "old@example.com", "oldHash");
         credential.UpdatePasswordHash("newHash");
 
-        // Act
         await repository.UpdateAsync(credential);
 
-        // Assert
         // 1. DB 확인 (새 context 사용)
         using var assertContext = _fixture.CreateDbContext();
         var dbCredential = await assertContext.UserCredentials.FindAsync(user.UserId);
@@ -139,7 +127,6 @@ public class UserCredentialRepositoryIntegrationTests
     [Fact]
     public async Task Delete_ShouldRemoveFromDbAndClearCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var user = await userRepo.CreateAsync();
@@ -149,10 +136,8 @@ public class UserCredentialRepositoryIntegrationTests
 
         await repository.CreateAsync(user.UserId, "delete@example.com", "hash");
 
-        // Act
         await repository.RemoveAsync(user.UserId);
 
-        // Assert
         var dbCredential = await context.UserCredentials.FindAsync(user.UserId);
         Assert.Null(dbCredential);
 
@@ -219,7 +204,6 @@ public class UserCredentialRepositoryIntegrationTests
     [Fact]
     public async Task TTL_ShouldBeSetOnCacheKeys()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var user = await userRepo.CreateAsync();
@@ -231,7 +215,6 @@ public class UserCredentialRepositoryIntegrationTests
         var cacheKey = RedisKeys.UserCredential(user.UserId);
         var mappingKey = RedisKeys.UserCredentialEmailMapping("ttl@example.com");
 
-        // Assert
         var ttlUser = await db.KeyTimeToLiveAsync(cacheKey);
         var ttlMapping = await db.KeyTimeToLiveAsync(mappingKey);
 

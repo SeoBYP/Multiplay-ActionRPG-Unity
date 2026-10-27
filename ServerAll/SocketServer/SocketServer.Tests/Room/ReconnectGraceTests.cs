@@ -10,7 +10,6 @@ namespace Server.Tests.Room;
 /// PlayerActor 를 ReconnectGraceMs 동안 보존(재접속 시 복귀)하고, 만료되면 스윕이 영구 퇴장으로 확정한다.
 ///
 /// 대비: 명시 퇴장(C_PlayerLeave, graceful=false)은 즉시 제거 — RoomManagerLeaveRoomTests 가 검증.
-/// 배경: 9.4 부채 수정이 "모든 Leave에서 상태 즉시 제거"라 크래시=재접속 불가 회귀를 만들었고, 이를 해소한다.
 /// </summary>
 public class ReconnectGraceTests
 {

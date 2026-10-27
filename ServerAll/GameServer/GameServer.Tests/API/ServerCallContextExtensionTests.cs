@@ -6,7 +6,7 @@ namespace GameServer.Tests.API;
 
 /// <summary>
 /// JWT 클레임 → userId 해석 검증. 핵심: ASP.NET JWT 미들웨어가 'sub'를 ClaimTypes.NameIdentifier로
-/// 리매핑하는 경우에도 userId를 찾아야 한다(GetInventory가 UNAUTHORIZED 나던 버그).
+/// 리매핑하는 경우에도 userId를 찾아야 한다.
 /// </summary>
 public class ServerCallContextExtensionTests
 {

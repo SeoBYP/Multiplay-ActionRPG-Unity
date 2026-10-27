@@ -24,7 +24,6 @@ public class ChatGrpcService(
         var sessionId = context.GetSessionId();
         logger.LogInformation("Chat stream connected for session {SessionId}", sessionId);
 
-        // ConnectAsync 내부: 세션 조회 + ctx 생성 + Redis 구독
         var ctx = await subscriptionService.ConnectAsync(sessionId, ct);
         if (ctx is null)
         {
@@ -37,17 +36,15 @@ public class ChatGrpcService(
             var receiveTask = ReceiveLoopAsync(requestStream, ctx, sessionId, ct);
             var sendTask = SendLoopAsync(responseStream, ctx, ct);
 
-            // WhenAll만 쓰면 Receive가 먼저 끝났을 때 Send가 큐 대기로 걸릴 수 있음.
-            // 먼저 하나라도 종료되면 ctx.Stop()로 SendLoop을 안전하게 깨운 뒤 둘 다 종료 대기.
+            // WhenAll 만 쓰면 Receive 가 먼저 끝났을 때 Send 가 큐 대기에 걸린다 — 하나라도 끝나면 ctx.Stop() 으로 깨운다.
             await Task.WhenAny(receiveTask, sendTask);
 
-            ctx.Stop(); // SendLoop/ReceiveLoop 모두 종료 유도
+            ctx.Stop();
 
             await Task.WhenAll(receiveTask, sendTask);
         }
         finally
         {
-            // DisconnectAsync 내부에서 ctx.Stop() + UnsubscribeAll + registry 제거
             await subscriptionService.DisconnectAsync(ctx, context.CancellationToken);
             logger.LogInformation("Chat stream disconnected for user {UserId}", ctx.UserId);
         }
@@ -68,8 +65,7 @@ public class ChatGrpcService(
                     case ChatClientMessage.PayloadOneofCase.Chat:
                     {
                         logger.LogDebug("Received chat message from user {UserId}", ctx.UserId);
-                        // ChatService가 ChatType 결정 + 저장 + Redis Publish
-                        // Redis → OnRedisMessage 콜백 → ctx.Outbound에 push
+                        // 수신은 Redis → OnRedisMessage 콜백 → ctx.Outbound 경로로 돌아온다
                         _ = await chatService.SendMessageAsync(
                             sessionId,
                             msg.Chat.Message,
@@ -82,7 +78,6 @@ public class ChatGrpcService(
                     case ChatClientMessage.PayloadOneofCase.Reconnect:
                     {
                         logger.LogInformation("Received chat reconnect for user {UserId} from message {LastMessageId}", ctx.UserId, msg.Reconnect.LastMessageId);
-                        // 밀린 메시지 조회 후 큐에 직접 Push
                         var history = await chatService.GetMessagesAfterAsync(
                             sessionId,
                             msg.Reconnect.LastMessageId,
@@ -90,8 +85,7 @@ public class ChatGrpcService(
 
                         foreach (var chatMsg in history)
                         {
-                            // bounded channel이라 가득 차면 TryWrite 실패 가능
-                            // (정책상 DropOldest라면 대부분 성공; 실패하면 그냥 넘어가도 됨)
+                            // bounded channel 이 가득 차면 TryWrite 가 실패할 수 있다 — 무시
                             ctx.Outbound.Writer.TryWrite(chatMsg);
                         }
 
@@ -100,7 +94,6 @@ public class ChatGrpcService(
 
                     case ChatClientMessage.PayloadOneofCase.None:
                     default:
-                        // ignore
                         break;
                 }
             }

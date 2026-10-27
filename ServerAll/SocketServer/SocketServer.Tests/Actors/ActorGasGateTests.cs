@@ -8,11 +8,7 @@ using Shared.Packet.Packets;
 namespace Server.Tests.Actors;
 
 /// <summary>
-/// Actor 통합으로 <b>새로 가능해진 것</b>을 고정한다.
-///
-/// 예전에는 서버가 태그를 상태로 갖지 않아 발동 게이트에 <c>blocked: false</c> 가 하드코딩돼 있었다
-/// — 서버가 자기가 뿌린 CC 를 스스로 모르는 상태였다. 이제 게이트가 액터의 GAS 태그를 읽으므로,
-/// 스턴/사망 태그가 붙은 액터는 종족과 무관하게 발동이 막힌다.
+/// 발동 게이트가 액터의 GAS 태그를 읽는다 — 스턴/사망 태그가 붙은 액터는 종족과 무관하게 발동이 막힌다.
 /// </summary>
 public class ActorGasGateTests
 {
@@ -60,7 +56,7 @@ public class ActorGasGateTests
     [Fact]
     public void 쿨다운은_종족과_무관하게_같은_저장소에서_추적된다()
     {
-        // 플레이어와 몬스터가 같은 AbilitySystemComponent API 를 쓴다 — 예전엔 키 타입이 int/string 으로 갈려 있었다.
+        // 플레이어와 몬스터가 같은 AbilitySystemComponent API 를 쓴다.
         Actor player = new PlayerActor(100);
         Actor monster = new MonsterActor(1) { MonsterId = "creepy_demon" };
 
@@ -76,8 +72,7 @@ public class ActorGasGateTests
     [Fact]
     public void 몬스터는_공격력_방어력_스탯을_0으로_가진게_아니라_아예_없다()
     {
-        // 예전엔 이 0 이 산식 호출부의 const(MonsterAttackPower/MonsterDefense)였다.
-        // 이제는 "미보유"가 데이터로 표현된다 — 스탯이 생기면 스폰 시 Define 만 하면 된다.
+        // "미보유"가 데이터로 표현된다 — 스탯이 생기면 스폰 시 Define 만 하면 된다.
         var room = RoomWithMonsterInRange();
         var monster = room.Actors.GetMonster(1)!;
 
@@ -102,7 +97,7 @@ public class ActorGasGateTests
     [Fact]
     public void 서버가_Health_이외_속성_효과도_적용한다_Defense()
     {
-        // 회귀 가드: 예전 AbilitySystemComponent 는 Health 만 필터해 def_down_10 같은 효과를 조용히 버렸다.
+        // 회귀 가드: Health 외 속성(def_down_10 등)도 적용돼야 한다.
         // Defense 는 서버 데미지 산식의 입력이라, 클라만 적용하면 두 쪽 데미지가 갈린다.
         var room = NewRoom();
         room.AddPlayer(100, "A", 0, 0f, 0f, 0f, 0f, attackPower: 0, defense: 8);

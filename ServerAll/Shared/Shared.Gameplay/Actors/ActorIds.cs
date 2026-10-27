@@ -1,15 +1,13 @@
 namespace Script.System.GamePlayAbilitySystem
 {
     /// <summary>
-    /// ActorId 규약의 <b>단일 정의</b>. 전투 상호작용(발동·적중·효과·연출)에서 플레이어·몬스터를
-    /// 하나의 long 식별자로 지칭하기 위한 부호 규약이다. actor-combat-architecture.md §2.1.
+    /// ActorId 규약의 <b>단일 정의</b>. 플레이어·몬스터를 하나의 long 식별자로 지칭하는 부호 규약.
     ///
     ///   > 0  : 플레이어 (= UserId 그대로. DB identity 라 항상 양수)
     ///   &lt; 0 : 몬스터   (= -InstanceId. 방 내 유일, InstanceId 는 1 이상)
-    ///   = 0  : 환경/시스템 (기존 S_ApplyEffect SourceId=0 의미 보존)
+    ///   = 0  : 환경/시스템 (S_ApplyEffect SourceId=0)
     ///
-    /// 클라·서버가 각자 -x 를 손계산하지 않고 이 헬퍼만 쓴다 — 규약 이중정의(부호 실수) 방지.
-    /// 순수 정적(엔진·IO 비의존)이라 서버 헤드리스에서도 동일하게 동작한다.
+    /// 클라·서버가 각자 -x 를 손계산하지 않고 이 헬퍼만 쓴다 — 부호 실수 방지.
     /// </summary>
     public static class ActorIds
     {

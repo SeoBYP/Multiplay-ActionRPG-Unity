@@ -20,7 +20,7 @@ namespace GameServer.Tests.Infrastructure.Integrations;
 /// <summary>
 /// 보상 지급 원장 — exactly-once 계약 검증.
 ///
-/// Redis 키 잠금으로는 지급과 기록이 다른 저장소라 "지급됐는데 기록이 없다 / 기록됐는데 지급이 없다" 창이 남았다.
+/// Redis 키 잠금은 지급과 기록이 다른 저장소라 "지급됐는데 기록이 없다 / 기록됐는데 지급이 없다" 창이 남는다.
 /// 원장은 지급과 같은 트랜잭션에 있으므로 그 창이 없어야 한다.
 /// </summary>
 [Collection("RepositoryIntegrationTests")]

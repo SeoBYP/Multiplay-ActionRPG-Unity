@@ -42,7 +42,7 @@ public sealed class RoomSessions
 
     /// <summary>
     /// 같은 UserId 의 <b>다른</b> 세션을 찾는다(재접속 인수용). 없으면 null.
-    /// 끊김은 즉시 감지되지 않는다 — FIN 없이 사라지면 유휴 타임아웃까지 옛 세션이 방에 남는다(실측 63초).
+    /// 끊김은 즉시 감지되지 않는다 — FIN 없이 사라지면 유휴 타임아웃까지 옛 세션이 방에 남는다.
     /// </summary>
     public Session? FindByUserId(long userId, ulong exceptSessionId)
     {

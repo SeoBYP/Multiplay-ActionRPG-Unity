@@ -3,30 +3,25 @@ using Shared.Infrastructure.Progression;
 namespace Shared.Infrastructure.Monsters;
 
 /// <summary>
-/// 몬스터 스탯의 레벨·등급 스케일(AC-E). 설계 = <c>docs/wiki/monster-leveling.md</c>.
+/// 몬스터 스탯의 레벨 스케일.
 ///
-/// <para><b>왜 필요한가</b>: 플레이어만 성장하고 몬스터는 고정이라 <c>max(1, base − DEF)</c> 가
-/// 고레벨에서 전 몬스터를 1 데미지로 눌렀다(C1c 실측: 1,1,2,2,3,5).</para>
+/// <para><b>왜 필요한가</b>: 플레이어만 성장하고 몬스터가 고정이면 <c>max(1, base − DEF)</c> 가
+/// 고레벨에서 전 몬스터를 1 데미지로 누른다.</para>
 ///
-/// <para><b>레벨만 다룬다(AC-G)</b> — 등급 배율은 없앴다. 변종은 <b>각자 ID·스탯을 직접 저작</b>한다
-/// (<c>leviathan_boss</c> 는 maxHp 를 그대로 적는다). 배율 간접층은 enum 미러링·스폰 필드 2개·
-/// "왜 센지를 두 곳에서 찾기"를 낳아 접었다.</para>
+/// <para><b>레벨만 다룬다</b> — 등급 배율은 없다. 변종은 <b>각자 ID·스탯을 직접 저작</b>한다
+/// (<c>leviathan_boss</c> 는 maxHp 를 그대로 적는다).</para>
 ///
-/// <para><b>상수가 없다 — 전부 저작 테이블에서 읽는다(AC-F1)</b>:
-/// <list type="bullet">
-/// <item>플레이어 곡선 = <see cref="LevelTable"/>(SO <c>LevelTableDefinition</c> → level-table.json)</item>
-/// </list>
-/// 이전엔 곡선 상수(DEF 5/+2, HP비 0.2…)를 여기 하드코딩하고 "곡선 바꾸면 여기도 같이 바꿔라"는
-/// 주석을 달았다 — 그게 바로 SO 교리가 막으려는 **수동 동기화 함정**이었다.</para>
+/// <para><b>상수가 없다 — 플레이어 곡선은 전부 <see cref="LevelTable"/>(level-table.json)에서 읽는다.</b>
+/// 곡선 상수를 여기 하드코딩하면 "곡선 바꾸면 여기도 바꿔라"라는 수동 동기화 함정이 된다.</para>
 ///
-/// <para><b>StatCombatMath 는 건드리지 않는다</b> — 산식(<c>max(1, base+AP−DEF)</c>)은 옳았고 틀린 건 base 였다.</para>
+/// <para><b>StatCombatMath 는 건드리지 않는다</b> — 산식(<c>max(1, base+AP−DEF)</c>)은 옳고 틀린 건 base 였다.</para>
 /// </summary>
 public static class MonsterLevelScaling
 {
     /// <summary>
-    /// 레벨 L·등급 T 의 피해 base.
+    /// 레벨 L 의 피해 base.
     ///
-    /// <para><b>유도</b>(monster-leveling.md §2) — "체감 난이도 불변" = 순피해가 플레이어 HP 에 비례:
+    /// <para><b>유도</b> — "체감 난이도 불변" = 순피해가 플레이어 HP 에 비례:
     /// <code>
     /// 목표:  net(L) / HP(L) = net₁ / HP(1)
     ///   ⇒  base(L) = net₁ · HP(L)/HP(1) + DEF(L)
@@ -35,7 +30,7 @@ public static class MonsterLevelScaling
     ///
     /// <para>대안을 왜 버렸나:
     /// <list type="bullet">
-    /// <item><b>곱셈</b>(<c>base×(1+k(L-1))</c>) — base 가 큰 어빌리티에서 폭발. slam(90) 이 L20 에 688 → 플레이어 HP 480 즉사.</item>
+    /// <item><b>곱셈</b>(<c>base×(1+k(L-1))</c>) — base 가 큰 어빌리티에서 폭발해 고레벨에서 플레이어 HP 를 넘는 즉사 피해가 된다.</item>
     /// <item><b>단순 가산</b>(<c>base+4(L-1)</c>) — 약한 몬스터는 세지고 강한 몬스터는 약해져 <b>전부 중간으로 수렴</b>(역할 붕괴).</item>
     /// </list></para>
     /// </summary>
@@ -52,7 +47,7 @@ public static class MonsterLevelScaling
     }
 
     /// <summary>
-    /// 레벨 L·등급 T 의 최대 HP. <b>플레이어 공격력 성장에 비례</b>해야 킬 타임이 유지된다:
+    /// 레벨 L 의 최대 HP. <b>플레이어 공격력 성장에 비례</b>해야 킬 타임이 유지된다:
     /// <c>maxHp(L) = maxHp₁ · AP(L)/AP(1)</c>.
     /// </summary>
     public static int Hp(int baseHp, int level)
@@ -65,7 +60,7 @@ public static class MonsterLevelScaling
         return Math.Max(1, (int)MathF.Round(scaled));
     }
 
-    /// <summary>레벨 L·등급 T 의 경험치 보상. 플레이어 HP 성장에 비례(= 보상 감각 유지) + 등급 배율.</summary>
+    /// <summary>레벨 L 의 경험치 보상. 플레이어 HP 성장에 비례(= 보상 감각 유지).</summary>
     public static long Exp(long baseExp, int level)
     {
         if (baseExp <= 0) return 0; // 보상 없는 몬스터(테스트 픽스처 등)는 스케일해도 0

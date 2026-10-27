@@ -49,17 +49,16 @@ namespace Shared.Gameplay
         /// MinQty==MaxQty 면 Next 를 호출하지 않고 고정 수량.
         /// </summary>
         /// <param name="chanceMultiplier">
-        /// 확률 배율(AC-E4) — 등급(Elite/Boss)이 잘 떨구게 한다. 1.0 = 기본. 결과 확률은 1.0 으로 clamp.
+        /// 확률 배율 — 등급(Elite/Boss)이 잘 떨구게 한다. 1.0 = 기본. 결과 확률은 1.0 으로 clamp.
         /// </param>
         /// <param name="quantityMultiplier">
-        /// 수량 배율(AC-E4) — 레벨이 오르면 보상 감각도 커진다. 1.0 = 기본.
+        /// 수량 배율 — 레벨 스케일. 1.0 = 기본.
         /// <para><b>가변 수량 아이템에만 적용</b>한다(<c>MaxQty &gt; 1</c>, 예: gold 10~30).
-        /// 장비처럼 <c>1~1</c> 인 것에 배율을 걸면 검이 2자루 떨어진다 — 수량이 아니라 확률로 다뤄야 할 것들이다.</para>
+        /// 장비처럼 <c>1~1</c> 인 것에 배율을 걸면 검이 2자루 떨어진다.</para>
         /// </param>
         /// <remarks>
-        /// 배율을 <b>인자로 받는다</b> — 레벨·등급 계산은 <c>Shared.Infrastructure.MonsterLevelScaling</c> 이
-        /// 플레이어 곡선을 참조해 하는데, 이 어셈블리(Shared.Gameplay)는 그 아래라 부를 수 없다.
-        /// 순수 함수로 남겨 호출부가 숫자를 넣는다 — <c>StatCombatMath</c>(순수) + <c>MonsterLevelScaling</c>(테이블) 과 같은 관계.
+        /// 배율을 인자로 받는 이유 — 레벨·등급 계산은 <c>Shared.Infrastructure.MonsterLevelScaling</c> 이 하는데
+        /// 이 어셈블리(Shared.Gameplay)는 그 아래라 부를 수 없다. 호출부가 숫자를 넣는다.
         /// </remarks>
         public static List<DropResult> Roll(
             IReadOnlyList<DropEntry> entries,

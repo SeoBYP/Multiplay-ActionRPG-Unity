@@ -10,7 +10,7 @@ using Server.PacketHandler.Handler;
 namespace Server.Tests.Combat;
 
 /// <summary>
-/// 2.6.1 회피(Dodge) 서버 권위 무적 프레임.
+/// 회피(Dodge) 서버 권위 무적 프레임.
 /// - PlayerActor.TryBeginDodge: 쿨다운 게이트(C_Dodge 연사=영구 무적 치팅 차단).
 /// - Room.Tick: 무적 창 동안 몬스터 공격 피해 무시(빗나감).
 /// </summary>

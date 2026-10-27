@@ -5,7 +5,7 @@ using UserEntity = GameServer.Domain.Entities.User.User;
 namespace GameServer.Tests.API;
 
 /// <summary>
-/// DungeonRoom → RoomInfo(gRPC) 매핑에서 던전 메타(MapId, 4.3)가 누락 없이 실리는지 검증.
+/// DungeonRoom → RoomInfo(gRPC) 매핑에서 던전 메타(MapId)가 누락 없이 실리는지 검증.
 /// 배치 조회 동기 오버로드(추가 I/O 0)를 대상으로 한다.
 /// </summary>
 public class DungeonRoomExtensionsTests

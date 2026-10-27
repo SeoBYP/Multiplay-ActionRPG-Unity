@@ -5,7 +5,7 @@ using Shared.Infrastructure.Messages;
 namespace Server.Tests.Combat;
 
 /// <summary>
-/// 2.5.2 Co-op 부활 — 서버 권위 검증(거리·다운상태·미실패) + HP 부분복구 + 멱등.
+/// Co-op 부활 — 서버 권위 검증(거리·다운상태·미실패) + HP 부분복구 + 멱등.
 /// </summary>
 public class ReviveTests
 {

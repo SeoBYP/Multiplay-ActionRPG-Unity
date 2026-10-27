@@ -9,10 +9,7 @@ using StackExchange.Redis;
 namespace GameServer.Infrastructure.Domains.Equipment;
 
 /// <summary>
-/// 착용 상태 저장소. Cache-Aside + Delete (networking.md).
-///   GetEquipped : Redis Hash HIT 즉시 반환 / MISS → DB(AsNoTracking) → 캐시 SET(TTL)
-///   Set/Clear   : DB upsert/삭제 → SaveChanges → 캐시 DEL
-///
+/// 착용 상태 저장소. Cache-Aside + Delete.
 /// 캐시 = 유저당 Hash 1키(field=(int)slot, value=itemId). 빈 착용은 캐시하지 않는다
 /// (HGETALL 빈 결과 = MISS 와 구분 불가 → 빈 유저는 DB 폴백, 트래픽 낮아 무해 — 인벤토리와 동일).
 /// </summary>
@@ -31,7 +28,7 @@ public class EquipmentRepository(
             if (entries.Length > 0)
                 return ParseFromRedis(userId, entries);
 
-            // cache-aside 읽기 전용 → AsNoTracking (long-lived DbContext stale 방지)
+            // AsNoTracking: 오래 유지되는 DbContext 의 stale 방지
             var equipped = await context.UserEquipments
                 .AsNoTracking()
                 .Where(e => e.UserId == userId)
@@ -53,7 +50,6 @@ public class EquipmentRepository(
     {
         try
         {
-            // 쓰기 경로 — 추적 쿼리로 로드(없으면 신규, 있으면 itemId 교체).
             var existing = await context.UserEquipments
                 .SingleOrDefaultAsync(e => e.UserId == userId && e.Slot == slot, ct);
 
@@ -127,7 +123,7 @@ public class EquipmentRepository(
             if (int.TryParse(entry.Name.ToString(), out var slotValue)
                 && Enum.IsDefined(typeof(EquipmentType), slotValue))
             {
-                // 캐시 값은 numericId(int). 파싱 실패/0 은 빈 슬롯으로 보고 건너뛴다(문자열 시절 빈 문자열의 자리).
+                // 캐시 값은 numericId(int). 파싱 실패/0 은 빈 슬롯으로 보고 건너뛴다.
                 if (int.TryParse(entry.Value.ToString(), out var itemId) && itemId > 0)
                     equipped.Add(UserEquipment.FromRedis(userId, (EquipmentType)slotValue, itemId));
             }

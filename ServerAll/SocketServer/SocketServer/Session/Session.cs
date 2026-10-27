@@ -33,7 +33,7 @@ public sealed class Session
     public const int SendQueueCapacity = 1024;
 
     /// <summary>
-    /// 송신 큐(AC-C2, D1 수정). <b>생산자 N(틱·패킷 스레드) → 소비자 1(SendLoop)</b>.
+    /// 송신 큐. <b>생산자 N(틱·패킷 스레드) → 소비자 1(SendLoop)</b>.
     /// <para>
     /// 이게 없으면 여러 스레드가 같은 소켓에 <c>SendAsync</c> 를 동시에 걸고, 부분 전송이 일어나는 순간
     /// <b>한 프레임 중간에 다른 프레임 바이트가 끼어들어</b> 길이-프리픽스 파싱이 깨진다(치명).
@@ -76,7 +76,7 @@ public sealed class Session
 
     public async Task RunAsync(CancellationToken ct)
     {
-        // 송신 큐 소비자를 함께 띄운다(AC-C2). 수신 루프와 독립 — 수신이 핸들러에서 대기해도 송신은 계속 나간다.
+        // 송신 큐 소비자를 함께 띄운다. 수신 루프와 독립 — 수신이 핸들러에서 대기해도 송신은 계속 나간다.
         var sendLoop = SendLoopAsync(ct);
 
         try
@@ -154,18 +154,14 @@ public sealed class Session
     }
 
     /// <summary>
-    /// 패킷을 프레임으로 만들어 <b>송신 큐에 넣는다</b>(AC-C2). 실제 소켓 write 는 <see cref="SendLoopAsync"/> 가 한다.
+    /// 패킷을 프레임으로 만들어 <b>송신 큐에 넣는다</b>. 실제 소켓 write 는 <see cref="SendLoopAsync"/> 가 한다.
     ///
-    /// <para>⚠️ <b>의미가 바뀌었다</b>: 이 Task 의 완료는 "큐에 들어갔다"이지 <b>"전선에 나갔다"가 아니다.</b>
-    /// 예전엔 await 가 실제 write 완료를 보장했다. 지금은 보장하지 않으므로
+    /// <para>⚠️ 이 Task 의 완료는 "큐에 들어갔다"이지 <b>"전선에 나갔다"가 아니다.</b>
     /// <b>보내자마자 <see cref="Disconnect"/> 하면 그 패킷은 유실된다</b>(현재 그런 호출부는 없다 —
     /// Disconnect 는 하트비트 타임아웃·에러·종료 경로에서만 불린다).</para>
     ///
     /// <para><b>순서는 보존된다</b> — 한 스레드가 연달아 넣은 패킷은 넣은 순서대로 나간다(단일 소비자).
-    /// 그래서 여러 패킷을 순차 await 하던 기존 핸들러(입장 시 로스터 전송 등)가 그대로 동작한다.</para>
-    ///
-    /// <para>이름을 <c>SendPacketAsync</c> 로 유지한 이유: 호출부 ~20곳을 건드리지 않기 위해서다
-    /// (연결 계층 변경의 위험 표면을 줄인다). await 는 무해하다 — 완료된 Task 다.</para>
+    /// await 는 무해하다(항상 완료된 Task).</para>
     /// </summary>
     public Task SendPacketAsync(Packet packet, CancellationToken ct = default)
     {
@@ -184,7 +180,7 @@ public sealed class Session
         }
         catch (Exception e)
         {
-            // 직렬화 실패는 이 패킷만의 문제 — 세션을 끊지 않는다(예전 코드는 여기서도 끊었다).
+            // 직렬화 실패는 이 패킷만의 문제 — 세션을 끊지 않는다.
             _logger.LogError(e, "Packet serialize failed for session {SessionId}: {PacketType}", SessionId, packet.GetType().Name);
             return Task.CompletedTask;
         }
@@ -203,7 +199,7 @@ public sealed class Session
 
     /// <summary>
     /// 송신 큐의 <b>단일 소비자</b>. 한 프레임을 끝까지 쓴 뒤 다음 프레임을 쓴다 →
-    /// 부분 전송이 일어나도 다른 프레임이 끼어들 수 없다(D1 근본 수정).
+    /// 부분 전송이 일어나도 다른 프레임이 끼어들 수 없다.
     /// </summary>
     private async Task SendLoopAsync(CancellationToken ct)
     {

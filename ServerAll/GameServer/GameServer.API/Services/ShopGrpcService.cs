@@ -12,8 +12,7 @@ using ProtoShopCategory = GameServer.Grpc.Shop.ShopCategory;
 namespace GameServer.API.Services;
 
 /// <summary>
-/// 상점 gRPC. 진열 조회 + 구매/판매. 가격·검증은 서버 권위(IShopService). userId 는 JWT 추출.
-/// 스탯 미리보기는 EquipmentCatalog 에서 파생해 채운다(공개 표시 정보). 3.5 Shop.
+/// 가격·검증은 서버 권위(IShopService). 스탯 미리보기는 EquipmentCatalog 에서 파생한다.
 /// </summary>
 public class ShopGrpcService(
     IShopService shopService,

@@ -9,8 +9,7 @@ using WalletGrpc = GameServer.Grpc.Wallet.WalletService;
 namespace GameServer.API.Services;
 
 /// <summary>
-/// 재화(골드) gRPC — 조회 전용(잔액 진실원=서버). 증감은 서버 내부(루트/킬/상점)에서만 일어나며
-/// 클라가 임의 증감을 요청하는 RPC 는 두지 않는다(치팅 차단). 3.4 Wallet.
+/// 조회 전용. 증감은 서버 내부(루트/킬/상점)에서만 일어나며 클라가 증감을 요청하는 RPC 는 두지 않는다(치팅 차단).
 /// </summary>
 public class WalletGrpcService(
     IWalletService walletService,

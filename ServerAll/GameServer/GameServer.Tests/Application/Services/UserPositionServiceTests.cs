@@ -7,11 +7,11 @@ using Shared.Infrastructure.Spawn;
 namespace GameServer.Tests.Application.Services;
 
 /// <summary>
-/// Main 위치 지속화의 **신뢰 경계**(B7).
+/// Main 위치 지속화의 **신뢰 경계**.
 ///
 /// 좌표는 클라가 만든 값이다. 서버가 검증할 수 있는 재료는 `spawn-layouts` 의 맵 경계 하나뿐이라,
 /// 경계 밖 좌표를 그대로 저장하지 않고 가장 가까운 저작 스폰으로 스냅한다.
-/// (내비메시는 클라 자산이고 진입 게이트 시스템은 아직 없다 — 그래서 그 둘은 검증하지 않는다.)
+/// (내비메시 / 진입 게이트 검증은 하지 않는다.)
 /// </summary>
 public class UserPositionServiceTests
 {

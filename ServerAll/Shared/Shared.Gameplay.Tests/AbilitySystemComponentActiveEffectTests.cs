@@ -5,9 +5,8 @@ namespace Shared.Gameplay.Tests;
 /// <summary>
 /// 활성 Effect — <b>지속효과의 만료를 서버가 소유한다</b>는 것을 고정한다.
 ///
-/// <para>예전 구현에는 활성 목록 자체가 없었다. 서버는 CC 를 브로드캐스트만 하고
-/// "언제 풀리는가"는 클라가 정했다 — 그래서 서버의 <c>IsActivationBlocked</c> 는 스턴 중에도 항상 false 였고,
-/// 스턴을 무시하는 클라를 서버가 막을 방법이 없었다.</para>
+/// <para>서버가 만료를 소유하지 않으면 <c>IsActivationBlocked</c> 가 스턴 중에도 false 라
+/// 스턴을 무시하는 클라를 막을 수 없다.</para>
 /// </summary>
 public class AbilitySystemComponentActiveEffectTests
 {
@@ -44,7 +43,7 @@ public class AbilitySystemComponentActiveEffectTests
         gas.ApplyEffect(Stun(), instanceId: 1, nowMs: 1000);
 
         Assert.True(gas.HasTag(GameplayTags.Stun));
-        Assert.True(gas.IsActivationBlocked); // ← 예전엔 여기가 항상 false 였다
+        Assert.True(gas.IsActivationBlocked);
     }
 
     [Fact]
@@ -254,7 +253,7 @@ public class AbilitySystemComponentActiveEffectTests
     [Fact]
     public void None_정책은_재적용을_무시한다()
     {
-        // 클라가 문서화해 온 의도(EffectSystemTests.None정책_재적용은_무시된다)를 Shared 가 그대로 따른다.
+        // 클라 EffectSystemTests 의 의도를 Shared 가 그대로 따른다.
         // 여기가 갈리면 같은 버프를 두 번 건 뒤 클라는 1개, 서버는 2개가 된다.
         var gas = Player(atk: 25);
         var once = AtkUp(amount: 10, stack: EStackPolicy.None);

@@ -6,10 +6,8 @@ using Shared.Infrastructure.Items;
 namespace GameServer.Application.Domains.Inventory;
 
 /// <summary>
-/// 인벤토리 서비스 구현. 정의 검증(ItemCatalog) 후 저장소에 수량 적립을 위임한다.
-/// 멱등/보상 산정은 호출자(3.3 루트 등) 책임 — 여기선 단건 지급만.
-///
-/// 도감(3.7): 지급은 모든 획득 경로(루트·상점·ClaimKill)의 단일 funnel 이므로, 여기서 발견을 기록한다(서버 권위).
+/// 인벤토리 서비스 구현. 정의 검증(ItemCatalog) 후 수량 적립을 저장소에 위임한다.
+/// 멱등/보상 산정은 호출자 책임 — 여기선 단건 지급만. 지급은 모든 획득 경로의 단일 funnel 이라 도감 발견도 여기서 기록한다.
 /// </summary>
 public sealed class InventoryService(IInventoryRepository repository, ICodexService codex) : IInventoryService
 {
@@ -27,7 +25,6 @@ public sealed class InventoryService(IInventoryRepository repository, ICodexServ
 
         var item = await repository.AddQuantityAsync(userId, itemId, amount, def.MaxStack, ct);
 
-        // 도감 발견 기록(멱등). 단일 획득 funnel 이라 모든 경로의 첫 획득이 여기서 도감에 남는다.
         await codex.MarkDiscoveredAsync(userId, itemId, ct);
 
         return ItemGrantResult.Ok(itemId, item.Quantity);
@@ -38,7 +35,7 @@ public sealed class InventoryService(IInventoryRepository repository, ICodexServ
         if (amount <= 0)
             return ItemConsumeResult.Fail(itemId, "amount must be positive");
 
-        // 소비는 보유 검증을 저장소가 원자적으로 수행(미보유/부족 → null). 카탈로그 검증 불필요 — 보유한 것만 소비 가능.
+        // 보유 검증은 저장소가 원자적으로 수행(미보유/부족 → null)
         var remaining = await repository.RemoveQuantityAsync(userId, itemId, amount, ct);
         if (remaining is null)
             return ItemConsumeResult.Fail(itemId, "not owned or insufficient quantity");

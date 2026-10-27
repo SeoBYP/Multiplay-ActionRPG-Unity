@@ -3,14 +3,14 @@ using Shared.Packet.Packets;
 namespace Server.PacketHandler.Handler;
 
 /// <summary>
-/// 루트/줍기 패킷 핸들러 (3.3 던전 경로 — 서버 권위).
+/// 루트/줍기 패킷 핸들러 (던전 경로 — 서버 권위).
 ///
 /// C_PickupItem 수신 → Room.TryPickup(경쟁 중재·거리 검증, 1명만 성공) →
 ///   ① S_GroundItemRemoved 방 브로드캐스트(모든 클라 바닥서 제거)
 ///   ② S_ItemPickedUp 본인 송신(획득 토스트)
 ///   ③ ItemPickedUpMessage 발행(GameServer 가 인벤토리에 영속 지급)
 ///
-/// 클라는 "먹을지" 의도만 보낸다 — roll·줍기 승자·지급은 전부 서버 권위(loot-drop.md §1.2).
+/// 클라는 "먹을지" 의도만 보낸다 — roll·줍기 승자·지급은 전부 서버 권위.
 /// </summary>
 public static class LootHandler
 {
@@ -34,7 +34,6 @@ public static class LootHandler
         if (item is null)
             return ValueTask.CompletedTask;
 
-        // ① 모든 클라 바닥서 제거
         room.Sessions.Broadcast(new S_GroundItemRemoved { GroundId = item.GroundId });
 
         // ② 줍은 본인에게 획득 토스트(push). 인벤토리 수치 갱신은 클라가 GetInventory(pull).

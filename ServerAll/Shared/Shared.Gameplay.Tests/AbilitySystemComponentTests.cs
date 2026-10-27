@@ -3,9 +3,8 @@ using Script.System.GamePlayAbilitySystem;
 namespace Shared.Gameplay.Tests;
 
 /// <summary>
-/// AbilitySystemComponent — 속성 적용이 <b>Health 전용이 아니라 속성 일반</b>이 됐다는 것을 고정한다.
-/// 예전 구현은 <c>mods.Where(m =&gt; m.AttributeType == Health)</c> 로 Health 만 걸러서,
-/// 카탈로그에 이미 있던 <c>atk_up_20</c>(AttackPower)·<c>def_down_10</c>(Defense)을 **서버가 적용할 수 없었다**.
+/// AbilitySystemComponent — 속성 적용이 <b>Health 전용이 아니라 속성 일반</b>임을 고정한다.
+/// <c>atk_up_20</c>(AttackPower)·<c>def_down_10</c>(Defense) 같은 비-Health 효과도 서버가 적용해야 한다.
 /// </summary>
 public class AbilitySystemComponentTests
 {
@@ -47,7 +46,7 @@ public class AbilitySystemComponentTests
     [Fact]
     public void Health_이외_속성도_적용된다_Defense()
     {
-        // def_down_10 과 같은 형태. 예전엔 Health 필터에 걸려 조용히 버려졌다.
+        // def_down_10 과 같은 형태.
         var gas = Player(def: 8);
 
         gas.ApplyModifiers(new[] { Add(EGameplayAttribute.Defense, -10) });

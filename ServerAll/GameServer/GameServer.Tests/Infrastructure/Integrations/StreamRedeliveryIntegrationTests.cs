@@ -12,7 +12,7 @@ namespace GameServer.Tests.Infrastructure.Integrations;
 /// <summary>
 /// at-least-once 전달 검증 — 핸들러가 실패한 메시지는 ACK 되지 않고 재배달돼 다시 시도된다.
 ///
-/// 이전(at-most-once)에는 ACK 가 핸들러보다 앞서서, DB 순단 한 번이 곧 메시지 영구 소실이었다.
+/// ACK 는 핸들러 성공 뒤에 하므로(at-least-once) DB 순단 한 번이 메시지 영구 소실로 이어지지 않는다.
 /// 함께 검증하는 것이 **재시도 상한** 이다 — 상한이 없으면 항상 실패하는 메시지가 영원히 재시도된다.
 /// </summary>
 [Collection("RepositoryIntegrationTests")]

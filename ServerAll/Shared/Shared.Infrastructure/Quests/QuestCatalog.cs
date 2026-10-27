@@ -8,7 +8,6 @@ namespace Shared.Infrastructure.Quests;
 /// ItemCatalogData·MonsterCatalog 와 동일 교리: 클라 SO 저작 → bake → 서버 임베디드 로드.
 ///
 /// <see cref="All"/> 의 순서 = 저작 순서 = **클라 퀘스트 목록 표시 순서**(QuestService 가 그대로 순회). 정렬 금지.
-/// 공개 API 는 구 `GameServer.Domain.Entities.Quest.QuestCatalog` 와 동일하다(호출부 무변경).
 /// </summary>
 public static class QuestCatalog
 {
@@ -54,7 +53,7 @@ public static class QuestCatalog
                 Enum.Parse<QuestObjectiveType>(dto.ObjectiveType, ignoreCase: true),
                 dto.TargetId,
                 dto.RequiredCount,
-                // itemId 0 = 아이템 보상 없음(문자열 시절 빈 문자열/null 의 자리).
+                // itemId 0 = 아이템 보상 없음.
                 new QuestReward(
                     dto.Reward.Exp,
                     dto.Reward.Gold,

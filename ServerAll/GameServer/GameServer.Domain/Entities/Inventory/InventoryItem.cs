@@ -4,7 +4,7 @@ namespace GameServer.Domain.Entities.Inventory;
 /// 아이템 *소유*(영속 엔티티). (UserId, ItemId) 복합키 → Quantity 스택형.
 /// ItemId = numericId(int). 대역이 곧 분류다 — 1000 소모품 / 2100 무기 / 2200 방어구 / 2300 장신구.
 ///
-/// 키 = user_id (지금). 미래 캐릭터 교체 시 character_id 로 이관(Progression 과 동일). [[character-swap-direction]]
+/// 키 = user_id (지금). 캐릭터 교체 시 character_id 로 이관(Progression 과 동일).
 /// 정의(이름·등급·MaxStack)는 ItemCatalog 가 소유 — 이 엔티티는 수량만 관리(MaxStack clamp 는 서비스 책임).
 /// </summary>
 public class InventoryItem

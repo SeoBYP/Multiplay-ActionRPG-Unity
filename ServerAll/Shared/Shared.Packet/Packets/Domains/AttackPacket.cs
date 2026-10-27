@@ -23,12 +23,11 @@ public partial class S_Attack : Packet
 }
 
 /// <summary>
-/// 서버 → 클라: <b>어떤 액터가 어빌리티를 발동했다</b>는 통합 연출 신호(actor-combat-architecture §4).
-/// 플레이어·몬스터를 <see cref="ActorId"/>(부호 규약: 양수=UserId / 음수=-InstanceId) 하나로 지칭한다 —
-/// 종족별 별도 패킷(S_Attack + 몬스터 전용)을 대체하는 단일 파이프. 클라 ActorRegistry 가 ActorId 로
-/// 대상을 찾아 스킬 애니(Cue)를 재생한다.
+/// 서버 → 클라: 어떤 액터가 어빌리티를 발동했다는 통합 연출 신호.
+/// 플레이어·몬스터를 <see cref="ActorId"/>(양수=UserId / 음수=-InstanceId) 하나로 지칭하며,
+/// 클라 ActorRegistry 가 대상을 찾아 스킬 애니(Cue)를 재생한다.
 ///
-/// <b>연출 전용</b> — 적중·데미지는 서버 권위(S_ApplyEffect)로 별도 반영. 이 패킷으로 로컬 판정하지 않는다.
+/// <b>연출 전용</b> — 적중·데미지는 S_ApplyEffect(서버 권위)로 별도 반영. 이 패킷으로 로컬 판정하지 않는다.
 /// </summary>
 [MemoryPackable]
 public partial class S_AbilityActivated : Packet

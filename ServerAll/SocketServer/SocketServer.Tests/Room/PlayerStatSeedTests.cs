@@ -7,8 +7,8 @@ using Shared.Infrastructure.Messages;
 namespace Server.Tests.Room;
 
 /// <summary>
-/// 합산 전투 스탯 전파(2.4 증분1) — GameServer 가 게임시작 메시지로 보낸 스탯을 SocketServer 가
-/// PlayerActor 에 세팅하는지. SocketServer 는 DB 접근 없이 메시지 값만 받는다(authority-model §4c).
+/// 합산 전투 스탯 전파 — GameServer 가 게임시작 메시지로 보낸 스탯을 SocketServer 가
+/// PlayerActor 에 세팅하는지. SocketServer 는 DB 접근 없이 메시지 값만 받는다.
 /// </summary>
 public class PlayerStatSeedTests
 {
@@ -55,7 +55,7 @@ public class PlayerStatSeedTests
     [Fact]
     public void ToJoinedPacket은_액터의_HP기준선을_S_PlayerJoined에_싣는다()
     {
-        // 파티 HP HUD(§2.58b): 원격 클라가 S_PlayerJoined 의 Hp/MaxHp 로 원격 ASC 기준선을 맞춘다.
+        // 파티 HP HUD: 원격 클라가 S_PlayerJoined 의 Hp/MaxHp 로 원격 ASC 기준선을 맞춘다.
         // 늦은 입장 로스터는 '현재' Hp(이미 피해분 반영)를 실어야 하므로 Hp 와 MaxHp 를 독립 검증한다.
         var room = NewRoom();
         room.AddPlayer(100, "A", 0, 0f, 0f, 0f, 0f, maxHealth: 140);

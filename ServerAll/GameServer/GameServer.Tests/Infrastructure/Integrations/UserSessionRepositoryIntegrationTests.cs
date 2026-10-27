@@ -23,7 +23,6 @@ public class UserSessionRepositoryIntegrationTests
     [Fact]
     public async Task Create_ShouldInsertIntoDbAndSetCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var user = await userRepo.CreateAsync();
@@ -33,10 +32,8 @@ public class UserSessionRepositoryIntegrationTests
 
         long userId = user.UserId;
 
-        // Act
         var session = await repository.CreateSessionAsync(userId);
 
-        // Assert
         Assert.NotNull(session);
         
         // 1. DB Insert 확인
@@ -60,7 +57,6 @@ public class UserSessionRepositoryIntegrationTests
     [Fact]
     public async Task Read_Hit_ShouldReturnFromCacheWithoutDbAccess()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var user = await userRepo.CreateAsync();
@@ -73,10 +69,8 @@ public class UserSessionRepositoryIntegrationTests
         context.UserSessions.Remove(session!);
         await context.SaveChangesAsync();
 
-        // Act
         var found = await repository.GetBySessionIdAsync(session!.SessionId);
 
-        // Assert
         Assert.NotNull(found);
         Assert.Equal(user.UserId, found.UserId);
     }
@@ -84,7 +78,6 @@ public class UserSessionRepositoryIntegrationTests
     [Fact]
     public async Task Read_Miss_ShouldReturnFromDbAndSetCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var user = await userRepo.CreateAsync();
@@ -100,10 +93,8 @@ public class UserSessionRepositoryIntegrationTests
         await db.KeyDeleteAsync(cacheKey);
         await db.KeyDeleteAsync(mappingKey);
 
-        // Act
         var found = await repository.GetBySessionIdAsync(session.SessionId);
 
-        // Assert
         Assert.NotNull(found);
         Assert.Equal(user.UserId, found.UserId);
 
@@ -115,7 +106,6 @@ public class UserSessionRepositoryIntegrationTests
     [Fact]
     public async Task Delete_ShouldRemoveFromDbAndClearCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var user = await userRepo.CreateAsync();
@@ -125,10 +115,8 @@ public class UserSessionRepositoryIntegrationTests
 
         var session = await repository.CreateSessionAsync(user.UserId);
 
-        // Act
         await repository.RemoveSessionAsync(session!.SessionId);
 
-        // Assert
         var dbSession = await context.UserSessions.FindAsync(session.SessionId);
         Assert.Null(dbSession);
 
@@ -139,7 +127,6 @@ public class UserSessionRepositoryIntegrationTests
     [Fact]
     public async Task TTL_ShouldBeSetOnCacheKeys()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var user = await userRepo.CreateAsync();
@@ -150,7 +137,6 @@ public class UserSessionRepositoryIntegrationTests
         var session = await repository.CreateSessionAsync(user.UserId);
         var cacheKey = RedisKeys.UserSession(session!.SessionId);
 
-        // Assert
         var ttl = await db.KeyTimeToLiveAsync(cacheKey);
 
         Assert.NotNull(ttl);

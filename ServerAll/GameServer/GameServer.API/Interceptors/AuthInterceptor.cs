@@ -18,20 +18,17 @@ public class AuthInterceptor(
     {
         var methodName = context.Method.Split('/').Last();
         
-        // TraceId: 클라이언트가 보낸 것 재사용, 없으면 신규 생성
+        // 클라가 보낸 TraceId 를 재사용하고 없으면 생성
         var traceId = context.RequestHeaders.GetValue("x-trace-id")
                       ?? Guid.NewGuid().ToString("N")[..8];
         
-        // 이 요청의 모든 로그에 TraceId 자동 첨부
         using (LogContext.PushProperty("TraceId", traceId))
         using (LogContext.PushProperty("Method", methodName))
         {
             context.GetHttpContext().Items["TraceId"] = traceId;
             
-            // Graylog에서 Method 필드로 검색 가능
             logger.LogInformation("gRPC 요청: {Method}", context.Method);
 
-            // Step 1: [AllowAnonymous] 체크
             var httpContext = context.GetHttpContext();
             var endpoint = httpContext.GetEndpoint();
             var allowAnonymous = endpoint?.Metadata.GetMetadata<IAllowAnonymous>() != null;
@@ -42,7 +39,6 @@ public class AuthInterceptor(
                 return await continuation(request, context);
             }
 
-            // Step 2: JWT 추출
             var authHeader = context.RequestHeaders.GetValue("authorization");
         
             if (string.IsNullOrEmpty(authHeader))
@@ -63,7 +59,6 @@ public class AuthInterceptor(
 
             var token = authHeader.Substring("Bearer ".Length).Trim();
 
-            // Step 3: JWT 검증
             var isValid = await authService.ValidateTokenAsync(token);
         
             if (!isValid)
@@ -76,7 +71,6 @@ public class AuthInterceptor(
 
             logger.LogInformation("인증 성공");
 
-            // Step 4: 다음 단계 실행
             return await continuation(request, context);
         }
     }

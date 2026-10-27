@@ -3,7 +3,7 @@ using MemoryPack;
 namespace Shared.Packet.Packets;
 
 /// <summary>
-/// 클라 → 서버: 다운된 아군 부활 요청(Co-op 2.5.2). 시전자=세션 UserId, 대상=TargetUserId.
+/// 클라 → 서버: 다운된 아군 부활 요청. 시전자=세션 UserId, 대상=TargetUserId.
 /// 홀드(시전 채널)는 클라가 끝낸 뒤 1회 송신. 서버가 거리·다운상태·미실패를 재검증한다(권위).
 /// </summary>
 [MemoryPackable]

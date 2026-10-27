@@ -15,12 +15,10 @@ public class ServiceInstaller : IServiceInstaller
 {
     public void Install(IServiceCollection services, IConfiguration configuration)
     {
-        // MVC / Swagger
         services.AddControllers();
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
 
-        // Redis
         var redisConnStr = configuration.GetConnectionString("Redis") ?? "localhost:6379";
         var options = ConfigurationOptions.Parse(redisConnStr);
         
@@ -28,7 +26,6 @@ public class ServiceInstaller : IServiceInstaller
         
         services.AddSingleton<IConnectionMultiplexer>(redis);
 
-        // JWT Auth
         services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -57,7 +54,6 @@ public class ServiceInstaller : IServiceInstaller
             });
         services.AddAuthorization();
 
-        // gRPC (+ interceptor + reflection)
         services.AddScoped<GrpcExceptionInterceptor>();
         services.AddScoped<AuthInterceptor>();
         services.AddGrpc(o =>
@@ -68,17 +64,14 @@ public class ServiceInstaller : IServiceInstaller
         });
         services.AddGrpcReflection();
 
-        // Response Compression (Binary 포함)
         services.AddResponseCompression(o =>
         {
             o.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
                 new[] { "application/octet-stream" });
         });
 
-        // Health check
         services.AddHealthChecks();
 
-        // CORS
         services.AddCors(o =>
         {
             o.AddDefaultPolicy(policy =>

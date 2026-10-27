@@ -7,9 +7,8 @@ namespace Shared.Gameplay.Tests;
 /// GAS 상태의 <b>동시 접근</b> — 서버에서 이 상태는 두 스레드가 만진다:
 /// 틱 루프(마나 회복·피해)와 패킷 핸들러(마나 차감·쿨다운·회피).
 ///
-/// <para>예전에는 락이 방/저장소에 있어서 <b>저장소를 지나는 경로만</b> 안전했고,
-/// 핸들러가 <c>Gas</c> 를 직접 만지는 경로(<c>TrySpendMana</c>·<c>TryBeginAbility</c>·회피)는 구멍이었다.
-/// 이 테스트들이 그 구멍을 고정한다 — 락을 AbilitySystemComponent 밖으로 옮기면 여기서 깨진다.</para>
+/// <para>핸들러가 <c>Gas</c> 를 직접 만지는 경로(<c>TrySpendMana</c>·<c>TryBeginAbility</c>·회피)도 안전해야 한다 —
+/// 락을 AbilitySystemComponent 밖으로 옮기면 여기서 깨진다.</para>
 /// </summary>
 public class AbilitySystemComponentConcurrencyTests
 {

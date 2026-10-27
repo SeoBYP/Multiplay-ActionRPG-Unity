@@ -19,11 +19,9 @@ public class RedisDistributedLock(IConnectionMultiplexer connectionMultiplexer) 
         var key = $"{LockPrefix}:{lockKey}";
         var token = Guid.NewGuid().ToString("N"); // 소유자 식별용
         
-        // 락 획득 시도 (최대 5초)
         var deadline = DateTime.UtcNow.Add(DeadLine);
         while (DateTime.UtcNow < deadline && !ct.IsCancellationRequested)
         {
-            // SET key token NX EX 10
             var acquired = await _database.StringSetAsync(key, token, LockExpiry, When.NotExists);
             if (acquired)
                 return new RedisLockHandle(_database, key, token);
@@ -35,7 +33,7 @@ public class RedisDistributedLock(IConnectionMultiplexer connectionMultiplexer) 
     
     private sealed class RedisLockHandle(IDatabase db, string key, string token) : IAsyncDisposable
     {
-        // Lua 스크립트: 내가 건 락만 해제 (타인 락 건드리지 않음)
+        // 내가 건 락만 해제 (token 일치 시에만 DEL)
         private static readonly string ReleaseLua = """
                                                     if redis.call("get", KEYS[1]) == ARGV[1] then
                                                         return redis.call("del", KEYS[1])

@@ -8,7 +8,7 @@ namespace GameServer.Application.Domains.Equipment;
 
 /// <summary>
 /// 장비 서비스 구현. 장비 정의(EquipmentCatalog)·소유(IInventoryService) 검증 후 착용 상태를 저장소에 위임한다.
-/// 스탯 합산(GetEquippedStatsAsync)도 여기 응집 — Progression 의 GetStatsAsync 는 결과만 더한다(3.2.5).
+/// 스탯 합산도 여기 응집 — Progression 의 GetStatsAsync 는 결과만 더한다.
 /// </summary>
 public sealed class EquipmentService(
     IEquipmentRepository repository,
@@ -23,19 +23,19 @@ public sealed class EquipmentService(
         if (def is null)
             return EquipResult.Fail(default, $"'{itemId}' is not equippable");
 
-        // 소유 검증 — 보유하지 않은 장비는 착용 불가(치팅 방지). 소유는 인벤토리가 단일 진실.
+        // 미보유 장비 착용 차단(치팅 방지). 소유의 단일 진실은 인벤토리
         var owned = await inventory.GetInventoryAsync(userId, ct);
         if (!owned.Any(i => i.ItemId == itemId && i.Quantity > 0))
             return EquipResult.Fail(def.Slot, "not owned");
 
-        // 교체형 — 같은 슬롯의 기존 착용은 SetAsync 가 덮어쓴다(아이템은 인벤토리에 그대로).
+        // 교체형 — 같은 슬롯의 기존 착용은 SetAsync 가 덮어쓴다
         await repository.SetAsync(userId, def.Slot, itemId, ct);
         return EquipResult.Ok(def.Slot, itemId);
     }
 
     public async Task<EquipResult> UnequipAsync(long userId, EquipmentType slot, CancellationToken ct = default)
     {
-        // 멱등 — 비어 있어도 성공(빈 슬롯 = ItemId 0).
+        // 멱등 — 비어 있어도 성공
         await repository.ClearAsync(userId, slot, ct);
         return EquipResult.Ok(slot, 0);
     }

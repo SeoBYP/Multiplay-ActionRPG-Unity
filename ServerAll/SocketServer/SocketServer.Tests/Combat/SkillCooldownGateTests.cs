@@ -3,7 +3,7 @@ using Server.Actors;
 namespace Server.Tests.Combat;
 
 /// <summary>
-/// ⓓ 서버 발동 게이트(권위 쿨다운). Actor 의 GAS 쿨다운(TryBeginAbility)이 C_Attack 연사=폭딜 치팅을 차단한다.
+/// 서버 발동 게이트(권위 쿨다운). Actor 의 GAS 쿨다운(TryBeginAbility)이 C_Attack 연사=폭딜 치팅을 차단한다.
 /// CombatHandler.HandleAttack 가 이 게이트를 통과한 발동만 적중 판정으로 넘긴다.
 /// </summary>
 public class SkillCooldownGateTests

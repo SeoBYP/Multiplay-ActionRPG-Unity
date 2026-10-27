@@ -11,9 +11,8 @@ using AppCodexService = GameServer.Application.Domains.Codex.CodexService;
 namespace GameServer.Tests.API;
 
 /// <summary>
-/// CodexService gRPC 진입점 검증 — GetCodex(인증 + 발견 itemId 집합 반환).
+/// CodexService gRPC 진입점(인증 + 발견 itemId 집합 반환)만 검증한다.
 /// 발견 기록/멱등 로직은 <see cref="Application.Services.CodexServiceTests"/> 가 담당.
-/// 여기서는 gRPC 레이어(인증 + 매핑)만 본다.
 /// </summary>
 public class CodexGrpcServiceTests
 {

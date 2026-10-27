@@ -4,11 +4,10 @@ using Shared.Infrastructure.Items;
 namespace Server.Tests.Items;
 
 /// <summary>
-/// numericId 불변식 — ItemId 를 string 에서 int 로 옮기는 전환(1단계)의 회귀 가드.
+/// numericId 불변식 — ItemId(int) 전환의 회귀 가드.
 ///
 /// <para>저작 시점 검증은 클라 <c>ItemCatalogExporter</c> 가 하지만(bake 거부), 그건 사람이 Export 를
-/// 돌려야 작동한다. 서버 테스트로 한 번 더 잠가 <b>어긋난 bake 가 커밋되는 것</b>을 막는다 —
-/// items.json 이 Exporter 없이 손으로 저작되던 시절 클라와 갈라졌던 전례가 있다(A4).</para>
+/// 돌려야 작동한다. 서버 테스트로 한 번 더 잠가 <b>어긋난 bake 가 커밋되는 것</b>을 막는다.</para>
 /// </summary>
 public class ItemNumericIdTests
 {
@@ -35,7 +34,7 @@ public class ItemNumericIdTests
     [InlineData(ShopCategory.Accessory, 2300, 2399)]
     public void numericId_대역이_분류와_일치한다(ShopCategory category, int lo, int hi)
     {
-        // 대역이 곧 분류다 — 문자열 id 를 걷어낸 뒤(2단계) 로그·DB 만 보고 무엇인지 알 수 있는 유일한 단서.
+        // 대역이 곧 분류다 — 문자열 id 가 없으므로 로그·DB 만 보고 무엇인지 알 수 있는 유일한 단서.
         foreach (var shop in ItemCatalogData.Current.Shop)
         {
             if (shop.Category != category) continue;

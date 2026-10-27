@@ -12,8 +12,7 @@ namespace GameServer.Tests.API;
 
 /// <summary>
 /// ProgressionService gRPC 진입점 검증 — GetProgression(인증 + 레벨/Exp + 레벨 파생 스탯 합성).
-/// 레벨업 로직 자체는 <see cref="Domain.Entities.UserProgressionTests"/>, 테이블 룩업은 LevelTableTests 가 담당.
-/// 여기서는 gRPC 레이어(인증 + LevelTable 룩업 매핑)만 본다.
+/// 레벨업 로직은 <see cref="Domain.Entities.UserProgressionTests"/>, 테이블 룩업은 LevelTableTests 담당 — 여기선 gRPC 레이어만 본다.
 /// </summary>
 public class ProgressionGrpcServiceTests
 {

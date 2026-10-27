@@ -11,9 +11,9 @@ using Shared.Packet.Packets;
 namespace Server.Consumer;
 
 /// <summary>
-/// 소모품 소비 통지 소비(GameServer 검증·차감 완료 → 서버 권위 회복). authority-model §4.
-/// userId 로 방을 찾아 `Room.ApplyPlayerEffect(+heal)` 로 서버 HP 를 올리고 S_ApplyEffect 로 브로드캐스트한다
-/// (클라는 즉발 미러). 던전 밖(방 없음)이면 no-op — Main 솔로 회복은 클라 로컬(§2).
+/// 소모품 소비 통지 소비(GameServer 검증·차감 완료 → 서버 권위 회복).
+/// userId 로 방을 찾아 서버 HP 를 올리고 S_ApplyEffect 로 브로드캐스트한다(클라는 즉발 미러).
+/// 던전 밖(방 없음)이면 no-op — Main 솔로 회복은 클라 로컬.
 /// </summary>
 public class PlayerConsumedConsumer(
     PlayerConsumedMessageQueue queue,
@@ -34,7 +34,7 @@ public class PlayerConsumedConsumer(
         {
             var room = roomManager.GetAssignedRoom(msg.UserId);
             if (room is null)
-                return Task.CompletedTask; // 던전 밖 — 회복은 클라 로컬(Main). no-op.
+                return Task.CompletedTask; // 던전 밖 — 회복은 클라 로컬(Main)
 
             // at-least-once 라 같은 통지가 다시 올 수 있다. 회복(+heal)은 비멱등이므로 방 단위로 1회만 적용한다.
             if (!room.TryMarkConsumeHandled(msg.ConsumeId))

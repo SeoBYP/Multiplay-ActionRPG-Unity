@@ -9,7 +9,7 @@ using Shared.Packet.Packets;
 namespace Server.Tests.Room;
 
 /// <summary>
-/// 한 틱 시뮬레이션 — <b>방 없이</b> 저장소만으로 돌린다(Room 에서 떼어낸 덕).
+/// 한 틱 시뮬레이션 — <b>방 없이</b> 저장소만으로 돌린다.
 ///
 /// <para>여기서 고정하는 경계: 시뮬레이션은 <b>진행 판정을 하지 않는다</b>.
 /// HP 0 을 감지하면 <c>DownedUserIds</c> 로 알려줄 뿐 <c>S_PlayerDead</c>·<c>S_DungeonFailed</c> 는 만들지 않는다 —
@@ -200,8 +200,7 @@ public class RoomSimulationTests
     [Fact]
     public void 몬스터_CC는_브로드캐스트만이_아니라_서버_액터에도_걸린다()
     {
-        // 예전엔 S_ApplyEffect 만 쏘고 서버 액터에는 아무 흔적이 없었다 —
-        // 즉 스턴 중인 플레이어의 공격을 서버가 거를 수 없었다(IsActivationBlocked 가 항상 false).
+        // S_ApplyEffect 뿐 아니라 서버 액터에도 CC 흔적(태그)이 남아야 스턴 중인 플레이어의 공격을 서버가 거른다(IsActivationBlocked).
         var (sim, store) = NewSim();
         var player = AddJoinedPlayer(store, 100, x: 1.0f, z: 0f);
         AddGargoyle(store);

@@ -6,7 +6,7 @@ namespace Server.Monster;
 /// <summary>
 /// 몬스터 타입별 스탯(서버 시뮬레이션 전용 뷰). exp 는 시뮬에 불필요해 제외.
 /// <para>
-/// AC-B B4: 공격 수치(쿨다운·데미지·CC)는 여기 없다 — **어빌리티**(<see cref="AbilityDef"/>)가 갖는다.
+/// 공격 수치(쿨다운·데미지·CC)는 여기 없다 — **어빌리티**(<see cref="AbilityDef"/>)가 갖는다.
 /// <see cref="AttackRange"/> 만 AI(Attack 페이즈 진입 판정)를 위해 어빌리티들의 **최대 사거리**로 파생한다.
 /// </para>
 /// </summary>

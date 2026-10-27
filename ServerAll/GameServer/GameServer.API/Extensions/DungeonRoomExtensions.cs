@@ -32,14 +32,8 @@ public static class DungeonRoomExtensions
         return room.BuildRoomInfo(orderedUsers, readyUserIds);
     }
 
-    /// <summary>
-    /// 배치 조회로 미리 모은 플레이어 User 목록으로 RoomInfo를 조립 (N+1 회피, 추가 I/O 없음).
-    /// 방 <b>목록</b> 화면용.
-    /// </summary>
-    /// <param name="readyUserIds">
-    /// 이 방의 준비 완료 userId. 목록에서 고른 방이 그대로 대기실 State 로 들어가므로
-    /// 여기서 비우면 대기실이 열린 직후 전원 미준비로 잘못 그려진다 — 반드시 채워 넘긴다.
-    /// </param>
+    /// <summary>미리 배치 조회한 User 목록으로 RoomInfo 조립 (N+1 회피, 추가 I/O 없음). 방 목록 화면용.</summary>
+    /// <param name="readyUserIds">목록에서 고른 방이 그대로 대기실로 들어가므로 비우면 전원 미준비로 그려진다 — 반드시 채워 넘긴다.</param>
     public static RoomInfo ToRoomInfo(
         this DungeonRoom room,
         IReadOnlyList<UserEntity> playersInRoom,

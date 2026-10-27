@@ -8,16 +8,12 @@ namespace GameServer.API.Controllers;
 [Route("api/admin")]
 public class AdminController(IConnectionMultiplexer redis) : ControllerBase
 {
-    /// <summary>
-    /// 모든 Redis 데이터 삭제 (개발 전용)
-    /// </summary>
     [HttpDelete("clear")]
     public async Task<IActionResult> ClearAll()
     {
         var db = redis.GetDatabase();
         var server = redis.GetServer(redis.GetEndPoints().First());
-        
-        // ✅ FlushDatabaseAsync 대신 Keys + Delete 사용
+
         var keys = server.Keys(pattern: "*").ToArray();
         
         if (keys.Length > 0)
@@ -28,9 +24,7 @@ public class AdminController(IConnectionMultiplexer redis) : ControllerBase
         return Ok(new { message = $"Deleted {keys.Length} keys" });
     }
     
-    /// <summary>
-    /// Room 데이터만 삭제 (세션 유지)
-    /// </summary>
+    // 세션은 유지하고 game:* 만 삭제
     [HttpDelete("clear-rooms")]
     public async Task<IActionResult> ClearRooms()
     {
@@ -47,9 +41,6 @@ public class AdminController(IConnectionMultiplexer redis) : ControllerBase
         return Ok(new { message = $"Deleted {keys.Length} room keys" });
     }
     
-    /// <summary>
-    /// 세션 데이터만 삭제
-    /// </summary>
     [HttpDelete("clear-sessions")]
     public async Task<IActionResult> ClearSessions()
     {
@@ -69,9 +60,6 @@ public class AdminController(IConnectionMultiplexer redis) : ControllerBase
         return Ok(new { message = $"Deleted {allKeys.Length} session keys" });
     }
     
-    /// <summary>
-    /// Redis 상태 확인
-    /// </summary>
     [HttpGet("status")]
     public async Task<IActionResult> GetStatus()
     {

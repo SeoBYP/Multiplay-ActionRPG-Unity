@@ -57,8 +57,7 @@ public sealed class DungeonProgress
     ///   FailClaimed = 이 다운으로 <b>전원</b> 다운이 돼 실패를 최초 claim 했는가(클리어와 상호 배타).
     ///
     /// <para><b>HP 가 실제로 0 이어야 한다.</b> 클라의 <c>C_PlayerDead</c> 는 예측 통지일 뿐이고,
-    /// 서버 HP 가 살아 있으면 거부한다 — 만피인 채로 다운을 자기신고해 몬스터 AI 타깃에서 빠지는 것을 막는다.
-    /// (HP 를 서버 권위로 올려놓고 다운 여부만 클라를 믿으면 불사 핵을 반만 막은 것이다.)</para>
+    /// 서버 HP 가 살아 있으면 거부한다 — 만피인 채로 다운을 자기신고해 몬스터 AI 타깃에서 빠지는 것을 막는다.</para>
     /// </summary>
     public (bool NewlyDowned, bool FailClaimed) MarkDowned(long userId)
     {
@@ -68,7 +67,7 @@ public sealed class DungeonProgress
         {
             var member = _actors.GetMember(userId);
             if (member is null)
-                return (false, false); // 이 방의 참가자가 아님
+                return (false, false);
 
             if (!member.Actor.Gas.IsDead)
                 return (false, false); // 서버 HP 가 살아 있다 — 자기신고 거부
@@ -122,7 +121,7 @@ public sealed class DungeonProgress
             var reviver = _actors.GetMember(reviverId);
             if (reviver is null
                 || !reviver.HasJoined || reviver.Actor.Gas.IsDead || reviver.DisconnectedAtMs is not null)
-                return (false, 0); // 시전자 미입장/다운/끊김 → 부활 불가
+                return (false, 0);
 
             var target = _actors.GetMember(targetId);
             if (target is null)
@@ -131,7 +130,7 @@ public sealed class DungeonProgress
             float dx = reviver.Actor.PosX - target.Actor.PosX;
             float dz = reviver.Actor.PosZ - target.Actor.PosZ;
             if (dx * dx + dz * dz > ReviveConfig.RangeMeters * ReviveConfig.RangeMeters)
-                return (false, 0); // 거리 밖
+                return (false, 0);
 
             // 대상이 실제 다운이어야 부활. 태그 제거가 곧 멱등 가드(중복 C_Revive 차단).
             if (!target.Actor.Gas.RemoveTag(GameplayTags.Dead))

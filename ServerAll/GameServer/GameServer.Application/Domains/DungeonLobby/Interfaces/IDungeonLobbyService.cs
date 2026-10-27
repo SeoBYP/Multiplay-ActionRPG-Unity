@@ -5,105 +5,50 @@ namespace GameServer.Application.Domains.DungeonLobby.Interfaces;
 
 public interface IDungeonLobbyService
 {
-    /// <summary>
-    /// 새로운 방을 생성합니다
-    /// </summary>
-    /// <param name="userId">방장의 UserId</param>
-    /// <param name="roomName">방 이름</param>
-    /// <param name="maxPlayers">최대 플레이어 수 (기본 4명)</param>
-    /// <param name="mapId">플레이할 던전(spawn-layouts.json 키). 비우면 MapIds.Default. 알 수 없는 맵이면 실패.</param>
-    /// <returns>생성된 방 정보</returns>
+    /// <param name="mapId">던전(spawn-layouts.json 키). 비우면 MapIds.Default, 알 수 없는 맵이면 실패.</param>
     Task<Result<DungeonRoom>> CreateDungeonRoomAsync(string sessionId, string roomName, int maxPlayers, string mapId = "", CancellationToken ct = default);
 
-    /// <summary>
-    /// 활성 방 목록을 한 페이지 조회합니다(9.6).
-    /// </summary>
+    /// <summary>활성 방 목록 한 페이지 + <b>전체</b> 활성 방 수.</summary>
     /// <param name="offset">건너뛸 방 수. 음수는 0 으로 clamp.</param>
     /// <param name="limit">가져올 방 수. 0 이하면 <see cref="DungeonLobbyPaging.DefaultPageSize"/>, 상한은 <see cref="DungeonLobbyPaging.MaxPageSize"/>.</param>
-    /// <returns>해당 페이지의 방 목록 + <b>전체</b> 활성 방 수(페이저용).</returns>
     /// <remarks>
-    /// 정렬은 <b>RoomId 내림차순(최신 먼저)</b> 으로 서버가 고정한다. Redis <c>room:active</c> 가 Set(무순서)이라
-    /// 정렬 없이 offset 을 적용하면 호출마다 순서가 달라져 페이지 간 중복·누락이 발생한다.
+    /// RoomId 내림차순(최신 먼저)으로 서버가 고정한다. Redis <c>room:active</c> 가 무순서 Set 이라
+    /// 정렬 없이 offset 을 적용하면 페이지 간 중복·누락이 생긴다.
     /// </remarks>
     Task<Result<ActiveRoomPage>> GetActiveDungeonRoomsAsync(int offset, int limit, CancellationToken ct = default);
 
-    /// <summary>
-    /// 특정 방 정보를 조회합니다
-    /// </summary>
-    /// <param name="roomId">방 ID</param>
-    /// <returns>방 정보</returns>
     Task<Result<DungeonRoom>> GetDungeonRoomAsync(long roomId, CancellationToken ct = default);
 
-    /// <summary>
-    /// 특정 방 정보를 갱신합니다.
-    /// </summary>
-    /// <param name="userId"></param>
-    /// <returns></returns>
     Task<Result<DungeonRoom>> UpdateRoomSettingsAsync(string sessionId, long roomId,
         string? roomName = null, int? maxPlayers = null, CancellationToken ct = default);
 
-    /// <summary>
-    /// 방에 입장합니다
-    /// </summary>
-    /// <param name="userId">입장할 사용자 ID</param>
-    /// <param name="roomId">입장할 방 ID</param>
-    /// <returns>입장 결과</returns>
     Task<Result<DungeonRoom>> JoinRoomAsync(string sessionId, long roomId, CancellationToken ct = default);
 
-    /// <summary>
-    /// 방에서 퇴장합니다
-    /// </summary>
-    /// <param name="userId">퇴장할 사용자 ID</param>
-    /// <param name="roomId">퇴장할 방 ID</param>
-    /// <returns>퇴장 결과</returns>
     Task<Result<DungeonRoom>> LeaveRoomAsync(string sessionId, long roomId, CancellationToken ct = default);
 
-    /// <summary>
-    /// 대기실에서 자신의 준비 상태를 켜고 끕니다 (호스트 제외 — 호스트는 준비 개념이 없다).
-    /// </summary>
-    /// <remarks>준비 상태는 Redis 전용 휘발성 로비 상태다(<see cref="IRoomReadyStore"/>).</remarks>
+    /// <summary>대기실 준비 상태 토글 (호스트 제외). Redis 전용 휘발성 상태(<see cref="IRoomReadyStore"/>).</summary>
     Task<Result<DungeonRoom>> SetReadyAsync(string sessionId, long roomId, bool isReady, CancellationToken ct = default);
 
-    // ========== 게임 시작 ==========
-
-    /// <summary>
-    /// 게임을 시작합니다 (방장만 가능)
-    /// </summary>
-    /// <param name="userId">게임 시작을 요청한 사용자 ID</param>
-    /// <param name="roomId">게임을 시작할 방 ID</param>
-    /// <returns>게임 시작 결과</returns>
-    // mapId: 비우면 기본 맵(MapIds.Default). 특정 맵 강제 시 지정(StartRoomRequest.map_id, E2E 등).
+    /// <summary>게임 시작 (방장만). Outbox 기록까지만 하고 세션 생성은 GameSessionService 책임.</summary>
+    /// <param name="mapId">비우면 MapIds.Default. 특정 맵을 강제할 때 지정.</param>
     Task<Result<DungeonRoom>> StartGameAsync(string sessionId, long roomId, string traceId, string mapId = "", CancellationToken ct = default);
 
-    /// <summary>
-    /// SubscribeRoom 진입 전 세션·방·멤버십 검증
-    /// </summary>
-    /// <returns>성공 시 userId</returns>
+    /// <summary>SubscribeRoom 진입 전 세션·방·멤버십 검증. 성공 시 userId.</summary>
     Task<Result<long>> ValidateSubscriptionAsync(string sessionId, long roomId, CancellationToken ct = default);
 
     /// <summary>
-    /// 인게임에서 플레이어가 명시적으로 퇴장했을 때 그 플레이어의 방 association을 정리한다.
-    /// SocketServer가 PlayerLeft 이벤트를 발행하면 RoomLifecycleConsumer가 호출한다.
-    ///
-    /// 동작: association 제거(재로그인 복원 차단) + 채팅 방 구독 해제.
-    ///   - 남은 인원 0명  → 방 삭제(빈 방)
-    ///   - 남은 인원 ≥1명 → 떠난 사람이 호스트면 다음 사람으로 이양 후 갱신/브로드캐스트
-    /// 이미 그 방 소속이 아니면 멱등 성공(중복 소비 안전).
+    /// 인게임 명시적 퇴장(PlayerLeft → RoomLifecycleConsumer)의 방 association 정리.
+    /// association 제거(재로그인 복원 차단) + 채팅 방 구독 해제. 남은 인원 0명이면 방 삭제,
+    /// 떠난 사람이 호스트면 다음 사람에게 이양. 이미 소속이 아니면 멱등 성공.
     /// </summary>
     Task<Result<DungeonRoom>> RemovePlayerFromRoomAsync(long roomId, long userId, CancellationToken ct = default);
 
-    /// <summary>
-    /// 방 하나가 유령 방이면 정리한다. 정리했으면 true.
-    /// </summary>
+    /// <summary>방 하나가 유령 방이면 정리한다. 정리했으면 true.</summary>
     /// <remarks>
-    /// 방을 만들고 앱을 종료하면 소켓이 붙은 적이 없어 PlayerLeft 이벤트도 나오지 않는다.
-    /// 그래서 <see cref="RemovePlayerFromRoomAsync"/> 만으로는 그 방이 영원히 남는다.
-    /// 시스템에 정식 하트비트가 없으므로 세션 활성 만료 시각을 근사 신호로 쓰고,
-    /// 오탐(살아 있는 방을 끊는 것)을 막기 위해 유예를 넉넉히 둔다.
-    ///
-    /// **방 단위로 쪼갠 이유**: 한 스코프로 수백 개를 처리하면 한 방의 저장 실패가
-    /// 그 DbContext 의 변경 추적을 오염시켜 뒤따르는 방까지 연쇄로 실패한다(실측).
-    /// 호출자(<c>DungeonRoomReaper</c>)가 방마다 새 스코프를 연다.
+    /// 방을 만들고 앱을 종료하면 소켓이 붙은 적이 없어 PlayerLeft 가 안 나오므로
+    /// <see cref="RemovePlayerFromRoomAsync"/> 만으로는 영원히 남는다. 세션 활성 만료 시각을 근사 신호로 쓴다.
+    /// 방 단위로 쪼갠 이유: 한 스코프로 여러 방을 처리하면 한 방의 저장 실패가 변경 추적을 오염시켜
+    /// 뒤따르는 방까지 실패한다. 호출자(<c>DungeonRoomReaper</c>)가 방마다 새 스코프를 연다.
     /// </remarks>
     Task<Result<bool>> ReapRoomIfAbandonedAsync(long roomId, CancellationToken ct = default);
 }

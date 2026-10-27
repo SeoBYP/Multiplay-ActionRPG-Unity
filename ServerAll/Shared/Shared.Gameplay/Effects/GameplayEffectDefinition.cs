@@ -4,7 +4,6 @@ namespace Script.System.GamePlayAbilitySystem
 {
     /// <summary>
     /// Effect의 정적 정의(불변). **표시 데이터(Sprite/색)를 포함하지 않는다** — 서버와 공유 가능.
-    /// 1단계는 코드 카탈로그로 생성, 2단계에서 공유 JSON 로더가 같은 형태로 채운다.
     /// </summary>
     public sealed class GameplayEffectDefinition
     {

@@ -8,8 +8,8 @@ using Shared.Packet.Packets;
 namespace Server.Tests.Monster;
 
 /// <summary>
-/// AC-B B6: **보스 다중 스킬 실증** — leviathan 이 abilityIds=[leviathan_slam(강·긴쿨), leviathan_attack(평타)] 를 갖는다.
-/// 코드 변경 없이 **데이터 저작만으로** 다중 스킬이 동작함을 고정한다(설계 = ability-so-authoring.md §5).
+/// **보스 다중 스킬 실증** — leviathan 이 abilityIds=[leviathan_slam(강·긴쿨), leviathan_attack(평타)] 를 갖는다.
+/// 코드 변경 없이 **데이터 저작만으로** 다중 스킬이 동작함을 고정한다.
 ///
 /// 규칙: 저작 순서 = 우선순위 → 사거리 안 + 쿨다운 경과인 **첫** 어빌리티. 쿨다운은 어빌리티 단위로 독립 추적.
 /// </summary>
@@ -70,7 +70,7 @@ public class BossMultiAbilityTests
     [Fact]
     public void 강스킬_쿨다운_중에는_평타로_폴백한다()
     {
-        // B6 의 핵심: abilityIds 순서만으로 "강스킬 → 쿨다운이면 평타" 패턴이 성립한다(코드 변경 0).
+        // abilityIds 순서만으로 "강스킬 → 쿨다운이면 평타" 패턴이 성립한다(코드 변경 0).
         var room = NewBossRoom();
         var slam = AbilityCatalog.Get("leviathan_slam")!;
         var attack = AbilityCatalog.Get("leviathan_attack")!;

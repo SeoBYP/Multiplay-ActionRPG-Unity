@@ -8,9 +8,6 @@ namespace GameServer.Infrastructure.Domains.User;
 
 using User = Domain.Entities.User.User;
 
-/// <summary>
-/// 데이터베이스 연동 사용자 저장소 구현체
-/// </summary>
 public class UserRepository(
     IConnectionMultiplexer connectionMultiplexer,
     GameServerDbContext context,
@@ -18,9 +15,6 @@ public class UserRepository(
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
 
-    /// <summary>
-    /// 새로운 사용자를 추가합니다. (회원가입)
-    /// </summary>
     public async Task<User> CreateAsync(CancellationToken ct = default)
     {
         try

@@ -17,15 +17,11 @@ public readonly record struct TargetPos(float X, float Z);
 /// <summary>
 /// 한 틱 동안 액터가 <b>무엇을 하기로 했는가</b>. 결정과 자기 상태 커밋은 액터가 끝냈고,
 /// 이 결과를 <b>패킷·피해로 번역</b>하는 것은 방 계층의 일이다.
-///
-/// <para>예전에는 <c>int targetIdx</c> 만 돌려줘서 "누굴 노리는지"까지만 액터가 정하고
-/// 어빌리티 선택·쿨다운 커밋은 방이 다시 판단했다 — 결정이 두 곳에 쪼개져 있었다.</para>
 /// </summary>
 /// <param name="TargetIndex">노린 타깃의 인덱스(<c>targets</c> 기준). 없으면 −1.</param>
 /// <param name="Cast">이번 틱에 발동한 어빌리티. 없으면 null(쿨다운·사거리·차단 태그).</param>
 /// <param name="ExpiredEffectIds">
-/// 이번 틱에 <b>만료된</b> 지속 Effect 의 인스턴스 id. 없으면 null —
-/// 만료는 드문 사건인데 매 틱·매 액터마다 빈 리스트를 만들면 10Hz 만큼 쓰레기가 된다.
+/// 이번 틱에 <b>만료된</b> 지속 Effect 의 인스턴스 id. 없으면 null(만료는 드물어 빈 리스트 할당을 피한다).
 /// </param>
 public readonly record struct ActorTickResult(
     int TargetIndex, AbilityDef? Cast, IReadOnlyList<int>? ExpiredEffectIds = null)
@@ -70,8 +66,7 @@ public abstract class Actor
     /// <param name="targets">노려도 되는 적대 액터 좌표(방 계층이 자격을 걸러 넣는다).</param>
     /// <returns>
     /// 이번 틱의 결정(<see cref="ActorTickResult"/>). 기본 구현은 <b>지속 Effect 만료</b>만 처리한다 —
-    /// 만료는 종족과 무관한 공통 처리이고, <b>만료 권위가 서버에 있다는 것이 여기서 강제된다</b>
-    /// (예전엔 서버가 CC 를 걸어놓고 언제 풀리는지는 클라에 맡겼다).
+    /// 종족과 무관한 공통 처리이고, 만료 권위가 서버에 있음이 여기서 강제된다.
     /// </returns>
     public virtual ActorTickResult Tick(float dt, long nowMs, IReadOnlyList<TargetPos> targets, MapBounds bounds)
         => new(-1, null, Gas.TickEffects(nowMs));

@@ -14,8 +14,7 @@ namespace GameServer.Tests.API;
 
 /// <summary>
 /// EquipmentService gRPC 진입점 검증 — 인증 게이트 + 장착/해제/조회 + proto↔도메인 슬롯 매핑.
-/// 장착 검증(소유·장비여부) 로직은 <see cref="Application.Services.EquipmentServiceTests"/> 가 담당.
-/// 여기서는 gRPC 레이어(인증 + 슬롯 enum 매핑 + 결과 매핑)만 본다 → 실제 서비스 + Fake 저장소.
+/// 장착 검증 로직은 <see cref="Application.Services.EquipmentServiceTests"/> 가 담당 — 여기선 실제 서비스 + Fake 저장소로 gRPC 레이어만 본다.
 /// </summary>
 public class EquipmentGrpcServiceTests
 {

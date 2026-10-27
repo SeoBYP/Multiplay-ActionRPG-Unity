@@ -7,7 +7,7 @@ using Shared.Packet.Packets;
 namespace Server.Tests.Monster;
 
 /// <summary>
-/// AC-C3: S_MonsterState.Seq — 몬스터별 단조 증가 상태 버전. 클라가 순서 역전(스테일)을 버리는 근거.
+/// S_MonsterState.Seq — 몬스터별 단조 증가 상태 버전. 클라가 순서 역전(스테일)을 버리는 근거.
 ///
 /// 핵심 계약: **Seq 는 스냅샷(생성) 시점에 발급된다.** 송신 시점이 아니다 —
 /// 막으려는 것이 "틱이 먼저 만든 패킷을 나중에 보내는" 생성≠송신 순서이기 때문.
@@ -77,7 +77,7 @@ public class MonsterStateSeqTests
     [Fact]
     public void 데미지_스냅샷이_틱_스냅샷보다_나중이면_Seq가_더_크다_순서역전_무효화()
     {
-        // D2 의 정확한 상황을 서버 쪽에서 재현한다:
+        // 스테일 도착 상황을 서버 쪽에서 재현한다:
         //   틱이 옛 HP 로 패킷을 **만들고**(아직 송신 전) → 데미지가 HP 를 깎고 새 패킷을 만든다.
         // 이때 Seq(틱) < Seq(데미지) 여야 클라가 "나중에 도착한 옛 HP"를 버릴 수 있다.
         var room = NewRoom();

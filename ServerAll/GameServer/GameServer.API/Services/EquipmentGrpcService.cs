@@ -11,8 +11,7 @@ using EquipmentGrpc = GameServer.Grpc.Equipment.EquipmentService;
 namespace GameServer.API.Services;
 
 /// <summary>
-/// 장비 gRPC 진입점(3.2). 착용/해제/조회. userId 는 JWT 에서 추출(AuthInterceptor 가 인증 보장).
-/// 스탯 합산은 서버 GetStatsAsync 가 수행 — 여기선 착용 상태만 다룬다.
+/// 착용/해제/조회만 다룬다. 스탯 합산은 서버 GetStatsAsync 가 수행.
 /// </summary>
 public class EquipmentGrpcService(
     IEquipmentService equipmentService,
@@ -81,10 +80,10 @@ public class EquipmentGrpcService(
         return response;
     }
 
-    // 도메인 EquipmentType ↔ proto EquipmentType — 정수값 1:1(공통 enum) 이므로 캐스팅 매핑.
+    // 도메인/proto EquipmentType 은 정수값이 1:1 이라 캐스팅으로 매핑한다.
     private static ProtoType ToProtoSlot(DomainType slot) => (ProtoType)(int)slot;
 
-    // Unspecified(0)·정의되지 않은 값은 거부(해제할 슬롯이 유효해야 함).
+    // Unspecified(0)·정의되지 않은 값은 거부.
     private static bool TryToDomainSlot(ProtoType slot, out DomainType domain)
     {
         domain = (DomainType)(int)slot;

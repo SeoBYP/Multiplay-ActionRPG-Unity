@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Server.Diagnostics;
 
-/// <summary>데미지가 흐른 방향. 경로마다 산식 입력이 다르다(combat-diagnostics.md §2.2) — 그 비대칭이 보여야 밸런스 결정이 가능하다.</summary>
+/// <summary>데미지가 흐른 방향. 경로마다 산식 입력이 다르다 — 그 비대칭이 보여야 밸런스 결정이 가능하다.</summary>
 public enum CombatPath
 {
     PlayerToMonster,
@@ -22,8 +22,7 @@ public enum CombatGate
 }
 
 /// <summary>
-/// 전투 진단 트레이스(AC-C1a). 서버가 <b>무엇을·왜 그 숫자로</b> 판정했는지를 구조적 로그로 남긴다.
-/// 설계 = <c>docs/wiki/combat-diagnostics.md</c> §2.
+/// 전투 진단 트레이스. 서버가 <b>무엇을·왜 그 숫자로</b> 판정했는지를 구조적 로그로 남긴다.
 ///
 /// <para><b>기본 Off.</b> 트레이스는 <c>Debug</c> 레벨로 남기고, 이 서버의 최소 레벨 기본값이 <c>Information</c> 이라 꺼져 있다.
 /// Off 면 각 메서드가 첫 줄에서 반환하므로 <b>인자 박싱·문자열 조립이 일어나지 않는다</b> — 상시 로그 금지 요건.</para>
@@ -51,7 +50,7 @@ public static class CombatTrace
     public const string FormulaMelee = "max(1, base+AP-DEF)";
 
     /// <summary>
-    /// 산식을 <b>경유하지 않는</b> 플랫 피해 표기. 플레이어→플레이어가 여기 해당한다(AC-D2 미해결 비대칭).
+    /// 산식을 <b>경유하지 않는</b> 플랫 피해 표기. 플레이어→플레이어가 여기 해당한다.
     /// 이 문자열이 트레이스에 뜨는 것 자체가 "스탯이 반영되지 않았다"는 증거다.
     /// </summary>
     public const string FormulaFlat = "flat(base)";
@@ -69,7 +68,7 @@ public static class CombatTrace
     /// </summary>
     /// <param name="recvMs">서버가 발동을 받은 시각(틱 경로는 틱 시각) — 타임라인 축 A.</param>
     /// <param name="judgeMs">판정·데미지 확정 시각. <c>judgeMs - recvMs</c> = 서버 처리 구간.</param>
-    /// <param name="seq">대상 몬스터의 상태 버전(AC-C3). 클라 로그와 조인하는 상관키. 대상이 플레이어면 0.</param>
+    /// <param name="seq">대상 몬스터의 상태 버전. 클라 로그와 조인하는 상관키. 대상이 플레이어면 0.</param>
     public static void Damage(
         CombatPath path, string formula,
         long actorId, long targetActorId,

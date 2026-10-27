@@ -4,7 +4,7 @@ using Script.System.GamePlayAbilitySystem;
 namespace Shared.Gameplay.Tests;
 
 /// <summary>
-/// CA-2: hitbox 겹침 판정(순수 기하). 서버·클라가 같은 함수로 같은 판정을 내야 한다.
+/// hitbox 겹침 판정(순수 기하). 서버·클라가 같은 함수로 같은 판정을 내야 한다.
 /// 시전자 yaw 기준 로컬 hitbox를 월드 타겟(구)과 겹치는지 평가.
 /// </summary>
 public class HitboxMathTests
@@ -42,7 +42,6 @@ public class HitboxMathTests
     }
 
     // Unity yaw θ: forward=(sinθ,0,cosθ). 임의 yaw 에서 "정면 1유닛" 타겟은 항상 적중, "후방"은 항상 빗나가야 한다.
-    // (기존 테스트가 yaw 0/180=sin0 만 봐서 X/Z 교차항 부호 오류가 90/270 등 측면에서 새어나갔다.)
     [Theory]
     [InlineData(45f)]
     [InlineData(90f)]   // 정동(+X)

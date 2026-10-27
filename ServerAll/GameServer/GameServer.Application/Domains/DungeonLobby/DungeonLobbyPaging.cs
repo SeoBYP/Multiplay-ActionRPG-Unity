@@ -1,12 +1,11 @@
 namespace GameServer.Application.Domains.DungeonLobby;
 
 /// <summary>
-/// 방 목록 페이징 한계값(9.6). <b>서버가 진실원</b> — 클라가 보낸 크기를 그대로 믿지 않는다.
-/// (이전엔 <c>GetRoomsRequest.room_count</c> 가 아예 무시되고 전체 활성 방이 반환됐다.)
+/// 방 목록 페이징 한계값. <b>서버가 진실원</b> — 클라가 보낸 크기를 그대로 믿지 않는다.
 /// </summary>
 public static class DungeonLobbyPaging
 {
-    /// <summary>클라가 크기를 안 보냈을 때(0 이하) 쓰는 기본 페이지 크기.</summary>
+    /// <summary>크기가 0 이하일 때 쓰는 기본 페이지 크기.</summary>
     public const int DefaultPageSize = 20;
 
     /// <summary>페이지 크기 상한. 클라가 아무리 크게 불러도 여기서 잘린다(응답 폭주 차단).</summary>

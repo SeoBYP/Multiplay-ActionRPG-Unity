@@ -5,9 +5,9 @@ using Shared.Packet.Packets;
 namespace Server.Tests.Packets;
 
 /// <summary>
-/// AC 증분2: Actor 통합 발동 연출 신호 `S_AbilityActivated`(Union 1604) 직렬화 계약 검증.
+/// Actor 통합 발동 연출 신호 `S_AbilityActivated`(Union 1604) 직렬화 계약 검증.
 /// ActorId 부호 규약(플레이어=양수 UserId / 몬스터=음수 -InstanceId)이 왕복에서 보존되어야
-/// 클라 ActorRegistry 가 올바른 대상에 Cue 를 재생한다. actor-combat-architecture §4.
+/// 클라 ActorRegistry 가 올바른 대상에 Cue 를 재생한다.
 /// </summary>
 public class AbilityActivatedPacketSerializationTests
 {

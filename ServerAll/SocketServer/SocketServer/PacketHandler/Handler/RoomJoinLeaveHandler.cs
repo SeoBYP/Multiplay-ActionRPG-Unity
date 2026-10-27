@@ -9,10 +9,8 @@ namespace Server.PacketHandler.Handler;
 
 public static class RoomJoinLeaveHandler
 {
-    // internal = SocketServer.Tests 단위 검증용 시임(순수 매핑). 파티 HP HUD 가 이 Hp/MaxHp 로 원격 기준선을 맞춘다.
-    //
-    // 인자가 둘(참가자 + 그 액터)인 것이 아니라 하나인 이유: RoomMember 가 자기 Actor 를 들고 있다.
-    // 신원·배정(UserId/Nickname/SpawnIndex)은 참가자에서, 위치·HP 는 액터에서 온다 — 두 축이 시그니처로 드러난다.
+    // internal = 단위 테스트용 시임(순수 매핑). 파티 HP HUD 가 이 Hp/MaxHp 로 원격 기준선을 맞춘다.
+    // 신원·배정(UserId/Nickname/SpawnIndex)은 참가자에서, 위치·HP 는 member.Actor 에서 온다.
     internal static S_PlayerJoined ToJoinedPacket(RoomMember member, string mapId) => new()
     {
         Success = true,
@@ -33,7 +31,6 @@ public static class RoomJoinLeaveHandler
     [PacketHandler(typeof(C_PlayerJoin))]
     public static async ValueTask HandlePlayerJoin(Session session, C_PlayerJoin packet, CancellationToken ct)
     {
-        // Redis에서 플레이어 배정 정보 조회
         var key = $"gamesession:player:{packet.UserId}";
         var entries = await session.Redis.HashGetAllAsync(key);
         if (entries.Length == 0)
@@ -81,8 +78,8 @@ public static class RoomJoinLeaveHandler
         // 1) 본인에게 자기 입장 응답(MapId+SpawnIndex 포함 → 클라가 결정론으로 스폰).
         await session.SendPacketAsync(joinedPacket, ct);
 
-        // 1b) 본인에게 초기 권위 마나 동기화 — 클라 prefab 기준선(Mana 100)을 서버 권위 MaxMana(레벨테이블,
-        //     예: Lv1=50)로 정렬한다. 이후 차감/거부 시점에만 S_PlayerMana 로 정정(리젠은 클라 예측).
+        // 본인에게 초기 권위 마나 동기화 — 클라 prefab 기준선(Mana 100)을 서버 권위 MaxMana 로 정렬한다.
+        // 이후 차감/거부 시점에만 S_PlayerMana 로 정정(리젠은 클라 예측).
         await session.SendPacketAsync(new Shared.Packet.Packets.S_PlayerMana
         {
             UserId = member.UserId,

@@ -12,7 +12,6 @@ public class MiddlewareInstaller : IMiddlewareInstaller
             app.UseSwagger();
             app.UseSwaggerUI();
 
-            // gRPC reflection for tooling (Postman, grpcurl, etc.)
             app.MapGrpcReflectionService();
         }
 
@@ -30,10 +29,8 @@ public class MiddlewareInstaller : IMiddlewareInstaller
         // health check — Docker healthcheck 및 의존 서비스 대기용
         app.MapHealthChecks("/healthz");
 
-        // endpoints
         app.MapControllers();
         
-        // gRPC services
         app.MapGrpcService<AuthGrpcService>();
         app.MapGrpcService<UserGrpcService>();
         app.MapGrpcService<DungeonLobbyGrpcService>();

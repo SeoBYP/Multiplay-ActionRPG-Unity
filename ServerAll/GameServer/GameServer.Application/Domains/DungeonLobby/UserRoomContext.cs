@@ -6,7 +6,6 @@ public class UserRoomContext(long userId, long roomId, int capacity = 256)
 {
     public long UserId { get; } = userId;
 
-    /// <summary>방 고유 식별자 </summary>
     public long RoomId { get; } = roomId;
 
     public Channel<long> Outbound { get; } = Channel.CreateBounded<long>(new BoundedChannelOptions(capacity)

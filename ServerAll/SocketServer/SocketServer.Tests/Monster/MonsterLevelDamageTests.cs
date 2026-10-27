@@ -7,10 +7,9 @@ using Shared.Packet.Packets;
 namespace Server.Tests.Monster;
 
 /// <summary>
-/// AC-E3: 몬스터 피해가 레벨·등급으로 스케일되는지 — <b>틱 경로 실배선</b> 검증.
-/// 설계 = docs/wiki/monster-leveling.md §4.2.
+/// 몬스터 피해가 레벨·등급으로 스케일되는지 — <b>틱 경로 실배선</b> 검증.
 ///
-/// 산식(<c>StatCombatMath.MeleeDamage</c>)은 건드리지 않았다. 틀린 건 base 였고 여기서 그것만 스케일한다.
+/// 산식(<c>StatCombatMath.MeleeDamage</c>)은 그대로 두고 base 만 스케일한다.
 /// </summary>
 public class MonsterLevelDamageTests
 {
@@ -51,7 +50,7 @@ public class MonsterLevelDamageTests
     [Fact]
     public void 레벨이_오르면_피해가_커진다_밸런스_수정의_핵심()
     {
-        // C1c 에서 본 버그: base 고정 + DEF 성장 → 고레벨에서 1 데미지.
+        // 회귀 방지: base 고정 + DEF 성장 → 고레벨에서 1 데미지.
         // 이제 레벨을 주면 base 가 함께 커져 순피해가 유지된다.
         int atL1 = DamageOnTick(mapLevel: 1, playerDefense: 5);
         int atL6 = DamageOnTick(mapLevel: 6, playerDefense: 15); // L6 플레이어 DEF
@@ -63,7 +62,7 @@ public class MonsterLevelDamageTests
     [Fact]
     public void 고레벨에서도_바닥에_눌리지_않는다()
     {
-        // 원래 증상: L19 플레이어(DEF 41) 앞에서 전 몬스터가 1 데미지.
+        // L19 플레이어(DEF 41) 앞에서 전 몬스터가 1 데미지.
         int dmg = DamageOnTick(mapLevel: 19, playerDefense: 41);
 
         Assert.True(dmg > 1, $"L19 대역에서 피해가 {dmg} — 바닥에 눌렸다(레벨링 이전의 그 버그)");

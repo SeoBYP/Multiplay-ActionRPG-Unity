@@ -4,7 +4,7 @@ using Shared.Packet.Packets;
 namespace Server.Tests.Packets;
 
 /// <summary>
-/// 던전 라이프사이클 패킷 직렬화 계약. 특히 ⓔ-2 S_PlayerDead(Union 1823, 원격 다운 가시성):
+/// 던전 라이프사이클 패킷 직렬화 계약. 특히 S_PlayerDead(Union 1823, 원격 다운 가시성):
 /// Union 등록 누락은 런타임 역직렬화 오류 1순위라 라운드트립으로 박제한다.
 /// </summary>
 public class DungeonPacketSerializationTests

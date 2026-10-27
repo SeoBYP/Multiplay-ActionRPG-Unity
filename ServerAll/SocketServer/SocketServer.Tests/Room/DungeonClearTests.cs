@@ -8,7 +8,7 @@ using Shared.Infrastructure.Spawn;
 namespace Server.Tests.Room;
 
 /// <summary>
-/// M4 A 트랙 ③: 던전 클리어(몬스터 전멸) 감지. Room.TryMarkCleared 가 전멸을 최초 1회만 표시하고,
+/// 던전 클리어(몬스터 전멸) 감지. Room.TryMarkCleared 가 전멸을 최초 1회만 표시하고,
 /// RoomManager.PublishDungeonClear 가 참가자/MapId 를 담아 결과 이벤트를 발행한다.
 /// </summary>
 public class DungeonClearTests

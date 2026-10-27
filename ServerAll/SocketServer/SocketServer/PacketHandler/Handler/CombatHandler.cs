@@ -12,46 +12,25 @@ using Shared.Packet.Packets;
 namespace Server.PacketHandler.Handler;
 
 /// <summary>
-/// 전투 패킷 핸들러 (CA-3: 서버 권위 적중 판정).
-///
-/// C_Attack 수신 → 시전자/대상 위치(Room)로 `HitboxMath` 적중 재계산(권위) →
-/// 적중 대상에 스킬의 OnHitEffectIds를 GameplayEffect로 부여(EF-2d `S_ApplyEffect` 재사용).
-///
-/// 권위 범위 = 적중 판정 + 효과 브로드캐스트. HP는 클라가 공유 카탈로그로 결정론 계산(§ "결정론 lite").
-/// ※ active-window 정밀 타이밍(서버 틱)·서버 HP 추적은 후속. 현재는 수신 시점 위치로 즉시 판정.
+/// 전투 패킷 핸들러. C_Attack → 발동 게이트(차단·마나·콤보·쿨다운) → 서버 권위 적중 판정 → 몬스터 HP 차감.
 /// </summary>
 public static class CombatHandler
 {
-    /// <summary>플레이어 피격 반경(캡슐 근사). 추후 캐릭터 데이터화.</summary>
+    /// <summary>피격 반경(캡슐 근사).</summary>
     public const float TargetRadius = 0.5f;
 
-    /// <summary>
-    /// 콤보 cadence 의 <b>최소 안전값</b>(ms). 진실원은 스킬 데이터(<c>SkillTimeline.ComboChainMs</c>, skills.json) —
-    /// 이 상수는 데이터가 0(저작 누락)일 때만 쓰이는 폴백이다. 콤보는 단계마다 skillId 가 달라(2/3/4)
-    /// **개별 쿨다운으로는 연타 버스트를 막지 못하므로**(각자 첫 발동) 최소한의 간격은 항상 강제한다.
-    /// </summary>
+    /// <summary>콤보 간격 폴백(ms). 데이터 ComboChainMs 가 0 일 때만 쓴다 — 단계별 개별 쿨다운으론 연타를 못 막는다.</summary>
     public const int ComboMinIntervalMs = 300;
 
-    /// <summary>
-    /// 콤보 cadence 의 네트워크 지터 허용치(ms). 클라는 정확히 ComboChainMs 간격으로 보내지만 패킷별 지연이 달라
-    /// <b>서버 도착 간격이 그보다 짧아질 수 있다</b>(예: 두 번째 패킷의 지연이 더 짧을 때) → 허용치가 없으면
-    /// 정상 콤보가 거부돼 데미지가 유실된다. 이만큼 느슨하게 봐도 버스트(즉시 3연타) 차단에는 지장이 없다.
-    /// </summary>
+    /// <summary>콤보 간격 지터 허용치(ms). 패킷별 지연 차로 도착 간격이 짧아져도 정상 콤보가 거부되지 않게.</summary>
     public const int ComboCadenceToleranceMs = 100;
 
-    /// <summary>콤보 단계 skillId 인가(클라 ComboDriver 와 동일 규약: 2=combo_a·3=combo_b·4=combo_c·5=combo_d).</summary>
+    /// <summary>콤보 단계 skillId(클라 ComboDriver 와 동일 규약: 2~5 = combo_a~d).</summary>
     public static bool IsComboSkill(int skillId) => skillId is 2 or 3 or 4 or 5;
 
-    /// <summary>
-    /// SkillId(패킷 int) → 어빌리티 정의. 데이터=임베디드 abilities.json(클라 `AbilityDefinition` SO 저작→bake, AC-B).
-    ///
-    /// int→어빌리티 매핑은 **데이터**(`AbilityDefinition.networkId`)다 — 과거의 하드코딩 switch 는 제거됐다.
-    /// → 스킬을 추가해도 **서버 코드 수정이 필요 없다**(SO 저작 + Export + 서버 재빌드로 끝). 설계 = ability-so-authoring.md.
-    /// 미등록 networkId 는 null → 호출자가 발동을 거부한다(조작된 SkillId 방어).
-    /// </summary>
+    /// <summary>SkillId → 어빌리티 정의. 미등록이면 null → 발동 거부.</summary>
     public static AbilityDef? ResolveAbility(int skillId) => AbilityCatalog.Get(skillId);
 
-    /// <summary>발동 판정 데이터(타임라인·hitbox·on-hit)만 필요한 호출자용 축약.</summary>
     public static SkillTimeline? ResolveSkill(int skillId) => ResolveAbility(skillId)?.Timeline;
 
     [PacketHandler(typeof(C_Attack))]
@@ -75,21 +54,17 @@ public static class CombatHandler
         }
         var skill = ability.Timeline;
 
-        // 액터 직접 조회(O(1)). 예전엔 전체 플레이어를 순회해 UserId 로 찾았다.
         var attacker = room.Actors.GetMember(session.UserId)?.Actor;
         if (attacker is null)
             return;
-
-        // 0a-0) 상태 태그 게이트(권위). 다운(State.Dead)·스턴 중에는 발동 자체가 불가하다.
-        //       다운 판정이 액터의 태그로 통일됐기 때문에 종족 구분 없이 같은 규칙을 쓴다.
+        
         if (attacker.Gas.IsActivationBlocked)
         {
             CombatTrace.Gate(CombatGate.Blocked, actorId, ability.NetworkId, ability.Id, recvMs);
             return;
         }
 
-        // 0a) 마나 게이트(권위). 부족하면 발동 거부 + owner 에게 현재 마나 정정(클라 예측 차감 되돌림).
-        //     쿨다운보다 먼저 본다 — 마나 부족으로 거부될 발동이 쿨다운 슬롯을 소모하지 않게.
+        // 마나는 쿨다운보다 먼저 — 거부될 발동이 쿨다운 슬롯을 소모하지 않게.
         if (attacker.Gas[EGameplayAttribute.Mana] < skill.ManaCost)
         {
             CombatTrace.Gate(CombatGate.NoMana, actorId, ability.NetworkId, ability.Id, recvMs);
@@ -99,9 +74,7 @@ public static class CombatHandler
 
         long startTick = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-        // 0b-1) 콤보 cadence 게이트(권위, **데이터 주도**). 직전 콤보 스윙의 SkillTimeline.ComboChainMs 가
-        //       지나기 전의 다음 콤보 공격은 거부 → A→B→C 즉시 3연타(합산 폭딜) 치팅 차단.
-        //       타이밍 진실원 = skills.json(SO 저작) — 클라 ComboDriver 가 쓰는 값과 동일하므로 서버·클라가 어긋나지 않는다.
+        // 콤보 즉시 연타(A→B→C 합산 폭딜) 차단.
         if (IsComboSkill(packet.SkillId)
             && !attacker.TryBeginComboAttack(startTick, skill.ComboChainMs, ComboMinIntervalMs, ComboCadenceToleranceMs))
         {
@@ -109,51 +82,33 @@ public static class CombatHandler
             return;
         }
 
-        // 0b-2) 서버 발동 게이트(권위 쿨다운). 쿨다운 중이면 발동 거부 → 데미지 0.
-        //     쿨다운 저장소는 액터의 GAS 하나 — 플레이어·몬스터가 같은 키(abilityId)·같은 판정을 쓴다.
         if (!attacker.Gas.TryBeginAbility(ability.Id, skill.CooldownMs, startTick))
         {
             CombatTrace.Gate(CombatGate.OnCooldown, actorId, ability.NetworkId, ability.Id, startTick);
             return;
         }
 
-        // 0c) 마나 차감(권위) + owner 정정. 무료 스킬(basic_swing, cost 0)은 차감/정정 패킷 모두 생략.
         if (skill.ManaCost > 0)
         {
             attacker.Gas.TrySpendMana(skill.ManaCost);
             await SendManaAsync(session, attacker, ct);
         }
 
-        // 0d) 원격 연출 브로드캐스트(AC 통합) — 서버 게이트(마나·쿨다운)를 통과한 스윙만 알린다.
-        //     플레이어·몬스터 공용 S_AbilityActivated{ActorId} 한 파이프로 흡수(actor-combat-architecture §4.2).
-        //     플레이어 ActorId = 양수 UserId. 연사 치팅이 원격 애니로 새지 않는다. 적중/데미지는 아래 S_ApplyEffect·S_MonsterState 가 담당.
+        // 게이트를 통과한 스윙만 원격 연출로 알린다.
         room.Sessions.Broadcast(new S_AbilityActivated
         {
             ActorId = ActorIds.FromPlayer(session.UserId),
             SkillId = packet.SkillId,
         });
 
-        // 1) 아군 오사 없음 — Co-op PvE 라 플레이어 공격은 <b>플레이어를 대상으로 삼지 않는다</b>(2026-08-22 결정).
-        //
-        //    예전엔 hitbox 안의 아군에게 S_ApplyEffect(피해)를 브로드캐스트했는데, 그 경로는
-        //    **클라 HP 만 깎고 서버 액터의 HP 는 건드리지 않았다**(HP 서버 권위 승격 때 몬스터→플레이어만 옮겨짐).
-        //    그래서 파티가 붙어 싸우면 클라가 서버보다 먼저 0 에 도달 → 클라는 사망 애니를 재생하는데
-        //    서버는 살아 있다고 봐 S_PlayerDead 를 영영 발행하지 않았다(실측: 몬스터 공격 7회 vs 클라 피해 14회).
-        //    아군 오사를 없애면 "클라만 깎는 HP" 경로 자체가 사라져 두 값이 항상 일치한다.
-        //    ※ PvP 를 도입한다면 여기서 되살리되 반드시 room.ApplyPlayerEffect 로 서버 HP 도 함께 차감해야 한다.
-
-        // 2) 몬스터 피격 → 서버 권위 HP 차감(GAS) → S_MonsterState / S_MonsterDead — 신규(⑤)
+        // 아군 오사 없음(Co-op PvE). PvP 도입 시 room.ApplyPlayerEffect 로 서버 HP 도 함께 차감해야 한다
+        // — 클라 HP 만 깎으면 서버가 S_PlayerDead 를 발행하지 못한다.
         ApplyAttackToMonsters(session, room, ability, attacker, recvMs);
     }
 
-    /// <summary>
-    /// 데미지 S_ApplyEffect 의 **단일 라벨**(AC-B 안B). 수치는 이 effect 가 아니라 `ability.BaseDamage` 가 정하고
-    /// 서버가 Amount(권위 델타)로 실어 보낸다 — 클라는 healthOverride 로 그대로 적용한다.
-    /// (폐기된 basic_attack_dmg/combo_*_dmg/monster_attack_dmg 대체)
-    /// </summary>
+    /// <summary>데미지 S_ApplyEffect 의 라벨. 수치는 ability.BaseDamage 를 서버가 Amount 로 실어 보낸다.</summary>
     public const string AbilityDamageEffectId = "ability_damage";
 
-    /// <summary>owner(시전 세션)에게 현재 권위 마나를 정정 전송(차감/거부 시점). 리젠은 보내지 않는다.</summary>
     private static Task SendManaAsync(Session session, PlayerActor actor, CancellationToken ct)
         => session.SendPacketAsync(new S_PlayerMana
         {
@@ -162,12 +117,7 @@ public static class CombatHandler
             MaxMana = actor.Gas.Max(EGameplayAttribute.Mana),
         }, ct);
 
-    /// <summary>
-    /// 어빌리티 데미지를 스탯으로 스케일해 Health 모디파이어로 만든다(2.4 + AC-B 안B). 순수 — 단위 테스트 대상.
-    /// <b>데미지 출처 = <c>ability.BaseDamage</c></b>(effect 카탈로그 수치가 아니라) →
-    /// `StatCombatMath.MeleeDamage(baseDamage, attackPower, defense)`. 몬스터→플레이어와 동일 산식.
-    /// on-hit effect(CC/버프)는 여기 포함하지 않는다 — 별도 S_ApplyEffect 로 부여한다(역할 분리).
-    /// </summary>
+    /// <summary>ability.BaseDamage 를 공격력·방어력으로 스케일한 Health 모디파이어. on-hit CC 는 별도.</summary>
     public static List<GameplayAttributeModifier> BuildDamageMods(AbilityDef ability, int attackPower, int defense)
     {
         int finalDamage = StatCombatMath.MeleeDamage(ability.BaseDamage, attackPower, defense);
@@ -177,15 +127,8 @@ public static class CombatHandler
         };
     }
 
-    /// <summary>
-    /// 시전자 hitbox 와 겹치는 몬스터에 on-hit 효과를 GAS Health 모디파이어로 적용(서버 권위).
-    /// 사망 시 S_MonsterDead, 생존 시 갱신된 HP 를 S_MonsterState 로 즉시 브로드캐스트.
-    /// </summary>
     private static void ApplyAttackToMonsters(Session session, global::Server.Room.Room room, AbilityDef ability, PlayerActor attacker, long recvMs)
     {
-        // 스탯 기반 데미지: **어빌리티 baseDamage** 를 base 로 시전자 AttackPower 로 스케일.
-        // 대상 Defense 는 그 액터의 GAS 에서 읽는다 — 예전의 const int MonsterDefense = 0 이 사라진 자리
-        // (몬스터가 방어 스탯을 갖게 되면 이 코드는 그대로 두고 스폰 데이터만 채우면 된다).
         var attackerPos = new Vector3(attacker.PosX, attacker.PosY, attacker.PosZ);
         bool anyKilled = false;
 
@@ -199,12 +142,12 @@ public static class CombatHandler
                 continue;
 
             var mods = BuildDamageMods(ability, attacker.Gas[EGameplayAttribute.AttackPower], monster.Gas[EGameplayAttribute.Defense]);
-            int hpBefore = monster.Gas[EGameplayAttribute.Health]; // 차감 전 스냅샷 — 트레이스의 hp before→after 근거
+            int hpBefore = monster.Gas[EGameplayAttribute.Health];
             var (hit, newHp, dead) = room.Actors.DamageMonster(monster.InstanceId, mods);
             if (!hit)
                 continue;
 
-            int stateSeq = 0; // 사망이면 S_MonsterState 가 없어 상관키도 없다(0).
+            int stateSeq = 0;
             if (dead)
             {
                 anyKilled = true;
@@ -215,15 +158,10 @@ public static class CombatHandler
             {
                 stateSeq = monster.NextSeq();
                 room.Sessions.Broadcast(global::Server.Room.RoomSimulation.BuildMonsterState(monster, newHp, stateSeq));
-                // ※ 여기서 MarkStateSent() 를 호출하지 않는다(AC-C3-hotfix).
-                //   AC-C3(Seq) 로 클라가 스테일을 버리게 된 뒤에도 이 생략은 그대로 둔다:
-                //   마킹하면 다음 틱이 재전송을 포기하는데, 그 상태에서 Seq 판정에 구멍이 생기면
-                //   되돌릴 방법이 없다. 마킹을 생략하면 다음 틱이 무조건 재전송해 **자가 교정**된다
-                //   = Seq(순서 무효화) + 재전송(자가 교정)의 이중 안전망. 비용은 피격당 1패킷뿐.
+                // MarkStateSent() 를 일부러 생략 — 다음 틱이 무조건 재전송해 자가 교정한다(Seq 와 이중 안전망).
             }
 
-            // 트레이스는 브로드캐스트 **뒤**에 남긴다 — 이 HP 를 실어 나른 패킷의 Seq 를 상관키로 싣기 위해.
-            // (직전 Seq 를 찍으면 클라 로그와 조인이 어긋난다.)
+            // 브로드캐스트 뒤에 남긴다 — 이 HP 를 실은 패킷의 Seq 가 클라 로그와의 상관키.
             CombatTrace.Damage(
                 CombatPath.PlayerToMonster, CombatTrace.FormulaMelee,
                 attacker.ActorId, monster.ActorId,
@@ -234,25 +172,18 @@ public static class CombatHandler
                 recvMs, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), stateSeq);
         }
 
-        // 클리어 감지: 이번 스윙으로 몬스터가 죽었고, 그 결과 전멸이면 1회만 발화.
-        // S_DungeonClear(클라 결과화면) + DungeonClearMessage(GameServer 보상) 두 경로로 통지.
+        // 전멸 시 1회만: 클라 결과화면 + GameServer 보상.
         if (anyKilled && room.Progress.TryMarkCleared())
         {
-            // 표시용 보상 = 지급(GameServer)과 동일 Shared 카탈로그 값(검증 가능).
             long rewardExp = SpawnLayoutTable.Get(room.MapId).ExpReward;
             room.Sessions.Broadcast(new S_DungeonClear { RoomId = room.RoomId, RewardExp = rewardExp });
             session.RoomManager.PublishDungeonClear(room);
         }
     }
 
-    /// <summary>
-    /// 몬스터 사망 시 drop roll(서버 권위) → 바닥 아이템 스폰 → S_SpawnGroundItem 브로드캐스트.
-    /// roll 은 itemId 문자열 + 확률만 다루며(정의는 GameServer 소유), 지급은 줍기 확정 시 별도 경로(loot-drop.md §1).
-    /// 자동 지급이 아니라 월드에 떨어뜨리기만 한다 — 플레이어가 줍기(C_PickupItem)로 "먹을지" 선택.
-    /// </summary>
+    /// <summary>사망 몬스터 드롭을 바닥에 스폰만 한다. 지급은 줍기(C_PickupItem) 확정 시.</summary>
     private static void SpawnDrops(global::Server.Room.Room room, MonsterActor monster)
     {
-        // AC-E4/G: 레벨을 반영해 굴린다(수량 = 보상 감각). 등급별 확률은 **변종 자기 ID 의 드롭 테이블**이 갖는다.
         var drops = DropTableCatalog.Roll(monster.MonsterId, Random.Shared, monster.Level);
         foreach (var drop in drops)
         {

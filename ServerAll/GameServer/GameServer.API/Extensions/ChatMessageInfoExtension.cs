@@ -7,8 +7,7 @@ public static class ChatMessageInfoExtension
 {
     public static ChatMessageInfo ToGrpc(this ChatMessage msg)
     {
-        // proto 주석은 "Unix timestamp"라 초/밀리초가 애매함.
-        // 여기서는 ms 기준으로 보냄(클라에서 통일 필요). 필요하면 ToUnixTimeSeconds로 변경.
+        // proto 에 단위 명시가 없어 ms 로 보낸다 — 클라도 ms 로 읽어야 한다.
         var sentAtUnixMs = new DateTimeOffset(msg.SentAt, TimeSpan.Zero).ToUnixTimeMilliseconds();
 
         return new ChatMessageInfo

@@ -8,7 +8,7 @@ using Shared.Infrastructure.Spawn;
 namespace GameServer.Tests.Infrastructure.Integrations;
 
 /// <summary>
-/// Main 위치 저장소(B7) — **Redis 1차 / DB 확정** 이라는 이 도메인만의 예외를 고정한다.
+/// Main 위치 저장소 — **Redis 1차 / DB 확정** 이라는 이 도메인만의 예외를 고정한다.
 ///
 /// 다른 저장소는 "DB 저장 → 캐시 DEL" 인데, 위치는 주기 보고라 쓰기가 매우 잦고 유실이 허용된다.
 /// 그래서 주기 쓰기는 Redis 로만 가고 이탈 시점에 한 번 DB 로 확정한다 —

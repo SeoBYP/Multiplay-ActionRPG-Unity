@@ -12,7 +12,6 @@ namespace GameServer.Infrastructure.Domains.Reward;
 ///
 /// 호출자는 **지급 1건당 새 스코프**를 열어야 한다. 실패 시 DbContext 변경 추적기에
 /// 롤백된 변경이 남아, 같은 컨텍스트로 다음 지급을 저장하면 그것까지 함께 새어 나가기 때문이다.
-/// (같은 부류의 사고 기록 = codemap §2.107 ② Register 롤백 자기파괴)
 /// </summary>
 public sealed class RewardLedger(
     GameServerDbContext context,
@@ -43,7 +42,6 @@ public sealed class RewardLedger(
             // 원장을 먼저 쓴다 — 동시 중복은 여기서 UNIQUE 위반으로 걸러진다.
             await context.SaveChangesAsync(ct);
 
-            // 같은 트랜잭션 안에서 실제 지급.
             await grant(ct);
 
             await tx.CommitAsync(ct);

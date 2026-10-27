@@ -9,7 +9,7 @@ using Server.PacketHandler.Handler;
 namespace Server.Tests.Monster;
 
 /// <summary>
-/// M3 ⑤b + AC: 몬스터→플레이어 공격. Attack 페이즈 + 발동 게이트(AbilityActivationMath) 통과 시 최근접 플레이어에
+/// 몬스터→플레이어 공격. Attack 페이즈 + 발동 게이트(AbilityActivationMath) 통과 시 최근접 플레이어에
 /// ability_damage(S_ApplyEffect, 수치=ability.BaseDamage)를 발행하고, 통합 발동 연출 신호 S_AbilityActivated(ActorId=-instanceId)를 함께 브로드캐스트한다.
 /// </summary>
 public class MonsterAttackTests
@@ -35,7 +35,7 @@ public class MonsterAttackTests
         // creepy_demon 은 데미지(ability_damage) 단일 효과(CC 없음). CC 부여 검증은 arachnya 테스트가 담당.
         var atk1 = p1.OfType<S_ApplyEffect>().Single(e => e.EffectId == CombatHandler.AbilityDamageEffectId);
         Assert.Equal(100, atk1.TargetId);
-        Assert.Equal(ActorIds.FromMonster(1), atk1.SourceId); // AC: 몬스터 = -instanceId(첫 스폰=1)
+        Assert.Equal(ActorIds.FromMonster(1), atk1.SourceId); // 몬스터 = -instanceId(첫 스폰=1)
 
         // 즉시 다시 틱 → 쿨다운(1500ms) 내라 공격 없음
         var p2 = room.Tick(0.1f, t0 + 100);
@@ -114,7 +114,7 @@ public class MonsterAttackTests
         Assert.Single(room.Tick(0.1f, 1_000_000).OfType<S_ApplyEffect>().Where(e => e.EffectId == CombatHandler.AbilityDamageEffectId));
 
         // 실제로 HP 를 0 으로 만든다 → State.Dead 태그가 붙어 타깃에서 빠진다 → 쿨다운 지나도 공격 없음.
-        // (만피인 채로 TryMarkFailed 만 부르던 예전 방식은 이제 거부된다 — 다운도 서버 권위다.)
+        // (다운도 서버 권위 — TryMarkFailed 신고만으로는 타깃에서 빠지지 않는다.)
         room.Progress.ApplyPlayerEffect(100, new[]
         {
             GameplayAttributeModifier.Create(EGameplayAttribute.Health, -9999, EModifierType.Additive),
@@ -127,7 +127,7 @@ public class MonsterAttackTests
     [Fact]
     public void 몬스터_공격시_S_AbilityActivated_발동신호를_함께_브로드캐스트한다()
     {
-        // AC: 데미지(S_ApplyEffect)와 별개로 "이 액터가 스킬을 썼다" 통합 신호 → 클라 ActorRegistry 가 스윙 애니 재생.
+        // 데미지(S_ApplyEffect)와 별개로 "이 액터가 스킬을 썼다" 통합 신호 → 클라 ActorRegistry 가 스윙 애니 재생.
         var room = NewRoom();
         room.AddPlayer(100, "A", 0, 0.5f, 0f, 0f, 0f);
         room.MarkJoined(100);
@@ -139,7 +139,7 @@ public class MonsterAttackTests
 
         Assert.Equal(ActorIds.FromMonster(1), act.ActorId); // 몬스터 = -1(첫 스폰)
         Assert.True(ActorIds.IsMonster(act.ActorId));
-        // AC-B B4: 몬스터 공격도 어빌리티 → SkillId = creepy_demon_attack 의 networkId(데이터 저작값).
+        // 몬스터 공격도 어빌리티 → SkillId = creepy_demon_attack 의 networkId(데이터 저작값).
         Assert.Equal(Shared.Infrastructure.Abilities.AbilityCatalog.Get("creepy_demon_attack")!.NetworkId, act.SkillId);
     }
 

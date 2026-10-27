@@ -32,7 +32,7 @@ public class ItemCatalogDataTests
     [Fact]
     public void CombatEffectCatalog가_코드시드_제거후_소모품_회복을_JSON에서_흡수한다()
     {
-        // potion_hp_small 은 GameplayEffectCatalog 코드 시드에서 제거됐다.
+        // potion_hp_small 은 GameplayEffectCatalog 코드 시드에 없다.
         // CombatEffectCatalog static ctor 가 bake JSON 을 Register 로 흡수해야 이 조회가 성립한다(단일소스 배선).
         var mods = CombatEffectCatalog.Resolve("1001");
 
@@ -45,7 +45,7 @@ public class ItemCatalogDataTests
     public void 전투_효과는_여전히_코드시드에서_해석된다()
     {
         // 전투 효과(서버 게임밸런스 권위)는 코드 시드 유지 — 소모품 흡수가 전투 조회를 깨면 안 된다(회귀 가드).
-        // ※ 데미지 effect(*_dmg)는 AC-B B5 에서 폐기(수치=ability.baseDamage) → CC 효과로 검증한다.
+        // ※ 데미지는 ability.baseDamage 가 소유하므로 CC 효과로 검증한다.
         var mods = CombatEffectCatalog.Resolve("slow_3s");
 
         Assert.NotNull(new GameplayEffectCatalog().Get("slow_3s"));

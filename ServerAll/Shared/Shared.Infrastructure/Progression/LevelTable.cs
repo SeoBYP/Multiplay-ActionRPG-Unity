@@ -106,7 +106,7 @@ public static class LevelTable
     }
 }
 
-/// <summary>레벨에서 파생된 base 스탯 묶음(2.4 스탯합산의 입력).</summary>
+/// <summary>레벨에서 파생된 base 스탯 묶음(스탯합산의 입력).</summary>
 public readonly record struct LevelStats(
     int MaxHealth, int MaxMana, int AttackPower, int Defense,
     int Strength, int Dexterity, int Intelligence);

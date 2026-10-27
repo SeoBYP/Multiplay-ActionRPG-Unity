@@ -90,7 +90,7 @@ public static class SpawnLayoutTable
         /// <summary>던전 클리어 시 참가자 전원에게 지급할 경험치. 누락 시 0(보상 없음).</summary>
         public long ExpReward { get; set; }
 
-        /// <summary>이 던전 몬스터의 기본 레벨(AC-E2). 누락 시 0 = L1 — 기존 JSON 이 그대로 동작한다.</summary>
+        /// <summary>이 던전 몬스터의 기본 레벨. 누락 시 0 = L1.</summary>
         public int MonsterLevel { get; set; }
     }
 
@@ -121,14 +121,14 @@ public static class SpawnLayoutTable
         public int Wave { get; set; }
         public List<PatrolDto> Patrol { get; set; } = new();
 
-        /// <summary>이 스폰만의 레벨(AC-E2). 0 = 맵 기본(<c>MapEntry.MonsterLevel</c>) 사용.
-        /// 등급은 여기 없다 — **monsterId 가 곧 변종**이다(AC-G).</summary>
+        /// <summary>이 스폰만의 레벨. 0 = 맵 기본(<c>MapEntry.MonsterLevel</c>) 사용.
+        /// 등급은 여기 없다 — **monsterId 가 곧 변종**이다.</summary>
         public int Level { get; set; }
 
-        /// <summary>Main B-lite 클레임 키(슬롯 안정 식별자). 던전 미사용(기본 0). main-spawn-claim.md.</summary>
+        /// <summary>Main 클레임 키(슬롯 안정 식별자). 던전 미사용(기본 0).</summary>
         public int SlotId { get; set; }
 
-        /// <summary>Main B-lite 재청구 쿨다운(ms) = 파밍률 상한. 던전 미사용(기본 0).</summary>
+        /// <summary>Main 재청구 쿨다운(ms) = 파밍률 상한. 던전 미사용(기본 0).</summary>
         public int RespawnCooldownMs { get; set; }
     }
 

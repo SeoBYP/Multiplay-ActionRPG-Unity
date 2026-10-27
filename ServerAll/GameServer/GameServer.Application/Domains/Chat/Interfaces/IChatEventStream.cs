@@ -7,7 +7,7 @@ public interface IChatEventStream
     public Task PublishAsync(string channel, ChatMessage message, CancellationToken ct);
     
     IAsyncEnumerable<ChatMessage> ReadAsync(
-        IReadOnlyList<string> channels,  // 여러 채널 동시에
+        IReadOnlyList<string> channels,
         string lastMessageId,
         CancellationToken ct = default);
 }

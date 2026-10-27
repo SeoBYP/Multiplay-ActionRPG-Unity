@@ -34,7 +34,6 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
-    // 1) Environment Variables
     var envPaths = new[]
     {
         Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..\\..\\..\\..\\..\\Infra\\.env")),
@@ -52,7 +51,6 @@ try
         }
     }
 
-    // 2) Kestrel endpoints / protocols
     builder.WebHost.ConfigureKestrel(options =>
     {
         // REST/Swagger/SignalR: HTTP/1.1
@@ -62,7 +60,6 @@ try
         options.ListenAnyIP(5132, listen => listen.Protocols = HttpProtocols.Http2);
     });
 
-    // 3) Services
     var serviceInstaller = new ServiceInstaller();
     serviceInstaller.Install(builder.Services, builder.Configuration);
     var dataBaseInstaller = new DataBaseInstaller();
@@ -72,7 +69,6 @@ try
     builder.Services.Configure<HostOptions>(o =>
         o.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
 
-    // Domain DI registrations
     new CommonInstaller().Install(builder.Services, builder.Configuration);
     new UserInstaller().Install(builder.Services, builder.Configuration);
     new AuthInstaller().Install(builder.Services, builder.Configuration);
@@ -80,7 +76,6 @@ try
     new DungeonInstaller().Install(builder.Services, builder.Configuration);
     new InventoryInstaller().Install(builder.Services, builder.Configuration);
     
-    // 기존 ILogger 대신 Serilog 사용
     builder.Host.UseSerilog();
 
     var app = builder.Build();
@@ -91,7 +86,6 @@ try
         await dbContext.Database.MigrateAsync();
     }
 
-    // 4) Middleware pipeline
     var middlewareInstaller = new MiddlewareInstaller();
     middlewareInstaller.Install(app);
     

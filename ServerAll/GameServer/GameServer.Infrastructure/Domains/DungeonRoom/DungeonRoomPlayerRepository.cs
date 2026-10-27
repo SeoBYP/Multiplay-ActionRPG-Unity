@@ -176,7 +176,6 @@ public class DungeonRoomPlayerRepository(
                 await context.SaveChangesAsync(ct);
             }
 
-            // dbPlayers 기준으로 직접 캐시 삭제
             var deleteTasks = dbPlayers.Select(p => DeleteDungeonRoomPlayerCacheAsync(roomId, p.UserId));
             await Task.WhenAll(deleteTasks);
 

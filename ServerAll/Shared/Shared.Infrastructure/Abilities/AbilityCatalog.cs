@@ -6,15 +6,11 @@ using Script.System.GamePlayAbilitySystem;
 namespace Shared.Infrastructure.Abilities;
 
 /// <summary>
-/// abilityId / networkId → <see cref="AbilityDef"/> (게임플레이 판정 데이터). AC-B 단일 저작의 서버 측 조회.
-/// 데이터 진실원 = 클라 `AbilityDefinition` SO 저작 → `AbilityCatalogExporter` bake → 임베디드 abilities.json
-/// (DropTable/Monster/Skill 과 동일 교리, gas-architecture §2.5 / 설계 = ability-so-authoring.md).
+/// abilityId / networkId → <see cref="AbilityDef"/> (게임플레이 판정 데이터).
+/// 데이터 진실원 = 클라 `AbilityDefinition` SO 저작 → `AbilityCatalogExporter` bake → 임베디드 abilities.json.
 ///
-/// 서버(UnityEngine 0)가 읽어 발동 게이트(쿨다운·마나)·hitbox·데미지·on-hit 를 권위 판정한다.
-/// <b>Cue(애니 트리거)는 이 JSON 에 없다</b> — 연출은 클라 전용(gas §2: "서버는 Cue 를 하나도 모른다").
-///
-/// ※ B1 단계에서는 로드·조회만 제공하고 아무도 사용하지 않는다(기존 skills.json 경로 그대로).
-///   B2 에서 `CombatHandler.ResolveSkill` 하드코딩 switch 를 이 카탈로그 조회로 대체한다.
+/// 서버가 읽어 발동 게이트(쿨다운·마나)·hitbox·데미지·on-hit 를 권위 판정한다.
+/// <b>Cue(애니 트리거)는 이 JSON 에 없다</b> — 연출은 클라 전용이다.
 /// </summary>
 public static class AbilityCatalog
 {
@@ -30,7 +26,7 @@ public static class AbilityCatalog
     public static AbilityDef? Get(int networkId)
         => Data.Value.ByNetworkId.TryGetValue(networkId, out var a) ? a : null;
 
-    /// <summary>등록된 전체 어빌리티(디버그·검증용).</summary>
+    /// <summary>등록된 전체 어빌리티.</summary>
     public static IReadOnlyList<AbilityDef> All => Data.Value.All;
 
     private static Tables LoadEmbedded()
@@ -114,9 +110,9 @@ public static class AbilityCatalog
 
 /// <summary>
 /// 한 어빌리티의 서버 측 정의 — 게임플레이 전부. Cue 없음(클라 전용).
-/// <paramref name="Timeline"/> = 기존 <see cref="SkillTimeline"/>(쿨다운·hitbox·on-hit·콤보) 재사용.
+/// <paramref name="Timeline"/> = <see cref="SkillTimeline"/>(쿨다운·hitbox·on-hit·콤보).
 /// </summary>
-/// <param name="BaseDamage">스탯 스케일 전 base 데미지(AC-B 안B: 플레이어·몬스터 공용 데미지 출처).</param>
+/// <param name="BaseDamage">스탯 스케일 전 base 데미지(플레이어·몬스터 공용 데미지 출처).</param>
 /// <param name="ActivationRange">발동 가능 사거리(m). 몬스터 AI 의 "지금 쏠 수 있나" 판정.</param>
 public sealed record AbilityDef(
     string Id,

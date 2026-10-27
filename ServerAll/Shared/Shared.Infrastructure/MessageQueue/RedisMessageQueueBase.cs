@@ -8,8 +8,7 @@ namespace Shared.Infrastructure.MessageQueue;
 /// <summary>
 /// Redis Stream 기반 메시지 큐의 공통 베이스.
 ///
-/// 소비 측(Consumer Group) 루프는 7개 큐가 **같은 코드를 각자 복사**해 갖고 있었다(~120줄 × 7).
-/// PEL 회수 같은 보강을 넣으려면 7곳을 똑같이 고쳐야 했으므로 루프를 여기 한 벌로 모았다.
+/// 소비 측(Consumer Group) 루프를 여기 한 벌로 둔다 — 큐마다 복사하지 않는다.
 /// 파생 큐는 스트림 키·그룹 이름·직렬화만 제공하고 <see cref="ConsumeGroupAsync"/> 를 호출한다.
 /// </summary>
 public abstract class RedisMessageQueueBase<T> : IMessageQueue<T> where T : class

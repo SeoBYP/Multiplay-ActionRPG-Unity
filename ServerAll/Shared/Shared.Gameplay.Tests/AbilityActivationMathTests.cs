@@ -4,7 +4,7 @@ using Script.System.GamePlayAbilitySystem;
 namespace Shared.Gameplay.Tests;
 
 /// <summary>
-/// 어빌리티 발동 게이트(actor-combat-architecture §3) 검증. 클라 예측·서버 권위가 공유하는 순수 규칙 —
+/// 어빌리티 발동 게이트 검증. 클라 예측·서버 권위가 공유하는 순수 규칙 —
 /// 쿨다운·마나·차단태그 판정과 그 우선순위(Blocked → Cooldown → Mana)를 못 박는다.
 /// </summary>
 public class AbilityActivationMathTests

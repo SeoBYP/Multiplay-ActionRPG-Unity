@@ -6,14 +6,9 @@ using Shared.Infrastructure.Spawn;
 namespace GameServer.Application.Domains.User;
 
 /// <summary>
-/// Main 위치 지속화(B7) 구현.
-///
-/// **서버가 검증하는 것은 맵 경계 하나다** — 그것만이 서버가 가진 재료다.
-/// `spawn-layouts` 는 서버가 임베디드로 읽는 저작 진실원이라 맵 경계와 스폰 포인트를 안다.
-/// 반면 내비메시는 클라 자산이고, 진입 게이트 시스템은 아직 존재하지 않는다(2026-08-25 실측).
-///
-/// 경계 밖 좌표를 **clamp 하지 않고 저작 스폰으로 스냅**하는 이유: clamp 는 경계선 위의 임의 점이라
-/// 지형 밖·벽 안일 수 있다. 저작 스폰은 사람이 "여기서 시작해도 된다"고 찍은 점이라 안전하다.
+/// Main 위치 지속화 구현. 서버가 검증하는 것은 맵 경계 하나다(`spawn-layouts` 가 맵 경계와 스폰 포인트를 안다).
+/// 경계 밖 좌표를 clamp 하지 않고 저작 스폰으로 스냅하는 이유: clamp 는 경계선 위의 임의 점이라 벽 안일 수 있고,
+/// 저작 스폰은 사람이 시작 가능하다고 찍은 안전한 점이다.
 /// </summary>
 public sealed class UserPositionService(
     IUserPositionRepository repository,
@@ -36,7 +31,7 @@ public sealed class UserPositionService(
             var fallback = NearestSpawn(layout, x, z);
             if (fallback is null)
             {
-                // 경계는 있는데 스폰이 없는 맵 — 스냅 대상이 없으니 저장하지 않는다(잘못된 좌표를 남기지 않는다).
+                // 스냅 대상이 없으면 저장하지 않는다(잘못된 좌표를 남기지 않는다)
                 logger.LogWarning("[Position] 경계 밖인데 스냅할 스폰이 없다 mapId={MapId} (user {UserId})", mapId, userId);
                 return new SavePositionResult(Accepted: false, Snapped: false);
             }
@@ -61,7 +56,7 @@ public sealed class UserPositionService(
     public Task FlushAsync(long userId, CancellationToken ct = default)
         => repository.FlushToDatabaseAsync(userId, ct);
 
-    /// <summary>XZ 평면 최근접 저작 스폰. 스폰이 없으면 null.</summary>
+    /// <summary>XZ 평면 최근접 저작 스폰. 없으면 null.</summary>
     private static SpawnPoint? NearestSpawn(MapSpawnLayout layout, float x, float z)
     {
         SpawnPoint? best = null;

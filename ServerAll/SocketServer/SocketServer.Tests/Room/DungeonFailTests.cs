@@ -8,9 +8,7 @@ namespace Server.Tests.Room;
 /// <summary>
 /// 던전 실패(참가자 전원 다운) 집계 + 클리어/실패 상호 배타(Room._outcome).
 ///
-/// <para><b>다운은 액터의 상태다</b> — 예전엔 별도 <c>_downed</c> HashSet 이 진실원이라
-/// 참가자를 만들지 않고 <c>TryMarkFailed(id)</c> 만 불러도 다운으로 집계됐다.
-/// 지금은 <b>서버 HP 가 0 이어야</b> <see cref="GameplayTags.Dead"/> 태그가 붙고, 그 태그가 곧 집계 근거다.
+/// <para><b>다운은 액터의 상태다</b> — <b>서버 HP 가 0 이어야</b> <see cref="GameplayTags.Dead"/> 태그가 붙고, 그 태그가 곧 집계 근거다.
 /// 그래서 이 테스트들은 실제로 플레이어를 만들고 실제로 죽인다.</para>
 /// </summary>
 public class DungeonFailTests

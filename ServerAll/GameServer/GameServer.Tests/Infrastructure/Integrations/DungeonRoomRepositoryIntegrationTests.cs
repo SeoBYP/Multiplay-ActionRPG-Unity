@@ -16,7 +16,6 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task Create_ShouldSaveToDbAndCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var host = await userRepo.CreateAsync();
@@ -25,10 +24,8 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
         long hostId = host.UserId;
         string roomName = "Test Room";
 
-        // Act
         var room = await repository.CreateAsync(hostId, roomName);
 
-        // Assert
         Assert.NotNull(room);
         Assert.True(room.RoomId > 0);
 
@@ -50,25 +47,23 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task MapId_ShouldRoundTripThroughDbRedisAndCacheMiss()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var host = await userRepo.CreateAsync();
 
         var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
 
-        // Act
         var room = await repository.CreateAsync(host.UserId, "Map Room", 4, "dungeon_01");
 
-        // Assert: DB 컬럼
+        // DB 컬럼
         var dbRoom = await context.DungeonRooms.AsNoTracking().SingleAsync(r => r.RoomId == room!.RoomId);
         Assert.Equal("dungeon_01", dbRoom.MapId);
 
-        // Assert: Redis Hash 필드(ToHashEntry)
+        // Redis Hash 필드(ToHashEntry)
         var entries = await _fixture.RedisConnection.GetDatabase().HashGetAllAsync(RedisKeys.DungeonRoom(room!.RoomId));
         Assert.Equal("dungeon_01", entries.First(e => e.Name == "MapId").Value.ToString());
 
-        // Assert: 캐시 MISS → DB 재구성 시에도 MapId 복원(ParseFromRedis 경로 제외, DB→FromRedis)
+        // 캐시 MISS → DB 재구성 시에도 MapId 복원
         await _fixture.RedisConnection.GetDatabase().KeyDeleteAsync(RedisKeys.DungeonRoom(room.RoomId));
         var reloaded = await repository.GetByIdAsync(room.RoomId);
         Assert.Equal("dungeon_01", reloaded!.MapId);
@@ -77,7 +72,6 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task Read_HIT_ShouldReturnFromCacheWithoutDbQuery()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var host = await userRepo.CreateAsync();
@@ -85,14 +79,12 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
         var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
         var room = await repository.CreateAsync(host.UserId, "Hit Room");
 
-        // Act
         // DB에서 직접 삭제하여 캐시 히트를 증명 (DB에 없는데 반환되면 캐시에서 가져온 것)
         context.DungeonRooms.Remove(room!);
         await context.SaveChangesAsync();
 
         var cachedRoom = await repository.GetByIdAsync(room!.RoomId);
 
-        // Assert
         Assert.NotNull(cachedRoom);
         Assert.Equal("Hit Room", cachedRoom.RoomName);
     }
@@ -100,7 +92,6 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task Read_MISS_ShouldLoadFromDbAndReCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var host = await userRepo.CreateAsync();
@@ -108,13 +99,11 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
         var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
         var room = await repository.CreateAsync(host.UserId, "Miss Room");
 
-        // Act
         // Redis 캐시 강제 삭제
         await _fixture.RedisConnection.GetDatabase().KeyDeleteAsync(RedisKeys.DungeonRoom(room!.RoomId));
 
         var dbRoom = await repository.GetByIdAsync(room.RoomId);
 
-        // Assert
         Assert.NotNull(dbRoom);
         Assert.Equal("Miss Room", dbRoom.RoomName);
 
@@ -127,7 +116,6 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task Update_ShouldUpdateDbAndInvalidateCache()
     {
-        // Arrange
         long roomId;
         long hostId;
         const int initialMaxPlayers = 4;
@@ -144,7 +132,6 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
             roomId = room!.RoomId;
         }
 
-        // Act
         using (var actContext = _fixture.CreateDbContext())
         {
             var dbRoomToUpdate = await actContext.DungeonRooms.FindAsync(roomId);
@@ -156,7 +143,6 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
             await repository.UpdateAsync(dbRoomToUpdate); // 캐시 무효화
         }
 
-        // Assert
         // DB 확인 (새 context 사용)
         using var assertContext = _fixture.CreateDbContext();
         var dbRoom = await assertContext.DungeonRooms.AsNoTracking().FirstOrDefaultAsync(r => r.RoomId == roomId);
@@ -171,7 +157,6 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task Delete_ShouldRemoveFromDbAndCache()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var host = await userRepo.CreateAsync();
@@ -179,10 +164,8 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
         var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
         var room = await repository.CreateAsync(host.UserId, "Delete Room");
 
-        // Act
         await repository.DeleteAsync(room!.RoomId);
 
-        // Assert
         var dbRoom = await context.DungeonRooms.FindAsync(room.RoomId);
         Assert.Null(dbRoom);
 
@@ -197,7 +180,6 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task TTL_ShouldBeSetOnCacheKeys()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var host = await userRepo.CreateAsync();
@@ -205,10 +187,8 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
         var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
         var room = await repository.CreateAsync(host.UserId, "TTL Room");
 
-        // Act
         var ttl = await _fixture.RedisConnection.GetDatabase().KeyTimeToLiveAsync(RedisKeys.DungeonRoom(room!.RoomId));
 
-        // Assert
         Assert.NotNull(ttl);
         Assert.True(ttl.Value.TotalMinutes > 0);
         Assert.True(ttl.Value.TotalMinutes <= 30);
@@ -217,7 +197,6 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task GetAllActiveRooms_활성화된_방만_반환한다()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var host1 = await userRepo.CreateAsync();
@@ -230,10 +209,8 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
         // Closed 방은 ActiveSet 에서 제거
         await repository.DeleteAsync(closedRoom!.RoomId);
 
-        // Act
         var activeRooms = await repository.GetAllActiveRoomsAsync();
 
-        // Assert
         Assert.Contains(activeRooms, r => r.RoomId == activeRoom!.RoomId);
         Assert.DoesNotContain(activeRooms, r => r.RoomId == closedRoom.RoomId);
     }
@@ -271,7 +248,6 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
     [Fact]
     public async Task 활성_방_페이지는_DB에서_최신순으로_잘라_오고_총계를_함께_준다()
     {
-        // B4: 전량 조회 후 메모리에서 Skip/Take 하던 것을 DB 로 내린다.
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var repository = new DungeonRoomRepository(_fixture.RedisConnection, context, NullLogger<DungeonRoomRepository>.Instance);
@@ -298,20 +274,13 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
         Assert.DoesNotContain(next.Rooms, r => r.RoomId == created[2]);
     }
 
-    // ── 캐시 stale 버그 회귀 테스트 ──────────────────────────────────
-    // 버그 재현 시나리오:
-    //   AddWithRoomUpdateAsync는 DB만 업데이트하고 Redis 캐시를 갱신하지 않는다.
-    //   이후 GetByIdAsync가 stale Waiting 상태를 반환하면
-    //   GameSessionReadyConsumer가 MarkGameSessionReady()를 스킵 → GameSessionEvent 미전송.
-    //
-    // 수정 검증:
-    //   StartGameAsync 호출 후 InvalidateCacheAsync를 명시적으로 호출해야
-    //   다음 GetByIdAsync가 DB에서 최신 Starting 상태를 읽어야 한다.
+    // ── 캐시 stale 회귀 ──────────────────────────────────
+    // AddWithRoomUpdateAsync 는 DB만 갱신하고 캐시는 건드리지 않는다. StartGameAsync 후 InvalidateCacheAsync 를 호출해야
+    // 다음 GetByIdAsync 가 DB 의 최신 Starting 을 읽는다(stale Waiting 이면 GameSessionReadyConsumer 가 스킵 → GameSessionEvent 미전송).
 
     [Fact]
     public async Task 캐시_무효화_없이는_StartGame_후_Waiting_stale_상태가_반환된다_버그_재현()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var host = await userRepo.CreateAsync();
@@ -327,19 +296,18 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
         using var contextForUpdate = _fixture.CreateDbContext();
         contextForUpdate.DungeonRooms.Update(room);
         await contextForUpdate.SaveChangesAsync();
-        // ← InvalidateCacheAsync 호출 없음 (버그 상황)
+        // InvalidateCacheAsync 호출 없음 — stale 재현
 
-        // Act: GetByIdAsync → Redis에 Waiting 캐시가 남아 있으므로 Waiting 반환
+        // GetByIdAsync → Redis에 Waiting 캐시가 남아 있으므로 Waiting 반환
         var staleRoom = await repository.GetByIdAsync(room.RoomId);
 
-        // Assert: stale 캐시 때문에 Starting이 아닌 Waiting이 반환됨 → 버그 확인
+        // stale 캐시 때문에 Starting이 아닌 Waiting이 반환됨
         Assert.Equal(RoomStatus.Waiting, staleRoom!.Status); // stale hit
     }
 
     [Fact]
     public async Task 캐시_무효화_후_StartGame_후_Starting_상태가_반환된다_수정_검증()
     {
-        // Arrange
         using var context = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, context, NullLogger<UserRepository>.Instance);
         var host = await userRepo.CreateAsync();
@@ -355,30 +323,24 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
         contextForUpdate.DungeonRooms.Update(room);
         await contextForUpdate.SaveChangesAsync();
 
-        // 수정: InvalidateCacheAsync 호출 → Redis 캐시 삭제
+        // InvalidateCacheAsync 호출 → Redis 캐시 삭제
         await repository.InvalidateCacheAsync(room.RoomId);
 
-        // Act: GetByIdAsync → 캐시 미스 → DB에서 Starting 로드
+        // GetByIdAsync → 캐시 미스 → DB에서 Starting 로드
         var freshRoom = await repository.GetByIdAsync(room.RoomId);
 
-        // Assert: 캐시 무효화 후 DB의 Starting 상태를 반환해야 함
+        // 캐시 무효화 후 DB의 Starting 상태를 반환해야 함
         Assert.Equal(RoomStatus.Starting, freshRoom!.Status);
     }
 
-    // ── 장수(long-lived) DbContext + EF 추적 stale 버그 회귀 테스트 ──────
-    // 실제 버그:
-    //   SubscribeRoom 스트리밍 RPC는 Scoped DbContext를 수십 초 유지한다.
-    //   GetByIdAsync의 DB 폴백이 추적 쿼리면, 먼저 적재된 stale 엔티티(Starting)를
-    //   계속 반환하고 다른 스코프가 쓴 Playing을 영원히 못 읽는다.
-    //   → SendLoop이 Starting만 읽어 GameSessionEvent 대신 UpdateEvent만 전송.
-    //
-    // 수정 검증:
-    //   GetByIdAsync에 AsNoTracking 적용 → 같은 DbContext로 재조회해도 매번 DB 최신값.
+    // ── 장수(long-lived) DbContext + EF 추적 stale ──────
+    // SubscribeRoom 스트리밍 RPC는 Scoped DbContext를 수십 초 유지한다. GetByIdAsync의 DB 폴백이 추적 쿼리면
+    // 먼저 적재된 stale 엔티티를 계속 반환해 다른 스코프가 쓴 값을 영원히 못 읽는다 → AsNoTracking 이면 같은 DbContext 로 재조회해도 DB 최신값.
 
     [Fact]
     public async Task 장수_DbContext로_재조회해도_다른_스코프의_DB_변경을_읽는다()
     {
-        // Arrange ── 방 생성 (Waiting)
+        // 방 생성 (Waiting)
         using var seedContext = _fixture.CreateDbContext();
         var userRepo = new UserRepository(_fixture.RedisConnection, seedContext, NullLogger<UserRepository>.Instance);
         var host = await userRepo.CreateAsync();
@@ -406,11 +368,11 @@ public class DungeonRoomRepositoryIntegrationTests(RepositoryTestFixture fixture
         consumerRoom!.MarkGameSessionReady(); // Starting → Playing
         await consumerRepo.UpdateAsync(consumerRoom); // DB=Playing, 캐시 DEL
 
-        // Act ── 같은 장수 DbContext로 재조회 (SendLoop 2차 처리 재현)
+        // 같은 장수 DbContext로 재조회 (SendLoop 2차 처리 재현)
         var secondRead = await streamingRepo.GetByIdAsync(roomId);
 
-        // Assert ── AsNoTracking이므로 DB 최신값(Playing)을 읽어야 한다.
-        //          추적 쿼리였다면 streamingContext가 캐싱한 stale Starting이 반환되어 실패.
+        // AsNoTracking이므로 DB 최신값(Playing)을 읽어야 한다.
+        // 추적 쿼리였다면 streamingContext가 캐싱한 stale Starting이 반환되어 실패.
         Assert.Equal(RoomStatus.Playing, secondRead!.Status);
     }
 }

@@ -9,9 +9,6 @@ using StackExchange.Redis;
 
 namespace GameServer.Infrastructure.Domains.DungeonRoom;
 
-/// <summary>
-/// PostgreSQL(DB) + Redis 캐시 기반 던전 방 저장소 구현체
-/// </summary>
 public class DungeonRoomRepository(
     IConnectionMultiplexer connectionMultiplexer,
     GameServerDbContext context,
@@ -19,24 +16,19 @@ public class DungeonRoomRepository(
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
 
-    /// <summary>
-    /// 새로운 던전 방을 생성하고 DB와 Redis에 저장합니다.
-    /// </summary>
     public async Task<Domain.Entities.DungeonRoom?> CreateAsync(long hostId, string roomName, int maxPlayers = 4,
         string mapId = "", CancellationToken ct = default)
     {
         try
         {
-            // 1. 도메인 모델 생성 (mapId 정규화·검증은 Application 책임 — 여기선 받은 값을 그대로 보관)
+            // mapId 정규화·검증은 Application 책임 — 받은 값을 그대로 보관
             var room = Domain.Entities.DungeonRoom.Create(roomName, hostId, maxPlayers, mapId);
 
-            // 2. DB 저장
             var entry = await context.DungeonRooms.AddAsync(room, ct);
             await context.SaveChangesAsync(ct);
 
             var createdRoom = entry.Entity;
 
-            // 3. Redis 캐시 설정
             await SetDungeonRoomCacheAsync(createdRoom);
 
             return createdRoom;
@@ -48,9 +40,6 @@ public class DungeonRoomRepository(
         }
     }
 
-    /// <summary>
-    /// 방 고유 ID를 사용하여 던전 방 정보를 상세 조회합니다. (플레이어 목록 포함)
-    /// </summary>
     public async Task<Domain.Entities.DungeonRoom?> GetByIdAsync(long roomId, CancellationToken ct = default)
     {
         try
@@ -59,13 +48,11 @@ public class DungeonRoomRepository(
             if (entries.Length > 0)
                 return ParseDungeonRoomFromRedis(roomId, entries);
 
-            // AsNoTracking 필수: SubscribeRoom 스트리밍 RPC는 DbContext(Scoped)를 수십 초 유지한다.
-            // 추적 쿼리면 EF identity map이 먼저 적재된 stale 엔티티(예: Starting)를 그대로 돌려주고
-            // DB 최신값(Playing)으로 갱신하지 않아, 다른 스코프가 쓴 변경을 영원히 못 읽는다.
-            // 이 리포지토리는 cache-aside 읽기 전용이므로 추적이 불필요하다.
+            // AsNoTracking 필수: 스트리밍 RPC 가 DbContext 를 오래 유지해, 추적 쿼리는 stale 엔티티를 돌려주고
+            // 다른 스코프가 쓴 변경을 못 읽는다.
             var room = await context.DungeonRooms.AsNoTracking().SingleOrDefaultAsync(r => r.RoomId == roomId, ct);
             if (room is null)
-                return null; // 없는 방은 null 반환(선언이 Task<DungeonRoom?>). 모든 호출자가 if(room is null)로 처리한다.
+                return null;
 
             await SetDungeonRoomCacheAsync(room);
             return room;
@@ -77,14 +64,10 @@ public class DungeonRoomRepository(
         }
     }
 
-    /// <summary>
-    /// 사용자 ID를 사용하여 해당 사용자가 현재 참여 중인 던전 방 정보를 조회합니다.
-    /// </summary>
     public async Task<Domain.Entities.DungeonRoom?> GetByUserIdAsync(long userId, CancellationToken ct = default)
     {
         try
         {
-            // DungeonRoomPlayer를 통해 참여 중인 방 ID를 먼저 찾고 방 정보를 조회
             var player = await context.DungeonRoomPlayers
                 .AsNoTracking()
                 .SingleOrDefaultAsync(drp => drp.UserId == userId, ct);
@@ -101,19 +84,12 @@ public class DungeonRoomRepository(
         }
     }
 
-    /// <summary>
-    /// 현재 서버에 존재하는 모든 활성 던전 방 목록을 조회합니다.
-    /// </summary>
     public async Task<IEnumerable<Domain.Entities.DungeonRoom>> GetAllActiveRoomsAsync(CancellationToken ct = default)
     {
         try
         {
-            // 목록의 진실은 DB 다. `room:active` 집합을 근거로 삼지 않는다 —
-            // 그 집합은 항목별이 아니라 **집합 전체**에 TTL 이 걸려 있어(SetDungeonRoomCacheAsync)
-            // 만료 뒤 최근 접근분만 재적재된다. 멤버십이 수시로 흔들리므로 목록이 그걸 믿으면
-            // ① DB 에 살아 있는 방이 통째로 사라지고
-            // ② 연속 호출이 서로 다른 집합을 봐서 페이징에서 같은 방이 두 페이지에 나온다.
-            // (전량 조회 자체의 성능 한계는 별건 — 백로그 B4 의 DB 페이징 푸시다운)
+            // 목록의 진실은 DB 다. `room:active` 는 집합 전체에 TTL 이 걸려 멤버십이 흔들리므로,
+            // 믿으면 살아 있는 방이 사라지거나 페이징에서 같은 방이 두 페이지에 나온다.
             return await context.DungeonRooms
                 .AsNoTracking()
                 .Where(r => r.Status != RoomStatus.Closed)
@@ -130,7 +106,7 @@ public class DungeonRoomRepository(
     {
         try
         {
-            // B4: 전량을 읽어 메모리에서 자르지 않는다. 정렬·건너뛰기·자르기를 전부 DB 가 한다.
+            // 전량을 읽어 메모리에서 자르지 않는다 — 정렬·건너뛰기·자르기는 DB 가 한다.
             var query = context.DungeonRooms.AsNoTracking().Where(r => r.Status != RoomStatus.Closed);
 
             var total = await query.LongCountAsync(ct);
@@ -149,19 +125,12 @@ public class DungeonRoomRepository(
         }
     }
 
-    /// <summary>
-    /// 현재 활성화된 던전 방의 총 개수를 조회합니다.
-    /// </summary>
     public async Task<long> GetActiveRoomCountAsync(CancellationToken ct = default)
     {
-        // 목록과 같은 이유로 `room:active` 크기를 세지 않는다 — 집합 전체 TTL 때문에
-        // 멤버십이 흔들려 실제보다 훨씬 작은 수를 "참"으로 돌려준다.
+        // 목록과 같은 이유로 `room:active` 크기를 세지 않는다 (집합 전체 TTL 로 실제보다 작게 나옴).
         return await context.DungeonRooms.CountAsync(r => r.Status != RoomStatus.Closed, ct);
     }
 
-    /// <summary>
-    /// 던전 방의 상태(이름, 방장, 인원, 상태 등) 및 플레이어 목록을 업데이트합니다.
-    /// </summary>
     public async Task<bool> UpdateAsync(Domain.Entities.DungeonRoom room, CancellationToken ct = default)
     {
         try
@@ -283,19 +252,14 @@ public class DungeonRoomRepository(
         }
     }
 
-    /// <summary>
-    /// Redis에서 조회한 Hash 데이터와 Set 데이터를 사용하여 DungeonRoom 도메인 객체로 변환합니다.
-    /// </summary>
     private Domain.Entities.DungeonRoom? ParseDungeonRoomFromRedis(
         long roomId,
         HashEntry[] entries)
     {
-        // 1. Hash를 Dictionary로 변환
         var dict = entries.ToDictionary(
             x => x.Name.ToString(),
             x => x.Value.ToString());
 
-        // 2. 필수 필드 검증
         if (!dict.TryGetValue("RoomId", out var roomIdStr) ||
             !dict.TryGetValue("RoomName", out var roomName) ||
             !dict.TryGetValue("HostUserId", out var hostUserIdStr) ||
@@ -307,7 +271,6 @@ public class DungeonRoomRepository(
             return null;
         }
 
-        // 3. 파싱
         if (!long.TryParse(roomIdStr, out var id))
         {
             logger.LogWarning("Invalid dungeon room id value {RoomIdValue}", roomIdStr);
@@ -338,12 +301,11 @@ public class DungeonRoomRepository(
             return null;
         }
 
-        // MapId 는 필수 검증에서 제외: 4.3 이전에 캐시된 방엔 없을 수 있어 기본 맵으로 폴백한다(거부하지 않음).
+        // MapId 는 필수 검증 제외 — 없는 옛 캐시는 기본 맵으로 폴백한다(거부하지 않음).
         var mapId = dict.TryGetValue("MapId", out var mapIdStr) && !string.IsNullOrEmpty(mapIdStr)
             ? mapIdStr
             : Shared.Infrastructure.Spawn.MapIds.Default;
 
-        // 4. FromRedis로 DungeonRoom 재구성
         return Domain.Entities.DungeonRoom.FromRedis(
             id,
             roomName,

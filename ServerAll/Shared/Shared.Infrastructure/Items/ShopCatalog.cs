@@ -3,7 +3,6 @@ namespace Shared.Infrastructure.Items;
 /// <summary>
 /// 상점 진열 카탈로그 — items.json(bake) 중 `isShopItem` 항목의 파사드. 가격은 서버 권위.
 /// <see cref="All"/> 의 순서 = items.json 의 저작 순서 = **클라 상점 진열 순서**(정렬 금지).
-/// 공개 API 는 구 `GameServer.Domain.Entities.Shop.ShopCatalog` 와 동일하다(호출부 무변경).
 /// </summary>
 public static class ShopCatalog
 {
