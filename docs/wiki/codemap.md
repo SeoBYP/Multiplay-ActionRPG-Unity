@@ -82,6 +82,23 @@
 > ⚠️ **재번호(2026-07-17)** — 원래 2.60~2.76 으로 매겨져 기존 항목(2.60 회피·2.61 콤보·2.62 로스터·2.63 캡슐)과 **번호가 충돌**했다. 과거 커밋 메시지·PR 본문의 참조는 아래 대조표로 읽는다:
 > 구2.60(애니)→**2.64** · 2.61(B1)→**2.65** · 2.62(B2)→**2.66** · 2.63(B3)→**2.67** · 2.64(B4)→**2.68** · 2.65(B5)→**2.69** · 2.66(B6)→**2.70** · 2.67(C3-hotfix)→**2.71** · 2.68(C3)→**2.72** · 2.69(infra)→**2.73** · 2.70(C1a)→**2.74** · 2.71(C1b)→**2.75** · 2.72(C1c준비)→**2.76** · 2.73(사망체력바)→**2.77** · 2.74(C2)→**2.78** · 2.75(링포화)→**2.79** · 2.76(E~H)→**2.80**
 
+### 2.124 C_Move 검증 — 클라 위치는 서버 시계 기준 최대 속도까지만 받는다 (S3, 2026-10-28)
+
+**위치**: `MovementHandler.HandleMove`(IsFinite 4값 → 수신 시각 `nowMs`) → `ActorStore.ApplyClientMove`(락, 미존재면 중계 안 함)
+→ `PlayerActor.ApplyClientMove`(`_lastMoveAcceptedMs`) → `MoveValidation.ClampStep(from, to, elapsedMs)`. 브로드캐스트는 **보정된 X·Z** 로.
+fail-closed 거리 비교: `GroundItemStore` · `DungeonProgress` 의 `CheckDistance`(`d² <= r²`).
+
+**왜**: 서버는 이 위치로 적중·줍기·부활·몬스터 AI 를 판정한다. NaN 은 모든 비교가 false 라 `d² > r²` 거부 검사를 항상 통과했고,
+정상 숫자로도 보스 옆 순간이동 → 타격 → 복귀가 됐다.
+
+**규칙**: 허용 = 8 m/s(회피 대시) × (경과 + 200ms 지터) + 1m. 경과는 **서버 수신 시각**(클라 TimeStamp 는 위조 가능) 기준이고 0~1000ms 로 자른다 —
+서 있으면 C_Move 가 안 와서 경과가 계속 커지므로 상한이 없으면 "오래 서 있다가 순간이동"이 열린다(첫 패킷도 같은 이유로 최대 10.6m).
+초과분은 **거부가 아니라 clamp** — 거부하면 렉 한 번에 서버 위치가 굳어 이후 패킷이 전부 거부된다. Y 는 점프·낙하 때문에 상한 밖.
+`SetPosition` override 로 넣지 않은 이유: 서버 권위 이동(부활 위치·포털·넉백)까지 clamp 된다.
+
+**가드**: `MoveInputValidationTests`(NaN·순간이동·NaN 줍기) · `MoveValidationTests`(스프린트·대시·몰림·렉·제자리·초과·장기 대기) · `MoveRegressionTests`(연속 이동·clamp 후 이어짐·Y·회전) · `MovementPacketSerializationTests`(보정 좌표 중계).
+⚠️ 미실측: 재접속 시 클라가 스폰 지점에 생기면 서버 위치까지 몇 패킷 끌려간다. 슬로우 CC 는 상한에 반영 안 됨.
+
 ### 2.123 플레이어 발동 권한 = 보유 어빌리티(GAS) — 카탈로그 존재만으로 발동하지 않는다 (S1, 2026-10-27)
 
 **위치**: 부여 `SocketServer/Actors/ActorStore.AddPlayer` → `actor.Gas.GrantAbility` (기본기 `PlayerActor.BasicAbilityIds` + `PlayerInfo.AbilityIds`).

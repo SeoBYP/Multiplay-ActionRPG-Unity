@@ -92,7 +92,7 @@ public sealed class DungeonProgress
 
             float dx = reviver.Actor.PosX - target.Actor.PosX;
             float dz = reviver.Actor.PosZ - target.Actor.PosZ;
-            if (dx * dx + dz * dz > ReviveConfig.RangeMeters * ReviveConfig.RangeMeters)
+            if (!CheckDistance(dx, dz))
                 return (false, 0);
 
             // 태그 제거가 멱등 가드(중복 C_Revive 차단).
@@ -104,4 +104,9 @@ public sealed class DungeonProgress
             return (true, hp);
         }
     }
+    private bool CheckDistance(float dx, float dz)
+    {
+        return dx * dx + dz * dz <= ReviveConfig.RangeMeters * ReviveConfig.RangeMeters;
+    }
+
 }

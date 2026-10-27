@@ -44,12 +44,17 @@ public sealed class GroundItemStore
 
             float dx = item.PosX - pickerX;
             float dz = item.PosZ - pickerZ;
-            if (dx * dx + dz * dz > PickupRange * PickupRange)
+            if (!CheckDistance(dx, dz))
                 return null;
 
             _items.Remove(groundId);
             return item;
         }
+    }
+
+    private bool CheckDistance(float dx, float dz)
+    {
+        return dx * dx + dz * dz <= PickupRange * PickupRange;
     }
 
     public int Count

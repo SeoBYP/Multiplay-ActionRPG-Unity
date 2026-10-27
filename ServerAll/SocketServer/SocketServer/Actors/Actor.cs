@@ -42,4 +42,12 @@ public abstract class Actor
     // 기본 구현은 지속 Effect 만료만 처리 — 만료 권위가 서버에 있음을 여기서 강제한다.
     public virtual ActorTickResult Tick(float dt, long nowMs, IReadOnlyList<TargetPos> targets, MapBounds bounds)
         => new(-1, null, Gas.TickEffects(nowMs));
+    
+    public virtual void SetPosition(float x, float y, float z, float rotY)
+    {
+        PosX = x;
+        PosY = y;
+        PosZ = z;
+        RotY = rotY;
+    }
 }

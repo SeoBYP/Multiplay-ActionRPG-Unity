@@ -109,11 +109,14 @@ public class MovementPacketSerializationTests
             AnimState = 200, // 서버가 모르는 값이어도 그대로 나가야 한다
         };
 
-        var broadcast = global::Server.PacketHandler.Handler.MovementHandler.BuildBroadcast(123, incoming);
+        // 수평 좌표는 서버가 보정한 값(S3 clamp)을 싣는다 — 원본(5, -1)과 다르게 넘겨 구분한다.
+        var broadcast = global::Server.PacketHandler.Handler.MovementHandler.BuildBroadcast(123, 2f, -0.5f, incoming);
 
         Assert.Equal(123L, broadcast.UserId);
         Assert.Equal((byte)200, broadcast.AnimState);
-        Assert.Equal(5f, broadcast.PosX);
+        Assert.Equal(2f, broadcast.PosX);
+        Assert.Equal(-0.5f, broadcast.PosZ);
+        Assert.Equal(0.2f, broadcast.PosY);
         Assert.Equal(180f, broadcast.RotY);
         Assert.Equal(999L, broadcast.TimeStamp);
     }

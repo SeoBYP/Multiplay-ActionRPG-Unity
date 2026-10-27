@@ -76,6 +76,17 @@ public sealed class ActorStore
     }
 
     // 클라 권위 위치를 그대로 반영.
+    public (bool, float, float) ApplyClientMove(long userId, float x, float y, float z, float rotY, long nowMs)
+    {
+        lock (SyncRoot)
+        {
+            if (!_members.TryGetValue(userId, out var member))
+                return (false, x,z);
+            var (cx, cz) = member.Actor.ApplyClientMove(x, y, z, rotY, nowMs);
+            return (true, cx, cz);
+        }
+    }
+    
     public bool SetPosition(long userId, float x, float y, float z, float rotY)
     {
         lock (SyncRoot)
@@ -158,4 +169,6 @@ public sealed class ActorStore
 
     public (bool Hit, int NewHp, bool Dead) DamageMonster(int instanceId, IReadOnlyList<GameplayAttributeModifier> mods)
         => ApplyEffect(ActorIds.FromMonster(instanceId), mods);
+
+
 }

@@ -14,13 +14,13 @@ public sealed class PlayerActor(long userId) : Actor(ActorIds.FromPlayer(userId)
         "basic_swing", "heavy_swing", "combo_a", "combo_b", "combo_c", "combo_d"
     ];
 
-    // 무적은 태그가 아니라 만료 시각 — 틱 주기와 무관하게 정확하다.
-
     // Unix ms. 0 = 무적 아님.
     public long InvulnerableUntilMs { get; set; }
 
     private long _lastDodgeMs;
 
+    private long _lastMoveAcceptedMs;
+    
     // 쿨다운·마나 둘 다 통과해야 소모한다. 하나라도 모자라면 아무것도 소모하지 않고 false — C_Dodge 연사로 영구 무적 차단.
     public bool TryBeginDodge(long nowMs, int manaCost = 0)
     {
@@ -59,5 +59,17 @@ public sealed class PlayerActor(long userId) : Actor(ActorIds.FromPlayer(userId)
     {
         Gas.RegenMana(dt);
         return base.Tick(dt, nowMs, targets, bounds); // 지속 Effect 만료(CC 해제)는 공통 처리
+    }
+
+    public (float, float) ApplyClientMove(float x, float y, float z, float rotY, long nowMs)
+    {
+        var (cx, cz) = MoveValidation.ClampStep(PosX, PosZ, x, z, nowMs - _lastMoveAcceptedMs);
+        PosX = cx;
+        PosY = y;
+        PosZ = cz;
+        RotY = rotY;
+        
+        _lastMoveAcceptedMs = nowMs;
+        return (cx, cz);
     }
 }

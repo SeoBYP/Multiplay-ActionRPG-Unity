@@ -20,7 +20,7 @@
 
 - [ ] **G1** GameServer 기동마다 Redis `FlushAllDatabases()` — `RedisStartupPreservationTests` — 🔄 xUnit GREEN(2026-10-27), Docker 리빌드 후 E2E 남음
 - [x] **S1** 플레이어가 몬스터·테스트 어빌리티 발동(105 = 데미지 9999) — `AttackAbilityTrustTests` — ✅ GREEN(2026-10-27, codemap §2.123): 발동자는 세션으로 확정(패킷에 ID 추가 안 함), `Gas.HasAbility(abilityId)` 로 보유 검사. 보유 = 기본기 상수 + `PlayerInfo.AbilityIds`(아래 스킬 장착)
-- [ ] **S3** `C_Move` 무검증 — NaN·순간이동, NaN 이면 거리 검사 전부 통과 — `MoveInputValidationTests` — 최대 이동 속도 결정
+- [x] **S3** `C_Move` 무검증 — NaN·순간이동, NaN 이면 거리 검사 전부 통과 — `MoveInputValidationTests` — ✅ GREEN(2026-10-28, codemap §2.124): IsFinite + `MoveValidation.ClampStep`(8 m/s, 서버 수신 시각, 경과 상한 1s, 초과분 clamp) + 거리 비교 fail-closed
 - [ ] **G3** 지갑·인벤토리·Exp lost update / 이중 차감 통과 — `EconomyConcurrencyTests`
 - [ ] **G2** 퀘스트 보상 동시 요청 시 중복 지급 — `QuestClaimConcurrencyTests`
 - [ ] **G4** 착용 장비를 팔아도 스탯 유지 — `EquippedItemOwnershipTests` — ❓ 판매 거부 vs 조회 시 필터

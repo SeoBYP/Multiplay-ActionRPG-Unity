@@ -32,7 +32,7 @@
   - 정석안: Ability SO 에 소유 구분 필드 → bake JSON → `AbilityDef`. 데이터 주도지만 클라 SO·Exporter·Shared 를 함께 바꾼다.
   - 덤: `test_brute_attack` 이 배포 카탈로그에 들어 있는 것 자체도 의문 — 테스트 전용이면 테스트 데이터로 옮긴다.
 
-### S3. `C_Move` 를 검증하지 않는다 (NaN · 순간이동) — ✔ 실측
+### S3. `C_Move` 를 검증하지 않는다 (NaN · 순간이동) — ✅ 해결(2026-10-28, codemap §2.124)
 
 - **위치**: `MovementHandler.cs:22` → `ActorStore.SetPosition` 그대로. 거리 비교 `GroundItemStore.cs:65` · `DungeonProgress.cs:133` 은 `d² > r²` 형태
 - **시나리오**: `PosX=NaN` → 모든 `NaN > r²` 가 false → **"범위 밖" 검사를 항상 통과** → 맵 어디서든 줍기·부활. 좌표를 몬스터 옆으로 보내 순간이동 공격. 서버가 건 슬로우·스턴도 이동엔 적용되지 않는다.
