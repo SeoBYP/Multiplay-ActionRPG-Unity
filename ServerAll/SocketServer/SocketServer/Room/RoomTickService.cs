@@ -3,14 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Server.Room;
 
-/// <summary>
-/// <b>서버 권위 틱 호스트</b>. 고정 10Hz 로 모든 방을 한 번씩 진행시키고 결과 패킷을 브로드캐스트한다.
-///
-/// <para>이 클래스가 하는 일은 <b>주기와 전송</b>뿐이다 — 무엇을 진행시킬지는 <see cref="Room.Tick"/>,
-/// 몬스터 AI 수식은 <c>MonsterAiMath</c>(순수), 상태·락은 <c>ActorStore</c> 가 맡는다.</para>
-///
-/// <para>BackgroundService 예외가 호스트를 종료하지 않도록 틱 본문을 try/catch 로 감싼다(서버는 멈추면 안 된다).</para>
-/// </summary>
+// 주기와 전송만 — 진행은 Room.Tick. 틱 본문을 try/catch 로 감싸 예외가 호스트를 종료하지 않게 한다.
 public class RoomTickService(
     RoomManager roomManager,
     ILogger<RoomTickService> logger) : BackgroundService
@@ -39,7 +32,6 @@ public class RoomTickService(
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
-            // 정상 종료
         }
     }
 
@@ -53,7 +45,6 @@ public class RoomTickService(
                 room.Sessions.Broadcast(packet);
         }
 
-        // 재접속 유예 만료된 끊김 플레이어 정리(영구 퇴장 확정 + association 정리).
         roomManager.SweepDisconnectedPlayers(nowMs);
     }
 }

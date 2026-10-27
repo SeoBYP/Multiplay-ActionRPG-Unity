@@ -25,29 +25,16 @@ public sealed class Session
     private PacketDispatcher _dispatcher;
     private readonly ILogger<Session> _logger;
 
-    /// <summary>
-    /// 세션당 송신 큐 용량(프레임 수). 넘치면 그 세션을 끊는다 — 방 틱이 10Hz 라 1024 는
-    /// <b>약 100초치</b>다. 여기까지 밀린 클라는 사실상 죽은 연결이고, 무한 큐로 두면
-    /// 느린 클라 하나가 서버 메모리를 계속 먹는다(DoS 벡터).
-    /// </summary>
+    // 넘치면 세션을 끊는다 — 방 틱 10Hz 라 1024 ≈ 100초치, 무한 큐는 느린 클라 하나가 메모리를 먹는다(DoS).
     public const int SendQueueCapacity = 1024;
 
-    /// <summary>
-    /// 송신 큐. <b>생산자 N(틱·패킷 스레드) → 소비자 1(SendLoop)</b>.
-    /// <para>
-    /// 이게 없으면 여러 스레드가 같은 소켓에 <c>SendAsync</c> 를 동시에 걸고, 부분 전송이 일어나는 순간
-    /// <b>한 프레임 중간에 다른 프레임 바이트가 끼어들어</b> 길이-프리픽스 파싱이 깨진다(치명).
-    /// </para>
-    /// <para>
-    /// <c>FullMode.Wait</c> 를 쓰지만 <b>Wait 하지 않는다</b> — <c>TryWrite</c> 로만 넣어 가득 차면 즉시 false 를
-    /// 받는다(대기 모드는 TryWrite 가 실패를 알려주는 유일한 모드다). 생산자가 틱 스레드라 <b>절대 블록시키면 안 된다</b>.
-    /// </para>
-    /// </summary>
+    // 생산자 N(틱·패킷 스레드) → 소비자 1(SendLoop). 여러 스레드가 같은 소켓에 동시에 쓰면 프레임이 섞여 파싱이 깨진다.
+    // 틱 스레드가 생산자라 TryWrite 로만 넣는다(블록 금지).
     private readonly Channel<byte[]> _sendQueue = Channel.CreateBounded<byte[]>(
         new BoundedChannelOptions(SendQueueCapacity)
         {
-            SingleReader = true,   // SendLoop 하나만 읽는다 = 프레임 원자성의 근거
-            SingleWriter = false,  // 틱·패킷 스레드가 함께 넣는다
+            SingleReader = true,
+            SingleWriter = false,
             FullMode = BoundedChannelFullMode.Wait,
         });
 
@@ -76,7 +63,6 @@ public sealed class Session
 
     public async Task RunAsync(CancellationToken ct)
     {
-        // 송신 큐 소비자를 함께 띄운다. 수신 루프와 독립 — 수신이 핸들러에서 대기해도 송신은 계속 나간다.
         var sendLoop = SendLoopAsync(ct);
 
         try
@@ -118,13 +104,11 @@ public sealed class Session
         }
         finally
         {
-            // 수신 루프 종료 = 크래시/네트워크 끊김(C_PlayerLeave 없음) → graceful 퇴장.
-            // 방에 다른 플레이어가 남아 있으면 재접속 유예 창 동안 참가자·액터 보존(즉시 퇴장 확정 보류).
+            // 크래시/끊김(C_PlayerLeave 없음) → graceful 퇴장(재접속 유예).
             RoomManager.LeaveRoom(this, graceful: true);
             Disconnect();
 
-            // 큐를 닫아 SendLoop 을 깨우고 회수한다 — 안 하면 세션마다 Task 가 영원히 남는다(누수).
-            // 소켓이 이미 닫혔으므로 남은 프레임의 write 실패는 정상이라 무시한다.
+            // 큐를 닫아 SendLoop 을 회수한다 — 안 하면 세션마다 Task 누수.
             _sendQueue.Writer.TryComplete();
             try { await sendLoop; } catch { /* 종료 경로 — 위에서 이미 로깅·처리됨 */ }
 
@@ -153,16 +137,7 @@ public sealed class Session
         return buffer;
     }
 
-    /// <summary>
-    /// 패킷을 프레임으로 만들어 <b>송신 큐에 넣는다</b>. 실제 소켓 write 는 <see cref="SendLoopAsync"/> 가 한다.
-    ///
-    /// <para>⚠️ 이 Task 의 완료는 "큐에 들어갔다"이지 <b>"전선에 나갔다"가 아니다.</b>
-    /// <b>보내자마자 <see cref="Disconnect"/> 하면 그 패킷은 유실된다</b>(현재 그런 호출부는 없다 —
-    /// Disconnect 는 하트비트 타임아웃·에러·종료 경로에서만 불린다).</para>
-    ///
-    /// <para><b>순서는 보존된다</b> — 한 스레드가 연달아 넣은 패킷은 넣은 순서대로 나간다(단일 소비자).
-    /// await 는 무해하다(항상 완료된 Task).</para>
-    /// </summary>
+    // 완료 = "큐에 들어갔다"이지 "전선에 나갔다"가 아니다 — 보내자마자 Disconnect 하면 유실.
     public Task SendPacketAsync(Packet packet, CancellationToken ct = default)
     {
         if (!Connected) return Task.CompletedTask;
@@ -180,12 +155,11 @@ public sealed class Session
         }
         catch (Exception e)
         {
-            // 직렬화 실패는 이 패킷만의 문제 — 세션을 끊지 않는다.
             _logger.LogError(e, "Packet serialize failed for session {SessionId}: {PacketType}", SessionId, packet.GetType().Name);
             return Task.CompletedTask;
         }
 
-        // 틱 스레드가 생산자라 절대 블록시키지 않는다 → TryWrite. 실패 = 큐 포화 = 사실상 죽은 연결.
+        // 실패 = 큐 포화 = 사실상 죽은 연결.
         if (!_sendQueue.Writer.TryWrite(frame))
         {
             _logger.LogWarning(
@@ -197,10 +171,6 @@ public sealed class Session
         return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// 송신 큐의 <b>단일 소비자</b>. 한 프레임을 끝까지 쓴 뒤 다음 프레임을 쓴다 →
-    /// 부분 전송이 일어나도 다른 프레임이 끼어들 수 없다.
-    /// </summary>
     private async Task SendLoopAsync(CancellationToken ct)
     {
         try
@@ -227,7 +197,6 @@ public sealed class Session
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            // 서버 종료 — 정상 경로.
         }
         catch (SocketException e) when (IsExpectedDisconnect(e.SocketErrorCode))
         {

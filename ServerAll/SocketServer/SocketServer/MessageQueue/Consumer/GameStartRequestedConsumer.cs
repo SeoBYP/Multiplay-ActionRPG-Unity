@@ -16,7 +16,6 @@ public class GameStartRequestedConsumer(
     IOptions<ServerOptions> serverOptions,
     ILogger<GameStartRequestedConsumer> logger) : BackgroundService
 {
-    // 복원력(일시적 Redis 오류에 죽지 않음)은 ResilientStreamConsumer 공통 루프가 담당.
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
         => ResilientStreamConsumer.RunAsync<GameStartRequestedMessage>(
             nameof(GameStartRequestedConsumer),

@@ -9,8 +9,7 @@ namespace Server.PacketHandler.Handler;
 
 public static class RoomJoinLeaveHandler
 {
-    // internal = 단위 테스트용 시임(순수 매핑). 파티 HP HUD 가 이 Hp/MaxHp 로 원격 기준선을 맞춘다.
-    // 신원·배정(UserId/Nickname/SpawnIndex)은 참가자에서, 위치·HP 는 member.Actor 에서 온다.
+    // internal = 단위 테스트용 시임. 본인응답/타인 브로드캐스트/로스터 3곳이 모두 이 헬퍼를 거친다.
     internal static S_PlayerJoined ToJoinedPacket(RoomMember member, string mapId) => new()
     {
         Success = true,
@@ -23,7 +22,6 @@ public static class RoomJoinLeaveHandler
         RotY = member.Actor.RotY,
         MapId = mapId,
         SpawnIndex = member.SpawnIndex,
-        // 서버 권위 HP 기준선 — 본인응답/타인브로드캐스트/늦은입장 로스터 3곳 모두 이 헬퍼 경유라 한 번에 반영.
         Hp = member.Actor.Gas[EGameplayAttribute.Health],
         MaxHp = member.Actor.Gas.Max(EGameplayAttribute.Health)
     };
@@ -65,40 +63,33 @@ public static class RoomJoinLeaveHandler
         var member = room.Actors.GetMember(session.UserId);
         if (member is null)
         {
-            // 참가자 없음 = 게임 미시작 or 재접속 유예 만료(>ReconnectGraceMs) 후. 재입장 불가.
             await session.SendPacketAsync(new S_PlayerJoined { Success = false, Message = "Player state not initialized" }, ct);
             return;
         }
 
-        // 입장/재접속 활성화: HasJoined=true(이제부터 몬스터 AI 타깃) + 끊김 유예 보존 상태면 마킹 해제(즉시 복귀).
+        // HasJoined=true(이제부터 AI 타깃) + 유예 보존 상태면 끊김 마킹 해제.
         room.MarkJoined(session.UserId);
 
         var joinedPacket = ToJoinedPacket(member, room.MapId);
 
-        // 1) 본인에게 자기 입장 응답(MapId+SpawnIndex 포함 → 클라가 결정론으로 스폰).
         await session.SendPacketAsync(joinedPacket, ct);
 
-        // 본인에게 초기 권위 마나 동기화 — 클라 prefab 기준선(Mana 100)을 서버 권위 MaxMana 로 정렬한다.
-        // 이후 차감/거부 시점에만 S_PlayerMana 로 정정(리젠은 클라 예측).
+        // 클라 prefab 기준선(Mana 100)을 서버 권위 MaxMana 로 정렬. 이후엔 차감/거부 시에만 정정.
         await session.SendPacketAsync(new Shared.Packet.Packets.S_PlayerMana
         {
             UserId = member.UserId,
             Mana = member.Actor.Gas[EGameplayAttribute.Mana],
             MaxMana = member.Actor.Gas.Max(EGameplayAttribute.Mana),
         }, ct);
-        // 2) 기존 입장자들에게 신규 플레이어 통보.
         room.Sessions.Broadcast(joinedPacket, session.SessionId);
 
-        // 3) 신규 입장자에게 방의 기존 멤버 로스터를 회신.
-        //    이게 없으면 늦게 입장한 플레이어가 먼저 들어온 플레이어를 영영 못 본다.
+        // 늦은 입장자가 먼저 있던 플레이어·몬스터·바닥 아이템을 보도록 로스터를 회신한다.
         foreach (var other in room.Actors.Members())
         {
             if (other.UserId == session.UserId) continue;
             await session.SendPacketAsync(ToJoinedPacket(other, room.MapId), ct);
         }
 
-        // 4) 신규 입장자에게 현재 몬스터 로스터를 회신(서버 권위 스폰 위치/HP).
-        //    플레이어 로스터와 같은 이유 — 늦게 입장해도 기존 몬스터를 본다.
         foreach (var monster in room.Actors.Monsters())
         {
             await session.SendPacketAsync(new S_SpawnMonster
@@ -111,7 +102,6 @@ public static class RoomJoinLeaveHandler
             }, ct);
         }
 
-        // 5) 신규 입장자에게 현재 바닥 아이템 로스터를 회신(이미 떨어진 드랍을 늦은 입장에도 보이게).
         foreach (var ground in room.Loot.All())
         {
             await session.SendPacketAsync(new S_SpawnGroundItem

@@ -1,6 +1,6 @@
 namespace Server.Monster;
 
-/// <summary>몬스터 행동 페이즈. S_MonsterState.Phase(byte)와 1:1.</summary>
+// S_MonsterState.Phase(byte)와 1:1.
 public enum MonsterPhase : byte
 {
     Idle = 0,   // 타깃 없음·패트롤 없음 → 제자리

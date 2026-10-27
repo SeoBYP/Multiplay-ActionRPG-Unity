@@ -38,22 +38,17 @@ namespace Server
                 })
                 .ConfigureServices((ctx, services) =>
                 {
-                    // 1. 설정
                     services.Configure<ServerOptions>(ctx.Configuration.GetSection("Server"));
 
-                    // 2. 인프라 (Redis)
                     var redisConnStr = ctx.Configuration.GetConnectionString("Redis") ?? "localhost:6379,abortConnect=false";
                     services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnStr));
                     services.AddSingleton<IDatabase>(sp =>
                         sp.GetRequiredService<IConnectionMultiplexer>().GetDatabase());
 
-                    // 3. 메시지 큐
                     services.AddSingleton<GameStartRequestedMessageQueue>();
                     services.AddSingleton<GameSessionReadyMessageQueue>();
-                    // 소모품 소비 통지(GameServer→Socket, 서버 권위 회복).
                     services.AddSingleton<Shared.Infrastructure.MessageQueue.PlayerConsumedMessageQueue>();
 
-                    // 4. 패킷 핸들러 및 디스패처
                     services.AddSingleton<PacketHandlerRegistry>(sp =>
                     {
                         var logger = sp.GetRequiredService<ILogger<PacketHandlerRegistry>>();
@@ -66,7 +61,6 @@ namespace Server
                         return registry.CreateDispatcher(logger);
                     });
 
-                    // 5. 게임 로직 및 네트워크
                     services.AddSingleton<RoomLifecycleMessageQueue>();
                     services.AddSingleton<IRoomLifecyclePublisher>(sp => sp.GetRequiredService<RoomLifecycleMessageQueue>());
                     services.AddSingleton<DungeonResultMessageQueue>();
@@ -83,7 +77,6 @@ namespace Server
                         return new TcpNetworkListener(options.Ip, options.Port, sessionManager, logger);
                     });
 
-                    // 6. 백그라운드 서비스 (호스팅 서비스)
                     services.AddHostedService<TcpListenerService>();
                     services.AddHostedService<GameStartRequestedConsumer>();
                     services.AddHostedService<Server.Consumer.PlayerConsumedConsumer>();
@@ -92,8 +85,7 @@ namespace Server
                 })
                 .Build();
 
-            // 전투 트레이스 배선. 패킷 핸들러가 static 이라 DI 가 닿지 않아 기동 시 1회 주입한다.
-            // 기본 Off — Serilog:MinimumLevel:Override:CombatTrace 를 Debug 로 올려야 기록된다.
+            // 패킷 핸들러가 static 이라 DI 가 닿지 않아 기동 시 1회 주입. 기본 Off.
             Server.Diagnostics.CombatTrace.Configure(
                 host.Services.GetRequiredService<ILoggerFactory>()
                     .CreateLogger(Server.Diagnostics.CombatTrace.Category));

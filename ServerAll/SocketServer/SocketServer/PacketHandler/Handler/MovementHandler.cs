@@ -25,10 +25,7 @@ public static class MovementHandler
         return ValueTask.CompletedTask;
     }
 
-    /// <summary>
-    /// 브로드캐스트 패킷 조립 — 순수 변환이라 테스트로 고정한다(Broadcast 는 소켓 I/O 라 단위 테스트가 어렵다).
-    /// <c>AnimState</c> 는 <b>해석 없이 그대로</b> 옮긴다: 연출은 클라 권위이고 서버는 중계만 한다.
-    /// </summary>
+    // AnimState 는 해석 없이 그대로 중계(연출은 클라 권위).
     internal static S_Move BuildBroadcast(long userId, C_Move packet) => new()
     {
         UserId = userId,

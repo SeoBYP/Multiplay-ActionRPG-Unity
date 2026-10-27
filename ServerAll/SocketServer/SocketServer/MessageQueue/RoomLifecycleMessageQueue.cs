@@ -5,10 +5,6 @@ using StackExchange.Redis;
 
 namespace Server;
 
-/// <summary>
-/// 방 생명주기 이벤트를 GameServer에 발행하는 큐 (SocketServer 전용 Publisher).
-/// stream:game:room:lifecycle 스트림에 PlayerLeftRoomMessage 를 기록한다.
-/// </summary>
 public class RoomLifecycleMessageQueue(
     IConnectionMultiplexer redis,
     ILogger<RoomLifecycleMessageQueue> logger)

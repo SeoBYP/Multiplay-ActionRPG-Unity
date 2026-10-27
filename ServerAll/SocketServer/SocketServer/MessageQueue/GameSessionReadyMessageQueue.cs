@@ -5,9 +5,6 @@ using StackExchange.Redis;
 
 namespace Server;
 
-/// <summary>
-/// 게임 세션 준비 완료를 GameServer 에 발행하는 큐 (SocketServer 전용 Publisher).
-/// </summary>
 public class GameSessionReadyMessageQueue(
     IConnectionMultiplexer redis,
     ILogger<GameSessionReadyMessageQueue> logger)

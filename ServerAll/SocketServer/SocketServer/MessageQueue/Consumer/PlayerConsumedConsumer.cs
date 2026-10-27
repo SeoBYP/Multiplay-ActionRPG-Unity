@@ -10,11 +10,7 @@ using Shared.Packet.Packets;
 
 namespace Server.Consumer;
 
-/// <summary>
-/// 소모품 소비 통지 소비(GameServer 검증·차감 완료 → 서버 권위 회복).
-/// userId 로 방을 찾아 서버 HP 를 올리고 S_ApplyEffect 로 브로드캐스트한다(클라는 즉발 미러).
-/// 던전 밖(방 없음)이면 no-op — Main 솔로 회복은 클라 로컬.
-/// </summary>
+// 던전 밖(방 없음)이면 no-op — Main 솔로 회복은 클라 로컬.
 public class PlayerConsumedConsumer(
     PlayerConsumedMessageQueue queue,
     RoomManager roomManager,
@@ -34,9 +30,9 @@ public class PlayerConsumedConsumer(
         {
             var room = roomManager.GetAssignedRoom(msg.UserId);
             if (room is null)
-                return Task.CompletedTask; // 던전 밖 — 회복은 클라 로컬(Main)
+                return Task.CompletedTask;
 
-            // at-least-once 라 같은 통지가 다시 올 수 있다. 회복(+heal)은 비멱등이므로 방 단위로 1회만 적용한다.
+            // at-least-once — 회복(+heal)은 비멱등이라 방 단위로 1회만 적용.
             if (!room.TryMarkConsumeHandled(msg.ConsumeId))
             {
                 logger.LogInformation("[PlayerConsumed] 중복 통지 ConsumeId={ConsumeId} (User {UserId}) — 스킵",
@@ -53,13 +49,12 @@ public class PlayerConsumedConsumer(
 
             var (newHp, _, _) = room.Progress.ApplyPlayerEffect(msg.UserId, mods);
 
-            // 클라 미러용 브로드캐스트 — EffectReceiver 가 같은 effectId 로 로컬 ASC 적용(서버 HP=진실).
             room.Sessions.Broadcast(new S_ApplyEffect
             {
                 InstanceId = room.NextEffectInstanceId(),
                 EffectId = msg.EffectId,
                 TargetId = msg.UserId,
-                SourceId = msg.UserId, // 자기 회복
+                SourceId = msg.UserId,
                 StartTick = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 Stacks = 1,
             });

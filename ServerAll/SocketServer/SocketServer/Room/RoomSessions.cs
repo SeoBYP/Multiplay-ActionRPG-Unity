@@ -3,15 +3,7 @@ using Shared.Packet.Packets;
 
 namespace Server.Room;
 
-/// <summary>
-/// 방 하나의 <b>연결 집합</b>. 지금 이 방에 붙어 있는 TCP 세션을 소유하고, 방 전체 브로드캐스트를 담당한다.
-///
-/// <para><b>참가자(RoomMember)와 다르다.</b> 세션은 연결이라 자주 죽고 되살아나지만,
-/// 참가자와 그 액터는 재접속 유예 동안 그대로 살아 있다. 두 수명이 다르기 때문에 저장소도 다르다 —
-/// 이 비대칭이 재접속을 가능하게 하는 구조 그 자체다.</para>
-///
-/// <para>정원(<see cref="MaxMembers"/>) 판정도 여기 있다 — "몇 명이 들어와 있나"는 연결의 질문이다.</para>
-/// </summary>
+// 연결 집합. 참가자(RoomMember)와 수명이 다르다 — 세션은 자주 죽고 되살아나지만 액터는 재접속 유예 동안 유지된다.
 public sealed class RoomSessions
 {
     private readonly Dictionary<ulong, Session> _sessions = new();
@@ -25,7 +17,6 @@ public sealed class RoomSessions
         _logger = logger;
     }
 
-    /// <summary>정원(게임 시작 시 확정된 참가자 수).</summary>
     public int MaxMembers { get; }
 
     public int Count
@@ -40,10 +31,7 @@ public sealed class RoomSessions
         lock (_sessions) return _sessions.GetValueOrDefault(sessionId);
     }
 
-    /// <summary>
-    /// 같은 UserId 의 <b>다른</b> 세션을 찾는다(재접속 인수용). 없으면 null.
-    /// 끊김은 즉시 감지되지 않는다 — FIN 없이 사라지면 유휴 타임아웃까지 옛 세션이 방에 남는다.
-    /// </summary>
+    // 끊김은 즉시 감지되지 않는다 — FIN 없이 사라지면 유휴 타임아웃까지 옛 세션이 방에 남는다.
     public Session? FindByUserId(long userId, ulong exceptSessionId)
     {
         if (userId <= 0) return null;
@@ -56,7 +44,6 @@ public sealed class RoomSessions
         return null;
     }
 
-    /// <summary>세션을 방에 등록한다. 정원 초과·중복이면 false.</summary>
     public bool Add(Session session)
     {
         lock (_sessions)
@@ -80,7 +67,6 @@ public sealed class RoomSessions
         }
     }
 
-    /// <summary>세션을 제거하고 그 UserId 를 돌려준다. 없던 세션이면 null.</summary>
     public long? Remove(ulong sessionId)
     {
         lock (_sessions)
@@ -98,10 +84,7 @@ public sealed class RoomSessions
         }
     }
 
-    /// <summary>
-    /// 방 전체에 보낸다. 전송은 fire-and-forget(세션의 송신 큐가 받는다) — 한 세션이 느려도 방이 멈추지 않는다.
-    /// 예외를 삼키는 이유: 브로드캐스트 실패가 틱 루프나 핸들러를 죽이면 안 된다.
-    /// </summary>
+    // fire-and-forget(세션 송신 큐가 받는다). 브로드캐스트 실패가 틱 루프·핸들러를 죽이면 안 되어 예외를 삼킨다.
     public void Broadcast(Packet packet, ulong? excludeSessionId = null)
     {
         try
