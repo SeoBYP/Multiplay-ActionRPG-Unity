@@ -119,4 +119,45 @@ public class EconomyConcurrencyTests(RepositoryTestFixture fixture)
         Assert.Equal(1, row!.Level);
         Assert.Equal(5 * Concurrency, row.Exp);
     }
+
+    // ── 행이 아직 없을 때(lazy create) ─────────────────────────────────────
+    // UPDATE 0행 → 각자 INSERT → PK 충돌로 하나만 남고 나머지는 예외 = 적립 유실.
+    // 신규 유저의 첫 보상(던전 클리어 exp + Main 킬 exp, 같은 아이템 동시 줍기)이 실제로 겹친다.
+
+    [Fact]
+    public async Task 지갑이_없을_때_첫_적립이_동시에_와도_합계가_유실되지_않는다()
+    {
+        var userId = await CreateUserAsync();
+
+        await RaceAsync(Concurrency, () => Wallet().AddBalanceAsync(userId, 10));
+
+        using var ctx = fixture.CreateDbContext();
+        var row = await ctx.UserWallets.FindAsync(userId);
+        Assert.Equal(10 * Concurrency, row!.Balance);
+    }
+
+    [Fact]
+    public async Task 아이템이_없을_때_첫_적립이_동시에_와도_수량이_유실되지_않는다()
+    {
+        var userId = await CreateUserAsync();
+
+        await RaceAsync(Concurrency, async () => (await Inventory().AddQuantityAsync(userId, Potion, 1, maxStack: 99)).Quantity);
+
+        using var ctx = fixture.CreateDbContext();
+        var row = ctx.InventoryItems.Single(i => i.UserId == userId && i.ItemId == Potion);
+        Assert.Equal(Concurrency, row.Quantity);
+    }
+
+    [Fact]
+    public async Task 진행도가_없을_때_첫_경험치가_동시에_와도_합계가_유실되지_않는다()
+    {
+        // FOR UPDATE 는 존재하는 행만 잠근다 — 행이 없으면 아무도 기다리지 않는다.
+        var userId = await CreateUserAsync();
+
+        await RaceAsync(Concurrency, async () => (await Progression().AddExpAsync(userId, 5)).Exp);
+
+        using var ctx = fixture.CreateDbContext();
+        var row = await ctx.UserProgressions.FindAsync(userId);
+        Assert.Equal(5 * Concurrency, row!.Exp);
+    }
 }

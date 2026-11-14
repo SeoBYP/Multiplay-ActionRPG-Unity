@@ -45,31 +45,31 @@ public class InventoryRepository(
         }
     }
 
-    public async Task<InventoryItem> AddQuantityAsync(long userId, int itemId, int amount, int maxStack, CancellationToken ct = default)
+    public async Task<InventoryItem> AddQuantityAsync(long userId, int itemId, int amount, int maxStack,
+        CancellationToken ct = default)
     {
         try
         {
-            var item = await context.InventoryItems
-                .SingleOrDefaultAsync(i => i.UserId == userId && i.ItemId == itemId, ct);
+            // 없으면 추가
+            bool created = !await context.InventoryItems.AnyAsync(i => i.UserId == userId && i.ItemId == itemId, ct)
+                           && await context.AddIfMissingAsync(
+                               InventoryItem.Create(userId, itemId, Math.Min(amount, maxStack)), ct);
 
-            if (item is null)
+            if (!created)
             {
-                var initial = Math.Min(amount, maxStack);
-                item = InventoryItem.Create(userId, itemId, initial);
-                await context.InventoryItems.AddAsync(item, ct);
+                await context.InventoryItems
+                    .Where(i => i.UserId == userId && i.ItemId == itemId)
+                    .ExecuteUpdateAsync(s => s.SetProperty(i => i.Quantity,
+                        i => i.Quantity >= maxStack ? i.Quantity // 이미 꽉 찼거나 넘쳤다 -> 그래도
+                            : i.Quantity + amount > maxStack ? maxStack // 더하면 넘친다? -> 상한까지만
+                            : i.Quantity + amount), ct); // 여유 있다. -> 그냥 더함
             }
-            else
-            {
-                var addable = Math.Max(0, maxStack - item.Quantity);
-                item.Add(Math.Min(amount, addable));
-            }
-
-            await context.SaveChangesAsync(ct);
 
             // 캐시는 덮어쓰지 않고 DEL (stale·부분갱신 방지)
             await DeleteCacheAsync(userId);
 
-            return item;
+            return await context.InventoryItems.AsNoTracking()
+                .SingleAsync(i => i.UserId == userId && i.ItemId == itemId, ct);
         }
         catch (Exception e)
         {
@@ -85,20 +85,23 @@ public class InventoryRepository(
 
         try
         {
-            var item = await context.InventoryItems
-                .SingleOrDefaultAsync(i => i.UserId == userId && i.ItemId == itemId, ct);
+            var rows = await context.InventoryItems
+                .Where(i => i.UserId == userId && i.ItemId == itemId && i.Quantity >= amount)
+                .ExecuteUpdateAsync(s => s.SetProperty(i => i.Quantity, i => i.Quantity - amount), ct);
 
-            if (item is null || amount > item.Quantity)
-                return null;
+            if (rows == 0)
+                return null; // 미보유 또는 부족
 
-            item.Remove(amount);
-            if (item.Quantity == 0)
-                context.InventoryItems.Remove(item);
+            await context.InventoryItems
+                .Where(i => i.UserId == userId && i.ItemId == itemId && i.Quantity == 0)
+                .ExecuteDeleteAsync(ct);
 
-            await context.SaveChangesAsync(ct);
             await DeleteCacheAsync(userId);
 
-            return item.Quantity;
+            return await context.InventoryItems.AsNoTracking() // ② item.Quantity → 다시 읽기
+                .Where(i => i.UserId == userId && i.ItemId == itemId)
+                .Select(i => i.Quantity)
+                .SingleOrDefaultAsync(ct); // 행이 지워졌으면 0
         }
         catch (Exception e)
         {
@@ -139,7 +142,8 @@ public class InventoryRepository(
         {
             // field = numericId(int), value = 수량. 둘 다 파싱돼야 유효한 행이다.
             if (int.TryParse(entry.Name.ToString(), out var itemId) && itemId > 0
-                && int.TryParse(entry.Value.ToString(), out var quantity) && quantity > 0)
+                                                                    && int.TryParse(entry.Value.ToString(),
+                                                                        out var quantity) && quantity > 0)
                 items.Add(InventoryItem.FromRedis(userId, itemId, quantity));
         }
 

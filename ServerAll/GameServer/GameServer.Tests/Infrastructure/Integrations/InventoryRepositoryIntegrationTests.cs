@@ -69,6 +69,18 @@ public class InventoryRepositoryIntegrationTests
     }
 
     [Fact]
+    public async Task AddQuantity_스택이_이미_최대를_넘으면_적립해도_줄어들지_않는다()
+    {
+        // 기획이 maxStack 을 99→50 으로 내린 뒤, 80개 보유 유저가 1개를 더 주운 상황.
+        var userId = await CreateUserAsync();
+        await CreateRepository().AddQuantityAsync(userId, 1001, 80, maxStack: 99);
+
+        var result = await CreateRepository().AddQuantityAsync(userId, 1001, 1, maxStack: 50);
+
+        Assert.Equal(80, result.Quantity);
+    }
+
+    [Fact]
     public async Task AddQuantity_후_캐시는_삭제된다()
     {
         var userId = await CreateUserAsync();

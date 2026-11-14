@@ -43,7 +43,9 @@
   3. `room.Bounds` 로 clamp — 단 `Room` 기본값이 `MapBounds.Unbounded` 라 이것만으론 테스트가 안 풀린다(2번이 본체).
   4. 심층 방어: 거리 비교를 `!(d² <= r²)` 로 쓰면 NaN 도 "범위 밖"이 된다.
 
-### G3. 경제 쓰기 경로의 lost update / 이중 차감 — ✔ 실측
+### G3. 경제 쓰기 경로의 lost update / 이중 차감 — ✅ 해결(2026-11-14, codemap §2.125)
+
+> 행 없는 동시 첫 적립도 해결(`AddIfMissingAsync`, RED 3건 → GREEN). 남은 것: G10(초과분 과금)은 미해결 — `AddQuantityAsync` 는 아직 실제 적립량이 아니라 최종 행을 돌려준다.
 
 - **위치**: `WalletRepository.cs` `AddBalanceAsync`·`TrySpendBalanceAsync` · `InventoryRepository.cs` `AddQuantityAsync`·`RemoveQuantityAsync` · `ProgressionRepository.AddExpAsync`. 엔티티 설정 전체에 동시성 토큰 0건, 원자 UPDATE 0건.
 - **시나리오**: 전부 "추적 쿼리로 읽기 → 메모리에서 검사·증감 → SaveChanges". 동시 요청 두 개가 같은 값을 읽고 각자 덮어쓴다.

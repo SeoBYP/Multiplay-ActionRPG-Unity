@@ -21,7 +21,7 @@
 - [ ] **G1** GameServer 기동마다 Redis `FlushAllDatabases()` — `RedisStartupPreservationTests` — 🔄 xUnit GREEN(2026-10-27), Docker 리빌드 후 E2E 남음
 - [x] **S1** 플레이어가 몬스터·테스트 어빌리티 발동(105 = 데미지 9999) — `AttackAbilityTrustTests` — ✅ GREEN(2026-10-27, codemap §2.123): 발동자는 세션으로 확정(패킷에 ID 추가 안 함), `Gas.HasAbility(abilityId)` 로 보유 검사. 보유 = 기본기 상수 + `PlayerInfo.AbilityIds`(아래 스킬 장착)
 - [x] **S3** `C_Move` 무검증 — NaN·순간이동, NaN 이면 거리 검사 전부 통과 — `MoveInputValidationTests` — ✅ GREEN(2026-10-28, codemap §2.124): IsFinite + `MoveValidation.ClampStep`(8 m/s, 서버 수신 시각, 경과 상한 1s, 초과분 clamp) + 거리 비교 fail-closed
-- [ ] **G3** 지갑·인벤토리·Exp lost update / 이중 차감 통과 — `EconomyConcurrencyTests`
+- [x] **G3** 지갑·인벤토리·Exp lost update / 이중 차감 통과 — `EconomyConcurrencyTests` — ✅ GREEN(2026-11-14, codemap §2.125): 지갑·인벤토리 = 조건부 원자 UPDATE(`ExecuteUpdateAsync`), Exp = `FOR UPDATE` 행 잠금(원장 트랜잭션 안이면 그것을 재사용)
 - [ ] **G2** 퀘스트 보상 동시 요청 시 중복 지급 — `QuestClaimConcurrencyTests`
 - [ ] **G4** 착용 장비를 팔아도 스탯 유지 — `EquippedItemOwnershipTests` — ❓ 판매 거부 vs 조회 시 필터
 - [ ] **S2** 입장한 연결이 다른 UserId 로 재-Join → 남의 자리 탈취 — `PlayerJoinIdentityTests` — ❓ 새 연결 경로는 join 토큰(공개 계약)
@@ -128,7 +128,7 @@ dotnet test ServerAll/SocketServer/SocketServer.Tests/SocketServer.Tests.csproj
 - **3.1** 인벤토리(Inventory) — 스택형 소유, 서버 권위 영속 — ✅ | T1 | 🟢
 - **3.2** 장비(Equipment) — Weapon/Armor 슬롯 · 스탯 합산 — ✅ | T2 | 🟢 (⚠ 결함 G4)
 - **3.3** 루트/드랍(Loot) — 던전 드랍·줍기 + Main 경로 — ✅ | T2 | 🟢
-- **3.4** 재화(Wallet) — 골드 서버 권위 — ✅ | T2 | 🟢 (⚠ 결함 G3)
+- **3.4** 재화(Wallet) — 골드 서버 권위 — ✅ | T2 | 🟢
 - **3.5** 상점(Shop) — 구매/판매 — ✅ | T2 | 🟢
 - **3.6** 강화/크래프팅 — ⬜ | T3 | ⚪
 - **3.7** 아이템 등급/레어도 + 도감 — ✅ | T2 | 🟢 (도감은 보류)

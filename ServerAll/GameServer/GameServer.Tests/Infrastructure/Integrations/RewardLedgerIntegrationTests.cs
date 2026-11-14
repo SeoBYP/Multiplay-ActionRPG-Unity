@@ -105,6 +105,28 @@ public class RewardLedgerIntegrationTests(RepositoryTestFixture fixture)
         Assert.Equal(1, await LedgerCountAsync(key));
     }
 
+    [Fact]
+    public async Task 진행도_없는_유저에게_서로_다른_보상이_동시에_와도_경험치가_모두_지급된다()
+    {
+        // 원장 트랜잭션 안에서 진행도 행 lazy create 가 경합한다(첫 던전 클리어 + 첫 킬).
+        // 행 생성 충돌이 원장 트랜잭션을 깨면 그 보상은 롤백 → 재배달까지 유실된다.
+        long userId = 96003;
+        const int count = 10;
+
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tasks = Enumerable.Range(0, count).Select(i => Task.Run(async () =>
+        {
+            await using var provider = BuildScopeProvider();
+            await gate.Task;
+            return await GrantExpAsync(provider, $"dungeon:{96100 + i}:{userId}", userId, 5);
+        })).ToList();
+        gate.SetResult();
+        var results = await Task.WhenAll(tasks);
+
+        Assert.All(results, Assert.True);
+        Assert.Equal(5 * count, await ExpOfAsync(userId));
+    }
+
     private static async Task<bool> GrantExpAsync(ServiceProvider provider, string grantKey, long userId, long amount)
     {
         using var scope = provider.CreateScope();

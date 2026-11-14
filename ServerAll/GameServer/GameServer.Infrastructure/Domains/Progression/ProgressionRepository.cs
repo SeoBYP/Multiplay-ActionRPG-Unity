@@ -17,6 +17,7 @@ public class ProgressionRepository(
     ILogger<ProgressionRepository> logger) : IProgressionRepository
 {
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
+    
 
     public async Task<UserProgression?> GetAsync(long userId, CancellationToken ct = default)
     {
@@ -47,22 +48,33 @@ public class ProgressionRepository(
     {
         try
         {
+            await using var tx = context.Database.CurrentTransaction is null
+                ? await context.Database.BeginTransactionAsync(ct)
+                : null;
+
+            if (!await context.UserProgressions.AnyAsync(p => p.UserId == userId, ct))
+                await context.AddIfMissingAsync(UserProgression.Create(userId), ct);
+
             var progression = await context.UserProgressions
-                .SingleOrDefaultAsync(p => p.UserId == userId, ct);
+                .FromSql($"""SELECT * FROM user_progressions WHERE "UserId" = {userId} FOR UPDATE""")
+                .SingleAsync(ct);
 
-            if (progression is null)
-            {
-                progression = UserProgression.Create(userId);
-                progression.AddExp(amount, LevelTableCurve.Instance);
-                await context.UserProgressions.AddAsync(progression, ct);
-            }
-            else
-            {
-                progression.AddExp(amount, LevelTableCurve.Instance);
-            }
-
+            // if (progression is null)
+            // {
+            //     progression = UserProgression.Create(userId);
+            //     progression.AddExp(amount, LevelTableCurve.Instance);
+            //     await context.UserProgressions.AddAsync(progression, ct);
+            // }
+            // else
+            // {
+            //     
+            // }
+            
+            progression.AddExp(amount, LevelTableCurve.Instance);
             await context.SaveChangesAsync(ct);
 
+            if (tx is not null)
+                await tx.CommitAsync(ct);
             // 캐시는 덮어쓰지 않고 DEL (stale·부분갱신 방지)
             await DeleteCacheAsync(userId);
 

@@ -47,7 +47,7 @@ public sealed class RewardLedger(
             await tx.CommitAsync(ct);
             return true;
         }
-        catch (DbUpdateException e) when (IsUniqueViolation(e))
+        catch (DbUpdateException e) when (DbContextExtensions.IsUniqueViolation(e))
         {
             // 다른 인스턴스가 방금 지급했다 — 이중지급이 아니라 정상 경합.
             entry.State = EntityState.Detached;
@@ -63,7 +63,4 @@ public sealed class RewardLedger(
             throw;
         }
     }
-
-    private static bool IsUniqueViolation(DbUpdateException e)
-        => e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
 }

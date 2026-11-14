@@ -82,6 +82,29 @@
 > ⚠️ **재번호(2026-07-17)** — 원래 2.60~2.76 으로 매겨져 기존 항목(2.60 회피·2.61 콤보·2.62 로스터·2.63 캡슐)과 **번호가 충돌**했다. 과거 커밋 메시지·PR 본문의 참조는 아래 대조표로 읽는다:
 > 구2.60(애니)→**2.64** · 2.61(B1)→**2.65** · 2.62(B2)→**2.66** · 2.63(B3)→**2.67** · 2.64(B4)→**2.68** · 2.65(B5)→**2.69** · 2.66(B6)→**2.70** · 2.67(C3-hotfix)→**2.71** · 2.68(C3)→**2.72** · 2.69(infra)→**2.73** · 2.70(C1a)→**2.74** · 2.71(C1b)→**2.75** · 2.72(C1c준비)→**2.76** · 2.73(사망체력바)→**2.77** · 2.74(C2)→**2.78** · 2.75(링포화)→**2.79** · 2.76(E~H)→**2.80**
 
+### 2.125 경제 쓰기 = 검사와 증감을 DB 한 문장(또는 행 잠금) 안에서 (G3, 2026-11-14)
+
+**위치**: `WalletRepository.AddBalanceAsync`·`TrySpendBalanceAsync` · `InventoryRepository.AddQuantityAsync`·`RemoveQuantityAsync` → `ExecuteUpdateAsync`.
+`ProgressionRepository.AddExpAsync` → `FromSql(... FOR UPDATE)` + 트랜잭션.
+
+**왜**: 전부 "추적 읽기 → C# 에서 검사·증감 → SaveChanges" 였다. 동시 요청이 같은 값을 읽고 각자 덮어써서 100골드로 10번 결제, +10×10 이 +10 이 됐다.
+EF 가 보내는 `UPDATE … SET balance = 0` 에 "아직 충분할 때만" 조건이 없었던 것이 원인.
+
+**규칙**:
+- 차감 = `WHERE 잔량 >= amount` + `SET 잔량 - amount`. **영향 행 0 = 실패(null)**. 반환값은 행 수가 아니라 `AsNoTracking` 재조회 값.
+- 적립 = `SET 잔량 + amount`. 행이 없으면 먼저 `AnyAsync` → `context.AddIfMissingAsync(Entity.Create(..))`(`Persistence/DbContextExtensions.cs`).
+  INSERT 는 EF 가 엔티티로 만든다(초기값은 `Create()` 한 곳 — raw `ON CONFLICT` 는 스키마 변경 때 같이 고쳐야 해서 버림). 동시 첫 생성은 UNIQUE 위반을 삼키고 false.
+  `finally` Detach 필수 — 안 하면 다음 `FOR UPDATE` 조회가 Create 직후 객체(stale)를 돌려준다. `AnyAsync` 선검사는 매 호출 예외·PG ERROR 로그를 막는다.
+  인벤토리는 `Create` 가 수량 0 을 거부하므로 실제 수량으로 INSERT, 만들었으면(true) UPDATE 생략.
+  원장 트랜잭션 안의 UNIQUE 위반은 EF 자동 세이브포인트로 트랜잭션이 살아남는다(실험 3/3).
+- 인벤토리 상한 = `Quantity >= maxStack ? Quantity : min(Quantity + amount, maxStack)` — 이미 넘친 스택(maxStack 하향)을 깎지 않는다.
+- 전량 차감 행 삭제 = 차감 뒤 `WHERE Quantity == 0` `ExecuteDeleteAsync` — 그 사이 적립되면 지우지 않는다.
+- Exp 는 레벨업 계산이 C#(`LevelTableCurve`)이라 원자 UPDATE 불가 → 행 잠금. **`RewardLedger` 가 이미 트랜잭션을 연 채로 부르므로** `CurrentTransaction is null` 일 때만 열고 커밋한다.
+- `ExecuteUpdateAsync` 는 엔티티를 우회 → 캐시 DEL 은 직접(Exp 는 커밋 뒤), `UpdatedAt` 은 갱신되지 않는다(표시 미사용).
+
+**가드**: `EconomyConcurrencyTests`(8 — 행 없는 동시 첫 적립 3 포함) · `InventoryRepositoryIntegrationTests.AddQuantity_스택이_이미_최대를_넘으면_적립해도_줄어들지_않는다` · `RewardLedgerIntegrationTests.진행도_없는_유저에게_서로_다른_보상이_동시에_와도_경험치가_모두_지급된다`.
+⚠️ 미해결: G10(초과분 과금).
+
 ### 2.124 C_Move 검증 — 클라 위치는 서버 시계 기준 최대 속도까지만 받는다 (S3, 2026-10-28)
 
 **위치**: `MovementHandler.HandleMove`(IsFinite 4값 → 수신 시각 `nowMs`) → `ActorStore.ApplyClientMove`(락, 미존재면 중계 안 함)
